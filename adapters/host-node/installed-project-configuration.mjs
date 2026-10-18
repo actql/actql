@@ -2,17 +2,36 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {dirname, join, resolve} from 'node:path';
 import {open} from 'node:fs/promises';
 import {readBoundedConfigurationUtf8} from './source-profile-json.mjs';
+import {assertInitialControlInstallationCurrent}
+  from './node-initial-control-installation.mjs';
 
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 const retainedProjects = new WeakMap();
+
+function originalForRuntime(retained, moon) {
+  if (retained.retired) fail('InstalledProjectOriginalRetired');
+  if (retained.moon !== moon) fail('ForeignInstalledProjectRuntime');
+  return retained.original;
+}
 
 // A private issued-project lookup, not a DATA or equal-wire reconstruction.
 // Consumers keep the original callback runtime through every file read.
 export function installedProjectOriginalsForRuntime(project, moon) {
   const retained = retainedProjects.get(project);
   if (retained === undefined) fail('ForeignInstalledProjectOriginal');
-  if (retained.moon !== moon) fail('ForeignInstalledProjectRuntime');
-  return retained.original;
+  return originalForRuntime(retained, moon);
+}
+
+// Managed original-reference retirement only, after the existing Host's child
+// cleanup or for an unadopted preparation. It does not acknowledge any file,
+// body, Store, startup envelope, escaped alias, garbage collection or capacity.
+export function retireInstalledProjectConfiguration(project, moon) {
+  const retained = retainedProjects.get(project);
+  if (retained === undefined) fail('ForeignInstalledProjectOriginal');
+  originalForRuntime(retained, moon);
+  retained.retired = true;
+  retained.original = undefined;
+  retained.moon = undefined;
 }
 
 function readConfiguration(moon, configurationWire, readers) {
@@ -47,11 +66,11 @@ function retainConfiguration(moon, configurationWire, modelRegistryWire,
   // equal-CID reconstruction, fallback runtime or new preparation is used.
   const original = Object.freeze({configuration, modelRegistry,
     configurationWire, modelRegistryWire});
+  const retained = {moon, original, retired: false};
   const project = Object.freeze({originalsForRuntime(runtime) {
-    if (runtime !== moon) fail('ForeignInstalledProjectRuntime');
-    return original;
+    return originalForRuntime(retained, runtime);
   }});
-  retainedProjects.set(project, {moon, original});
+  retainedProjects.set(project, retained);
   return project;
 }
 
@@ -74,7 +93,17 @@ export function admitInstalledProjectConfiguration(moon, configurationWire,
 // turn a nearer selected original into an absent project. This is not an
 // execution assembler, currentness proof, numerical envelope or permission.
 export async function loadInstalledProjectConfiguration(moon,
-  {directory = process.cwd(), openFile = open} = {}) {
+  {directory = process.cwd(), openFile = open,
+    initialControl, initialControlOriginals} = {}) {
+  const check = () => {
+    if (initialControl !== undefined || initialControlOriginals !== undefined) {
+      assertInitialControlInstallationCurrent(initialControl, initialControlOriginals);
+    }
+  };
+  // A supplied scope is checked by the SAME preload's nominal operation, not
+  // by a caller's assertCurrent method. Legacy standalone DATA/read callers
+  // do not acquire an operational admission by omitting these private inputs.
+  check();
   if (typeof directory !== 'string' || !directory ||
       typeof openFile !== 'function') fail('InvalidInstalledProjectLocation');
   // These original callbacks and their receiver remain fixed across file I/O.
@@ -89,6 +118,7 @@ export async function loadInstalledProjectConfiguration(moon,
   }
   let selectedDirectory = resolve(directory);
   for (;;) {
+    check();
     const configurationPath = join(selectedDirectory, 'actql.config.json');
     let opened = false, configurationWire;
     try {
@@ -100,12 +130,17 @@ export async function loadInstalledProjectConfiguration(moon,
         }});
     } catch (error) {
       if (opened || error?.code !== 'ENOENT') throw error;
+      check();
       const parent = dirname(selectedDirectory);
       if (parent === selectedDirectory) return undefined;
       selectedDirectory = parent;
       continue;
     }
+    // The original file Owner has closed or retained its FD before this
+    // refusal can occur; do not lose an acquired handle before its custody.
+    check();
     const admitted = readConfiguration(moon, configurationWire, readers);
+    check();
     const state = Reflect.apply(stateDirectory, moon, [admitted.configuration]);
     if (typeof state !== 'string' || !state) fail('InvalidInstalledProjectLocation');
     const registryPath = admitted.selected == null ? undefined :
@@ -113,12 +148,16 @@ export async function loadInstalledProjectConfiguration(moon,
     const registryWire = registryPath === undefined ? undefined :
       await readBoundedConfigurationUtf8(registryPath,
         {maxBytes: 65536, openFile});
+    check();
     const retained = retainConfiguration(moon, configurationWire, registryWire, admitted, readers);
+    // Register the returned view before the caller's next current check. A
+    // refused current phase still owns this exact same retained record.
     const project = Object.freeze({configurationPath, directory: selectedDirectory,
       stateDirectory: resolve(selectedDirectory, state), registryPath,
       originalsForRuntime: retained.originalsForRuntime});
-    retainedProjects.set(project, {moon,
-      original: installedProjectOriginalsForRuntime(retained, moon)});
+    // Both views share this same retirement record. Copying the getter must
+    // not leave its earlier closure able to recover retired original DATA.
+    retainedProjects.set(project, retainedProjects.get(retained));
     return project;
   }
 }

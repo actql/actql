@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {admitInstalledProjectConfiguration,
-  loadInstalledProjectConfiguration} from './installed-project-configuration.mjs';
+  installedProjectOriginalsForRuntime, loadInstalledProjectConfiguration,
+  retireInstalledProjectConfiguration} from './installed-project-configuration.mjs';
+import {loadInstalledProjectConnections} from './installed-project-connections.mjs';
+import {retainInstalledHostRuntimeFailure} from './installed-host-cleanup.mjs';
 import {runtimeFailure, runtimePair} from '../host-common/compiler-binding.generated.mjs';
 
 // Pure adapter counters with explicit Common doubles; actual generated runtime
@@ -26,6 +29,21 @@ function common(selected) {
   return {moon, configuration, registry, calls};
 }
 
+test('a caller scope method cannot admit Project work without the original startup', async () => {
+  let runtimeReads = 0, opens = 0, callerChecks = 0;
+  const moon = new Proxy({}, {get() {runtimeReads++; assert.fail('No Common reads');}});
+  const scope = {assertCurrent() {callerChecks++; return true;}};
+  for (const privateInputs of [
+    {initialControl: scope}, {initialControlOriginals: {}},
+    {initialControl: scope, initialControlOriginals: {}},
+  ]) {
+    await assert.rejects(loadInstalledProjectConfiguration(moon,
+      {directory: '/project', openFile() {opens++;}, ...privateInputs}),
+    {code: 'NodeInitialControlAdmissionUnavailable'});
+  }
+  assert.equal(runtimeReads, 0); assert.equal(opens, 0); assert.equal(callerChecks, 0);
+});
+
 test('project adapter retains the exact original configuration registry and receiver', () => {
   const {moon, configuration, registry, calls} = common('./tasks.json');
   const configWire = ' {"original":"configuration"}\n', registryWire = ' {"original":"registry"} ';
@@ -40,6 +58,67 @@ test('project adapter retains the exact original configuration registry and rece
   assert.deepEqual(calls, [['configuration', configWire], ['registry', registryWire]]);
   assert.throws(() => admitted.originalsForRuntime({...moon}),
     {code: 'ForeignInstalledProjectRuntime'});
+});
+
+test('project retirement cuts original lookups without rewriting escaped canonical DATA', () => {
+  const f = common('./tasks.json');
+  const project = admitInstalledProjectConfiguration(f.moon, ' {"original":1} ', ' {"registry":1} ');
+  const original = installedProjectOriginalsForRuntime(project, f.moon);
+  const getter = project.originalsForRuntime;
+  assert.equal(getter(f.moon), original);
+  retireInstalledProjectConfiguration(project, f.moon);
+  assert.throws(() => installedProjectOriginalsForRuntime(project, f.moon),
+    {code: 'InstalledProjectOriginalRetired'});
+  assert.throws(() => getter(f.moon), {code: 'InstalledProjectOriginalRetired'});
+  assert.throws(() => retireInstalledProjectConfiguration(project, f.moon),
+    {code: 'InstalledProjectOriginalRetired'});
+  assert.equal(original.configuration, f.configuration);
+  assert.equal(original.modelRegistry, f.registry);
+  assert.equal(original.configurationWire, ' {"original":1} ');
+  assert.equal(original.modelRegistryWire, ' {"registry":1} ');
+  assert.ok(Object.isFrozen(original));
+  assert.equal(f.calls.length, 2, 'retirement does not readmit or reconstruct originals');
+});
+
+test('copied and foreign-runtime retirement cannot retire the original project', () => {
+  const f = common(undefined), project = admitInstalledProjectConfiguration(f.moon, '{}');
+  const original = project.originalsForRuntime(f.moon);
+  assert.throws(() => retireInstalledProjectConfiguration({...project}, f.moon),
+    {code: 'ForeignInstalledProjectOriginal'});
+  assert.throws(() => retireInstalledProjectConfiguration(project, {...f.moon}),
+    {code: 'ForeignInstalledProjectRuntime'});
+  assert.equal(project.originalsForRuntime(f.moon), original);
+  retireInstalledProjectConfiguration(project, f.moon);
+});
+
+test('failed initialization retains its project until the same child completes', async () => {
+  const f = common(undefined), project = admitInstalledProjectConfiguration(f.moon, '{}');
+  const original = project.originalsForRuntime(f.moon);
+  let pending = true, retries = 0, retired = 0;
+  const child = {status: () => ({pending}), retry() {retries++;}};
+  const primary = Object.freeze(new Error('OriginalPreparationFailed'));
+  const failure = retainInstalledHostRuntimeFailure({primaryFailure: primary, cleanupHandle: child}, () => {
+    retireInstalledProjectConfiguration(project, f.moon); retired++;
+  });
+  assert.equal(failure.primaryFailure, primary);
+  assert.equal((await failure.cleanupHandle.retry()).pending, true);
+  assert.equal(project.originalsForRuntime(f.moon), original);
+  assert.equal(retired, 0);
+  pending = false;
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal(retired, 1); assert.equal(retries, 1);
+  assert.throws(() => project.originalsForRuntime(f.moon), {code: 'InstalledProjectOriginalRetired'});
+});
+
+test('retired project cannot begin downstream connections acquisition', async () => {
+  const f = common(undefined), project = admitInstalledProjectConfiguration(f.moon, '{}');
+  retireInstalledProjectConfiguration(project, f.moon);
+  let reads = 0, currentChecks = 0;
+  await assert.rejects(loadInstalledProjectConnections(f.moon, project, {
+    assertCurrent() {currentChecks++;}, openFile() {reads++;},
+  }), {code: 'InstalledProjectOriginalRetired'});
+  assert.equal(reads, 0); assert.equal(currentChecks, 0);
 });
 
 test('plain project does not require or fabricate a Model registry', () => {
@@ -157,6 +236,20 @@ test('project discovery retains the nearest original pair once with configuratio
   assert(Object.isFrozen(project));
   assert.throws(() => project.originalsForRuntime({...fixture.moon}),
     {code: 'ForeignInstalledProjectRuntime'});
+});
+
+test('discovered project and its captured getter share the same retirement record', async () => {
+  const f = loadingCommon('./tasks.json');
+  const source = files({'/project/actql.config.json': '{}', '/project/tasks.json': '{}'});
+  const project = await loadInstalledProjectConfiguration(f.moon,
+    {directory: '/project', openFile: source.openFile});
+  const getter = project.originalsForRuntime;
+  assert.equal(getter(f.moon), installedProjectOriginalsForRuntime(project, f.moon));
+  retireInstalledProjectConfiguration(project, f.moon);
+  assert.throws(() => getter(f.moon), {code: 'InstalledProjectOriginalRetired'});
+  assert.throws(() => project.originalsForRuntime(f.moon), {code: 'InstalledProjectOriginalRetired'});
+  assert.deepEqual(source.handles.map(handle => handle.closes), [1, 1]);
+  assert.equal(source.attempts.length, 2, 'managed retirement does not reopen or close a file again');
 });
 
 test('project discovery reaches root only through acknowledged missing opens', async () => {
