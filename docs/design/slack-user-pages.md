@@ -265,7 +265,10 @@ retain this correspondence; none issues a physical Source or Resource grant.
 The private history reader projects each HTTP channel/cursor/time argument from
 its original Common pending request. The captured provider callbacks retain
 their original receiver; provider replacement after a token await cannot change
-the protocol. Account and currentness are checked around every await, including
+the protocol. The column list captures each original indexed value once and
+validates that owned snapshot. Index getters keep their ordinary responsibility;
+caller Array methods, iterators and species cannot replace the retained fields.
+Account and currentness are checked around every await, including
 identity observation and row consumption, before any next Common request is
 constructed. The same retained credential binding observes `auth.test` with a
 separate workspace-identity use; the history operation keeps its own grant/use.
