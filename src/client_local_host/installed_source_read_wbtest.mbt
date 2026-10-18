@@ -61,6 +61,7 @@ test "Source read consumer identity without an original child is unavailable" {
   let value : ClientInstalledSourceRead = {
     original: None,
     child: None,
+    managed_run: None,
     ledger: None,
     owner: None,
     declaration: None,

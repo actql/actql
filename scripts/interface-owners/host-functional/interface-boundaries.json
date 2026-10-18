@@ -59737,116 +59737,6 @@
       "referenceQualification": "Existing original Host/Resource responsibility references; neither syntax coverage nor a helper call supplies operational business capacity or installed acceptance."
     },
     {
-      "module": "adapters/host-node/source-managed-phase-envelope.cjs",
-      "sha256": "f1381411882c7c9d05eb445162ac95d7d61a904fd913b4f61ac9c26d4aeb88c1",
-      "exports": [
-        "commonjs:declareSourceManagedPhaseEnvelope"
-      ],
-      "operations": [
-        {
-          "name": "declareSourceManagedPhaseEnvelope",
-          "parameters": [
-            "controlDeclaration"
-          ],
-          "async": false
-        },
-        {
-          "name": "declareSourceManagedPhaseEnvelope/declareSourceManagedPhaseEnvelope",
-          "parameters": [
-            "ordinal"
-          ],
-          "async": false
-        },
-        {
-          "name": "unavailable/unavailable",
-          "parameters": [],
-          "async": false
-        }
-      ],
-      "imports": [],
-      "compilerFields": [],
-      "unresolvedSyntax": [],
-      "responsibilityFacet": "primary",
-      "owner": "Existing Resource and Host Source phase accounting; DATA is not an operational admission",
-      "role": "physical-io",
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "declareSourceManagedPhaseEnvelope",
-            "declareSourceManagedPhaseEnvelope/declareSourceManagedPhaseEnvelope",
-            "unavailable/unavailable"
-          ],
-          "exports": [
-            "commonjs:declareSourceManagedPhaseEnvelope"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "// Selected Source recipe DATA, not a startup/Source issuer or an external"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "function declareSourceManagedPhaseEnvelope(controlDeclaration)"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "return freeze({limits,inputLimits,controlDeclaration,"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "lifetime:'same-original-process-and-escaped-Source-lifetime'"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "// and adopts this additional scope before any SDK snapshot/preparation."
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "const unavailable = () => {throw Object.assign(new NativeError('SourceManagedEnvelopeUnavailable'),"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "replenishedOnSourceClose:false"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "const simultaneousBytes = controlDeclaration.bytes + externalBytes;"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "// must cover these BEFORE use; this calculation supplies no Buffer/FD/TLS."
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/source-managed-phase-envelope.test.mjs",
-                "anchor": "control and Source share one managed/native domain while external overlaps are additive"
-              }
-            ]
-          }
-        }
-      ],
-      "referenceQualification": "Existing original Host/Resource responsibility references; neither syntax coverage nor a helper call supplies operational business capacity or installed acceptance."
-    },
-    {
       "module": "adapters/host-node/node-source-managed-installation.mjs",
       "sha256": "e0e3d2a81c95a66372110929dbfd1653bfd25bbbc2c8fb3ad5cc6500bdbf5634",
       "exports": [
@@ -60145,6 +60035,116 @@
       "referenceQualification": "Existing original Host/Resource responsibility references; neither syntax coverage nor a helper call supplies operational business capacity or installed acceptance."
     },
     {
+      "module": "adapters/host-node/source-managed-phase-envelope.cjs",
+      "sha256": "f1381411882c7c9d05eb445162ac95d7d61a904fd913b4f61ac9c26d4aeb88c1",
+      "exports": [
+        "commonjs:declareSourceManagedPhaseEnvelope"
+      ],
+      "operations": [
+        {
+          "name": "declareSourceManagedPhaseEnvelope",
+          "parameters": [
+            "controlDeclaration"
+          ],
+          "async": false
+        },
+        {
+          "name": "declareSourceManagedPhaseEnvelope/declareSourceManagedPhaseEnvelope",
+          "parameters": [
+            "ordinal"
+          ],
+          "async": false
+        },
+        {
+          "name": "unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "owner": "Existing Resource and Host Source phase accounting; DATA is not an operational admission",
+      "role": "physical-io",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "declareSourceManagedPhaseEnvelope",
+            "declareSourceManagedPhaseEnvelope/declareSourceManagedPhaseEnvelope",
+            "unavailable/unavailable"
+          ],
+          "exports": [
+            "commonjs:declareSourceManagedPhaseEnvelope"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "// Selected Source recipe DATA, not a startup/Source issuer or an external"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "function declareSourceManagedPhaseEnvelope(controlDeclaration)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "return freeze({limits,inputLimits,controlDeclaration,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "lifetime:'same-original-process-and-escaped-Source-lifetime'"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "// and adopts this additional scope before any SDK snapshot/preparation."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "const unavailable = () => {throw Object.assign(new NativeError('SourceManagedEnvelopeUnavailable'),"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "replenishedOnSourceClose:false"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "const simultaneousBytes = controlDeclaration.bytes + externalBytes;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "// must cover these BEFORE use; this calculation supplies no Buffer/FD/TLS."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.test.mjs",
+                "anchor": "control and Source share one managed/native domain while external overlaps are additive"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original Host/Resource responsibility references; neither syntax coverage nor a helper call supplies operational business capacity or installed acceptance."
+    },
+    {
       "module": "adapters/host-node/source-response-backing.cjs",
       "sha256": "6c561b34797537877339d95697fe8c9bf3211aa6df071f8393a2c58093bfcb66",
       "exports": [
@@ -60420,10 +60420,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 136,
-    "operations": 3304,
-    "exports": 882,
-    "explicitContractGroups": 163
+    "modules": 142,
+    "operations": 3418,
+    "exports": 902,
+    "explicitContractGroups": 169
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }

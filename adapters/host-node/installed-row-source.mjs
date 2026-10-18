@@ -956,7 +956,7 @@ export async function createInstalledRowSource({moon, declaration,
   readPages, bindingCid, limits, referenceIssuer, listingPolicy, captureContent,
   listingReportCapacity, prepareAcquisition, directReadIdentity,
   prepareRead, grantBeforeBegin = false, originalSourceAccess, providerReader,
-  prepareSourceRead}) {
+  prepareSourceRead, readAsset, originalPageLimits}) {
   // Trusted installation compatibility only: preserve an existing provider
   // identity and ordering while this one Owner retains preparation, current
   // authorization, RowRun, capture and failure cleanup. No wire selects this
@@ -985,6 +985,24 @@ export async function createInstalledRowSource({moon, declaration,
       ['clientProgramInstalledSourceReadCheckCurrent', 'clientProgramInstalledSourceReadBindProgram',
         'clientProgramInstalledSourceReadBindEffectProgram', 'clientProgramInstalledSourceReadAttachAcquisition']
         .some(name => typeof moon?.[name] !== 'function'))) fail('InstalledSourceReadUnavailable');
+  // Only the original local Source consumer can borrow these private
+  // installation inputs. Neither option is a public packet or a capacity
+  // issuer; the same RowRun still admits its actual original child below.
+  if (readAsset !== undefined && (prepareSourceRead === undefined ||
+      typeof readAsset !== 'function')) fail('InstalledSourceReadUnavailable');
+  let pageLimits;
+  if (originalPageLimits !== undefined) {
+    if (prepareSourceRead === undefined || originalPageLimits === null ||
+        typeof originalPageLimits !== 'object' || nodeTypes.isProxy(originalPageLimits) ||
+        Object.getPrototypeOf(originalPageLimits) !== Object.prototype) fail('InvalidInstalledSourcePageLimits');
+    const properties = Object.getOwnPropertyDescriptors(originalPageLimits);
+    if (Reflect.ownKeys(properties).length !== 2 || ['maxNodes', 'maxDepth'].some(name =>
+      !Object.hasOwn(properties[name] ?? {}, 'value') ||
+      !Number.isSafeInteger(properties[name].value) || properties[name].value < 1 ||
+      properties[name].value > 2147483647) ||
+      typeof moon.clientProgramRowSourceBeginWithPageLimits !== 'function') fail('InvalidInstalledSourcePageLimits');
+    pageLimits = Object.freeze({maxNodes: properties.maxNodes.value, maxDepth: properties.maxDepth.value});
+  }
   if (providerReader !== undefined) {
     if (providerReader === null || typeof providerReader !== 'object' ||
         Object.keys(providerReader).length !== 2 ||
@@ -1024,9 +1042,14 @@ export async function createInstalledRowSource({moon, declaration,
         typeof moon?.clientProgramRowSourceStartListingAccounted !== 'function')) {
     fail('InstalledListingSourceUnavailable');
   }
-  const [queryContract, evidenceContract] = await Promise.all([
-    'actql-query-acquisition.json', 'actql-query-process-evidence.json',
-  ].map(name => readFile(new URL(name, contractRoot), 'utf8')));
+  const [queryContract, evidenceContract] = readAsset === undefined
+    ? await Promise.all(['actql-query-acquisition.json', 'actql-query-process-evidence.json']
+      .map(name => readFile(new URL(name, contractRoot), 'utf8')))
+    : ['actql-query-acquisition.json', 'actql-query-process-evidence.json']
+      .map(name => readAsset(`spec/contracts/${name}`));
+  if (typeof queryContract !== 'string' || typeof evidenceContract !== 'string') {
+    fail('InstalledSourceReadUnavailable');
+  }
   const sourceRefs = new Set(declared.views.map(view => view.source_ref));
   if (!['maxPages', 'maxPageBytes', 'maxPageRows', 'maxCaptureRows']
     .every(key => Number.isSafeInteger(limits?.[key]) && limits[key] > 0 &&
@@ -1837,7 +1860,7 @@ export async function createInstalledRowSource({moon, declaration,
       captureCapacity(owner);
     }
     const decision = await currentRead(prepared, access, signal);
-    const granted = decision.basis === 'resumed_approval'
+    const granted = owner.originalRead === undefined && decision.basis === 'resumed_approval'
       ? site.admitCheckpointReadApproval(decision) : decision;
     const acquisition = owner.acquisition;
     const columns = [...moon.clientProgramRowSourceColumns(acquisition)];
@@ -1904,16 +1927,24 @@ export async function createInstalledRowSource({moon, declaration,
         dispatchRequestCid, maxUses: limits.maxPages});
       // Preserve a selected driver's original grant/attempt order. The
       // ordinary JSON/listing path keeps its existing post-begin issuance.
-      let grant = grantBeforeBegin ? issueGrant() : undefined;
-      checked(moon.clientProgramRowSourceBegin(run, limits.maxPageBytes,
-        limits.maxPageRows, limits.maxCaptureRows, referenceIssuer));
+      // A local original read has no credential to issue. It retains the
+      // independently current Account decision and original child; neither is
+      // turned into a synthetic Site grant or a public read permission.
+      const credentialRead = owner.originalRead === undefined;
+      let grant = credentialRead && grantBeforeBegin ? issueGrant() : undefined;
+      checked(pageLimits === undefined
+        ? moon.clientProgramRowSourceBegin(run, limits.maxPageBytes,
+          limits.maxPageRows, limits.maxCaptureRows, referenceIssuer)
+        : moon.clientProgramRowSourceBeginWithPageLimits(run, limits.maxPageBytes,
+          pageLimits.maxNodes, pageLimits.maxDepth, limits.maxPageRows,
+          limits.maxCaptureRows, referenceIssuer));
       const isListing = moon.clientProgramRowSourceIsListing(acquisition);
       // paths=[] is already typed and complete. Do not issue a read grant or
       // enter a Site driver merely to manufacture an empty transport result.
       if (isListing && moon.clientProgramRowSourceListingComplete(run)) {
         return await complete();
       }
-      if (!grantBeforeBegin) grant = issueGrant();
+      if (credentialRead && !grantBeforeBegin) grant = issueGrant();
       state.started = true;
       const rowRun = Object.freeze({acquisition, run, requestId: nonce,
         runInvocationCid, dispatchRequestCid,
@@ -1931,13 +1962,13 @@ export async function createInstalledRowSource({moon, declaration,
         ...(isListing ? {listing: rowListingCallbacks({moon, run, signal,
           currentRead: () => currentRead(prepared, access, signal)})} : {}),
         // The current read decision is taken again before every request.
-        authorizationFor: async index => {
+        ...(credentialRead ? {authorizationFor: async index => {
           if (index > 0) await currentRead(prepared, access, signal);
           const useId = directReadIdentity === undefined ? `${nonce}-read-${index}`
             : directReadIdentity.useId(nonce, index);
           if (!text(useId)) fail('InvalidInstalledSourceReadIdentity');
           return {...grant, useId};
-        },
+        }} : {}),
         chargePage: body => checked(moon.clientProgramRowSourceChargePage(
           run, body)),
         consumeObservation: ledger === undefined ? undefined : function consumeObservation(charge) {
