@@ -14,6 +14,7 @@ struct InstalledArenaHost {
   mut closed : Bool
   domain_record_limit : Int
   domains : Array[InstalledArenaDomain]
+  mut local_host_resources : InstalledArenaLocalHostResources?
 }
 
 ///|
@@ -40,6 +41,7 @@ pub fn prepare_installed_arena_host(
     closed: false,
     domain_record_limit: limits.attempts,
     domains: [],
+    local_host_resources: None,
   }
   match
     @bootstrap.prepare_installed_arena_supplier(
@@ -346,6 +348,9 @@ pub fn InstalledArenaHost::try_close(
     return Ok(())
   }
   self.closing = true
+  if self.local_host_resources is Some(resources) && !resources.closed {
+    return Err(@bootstrap.ReadersPending)
+  }
   if self.domains.any(domain => !domain.closed) {
     return Err(@bootstrap.ReadersPending)
   }
@@ -359,6 +364,7 @@ pub fn InstalledArenaHost::try_close(
   self.supplier = None
   self.closed = true
   self.domains.clear()
+  self.local_host_resources = None
   Ok(())
 }
 
