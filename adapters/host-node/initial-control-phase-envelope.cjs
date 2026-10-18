@@ -38,9 +38,27 @@ const own = (value, name) => {
   return field.value;
 };
 
-function inspectInitialControlPhaseEnvelope(inventory, heapCeilingBytes) {
+function declareInitialControlPhaseEnvelope(heapCeilingBytes) {
   if (!integer(heapCeilingBytes) || heapCeilingBytes <= 0 ||
       heapCeilingBytes > limits.heapCeilingBytes) unavailable();
+  // Declare the WHOLE supported recipe before reading its generated inventory.
+  // Smaller actual source facts do not retroactively issue capacity or create
+  // free credit. Buffer slabs are conservatively retained per image through
+  // process end, including a separate small backing and lookahead allocation.
+  const compilerBytes = limits.sourceBytes * limits.compilerBytesPerSourceByte;
+  const moduleNativeBytes = limits.imageFiles * limits.moduleNativeBytes;
+  const sourceBackingBytes = limits.sourceBytes + limits.imageFiles * 16384;
+  const nativeBytes = limits.fixedNativeBytes + compilerBytes + moduleNativeBytes;
+  const bytes = heapCeilingBytes + nativeBytes + sourceBackingBytes +
+    limits.preparationExternalBytes;
+  if (!integer(bytes)) unavailable();
+  return freeze({limits, heapCeilingBytes, compilerBytes, moduleNativeBytes, sourceBackingBytes,
+    nativeBytes, preparationExternalBytes: limits.preparationExternalBytes, bytes,
+    lifetime: 'original-process-and-escaped-module-lifetime'});
+}
+
+function inspectInitialControlPhaseEnvelope(inventory, declaration) {
+  if (declaration?.limits !== limits) unavailable();
   const packages = own(inventory, 'packages');
   if (!array(packages) || packages.length > limits.packages) unavailable();
   let files = 0, sourceBytes = 0, edges = 0;
@@ -70,21 +88,10 @@ function inspectInitialControlPhaseEnvelope(inventory, heapCeilingBytes) {
     images(own(publicNode, 'images'));
     dependencies(own(publicNode, 'dependencies'));
   }
-  // The compiler/native terms are explicit selected-runtime assumptions,
-  // independently of retained source bytes and V8's managed heap ceiling.
-  // No observed low RSS/heap use is subtracted as credit. All process terms
-  // remain charged after installation close, including escaped module aliases.
-  const compilerBytes = sourceBytes * limits.compilerBytesPerSourceByte;
-  const moduleNativeBytes = files * limits.moduleNativeBytes;
-  const sourceBackingBytes = sourceBytes + files; // full capture + one lookahead/file
-  const nativeBytes = limits.fixedNativeBytes + compilerBytes + moduleNativeBytes;
-  const bytes = heapCeilingBytes + nativeBytes + sourceBackingBytes +
-    limits.preparationExternalBytes;
-  if (!integer(bytes)) unavailable();
+  // The actual facts select only a member of the already declared finite
+  // runtime/control recipe. They authenticate no operational admission.
   return freeze({limits, images: files, packages: packages.length, dependencyEdges: edges,
-    sourceBytes, heapCeilingBytes, compilerBytes, moduleNativeBytes, sourceBackingBytes,
-    nativeBytes, preparationExternalBytes: limits.preparationExternalBytes, bytes,
-    lifetime: 'original-process-and-escaped-module-lifetime'});
+    sourceBytes, declaration});
 }
 
-module.exports = freeze({inspectInitialControlPhaseEnvelope});
+module.exports = freeze({declareInitialControlPhaseEnvelope, inspectInitialControlPhaseEnvelope});

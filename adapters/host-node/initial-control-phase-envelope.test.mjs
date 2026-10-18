@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import module from './initial-control-phase-envelope.cjs';
 
-const {inspectInitialControlPhaseEnvelope: inspect} = module;
+const inspect = (inventory, heap) => module.inspectInitialControlPhaseEnvelope(inventory,
+  module.declareInitialControlPhaseEnvelope(heap));
 const file = (path, bytes) => ({path, bytes, sha256: '0'.repeat(64)});
 const inventory = () => ({images: [file('original.cjs', 1024)], dependencies: [],
   packages: [], publicNode: null});
@@ -12,16 +13,16 @@ const unavailable = {code: 'NodeInitialControlEnvelopeUnavailable'};
 // operational original, demonstrate its native bound or open a real Host.
 test('finite disposition includes simultaneous managed, native, compiler and full capture terms', () => {
   const selected = inspect(inventory(), 1024 * 1024);
-  assert.equal(selected.compilerBytes, 16384);
-  assert.equal(selected.moduleNativeBytes, 65536);
-  assert.equal(selected.sourceBackingBytes, 1025);
-  assert.equal(selected.nativeBytes, 268517376);
-  assert.equal(selected.preparationExternalBytes, 408944640);
-  assert.equal(selected.bytes, 678511617);
+  assert.equal(selected.declaration.compilerBytes, 2147483648);
+  assert.equal(selected.declaration.moduleNativeBytes, 134217728);
+  assert.equal(selected.declaration.sourceBackingBytes, 167772160);
+  assert.equal(selected.declaration.nativeBytes, 2550136832);
+  assert.equal(selected.declaration.preparationExternalBytes, 408944640);
+  assert.equal(selected.declaration.bytes, 3127902208);
   assert.equal(selected.limits.generations, 1);
   assert.equal(selected.limits.preparations, 1);
   assert.equal(selected.limits.opaqueCallerAliases, 0);
-  assert.equal(selected.lifetime, 'original-process-and-escaped-module-lifetime');
+  assert.equal(selected.declaration.lifetime, 'original-process-and-escaped-module-lifetime');
   assert.ok(Object.isFrozen(selected)); assert.ok(Object.isFrozen(selected.limits));
   assert.equal(selected.begin, undefined); assert.equal(selected.close, undefined);
 });
@@ -41,7 +42,7 @@ test('actual heap ceiling must fit the selected finite recipe without subtractin
   for (const bytes of [0, -1, Infinity, NaN, 1.5, 5 * 1024 ** 3 + 1]) {
     assert.throws(() => inspect(inventory(), bytes), unavailable);
   }
-  assert.equal(inspect(inventory(), 5 * 1024 ** 3).heapCeilingBytes, 5 * 1024 ** 3);
+  assert.equal(inspect(inventory(), 5 * 1024 ** 3).declaration.heapCeilingBytes, 5 * 1024 ** 3);
 });
 
 test('single-file, aggregate-source, path and image counts refuse before image acquisition', () => {

@@ -11,7 +11,8 @@ const {getHeapStatistics} = require('node:v8');
 const originalProcess = require('node:process');
 const applyOriginal = Reflect.apply;
 const {createInitialControlInstallationOwner} = require('./initial-control-installation-owner.cjs');
-const {inspectInitialControlPhaseEnvelope} = require('./initial-control-phase-envelope.cjs');
+const {declareInitialControlPhaseEnvelope, inspectInitialControlPhaseEnvelope}
+  = require('./initial-control-phase-envelope.cjs');
 // Selected runtime implementation duty: ONLY the V8 internal backing of these
 // two identity indices stays with this actual startup/module and escaped-handle
 // lifetime. It is not fixed SDK storage or a numerical lease. Entry records,
@@ -85,17 +86,22 @@ const selected = module.isPreloading === true &&
 // Source-only and incomplete distributions have no prepared image original.
 // Requiring the actual generated Source here precedes entry imports; loading a
 // similarly shaped caller object later cannot replace this module original.
-const initialControlPackageOriginal = selected && eagerSdkStartup && publicPreload !== undefined
+// The fixed bootstrap prefix itself belongs to the selected trusted-runtime
+// disposition. Declare its full managed/native/source/preparation ceiling
+// before the generated inventory or any captured image is initialized.
+const initialControlDeclaration = selected && eagerSdkStartup && publicPreload !== undefined
+  ? declareInitialControlPhaseEnvelope(applyOriginal(getHeapStatistics, undefined, []).heap_size_limit)
+  : undefined;
+const initialControlPackageOriginal = initialControlDeclaration !== undefined
   ? require('./initial-control-package-original.cjs').imageInventory : undefined;
 
-let startup;
+let startup, startupFailure;
 // The selected runtime/control disposition is an explicit finite trust premise,
 // not a universal V8/RSS lease or a resource profile. Instantiate it in this
 // actual early preload, before image capture/compilation and caller acquisition.
 // Source-only, non-eager and ordinary imports retain operational absence.
 const initialControlEnvelope = initialControlPackageOriginal === undefined ? undefined :
-  inspectInitialControlPhaseEnvelope(initialControlPackageOriginal,
-    applyOriginal(getHeapStatistics, undefined, []).heap_size_limit);
+  inspectInitialControlPhaseEnvelope(initialControlPackageOriginal, initialControlDeclaration);
 let preparationOriginals, preparationInput, preparationClosed = false;
 const samePreparation = held => preparationOriginals !== undefined &&
   held.host === preparationOriginals.host && held.installation === preparationOriginals.installation &&
@@ -145,13 +151,17 @@ const initialControl = createInitialControlInstallationOwner(operational);
 
 // Publish the same immutable callback table before synchronous namespace
 // initialization can reenter this Module. Capturing it is not an operational
-// admission; the original unavailable Owner still handles every early call.
+// admission; currentStartup still refuses before that original handoff exists.
 module.exports = {
   connectInitialControlHostPreparation(kind, rawInput) {
     // An immutable image or exported callback is not an intake issuer. Keep
     // absence before raw reads, current callbacks or candidate construction.
     initialControl.requireOperational();
     currentStartup();
+    // The supported producer-controlled packet is primitive undefined. Refuse
+    // unsupported inputs and exhausted process generations before even the
+    // actual Host consumer constructs another candidate/preparation record.
+    if (kind !== 'open' || rawInput !== undefined || preparationOriginals !== undefined) inputUnavailable();
     const consumer = startup.initialControlHostConsumer;
     if (consumer === undefined || kind !== 'open' && kind !== 'connect') {
       throw Object.assign(new TypeError('NodeInitialControlAdmissionUnavailable'),
@@ -254,7 +264,7 @@ module.exports = {
 Object.setPrototypeOf(module.exports, null);
 Object.freeze(module.exports);
 
-if (selected) {
+if (selected) try {
   // Stock subclass initialization must precede the base-method fence. In the
   // selected Node source, net installs Socket.prototype.read by assignment;
   // freezing the inherited Readable method first prevents Node's own setup.
@@ -390,9 +400,16 @@ if (selected) {
     promiseSpecies, sdkStaticModules, eagerSdkStartup, initialControlImages,
     initialControlHostNamespace, initialControlHostConsumer, initialControlHostValidator,
     initialControlEnvelope, invalidated: false};
+} catch (cause) {
+  // Retain the exact original startup/physical cleanup cause. A failed image
+  // never becomes a namespace and is not reread after a close-only retry.
+  // Publishing the original Client-only refusal keeps any original pending
+  // handle reachable instead of mistaking process exit for its cleanup ACK.
+  startupFailure = Object.freeze({cause});
 }
 
 function currentStartup() {
+  if (startupFailure !== undefined) throw startupFailure.cause;
   if (startup === undefined) unavailable();
   if (startup.invalidated) changed();
   startup.initialControlImages?.assertCurrent();
