@@ -76,18 +76,30 @@ fn job_component(text : String, max_bytes : Int) -> Result[String, JobIssue] {
   let mut remaining = max_bytes
   for byte in bytes {
     let n = byte.to_int()
-    let plain = (n >= 65 && n <= 90) || (n >= 97 && n <= 122) ||
-      (n >= 48 && n <= 57) || n == 45 || n == 46 || n == 95 || n == 126
+    let plain = (n >= 65 && n <= 90) ||
+      (n >= 97 && n <= 122) ||
+      (n >= 48 && n <= 57) ||
+      n == 45 ||
+      n == 46 ||
+      n == 95 ||
+      n == 126
     let used = if plain { 1 } else { 3 }
-    if used > remaining { return Err(InvalidSettings) }
+    if used > remaining {
+      return Err(InvalidSettings)
+    }
     remaining -= used
   }
   let out = StringBuilder()
   let hex = "0123456789ABCDEF"
   for byte in bytes {
     let n = byte.to_int()
-    if (n >= 65 && n <= 90) || (n >= 97 && n <= 122) ||
-      (n >= 48 && n <= 57) || n == 45 || n == 46 || n == 95 || n == 126 {
+    if (n >= 65 && n <= 90) ||
+      (n >= 97 && n <= 122) ||
+      (n >= 48 && n <= 57) ||
+      n == 45 ||
+      n == 46 ||
+      n == 95 ||
+      n == 126 {
       out.write_char(n.to_char().unwrap())
     } else {
       out.write_char('%')
@@ -109,15 +121,24 @@ pub fn prepare_job_read(
   max_requests : Int,
   max_request_bytes : Int,
 ) -> Result[JobRead, JobIssue] {
-  if !read_available(read) || read.finished || read.pages != 0 { return Err(Closed) }
-  if read.job_bound { return Err(AlreadyBound) }
-  if max_results <= 0 || timeout_ms < 0 || max_requests <= 0 || max_request_bytes <= 0 {
+  if !read_available(read) || read.finished || read.pages != 0 {
+    return Err(Closed)
+  }
+  if read.job_bound {
+    return Err(AlreadyBound)
+  }
+  if max_results <= 0 ||
+    timeout_ms < 0 ||
+    max_requests <= 0 ||
+    max_request_bytes <= 0 {
     return Err(InvalidSettings)
   }
   let (project, job_id, location) = @catalog.query_job_reference(read.job)
   // URL implementations normalize dot segments, including percent escapes.
   // Refuse a changed-identity transport candidate without narrowing Catalog DATA.
-  if project == "." || project == ".." { return Err(UnrepresentableJob) }
+  if project == "." || project == ".." {
+    return Err(UnrepresentableJob)
+  }
   let project = match job_component(project, max_request_bytes) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -129,19 +150,46 @@ pub fn prepare_job_read(
   let base = "/bigquery/v2/projects/" + project
   let submit_path = base + "/jobs"
   let status_path = submit_path + "/" + job_id + "?location=" + location
-  let results_path = base + "/queries/" + job_id + "?location=" + location +
-    "&maxResults=" + max_results.to_string() + "&timeoutMs=" + timeout_ms.to_string()
-  if submit_path.length() > max_request_bytes || status_path.length() > max_request_bytes ||
-    results_path.length() > max_request_bytes { return Err(InvalidSettings) }
-  let material = match @catalog.prepare_query_job_material(
-    read.prepared.projection, read.job, maximum_bytes_billed, max_request_bytes) {
+  let results_path = base +
+    "/queries/" +
+    job_id +
+    "?location=" +
+    location +
+    "&maxResults=" +
+    max_results.to_string() +
+    "&timeoutMs=" +
+    timeout_ms.to_string()
+  if submit_path.length() > max_request_bytes ||
+    status_path.length() > max_request_bytes ||
+    results_path.length() > max_request_bytes {
+    return Err(InvalidSettings)
+  }
+  let material = match
+    @catalog.prepare_query_job_material(
+      read.prepared.projection,
+      read.job,
+      maximum_bytes_billed,
+      max_request_bytes,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Read(Page(issue)))
   }
   read.job_bound = true
-  Ok({read, material, submit_path, status_path, results_path,
-    max_requests, max_request_bytes, issued: 0, pending: None, pending_response: None,
-    next: Some(Submit), remote_done: false, unknown: false,})
+  Ok({
+    read,
+    material,
+    submit_path,
+    status_path,
+    results_path,
+    max_requests,
+    max_request_bytes,
+    issued: 0,
+    pending: None,
+    pending_response: None,
+    next: Some(Submit),
+    remote_done: false,
+    unknown: false,
+  })
 }
 
 ///|
@@ -150,10 +198,7 @@ fn job_live(value : JobRead) -> Bool {
 }
 
 ///|
-fn[T] fail_job(
-  value : JobRead,
-  issue : JobIssue,
-) -> Result[T, JobIssue] {
+fn[T] fail_job(value : JobRead, issue : JobIssue) -> Result[T, JobIssue] {
   interrupt_result_read(value.read)
   value.next = None
   Err(issue)
@@ -161,14 +206,23 @@ fn[T] fail_job(
 
 ///|
 pub fn next_job_request(value : JobRead) -> Result[JobRequest?, JobIssue] {
-  if !job_live(value) { return Err(Closed) }
+  if !job_live(value) {
+    return Err(Closed)
+  }
   if value.pending is Some(_) || value.pending_response is Some(_) {
     return Err(PendingRequest)
   }
   guard value.next is Some(kind) else { return Ok(None) }
-  if value.issued >= value.max_requests { return fail_job(value, RequestLimit) }
+  if value.issued >= value.max_requests {
+    return fail_job(value, RequestLimit)
+  }
   let (http_method, path, body) = match kind {
-    Submit => ("POST", value.submit_path, Some(@catalog.query_job_material_body(value.material)))
+    Submit =>
+      (
+        "POST",
+        value.submit_path,
+        Some(@catalog.query_job_material_body(value.material)),
+      )
     Status => ("GET", value.status_path, None)
     Results(token) => {
       let path = match token {
@@ -181,13 +235,21 @@ pub fn next_job_request(value : JobRead) -> Result[JobRequest?, JobIssue] {
           value.results_path + "&pageToken=" + encoded
         }
       }
-      if path.length() > value.max_request_bytes { return fail_job(value, InvalidSettings) }
+      if path.length() > value.max_request_bytes {
+        return fail_job(value, InvalidSettings)
+      }
       ("GET", path, None)
     }
   }
   let request = {
-    owner: value, sequence: value.issued, kind, http_method, path, body,
-    attempted: false, observed: false,
+    owner: value,
+    sequence: value.issued,
+    kind,
+    http_method,
+    path,
+    body,
+    attempted: false,
+    observed: false,
   }
   value.issued += 1
   value.pending = Some(request)
@@ -196,10 +258,7 @@ pub fn next_job_request(value : JobRead) -> Result[JobRequest?, JobIssue] {
 }
 
 ///|
-fn job_original_request(
-  value : JobRead,
-  request : JobRequest,
-) -> Bool {
+fn job_original_request(value : JobRead, request : JobRequest) -> Bool {
   physical_equal(value, request.owner) &&
   value.pending is Some(pending) &&
   physical_equal(request, pending)
@@ -341,26 +400,42 @@ pub fn accept_charged_job_response(
   }
   match request.kind {
     Submit | Status => {
-      let observation = match @catalog.project_query_job_observation(value.material, decoded_body, read.limits) {
+      let observation = match
+        @catalog.project_query_job_observation(
+          value.material,
+          decoded_body,
+          read.limits,
+        ) {
         Ok(value) => value
         Err(issue) => return fail_job(value, Read(Page(issue)))
       }
-      guard @catalog.query_job_observation_state(observation, value.material) is Some((done, failed)) else {
+      guard @catalog.query_job_observation_state(observation, value.material)
+        is Some((done, failed)) else {
         return fail_job(value, InvalidResponse)
       }
-      match @rows.consume_row_run_observation_charge(read.run, response.charge) {
+      match
+        @rows.consume_row_run_observation_charge(read.run, response.charge) {
         Ok(_) => ()
         Err(issue) => return fail_job(value, Read(Host(issue)))
       }
       value.remote_done = done
-      if failed { return fail_job(value, ProviderFailed) }
+      if failed {
+        return fail_job(value, ProviderFailed)
+      }
       value.next = Some(if done { Results(None) } else { Status })
     }
     Results(token) => {
-      let page = match @catalog.project_query_page(read.prepared.projection, read.job, decoded_body, read.limits) {
+      let page = match
+        @catalog.project_query_page(
+          read.prepared.projection,
+          read.job,
+          decoded_body,
+          read.limits,
+        ) {
         Ok(page) => page
         Err(@catalog.QueryPending) => {
-          match @rows.consume_row_run_observation_charge(read.run, response.charge) {
+          match
+            @rows.consume_row_run_observation_charge(read.run, response.charge) {
             Ok(_) => ()
             Err(issue) => return fail_job(value, Read(Host(issue)))
           }
@@ -375,10 +450,11 @@ pub fn accept_charged_job_response(
       }
       if result_read_complete(read) {
         match read.custody {
-          Original(_) => match finish_result_read(read) {
-            Ok(_) => ()
-            Err(issue) => return fail_job(value, Read(issue))
-          }
+          Original(_) =>
+            match finish_result_read(read) {
+              Ok(_) => ()
+              Err(issue) => return fail_job(value, Read(issue))
+            }
           InstalledBorrow(_) => read.finished = true
         }
         value.next = None
@@ -402,8 +478,7 @@ pub fn accept_job_response(
   decoded_body : Bytes,
 ) -> Result[Unit, JobIssue] {
   match charge_job_response(value, request, status_code, wire_body) {
-    Ok(response) =>
-      accept_charged_job_response(value, response, decoded_body)
+    Ok(response) => accept_charged_job_response(value, response, decoded_body)
     Err(issue) => Err(issue)
   }
 }

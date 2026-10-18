@@ -342,7 +342,12 @@ pub fn accept_query_page(
     Err(issue) => return fail_read(read, Host(issue))
   }
   let page = match
-    @catalog.project_query_page(read.prepared.projection, read.job, body, read.limits) {
+    @catalog.project_query_page(
+      read.prepared.projection,
+      read.job,
+      body,
+      read.limits,
+    ) {
     Ok(value) => value
     Err(issue) => return fail_read(read, Page(issue))
   }
@@ -356,9 +361,14 @@ fn accept_projected_query_page(
   requested_token : String?,
   page : @catalog.QueryPage,
 ) -> Result[Int, ReadIssue] {
-  if requested_token != read.next || read.pages >= read.max_pages ||
+  if requested_token != read.next ||
+    read.pages >= read.max_pages ||
     (read.pages > 0 && read.next is None) ||
-    !@catalog.query_page_matches_original(page, read.prepared.projection, read.job) {
+    !@catalog.query_page_matches_original(
+      page,
+      read.prepared.projection,
+      read.job,
+    ) {
     return fail_read(read, WrongPage)
   }
   let total = @catalog.query_page_total_rows(page)

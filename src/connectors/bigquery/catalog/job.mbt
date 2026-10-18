@@ -42,9 +42,12 @@ fn quoted_query_identifier(value : String) -> String {
 /// Emit only the original selected fields and table. This is not caller SQL.
 pub fn read_projection_statement(value : ReadProjection) -> String {
   let target = value.original.target
-  "SELECT " + value.fields.map(quoted_query_identifier).join(", ") +
-  " FROM " + [target.project, target.dataset, target.table]
-  .map(quoted_query_identifier).join(".")
+  "SELECT " +
+  value.fields.map(quoted_query_identifier).join(", ") +
+  " FROM " +
+  [target.project, target.dataset, target.table]
+  .map(quoted_query_identifier)
+  .join(".")
 }
 
 ///|
@@ -138,7 +141,7 @@ pub fn project_query_job_observation(
     @decode.open_object(query) is Ok(query) &&
     required_text(query, "query") == Some(original.sql) &&
     required_text(query, "maximumBytesBilled") ==
-      Some(original.maximum_bytes_billed.to_string()) &&
+    Some(original.maximum_bytes_billed.to_string()) &&
     @decode.lookup(query, "useLegacySql") is Some(legacy) &&
     @decode.boolean(legacy) is Ok(false) else {
     return Err(ForeignQueryJob)
