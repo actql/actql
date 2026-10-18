@@ -84,3 +84,25 @@ test "pending same-domain Crypto refuses Read retirement before stopping its fra
   assert_true(component.closed)
   local_host_resources_finish_pending(host, read, sqlite)
 }
+
+///|
+test "failed component scope leave retains its original registration and parent fence" {
+  let host = domain_test_host()
+  let (read, sqlite) = local_host_resources_pending(host)
+  let component = register_crypto_component_original(read.domain)
+  // Unacquired carrier fault: no physical scope/ACK is manufactured.
+  component.scope_open = true
+  assert_true(host.close_crypto_component(component) is Err(_))
+  assert_true(component.scope_open && component.failed && !component.closed)
+  assert_true(
+    read.domain.crypto_component is Some(original) &&
+    physical_equal(original, component),
+  )
+  assert_true(host.close_domain_original_read(read) is Err(_))
+  assert_false(read.closing || read.closed)
+  // Restore only this negative fixture's never-entered flag, then clean its
+  // empty carrier through the original owner. No physical leave is inferred.
+  component.scope_open = false
+  host.close_crypto_component(component).unwrap()
+  local_host_resources_finish_pending(host, read, sqlite)
+}

@@ -105,11 +105,21 @@ fn local_host_crypto_physical_case(retain_closed : Bool) -> Unit raise {
   let consumer = host
     .prepare_domain_original_read_consumer(read, 16L * page, 1024L * page)
     .crypto_pair_value("original operation 16")
+  let foreign = domain_test_host()
   let control = host
     .prepare_local_host_read_crypto_control(pair, read)
     .crypto_pair_value("original outer control registration")
   let retained : Ref[@signature.OriginalCryptoComponent?] = Ref(None)
   assert_false(control.attempted || control.closed)
+  assert_true(
+    foreign.close_crypto_component(control)
+    is Err(Domain(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))),
+  )
+  assert_true(
+    host.close_crypto_component({ ..control, })
+    is Err(Domain(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))),
+  )
+  foreign.try_close().crypto_pair_value("foreign unacquired cleanup")
   assert_true(host.prepare_local_host_read_crypto_control(pair, read) is Err(_))
   host
   .enter_local_host_phase(pair, HostRead)
