@@ -2,13 +2,22 @@
 // same retry/status protocol as publication cleanup, without restarting work.
 function originalInitialControlClose(original) {
   let close, captured = false;
-  return async () => {
-    // Capture inside the retained phase. A getter failure cannot discard the
-    // original holding before its cleanup has an Owner.
+  function captureOriginalClose() {
     if (!captured) {
       close = original.close;
       captured = true;
     }
+  }
+  // Retain a successfully observed callback before any child cleanup await.
+  // Do not invoke it until those original children have completed.
+  try {
+    captureOriginalClose();
+  } catch {
+    // A failed getter has not supplied a callback. Keep the holding in its
+    // cleanup Owner and retry only that still-unobserved getter there.
+  }
+  return async () => {
+    captureOriginalClose();
     if (typeof close !== 'function') {
       throw new TypeError('InstalledHostInitialControlCleanupMissing');
     }

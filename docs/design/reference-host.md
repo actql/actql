@@ -158,7 +158,11 @@ owner-view cleanup have completed. Failed initialization uses the same ordering
 and original retry carrier. A successful sibling close cannot release the
 initial holding while another child remains uncertain.
 
-The Host captures that same receiver's close operation for retries. Only its
+The Host captures that same receiver's close operation before its first child
+cleanup await, but invokes it only after those children complete. A getter
+failure retains the holding under the same cleanup Owner; only a still-unobserved
+getter may be retried. A successfully observed callback cannot be replaced
+before the first close request or during child cleanup. Only its
 explicit `pending: false` observation completes the control duty; a fulfilled
 Promise, absent/malformed observation or replacement close function does not.
 Final runtime-reference retirement remains behind that confirmed duty. These
