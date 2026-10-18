@@ -27267,7 +27267,7 @@
     {
       "module": "adapters/host-node/infer-trusted-node-preload.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "3f18eedbb8175f56563653f729734fecf81792cf12fe46c0b13ca52d7a4ecf3a",
+      "sha256": "c7b81bea35c9328c079b0e381e5b3890f6d845d5ba40dd0bb3f0e3994483bc7b",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -27641,6 +27641,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
                 "anchor": "// Do not let the returned String bypass that current/closing fence."
+              },
+              {
+                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "anchor": "// Publish the same immutable callback table before synchronous namespace"
               }
             ],
             "failure": [
@@ -27803,6 +27807,10 @@
               {
                 "path": "adapters/host-node/initial-control-static-assets.test.mjs",
                 "anchor": "malformed asset descriptors and non-String results cannot synthesize original Source"
+              },
+              {
+                "path": "adapters/host-node/initial-control-host-namespace.test.mjs",
+                "anchor": "actual Host namespace initialization can capture forwarders while startup itself is initializing"
               }
             ]
           }
