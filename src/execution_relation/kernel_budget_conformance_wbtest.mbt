@@ -39,6 +39,7 @@ fn row_issue_label(issue : RowIssue) -> String {
     NestItemLimitRequired => "NestItemLimitRequired"
     NestItemLimit(_) => "NestItemLimit"
     NestEnvelope(_) => "NestEnvelope"
+    TemporalPrecisionUnavailable => "TemporalPrecisionUnavailable"
   }
 }
 
