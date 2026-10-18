@@ -320,7 +320,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/property-item-read.mjs",
-      "sha256": "d42ff3626843519d8d8e77de3ee801ccc7585338e1c8824d90b186e78c3a0563",
+      "sha256": "d6a94de793b36723e8e7f5c58ce0b694dfcd24db193bb98a69a3849871631120",
       "exports": [
         "NOTION_PROPERTY_READ_API_VERSION",
         "NOTION_PROPERTY_READ_OPERATION",
@@ -611,6 +611,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "after each awaited current check, including the physical pre-send fence."
+              },
+              {
+                "path": "adapters/connectors/notion/site/property-item-read.mjs",
+                "anchor": "await context.callbacks.consumeObservation(charge);\n      await verify();"
               }
             ],
             "failure": [
@@ -689,6 +693,14 @@
               {
                 "path": "adapters/connectors/notion/test/page-title-read.test.mjs",
                 "anchor": "actual title compiled callbacks and their original receiver are captured once across awaits"
+              },
+              {
+                "path": "adapters/connectors/notion/test/page-title-read.test.mjs",
+                "anchor": "after partial observation refuses the next Common request"
+              },
+              {
+                "path": "adapters/connectors/notion/test/property-item-read.test.mjs",
+                "anchor": "after partial observation refuses the next Common request"
               }
             ]
           }
