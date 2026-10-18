@@ -57,6 +57,8 @@ pub fn cancel_client_serialization_prefix(ClientSerializationPrefix) -> Bool
 
 pub fn check_installed_source_read_current(ClientInstalledSourceRead) -> Result[Unit, ClientInstalledSourceReadIssue]
 
+pub fn check_installed_source_read_ledger(ClientInstalledSourceRead, @physical_resources.Ledger) -> Result[Unit, ClientInstalledSourceReadIssue]
+
 pub fn cleanup_client_broad_residual(ClientBroadResidual) -> Result[Bool, @connector_sdk.FixedComputeIssue]
 
 pub fn cleanup_client_infer_input(ClientInferInputExecution) -> Result[Bool, ClientInferInputIssue]
