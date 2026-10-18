@@ -16,7 +16,7 @@ const tail = load.body.body.slice(start).map(node => source.slice(node.start, no
 const install = compileFunction(`let retained=entries;
   let original,selection,project,profile,profilePorts,assertCurrent,openFile;
   const taskBounds=[10,20,3,4,5,6,7,80];
-  const ports={retire:retireAnswers};
+  let ports={retire:retireAnswers};
   const call=(name,...args)=>ports[name](...args);
   const fail=code=>{throw Object.assign(new Error(code),{code});};
   ${tail}`, ['moon', 'entries', 'check', 'checked', 'runtimeField', 'retireAnswers']);
