@@ -2779,4 +2779,27 @@ MOONBIT_FFI_EXPORT int32_t actql_native_filesystem_scoped_open_current_root(
 #endif
 }
 
+/* Same current original, with the existing private Root constructor's complete
+ * namespace/owner/mode/ACL checks. No generic Root or stock allocation fallback
+ * is admitted when the current original read context is unavailable. */
+MOONBIT_FFI_EXPORT int32_t actql_native_filesystem_scoped_open_current_private_root(
+  moonbit_bytes_t path, int32_t length, int32_t diagnostic_ceiling,
+  actql_native_filesystem_root **output
+) {
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+  if (output == NULL || *output != NULL || diagnostic_ceiling <= 0)
+    return ACTQL_OWNED_INVALID;
+  actql_read_context *context = actql_bootstrap_current_read_context();
+  if (context == NULL) return ACTQL_OWNED_INVALID;
+  return actql_native_filesystem_scoped_open_private_root(
+    context, path, length, diagnostic_ceiling, output);
+#else
+  (void)path;
+  (void)length;
+  (void)diagnostic_ceiling;
+  (void)output;
+  return -1;
+#endif
+}
+
 #include "filesystem_scoped_acquisition.inc"
