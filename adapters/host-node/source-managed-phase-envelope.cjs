@@ -8,7 +8,7 @@ const NativeError = Error;
 const MiB = 1024 * 1024;
 const unavailable = () => {throw Object.assign(new NativeError('SourceManagedEnvelopeUnavailable'),
   {code:'SourceManagedEnvelopeUnavailable'});};
-const inputLimits = freeze({maxProperties: 40, maxNodes: 40, maxDepth: 3,
+const inputLimits = freeze({maxProperties: 40, maxNodes: 40, maxDepth: 4,
   maxStringCodeUnits: 65536, maxTotalStringCodeUnits: 65536 + 4096,
   maxArrayItems: 0, maxOpaqueAliases: 0, maxWork: 2 * 1024 * 1024});
 const limits = freeze({installations: 1, requests: 1, sourceOccurrences: 1,
