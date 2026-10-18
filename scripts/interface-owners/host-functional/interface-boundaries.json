@@ -32568,7 +32568,7 @@
     {
       "module": "adapters/host-node/installed-host-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "312f3fbd29a8e82b893664221b0bca924b12e36e82c23b3eb2dde9b6a2825ee6",
+      "sha256": "40098cdc4434eda5349b00555e915746f0c9702dff1bb50de7401f98d55730d8",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -32739,6 +32739,20 @@
             "close"
           ],
           "async": true
+        },
+        {
+          "name": "retainInstalledHostInitializationFailure/attempt/first/first",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostInitializationFailure/attempt/latest/latest",
+          "parameters": [
+            "item"
+          ],
+          "async": false
         },
         {
           "name": "retainInstalledHostInitializationFailure/captureOriginalStatus",
@@ -33370,6 +33384,8 @@
           "operations": [
             "originalInitialControlClose",
             "originalInitialControlClose/originalInitialControlClose",
+            "retainInstalledHostInitializationFailure/attempt/first/first",
+            "retainInstalledHostInitializationFailure/attempt/latest/latest",
             "retainInstalledHostInitializationFailure/drain/drain#11"
           ],
           "exports": [],
@@ -54191,7 +54207,7 @@
   ],
   "counts": {
     "modules": 127,
-    "operations": 3141,
+    "operations": 3143,
     "exports": 858,
     "explicitContractGroups": 147
   },
