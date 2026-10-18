@@ -24,7 +24,7 @@ function fixture(t, host = 'globalThis.actualHostImageValue="original";export fu
   const inventory = {images: Object.entries(sources).map(([path, bytes]) => fact(path, bytes)),
     packages: [], dependencies: [], optionalSdk: null, optionalSdkCoverage: 'absent',
     hostModule: 'adapters/host-node/embedded-local.mjs', hostValidator: 'assertInitialControlHostPreparation'};
-  function run(body, before = '', afterCapture = '', tweak) {
+  function run(body, before = '', afterCapture = '', tweak, initialize = true) {
     const selected = structuredClone(inventory); tweak?.(selected);
     const preload = join(directory, 'preload.cjs'), entry = join(directory, 'entry.mjs');
     writeFileSync(preload, [before,
@@ -32,7 +32,7 @@ function fixture(t, host = 'globalThis.actualHostImageValue="original";export fu
       'const root='+JSON.stringify(root)+', inventory='+JSON.stringify(selected)+';',
       'globalThis.packageImageCustody=captureInitialControlPackageCustody(inventory,root);',
       afterCapture,
-      'globalThis.originalHostNamespace=packageImageCustody.initializeHostNamespace();',
+      initialize ? 'globalThis.originalHostNamespace=packageImageCustody.initializeHostNamespace();' : '',
     ].join('\n'));
     writeFileSync(entry, body);
     const result = spawnSync(process.execPath, ['--require', preload, entry], {
@@ -167,4 +167,22 @@ test('a package identity mismatch refuses even when its captured files match the
   });
   assert.notEqual(result.status, 0); assert.match(result.stderr, /InitialControlPackageImageChanged/);
   assert.doesNotMatch(result.stderr, /EntryMustNotRun/);
+});
+
+test('failed namespace initialization keeps the same original cause and never recompiles or retries', t => {
+  const f = fixture(t, 'globalThis.initializations=(globalThis.initializations??0)+1;throw originalInitializationCause;export function assertInitialControlHostPreparation(){};');
+  const result = f.run([
+    'import assert from "node:assert/strict";',
+    'assert.equal(firstInitializationCause,originalInitializationCause);',
+    'assert.equal(secondInitializationCause,originalInitializationCause);',
+    'assert.equal(initializations,1);',
+    'assert.equal(secondInitializationCause.cleanupHandle,originalInitializationCause.cleanupHandle);',
+    'assert.equal(secondInitializationCause.cleanupHandle.status().pending,true);',
+  ].join('\n'),
+    'globalThis.originalInitializationCause=Object.freeze(Object.assign(new Error("OriginalNamespaceFailure"),{cleanupHandle:Object.freeze({status(){return{pending:true};},retry(){throw new Error("DoNotRetryOriginalDuty");}})}));',
+    [
+      'try{packageImageCustody.initializeHostNamespace();}catch(cause){globalThis.firstInitializationCause=cause;}',
+      'try{packageImageCustody.initializeHostNamespace();}catch(cause){globalThis.secondInitializationCause=cause;}',
+    ].join('\n'), undefined, false);
+  assert.equal(result.status, 0, result.stderr);
 });
