@@ -9,7 +9,8 @@ import {runtimePair} from '../../../host-common/compiler-binding.generated.mjs';
 import {gcsOwnedResult, prepareGcsObjectBinding, admitGcsObjectMetadata,
   prepareOwnedGcsEffectMetadataPatch, prepareOwnedGcsObjectDelete,
   projectOwnedGcsObjectRequest, ownedGcsObjectRequestCid,
-  borrowOwnedGcsMetadataPatchTarget} from '../site/gcs-owned-object-request.mjs';
+  borrowOwnedGcsMetadataPatchTarget, borrowOwnedGcsObjectDeleteTarget,
+  restoreOwnedGcsObjectMutationRequest} from '../site/gcs-owned-object-request.mjs';
 
 const artifact = new URL('../../../../_build/js/release/build/connectors/gcs/host_node/host_node.js', import.meta.url);
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -90,4 +91,70 @@ test('actual GCS DELETE recovery has no invented after response or nonempty chan
   assert.deepEqual(restored.value, {});
   assert.throws(() => restore(owner, request, {changes: Buffer.from(' {}')}),
     {code: 'GcsInvalidObjectChanges'});
+});
+
+function restoreCaller(owner, request, overrides = {}, runtime = moon) {
+  return restoreOwnedGcsObjectMutationRequest({moon: runtime, binding: owner,
+    name: 'in/é%2F.csv', responseStatus: 200, responseHeaders: [],
+    responseBytes: raw, responseSha256: hash(raw),
+    changesBytes: Buffer.from(JSON.stringify(request.value)), body: request.body,
+    requestCid: request.request_cid, maxProjectionBytes: 8192, ...overrides});
+}
+
+for (const kind of ['patch_metadata', 'delete']) {
+  test(`private ${kind} restore caller keeps exact bytes and only new local membership`, () => {
+    const {owner, request} = original(kind), local = binding(kind);
+    const restored = restoreCaller(local, request);
+    assert.deepEqual(restored, request);
+    assert.equal(ownedGcsObjectRequestCid(restored, local), request.request_cid);
+    assert.throws(() => ownedGcsObjectRequestCid(restored, owner),
+      {code: 'GcsForeignObjectBinding'});
+    assert.throws(() => ownedGcsObjectRequestCid({...restored}, local),
+      {code: 'ForeignGcsObjectRequest'});
+    const borrow = kind === 'delete'
+      ? borrowOwnedGcsObjectDeleteTarget : borrowOwnedGcsMetadataPatchTarget;
+    assert.throws(() => borrow(restored, 8192, local),
+      {code: 'GcsOriginalMutationPreparationUnavailable'});
+  });
+
+  test(`private ${kind} restore refuses replaced raw or conditional request material`, () => {
+    const {owner, request} = original(kind);
+    for (const overrides of [
+      {responseBytes: Buffer.concat([Buffer.from(' '), raw])},
+      {responseSha256: '0'.repeat(64)},
+    ]) assert.throws(() => restoreCaller(owner, request, overrides),
+      {code: 'GcsStaleObjectObservation'});
+    for (const overrides of [
+      {body: ' ' + request.body},
+      {changesBytes: Buffer.from(' ' + JSON.stringify(request.value))},
+      {requestCid: cid('e')},
+      {responseStatus: 404},
+      {responseHeaders: [['content-encoding', 'gzip']]},
+      {responseHeaders: [['x-goog-generation', '1']]},
+    ]) assert.throws(() => restoreCaller(owner, request, overrides),
+      {code: 'GcsInvalidObjectChanges'});
+  });
+}
+
+test('private restore rejects shared backing and incomplete material before Core', () => {
+  const {owner, request} = original();
+  let calls = 0;
+  const runtime = {...moon, gcsObjectRestoreMutationValue() {
+    calls++; assert.fail('Invalid byte/header/extent input must refuse before Core');
+  }};
+  for (const overrides of [
+    {responseBytes: new Uint8Array(new SharedArrayBuffer(raw.length))},
+    {changesBytes: new Uint8Array(new SharedArrayBuffer(2))},
+    {responseBytes: undefined}, {changesBytes: null},
+    {responseHeaders: undefined}, {responseHeaders: [['x-goog-generation', 1]]},
+    {responseHeaders: Array.from({length: 4}, () => ['x-goog-generation', '1'])},
+    {responseStatus: undefined}, {body: undefined}, {maxProjectionBytes: 0},
+  ]) assert.throws(() => restoreCaller(owner, request, overrides, runtime),
+    {code: 'InvalidGcsObjectRecovery'});
+  assert.equal(calls, 0);
+  assert.throws(() => restoreCaller(owner, request, {},
+    {...moon, gcsObjectRestoreMutationValue: undefined}),
+  {code: 'GcsOriginalMutationRecoveryUnavailable'});
+  assert.equal(ownedGcsObjectRequestCid(request, owner), request.request_cid,
+    'refusal must not replace or retire the still-owned original request');
 });
