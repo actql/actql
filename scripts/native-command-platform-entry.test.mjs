@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdtempSync, realpathSync} from 'node:fs';
+import {mkdtempSync, realpathSync, readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -18,9 +19,14 @@ before(() => {
     '-I'+resolve(process.env.MOON_HOME, 'include'),
     join(root, 'scripts/fixtures/native-command-platform-entry.c'),
     join(root, 'scripts/fixtures/native-command-platform-member.c'),
+    resolve(process.env.MOON_HOME, 'lib/runtime/runtime.c'),
+    resolve(process.env.MOON_HOME, 'lib/runtime/backtrace.c'),
     resolve(process.env.MOON_HOME, 'lib/libmoonbitrun.o'), '-o', executable],
   {cwd:root, encoding:'utf8', timeout:60_000});
   assert.equal(build.status, 0, `${build.error ?? ''}\n${build.stderr}`);
+  console.log(JSON.stringify({executable,
+    sha256:createHash('sha256').update(readFileSync(executable)).digest('hex'),
+    qualification:'C/O0 controlled entry-record protocol; fixture member/admission only, no operational original, dlopen or module ACK'}));
 });
 for (const name of ['capture', 'one-shot', 'partial-current', 'thread-fork', 'runtime']) {
   test(`original command entry record ${name}`, () => {

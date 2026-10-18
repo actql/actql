@@ -17,6 +17,8 @@ before(() => {
     const args = ['-std=c11', '-O0', '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC', '-I'+resolve(process.env.MOON_HOME, 'include'),
       join(root, 'src/cmd/native_client/stdout_stub.c'),
       join(root, 'scripts/fixtures/native-command-prearguments.c'),
+      resolve(process.env.MOON_HOME, 'lib/runtime/runtime.c'),
+      resolve(process.env.MOON_HOME, 'lib/runtime/backtrace.c'),
       resolve(process.env.MOON_HOME, 'lib/libmoonbitrun.o'), '-o', executable];
     if (pin === 'selected') args.push('-DACTQL_NATIVE_CLIENT_SOURCE_SHA="1234567890abcdef1234567890abcdef12345678"');
     const build = spawnSync('cc', args, {cwd: root, encoding: 'utf8', timeout: 60_000});
