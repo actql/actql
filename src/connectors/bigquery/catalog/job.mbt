@@ -18,7 +18,24 @@ pub struct QueryJobObservation {
 
 ///|
 fn quoted_query_identifier(value : String) -> String {
-  "`" + value.replace(old="\\", new="\\\\").replace(old="`", new="\\`") + "`"
+  let out = StringBuilder()
+  let hex = "0123456789ABCDEF"
+  out.write_char('`')
+  for character in value.to_array() {
+    let code = character.to_int()
+    if character == '\\' || character == '`' {
+      out.write_char('\\')
+      out.write_char(character)
+    } else if code < 32 || code == 127 {
+      out.write_string("\\x")
+      out.write_char(hex[code / 16].to_int().to_char().unwrap())
+      out.write_char(hex[code % 16].to_int().to_char().unwrap())
+    } else {
+      out.write_char(character)
+    }
+  }
+  out.write_char('`')
+  out.to_string()
 }
 
 ///|
