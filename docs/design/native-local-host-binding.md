@@ -1240,6 +1240,41 @@ Session/provider aliases or the caller's original Domain/read/workspace loan.
 This holder supplies no physical scope, permission, transport binding or funded
 normal installation profile.
 
+### Same-pair adoption transport
+
+The private adoption binding retains the actual Host, its nominal Read/SQLite
+pair, the same original Read and a borrowed Native Crypto Library before any
+Session open. Its preparation snapshots selection through the existing
+existing-only capture; it neither loads Crypto nor initializes absent state.
+The C callback declarations come from matching regular Native emission. Input
+strings and ordered configuration names use bounded UTF-16 transport, with
+distinct persistent output slots and owned managed aliases on return.
+
+The binding enters the original Read for adoption stages. After the same capture
+retains its Journal, that child owns the Read/SQLite phase sequence: no outer
+Read scope may wrap its open, current or close. The Journal-open operation uses
+only this retained child, never another preparation. Parent current observes
+the child's whole binding; parent close waits for its database and descriptor
+cleanup. A failed leave retains the same original phase for cleanup, and an
+unconfirmed call cannot start another open or acknowledge retirement.
+
+The Python transport registers its carrier on the original Read before invoking
+the private trusted assembly's preparation port. That port must supply the
+actual binding and retain its Crypto/provider custody; it is not an application
+callback, numerical supplier or authority derived from path metadata. Known
+local busy, thread and process refusals precede registration and foreign entry.
+Lost calls, partial output slots or mismatched originals retain the same cleanup
+carrier and fence the pair, Read and Library parents. Retained child aliases are
+correlated without turning their addresses into handles or permissions.
+
+Only the same Native close reply and descriptor acknowledgement allow the C
+managed aliases and Python reverse registration to retire. This does not close
+the borrowed Crypto Library, settle the parent domains, return a WorkspaceLoan,
+or acknowledge the Host/backing/descriptor. Those original owners retain their
+separate physical cleanup obligations. Missing operational Crypto, initial
+funding or ordinary installed assembly remains unavailable; this transport
+cannot fill those gaps or relax existing permission/current fences.
+
 ## Consuming an original Native read
 
 The installed Arena Owner can claim an already prepared domain read once as an
