@@ -14,6 +14,8 @@ pub fn notion_capture_database_read_snapshot(@catalog.NotionReadSourceSelection,
 
 pub fn notion_complete_read_row_property(@catalog.NotionReadRow, Int, @catalog.NotionPropertyItemPage) -> Result[Unit, @catalog.NotionReadRowIssue]
 
+pub fn notion_completed_page_title_json(@catalog.OriginalNotionPage, @catalog.NotionPropertyItemPage, Int, Int, Int, Int, Int, Int) -> Result[String, @catalog.NotionPropertyItemIssue]
+
 pub fn notion_completed_property_json(@catalog.NotionDataSourceReadContracts, @catalog.NotionPropertyItemPage, Int, Int, Int, Int, Int, Int, Int) -> Result[String, @catalog.NotionPropertyItemIssue]
 
 pub fn notion_data_source_matches_database(@catalog.NotionDataSourceCatalog, @catalog.NotionDatabaseCatalog) -> Bool
@@ -88,6 +90,8 @@ pub fn notion_property_request_json(@catalog.NotionPropertyItemRequest, Int, Int
 
 pub fn notion_property_request_matches_binding(@catalog.NotionPropertyItemRequest, @catalog.NotionDataSourceReadContracts, Int) -> Bool
 
+pub fn notion_property_request_matches_page_title(@catalog.NotionPropertyItemRequest, @catalog.OriginalNotionPage) -> Bool
+
 pub fn notion_public_connection_credential_kind(@catalog.NotionPublicConnection) -> Result[String, @catalog.NotionReadContractIssue]
 
 pub fn notion_public_connection_credential_reference(@catalog.NotionPublicConnection) -> Result[String, @catalog.NotionReadContractIssue]
@@ -143,6 +147,8 @@ pub fn notion_source_system_read_contracts(@catalog.NotionDataSourceReadContract
 pub fn notion_start_column_property_request(@catalog.NotionDataSourceReadContracts, @catalog.OriginalNotionQueryPage, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionPropertyItemRequest, @catalog.NotionPropertyItemIssue]
 
 pub fn notion_start_observed_page_read_row(@catalog.NotionDataSourceReadContracts, @catalog.OriginalNotionPage, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionReadRow, @catalog.NotionReadRowIssue]
+
+pub fn notion_start_page_title_property_request(@catalog.OriginalNotionPage, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionPropertyItemRequest, @catalog.NotionPropertyItemIssue]
 
 pub fn notion_start_read_row(@catalog.NotionDataSourceReadContracts, @catalog.OriginalNotionQueryPage, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionReadRow, @catalog.NotionReadRowIssue]
 
