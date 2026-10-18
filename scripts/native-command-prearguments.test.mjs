@@ -14,15 +14,17 @@ before(() => {
   assert.ok(process.env.MOON_HOME, 'use the pinned Moon toolchain include');
   for (const pin of ['selected', 'missing']) {
     const executable = join(scratch, pin);
-    const args = ['-std=c11', '-O0', '-I'+resolve(process.env.MOON_HOME, 'include'),
+    const args = ['-std=c11', '-O0', '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC', '-I'+resolve(process.env.MOON_HOME, 'include'),
       join(root, 'src/cmd/native_client/stdout_stub.c'),
-      join(root, 'scripts/fixtures/native-command-prearguments.c'), '-o', executable];
+      join(root, 'scripts/fixtures/native-command-prearguments.c'),
+      resolve(process.env.MOON_HOME, 'lib/libmoonbitrun.o'), '-o', executable];
     if (pin === 'selected') args.push('-DACTQL_NATIVE_CLIENT_SOURCE_SHA="1234567890abcdef1234567890abcdef12345678"');
     const build = spawnSync('cc', args, {cwd: root, encoding: 'utf8', timeout: 60_000});
     assert.equal(build.status, 0, `${build.error ?? ''}\n${build.stderr}`);
     binaries[pin] = executable;
     console.log(JSON.stringify({pin, executable, sha256:createHash('sha256').update(readFileSync(executable)).digest('hex'),
-      qualification:'actual C/O0 raw wrapper only; no Host, Read or command admission'}));
+      allocator:{path:resolve(process.env.MOON_HOME, 'lib/libmoonbitrun.o'),sha256:createHash('sha256').update(readFileSync(resolve(process.env.MOON_HOME, 'lib/libmoonbitrun.o'))).digest('hex')},
+      qualification:'actual C/O0 wrapper with pinned mimalloc size/usable conformance; no Host, Read or command admission'}));
   }
 });
 for (const name of ['selected','absent','missing-source','context-limit','invalid-bound','quoted-growth','home-absent','home-overlong','home-unicode','home-empty']) {

@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <malloc/malloc.h>
+#include "moonbit_runtime.h"
+extern size_t mi_good_size(size_t);
+extern size_t mi_usable_size(const void *);
 extern int32_t actql_native_client_measure_prearguments(int32_t,int32_t,int32_t,int32_t);
 extern int32_t actql_native_client_preargument_count(void);
 extern int32_t actql_native_client_copy_bounded_home(moonbit_bytes_t,int32_t);
@@ -32,18 +34,23 @@ int main(int argc, char **argv) {
     assert(original != NULL && strlen(original) < sizeof(context));
     assert(actql_native_client_preargument_count() == argc);
     assert(actql_native_client_preargument_class_bytes(0) ==
-      (int64_t)malloc_good_size(sizeof(struct moonbit_object)+argc*sizeof(void *)));
+      (int64_t)mi_good_size(sizeof(struct moonbit_object)+argc*sizeof(void *)));
+    // The pinned original allocator must agree with the selected size query;
+    // this fixture allocation is diagnostic, never a Host/Read or funding.
+    size_t request=sizeof(struct moonbit_object)+argc*sizeof(void *);
+    void *actual=mi_malloc(request); assert(actual!=NULL);
+    assert(mi_usable_size(actual)==mi_good_size(request)); mi_free(actual);
     int64_t raw = 0, decoded = 0;
     for (int i=0;i<argc;++i) {
       size_t n = strlen(argv[i]);
-      raw += malloc_good_size(sizeof(struct moonbit_object)+n+1);
-      decoded += 2*malloc_good_size(sizeof(struct moonbit_object)+2*(n+1));
+      raw += mi_good_size(sizeof(struct moonbit_object)+n+1);
+      decoded += 2*mi_good_size(sizeof(struct moonbit_object)+2*(n+1));
     }
     assert(actql_native_client_preargument_class_bytes(1) == raw);
     assert(actql_native_client_preargument_class_bytes(2) == decoded);
     // argc=2 uses one eight-slot backing. argc=10 includes old8 + new16.
-    int64_t buffers = malloc_good_size(sizeof(struct moonbit_object)+8*sizeof(void *));
-    if (argc > 8) buffers += malloc_good_size(sizeof(struct moonbit_object)+16*sizeof(void *));
+    int64_t buffers = mi_good_size(sizeof(struct moonbit_object)+8*sizeof(void *));
+    if (argc > 8) buffers += mi_good_size(sizeof(struct moonbit_object)+16*sizeof(void *));
     assert(argc <= 16);
     assert(actql_native_client_preargument_class_bytes(3) == buffers);
     assert(actql_native_client_preargument_class_bytes(-1) == -1);

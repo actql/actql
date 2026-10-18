@@ -10,7 +10,9 @@
 #include <limits.h>
 #if defined(__APPLE__)
 #include <crt_externs.h>
-#include <malloc/malloc.h>
+// The selected pinned libmoonbitrun.o supplies this mimalloc size query.
+// It is the same allocator used before the derived Read context is entered.
+extern size_t mi_good_size(size_t size);
 #endif
 
 #include "../../platform_native/host_bootstrap/command_input.h"
@@ -147,13 +149,13 @@ static const char *actql_command_input_source;
 static const char *actql_command_input_context;
 static actql_bootstrap_command_preparation_observation actql_command_input;
 // Partial initial-control inventory, not capacity or an allocation receipt.
-// These are the selected Darwin allocator classes for the original raw argv,
+// These are the selected pinned mimalloc usable classes for the original raw argv,
 // worst-case UTF16 decode/trim overlap, and every growing argv ref buffer.
 static int64_t actql_command_argument_classes[4];
 
 #if defined(__APPLE__)
 static bool actql_command_add_class(int64_t *sum, size_t request) {
-  size_t quoted = malloc_good_size(request);
+  size_t quoted = mi_good_size(request);
   if (quoted < request || quoted > INT64_MAX ||
       *sum > INT64_MAX - (int64_t)quoted) return false;
   *sum += (int64_t)quoted;
