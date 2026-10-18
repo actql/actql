@@ -31,7 +31,9 @@ test('actual typed public map retains original value bytes and exact Unicode wit
     }
     assert.throws(()=>entry(inventory,vector.entries.length),{code:'MoonBitHostFailure'});
   }
-  assert.throws(()=>checked(provider.notionDatabaseReadDeclarationsCount(Object.freeze({}))),{code:'MoonBitHostFailure'});
+  // An untyped bare JS object is outside this private typed FFI contract.
+  // Nominal copies of the actual Moon type are independently rejected by the owner WB.
+  assert.throws(()=>checked(provider.notionDatabaseReadDeclarationsCount(Object.freeze({}))),TypeError);
 });
 
 function snapshot(declaration,databaseId,sourceId,properties){
