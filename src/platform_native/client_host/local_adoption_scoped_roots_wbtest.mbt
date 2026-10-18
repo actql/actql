@@ -1,10 +1,14 @@
 ///|
 // A failed test cleanup retains its exact Session rather than treating stack
 // unwinding or process exit as an original descriptor acknowledgement.
-let scoped_adoption_pending_session : Ref[NativeLocalAdoptionSession?] = Ref(None)
+let scoped_adoption_pending_session : Ref[NativeLocalAdoptionSession?] = Ref(
+  None,
+)
 
 ///|
-fn scoped_adoption_close_session(session : NativeLocalAdoptionSession) -> Unit raise {
+fn scoped_adoption_close_session(
+  session : NativeLocalAdoptionSession,
+) -> Unit raise {
   assert_true(scoped_adoption_pending_session.val is None)
   scoped_adoption_pending_session.val = Some(session)
   assert_true(session.close())
@@ -51,7 +55,8 @@ test "scoped existing adoption refuses before acquiring Roots and preserves the 
   assert_true(failed.managed is None)
   assert_true(failed.lock is None)
   assert_true(
-    failed.root_acquisition is Some(original) && original.issue() is @filesystem.RootOpen(_),
+    failed.root_acquisition is Some(original) &&
+    original.issue() is @filesystem.RootOpen(_),
   )
   failed.retry_cleanup().unwrap()
   failed.retry_cleanup().unwrap()
@@ -92,7 +97,8 @@ test "scoped adoption diagnostic bounds cannot select legacy allocation or creat
     assert_true(failed.root is None)
     assert_true(failed.lock is None)
     assert_true(
-      failed.root_acquisition is Some(original) && original.issue() is @filesystem.InvalidLimit,
+      failed.root_acquisition is Some(original) &&
+      original.issue() is @filesystem.InvalidLimit,
     )
     failed.retry_cleanup().unwrap()
   }
