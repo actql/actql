@@ -1470,6 +1470,104 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "restoreOwnedGcsObjectMutationRequest",
+            "restoreOwnedGcsObjectMutationRequest/handle/handle",
+            "restoreOwnedGcsObjectMutationRequest/restoreOwnedGcsObjectMutationRequest"
+          ],
+          "exports": [
+            "restoreOwnedGcsObjectMutationRequest"
+          ],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "response_sha256"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "request.cid != request_cid"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "private Node `restoreOwnedGcsObjectMutationRequest` caller"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "existing capture/Store Owner"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "The existing capture/Store Owner authenticates"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous existing typed Core DATA restore/projection; no await, replacement acquisition or physical work is started. The separate Host retains its original current/dispatch/Store duties."
+            },
+            "cancellation": {
+              "notApplicable": "No new reservation, IO, child cleanup or cancellation Owner. Restored DATA does not acknowledge retirement or permit Unknown replay."
+            },
+            "failure": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "GcsOriginalMutationRecoveryUnavailable"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "InvalidGcsObjectRecovery"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "Err(StaleObservation)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Retained bytes and header/intent/body Strings overlap hash workspace"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "private restore rejects shared backing and incomplete material before Core"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-mutation-ledger-response.test.mjs",
+                "anchor": "recovery uses new local nominal membership"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "export function restoreOwnedGcsObjectMutationRequest"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "cannot borrow the"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "GcsOriginalMutationPreparationUnavailable"
+              }
+            ]
+          }
         }
       ],
       "exports": [
@@ -1491,6 +1589,7 @@
         "projectOwnedGcsObjectResponse",
         "readGcsObjectTarget",
         "recheckOwnedGcsObjectRequest",
+        "restoreOwnedGcsObjectMutationRequest",
         "sendOwnedGcsObjectRequest"
       ],
       "operations": [
@@ -1880,6 +1979,38 @@
           "async": false
         },
         {
+          "name": "restoreOwnedGcsObjectMutationRequest",
+          "parameters": [
+            "moon",
+            "binding",
+            "name",
+            "responseStatus",
+            "responseHeaders",
+            "responseBytes",
+            "responseSha256",
+            "changesBytes",
+            "body",
+            "requestCid",
+            "maxProjectionBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreOwnedGcsObjectMutationRequest/handle/handle",
+          "parameters": [
+            "key",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreOwnedGcsObjectMutationRequest/restoreOwnedGcsObjectMutationRequest",
+          "parameters": [
+            "pair"
+          ],
+          "async": false
+        },
+        {
           "name": "sendOwnedGcsObjectRequest",
           "parameters": [
             "request",
@@ -1909,7 +2040,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "01b82ccacd6dc6ea56a53c669ab839385eb6d33ad88baf9c13b4c98d96c54e80"
+      "sha256": "43d6302851e6ae44de9aeab8c9e63ec909a0914a6b71e04db3e573a271c3b83f"
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
