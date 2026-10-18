@@ -50,6 +50,8 @@ typedef sqlite3_int64 (*actql_sqlite_changes64_fn)(sqlite3 *);
 typedef int (*actql_sqlite_busy_timeout_fn)(sqlite3 *, int);
 typedef int (*actql_sqlite_get_autocommit_fn)(sqlite3 *);
 
+typedef int (*actql_heap_wal_fn)(void *);
+
 typedef struct {
   void *dynamic_library;
   char *error;
@@ -121,7 +123,12 @@ typedef struct {
   int test_lookup_begin_count, test_lookup_stop_count;
   int test_checked_close_count;
   bool test_name_scan_refusal;
+  actql_heap_wal_fn journal_inspection_observer;
+  actql_heap_wal_fn journal_descriptor_ack;
 } actql_native_sqlite_database;
+
+static actql_heap_wal_fn actql_original_journal_wal_port(
+  actql_native_sqlite_library *, const char *);
 
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR
 #include "../../../packages/python-local-runtime/native/pre-root/owned_capacity.h"
@@ -305,11 +312,44 @@ static void actql_native_sqlite_database_close(
 // opened. No schema creation, WAL mode change or migration is performed here.
 static void actql_native_sqlite_database_finalize(void *value);
 
-void *actql_native_sqlite_open_inspection_database(
+static char *actql_journal_copy_uri(actql_native_sqlite_library *library,
+    moonbit_bytes_t path, int32_t length) {
+  if (length < 2 || length > 4096 || path[0] != '/' ||
+      memchr(path, 0, (size_t)length) != NULL) return NULL;
+  char *name = actql_adapter_allocate(library, (size_t)length + 5);
+  if (name == NULL) return NULL;
+  memcpy(name, path, (size_t)length); memcpy(name + length, "-shm", 5);
+  struct stat original;
+  bool empty = lstat(name, &original) == 0 &&
+    S_ISREG(original.st_mode) && original.st_size == 0 && original.st_uid == getuid();
+  actql_adapter_free(library, name);
+  if (!empty) return NULL;
+  /* The existing inspection Owner created and retains this unique empty SHM.
+   * URI bytes neither acquire that ownership nor grant access to another DB. */
+  const char suffix[] = "?mode=ro&readonly_shm=1";
+  char *uri = actql_adapter_allocate(library, 5 + (size_t)length * 3 + sizeof(suffix));
+  if (uri == NULL) return NULL;
+  const char hex[] = "0123456789ABCDEF";
+  memcpy(uri, "file:", 5); size_t written = 5;
+  for (int32_t i = 0; i < length; i++) {
+    unsigned char c = path[i];
+    if (c == '/' || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+        (c >= '0' && c <= '9') || c == '-' || c == '.' || c == '_' || c == '~') {
+      uri[written++] = (char)c;
+    } else {
+      uri[written++] = '%'; uri[written++] = hex[c >> 4]; uri[written++] = hex[c & 15];
+    }
+  }
+  memcpy(uri + written, suffix, sizeof(suffix));
+  return uri;
+}
+
+static void *actql_open_inspection_database(
   actql_native_sqlite_library *library,
   moonbit_bytes_t path,
   int32_t length,
-  int64_t max_body_bytes
+  int64_t max_body_bytes,
+  bool journal_copy
 ) {
   if (!actql_library_current(library) || (library != NULL && library->selected_component &&
       !actql_library_available(library))) return NULL;
@@ -331,18 +371,45 @@ void *actql_native_sqlite_open_inspection_database(
     actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling, "SQLite library is unavailable");
     return database;
   }
-  char *text = actql_copy_text_for(library, path, length);
+  if (journal_copy) {
+    database->journal_descriptor_ack = actql_original_journal_wal_port(
+      library, "actql_sqlite_component_descriptor_ack");
+    database->journal_inspection_observer = actql_original_journal_wal_port(
+      library, "actql_sqlite_component_readonly_heap_wal");
+    if (database->journal_inspection_observer == NULL || database->journal_descriptor_ack == NULL) {
+      actql_replace_error_for(library, &database->error, database->diagnostic_ceiling,
+        "selected read-only Journal WAL observation is unavailable");
+      return database;
+    }
+  }
+  char *text = journal_copy ? actql_journal_copy_uri(library, path, length)
+    : actql_copy_text_for(library, path, length);
   if (text == NULL) {
     actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling, "inspection path allocation failed");
     return database;
   }
-  int code = library->open_v2(text, &database->database,
-    SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL);
+  int flags = SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX;
+  if (journal_copy) flags |= SQLITE_OPEN_URI | SQLITE_OPEN_NOFOLLOW;
+  int code = library->open_v2(text, &database->database, flags, NULL);
   actql_adapter_free(library, text);
   if (code != SQLITE_OK) {
     actql_database_error(database, "open inspection database failed");
   } else database->opened = true;
   return database;
+}
+
+void *actql_native_sqlite_open_inspection_database(
+  actql_native_sqlite_library *library, moonbit_bytes_t path,
+  int32_t length, int64_t max_body_bytes
+) {
+  return actql_open_inspection_database(library, path, length, max_body_bytes, false);
+}
+
+void *actql_native_sqlite_open_journal_inspection_database(
+  actql_native_sqlite_library *library, moonbit_bytes_t path,
+  int32_t length, int64_t max_body_bytes
+) {
+  return actql_open_inspection_database(library, path, length, max_body_bytes, true);
 }
 
 int32_t actql_native_sqlite_close_checked(
@@ -353,7 +420,8 @@ int32_t actql_native_sqlite_close_checked(
   if (database->lookup_generation != 0) return 0;
   if (database->database == NULL) {
     actql_retire_result_storage(database);
-    return 1;
+    return database->journal_descriptor_ack == NULL ||
+      database->journal_descriptor_ack(NULL) == ACTQL_SQLITE_COMPONENT_OK;
   }
   database->test_checked_close_count++;
   if (database->test_close_failures > 0) {
@@ -369,7 +437,8 @@ int32_t actql_native_sqlite_close_checked(
   database->database = NULL;
   database->opened = false;
   actql_retire_result_storage(database);
-  return 1;
+  return database->journal_descriptor_ack == NULL ||
+    database->journal_descriptor_ack(NULL) == ACTQL_SQLITE_COMPONENT_OK;
 }
 
 // Whitebox observation only, never a physical-close ACK or a settlement port.
@@ -414,8 +483,9 @@ int32_t actql_native_sqlite_test_checked_close_count(
 static void actql_native_sqlite_database_finalize(void *value) {
   actql_native_sqlite_database *database = value;
   actql_native_sqlite_database_close(database);
-  if (database->database != NULL && database->library != NULL &&
-      database->library->selected_component) return;
+  if (database->library != NULL && database->library->selected_component &&
+      (database->database != NULL || (database->journal_descriptor_ack != NULL &&
+       database->journal_descriptor_ack(NULL) != ACTQL_SQLITE_COMPONENT_OK))) return;
   actql_adapter_free(database->library, database->error);
   actql_adapter_free(database->library, database->result_body);
   actql_adapter_free(database->library, database->result_key);
@@ -547,6 +617,12 @@ int32_t actql_native_sqlite_inspection_schema(
       actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling, "unknown inspection SQLite schema");
       return 0;
     }
+  }
+  if (database->journal_inspection_observer != NULL &&
+      database->journal_inspection_observer(database->database) != ACTQL_SQLITE_COMPONENT_OK) {
+    actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling,
+      "read-only Journal did not retain its private heap WAL path");
+    return 0;
   }
   return 1;
 }
@@ -853,6 +929,43 @@ void actql_native_sqlite_test_failed_open_cleanup(
   actql_retire_failed_open_database(database);
 }
 
+/* Only the original adoption Journal caller selects this restriction. The
+ * caller separately retains its Session/Lock; neither this mode nor a path is
+ * proof of that custody, resource admission or permission. */
+static bool actql_select_journal_exclusive(actql_native_sqlite_database *database) {
+  sqlite3_stmt *statement = NULL;
+  actql_native_sqlite_library *library = database->library;
+  int code = library->prepare_v2(database->database,
+    "PRAGMA main.locking_mode=EXCLUSIVE", -1, &statement, NULL);
+  bool selected = false;
+  if (code == SQLITE_OK && library->step(statement) == SQLITE_ROW) {
+    const void *mode = library->column_blob(statement, 0);
+    int length = library->column_bytes(statement, 0);
+    selected = mode != NULL && length == 9 && memcmp(mode, "exclusive", 9) == 0 &&
+      library->step(statement) == SQLITE_DONE;
+  }
+  if (statement != NULL && library->finalize(statement) != SQLITE_OK) selected = false;
+  return selected;
+}
+
+static actql_heap_wal_fn actql_original_journal_wal_port(
+    actql_native_sqlite_library *library, const char *symbol) {
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+  if (library == NULL || !library->selected_component || !library->selected_ready ||
+      library->selected_api == NULL || !library->component_owned) return NULL;
+  Dl_info origin;
+  if (!dladdr(library->selected_api, &origin)) return NULL;
+  actql_heap_wal_fn port = NULL;
+  dlerror();
+  *(void **)(&port) = dlsym(library->dynamic_library, symbol);
+  return dlerror() == NULL && actql_component_origin((void *)port, origin.dli_fbase)
+    ? port : NULL;
+#else
+  (void)library; (void)symbol;
+  return NULL;
+#endif
+}
+
 static void *actql_open_database(
   actql_native_sqlite_library *library,
   moonbit_bytes_t path,
@@ -860,7 +973,8 @@ static void *actql_open_database(
   int64_t max_body_bytes,
   int mode,
   uint64_t expected_device,
-  uint64_t expected_inode
+  uint64_t expected_inode,
+  bool journal_exclusive
 ) {
   if (!actql_library_current(library) || (library != NULL && library->selected_component &&
       !actql_library_available(library))) return NULL;
@@ -880,6 +994,15 @@ static void *actql_open_database(
   database->diagnostic_ceiling = library == NULL ? 0 : library->diagnostic_ceiling;
   if (!actql_library_available(library)) {
     actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling, "SQLite library is unavailable");
+    return database;
+  }
+  actql_heap_wal_fn heap_wal = journal_exclusive
+    ? actql_original_journal_wal_port(library, "actql_sqlite_component_heap_wal") : NULL;
+  if (journal_exclusive) database->journal_descriptor_ack =
+    actql_original_journal_wal_port(library, "actql_sqlite_component_descriptor_ack");
+  if (journal_exclusive && (heap_wal == NULL || database->journal_descriptor_ack == NULL)) {
+    actql_replace_error_for(library, &database->error, database->diagnostic_ceiling,
+      "selected Journal heap-WAL observation is unavailable");
     return database;
   }
   bool contained = mode != 0;
@@ -936,6 +1059,15 @@ static void *actql_open_database(
     actql_retire_failed_open_database(database);
     return database;
   }
+  /* This PRAGMA does not require schema loading in the pinned SQLite. It must
+   * precede inspection_schema, user_version and the first WAL access. SQLite
+   * still has to acquire its real exclusive lock at that first access. */
+  if (journal_exclusive && !actql_select_journal_exclusive(database)) {
+    actql_replace_error_for(library, &database->error, database->diagnostic_ceiling,
+      "select original Journal exclusive locking failed");
+    actql_retire_failed_open_database(database);
+    return database;
+  }
   // Restoration validates the retained schema. It cannot create tables,
   // migrate the format, or infer fresh custody from a missing record.
   database->opened = true;
@@ -944,6 +1076,12 @@ static void *actql_open_database(
       actql_exec(database, "PRAGMA synchronous=FULL;PRAGMA foreign_keys=ON") == SQLITE_OK
     : actql_initialize_schema(database);
   if (!admitted) {
+    actql_retire_failed_open_database(database);
+    return database;
+  }
+  if (journal_exclusive && heap_wal(database->database) != ACTQL_SQLITE_COMPONENT_OK) {
+    actql_replace_error_for(library, &database->error, database->diagnostic_ceiling,
+      "original Journal did not acquire heap-backed exclusive WAL");
     actql_retire_failed_open_database(database);
     return database;
   }
@@ -957,7 +1095,7 @@ void *actql_native_sqlite_open_database(
   int32_t length,
   int64_t max_body_bytes
 ) {
-  return actql_open_database(library, path, length, max_body_bytes, 0, 0, 0);
+  return actql_open_database(library, path, length, max_body_bytes, 0, 0, 0, false);
 }
 
 void *actql_native_sqlite_open_existing_database(
@@ -966,7 +1104,7 @@ void *actql_native_sqlite_open_existing_database(
   int32_t length,
   int64_t max_body_bytes
 ) {
-  return actql_open_database(library, path, length, max_body_bytes, 1, 0, 0);
+  return actql_open_database(library, path, length, max_body_bytes, 1, 0, 0, false);
 }
 
 // Only the exact exclusively created, still-empty file may receive a schema.
@@ -979,7 +1117,21 @@ void *actql_native_sqlite_initialize_owned_database(
   uint64_t inode,
   int64_t max_body_bytes
 ) {
-  return actql_open_database(library, path, length, max_body_bytes, 2, device, inode);
+  return actql_open_database(library, path, length, max_body_bytes, 2, device, inode, false);
+}
+
+void *actql_native_sqlite_open_existing_journal_database(
+  actql_native_sqlite_library *library, moonbit_bytes_t path, int32_t length,
+  int64_t max_body_bytes
+) {
+  return actql_open_database(library, path, length, max_body_bytes, 1, 0, 0, true);
+}
+
+void *actql_native_sqlite_initialize_owned_journal_database(
+  actql_native_sqlite_library *library, moonbit_bytes_t path, int32_t length,
+  uint64_t device, uint64_t inode, int64_t max_body_bytes
+) {
+  return actql_open_database(library, path, length, max_body_bytes, 2, device, inode, true);
 }
 
 // Whitebox-only loss of one schema constituent in an owner-created fixture.

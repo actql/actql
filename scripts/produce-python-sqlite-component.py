@@ -40,7 +40,8 @@ LIBRARY = 'libactql_sqlite_component.dylib'
 PROVIDER = 'libactql_native_control.dylib'
 NOTICE = 'SQLITE-NOTICE'
 EXPORTS = frozenset('_actql_sqlite_component_' + name for name in (
-    'source_id', 'bind', 'free', 'close', 'allocate', 'resize', 'size', 'borrow_api', 'release_api'))
+    'source_id', 'bind', 'free', 'close', 'allocate', 'resize', 'size',
+    'heap_wal', 'readonly_heap_wal', 'descriptor_ack', 'borrow_api', 'release_api'))
 
 
 def require(condition: bool, message: str) -> None:

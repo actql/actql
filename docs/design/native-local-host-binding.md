@@ -1515,3 +1515,30 @@ and ordinary dispatch retain their normal-current requirements. The Library's
 own acknowledgment precedes component retirement, and neither acknowledges the
 Read, domains, loan, Host or descriptor. Failed or unknown cleanup retains the
 same receiver and all outstanding aliases.
+
+
+### Serialized command-preparation Journal WAL
+
+The finite Native command-preparation Journal is selected only through its
+original adoption Session and retained Lock. Its writer selects EXCLUSIVE
+locking before schema, version or WAL access, then verifies the acquired
+heap-backed WAL index in the same selected SQLite component. The selection does
+not apply to generic SQLite, concurrent Journal users, Node or Cloud.
+
+Retained inspection precedes the writer. Its existing inspection Owner creates
+and retains a unique empty SHM alongside the exact committed DB-plus-WAL copy.
+The selected read-only constructor uses SQLite's `readonly_shm` recovery path
+and verifies the private heap index and absence of shared-memory mappings.
+It does not use immutable access, omit the copied WAL, write the copied database,
+change generic inspection, or substitute a mode string for physical custody.
+The original snapshot identity and cleanup remain with the inspection Owner.
+
+The component reserves each original VFS descriptor carrier within its existing
+heap before opening the descriptor. A failed or interrupted one-shot close
+retains that descriptor's consumed attempt and diagnosis; it prevents component
+retirement and the selected Journal's close acknowledgment. It is never retried
+by numeric descriptor. A successful SQLite close alone cannot discharge this
+physical responsibility. Database, Library, snapshot, domain and adoption Lock
+acknowledgments remain separate and child-first. Heap exhaustion, lock refusal,
+partial initialization and COMMIT uncertainty retain their original carriers;
+there is no NORMAL-mode fallback, fresh acquisition, replay or capacity increase.
