@@ -53,9 +53,12 @@ function createInitialControlInstallationOwner(operational) {
   const closeOperational = operational === undefined ? undefined : own(operational, 'close');
   const prepareProperty = operational === undefined ? undefined : descriptor(operational, 'prepare');
   const prepareOperational = prepareProperty === undefined ? undefined : own(operational, 'prepare');
+  const assetProperty = operational === undefined ? undefined : descriptor(operational, 'readAsset');
+  const readOperationalAsset = assetProperty === undefined ? undefined : own(operational, 'readAsset');
   if (operational !== undefined &&
       (typeof assertOperational !== 'function' || typeof closeOperational !== 'function' ||
-       prepareProperty !== undefined && typeof prepareOperational !== 'function')) unavailable();
+       prepareProperty !== undefined && typeof prepareOperational !== 'function' ||
+       assetProperty !== undefined && typeof readOperationalAsset !== 'function')) unavailable();
   const scopes = new NativeWeakMap();
   const generations = new NativeWeakSet();
 
@@ -95,6 +98,23 @@ function createInitialControlInstallationOwner(operational) {
     apply(assertOperational, operational, [state.originals]);
     // The original supplier callback may reentrantly close this same scope.
     if (state.closing || state.closed) foreign();
+  }
+  function readAsset(scope, originals, path) {
+    // This is an immutable original Source borrow, not another file read or a
+    // decoder, authority factory, current-path proof or capacity conversion.
+    // Only the SAME nominal scope and five originals can reach the actual
+    // preload's captured asset projection. Never call caller scope methods.
+    assertCurrent(scope, originals);
+    if (readOperationalAsset === undefined || typeof path !== 'string') {
+      fail('NodeInitialControlAssetUnavailable');
+    }
+    const state = stateFor(scope);
+    const source = apply(readOperationalAsset, operational, [state.originals, path]);
+    // The original callback may retire this same Host/scope reentrantly.
+    // Do not let the returned String bypass that current/closing fence.
+    assertCurrent(scope, originals);
+    if (typeof source !== 'string') fail('NodeInitialControlAssetUnavailable');
+    return source;
   }
   function cleanupOriginal(handle) {
     if (!reference(handle)) foreign();
@@ -212,7 +232,7 @@ function createInitialControlInstallationOwner(operational) {
     return apply(promiseThen, apply(promiseResolve, NativePromise, [prepared]),
       [() => issue(held)]);
   }
-  return freeze({begin, assertCurrent});
+  return freeze({begin, assertCurrent, readAsset});
 }
 
 module.exports = {createInitialControlInstallationOwner};
