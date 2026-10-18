@@ -55,7 +55,7 @@ class _OriginalParentReadCustody:
     """
     __slots__ = ('_domain', '_functions', '_host', '_native_domain', '_original',
                  '_reply', '_unknown', '_unknown_carrier', '_closed', '_scope_open',
-                 '_runtime_original', '_adoption_original')
+                 '_runtime_original', '_adoption_original', '_crypto_original')
     _domain: _OriginalDomainCustody
     _functions: _OriginalParentReadFunctions
     _host: c_void_p
@@ -68,6 +68,7 @@ class _OriginalParentReadCustody:
     _scope_open: bool
     _runtime_original: object | None
     _adoption_original: object | None
+    _crypto_original: object | None
 
     @classmethod
     def _prepare_original(cls, domain: _OriginalDomainCustody,
@@ -97,6 +98,7 @@ class _OriginalParentReadCustody:
         original._unknown, original._closed, original._scope_open = None, False, False
         original._runtime_original = None
         original._adoption_original = None
+        original._crypto_original = None
         original._unknown_carrier = _OriginalParentReadError(original, unknown=True)
         reply_out, host_out = byref(original._reply), byref(original._host)
         domain_out, original_out = byref(original._native_domain), byref(original._original)
@@ -208,6 +210,9 @@ class _OriginalParentReadCustody:
         if (operation in (3, 5, 6) and self._runtime_original is not None
                 and self._runtime_original is not _RETIRED_PARENT_RUNTIME_DATA):
             raise ValueError('Original packaged Runtime cleanup must finish first')
+        if operation in (5, 6):
+            from ._local_native_read_crypto import _require_read_crypto_retired
+            _require_read_crypto_retired(self)
         if operation in (3, 5, 6):
             from ._local_native_adoption import _require_adoption_retired
             _require_adoption_retired(self)

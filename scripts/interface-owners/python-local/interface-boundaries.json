@@ -53,7 +53,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py",
-      "sha256": "833639460633c173fe1ca8316f945b26d4c9b5a2cc8148f68fd097a3a4436b33",
+      "sha256": "7e0c6a37bd4492943dd25ce6b13d8dfc2db9529450b33182a1e3b643eeec6074",
       "generator": {
         "path": "scripts/generate-local-native-shim-bindings.py",
         "anchor": "def render("
@@ -34241,6 +34241,7 @@
         "._local_native_control_custody",
         "._local_native_domain_custody",
         "._local_native_host_resources",
+        "._local_native_read_crypto",
         "._local_native_shim_abi",
         "__future__",
         "collections.abc",
@@ -34403,7 +34404,7 @@
           ]
         }
       ],
-      "sha256": "696a29a618851a18a8a0bb3bfc866e04d9014f27cfe2c035d1e98cb5405a5eda",
+      "sha256": "2be738f45200b3ed6d2257b03557c9cc83a282989ad1acb08d5809050c455a50",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -34498,6 +34499,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_read_crypto.py",
+                "anchor": "def _require_read_crypto_retired("
               }
             ],
             "synchronization": [
@@ -34522,6 +34527,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_read_crypto.py",
+                "anchor": "def test_response_loss_keeps_slots_and_fences_no_resend_or_parent_close("
               }
             ],
             "cancellation": [
@@ -37078,7 +37087,7 @@
           ]
         }
       ],
-      "sha256": "833639460633c173fe1ca8316f945b26d4c9b5a2cc8148f68fd097a3a4436b33",
+      "sha256": "7e0c6a37bd4492943dd25ce6b13d8dfc2db9529450b33182a1e3b643eeec6074",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -62970,6 +62979,7 @@
         "._local_native_control_custody",
         "._local_native_domain_custody",
         "._local_native_original_read",
+        "._local_native_read_crypto",
         "._local_native_shim_abi",
         "._local_native_sqlite",
         "._local_native_sqlite_database",
@@ -62980,7 +62990,7 @@
         "dataclasses",
         "typing"
       ],
-      "sha256": "9a8fce46d6bf1d6cdd2545908857fda97c7917119f925d7584ce2c8f51b86df3",
+      "sha256": "71e7f1c769015a442268c3ddcd5ec8ffa6d6e4b8f15e6285f6f7406ddedeb1ea",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "E / Python original Host transport; existing Native Host, Resource and Library Owners retain admission, current and physical retirement",
@@ -63086,6 +63096,10 @@
               {
                 "path": "src/platform_native/installed_arena_entry/local_host_resources_shim.c",
                 "anchor": "int actql_host_resources_finish_refused_bind_data("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_read_crypto.py",
+                "anchor": "def _require_read_crypto_retired("
               }
             ],
             "synchronization": [
@@ -63122,6 +63136,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_native_host_resources.py",
                 "anchor": "def test_claim_lost_outslot_or_drop_ack_retains_same_carrier_without_reclaim("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_read_crypto.py",
+                "anchor": "def test_response_loss_keeps_slots_and_fences_no_resend_or_parent_close("
               }
             ],
             "cancellation": {
@@ -63669,6 +63687,450 @@
               {
                 "path": "scripts/fixtures/python-original-adoption.py",
                 "anchor": "step('same retained Journal opens through its original serial Read and SQLite phases')"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "Any",
+        "NoReturn",
+        "annotations",
+        "bind",
+        "byref",
+        "c_int64",
+        "c_ubyte",
+        "c_uint16",
+        "c_void_p",
+        "dataclass"
+      ],
+      "imports": [
+        "._local_native_host_resources",
+        "._local_native_shim_abi",
+        "__future__",
+        "ctypes",
+        "dataclasses",
+        "typing"
+      ],
+      "module": "packages/python-sdk/src/actql_sdk/_local_native_read_crypto.py",
+      "operations": [
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoCustody",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoCustody/_prepare_original",
+          "parameters": [
+            "cls",
+            "resources",
+            "functions"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoCustody/close",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoCustody/load",
+          "parameters": [
+            "self",
+            "path",
+            "heap_bytes",
+            "diagnostic_ceiling"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoCustody/open_library",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoError",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoError/__init__",
+          "parameters": [
+            "self",
+            "original",
+            "unknown",
+            "fact"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoFact",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoFunctions",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoFunctions/__init__",
+          "parameters": [
+            "self",
+            "library"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoLibrary",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoLibrary/_bytes",
+          "parameters": [
+            "*values"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoLibrary/_call",
+          "parameters": [
+            "self",
+            "operation",
+            "inputs"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoLibrary/_open_original",
+          "parameters": [
+            "cls",
+            "parent"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoLibrary/close",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoLibrary/hmac_sha256",
+          "parameters": [
+            "self",
+            "key",
+            "data"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoLibrary/verify_hmac_sha256",
+          "parameters": [
+            "self",
+            "key",
+            "data",
+            "signature"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoSlots",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoSlots/__copy__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoSlots/__deepcopy__",
+          "parameters": [
+            "self",
+            "memo"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoSlots/__reduce__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoSlots/_ack_data",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoSlots/_check_original",
+          "parameters": [
+            "self",
+            "entered"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoSlots/_drop",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoSlots/_extract",
+          "parameters": [
+            "self",
+            "expected_component"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoSlots/_fact",
+          "parameters": [
+            "self",
+            "expected"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoSlots/_finish",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoSlots/_initialize",
+          "parameters": [
+            "self",
+            "resources",
+            "functions"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoSlots/_issue",
+          "parameters": [
+            "self",
+            "fact"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoSlots/_mark_unknown",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoSlots/_slots",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalReadCryptoSlots/_status",
+          "parameters": [
+            "self",
+            "code"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_require_read_crypto_retired",
+          "parameters": [
+            "read"
+          ]
+        }
+      ],
+      "sha256": "79603af31bc89a2b567a73e29e04a1b43e295fd0be952cf2c0f593c68d2a57bd",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "E / same original Native Read component and Library transport; existing Host, Resource and Signature Owners retain admission and physical cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "_OriginalReadCryptoCustody",
+            "_OriginalReadCryptoCustody/_prepare_original",
+            "_OriginalReadCryptoCustody/close",
+            "_OriginalReadCryptoCustody/load",
+            "_OriginalReadCryptoCustody/open_library",
+            "_OriginalReadCryptoError",
+            "_OriginalReadCryptoError/__init__",
+            "_OriginalReadCryptoFact",
+            "_OriginalReadCryptoFunctions",
+            "_OriginalReadCryptoFunctions/__init__",
+            "_OriginalReadCryptoLibrary",
+            "_OriginalReadCryptoLibrary/_bytes",
+            "_OriginalReadCryptoLibrary/_call",
+            "_OriginalReadCryptoLibrary/_open_original",
+            "_OriginalReadCryptoLibrary/close",
+            "_OriginalReadCryptoLibrary/hmac_sha256",
+            "_OriginalReadCryptoLibrary/verify_hmac_sha256",
+            "_OriginalReadCryptoSlots",
+            "_OriginalReadCryptoSlots/__copy__",
+            "_OriginalReadCryptoSlots/__deepcopy__",
+            "_OriginalReadCryptoSlots/__reduce__",
+            "_OriginalReadCryptoSlots/_ack_data",
+            "_OriginalReadCryptoSlots/_check_original",
+            "_OriginalReadCryptoSlots/_drop",
+            "_OriginalReadCryptoSlots/_extract",
+            "_OriginalReadCryptoSlots/_fact",
+            "_OriginalReadCryptoSlots/_finish",
+            "_OriginalReadCryptoSlots/_initialize",
+            "_OriginalReadCryptoSlots/_issue",
+            "_OriginalReadCryptoSlots/_mark_unknown",
+            "_OriginalReadCryptoSlots/_slots",
+            "_OriginalReadCryptoSlots/_status",
+            "_require_read_crypto_retired"
+          ],
+          "exports": [
+            "Any",
+            "NoReturn",
+            "annotations",
+            "bind",
+            "byref",
+            "c_int64",
+            "c_ubyte",
+            "c_uint16",
+            "c_void_p",
+            "dataclass"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_read_crypto.py",
+                "anchor": "class _OriginalReadCryptoCustody("
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/c_read_crypto_reply_native.mbt",
+                "anchor": "pub fn prepare_installed_arena_read_crypto_reply("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_read_crypto.py",
+                "anchor": "def _slots("
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/read_crypto_shim.c",
+                "anchor": "int actql_read_crypto_originals_into("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_read_crypto.py",
+                "anchor": "def _extract("
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/read_crypto_shim.c",
+                "anchor": "static int same_reply("
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/c_read_crypto_reply_native.mbt",
+                "anchor": "fn InstalledArenaHost::require_read_crypto_library_original("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_read_crypto.py",
+                "anchor": "resources._read._crypto_original = value"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_read_crypto.py",
+                "anchor": "parent._libraries.append(value)"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/read_crypto_shim.c",
+                "anchor": "int actql_read_crypto_finish_refused_library("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_read_crypto.py",
+                "anchor": "resources._owner._enter()"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/read_crypto_shim.c",
+                "anchor": "static int same_current("
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/c_read_crypto_reply_native.mbt",
+                "anchor": "require_backed_read_context_entered("
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_read_crypto.py",
+                "anchor": "def _mark_unknown("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_read_crypto.py",
+                "anchor": "def _require_read_crypto_retired("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_read_crypto.py",
+                "anchor": "def test_response_loss_keeps_slots_and_fences_no_resend_or_parent_close("
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This private transport neither cancels a Run nor issues stop acknowledgments. It retains the same failed or unknown physical call and never resends it."
+            },
+            "resources": [
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "Component registration"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/read_crypto_shim.c",
+                "anchor": "moonbit_string_t value = moonbit_make_string_raw(units);"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/c_read_crypto_reply_native.mbt",
+                "anchor": "self.require_local_host_consuming_read_current(pair, read)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-local-native-shim-bindings.py",
+                "anchor": "SHIMS ="
+              },
+              {
+                "path": "scripts/produce-python-native-provider.py",
+                "anchor": "'local_host_resources_shim', 'local_adoption_shim', 'read_crypto_shim')]"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_native_read_crypto.py",
+                "anchor": "def test_two_original_libraries_keep_parent_until_separate_acks("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_read_crypto.py",
+                "anchor": "def test_partial_library_keeps_exact_child_for_cleanup("
+              },
+              {
+                "path": "scripts/fixtures/python-original-read-crypto.py",
+                "anchor": "def main() -> None:"
               }
             ]
           }
