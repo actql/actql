@@ -73,4 +73,3 @@ remaining facts is inferred from the storage-association codec or its limits.
 The original Host/Store budgets cover retained source/fields, canonical writer,
 hash frames, read tree and escaped wire aliases simultaneously; a codec ceiling
 does not issue capacity or acknowledge physical retirement.
-
