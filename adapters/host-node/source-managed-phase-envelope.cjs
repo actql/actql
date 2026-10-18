@@ -59,4 +59,5 @@ function declareSourceManagedPhaseEnvelope(controlDeclaration) {
     replenishedOnSourceClose:false});
 }
 
-module.exports=freeze({declareSourceManagedPhaseEnvelope});
+module.exports={declareSourceManagedPhaseEnvelope};
+freeze(module.exports);

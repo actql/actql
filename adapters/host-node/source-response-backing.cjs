@@ -216,4 +216,5 @@ function createSourceResponseBackingOwner(ports) {
   }
   return freeze({allocate, acquire, start, releaseAliases, settle, status, close, poolStatus});
 }
-module.exports = freeze({createSourceResponseBackingOwner});
+module.exports = {createSourceResponseBackingOwner};
+freeze(module.exports);
