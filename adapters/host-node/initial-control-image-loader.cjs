@@ -7,7 +7,7 @@
 const NodeModule = require('node:module');
 const {join} = require('node:path');
 const {realpathSync} = require('node:fs');
-const {pathToFileURL} = require('node:url');
+const {pathToFileURL, fileURLToPath} = require('node:url');
 const nativeApply = Reflect.apply;
 const descriptor = Object.getOwnPropertyDescriptor, hasOwn = Object.hasOwn;
 const freeze = Object.freeze, defineProperty = Object.defineProperty;
@@ -17,6 +17,7 @@ const isArray = Array.isArray, safeInteger = Number.isSafeInteger;
 const nativeStartsWith = String.prototype.startsWith, nativeEndsWith = String.prototype.endsWith;
 const preloading = descriptor(NodeModule.prototype, 'isPreloading')?.get;
 const registerHooks = NodeModule.registerHooks, register = NodeModule.register;
+const stockLoad = NodeModule._load, stockCache = NodeModule._cache;
 const syncBuiltinESMExports = NodeModule.syncBuiltinESMExports;
 const fail = code => { const error = new NativeError(code); error.code = code; throw error; };
 const own = (value, name) => {
@@ -41,6 +42,7 @@ function installInitialControlImageLoader(groups) {
   }
   if (!isArray(groups) || groups.length === 0) fail('InvalidInitialControlLoaderImage');
   const images = new NativeMap(), prefixes = [];
+  const initialCache = new NativeMap(), delivered = new NativeMap();
   let invalidated = false;
   for (let index = 0; index < groups.length; index++) {
     const group = groups[index], root = realpathSync(own(group, 'root'));
@@ -82,10 +84,20 @@ function installInitialControlImageLoader(groups) {
         record.format = nativeApply(nativeMapGet, manifests, [at]) === 'module' ? 'module' : 'commonjs';
       }
       freeze(record);
+      if (record.format === 'commonjs' || record.format === 'json') {
+        const property = descriptor(stockCache, fileURLToPath(record.url));
+        if (property !== undefined) {
+          if (!hasOwn(property, 'value')) fail('InitialControlImageLoaderChanged');
+          nativeApply(nativeMapSet, initialCache, [record.url, property.value]);
+        }
+      }
     }
   }
   function assertCurrent() {
-    if (registration === undefined || invalidated || descriptor(NodeModule, 'registerHooks')?.value !== registerHooksFence ||
+    if (registration === undefined || invalidated ||
+        descriptor(NodeModule, '_load')?.value !== stockLoad ||
+        descriptor(NodeModule, '_cache')?.value !== stockCache ||
+        descriptor(NodeModule, 'registerHooks')?.value !== registerHooksFence ||
         descriptor(NodeModule, 'register')?.value !== registerFence) fail('InitialControlImageLoaderChanged');
   }
   function covered(url) {
@@ -98,7 +110,18 @@ function installInitialControlImageLoader(groups) {
     const result = nextResolve(specifier, context);
     if (covered(result.url)) {
       assertCurrent();
-      if (!nativeApply(nativeMapHas, images, [result.url])) fail('UncapturedInitialControlImage');
+      const original = nativeApply(nativeMapGet, images, [result.url]);
+      if (original === undefined) fail('UncapturedInitialControlImage');
+      if ((original.format === 'commonjs' || original.format === 'json') &&
+          !nativeApply(nativeMapHas, delivered, [result.url])) {
+        const property = descriptor(stockCache, fileURLToPath(result.url));
+        if (property !== undefined && (!hasOwn(property, 'value') ||
+            !nativeApply(nativeMapHas, initialCache, [result.url]) ||
+            nativeApply(nativeMapGet, initialCache, [result.url]) !== property.value)) {
+          invalidated = true;
+          fail('InitialControlImageLoaderChanged');
+        }
+      }
     } else if (covered(context.parentURL) && !starts(result.url, 'node:')) {
       fail('UncapturedInitialControlDependency');
     }
@@ -112,6 +135,10 @@ function installInitialControlImageLoader(groups) {
     }
     assertCurrent();
     if (original.format === undefined) fail('UncapturedInitialControlImageDomain');
+    // This is only a Source-handoff marker, not module/exports authentication
+    // or an operational admission. Full post-load cache and resolver custody
+    // must still be joined by the selected preload before adopting this helper.
+    nativeApply(nativeMapSet, delivered, [url, true]);
     // These strings are immutable copies of the same-FD Source. Never delegate
     // this body to a mutable pathname, synthesize a FileHandle, or issue an ACK.
     return {format: original.format, source: original.source, shortCircuit: true};
