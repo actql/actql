@@ -1387,6 +1387,17 @@ fn execute_and_write_native_reply(
 
 ///|
 fn main {
+  // Observe the original OS input before Command construction/default_argv.
+  // These selected Darwin input ceilings include argv0 and terminal bytes;
+  // they are not the initial-control or physical-capacity admission itself.
+  // No physical original exists on help/version or argument failure.
+  match command_preargument_bound(1048576, 1048576, 1048576, 8192) {
+    Ok(_) => ()
+    Err(_) => {
+      fail_command("LocalCommandArgumentsUnavailable")
+      abort("native Client original argument failure")
+    }
+  }
   let matches = command().parse() catch {
     error => {
       fail_command(error.to_string())
