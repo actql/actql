@@ -25,6 +25,7 @@ test('original Journal custody distinguishes its actual native close from copies
   try {
     assert.deepEqual(observeOriginalClientRequestJournalCustody(journal), {
       journalClosed: false, databaseClosed: false, observationAttempted: false,
+      observationDatabaseClosed: true,
     });
     for (const foreign of [{...journal}, Object.freeze({databaseClosed: true}), null]) {
       assert.throws(() => observeOriginalClientRequestJournalCustody(foreign),
@@ -35,6 +36,7 @@ test('original Journal custody distinguishes its actual native close from copies
   assert.equal(Object.isFrozen(observation), true);
   assert.deepEqual(observation, {
     journalClosed: true, databaseClosed: true, observationAttempted: false,
+    observationDatabaseClosed: true,
   });
   scratch.passed();
 });
@@ -56,6 +58,7 @@ test('logical close and a throwing original native close do not acknowledge phys
     assert.equal(database.isOpen, true);
     assert.deepEqual(observeOriginalClientRequestJournalCustody(journal), {
       journalClosed: true, databaseClosed: false, observationAttempted: false,
+      observationDatabaseClosed: true,
     });
     // Restoration does not replace the captured successful original callback.
     DatabaseSync.prototype.close = () => undefined;
@@ -84,6 +87,7 @@ test('the separate optional observation connection is not certified by primary c
   } finally { journal.close(); }
   assert.deepEqual(observeOriginalClientRequestJournalCustody(journal), {
     journalClosed: true, databaseClosed: true, observationAttempted: true,
+    observationDatabaseClosed: true,
   });
   scratch.passed();
 });

@@ -887,10 +887,28 @@ selected facility coverage before acquisition.
 The physical request-Journal Owner also observes custody for its own actual
 factory results. This private nominal observation separates logical Journal
 closure from the confirmed native database close and records whether the
-separate observation connection was attempted. A copied Journal, a caller's
+separate observation connection was attempted and whether that same secondary
+connection's original close has completed. Its historical attempted flag is
+never reset by cleanup. A copied Journal, a caller's
 Boolean or a successful semantic transaction cannot provide this observation.
 It issues no capacity or authority and does not certify the optional observation
-connection from the primary connection's close.
+connection from the primary connection's close. The secondary wrapper and its
+close/native-open-state operations are retained before fallible open, so a
+partially opened secondary connection follows the same close-only duty.
+
+The selected Root captures the actual Journal constructor and nominal custody
+observer from its delivered Host namespace. It retains a returned Journal and
+its original close operation before any post-constructor current check. A
+refusal at that check therefore keeps the same native child reachable through
+the existing cleanup carrier. Constructor failures retain their original
+cleanup handle and captured status/retry receiver; cleanup cannot issue a
+replacement Journal. A close flight is published before callbacks, and only an
+explicit original pending-false observation can retire that constructor duty.
+The complete separate Journal disposition must precede this preparation: the
+captured namespace operations and initial-control or Source recipe are not its
+issuer. Primary native close cannot settle a separately attempted observation
+connection; Root retirement additionally requires that child's own confirmed
+native close and never releases process-lived module/native backing.
 
 Selected cold inspection may additionally bound the SQLite schema table's
 declared row payload and traversal before native SQLite opens the isolated
@@ -903,6 +921,18 @@ backend preparation support condition, not a new Journal format, SQL decoder,
 physical capacity issuer or semantic admission. SQLite still performs format
 and SQL checking; native schema construction and all other facility terms must
 remain in the complete phase disposition.
+
+A selected finite native recipe may additionally support only byte-exact DDL
+programs already belonging to its original Journal implementation. The same
+bounded binary resource reader can extract that record field, including bounded
+overflow pages and the committed WAL overlay, without interpreting SQL. Native
+automatic-index entries with no SQL introduce no additional program. An extra
+view, alternate spelling or unsupported schema stays backend Unavailable before
+native schema expansion; it is not declared invalid in the language or in an
+unselected Journal. The original native SQLite checks still follow. Support
+DATA narrows the selected recipe and never issues capacity or custody. Its
+original allowlist Strings, bounded record backings, overflow buffer and all
+FD/current/cleanup overlap belong in that same complete phase.
 
 Installation-time Mock answer documents are bounded Host-preparation
 definitions, not Model execution capacity. The selected control recipe includes
