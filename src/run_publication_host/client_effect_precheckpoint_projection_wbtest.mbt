@@ -25,7 +25,7 @@ fn effect_projection_fixture() -> ClientRemoteEffectTaskProgress {
     effect_limits,
   ).unwrap()
   let limits = run_materials_limits()
-  let original = issue_prepared_client_effect_normalization(prepared).unwrap()
+  let original = issue_prepared_client_effect_local_update_normalization(prepared).unwrap()
   let compilation = issue_prepared_client_effect_compilation(
     prepared,
     run_materials_manifests(),
@@ -118,12 +118,22 @@ test "Effect pre-checkpoint missing original claimed observation remains reconci
 ///|
 test "Effect pre-checkpoint completed computation and task cleanup cannot complete cancellation" {
   let original = effect_projection_fixture()
+  let requested = prepare_client_effect_request_identity(
+    client_effect_compilation_owner(original.allowed.compilation),
+    original.progress.authority,
+    "precheckpoint-original",
+    source_free_caller_input_intent_cid(),
+  ).unwrap()
+  let source_request = bound_effect_source_dispatch(
+    original.allowed, original.progress.definition, requested,
+  )
   // White-box reducer counter only. These authored task facts are not
   // physical Site evidence, a whole Run stop or a cleanup acknowledgement.
   let progress = {
     ..original,
     progress: {
       ..original.progress,
+      requests: original.progress.keys.map(_ => Some(source_request)),
       completed: original.progress.keys.map(_ => true),
       execution_complete: true,
       cleanup_complete: true,
@@ -136,8 +146,14 @@ test "Effect pre-checkpoint completed computation and task cleanup cannot comple
       })),
     },
   }
+  let claims = effect_projection_claims(progress).map(claim => {
+    ..claim,
+    dispatch_cid: Some(@remote.dispatch_request_identity(source_request)),
+    dispatch_reserved: true,
+    physical_start_claimed: true,
+  })
   let projected = project_client_remote_effect_task_run(
-    progress, "2026-10-09T00:01:00.000Z", true, effect_projection_claims(progress),
+    progress, "2026-10-09T00:01:00.000Z", true, claims,
   ).unwrap()
   let state = effect_projection_state(projected)
   assert_eq(state.get("status"), Some(Json::string("running")))
