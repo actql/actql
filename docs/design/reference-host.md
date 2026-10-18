@@ -293,6 +293,16 @@ The selected namespace and asset projection remain process/module holdings, not
 an operational intake issuer or a Host-level release acknowledgement. Stock
 resolver/bootstrap provenance and unselected library domains remain independent.
 
+The owned release-cohort transformation may change only the packaged manifest
+and license. The image generator binds the exact source manifest and the exact
+manifest produced by that existing transformation before acquisition, including
+the selected cohort version. It does not normalize installed JSON or ignore
+metadata fields. Local, the public Node facade and their owned cohort dependencies
+must all use the same source or release representation; all other image bytes
+retain their single original digest. The phase envelope charges the larger of
+the two bound manifest extents once before capture. Admitting this representation
+does not issue a startup original or extend control admission into business work.
+
 The standard Node facade is a separate image domain, not a dependency of Local.
 Its generated facts identify its original public entry and dependencies, with
 an explicit edge to the same actual Local installation. When that facade is
