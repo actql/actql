@@ -1,8 +1,29 @@
 // Failed initialization has no returned Host to own its resources. Keep the
 // same retry/status protocol as publication cleanup, without restarting work.
+function originalInitialControlClose(original) {
+  let close, captured = false;
+  return async () => {
+    // Capture inside the retained phase. A getter failure cannot discard the
+    // original holding before its cleanup has an Owner.
+    if (!captured) {
+      close = original.close;
+      captured = true;
+    }
+    if (typeof close !== 'function') {
+      throw new TypeError('InstalledHostInitialControlCleanupMissing');
+    }
+    const observed = await Reflect.apply(close, original, []);
+    if (observed?.pending !== false) {
+      throw new TypeError('InstalledHostInitialControlCleanupPending');
+    }
+  };
+}
+
 export async function retainInstalledHostInitializationFailure(cause,
   {journal, store, checkpoints, dispatchOwner, sourceProfile,
-    installedEffect, observation, ownerViews}) {
+    installedEffect, observation, ownerViews, initialControl}) {
+  const closeInitialControl = initialControl === undefined ? undefined :
+    originalInitialControlClose(initialControl);
   // Retain the original receiver and methods before the first cleanup await.
   // A changed error property cannot acknowledge a different physical owner.
   const originalCleanup = cause?.cleanupHandle;
@@ -27,6 +48,7 @@ export async function retainInstalledHostInitializationFailure(cause,
   if (store !== undefined) pending.add('store');
   if (observation !== undefined) pending.add('observation');
   if (ownerViews !== undefined) pending.add('owner-views');
+  if (initialControl !== undefined) pending.add('initial-control');
   const errors = [];
   const failure = Object.assign(new Error('InstalledHostInitializationFailed',
     {cause}), {code: 'InstalledHostInitializationFailed',
@@ -94,6 +116,12 @@ export async function retainInstalledHostInitializationFailure(cause,
           await attempt('store', () => store.close());
           await attempt('observation', () => observation.close());
           await attempt('owner-views', () => ownerViews.close());
+          // The initial control holding can contain every preparation/child
+          // alias. Retain it until all original cleanup owners are confirmed;
+          // a failed independent Store/journal close is not their retirement.
+          if ([...pending].every(name => name === 'initial-control')) {
+            await attempt('initial-control', closeInitialControl);
+          }
         }
       }
     }
@@ -194,13 +222,17 @@ export function retainInstalledHostRuntimeFailure(cause, retire) {
 // are independent. A failed close retains only that owner for the next call;
 // another adapter or the Store must not be skipped or closed twice.
 export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
-  journal, source, effect, store, diagnostic, observation, ownerViews, finalize}) {
+  journal, source, effect, store, diagnostic, observation, ownerViews,
+  initialControl, finalize}) {
+  const closeInitialControl = initialControl === undefined ? undefined :
+    originalInitialControlClose(initialControl);
   const completed = new Set();
   const pending = Object.freeze(['stop', 'drain', 'retire', 'checkpoint',
     'journal', 'source', 'effect', 'store',
     ...(diagnostic === undefined ? [] : ['diagnostic']),
     ...(observation === undefined ? [] : ['observation']),
     ...(ownerViews === undefined ? [] : ['ownerViews']),
+    ...(initialControl === undefined ? [] : ['initialControl']),
     ...(finalize === undefined ? [] : ['finalize'])]);
   let flight;
   let checkpointResult;
@@ -247,6 +279,10 @@ export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
     }
     await attempt('diagnostic', () => diagnostic?.());
     await attempt('observation', () => observation?.());
+    if (initialControl !== undefined) {
+      // Completing a Promise alone cannot acknowledge the original scope.
+      await attempt('initialControl', closeInitialControl);
+    }
     if (finalize !== undefined) {
       try {
         await attempt('finalize', finalize);
