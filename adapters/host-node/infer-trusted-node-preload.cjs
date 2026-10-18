@@ -296,7 +296,7 @@ function checkSdkModules(view, originals, modules) {
 // install an operational original in this closure.
 const initialControl = createInitialControlInstallationOwner(undefined);
 
-module.exports = Object.freeze({
+module.exports = {
   beginInitialControlInstallation(originals) {
     return initialControl.begin(originals);
   },
@@ -375,4 +375,10 @@ module.exports = Object.freeze({
     // Last Host/Run close does not retire either process/module responsibility.
     // No native/process/physical-stop ACK or numerical baseline is issued.
   },
-});
+};
+// Node's synchronous ESM consumer can read these published originals while
+// this startup captures its namespace. A null prototype avoids Node installing
+// its circular-require warning prototype on the immutable forwarder table.
+// No marker field or caller-supplied table authenticates an operational Root.
+Object.setPrototypeOf(module.exports, null);
+Object.freeze(module.exports);

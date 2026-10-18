@@ -245,6 +245,16 @@ pub fn client_program_bigquery_job_complete(@actql/actql/connectors/bigquery/rea
 
 pub fn client_program_bigquery_job_original(@actql/actql/connectors/bigquery/read.JobRead) -> (String, String, String)
 
+pub fn client_program_bigquery_job_original_record(@actql/actql/connectors/bigquery/read.JobRead, @actql/actql/connectors/bigquery/read.JobRecordLimits) -> Result[@actql/actql/connectors/bigquery/read.JobOriginalRecord, @actql/actql/connectors/bigquery/read.JobRecordIssue]
+
+pub fn client_program_bigquery_job_original_record_matches_request(@actql/actql/connectors/bigquery/read.JobRead, @actql/actql/connectors/bigquery/read.JobRequest, @actql/actql/connectors/bigquery/read.JobOriginalRecord) -> Bool
+
+pub fn client_program_bigquery_job_original_record_material(@actql/actql/connectors/bigquery/read.JobOriginalRecord) -> (String, String, String, String, String, String)
+
+pub fn client_program_bigquery_job_original_record_wire(@actql/actql/connectors/bigquery/read.JobOriginalRecord) -> String
+
+pub fn client_program_bigquery_job_record_limits(Int, Int, Int, Int, Int) -> @actql/actql/connectors/bigquery/read.JobRecordLimits
+
 pub fn client_program_bigquery_job_remote_done(@actql/actql/connectors/bigquery/read.JobRead) -> Bool
 
 pub fn client_program_bigquery_next_request(@actql/actql/connectors/bigquery/read.JobRead) -> Result[@actql/actql/connectors/bigquery/read.JobRequest?, @actql/actql/connectors/bigquery/read.JobIssue]
@@ -258,6 +268,8 @@ pub fn client_program_bigquery_prepare_read(@actql/actql/connectors/bigquery/cat
 pub fn client_program_bigquery_query_limits(@actql/actql/connectors/bigquery/catalog.DescriptionLimits, Int, Int64, Int, Int, Int, Int) -> @actql/actql/connectors/bigquery/catalog.QueryLimits
 
 pub fn client_program_bigquery_read_acquisition(@actql/actql/connectors/bigquery/read.PreparedRead) -> @client_row_source_host.RowAcquisition
+
+pub fn client_program_bigquery_read_job_original_record(Bytes, @actql/actql/connectors/bigquery/read.JobRecordLimits) -> Result[@actql/actql/connectors/bigquery/read.JobOriginalRecord, @actql/actql/connectors/bigquery/read.JobRecordIssue]
 
 pub fn client_program_bigquery_read_usage(@actql/actql/connectors/bigquery/read.Read) -> (Int, Int64)
 
