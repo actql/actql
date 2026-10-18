@@ -117,7 +117,7 @@ test "BigQuery same original Job POST once then status and exact cursor pages ca
   assert_true(@bigquery_read.capture_result_read(read) is Err(_))
   let second_request = bigquery_job_request(value)
   assert_true(
-    @bigquery_read.job_request_path(second_request).ends_with(
+    @bigquery_read.job_request_path(second_request).has_suffix(
       "&pageToken=next%2Fopaque%2Btoken",
     ),
   )
@@ -128,7 +128,7 @@ test "BigQuery same original Job POST once then status and exact cursor pages ca
   assert_true(@bigquery_read.next_job_request(value) is Ok(None))
   assert_eq(@bigquery_read.result_read_usage(read), (2, 2L))
   let captured = @bigquery_read.capture_result_read(read).unwrap()
-  assert_true(@row_host.row_capture_source(captured) is Some(_))
+  assert_true(@row_host.row_capture_source(captured) is Ok(_))
   assert_eq(
     @resources.ledger_usage(ledger).transferred_bytes,
     (running.length() + done.length() + first.length() + second.length()).to_int64(),
