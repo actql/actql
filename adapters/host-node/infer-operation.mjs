@@ -7,7 +7,8 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {claimInferIoNotification} from './infer-io-notification.mjs';
 import {selectedInferOriginalMetadataLimits, selectedInferOriginalStoreBootstrapLimits,
   selectedInferOriginalPublicationCapacity, selectedInferOriginalCurrentStateCodec} from './infer-original-installation.mjs';
-import {originalModelRawTransportPersistenceMatches} from './infer-raw-capture.mjs';
+import {originalModelRawTransportPersistenceMatches, bindOriginalModelRawTransportPersistence}
+  from './infer-raw-capture.mjs';
 
 const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
   {code: 'ClientDispatchCleanupPending'});
@@ -856,11 +857,13 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       rawCaptureBound = true;
       try {
         const callbacks = preparedRawCaptureBinders ?? [rawCaptureBinder];
-        for (const callback of callbacks) {
-          if (callback(registration, persistence) !== undefined) {
-            throw new TypeError('InvalidInferRawCaptureBinderResult');
+        bindOriginalModelRawTransportPersistence(persistence, operation, registration, next => {
+          for (const callback of callbacks) {
+            if (callback(registration, next()) !== undefined) {
+              throw new TypeError('InvalidInferRawCaptureBinderResult');
+            }
           }
-        }
+        });
       } finally {
         // A partial failure cannot retry any already bound child. Every
         // original cursor still belongs to Common's existing cleanup census;

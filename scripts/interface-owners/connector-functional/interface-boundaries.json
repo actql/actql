@@ -7286,7 +7286,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-source.mjs",
-      "sha256": "52a77e2461feaa8cb08edff9302ff2d60d1e3e4ccb98afbaeecbd0902f6abd7e",
+      "sha256": "f155d60c55f412fc6e2e8d260a25dcb7a945f5462a76517d66076879fe524b39",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
@@ -7955,6 +7955,23 @@
           "async": false
         },
         {
+          "name": "openRowSourceCredentialCustody/installationMetadataJournal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/installationMetadataJournal/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/installationMetadataJournal/installationMetadataJournal",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
           "parameters": [],
           "async": false
@@ -7976,6 +7993,16 @@
           "async": false
         },
         {
+          "name": "openRowSourceCredentialCustody/signInstallationMetadata",
+          "parameters": [
+            "metadataControl",
+            "scope",
+            "expiresUnixMilliseconds",
+            "maxUses"
+          ],
+          "async": false
+        },
+        {
           "name": "openRowSourceCredentialSite",
           "parameters": [
             "profile",
@@ -7990,6 +8017,7 @@
             "ca",
             "admitsApprovalTarget",
             "admitsEffectTargetRead",
+            "installationMetadata",
             "responseHeaders",
             "now",
             "grantLifetimeMs",
@@ -8091,6 +8119,202 @@
         },
         {
           "name": "openRowSourceCredentialSite/synchronous/synchronous",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstallationMetadataSite/account/account",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/accountMethods/accountMethods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/callAccount/callAccount",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/current/current",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstallationMetadataSite/data/data",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/data/data/data",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/data/data/data#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/ensureCurrent/ensureCurrent",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/factsFor/factsFor",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach",
+          "parameters": [
+            "originalCustody"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:credential/init:credential",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant",
+          "parameters": [
+            "target",
+            "metadataOccurrenceId",
+            "useId",
+            "expiresUnixMilliseconds",
+            "maxUses"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/site",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/site#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/pair/pair",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite#2",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/profileCurrent/profileCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/selectedProfile/selectedProfile",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/synchronous/synchronous",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/synchronous/synchronous/synchronous",
           "parameters": [],
           "async": false
         },
@@ -8261,6 +8485,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original installed row reader custody"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The installed Row Credential Site accepts this alternative"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
               }
             ],
             "inputsOutputs": [
@@ -8283,6 +8515,14 @@
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "async function readProvider({prepare, receiver, options})"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Each registered metadata occurrence retains its original selected target,"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
               }
             ],
             "identity": [
@@ -8309,6 +8549,18 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The ordinary row Source Check Environment assembly preserves"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "pair, original declaration alongside its source CID, Account gate and captured"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
               }
             ],
             "ownership": [
@@ -8339,6 +8591,14 @@
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Admission failure returns the existing initialization cleanup Owner with the"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "unsafe mutable Journal admission"
               }
             ],
             "synchronization": [
@@ -8369,6 +8629,14 @@
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "await Reflect.apply(verifyRead, options, [])"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Before signing, the Site checks the bounded Host-profile observation, actual"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
               }
             ],
             "failure": [
@@ -8395,6 +8663,14 @@
               {
                 "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
                 "anchor": "throwing factory or method getter retains the installed original borrow without retry"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "occurrences cannot issue another grant, and observed Account/profile failure"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "Account file revoked across await"
               }
             ],
             "cancellation": [
@@ -8417,6 +8693,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "pending read and stop Promises"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Publication completion, failure and abort close new-operation admission."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
               }
             ],
             "resources": [
@@ -8451,6 +8735,18 @@
               {
                 "path": "src/client_row_source_host/provider_capacity.mbt",
                 "anchor": "provider_retained"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The ordinary row Source Check Environment assembly preserves"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The simultaneous preparation inventory includes bounded issuer PEM bytes and"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
               }
             ],
             "extension": [
@@ -8469,6 +8765,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "foreign preparation and unsupported listing/keyed profile combinations refuse"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The legacy Run Site retains its existing signing and close behavior."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
               }
             ],
             "verification": [
@@ -8511,6 +8815,167 @@
               {
                 "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
                 "anchor": "current refusal after factory keeps the same reader for cleanup and sends nothing"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-read-source-preparation.test.mjs",
+                "anchor": "enum survives installed Check Environment and SQL/AQL preparation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "exact Scope, current authorization and confirmed same-Journal claim. This"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openRowSourceCredentialCustody/installationMetadataJournal",
+            "openRowSourceCredentialCustody/installationMetadataJournal/init:close/init:close",
+            "openRowSourceCredentialCustody/installationMetadataJournal/installationMetadataJournal",
+            "openRowSourceCredentialCustody/signInstallationMetadata",
+            "prepareInstallationMetadataSite",
+            "prepareInstallationMetadataSite/account/account",
+            "prepareInstallationMetadataSite/accountMethods/accountMethods",
+            "prepareInstallationMetadataSite/callAccount/callAccount",
+            "prepareInstallationMetadataSite/current/current",
+            "prepareInstallationMetadataSite/data/data",
+            "prepareInstallationMetadataSite/data/data/data",
+            "prepareInstallationMetadataSite/data/data/data#2",
+            "prepareInstallationMetadataSite/ensureCurrent/ensureCurrent",
+            "prepareInstallationMetadataSite/factsFor/factsFor",
+            "prepareInstallationMetadataSite/init:attach/init:attach",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:close/init:close",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:credential/init:credential",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant#2",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/site",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/site#2",
+            "prepareInstallationMetadataSite/invalid/invalid",
+            "prepareInstallationMetadataSite/pair/pair",
+            "prepareInstallationMetadataSite/positive/positive",
+            "prepareInstallationMetadataSite/prepareInstallationMetadataSite",
+            "prepareInstallationMetadataSite/prepareInstallationMetadataSite#2",
+            "prepareInstallationMetadataSite/prepareInstallationMetadataSite#3",
+            "prepareInstallationMetadataSite/selectedProfile/selectedProfile",
+            "prepareInstallationMetadataSite/synchronous/synchronous",
+            "prepareInstallationMetadataSite/synchronous/synchronous/synchronous",
+            "prepareInstallationMetadataSite/init:close/init:close",
+            "prepareInstallationMetadataSite/profileCurrent/profileCurrent",
+            "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The installed Row Credential Site accepts this alternative"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Each registered metadata occurrence retains its original selected target,"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "pair, original declaration alongside its source CID, Account gate and captured"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Admission failure returns the existing initialization cleanup Owner with the"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "unsafe mutable Journal admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Before signing, the Site checks the bounded Host-profile observation, actual"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "occurrences cannot issue another grant, and observed Account/profile failure"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "Account file revoked across await"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Publication completion, failure and abort close new-operation admission."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The simultaneous preparation inventory includes bounded issuer PEM bytes and"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Closing that Site or its Journal does not retire"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The legacy Run Site retains its existing signing and close behavior."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "exact Scope, current authorization and confirmed same-Journal claim. This"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "adapters/connectors/notion/test/site-metadata-discovery.test.mjs",
+                "anchor": "actual original Site signs and claims separate database and dependent schema uses through Notion discovery"
               }
             ]
           }
@@ -8527,15 +8992,19 @@
         "../site-node/https-credential-resource.mjs",
         "../site-node/remote-credential-signature.mjs",
         "../site-node/sqlite-credential-journal.mjs",
+        "./installed-host-cleanup.mjs",
         "./installed-row-listing.mjs",
         "./installed-row-run.mjs",
+        "./installed-source.mjs",
         "./local-account-config.mjs",
         "./ordinary-source-binding.mjs",
+        "./source-profile-json.mjs",
         "node:crypto",
         "node:fs/promises",
         "node:path",
         "node:perf_hooks",
-        "node:timers/promises"
+        "node:timers/promises",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []

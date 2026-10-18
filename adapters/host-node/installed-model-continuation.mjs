@@ -14,7 +14,7 @@ import {withPreparedInferEvidence} from './infer-evaluation-evidence.mjs';
 import {createNodeInferEntryPersistence} from './infer-entry-persistence.mjs';
 import {createInferPhysicalObservation} from './infer-physical-observation.mjs';
 import {snapshotModelRawCaptureSelection} from './infer-raw-selection.mjs';
-import {createModelRawTransportPersistence} from './infer-raw-capture.mjs';
+import {createModelRawTransportPersistenceFactory} from './infer-raw-capture.mjs';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {selectedInferOriginalCurrentStateCodec,
   snapshotInferOriginalCurrentStateCodec as originalCurrentCodecLimits} from './infer-original-installation.mjs';
@@ -357,7 +357,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     let rawSelection = snapshotModelRawCaptureSelection(selected.rawCaptureSelection);
     const rawBinding = rawSelection === undefined ? undefined :
       {attempted: false, complete: false, issue: undefined,
-        persistence: undefined, holding: undefined, originalsFlight: undefined,
+        persistence: undefined, holdings: [], originalsFlight: undefined,
         originalsPending: false, readCleanup: undefined, readCleanupFlight: undefined};
     // Reject a known missing installation before Approval/Entry, not after
     // consuming an attempt. Method checks are availability only: the actual
@@ -699,11 +699,11 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       }
       rawSelection = undefined;
       if (rawBinding !== undefined) {
-        // Common's physical cleanup has already confirmed this same port's
+        // Common's physical cleanup has already confirmed every original port's
         // Store/SDK retirement. Drop local aliases, not durable raw custody or
         // escaped saved receipts. A failed cleanup above retains both fields.
         rawBinding.persistence = undefined;
-        rawBinding.holding = undefined;
+        rawBinding.holdings = undefined;
         rawBinding.originalsFlight = undefined;
       }
       installedJournalPort = undefined;
@@ -1186,13 +1186,10 @@ export async function installNodeModelContinuation({moon, control, store, storeA
                   observeAccount: selected.observeAccount, observeAt: now});
               // Use this continuation's actual selected Store, not a Provider
               // supplied CID, replacement Store or another retention Owner.
-              const persistence = createModelRawTransportPersistence({store, moon, operation,
+              const persistence = createModelRawTransportPersistenceFactory({store, moon, operation,
                 registration, notify: operation.ioNotification?.notify,
                 retainHolding(value) {
-                  if (rawBinding.holding !== undefined && rawBinding.holding !== value) {
-                    fail('ModelOriginalRawHoldingChanged');
-                  }
-                  rawBinding.holding = value;
+                  if (!rawBinding.holdings.includes(value)) rawBinding.holdings.push(value);
                 }});
               rawBinding.persistence = persistence;
               operation.bindModelRawCapture(registration, persistence);

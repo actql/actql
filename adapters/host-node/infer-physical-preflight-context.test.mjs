@@ -3,6 +3,9 @@ import test from 'node:test';
 import {setImmediate as turn} from 'node:timers/promises';
 import {readFileSync} from 'node:fs';
 import {createInferIoNotification} from './infer-io-notification.mjs';
+import {createHash} from 'node:crypto';
+import {rawCaptureStoreFixture} from './infer-raw-capture.fixture.mjs';
+import {createModelRawTransportPersistenceFactory} from './infer-raw-capture.mjs';
 import {prepareOpenAIChatRequest} from '../../packages/provider-ai-sdk/_internal/openai-chat.mjs';
 import {pollSdkPreparation, sdkPreparedRequest, cancelSdkPreparation,
   cleanupSdkPreparation} from '../../packages/provider-ai-sdk/_internal/intercepted-request.mjs';
@@ -117,6 +120,82 @@ test('one original operation binds every prepared request to its same raw regist
   } finally { await original.close(); }
   assert.equal(original.cleanupPending(), false);
   assert.equal(ports.length, 2, 'cleanup never prepares or dispatches another request');
+});
+
+test('each prepared request saves its original raw Call in the same Store without sharing a single-Call port', async t => {
+  const bytes = Buffer.from('{"original":"saved"}');
+  const store = await rawCaptureStoreFixture(t, {bytes});
+  const digest = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
+  const registration = {}, ports = [], holdings = [];
+  const calls = Array.from({length: 2}, (_, slot) => {
+    const wire = JSON.stringify({independent: 'raw descriptor', slot});
+    return {call: {}, view: {}, receipt: {}, wire, semanticCid: digest(wire),
+      holdingCid: digest(`same Store original raw holding ${slot}`)};
+  });
+  let observed;
+  const capture = view => {
+    const value = calls.find(value => value.view === view);
+    assert.ok(value, 'only an original view is accepted by the explicit Common port');
+    return value;
+  };
+  const moon = {...store.moon,
+    clientProgramObserveInferRawCapture(call, original, contentCid, size) {
+      assert.equal(original, registration);
+      assert.equal(contentCid, digest(bytes)); assert.equal(size, bytes.length);
+      observed = calls.find(value => value.call === call); assert.ok(observed);
+      return {$tag: 1, _0: observed.view};
+    },
+    clientProgramInferRawCaptureSaveCurrent(view) { capture(view); return {$tag: 1, _0: undefined}; },
+    clientProgramInferRawCaptureSaveBinding(view) {
+      const value = capture(view);
+      return [value.semanticCid, value.holdingCid, value.wire, digest(bytes), bytes.length];
+    },
+    clientProgramInferRawCaptureSaveOriginals(view) {
+      capture(view); return store.moon.clientProgramInferRawCaptureSaveOriginals(store.view);
+    },
+    clientProgramAcknowledgeSavedInferRawCapture(view) {
+      return {$tag: 1, _0: capture(view).receipt};
+    },
+    clientProgramInferSavedRawChatResponse(receipt, body) {
+      assert.ok(calls.some(value => value.receipt === receipt));
+      return {$tag: 1, _0: {receipt, body}};
+    },
+  };
+  const f = fixture({preflight(_request, _context, retain) {
+    retain((original, persistence) => { assert.equal(original, registration); ports.push(persistence); });
+  }, poll: () => true});
+  const operation = f.open();
+  try {
+    f.bound()(f.request); f.bound()({});
+    const persistence = createModelRawTransportPersistenceFactory({store: store.physical, moon,
+      operation, registration, notify: f.notification.notify,
+      retainHolding(port) { holdings.push({port, original: observed}); }});
+    operation.bindModelRawCapture(registration, persistence);
+    for (const [index, value] of calls.entries()) {
+      const raw = {body: bytes, status: 200, transportComplete: true,
+        observedAt: '2026-10-18T00:00:00.000Z'};
+      const saved = await ports[index](value.call, raw);
+      assert.equal(saved.receipt, value.receipt);
+      assert.equal(saved.response.body, bytes.toString());
+    }
+    assert.notEqual(ports[0], ports[1]);
+    assert.equal(holdings.length, 2);
+    assert.equal(store.state.writes, 2);
+    assert.equal(ports[0].cleanup(calls[1].call), false);
+    assert.equal(ports[0].cleanup(calls[0].call), true);
+    await assert.rejects(ports[0](calls[0].call, {}), /OriginalRawPersistenceRetired/u);
+    assert.equal(ports[1].cleanup(calls[0].call), false,
+      'retiring the first Call cannot retire a distinct raw holding');
+    for (const [index, value] of calls.entries()) {
+      assert.equal(ports[index].cleanup(value.call), true);
+    }
+  } finally {
+    for (const {port, original} of holdings) {
+      assert.equal(port.holding.status().committed, true);
+      await store.store.retirePhysicalHolding(original.holdingCid);
+    }
+    await operation.close();
+  }
 });
 
 for (const count of [4, 24]) {

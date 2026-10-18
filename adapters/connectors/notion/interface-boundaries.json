@@ -2467,6 +2467,253 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+      "sha256": "f79d2a7a066415da6a3b2e38737e2bb68099dc302ef66572a27b43de2d4adb9d",
+      "exports": [
+        "prepareNotionDatabaseMetadataTargets"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareNotionDatabaseMetadataTargets",
+          "parameters": [
+            "moon",
+            "declaration",
+            "origin",
+            "resource",
+            "maxTargetBytes",
+            "maxResourceBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareNotionDatabaseMetadataTargets/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareNotionDatabaseMetadataTargets/coordinate/coordinate",
+          "parameters": [
+            "id",
+            "section"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareNotionDatabaseMetadataTargets/ports/ports",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareNotionDatabaseMetadataTargets/targetAuthority/init:project/init:project",
+          "parameters": [
+            "target",
+            "originalDeclaration"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareNotionDatabaseMetadataTargets/targets/init:selectSource/init:selectSource",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectedData",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectedData/selectedData",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectedData/selectedData#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../site/database-discovery.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Notion Catalog originals and installed metadata publication caller; existing Site retains issuance/current/claim/cleanup",
+      "contracts": [
+        {
+          "id": "notion-installed-metadata-targets",
+          "exports": [
+            "prepareNotionDatabaseMetadataTargets"
+          ],
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "positive/positive",
+            "prepareNotionDatabaseMetadataTargets",
+            "prepareNotionDatabaseMetadataTargets/call/call",
+            "prepareNotionDatabaseMetadataTargets/coordinate/coordinate",
+            "prepareNotionDatabaseMetadataTargets/ports/ports",
+            "prepareNotionDatabaseMetadataTargets/targetAuthority/init:project/init:project",
+            "prepareNotionDatabaseMetadataTargets/targets/init:selectSource/init:selectSource",
+            "selectedData",
+            "selectedData/selectedData",
+            "selectedData/selectedData#2",
+            "text/text"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "## Installed metadata target projection"
+              },
+              {
+                "path": "src/connectors/notion/catalog/read_source_selection.mbt",
+                "anchor": "pub fn select_notion_read_source("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "anchor": "export function prepareNotionDatabaseMetadataTargets("
+              },
+              {
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "anchor": "return Object.freeze({resource,operation,origin,method:'GET',path,bodyBytes:0});"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "anchor": "if(this!==targetAuthority||originalDeclaration!==declaration)fail('ForeignNotionMetadataTarget');"
+              },
+              {
+                "path": "src/connectors/notion/catalog/read_source_selection.mbt",
+                "anchor": "physical_equal(original, selection)"
+              },
+              {
+                "path": "src/connectors/notion/catalog/metadata_target_originals_wbtest.mbt",
+                "anchor": "test \"Notion metadata schema target requires the original selection itself not copied retained fields\""
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "anchor": "selected=Object.freeze({...value,path});"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The installer closure retains provider methods/receiver"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+              },
+              {
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "anchor": "const descriptors=Object.getOwnPropertyDescriptors(value),names=Reflect.ownKeys(descriptors);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "anchor": "if(selected!==undefined)fail('NotionMetadataSourceAlreadySelected');"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mjs",
+                "anchor": "test('metadata targets reject foreign originals receiver path purpose and selection substitutions'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "retry or cleanup acknowledgement in the projection; only the existing physical"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "cleanup must continue to retain the graph when it remains unconfirmed."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The installer closure retains provider methods/receiver"
+              },
+              {
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "anchor": "if(id.length>maxTargetBytes)fail('NotionMetadataTargetLimit');"
+              },
+              {
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "anchor": "if(Buffer.byteLength(path)>maxTargetBytes)fail('NotionMetadataTargetLimit');"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "These synchronous target facts are DATA"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Run grant or invent a metadata Program Run."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mjs",
+                "anchor": "test('metadata targets preserve original declaration then exact selected occurrence and request encoding'"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mjs",
+                "anchor": "test('metadata target bounds and captured provider receiver cannot be replaced by later getters'"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mjs",
+                "anchor": "test('actual Host metadata discovery selects the same target only after the original database response'"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

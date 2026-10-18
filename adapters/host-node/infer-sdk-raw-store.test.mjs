@@ -11,7 +11,8 @@ import {createSdkModelPreflight} from
 import {createAdmittedOpenAIChatPreflight} from
   '../../packages/provider-ai-sdk/_internal/original-openai-chat.mjs';
 import {openNodeInferOperation} from './infer-operation.mjs';
-import {createModelRawTransportPersistence} from './infer-raw-capture.mjs';
+import {createModelRawTransportPersistence, createModelRawTransportPersistenceFactory}
+  from './infer-raw-capture.mjs';
 import {rawCaptureStoreFixture} from './infer-raw-capture.fixture.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {createPublicationContractControlFixture} from
@@ -127,7 +128,10 @@ async function joinedFixture(t, {bytes = Buffer.from(wire), storeFault = {},
       return {$tag: 1, _0: f.view};
     },
   };
-  const persistence = createModelRawTransportPersistence({store: physicalFor(f),
+  // The deferred installed route binds a separate original single-Call port
+  // through its consumed factory. The direct legacy route stays unchanged.
+  const persistence = (deferredRaw ? createModelRawTransportPersistenceFactory
+    : createModelRawTransportPersistence)({store: physicalFor(f),
     moon, registration, operation:originalOperation,
     retainHolding: value => retained.push(value), notify: io.notify});
   const preparation = deferredRaw ? undefined : prepareOpenAIChatRequest({modelId: 'gpt-4.1-nano',
