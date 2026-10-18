@@ -436,6 +436,12 @@ pub fn inspect_canonical_result_rows(String, Array[String], Int, Int, Int) -> Re
 
 pub fn install_publication_publisher_port(PublicationContract, PublicationContract, String, () -> Bool, (PublicationPublisherAuthorization) -> Bool) -> Result[PublicationPublisherPort, PublicationPublisherIssue]
 
+pub fn installation_publication_storage_binding_cid(InstallationPublicationStorageBinding) -> String
+
+pub fn installation_publication_storage_binding_fields(InstallationPublicationStorageBinding) -> (String, String)
+
+pub fn installation_publication_storage_binding_wire(InstallationPublicationStorageBinding) -> String
+
 pub fn issue_captured_content_reference(CapturedContentReference, @value_admission.ReferenceIssuer, @value_admission.ReferenceLimits) -> Result[@value_admission.CheckedValue, GeneratedContentReferenceIssue]
 
 pub fn issue_captured_effect_dependency_inventory(Array[CapturedEffectDependencyBody], Array[CapturedEffectDependencyBody], CapturedEffectDependencyLimits, Int, Int) -> Result[CapturedEffectDependencyInventory, CapturedEffectDependencyIssue]
@@ -656,6 +662,8 @@ pub fn prepare_generated_content_reference(ContentByteEncoder, GeneratedContentB
 
 pub fn prepare_generated_content_reference_from_binding(ContentByteEncoder, String, @value_admission.ReferenceLimits) -> Result[GeneratedContentReference, GeneratedContentReferenceIssue]
 
+pub fn prepare_installation_publication_storage_binding(String, String, String, Int, Int, Int) -> Result[InstallationPublicationStorageBinding, PublicationContractIssue]
+
 pub fn prepare_publication_attempt_step(PublicationContract?, Bool, Bool) -> PublicationAttemptRuntimeAction
 
 pub fn prepare_publication_cancellation_step(PublicationContract?) -> PublicationCancellationAction
@@ -755,6 +763,8 @@ pub fn publication_snapshot_state(PublicationSnapshot) -> PublicationSnapshotSta
 pub fn publication_snapshot_state_text(PublicationSnapshot) -> String
 
 pub fn publication_unknown_retry_action_code(PublicationUnknownRetryAction) -> Int
+
+pub fn read_installation_publication_storage_binding(String, String, Int, Int, Int) -> Result[InstallationPublicationStorageBinding, PublicationContractIssue]
 
 pub fn read_model_capture_bundle(String, String, Int, Int, Int) -> Result[ModelCaptureBundleRead, RunEvidenceValueIssue]
 
@@ -1556,6 +1566,8 @@ pub(all) enum GeneratedContentReferenceIssue {
   Encoding
   Issuance(@value_admission.ReferenceIssue)
 } derive(Eq, @debug.Debug)
+
+type InstallationPublicationStorageBinding
 
 pub(all) enum LocalSDKReadSelectionIssue {
   InvalidBinding
