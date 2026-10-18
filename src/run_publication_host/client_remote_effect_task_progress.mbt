@@ -136,3 +136,37 @@ pub fn prepare_client_remote_effect_task_physical_start(
     pre_start_failure_confirmed,
   )
 }
+
+///|
+/// A pre-Checkpoint unpublished candidate for the same original Effect Run.
+/// Whole-Run cleanup and Effect publication are deliberately not observed.
+pub struct ClientRemoteEffectTaskRunProjection {
+  original : ClientRemoteEffectTaskProgress
+  projection : ClientRemoteTaskRunProjection
+}
+
+///|
+pub fn project_client_remote_effect_task_run(
+  value : ClientRemoteEffectTaskProgress,
+  observed_at : String,
+  cancellation_requested : Bool,
+  claimed_task_keys : Array[String],
+) -> Result[ClientRemoteEffectTaskRunProjection, ClientRemoteTaskRunProjectionIssue] {
+  project_bound_client_remote_task_run(
+    value.progress, observed_at, cancellation_requested, claimed_task_keys, true,
+  ).map(projection => { original: value, projection, })
+}
+
+///|
+pub fn client_remote_effect_task_run_projection_fields(
+  value : ClientRemoteEffectTaskRunProjection,
+) -> Array[String] {
+  client_remote_task_run_projection_fields(value.projection)
+}
+
+///|
+pub fn client_remote_effect_task_run_projection_work(
+  value : ClientRemoteEffectTaskRunProjection,
+) -> Array[String] {
+  client_remote_task_run_projection_work(value.projection)
+}

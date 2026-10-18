@@ -28,6 +28,21 @@ pub fn project_client_remote_task_run(
   cancellation_requested : Bool,
   claimed_task_keys : Array[String],
 ) -> Result[ClientRemoteTaskRunProjection, ClientRemoteTaskRunProjectionIssue] {
+  project_bound_client_remote_task_run(
+    progress, observed_at, cancellation_requested, claimed_task_keys, false,
+  )
+}
+
+///|
+// Only the typed Pure and pre-Checkpoint Effect entries select this mode.
+// Task progress never supplies an Effect outcome or a publication commit.
+fn project_bound_client_remote_task_run(
+  progress : ClientRemoteTaskProgress,
+  observed_at : String,
+  cancellation_requested : Bool,
+  claimed_task_keys : Array[String],
+  effect_computation : Bool,
+) -> Result[ClientRemoteTaskRunProjection, ClientRemoteTaskRunProjectionIssue] {
   let claimed = Array::make(progress.keys.length(), false)
   if claimed_task_keys.length() > progress.keys.length() {
     return Err(InvalidStartClaims)
@@ -131,7 +146,11 @@ pub fn project_client_remote_task_run(
     Err(_) => return Err(MissingRunId)
   }
   let state_wire = match
-    @publication.issue_effect_free_unpublished_run_state_wire(
+    (if effect_computation {
+      @publication.issue_pre_checkpoint_unpublished_run_state_wire
+    } else {
+      @publication.issue_effect_free_unpublished_run_state_wire
+    })(
       run_id,
       observed_at,
       progress.result_names,
@@ -147,7 +166,7 @@ pub fn project_client_remote_task_run(
     Ok(value) => value
     Err(issue) => return Err(State(issue))
   }
-  let publication_ready = progress.execution_complete &&
+  let publication_ready = !effect_computation && progress.execution_complete &&
     !failed &&
     !cancelled &&
     !cancellation_requested &&
@@ -209,7 +228,7 @@ pub fn project_client_remote_task_run(
       progress.next_task
     },
     publication_ready,
-    cleanup_complete,
+    cleanup_complete: !effect_computation && cleanup_complete,
   })
 }
 
