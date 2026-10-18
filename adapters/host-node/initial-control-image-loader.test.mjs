@@ -113,7 +113,7 @@ test('application-time helper invocation refuses before reading caller records o
   assert.equal(result.status, 0, result.stderr);
 });
 
-test('later hook registration and deregistration cannot restore the selected original history', t => {
+test('registration through the published fence stays invalidated after deregistration', t => {
   const f = fixture(t), result = f.run([
     "import assert from 'node:assert/strict';",
     "import {registerHooks} from 'node:module';",
@@ -127,15 +127,21 @@ test('later hook registration and deregistration cannot restore the selected ori
   assert.equal(result.status, 0, result.stderr);
 });
 
-test('a registration through a retained pre-fence function invalidates currentness', t => {
+test('a retained pre-fence registration function is outside the property fence observation', t => {
   const f = fixture(t), result = f.run([
     "import assert from 'node:assert/strict';",
-    "assert.throws(()=>originalImageLoader.assertCurrent(),{code:'InitialControlImageLoaderChanged'});",
+    "import {createRequire} from 'node:module';",
+    "const NodeModule=createRequire(import.meta.url)('node:module');",
+    'assert.equal(NodeModule.registerHooks,originalRegistrationFence);',
+    'originalImageLoader.assertCurrent();',
     "assert.equal((await import('./images/original.mjs')).value,'retained-registration');",
+    'originalImageLoader.assertCurrent();',
     'retainedRegistration.deregister();',
-    "assert.throws(()=>originalImageLoader.assertCurrent(),{code:'InitialControlImageLoaderChanged'});",
+    'assert.equal(NodeModule.registerHooks,originalRegistrationFence);',
+    'originalImageLoader.assertCurrent();',
   ].join('\n'), [
     'originalImageLoader.captureLoadedModules();',
+    "globalThis.originalRegistrationFence=require('node:module').registerHooks;",
     'globalThis.retainedRegistration=retainedRegisterHooks({',
     "resolve(name,context,next){if(name.endsWith('/images/original.mjs'))return {url:new URL(name,context.parentURL).href,shortCircuit:true};return next(name,context);},",
     "load(url,context,next){if(url.endsWith('/images/original.mjs'))return {format:'module',source:'export const value=\"retained-registration\";',shortCircuit:true};return next(url,context);}",

@@ -231,9 +231,11 @@ function installInitialControlImageLoader(groups) {
     return {format: original.format, source: original.source, shortCircuit: true};
   }
   function registerHooksFence(...args) {
-    // Preserve Node's API result but make this selected loader permanently
-    // unavailable BEFORE another hook can intercept a covered import. Even if
-    // that hook is later deregistered, it cannot restore this original history.
+    // Calls through this published fence permanently invalidate this helper,
+    // even after deregistration. This does not observe calls through a native
+    // registration function retained before installation. The selected startup
+    // must independently close that ownership/non-escape boundary; property
+    // identity and assertCurrent alone cannot certify all registration history.
     invalidated = true;
     return nativeApply(registerHooks, NodeModule, args);
   }

@@ -198,8 +198,16 @@ admission, current Host or preparation envelope.
 Selected image loading supplies immutable captured Source to the original Node
 compiler rather than delegating the body to a later pathname read. Uncaptured
 dependencies and additional query-identified images require their own selected
-domain; they cannot inherit this control coverage. A later loader registration
-invalidates the original history even if subsequently deregistered.
+domain; they cannot inherit this control coverage. Registration through the
+published `registerHooks`/`register` fences permanently invalidates this helper,
+even after deregistration. This observation does not cover an original native
+registration function retained before fence installation: it can install a
+short-circuit loader without changing the published property or this helper's
+currentness result. That result therefore is not an all-history certificate.
+Before operational adoption, the actual selected startup must independently
+establish the ownership and non-escape of those original registration functions
+and any earlier registrations. This component does not establish that boundary;
+without it, operational admission remains unavailable.
 
 The admission must also bind the actual post-load CJS cache/exports, original
 stock resolver, fixed asset reads and runtime-file identity to the loaded
