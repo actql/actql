@@ -73,6 +73,9 @@ fn text_file(
   name : String,
   maximum : Int64,
 ) -> String raise ClientStop {
+  if command_preparation_invocation.val is Some(original) {
+    return command_preparation_result(original.text_file(root, name, maximum))
+  }
   if initial_crypto_invocation.val is Some(original) && original.scope_open {
     return local_initial_crypto_text_file(original, root, name, maximum)
   }

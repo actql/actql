@@ -160,6 +160,9 @@ fn execute_native_local_product(
   if !(matches.sources.get("config-root") is Some(@argparse.Default)) {
     stop("ExplicitLocalRootRequiresConfiguration")
   }
+  if command_preparation_invocation.val is Some(original) {
+    return original.execute_product_check(matches, operation)
+  }
   let context = @env.get_env_var("ACTQL_NATIVE_LOCAL_RUNTIME").unwrap_or_else(() => {
     stop("PackagedLocalRuntimeUnavailable")
   })
