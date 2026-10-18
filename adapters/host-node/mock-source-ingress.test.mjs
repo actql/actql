@@ -10,11 +10,20 @@ const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 const functions = tree.body.map(node => node.declaration ?? node);
 const open = functions.find(node => node.type === 'FunctionDeclaration' &&
   node.id.name === 'openInstalledHost');
-const statements = open.body.body.find(node => node.type === 'TryStatement').block.body;
-const declarations = statements.flatMap(node => node.declarations ?? []);
+const declarations = [];
+function collect(node) {
+  if (node === null || typeof node !== 'object') return;
+  if (node.type === 'VariableDeclarator') declarations.push(node);
+  for (const value of Object.values(node)) {
+    if (Array.isArray(value)) value.forEach(collect);
+    else if (value !== null && typeof value === 'object') collect(value);
+  }
+}
+collect(open.body);
 const selected = ['ingress', 'sourcePreparation', 'port'].map(name => {
-  const declaration = declarations.find(node => node.id.name === name);
-  assert.ok(declaration, name);
+  const matches = declarations.filter(node => node.id.name === name);
+  assert.equal(matches.length, 1, name);
+  const [declaration] = matches;
   return `const ${source.slice(declaration.start, declaration.end)};`;
 }).join('\n');
 // Execute the actual ingress assembly, not another forwarding implementation.
