@@ -36434,13 +36434,15 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "366d042bc495661a5b5dcc64e0e7a27be7c426db230fa9daf4a4f9a32119fa76",
+      "sha256": "89920f0bf77a828abd00297df599dcf9ba2d5553a414bc10c3187c18f8e6c2ce",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "assertInitialControlHostPreparation",
+        "assertOriginalHostPublicationOwnershipCurrent",
         "assertOriginalHostRequestJournalFacilityCurrent",
         "assertSourceManagedHostPreparation",
+        "closeOriginalHostPublicationOwnership",
         "connectEmbeddedLocal",
         "connectInitialControlHostPreparation",
         "observeOriginalHostRequestJournalCustody",
@@ -36448,6 +36450,7 @@
         "openOriginalHostRequestJournal",
         "originalSourceManagedHostRequest",
         "prepareInstalledMockSourcePreparation",
+        "prepareOriginalHostPublicationOwnership",
         "publishInstalledEffect",
         "publishInstalledSource",
         "readHostJournalPreparation",
@@ -42497,7 +42500,10 @@
             "readInstalledMockPreparation",
             "readSourceManagedRunRequirements",
             "sourceManagedSubmittedIntentCid",
-            "assertOriginalHostRequestJournalFacilityCurrent"
+            "assertOriginalHostRequestJournalFacilityCurrent",
+            "prepareOriginalHostPublicationOwnership",
+            "assertOriginalHostPublicationOwnershipCurrent",
+            "closeOriginalHostPublicationOwnership"
           ],
           "attributes": {
             "responsibility": [
@@ -42540,6 +42546,18 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "  assertOriginalClientRequestJournalFacilityCurrent as assertOriginalHostRequestJournalFacilityCurrent};"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "  prepareLocalPublicationStoreOwnership as prepareOriginalHostPublicationOwnership,"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "  assertOriginalPreparedLocalPublicationStoreOwnership as assertOriginalHostPublicationOwnershipCurrent,"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "  closePreparedLocalPublicationStoreOwnership as closeOriginalHostPublicationOwnership,"
               }
             ],
             "ownership": [
@@ -121218,7 +121236,7 @@
   "counts": {
     "modules": 57,
     "operations": 3437,
-    "exports": 544,
+    "exports": 547,
     "explicitContractGroups": 766
   }
 }
