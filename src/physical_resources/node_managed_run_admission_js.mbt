@@ -48,6 +48,12 @@ extern "js" fn original_node_managed_run_ports(
   #|(supplier, original, prepared) => supplier(original, prepared)
 
 ///|
+extern "js" fn abort_original_node_managed_run_unpublished(
+  ports : OriginalNodeSourceChildPorts,
+) -> Int =
+  #|ports => ports.cancelUnpublished()
+
+///|
 /// Return the unstarted admission first: the same Host must retain it before
 /// any fallible start/take. Only the actual fixed Node installer can recognize
 /// this run original, its purpose and its complete pre-admitted joint recipe.
@@ -61,6 +67,8 @@ pub fn[P] prepare_node_managed_run_admission(
     original_node_managed_prepared_identity(prepared),
   )
   prepare_node_original_child_ports(ports).map(child => {
-    prepare_node_managed_run_original(child, prepared)
+    prepare_node_managed_run_original(child, prepared, () => {
+      imported_child_status(abort_original_node_managed_run_unpublished(ports))
+    })
   })
 }

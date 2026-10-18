@@ -6,7 +6,9 @@ pub struct NodeManagedRunAdmission[P] {
   priv mut original : NodeManagedRunAdmission[P]?
   priv prepared : P
   priv child : ImportedChildLedger
+  priv abort_unpublished : () -> Result[Unit, ImportedChildLedgerIssue]
   priv mut attempted : Bool
+  priv mut cleaned : Bool
   priv mut ledger : Ledger?
 }
 
@@ -14,16 +16,95 @@ pub struct NodeManagedRunAdmission[P] {
 fn[P] prepare_node_managed_run_original(
   child : ImportedChildLedger,
   prepared : P,
+  abort_unpublished : () -> Result[Unit, ImportedChildLedgerIssue],
 ) -> NodeManagedRunAdmission[P] {
   let value : NodeManagedRunAdmission[P] = {
     original: None,
     prepared,
+    abort_unpublished,
     child,
     attempted: false,
+    cleaned: false,
     ledger: None,
   }
   value.original = Some(value)
   value
+}
+
+///|
+/// Reachable even when start/take did not return a Run view. The same actual
+/// child proves whether a Ledger was published; no caller supplies a usage
+/// snapshot or a Boolean claiming that allocations were absent.
+pub fn[P] cleanup_node_managed_run_admission(
+  value : NodeManagedRunAdmission[P],
+) -> Result[Unit, ImportedChildLedgerIssue] {
+  match check_node_managed_run_original(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if value.cleaned {
+    return Ok(())
+  }
+  let child = value.child
+  if child.pending_report is Some(_) {
+    return match child.pending_report_issue {
+      Some(issue) => Err(issue)
+      None => Err(Unknown)
+    }
+  }
+  if child.stop_attempted {
+    return match child.stop_outcome {
+      Some(issue) => Err(issue)
+      None => {
+        value.cleaned = true
+        Ok(())
+      }
+    }
+  }
+  match child.ledger {
+    Some(ledger) => {
+      let usage = ledger_usage(ledger)
+      if usage.uncertain_transfer_bytes != 0L ||
+        usage.reserved_transfer_bytes != 0L ||
+        usage.held_bytes != 0L ||
+        usage.reserved_retention_bytes != 0L ||
+        usage.reserved_execution_bytes != 0L ||
+        ledger.delegated_planning != 0 ||
+        ledger.delegated_attempts != 0 ||
+        ledger.delegated_holdings != 0 {
+        return Err(Unavailable)
+      }
+      if ledger.original_inventory is Some(inventory) && inventory.park is Some(_) {
+        return Err(Resource(ResourceParked))
+      }
+      match report_imported_child_ledger(child) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      match stop_imported_child_ledger(child) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+    }
+    None => {
+      if child.origin.ledger is Some(_) {
+        return Err(Unknown)
+      }
+      // No Core Ledger/reservation could have escaped. Report that distinct
+      // original initialization outcome, not fabricated zero Ledger usage.
+      // The fixed Root independently retains any external/unknown duties.
+      value.attempted = true
+      match (value.abort_unpublished)() {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      child.origin.stopping = true
+      child.stop_attempted = true
+      child.stop_outcome = None
+    }
+  }
+  value.cleaned = true
+  Ok(())
 }
 
 ///|

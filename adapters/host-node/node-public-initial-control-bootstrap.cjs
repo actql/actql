@@ -438,7 +438,19 @@ function prepareOriginalManagedRunPorts(original,prepared) {
     if (run.stopped || entry.closing) return 1;
     try {managedRunCurrent(run);return 0;} catch {return 1;}
   };
-  return freeze({status(operation) {
+  return freeze({cancelUnpublished() {
+    // Only the retained typed Resource child calls this after proving it has
+    // never published a Ledger. This is a distinct initialization outcome,
+    // not zero usage or an FD/backing/escaped-object acknowledgement.
+    if (run.unpublished===true) return 0;
+    if (run.stopped || run.usage!==undefined) return -42;
+    for (let index=0;index<entry.children.length;index++) {
+      const child=entry.children[index];
+      if (child.managedRun===run && (child.readAttempted || child.flight!==undefined || !child.released)) return -42;
+    }
+    run.unpublished=true;run.stopped=true;
+    return 0;
+  },status(operation) {
     if (operation===2) {
       if (!run.admitted || run.stopped || run.usage===undefined ||
           run.usage.uncertain!==0n || run.usage.reservedTransfer!==0n ||
