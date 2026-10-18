@@ -1118,7 +1118,9 @@ Project owner and selects one explicitly named connection from that owner's
 checked inventory. Exact Unicode names are compared without normalization or
 first-entry fallback. A finite member count and work bound cover the complete
 selection scan, including unselected names. The selected connector must be
-Notion. The caller UTF-8 encodes the original entry span once and passes those
+Notion. The supplied name's work is admitted before scanning it or opening the
+connections file; each candidate's work is admitted before its text comparison.
+The caller UTF-8 encodes the original entry span once and passes those
 bytes to the same Common public-connection reader; it never reconstructs JSON,
 interprets property Contracts or resolves an environment/file credential.
 
