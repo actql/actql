@@ -122,3 +122,37 @@ test('the actual selected public preload consumes generated inventory without is
       cwd: f.directory, env: {PATH: process.env.PATH}, encoding: 'utf8', timeout: 30000});
   assert.equal(result.error, undefined); assert.equal(result.status, 0, result.stderr);
 });
+
+test('selected dependency graph uses the actual resolved original package Sources', t => {
+  const f = fixture(t, 'import dependency from "selected-dependency";globalThis.actualHostImageValue=dependency.value;export function assertInitialControlHostPreparation(){};');
+  const sources = {'package.json': Buffer.from(JSON.stringify({name: 'selected-dependency', version: '1.0.0', main: './index.cjs'})),
+    'index.cjs': Buffer.from('module.exports={value:"original-dependency"};')};
+  const directory = join(f.root, 'node_modules/selected-dependency'); mkdirSync(directory, {recursive: true});
+  for (const [path, bytes] of Object.entries(sources)) writeFileSync(join(directory, path), bytes);
+  const result = f.run([
+    'import assert from "node:assert/strict";',
+    'assert.equal(actualHostImageValue,"original-dependency");packageImageCustody.assertCurrent();',
+  ].join('\n'), '',
+    'require("node:fs").writeFileSync('+JSON.stringify(join(directory, 'index.cjs'))+',"throw new Error(\\"ReplacementMustNotCompile\\")");',
+    inventory => {
+      inventory.dependencies = [{name: 'selected-dependency', package: 0}];
+      inventory.packages = [{name: 'selected-dependency', version: '1.0.0',
+        images: Object.entries(sources).map(([path, bytes]) => fact(path, bytes)), dependencies: []}];
+    });
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('a package identity mismatch refuses even when its captured files match the DATA facts', t => {
+  const f = fixture(t), directory = join(f.root, 'node_modules/selected-dependency');
+  mkdirSync(directory, {recursive: true});
+  const sources = {'package.json': Buffer.from(JSON.stringify({name: 'selected-dependency', version: '1.0.0', main: './index.cjs'})),
+    'index.cjs': Buffer.from('module.exports={};')};
+  for (const [path, bytes] of Object.entries(sources)) writeFileSync(join(directory, path), bytes);
+  const result = f.run('throw new Error("EntryMustNotRun");', '', '', inventory => {
+    inventory.dependencies = [{name: 'selected-dependency', package: 0}];
+    inventory.packages = [{name: 'selected-dependency', version: '2.0.0',
+      images: Object.entries(sources).map(([path, bytes]) => fact(path, bytes)), dependencies: []}];
+  });
+  assert.notEqual(result.status, 0); assert.match(result.stderr, /InitialControlPackageImageChanged/);
+  assert.doesNotMatch(result.stderr, /EntryMustNotRun/);
+});
