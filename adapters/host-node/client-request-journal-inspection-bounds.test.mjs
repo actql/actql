@@ -141,3 +141,59 @@ test('bounded inspection keeps legacy and unknown format refusal separate from r
   assert.equal(await readFile(join(other,'unrecognized'),'utf8'),'preserve-unknown-original');
   scratch.passed();
 });
+
+test('fixed journal markers use no whole-file materialization during admission or currentness',async()=>{
+  const{directory,scratch}=await fixture();
+  const first=openClientRequestJournal(directory);first.close();
+  const originalRead=fs.readFileSync;
+  let materializations=0,journal;
+  fs.readFileSync=function(path,...args){
+    if(typeof path==='string'&&path.startsWith(directory+'/')&&path.endsWith('.json')){
+      materializations++;throw new Error('WholeMarkerReadForbidden');
+    }
+    return Reflect.apply(originalRead,fs,[path,...args]);
+  };
+  syncBuiltinESMExports();
+  try{journal=openClientRequestJournal(directory);journal.close();journal=undefined;}
+  finally{fs.readFileSync=originalRead;syncBuiltinESMExports();journal?.close();}
+  assert.equal(materializations,0);
+  scratch.passed();
+});
+
+for(const mode of['false','throw'])test('real marker FD '+mode+' close retains the original callback and close-only retry',async()=>{
+  const{directory,scratch}=await fixture();
+  const first=openClientRequestJournal(directory);first.close();
+  const originalOpen=fs.openSync,originalRead=fs.readSync,originalClose=fs.closeSync;
+  let fd,pending,allow=false,reads=0,closes=0,journal;
+  const cause=Object.freeze(new Error('OriginalMarkerCloseRefusal'));
+  fs.openSync=function(path,...args){
+    const opened=Reflect.apply(originalOpen,fs,[path,...args]);
+    if(path===join(directory,'journal-format.json'))fd=opened;
+    return opened;
+  };
+  fs.closeSync=function(value){
+    if(value===fd){closes++;if(!allow){if(mode==='throw')throw cause;return false;}}
+    return Reflect.apply(originalClose,fs,[value]);
+  };
+  fs.readSync=function(value,...args){
+    if(value===fd){reads++;fs.closeSync=()=>undefined;syncBuiltinESMExports();}
+    return Reflect.apply(originalRead,fs,[value,...args]);
+  };
+  syncBuiltinESMExports();
+  try{
+    assert.throws(()=>{journal=openClientRequestJournal(directory);},failure=>{
+      assert.equal(failure.code,'ClientRequestJournalInspectionCleanupPending');
+      pending=failure.cleanupHandle;return failure.cleanupPending===true;
+    });
+    const capturedReads=reads;
+    assert.equal(pending.status().pending,true);assert.equal(closes,1);
+    assert.equal(pending.retry().pending,true);assert.equal(closes,2);
+    assert.equal(reads,capturedReads);
+    allow=true;assert.equal(pending.retry().pending,false);assert.equal(closes,3);
+    assert.equal(reads,capturedReads);
+  }finally{
+    allow=true;if(pending?.status().pending)pending.retry();journal?.close();
+    fs.openSync=originalOpen;fs.readSync=originalRead;fs.closeSync=originalClose;syncBuiltinESMExports();
+  }
+  scratch.passed();
+});
