@@ -162,7 +162,10 @@ pub fn project_client_remote_effect_task_run(
   observed_at : String,
   cancellation_requested : Bool,
   claims : Array[ClientRemoteEffectTaskRunClaim],
-) -> Result[ClientRemoteEffectTaskRunProjection, ClientRemoteTaskRunProjectionIssue] {
+) -> Result[
+  ClientRemoteEffectTaskRunProjection,
+  ClientRemoteTaskRunProjectionIssue,
+] {
   let progress = value.progress
   if claims.length() != progress.keys.length() {
     return Err(InvalidStartClaims)
@@ -179,7 +182,7 @@ pub fn project_client_remote_effect_task_run(
     guard ordinal is Some(task) else { return Err(InvalidStartClaims) }
     if seen[task] ||
       (claim.physical_start_claimed && !claim.dispatch_reserved) ||
-      (claim.dispatch_reserved != (claim.dispatch_cid is Some(_))) {
+      claim.dispatch_reserved != (claim.dispatch_cid is Some(_)) {
       return Err(InvalidStartClaims)
     }
     if claim.dispatch_cid is Some(cid) && !valid_client_request_cid(cid) {
@@ -188,7 +191,8 @@ pub fn project_client_remote_effect_task_run(
     seen[task] = true
     match progress.requests[task] {
       Some(request) =>
-        if claim.dispatch_cid != Some(@remote.dispatch_request_identity(request)) {
+        if claim.dispatch_cid !=
+          Some(@remote.dispatch_request_identity(request)) {
           return Err(InvalidStartClaims)
         }
       None => ()

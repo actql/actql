@@ -25,7 +25,9 @@ fn effect_projection_fixture() -> ClientRemoteEffectTaskProgress {
     effect_limits,
   ).unwrap()
   let limits = run_materials_limits()
-  let original = issue_prepared_client_effect_local_update_normalization(prepared).unwrap()
+  let original = issue_prepared_client_effect_local_update_normalization(
+    prepared,
+  ).unwrap()
   let compilation = issue_prepared_client_effect_compilation(
     prepared,
     run_materials_manifests(),
@@ -47,7 +49,10 @@ fn effect_projection_fixture() -> ClientRemoteEffectTaskProgress {
     allowed, "scope", "source-request-run", "2026-10-09T00:00:00.000Z", "2026-10-10T00:00:00.000Z",
   ).unwrap()
   inspect_client_remote_effect_task_progress(
-    allowed, definition, "sha256:" + "c".repeat(64), [],
+    allowed,
+    definition,
+    "sha256:" + "c".repeat(64),
+    [],
   ).unwrap()
 }
 
@@ -64,8 +69,12 @@ fn effect_projection_claims(
 }
 
 ///|
-fn effect_projection_state(value : ClientRemoteEffectTaskRunProjection) -> Map[String, Json] {
-  let parsed = @json.parse(client_remote_effect_task_run_projection_fields(value)[0]) catch {
+fn effect_projection_state(
+  value : ClientRemoteEffectTaskRunProjection,
+) -> Map[String, Json] {
+  let parsed = @json.parse(
+    client_remote_effect_task_run_projection_fields(value)[0],
+  ) catch {
     _ => abort("Expected valid unpublished candidate")
   }
   guard parsed is Object(fields) else { abort("Expected original Run fields") }
@@ -76,7 +85,10 @@ fn effect_projection_state(value : ClientRemoteEffectTaskRunProjection) -> Map[S
 test "Effect pre-checkpoint original task inventory is preparing without invented publication" {
   let progress = effect_projection_fixture()
   let projected = project_client_remote_effect_task_run(
-    progress, "2026-10-09T00:01:00.000Z", false, effect_projection_claims(progress),
+    progress,
+    "2026-10-09T00:01:00.000Z",
+    false,
+    effect_projection_claims(progress),
   ).unwrap()
   let state = effect_projection_state(projected)
   assert_eq(state.get("status"), Some(Json::string("preparing")))
@@ -91,9 +103,15 @@ test "Effect pre-checkpoint original task inventory is preparing without invente
 test "Effect pre-checkpoint cancellation request alone is not a whole Run pre-start fence" {
   let progress = effect_projection_fixture()
   let projected = project_client_remote_effect_task_run(
-    progress, "2026-10-09T00:01:00.000Z", true, effect_projection_claims(progress),
+    progress,
+    "2026-10-09T00:01:00.000Z",
+    true,
+    effect_projection_claims(progress),
   ).unwrap()
-  assert_eq(effect_projection_state(projected).get("status"), Some(Json::string("preparing")))
+  assert_eq(
+    effect_projection_state(projected).get("status"),
+    Some(Json::string("preparing")),
+  )
 }
 
 ///|
@@ -111,7 +129,9 @@ test "Effect pre-checkpoint missing original claimed observation remains reconci
   ).unwrap()
   let state = effect_projection_state(projected)
   assert_eq(state.get("status"), Some(Json::string("needs_reconciliation")))
-  guard state.get("next_action") is Some(Object(action)) else { abort("Expected original action") }
+  guard state.get("next_action") is Some(Object(action)) else {
+    abort("Expected original action")
+  }
   assert_eq(action.get("kind"), Some(Json::string("reconcile_run")))
 }
 
@@ -125,7 +145,9 @@ test "Effect pre-checkpoint completed computation and task cleanup cannot comple
     source_free_caller_input_intent_cid(),
   ).unwrap()
   let source_request = bound_effect_source_dispatch(
-    original.allowed, original.progress.definition, requested,
+    original.allowed,
+    original.progress.definition,
+    requested,
   )
   // White-box reducer counter only. These authored task facts are not
   // physical Site evidence, a whole Run stop or a cleanup acknowledgement.
@@ -137,13 +159,15 @@ test "Effect pre-checkpoint completed computation and task cleanup cannot comple
       completed: original.progress.keys.map(_ => true),
       execution_complete: true,
       cleanup_complete: true,
-      observations: original.progress.keys.map(_ => Some({
-        execution: Some(@remote.NativeSettled),
-        cleanup: Some(@remote.CleanupReleased),
-        revision: 1,
-        execution_terminal: true,
-        cleanup_complete: true,
-      })),
+      observations: original.progress.keys.map(_ => {
+        Some({
+          execution: Some(@remote.NativeSettled),
+          cleanup: Some(@remote.CleanupReleased),
+          revision: 1,
+          execution_terminal: true,
+          cleanup_complete: true,
+        })
+      }),
     },
   }
   let claims = effect_projection_claims(progress).map(claim => {
@@ -168,14 +192,26 @@ test "Effect pre-checkpoint original claim set refuses missing duplicate foreign
   let progress = effect_projection_fixture()
   let now = "2026-10-09T00:01:00.000Z"
   let claims = effect_projection_claims(progress)
-  assert_true(project_client_remote_effect_task_run(progress, now, false, []) is Err(InvalidStartClaims))
+  assert_true(
+    project_client_remote_effect_task_run(progress, now, false, [])
+    is Err(InvalidStartClaims),
+  )
   let duplicate = claims.copy()
   duplicate[1] = duplicate[0]
-  assert_true(project_client_remote_effect_task_run(progress, now, false, duplicate) is Err(InvalidStartClaims))
+  assert_true(
+    project_client_remote_effect_task_run(progress, now, false, duplicate)
+    is Err(InvalidStartClaims),
+  )
   let foreign = claims.copy()
   foreign[0] = { ..foreign[0], task_key: "foreign-task", }
-  assert_true(project_client_remote_effect_task_run(progress, now, false, foreign) is Err(InvalidStartClaims))
+  assert_true(
+    project_client_remote_effect_task_run(progress, now, false, foreign)
+    is Err(InvalidStartClaims),
+  )
   let invalid = claims.copy()
   invalid[0] = { ..invalid[0], physical_start_claimed: true, }
-  assert_true(project_client_remote_effect_task_run(progress, now, false, invalid) is Err(InvalidStartClaims))
+  assert_true(
+    project_client_remote_effect_task_run(progress, now, false, invalid)
+    is Err(InvalidStartClaims),
+  )
 }

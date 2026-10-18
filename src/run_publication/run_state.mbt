@@ -490,8 +490,16 @@ pub fn issue_effect_free_unpublished_run_state_wire(
   execution_unknown? : Bool = false,
 ) -> Result[String, RunStateIssue] {
   issue_unpublished_computation_run_state_wire(
-    run_id, updated_at, declared_results, dispatch_reserved, pre_dispatch_failure_confirmed,
-    max_wire_bytes, max_nodes, max_depth, cancelled_before_start~, observed_terminal_outcome~,
+    run_id,
+    updated_at,
+    declared_results,
+    dispatch_reserved,
+    pre_dispatch_failure_confirmed,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    cancelled_before_start~,
+    observed_terminal_outcome~,
     execution_unknown~,
   )
 }
@@ -514,8 +522,16 @@ pub fn issue_pre_checkpoint_unpublished_run_state_wire(
   execution_unknown? : Bool = false,
 ) -> Result[String, RunStateIssue] {
   issue_unpublished_computation_run_state_wire(
-    run_id, updated_at, declared_results, dispatch_reserved, pre_dispatch_failure_confirmed,
-    max_wire_bytes, max_nodes, max_depth, cancelled_before_start~, observed_terminal_outcome~,
+    run_id,
+    updated_at,
+    declared_results,
+    dispatch_reserved,
+    pre_dispatch_failure_confirmed,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    cancelled_before_start~,
+    observed_terminal_outcome~,
     execution_unknown~,
   )
 }

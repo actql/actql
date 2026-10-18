@@ -111,7 +111,8 @@ fn project_bound_client_remote_task_run(
   // This immutable effect-free unpublished snapshot supplies facts to the
   // same eligibility owner used by live and restored Run execution. The Host
   // must recheck its publication fence/revision before committing anything.
-  let cancellation_complete = !effect_computation && confirm_client_run_cancellation({
+  let cancellation_complete = !effect_computation &&
+    confirm_client_run_cancellation({
       cancellation_requested,
       model_fence_required: false,
       model_fenced: false,
@@ -181,7 +182,8 @@ fn project_bound_client_remote_task_run(
     Ok(value) => value
     Err(issue) => return Err(State(issue))
   }
-  let publication_ready = !effect_computation && progress.execution_complete &&
+  let publication_ready = !effect_computation &&
+    progress.execution_complete &&
     !failed &&
     !cancelled &&
     !cancellation_requested &&
