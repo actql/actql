@@ -28,7 +28,7 @@ typedef struct {
     size_t bytes, live_bytes, aligned_bytes, blocks, peak, failures;
     block *first;
     atomic_flag lock;
-    unsigned initialized, closing, failed, operations, libraries;
+    unsigned initialized, closing, failed, operations, libraries, cleanup_active;
     OSSL_PROVIDER *default_provider;
 } component_state;
 
@@ -75,7 +75,7 @@ static block *find(void *p) {
 }
 static void *allocate_locked(size_t n) {
     size_t size = rounded(n);
-    if (!n || !size || !current() || state->closing || state->failed) return NULL;
+    if (!n || !size || !current() || (state->closing && !state->cleanup_active) || state->failed) return NULL;
     for (block *b = state->first; b; b = next_block(b)) {
         if (b->requested || b->available < size) continue;
         if (b->available - size >= header_bytes() + alignment) {
@@ -120,7 +120,7 @@ static void *component_realloc(void *p, size_t n, const char *file, int line) {
     if (!p) return component_malloc(n, file, line);
     if (!lock_state()) return NULL;
     block *b = find(p);
-    if (!b || !current() || state->closing || state->failed) {
+    if (!b || !current() || (state->closing && !state->cleanup_active) || state->failed) {
         if (!b) {state->failed = 1; state->failures++;}
         unlock_state(); return NULL;
     }
@@ -232,11 +232,20 @@ int actql_crypto_component_close(void) {
         state->closing = 1; unlock_state();
         if (!hooks_installed) return ACTQL_CRYPTO_COMPONENT_FAILED;
         if (!cleanup_ack) {
+            /* OpenSSL's hashtable retirement allocates a replacement empty
+             * table before releasing the old table. These cleanup-only
+             * allocations remain inside this SAME original extent; stopping
+             * public operations must not deny the original cleanup its own
+             * accounted old/new overlap or silently strand the old entries. */
+            state->cleanup_active = 1;
             if (state->default_provider) {
-                if (OSSL_PROVIDER_unload(state->default_provider) != 1) return ACTQL_CRYPTO_COMPONENT_FAILED;
+                if (OSSL_PROVIDER_unload(state->default_provider) != 1) {
+                    state->cleanup_active = 0;
+                    return ACTQL_CRYPTO_COMPONENT_FAILED;
+                }
                 state->default_provider = NULL;
             }
-            OPENSSL_thread_stop(); OPENSSL_cleanup(); cleanup_ack = 1;
+            OPENSSL_thread_stop(); OPENSSL_cleanup(); state->cleanup_active = 0; cleanup_ack = 1;
         }
         if (!lock_state()) return ACTQL_CRYPTO_COMPONENT_BUSY;
         int pending = state->blocks != 0 || state->failed;
