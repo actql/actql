@@ -45,7 +45,8 @@ function fixture() {
     const fields = Object.keys(JSON.parse(entry.views[0].schema_wire));
     const program = {version: 'actql/0.1', id: `mock-charge-${entry.connection}`,
       stages: [{id: 'scan', inputs: {remote: {connector: entry.connectorId,
-        resource: entry.views[0].resource}}, steps: [{select: fields, as: 'rows'}],
+        resource: entry.views[0].resource}},
+      steps: [{filter: 'true', as: 'all_rows'}, {select: fields, as: 'rows'}],
       results: {r: {from: 'rows', fields}}}],
       results: {r: {from: {stage: 'scan', result: 'r'}}}};
     const outcome = moon.clientProgramPrepareEffectFreeWithParameters(
