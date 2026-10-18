@@ -44,6 +44,8 @@ pub fn object_compose_response_matches(ObjectComposeBinding, ObjectComposeReques
 
 pub fn object_compose_response_projection_json(ObjectComposeBinding, ObjectComposeRequest, Int, Bytes, Int) -> Result[String, ObjectUploadIssue]
 
+pub fn object_delete_effect_target_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]
+
 pub fn object_listing_prefix(String, Bytes, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]
 
 pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields

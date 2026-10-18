@@ -372,6 +372,43 @@ export function borrowOwnedGcsMetadataPatchTarget(request, maxProjectionBytes, b
   return view;
 }
 
+// DELETE uses the same original child/GET lifetime but never a PATCH value,
+// marker or fabricated after. The Common selection/Run owner still checks
+// the original DELETE Header, Mapping, occurrence and current authority.
+export function borrowOwnedGcsObjectDeleteTarget(request, maxProjectionBytes, binding) {
+  if (!integer(maxProjectionBytes)) fail('InvalidGcsObjectAbiLimits');
+  const original = originalRequest(request, binding);
+  if (typeof original.previewCurrent !== 'function' ||
+      typeof original.moon.gcsObjectDeleteEffectTarget !== 'function') {
+    fail('GcsOriginalMutationPreparationUnavailable');
+  }
+  original.previewCurrent();
+  if (original.moon.gcsObjectMutationKind(original.binding) !== 'delete') fail('GcsInvalidObjectBinding');
+  let retainedRequest = request, retainedBinding = binding;
+  const view = Object.freeze({
+    readFor(candidate) {
+      if (this !== view || retainedRequest === undefined || candidate !== retainedRequest) {
+        fail('ForeignGcsObjectPreview');
+      }
+      let current = originalRequest(retainedRequest, retainedBinding);
+      current.previewCurrent();
+      const row = freeze(JSON.parse(gcsOwnedResult(current.moon,
+        current.moon.gcsObjectDeleteEffectTarget(retainedBinding ?? current.binding,
+          current.handle, maxProjectionBytes))));
+      current = originalRequest(retainedRequest, retainedBinding);
+      current.previewCurrent();
+      return row;
+    },
+    // Drop only these managed aliases. The original child still owns raw
+    // response, physical binding and pending cleanup until its own ACK.
+    retire() {
+      if (this !== view) fail('ForeignGcsObjectPreview');
+      retainedRequest = retainedBinding = undefined;
+    },
+  });
+  return view;
+}
+
 export function recheckOwnedGcsObjectRequest(request, current, binding) {
   const original = originalRequest(request, binding);
   return gcsOwnedResult(original.moon, original.moon.gcsObjectRecheck(
