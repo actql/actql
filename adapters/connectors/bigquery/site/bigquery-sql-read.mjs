@@ -86,8 +86,20 @@ export async function readBigQuerySqlApi({moon, prepared, rowRun, job, limits,
     signal?.throwIfAborted();
     await verifyRead();
     signal?.throwIfAborted();
+    const initial = authorizeRead(await authorizationFor(0), frame);
+    signal?.throwIfAborted();
+    await verifyRead();
+    signal?.throwIfAborted();
+    originalScope = initial.scope;
+    binding = openHttpsCredentialBinding({...physicalCredential,
+      scope: originalScope, maxSecretBytes: bounds.maxSecretBytes});
     read = checked(moon.clientProgramBigQueryBorrowRead(prepared, frame.run, job,
       admitted, bounds.maxPages));
+    // The same original stop observer must exist before Common admits any Job
+    // preparation. Opening this binding neither resolves a secret nor sends.
+    checked(moon.clientProgramBigQueryBindReadTransport(read, () =>
+      closeHttpsCredentialBinding(binding) === 'closed' && !processing));
+    bound = true;
     jobRead = checked(moon.clientProgramBigQueryPrepareJob(read, bounds.maximumBytesBilled,
       bounds.maxResults, bounds.timeoutMs, bounds.maxRequests, bounds.maxRequestBytes));
     const recordLimits = moon.clientProgramBigQueryJobRecordLimits(bounds.maxRequestBytes,
@@ -98,18 +110,11 @@ export async function readBigQuerySqlApi({moon, prepared, rowRun, job, limits,
       const material = moon.clientProgramBigQueryRequestMaterial(request);
       const method = runtimeField(material, 0), path = runtimeField(material, 1);
       const body = runtimeField(material, 2), sequence = runtimeField(material, 3);
-      const authorization = authorizeRead(await authorizationFor(sequence), frame, originalScope);
+      const authorization = sequence === 0 ? initial :
+        authorizeRead(await authorizationFor(sequence), frame, originalScope);
       signal?.throwIfAborted();
       await verifyRead();
       signal?.throwIfAborted();
-      if (binding === undefined) {
-        originalScope = authorization.scope;
-        binding = openHttpsCredentialBinding({...physicalCredential,
-          scope: originalScope, maxSecretBytes: bounds.maxSecretBytes});
-        checked(moon.clientProgramBigQueryBindReadTransport(read, () =>
-          closeHttpsCredentialBinding(binding) === 'closed' && !processing));
-        bound = true;
-      }
       checked(moon.clientProgramBigQueryAttemptRequest(jobRead, request));
       attempted++;
       let response;
