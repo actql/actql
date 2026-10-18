@@ -590,6 +590,17 @@ source preparation and the independently retained expected request, then
 checks the complete canonical material projection. Shape or CID equality
 alone does not supply this original binding, current authority or a cleanup ACK.
 
+Initial and retained-input task dispatch use that same original Source
+preparation when the request contains authored-source identity. Common checks
+the preparation's nominal checked computation and reconstructs the request
+from its admitted intent before comparing the independently retained request.
+The absent-Source path still requires the original source-free sentinel. A
+non-sentinel CID alone, another preparation of equal source, or another
+source request cannot select this branch. Existing Program/parameter, Run,
+task, attempt and retained-input/current-custody checks remain in force. The
+Run Host facade keeps this Source token private in its original preparation
+membership; callers do not provide a raw token or manufacture a replacement.
+
 ## Delegated-decision adapter
 
 The logical request contains or references the admitted execution account,

@@ -1,5 +1,5 @@
 ///|
-fn original_dispatch_source(text : String) -> ClientSourcePreparation raise {
+fn original_dispatch_source(text : String) -> ClientSourcePreparation {
   let environment = admit_client_check_environment(
     multi_source_environment,
     "sha256:8dddb2a590629efb451ee5c579798da0ec64a674980601b49a97ff6a79140505",
