@@ -160,7 +160,11 @@ test "Notion snapshot relation inventory refuses foreign or partial originals wi
   let original = snapshot_test_empty(system=true)
   let copy = { ..original, }
   let partial = snapshot_test_empty()
-  for (snapshot, issue) in [(copy, ForeignOriginal), (partial, SchemaMismatch)] {
+  let refused : Array[(NotionDatabaseReadSnapshot, NotionReadSnapshotIssue)] = [
+    (copy, ForeignOriginal),
+    (partial, SchemaMismatch),
+  ]
+  for (snapshot, issue) in refused {
     assert_eq(
       notion_database_read_snapshots_relation_specification(
         [("tasks", original), ("other", snapshot)],
