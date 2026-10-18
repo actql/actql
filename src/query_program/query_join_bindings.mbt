@@ -15,6 +15,15 @@ fn join_requires_input_binding(
   query : @query.Query,
   context : Context,
 ) -> Bool raise Abort {
+  // INFER checks the original joined producer through the shared Script
+  // prefix. The retained-Result specialization has no INFER tail lowering.
+  if @query.join_part_count(query) > 0 {
+    for index in 0..<@query.operation_count(query) {
+      if @query.operation_at(query, index) is Some(Infer(_)) {
+        return true
+      }
+    }
+  }
   if @query.join_part_count(query) != 1 {
     return false
   }
