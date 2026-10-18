@@ -399,3 +399,51 @@ test "BigQuery Job material bounds do not bind a refused preparation or change o
   assert_true(body.contains("\"useLegacySql\":false"))
   bigquery_assert_retired(read, ledger)
 }
+
+///|
+test "BigQuery Job response borrow leaves Host finish capture and physical cleanup with original Owner" {
+  let prepared = bigquery_read_preparation().unwrap()
+  let ledger = bigquery_read_ledger(prepared, 24000L)
+  let stopped = Ref(false)
+  let run = @row_host.start_accounted_row_acquisition(
+    @bigquery_read.prepared_read_acquisition(prepared),
+    "bq-host-job",
+    _ => stopped.val,
+    ledger,
+    24000L,
+    4096L,
+  ).unwrap()
+  @row_host.begin_row_run(run, 4096, 2, 2).unwrap()
+  let read = @bigquery_read.borrow_accounted_read(
+    prepared,
+    run,
+    bigquery_job(),
+    bigquery_read_limits(),
+    4,
+  ).unwrap()
+  assert_true(
+    @bigquery_read.prepare_job_read(read, 1000000L, 2, 0, 8, 4096)
+    is Err(@bigquery_read.Closed),
+  )
+  @bigquery_read.bind_borrowed_read_transport(read, () => stopped.val).unwrap()
+  let value = bigquery_job_session(read)
+  bigquery_job_response(value, bigquery_job_status("DONE"))
+  bigquery_job_response(value, bigquery_body(bigquery_rows()))
+  assert_true(@bigquery_read.job_read_complete(value))
+  assert_true(
+    @bigquery_read.finish_result_read(read) is Err(@bigquery_read.BorrowedRun),
+  )
+  assert_true(
+    @bigquery_read.capture_result_read(read) is Err(@bigquery_read.BorrowedRun),
+  )
+  @row_host.finish_row_run(run).unwrap()
+  assert_true(@row_host.capture_row_run(run) is Err(_))
+  let before = @resources.ledger_usage(ledger)
+  assert_true(@row_host.close_accounted_row_run(run) is Err(_))
+  assert_eq(@resources.ledger_usage(ledger), before)
+  stopped.val = true
+  @row_host.close_accounted_row_run(run).unwrap()
+  @bigquery_read.retire_borrowed_read(read).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  assert_true(@bigquery_read.job_read_remote_done(value))
+}
