@@ -132,3 +132,12 @@ test('pending original FD custody propagates unchanged and only its close is ret
   assert.equal(opens,1);assert.equal(closes,2);assert.equal(admissions,0);
   await assert.rejects(handle.stat(),{code:'EBADF'});
 });
+
+test('known connection-name selection-work exhaustion refuses before opening the original connections file',async t=>{
+  const f=await fixture(t,envelope('{"n":'+entry+'}'));let opens=0;
+  await assert.rejects(load(common,provider,f.project,'unavailable-name',{
+    limits:{...limits,maxSelectionWork:2},assertCurrent(){},
+    async openFile(...args){opens++;return open(...args);},
+  }),{code:'NotionProjectConnectionSelectionLimit'});
+  assert.equal(opens,0);
+});
