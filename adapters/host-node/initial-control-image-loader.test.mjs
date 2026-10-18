@@ -124,6 +124,37 @@ test('JSON metadata handoff preserves BOM Unicode null and negative zero without
   assert.equal(result.status, 0, result.stderr);
 });
 
+test('JSON metadata verification refuses an accessor without invoking it', t => {
+  const f = fixture(t, {'original.json': '{"policy":{"maxRows":1}}'});
+  const result = f.run('throw new Error("EntryMustNotRun");', [
+    'const assert=require("node:assert/strict");',
+    'const original=require(require("node:path").join(root,"original.json"));',
+    'let reads=0;',
+    'Object.defineProperty(original.policy,"maxRows",{get(){reads++;return 1;}});',
+    'try {originalImageLoader.captureLoadedModules();throw new Error("MustRefuse");}',
+    'catch(error){assert.equal(reads,0);throw error;}',
+  ].join('\n'));
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /InitialControlImageLoaderChanged/);
+  assert.doesNotMatch(result.stderr, /EntryMustNotRun|MustRefuse/);
+});
+
+test('a substituted JSON alias graph refuses before sealing any original node', t => {
+  const f = fixture(t, {'original.json': '{"left":{},"right":{}}'});
+  const result = f.run([
+    'import assert from "node:assert/strict";',
+    'assert.equal(Object.isFrozen(originalJson),false);',
+    'assert.equal(Object.isFrozen(originalJson.left),false);',
+    'assert.throws(()=>originalImageLoader.assertCurrent(),{code:"InitialControlImageLoaderChanged"});',
+  ].join('\n'), [
+    'const assert=require("node:assert/strict");',
+    'globalThis.originalJson=require(require("node:path").join(root,"original.json"));',
+    'originalJson.right=originalJson.left;',
+    'assert.throws(()=>originalImageLoader.captureLoadedModules(),{code:"InitialControlImageLoaderChanged"});',
+  ].join('\n'));
+  assert.equal(result.status, 0, result.stderr);
+});
+
 test('covered modules cannot import an uncaptured sibling even when it exists on disk', t => {
   const f = fixture(t, {'original.mjs': 'export {value} from "./foreign.mjs";\n'});
   const result = f.run("await import('./images/original.mjs');",
@@ -243,6 +274,16 @@ function eagerCommon(t, body, source = 'module.exports={value:"original-loaded"}
     'originalImageLoader.captureLoadedModules();',
   ].join('\n'));
 }
+
+test('JSON metadata sealing is not a proof or freeze of arbitrary nested CJS library state', t => {
+  const result = eagerCommon(t, [
+    'import assert from "node:assert/strict";',
+    'assert.equal(Object.isFrozen(originalLoaded.library),false);',
+    'originalLoaded.library.mutable=2;',
+    'originalImageLoader.assertCurrent();',
+  ].join('\n'), 'module.exports={library:{mutable:1}};');
+  assert.equal(result.status, 0, result.stderr);
+});
 
 test('post-load capture binds the actual cache module and exports before entry', t => {
   const result = eagerCommon(t, [
