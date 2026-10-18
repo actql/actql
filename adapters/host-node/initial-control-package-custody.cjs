@@ -150,4 +150,5 @@ function captureInitialControlPackageCustody(inventory, localRoot) {
   return freeze({initializeHostNamespace, assertCurrent, readAsset});
 }
 
-module.exports = freeze({captureInitialControlPackageCustody});
+module.exports = {captureInitialControlPackageCustody};
+freeze(module.exports);
