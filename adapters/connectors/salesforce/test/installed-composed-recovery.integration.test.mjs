@@ -31,8 +31,8 @@ async function installations(t) {
   const compose = async () => {
     const installed = [];
     for (const value of values) installed.push(await value.load({}, {ledgerRoot: values[0].ledgerRoot}));
-    const descriptors = installed.map((value, index) => ({effectId: `save_${index}`,
-      kind: 'create', ...value.mappings[0]}));
+    const descriptors = installed.map((value, index) => ({...value.mappings[0], effectId: `save_${index}`,
+      kind: 'create'}));
     const environmentWire = composeInstalledCheckEnvironment(moon,
       values[0].baseEnvironmentWire, installed[0].environmentWire, installed[1].environmentWire);
     return {effect: composeInstalledRowEffectOwners(installed, descriptors, environmentWire),
