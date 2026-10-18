@@ -29,6 +29,17 @@ pub fn admit_model_provider(
     return Err(ForeignDependencies)
   }
   let task = @environment.model_execution_task(execution)
+  if provider.invocation is OriginalMock(original) &&
+    (
+      !original_mock_provider_matches(original, provider, task) ||
+      !@environment.model_mock_execution_matches(
+        original.profile.unwrap(),
+        original.normalized.unwrap(),
+        execution,
+      )
+    ) {
+    return Err(ForeignProvider)
+  }
   if provider.provider_id != @environment.model_task_connector(task) {
     return Err(ForeignProvider)
   }

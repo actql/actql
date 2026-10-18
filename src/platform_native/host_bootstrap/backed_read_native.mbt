@@ -15,6 +15,10 @@ extern "C" fn read_context_entered_ffi(domain : PhysicalExtentDomain) -> Int = "
 
 ///|
 #borrow(domain)
+extern "C" fn read_context_unentered_ffi(domain : PhysicalExtentDomain) -> Int = "actql_bootstrap_read_context_unentered"
+
+///|
+#borrow(domain)
 extern "C" fn enter_read_context_ffi(domain : PhysicalExtentDomain) -> Int = "actql_bootstrap_enter_read_context"
 
 ///|
@@ -143,6 +147,27 @@ pub fn[T, C] NativeHostBootstrap::require_backed_read_context_entered(
     Ok(_) => ()
   }
   let status = read_context_entered_ffi(domain.physical)
+  if status == 0 {
+    Ok(())
+  } else {
+    Err(Bootstrap(Physical(status)))
+  }
+}
+
+///|
+/// Observe the original context before a managed caller enters it. This does
+/// not supply an outer control allocation or switch out of another context.
+pub fn[T, C] NativeHostBootstrap::require_backed_read_context_unentered(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  match self.require_backed_read_context_current(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let status = read_context_unentered_ffi(domain.physical)
   if status == 0 {
     Ok(())
   } else {

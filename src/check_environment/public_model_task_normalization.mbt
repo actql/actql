@@ -4,6 +4,7 @@
 /// installs an Environment nor issues authority, funding or a new Run.
 struct NormalizedPublicModelTask {
   declaration : PublicModelTaskDeclaration
+  mock_profile : ModelMockProfile?
   defaults : ModelProviderDefaults
   resolved : ResolvedModelProviderDefaults
   handling : ModelProviderHandling
@@ -149,12 +150,13 @@ fn emit_normalized_public_task(
 /// The Host has already selected the actual installed Provider original. Common
 /// requires the same profile/selection and applicable handling before emitting
 /// its existing Task/prompt contracts. No current default lookup occurs later.
-pub fn normalize_public_model_task(
+fn normalize_public_model_task_selected(
   declaration : PublicModelTaskDeclaration,
   defaults : ModelProviderDefaults,
   resolved : ResolvedModelProviderDefaults,
   provider : String,
   limits : ModelTaskLimits,
+  mock_profile : ModelMockProfile?,
 ) -> Result[NormalizedPublicModelTask, ModelTaskIssue] {
   let root = declaration.original
   if limits.max_work < 0 ||
@@ -170,7 +172,17 @@ pub fn normalize_public_model_task(
   if provider.is_empty() || !physical_equal(resolved.original, defaults) {
     return Err({ kind: ReferenceMismatch, source: Some(root), })
   }
-  match declaration.model {
+  let selected_model = if mock_profile is Some(profile) {
+    if !model_mock_profile_current(profile) ||
+      !(profile.defaults is Some(original) && physical_equal(original, defaults)) ||
+      provider != "mock" {
+      return Err({ kind: ReferenceMismatch, source: Some(root), })
+    }
+    None
+  } else {
+    declaration.model.map(pair => pair.1)
+  }
+  match (if mock_profile is Some(_) { None } else { declaration.model }) {
     Some((original_provider, model)) =>
       if original_provider != provider || model != resolved.model {
         return Err({ kind: ReferenceMismatch, source: Some(root), })
@@ -197,7 +209,7 @@ pub fn normalize_public_model_task(
     let expected = match
       resolve_model_provider_defaults(
         defaults,
-        declaration.model.map(pair => pair.1),
+        selected_model,
         declaration.max_output_tokens,
         limits.max_work,
       ) {
@@ -249,6 +261,7 @@ pub fn normalize_public_model_task(
     let task_wire = @encode.finish(writer)
     Ok({
       declaration,
+      mock_profile,
       defaults,
       resolved,
       handling,
@@ -279,6 +292,7 @@ pub fn normalized_public_model_task_original_for(
   defaults : ModelProviderDefaults,
   resolved : ResolvedModelProviderDefaults,
 ) -> Bool {
+  value.mock_profile is None &&
   physical_equal(value.declaration, declaration) &&
   physical_equal(value.defaults, defaults) &&
   physical_equal(value.resolved, resolved) &&
@@ -291,4 +305,23 @@ pub fn normalized_public_model_task_usage(
   value : NormalizedPublicModelTask,
 ) -> Int {
   value.work
+}
+
+///|
+/// The ordinary installed Provider path retains its exact prior selection law.
+pub fn normalize_public_model_task(
+  declaration : PublicModelTaskDeclaration,
+  defaults : ModelProviderDefaults,
+  resolved : ResolvedModelProviderDefaults,
+  provider : String,
+  limits : ModelTaskLimits,
+) -> Result[NormalizedPublicModelTask, ModelTaskIssue] {
+  normalize_public_model_task_selected(
+    declaration,
+    defaults,
+    resolved,
+    provider,
+    limits,
+    None,
+  )
 }

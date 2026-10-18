@@ -25,15 +25,17 @@ ENTRY = 'src/cmd/native_remote_resident_site'
 LOCAL_ENTRY = 'src/cmd/native_client'
 RUNTIME_NAMES = frozenset(('runtime', 'env', 'utf', 'backtrace', 'sync_io'))
 RELEASE_UTF_OBJECTS = frozenset(('moonbit_simdutf.o', 'simdutf.o'))
-# Only the selected Local component imports these same-process physical ports.
+# Only the selected Local components import these same-process physical ports.
 # No provider DLL, general symbol export or second allocator is introduced.
-LOCAL_CRYPTO_PROVIDER_EXPORTS = (
+LOCAL_COMPONENT_PROVIDER_EXPORTS = (
     'actql_native_owned_current',
     'actql_native_owned_allocate',
     'actql_native_owned_retire',
     'actql_read_context_retain',
     'actql_read_context_release_after_owner_ack',
     'actql_bootstrap_current_read_context',
+    'actql_native_file_scoped_allocate',
+    'actql_native_file_scoped_free',
 )
 
 
@@ -125,7 +127,7 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                     raise ValueError('Foreign executable output')
                 if entry == LOCAL_ENTRY:
                     parts.extend('-Wl,-exported_symbol,_' + symbol
-                                 for symbol in LOCAL_CRYPTO_PROVIDER_EXPORTS)
+                                 for symbol in LOCAL_COMPONENT_PROVIDER_EXPORTS)
             elif under(source, moon_home / 'lib/runtime'):
                 if source.stem not in RUNTIME_NAMES or source.stem in runtime:
                     raise ValueError('Duplicate or foreign runtime source')

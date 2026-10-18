@@ -132,6 +132,7 @@ export async function loadInstalledProjectMockAnswers(moon,project,profile,
           fail('ForeignInstalledMockModelOriginal');
         }
         if(modelBinding.failed)throw modelBinding.failure;
+        modelBinding.value.originalsForRuntime(runtime);
         return modelBinding.value;
       }
       // This SAME answer owner retains each actual Model installation before
@@ -139,6 +140,7 @@ export async function loadInstalledProjectMockAnswers(moon,project,profile,
       // supplies startup, an Account decision, dispatch or physical capacity.
       const callbacks=Object.freeze({normalize:moon.clientProgramNormalizeMockTask,
         materials:moon.clientProgramNormalizedPublicModelTaskMaterials,
+        execution:moon.clientProgramMockExecutionMaterials,
         install:moon.clientProgramInstallOriginalMock,
         provider:moon.clientProgramOriginalMockProvider,
         retire:moon.clientProgramRetireOriginalMock,
@@ -175,9 +177,16 @@ export async function loadInstalledProjectMockAnswers(moon,project,profile,
           if([taskWire,taskCid,promptWire,promptCid].some(value=>typeof value!=='string')){
             fail('InvalidHostRuntimeResult');
           }
+          const execution=modelCall('execution',originalProfile,normalized,...taskBounds);
+          const executionMaterial=checked(execution);
+          const [executionWire,executionCid,retryWire,retryCid,backoffWire,backoffCid]=
+            Array.from({length:6},(_,index)=>runtimeField(executionMaterial,index));
+          if([executionWire,executionCid,retryWire,retryCid,backoffWire,backoffCid]
+            .some(value=>typeof value!=='string'))fail('InvalidHostRuntimeResult');
           const installation=checked(modelCall('install',originalProfile,
             entry.task,normalized,entry.answers,now));
           const bound={...entry,normalized,taskWire,taskCid,promptWire,promptCid,
+            executionWire,executionCid,retryWire,retryCid,backoffWire,backoffCid,
             installation,provider:undefined};
           state.entries.push(bound);
           bound.provider=checked(modelCall('provider',installation));
@@ -205,6 +214,29 @@ export async function loadInstalledProjectMockAnswers(moon,project,profile,
                 !Number.isSafeInteger(work)||work<0)fail('InvalidHostRuntimeResult');
             currentModels(runtime,this);
             return Object.freeze({environmentWire,evidenceCid:identity,work});
+          },
+          modelInstallationForRuntime(runtime,wire,evidenceCid){
+            const entries=currentModels(runtime,this);
+            const projected=this.projectEnvironmentForRuntime(runtime,wire,evidenceCid);
+            const dependencyBodies=[];
+            for(const entry of entries){
+              // Assemble only the existing Host reader's DATA envelope. Every
+              // body/CID came from the same Common normalization/execution
+              // owner; the Host defines no retry, backoff or codec semantics.
+              for(const [bodyWire,cid] of [[entry.promptWire,entry.promptCid],
+                [entry.retryWire,entry.retryCid],[entry.backoffWire,entry.backoffCid]]){
+                const previous=dependencyBodies.find(body=>body.cid===cid);
+                if(previous!==undefined){
+                  if(previous.bodyWire!==bodyWire)fail('InstalledMockModelBodyMismatch');
+                }else dependencyBodies.push(Object.freeze({bodyWire,cid}));
+              }
+            }
+            const executionContracts=entries.map(entry=>Object.freeze({
+              modelTaskCid:entry.taskCid,bodyWire:entry.executionWire,cid:entry.executionCid}));
+            currentModels(runtime,this);
+            return Object.freeze({environmentWire:projected.environmentWire,
+              executionContracts:Object.freeze(executionContracts),
+              dependencyBodies:Object.freeze(dependencyBodies)});
           },
         });
         currentModels(runtime,state.value);

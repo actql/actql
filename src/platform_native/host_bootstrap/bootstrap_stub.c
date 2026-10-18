@@ -402,6 +402,24 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_context_entered(
 #endif
 }
 
+/* Registration control is prepared before any Read/owned scope on this
+ * thread. This observes only the same original's unentered state: it does not
+ * enter a context, allocate control or acknowledge any owner retirement. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_context_unentered(
+    actql_bootstrap_domain *record) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (record == NULL || actql_read_context_current() != NULL ||
+        actql_native_owned_current() != NULL) return ACTQL_OWNED_INVALID;
+    if (record->read_context == NULL || !record->read_user ||
+        record->read_prepare_scope || record->read_active != 0)
+        return ACTQL_OWNED_INVALID;
+    return ACTQL_OWNED_OK;
+#else
+    (void)record;
+    return ACTQL_OWNED_INVALID;
+#endif
+}
+
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_prepare_read_context(
     actql_bootstrap_domain *record) {
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)

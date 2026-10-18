@@ -10,6 +10,7 @@ pub(all) enum InstalledArenaCryptoIssue {
 struct InstalledArenaCryptoComponent {
   domain : InstalledArenaDomain
   mut component : @signature.OriginalCryptoComponent?
+  mut attempted : Bool
   mut failed : Bool
   mut scope_open : Bool
   mut closed : Bool
@@ -42,6 +43,7 @@ fn register_crypto_component_original(
   let record : InstalledArenaCryptoComponent = {
     domain,
     component: None,
+    attempted: false,
     failed: false,
     scope_open: false,
     closed: false,
@@ -60,6 +62,7 @@ fn InstalledArenaHost::load_crypto_component_original(
   heap_bytes : Int64,
   diagnostic_ceiling : Int,
 ) -> InstalledArenaCryptoIssue? {
+  record.attempted = true
   let mut primary : InstalledArenaCryptoIssue? = None
   match
     @signature.load_current_crypto_component(
