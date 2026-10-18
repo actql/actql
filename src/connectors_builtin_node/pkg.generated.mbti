@@ -150,6 +150,12 @@ pub fn client_installation_preparation_use_projection(@remote_credential.Install
 
 pub fn client_installation_preparation_use_wire(@remote_credential.InstallationPreparationCredentialUse) -> String raise NodeHostFailure
 
+pub fn client_installation_publication_storage_cid(@run_publication.InstallationPublicationStorageBinding) -> String
+
+pub fn client_installation_publication_storage_prepare(String, String, String, Int, Int, Int) -> Result[@run_publication.InstallationPublicationStorageBinding, @run_publication.PublicationContractIssue]
+
+pub fn client_installation_publication_storage_wire(@run_publication.InstallationPublicationStorageBinding) -> String
+
 pub fn client_local_signing_grant_admit(String, String) -> @remote_credential.LocalSigningCredentialGrant raise NodeHostFailure
 
 pub fn client_local_signing_grant_cid(@remote_credential.LocalSigningCredentialGrant) -> String
