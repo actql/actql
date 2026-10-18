@@ -907,7 +907,8 @@ try {
     ?runRequirementProperty.value:undefined;
   const journal = {};
   for (const [name, exported] of Object.entries({read: 'readHostJournalPreparation',
-    open: 'openOriginalHostRequestJournal', observe: 'observeOriginalHostRequestJournalCustody'})) {
+    open: 'openOriginalHostRequestJournal', observe: 'observeOriginalHostRequestJournalCustody',
+    current: 'assertOriginalHostRequestJournalFacilityCurrent'})) {
     const entry = descriptor(namespace, exported);
     journal[name] = entry !== undefined && own(entry, 'value') ? entry.value : undefined;
   }
