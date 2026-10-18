@@ -2,7 +2,6 @@
 pub(all) enum InstalledArenaCryptoIssue {
   Domain(@bootstrap.NativeBackedExecutionIssue)
   Signature(@signature.NativeSignatureIssue)
-  Resources(InstalledArenaLocalHostResourcesIssue)
 }
 
 ///|

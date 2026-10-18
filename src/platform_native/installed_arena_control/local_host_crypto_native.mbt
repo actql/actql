@@ -1,4 +1,10 @@
 ///|
+pub(all) enum InstalledArenaLocalHostCryptoIssue {
+  Resources(InstalledArenaLocalHostResourcesIssue)
+  Crypto(InstalledArenaCryptoIssue)
+}
+
+///|
 /// Trusted assembly only, after the existing complete Read profile has included
 /// this component's heap, metadata, diagnostics and all simultaneous aliases.
 /// The same pair's one-shot consumer must already own an active HostRead phase.
@@ -10,7 +16,7 @@ pub fn InstalledArenaHost::prepare_local_host_read_crypto(
   path : String,
   heap_bytes : Int64,
   diagnostic_ceiling : Int,
-) -> Result[InstalledArenaCryptoAcquisition, InstalledArenaCryptoIssue] {
+) -> Result[InstalledArenaCryptoAcquisition, InstalledArenaLocalHostCryptoIssue] {
   match self.require_local_host_consuming_read_current(pair, read) {
     Err(issue) => return Err(Resources(issue))
     Ok(_) => ()
@@ -26,7 +32,7 @@ pub fn InstalledArenaHost::prepare_local_host_read_crypto(
     domain.crypto_component is Some(_) ||
     domain.sqlite_library is Some(_) ||
     domain.live_channel is Some(_) {
-    return Err(Domain(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed)))
+    return Err(Crypto(Domain(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed))))
   }
   match
     domain.backing.require_backed_read_context_entered(
@@ -34,7 +40,7 @@ pub fn InstalledArenaHost::prepare_local_host_read_crypto(
       domain.domain.unwrap(),
       domain,
     ) {
-    Err(issue) => return Err(Domain(issue))
+    Err(issue) => return Err(Crypto(Domain(issue)))
     Ok(_) => ()
   }
   let record = register_crypto_component_original(domain)
