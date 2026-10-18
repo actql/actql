@@ -910,6 +910,30 @@ issuer. Primary native close cannot settle a separately attempted observation
 connection; Root retirement additionally requires that child's own confirmed
 native close and never releases process-lived module/native backing.
 
+When the selected Journal recipe relies on the existing Publication Store's
+physical exclusion, that exclusion is acquired after Host-format admission and
+before the Journal's native constructor. It does not fund the earlier format
+work: the separate complete operational facility already precedes that work.
+The Root publishes one opening flight, retains the returned prepared ownership
+before the next current check, and waits for the same flight during cleanup.
+A refusal after acquisition cannot discard the owner or start another Journal.
+
+The Root forwards that same nominal prepared original once through its captured
+private adapter and Host receiver to the existing Store factory's prepared
+argument. It does not reconstruct ownership from paths or tokens, issue another
+owner, or supply Store/key/payload authority. The ordinary unselected Store path
+retains its existing independent acquisition. Fresh-prefix handling remains
+limited to the same prepared original; global unknown-format refusal remains.
+
+Journal and Store cleanup attempts remain independent. Store payload cleanup
+does not release shared exclusion while the same Journal's primary, secondary
+or constructor cleanup is unresolved. Conversely, Journal close cannot certify
+the adopted Store's payload cleanup. Only both original physical duties allow
+the existing Store owner to release its token. Captured dependency observations
+must explicitly return an own-data pending-false result; replacement callbacks,
+exceptions or ambiguous observations cannot settle it. Cleanup retries retain
+the same owner and cannot disturb a successor after its original staged release.
+
 Selected cold inspection may additionally bound the SQLite schema table's
 declared row payload and traversal before native SQLite opens the isolated
 copy. The resource reader follows table-btree pages and the same last valid

@@ -183,7 +183,7 @@ function prepareJournal(held) {
     disposition: state.journalDisposition, subject: undefined, subjectCurrent: undefined,
     argumentsForJournal: undefined,
     attempted: false, nativeAttempted: false, openFlight: undefined,
-    ownership: undefined, dependency: undefined,
+    ownership: undefined, ownershipForwarded: false, dependency: undefined,
     journal: undefined, journalClose: undefined,
     cleanup: undefined, cleanupStatus: undefined, cleanupRetry: undefined,
     closing: false, closed: false, closeFlight: undefined,
@@ -249,6 +249,17 @@ function openJournal(original, held, directory, options) {
   const settled = () => { if (entry.openFlight === flight) entry.openFlight = undefined; };
   apply(journalPromiseThen, flight, [settled, settled]);
   return flight;
+}
+function journalPublicationOwnership(original, held) {
+  const entry = journalCurrent(original, held);
+  if (entry.journal === undefined || entry.ownership === undefined || entry.ownershipForwarded) {
+    journalUnavailable();
+  }
+  // Forward the existing physical original once to the same Host's Store.
+  // Its fifth-argument adoption owns validation/one adoption; this operation
+  // creates neither another owner nor Store/key/payload resource authority.
+  entry.ownershipForwarded = true;
+  return entry.ownership;
 }
 const sourceChildren = new WeakMap();
 const sourceUnavailable = () => fail('SourceManagedPreparationUnavailable');
@@ -834,6 +845,7 @@ const table = module.exports = {
     return closeJournal(journalOriginal(original, originals, true));
   },
   openHostJournalRequestJournal: openJournal,
+  originalHostPublicationOwnership: journalPublicationOwnership,
   prepareSourceManagedInstallation: prepareSource,
   assertSourceManagedInstallationCurrent(original, originals) {sourceCurrent(original, originals);},
   beforeSourceSnapshot(original, originals, kind, input, options) {

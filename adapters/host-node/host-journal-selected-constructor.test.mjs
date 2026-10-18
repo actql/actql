@@ -19,7 +19,7 @@ const method=name=>{
   assert.equal(found.length,1);return source.slice(found[0].start,found[0].end);
 };
 const make=compileFunction(`
-  let hostJournal,hostJournalClose,hostJournalOpen,hostJournalFlight;
+  let hostJournal,hostJournalClose,hostJournalOpen,hostJournalOwnership,hostJournalFlight;
   let hostJournalOpenAttempted=false;
   const record={};return {${method('prepareHostJournal')},${method('openRequestJournal')}};`,
   ['originals','prepareHostJournalInstallation','assertInitialControlHostPreparation','clientOperationError']);

@@ -10,7 +10,7 @@ const owner = ordinary ? require('./node-public-initial-control-bootstrap.cjs') 
 const apply = Reflect.apply, descriptor = Object.getOwnPropertyDescriptor;
 const own = Object.hasOwn, freeze = Object.freeze, NativePromise = Promise;
 const names = ['prepareHostJournalInstallation', 'assertHostJournalInstallationCurrent',
-  'closeHostJournalInstallation', 'openHostJournalRequestJournal'];
+  'closeHostJournalInstallation', 'openHostJournalRequestJournal', 'originalHostPublicationOwnership'];
 const callbacks = names.map(name => {
   const property = descriptor(owner, name);
   return property !== undefined && own(property, 'value') &&
@@ -72,6 +72,10 @@ export async function prepareHostJournalInstallation(sameOriginals) {
     throw carrier;
   }
   return freeze({assertCurrent() { current(state); }, close() { return close(state); },
+    publicationOwnership() {
+      current(state);
+      return invoke(4, [state.original, state.originals]);
+    },
     openRequestJournal(directory, options) {
       current(state);
       // The captured Root constructs and retains its SAME physical Journal

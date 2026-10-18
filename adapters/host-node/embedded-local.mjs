@@ -960,7 +960,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       maxObjects: 10000, maxContractNodes: 10000,
       maxContractDepth: 64,
       privateEvidenceKey: effectInstallation?.privateEvidenceKey ?? effectEvidenceKey?.key,
-    }, control);
+    }, control, undefined, undefined, preparation?.publicationOwnership());
     if (modelRuntimeView !== undefined) {
       // The real factory's result, not a lookup/configuration reconstruction.
       // Keep the static module and this Store through failed/pending cleanup.
@@ -3816,7 +3816,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   profiles.registerPreparation(host, originalInstallation, host);
   let control, controlClose, duty, observedClose, referenceRetirement;
   let moon, project, projectProfile, mockPreparation, sourceManaged, sourceManagedClose;
-  let hostJournal, hostJournalClose, hostJournalOpen, hostJournalFlight;
+  let hostJournal, hostJournalClose, hostJournalOpen, hostJournalOwnership, hostJournalFlight;
   let hostJournalOpenAttempted = false;
   let mockAnswers, mockModelProfile, mockModelProfileRetire, mockModelFlight;
   let adopted = false, referencesRetired = false;
@@ -3877,7 +3877,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       if (pending === undefined || !Object.hasOwn(pending, 'value') || pending.value !== false) {
         throw clientOperationError('HostJournalInstallationCleanupPending');
       }
-      hostJournal = hostJournalClose = hostJournalOpen = undefined;
+      hostJournal = hostJournalClose = hostJournalOpen = hostJournalOwnership = undefined;
       hostJournalFlight = undefined;
       record.hostJournal = undefined;
     }
@@ -3929,6 +3929,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
           throw clientOperationError('HostJournalInstallationCleanupPending');
         }
         hostJournalOpen = original.openRequestJournal;
+        hostJournalOwnership = original.publicationOwnership;
         const current = original.assertCurrent;
         if (typeof current !== 'function') {
           throw clientOperationError('HostJournalPreparationUnavailable');
@@ -3949,6 +3950,13 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       // A throw may retain a partial native child; no replacement is issued.
       hostJournalOpenAttempted = true;
       return Reflect.apply(hostJournalOpen, hostJournal, [directory, options]);
+    },
+    publicationOwnership() {
+      assertInitialControlHostPreparation(originals);
+      if (hostJournal === undefined || typeof hostJournalOwnership !== 'function') {
+        throw clientOperationError('HostJournalPreparationUnavailable');
+      }
+      return Reflect.apply(hostJournalOwnership, hostJournal, []);
     },
     bindSourceRequest(parent, derived) {
       if (mockPreparation === undefined) return;

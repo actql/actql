@@ -18,12 +18,19 @@ const source = readFileSync(new URL('./node-public-initial-control-bootstrap.cjs
 const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'script'});
 const names = ['journalOriginal', 'journalFailure', 'journalCurrent', 'journalStatus',
   'journalCleanup', 'journalAcknowledged', 'journalExclusionDependency', 'closeJournal', 'journalCarrier',
-  'prepareJournal', 'openJournal'];
+  'prepareJournal', 'openJournal', 'journalPublicationOwnership'];
 const bodies = names.map(name => {
   const nodes = ast.body.filter(node => node.type === 'FunctionDeclaration' && node.id.name === name);
   assert.equal(nodes.length, 1);
   return source.slice(nodes[0].start, nodes[0].end);
 }).join('\n');
+const table = ast.body.filter(node => node.type === 'VariableDeclaration')
+  .flatMap(node => node.declarations).find(node => node.id.name === 'table').init.right;
+const journalNames = ['prepareHostJournalInstallation', 'assertHostJournalInstallationCurrent',
+  'closeHostJournalInstallation', 'openHostJournalRequestJournal', 'originalHostPublicationOwnership'];
+const journalProperties = table.properties.filter(node => journalNames.includes(node.key.name));
+assert.equal(journalProperties.length, 5);
+const originalOwner = journalProperties.map(node => source.slice(node.start, node.end)).join(',');
 const make = compileFunction(`
   let journalInstallation;
   const apply=Reflect.apply,descriptor=Object.getOwnPropertyDescriptor;
@@ -36,9 +43,58 @@ const make = compileFunction(`
     if(property===undefined||!own(property,'value'))journalUnavailable();return property.value;};
   ${bodies}
   return {prepare:prepareJournal,open:openJournal,current:journalCurrent,
-    ownership:(original,held)=>journalOriginal(original,held,true).ownership,
+    ownership:journalPublicationOwnership,owner:{${originalOwner}},
     close:(original,held)=>closeJournal(journalOriginal(original,held,true))};`,
 ['state', 'assertSamePreparation', 'join']);
+
+// Execute the actual adapter and Host forwarding/Store assignment, not a
+// fixture-only ownership accessor or a manual fifth-argument substitution.
+const adapterSource = readFileSync(new URL('./node-host-journal-installation.mjs', import.meta.url), 'utf8');
+const adapter = compileFunction(adapterSource.replace("import {createRequire} from 'node:module';", '')
+  .replace('createRequire(import.meta.url)', 'selectedRequire')
+  .replace('export async function ', 'async function ') + '\nreturn prepareHostJournalInstallation;',
+['selectedRequire', 'process']);
+const hostSource = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+const hostNodes = [];
+function collectHost(node) {
+  if (node === null || typeof node !== 'object') return;
+  hostNodes.push(node);
+  for (const value of Object.values(node)) {
+    if (Array.isArray(value)) value.forEach(collectHost);
+    else if (value !== null && typeof value === 'object') collectHost(value);
+  }
+}
+collectHost(parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'}));
+const hostMethod = name => {
+  const matches = hostNodes.filter(node => node.type === 'Property' && node.method && node.key.name === name);
+  assert.equal(matches.length, 1);
+  return hostSource.slice(matches[0].start, matches[0].end);
+};
+const hostPreparation = compileFunction(`
+  let hostJournal,hostJournalClose,hostJournalOpen,hostJournalOwnership,hostJournalFlight;
+  let hostJournalOpenAttempted=false;const record={};
+  return {${hostMethod('prepareHostJournal')},${hostMethod('openRequestJournal')},
+    ${hostMethod('publicationOwnership')}};`,
+['originals', 'prepareHostJournalInstallation', 'assertInitialControlHostPreparation', 'clientOperationError']);
+const storeAssignments = hostNodes.filter(node => node.type === 'AssignmentExpression' &&
+  node.left.name === 'store' && node.right.type === 'AwaitExpression' &&
+  node.right.argument.callee?.name === 'openLocalPublicationStore');
+assert.equal(storeAssignments.length, 1);
+const actualHostStore = compileFunction(`return (async()=>{let store;
+  ${hostSource.slice(storeAssignments[0].start, storeAssignments[0].end)};return store;})();`,
+['root', 'storeAuthorityCid', 'localOutputLimits', 'effectInstallation', 'effectEvidenceKey',
+  'control', 'preparation', 'openLocalPublicationStore', 'join']);
+const hostStore = (f, preparation) => actualHostStore(f.scratch.path, 'sha256:' + 'a'.repeat(64),
+  {maxWireBytes: 4096}, undefined, undefined, createPublicationContractControlFixture(),
+  preparation, openLocalPublicationStore, join);
+function connectedHostPreparation(f) {
+  const prepare = adapter(name => {
+    assert.equal(name, './node-public-initial-control-bootstrap.cjs');
+    return f.root.owner;
+  }, {execArgv: [], env: {}});
+  return hostPreparation(f.originals, prepare, actual => assert.strictEqual(actual, f.originals),
+    code => Object.assign(new Error(code), {code}));
+}
 
 async function fixture({covered = true, open, read, current, nativeCurrent,
   prepareOwnership = prepareLocalPublicationStoreOwnership} = {}) {
@@ -77,6 +133,62 @@ async function fixture({covered = true, open, read, current, nativeCurrent,
   const root = make(state, actual => assert.strictEqual(actual, originals), join);
   return {scratch, originals, directory, root, state};
 }
+
+test('actual captured Root adapter and Host Store call adopt the same ownership and keep both ACKs', async () => {
+  const nativeClose = DatabaseSync.prototype.close;
+  let permitted = false;
+  const f = await fixture({open(path, options) {
+    DatabaseSync.prototype.close = function (...args) {
+      if (!permitted) throw new Error('OriginalConnectedJournalClosePending');
+      return Reflect.apply(nativeClose, this, args);
+    };
+    try {return openClientRequestJournal(path, options);}
+    finally {DatabaseSync.prototype.close = nativeClose;}
+  }});
+  const preparation = connectedHostPreparation(f);
+  const view = await preparation.prepareHostJournal();
+  assert.throws(() => preparation.publicationOwnership(), {code: 'HostJournalPreparationUnavailable'});
+  await preparation.openRequestJournal(f.directory, {});
+  f.root.owner.originalHostPublicationOwnership = () => assert.fail('Captured original must be used');
+  const directory = join(f.scratch.path, 'publication');
+  const owner = readFileSync(join(directory, 'owner', 'owner.json'));
+  const store = await hostStore(f, preparation);
+  assert.deepEqual(readFileSync(join(directory, 'owner', 'owner.json')), owner);
+  assert.throws(() => preparation.publicationOwnership(), {code: 'HostJournalPreparationUnavailable'});
+  assert.equal((await view.close()).pending, true);
+  await assert.rejects(store.close(), {code: 'PublicationStoreCleanupPending'});
+  assert.deepEqual(readFileSync(join(directory, 'owner', 'owner.json')), owner);
+  permitted = true;
+  assert.equal((await view.close()).pending, true);
+  assert.equal(await store.close(), true);
+  assert.equal((await view.close()).pending, false);
+  assert.throws(() => preparation.publicationOwnership(), {code: 'HostJournalPreparationUnavailable'});
+  f.scratch.passed();
+});
+
+test('actual unselected Host Store call retains ordinary ownership without a prepared original', async () => {
+  const f = await fixture();
+  const store = await hostStore(f, undefined);
+  assert.equal(await store.close(), true);
+  f.scratch.passed();
+});
+
+test('actual Host Store adoption refuses changed currentness before Store work and retains original cleanup', async () => {
+  let changed = false;
+  const cause = new Error('OriginalHostChangedBeforeStore');
+  const f = await fixture({current() {if (changed) throw cause;}});
+  const preparation = connectedHostPreparation(f);
+  const view = await preparation.prepareHostJournal();
+  await preparation.openRequestJournal(f.directory, {});
+  changed = true;
+  await assert.rejects(hostStore(f, preparation), error => error === cause);
+  assert.throws(() => readFileSync(join(f.scratch.path, 'publication', 'store.json')),
+    {code: 'ENOENT'});
+  assert.equal(typeof JSON.parse(readFileSync(join(f.scratch.path,
+    'publication', 'owner', 'owner.json'), 'utf8')).token, 'string');
+  assert.equal((await view.close()).pending, false);
+  f.scratch.passed();
+});
 
 test('Root preparation creates no owner; awaited ownership precedes the same native Journal', async () => {
   let opened = 0;
@@ -221,6 +333,7 @@ test('Root retains one original actual Journal through native close, not a copie
   const original = f.root.prepare(f.originals);
   for (const [token, pair] of [[{}, f.originals], [original, {...f.originals}]]) {
     assert.throws(() => f.root.current(token, pair), {code: 'HostJournalPreparationUnavailable'});
+    assert.throws(() => f.root.ownership(token, pair), {code: 'HostJournalPreparationUnavailable'});
   }
   const journal = await f.root.open(original, f.originals, f.directory, {});
   assert.equal(observeOriginalClientRequestJournalCustody(journal).databaseClosed, false);
