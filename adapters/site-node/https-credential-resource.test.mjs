@@ -236,6 +236,30 @@ test('Run response original retains the actual physical claim, request and bytes
   assert.equal(setup.requests(), 1);
 });
 
+test('Run response original retains the exact immutable physical POST text without deriving it from length', async t => {
+  const setup = await fixture(t);
+  const selected = scope(setup.origin, 'records:create');
+  const grant = control.prepare(selected);
+  setup.journal.acceptGrant(setup.sign(grant), control);
+  const body = '{"Name":" é 漢 ","order":["b","a","b"]}';
+  const response = await call(setup, grant, selected, 'original-post', {
+    retainRunResponseOriginal: true,
+    operations: new Map([['records:create', Object.freeze({method: 'POST', path: '/mutate', body})]]),
+  });
+  withHttpsCredentialRunResponseOriginal(response, control, setup.journal, original => {
+    assert.equal(original.requestBodyText, body);
+    assert.equal(original.requestBodyBytes, Buffer.byteLength(body));
+    assert.equal(original.method, 'POST');
+    assert.equal(original.path, '/mutate');
+    assert.equal(original.response, response);
+    assert.equal(Object.isFrozen(original), true);
+    assert.equal(Object.hasOwn(original, 'secret'), false);
+  });
+  assert.deepEqual(setup.mutationBodies(), [body]);
+  assert.equal(setup.journal.inspect(response.useCid).outcome, 'succeeded');
+  assert.equal(setup.requests(), 1);
+});
+
 test('Run response original refuses copies, foreign owners and default uncaptured responses', async t => {
   const setup = await fixture(t);
   const selected = scope(setup.origin);

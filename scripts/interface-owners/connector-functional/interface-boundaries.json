@@ -4147,7 +4147,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "33c4d1a6b11a2ab7c34275c42092143a63b61645e7fec78b6de9e733563adc02",
+      "sha256": "e607bee52e6925ca3fb40204134f790ed72dbba5d8d714f4ab8d8d1c116d2372",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -5150,7 +5150,8 @@
           "parameters": [
             "memberIndex",
             "rowIndex",
-            "claim"
+            "claim",
+            "currentPreflight"
           ],
           "async": true
         },
@@ -5188,14 +5189,14 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/current/current/current#2",
+          "name": "createRowEffectStage/physicalRoute/physicalRoute/current/current/refreshed/refreshed",
           "parameters": [
             "row"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/current/current/current#3",
+          "name": "createRowEffectStage/physicalRoute/physicalRoute/current/current/refreshed/refreshed#2",
           "parameters": [
             "value"
           ],
@@ -5939,8 +5940,8 @@
             "createRowEffectStage/physicalRoute/physicalRoute/current/current",
             "createRowEffectStage/physicalRoute/physicalRoute/current/current/capabilities/capabilities",
             "createRowEffectStage/physicalRoute/physicalRoute/current/current/current",
-            "createRowEffectStage/physicalRoute/physicalRoute/current/current/current#2",
-            "createRowEffectStage/physicalRoute/physicalRoute/current/current/current#3",
+            "createRowEffectStage/physicalRoute/physicalRoute/current/current/refreshed/refreshed",
+            "createRowEffectStage/physicalRoute/physicalRoute/current/current/refreshed/refreshed#2",
             "createRowEffectStage/prepareCaptured",
             "createRowEffectStage/prepareCaptured/dispatches/dispatches",
             "createRowEffectStage/prepareCaptured/prepareCaptured",
@@ -6093,6 +6094,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Identity: original request target and observation identity must match; the"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "currentsByPreflight.get(currentPreflight)"
               }
             ],
             "ownership": [
@@ -6243,6 +6248,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Resources: bounded observation envelope copies, original before references,"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "currentsByPreflight.set(refreshed, Object.freeze(fresh))"
               }
             ],
             "extension": [
@@ -6343,6 +6352,10 @@
               {
                 "path": "adapters/host-node/installed-row-json.test.mjs",
                 "anchor": "CREATE child pending cleanup retains the original failure and parent duty until ACK"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/installed-current-refresh.integration.test.mjs",
+                "anchor": "refresh instead of the latest Catalog"
               }
             ]
           }
@@ -6481,12 +6494,12 @@
             "commandContentBorrower",
             "commandContentBorrower/init:borrow/init:borrow",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#2",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#3",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#4",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#2",
-            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#2",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#3",
-            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#4",
-            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#3",
             "commandContentBorrower/init:borrow/init:borrow/prior/prior",
             "commandContentBorrower/init:release/init:release",
             "commandContentBorrower/observe/observe",

@@ -153,7 +153,7 @@ export {readSite as readGitHubSite, openSite as openGitHubSite,
 
 async function restore(moon, connectorId, expectedCatalogCid) {
   const views = await readFile(viewsUrl, 'utf8');
-  const declaration = checked(moon.clientProgramRowSourceRestoreDeclaration(
+  const declaration = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
     connectorId, registration, revision, views, expectedCatalogCid));
   const declared = JSON.parse(
     moon.clientProgramRowSourceDeclarationJson(declaration));
@@ -306,7 +306,7 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
         credentialAuthorityId: site.credentialAuthorityId,
         credentialKeyId: site.credentialKeyId}),
       limits: rowLimits,
-      readPages: async ({resource, authorizationFor, chargePage, consumePage,
+      readPages: async ({resource, authorizationFor, chargePage, consumeObservation, consumePage,
         signal}) => {
         if (resource !== 'issues') fail('UndeclaredGitHubResource');
         return readGitHubIssuesByNode({moon: providerMoon,
@@ -316,7 +316,7 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
           filters: {state: 'all', labels: []},
           credential: opened.site.credential,
           callResource: opened.site.callResource, authorizationFor,
-          limits: readLimits, chargePage,
+          limits: readLimits, chargePage, consumeObservation,
           consumePage: (rows, _page, admission) => consumePage(rows, admission),
           signal});
       }});
