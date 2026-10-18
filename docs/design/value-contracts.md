@@ -216,3 +216,28 @@ Package tests cover all types, rejection boundaries, the four type relations,
 ownership, source diagnostics, output budgets and 10,000 nested contracts on
 JS, Wasm and native. Field and value validation by downstream consumers remains
 outside this package.
+
+
+## Distinct signed64 contracts
+
+`Shape::Signed64` and `Primitive::Signed64Type` retain a separate logical
+`int64` leaf. It has the closed authored and checked `{type, nullable}` shape;
+Parameter syntax retains its existing default/meta handling and root
+nullability default without borrowing Number constraints or Decimal parameters.
+The existing readers charge the type name and semantic node, and the existing
+bounded writer emits the complete checked contract.
+
+Contract equality, directional assignment and nullability joining require this
+same leaf and preserve the existing recursive structure and pair budgets.
+Key comparability declares the domain relationship; exact value admission,
+comparison, capture and typed identity still belong to the existing Value,
+execution and RowRun owners. No logical type can be inferred from a matching
+String representation or a public type CID.
+
+The full signed range uses schema-directed canonical decimal String transport.
+This preserves exact values beyond binary64 precision while keeping the logical
+type distinct from Text and Decimal. Existing enum arm order and legacy
+Number/Decimal/Text canonical bodies remain unchanged. Adding a type does not
+add arithmetic overloads, alter numeric literals, issue authority or provide
+physical capacity. Unsupported Provider schema projection refuses instead of
+weakening the original contract.

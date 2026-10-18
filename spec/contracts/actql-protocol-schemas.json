@@ -2969,6 +2969,22 @@
                   "minLength": 1
                 }
               }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
             }
           ]
         }
@@ -5220,6 +5236,22 @@
                   "minLength": 1
                 }
               }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
             }
           ]
         }
@@ -6158,6 +6190,22 @@
                     "nullable"
                   ],
                   "type": "object"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "nullable"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": {
+                      "const": "int64"
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    }
+                  }
                 }
               ]
             }
@@ -8228,6 +8276,22 @@
                 "nullable"
               ],
               "type": "object"
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
             }
           ]
         }
@@ -9606,6 +9670,22 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
             }
           ]
         }
@@ -10543,6 +10623,22 @@
                 "media_type": {
                   "type": "string",
                   "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
                 }
               }
             }
@@ -13830,6 +13926,22 @@
                   "minLength": 1
                 }
               }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
             }
           ]
         }
@@ -14993,6 +15105,22 @@
                   "minLength": 1
                 }
               }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
             }
           ]
         }
@@ -16045,6 +16173,22 @@
                 "media_type": {
                   "type": "string",
                   "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
                 }
               }
             }
@@ -17111,6 +17255,22 @@
                 "media_type": {
                   "type": "string",
                   "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
                 }
               }
             }
@@ -33327,6 +33487,22 @@
                           "items": {
                             "type": "string"
                           }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "type",
+                        "nullable"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "type": {
+                          "const": "int64"
+                        },
+                        "nullable": {
+                          "type": "boolean"
                         }
                       }
                     }
@@ -64963,6 +65139,22 @@
                               "items": {
                                 "type": "string"
                               }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "type",
+                            "nullable"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "type": {
+                              "const": "int64"
+                            },
+                            "nullable": {
+                              "type": "boolean"
                             }
                           }
                         }
@@ -98039,7 +98231,7 @@
           "const": 0.005
         },
         "arithmetic_margin": {
-          "const": 0.000001
+          "const": 1e-06
         },
         "grid_margin_scaled": {
           "const": 1e-10

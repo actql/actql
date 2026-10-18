@@ -14,6 +14,7 @@ export function parameterSchema(declaration = false) {
     decimal: { precision: { type: 'integer', minimum: 1, maximum: 38 }, scale: { type: 'integer', minimum: 0, maximum: 38 } },
     array: { items: { $ref: '#/$defs/parameter_type' }, length: safeBound(1), max_items: safeBound(0) },
     object: { fields: { type: 'object', propertyNames: { pattern: fieldPattern }, additionalProperties: { $ref: '#/$defs/parameter_type' } } },
+    int64: {},
   };
   return { oneOf: Object.entries(bodies).map(([type, extra]) => ({
     type: 'object', additionalProperties: false,

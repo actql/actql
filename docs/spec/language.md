@@ -729,7 +729,7 @@ every field name and recursive value contract; knowing some names is not complet
 
 ### Closed value contracts
 
-The closed value type names are `string`, `number`, `decimal`, `boolean`, `timestamp`,
+The closed value type names are `string`, `number`, `int64`, `decimal`, `boolean`, `timestamp`,
 `date`, `json`, `object`, `array`, `vector`, `resource_ref`, and `content_ref`.
 The primitive value domains are:
 
@@ -738,6 +738,7 @@ The primitive value domains are:
 | --- | --- |
 | `string` | Well-formed Unicode scalar sequences, preserved without implicit normalization or line-break conversion. |
 | `number` | Finite IEEE-754 binary64; negative zero is invalid in canonical source. |
+| `int64` | Exact signed 64-bit integers ([Exact signed integers](#signed64-values)). |
 | `boolean` | `true` or `false`. |
 | `decimal` | Precision, scale, and exact base-10 coefficient ([Exact decimal values](#decimal-values)). |
 | `timestamp` | Canonical UTC `YYYY-MM-DDTHH:mm:ss.sssZ`; offsets and leap-second spellings are invalid. |
@@ -864,7 +865,7 @@ also has `type` and required `nullable`; `?` marks an optional member.
 | Type | Other author members | Checked expansion or evidence |
 | --- | --- | --- |
 | `string` | `enum?: string[]` | enum vector retained; optional `min_length`, `max_codepoints`, `max_utf8_bytes` from admitted evidence |
-| `number`, `boolean`, `timestamp`, `date`, `json` | none | unchanged |
+| `number`, `int64`, `boolean`, `timestamp`, `date`, `json` | none | unchanged |
 | `decimal` | `precision`, `scale` | unchanged; [Exact decimal values](#decimal-values) ranges |
 | `array` | `items: AuthorValueContract`, `max_items?` | recursive checked `items`; bound unchanged |
 | `object` | `fields: {AuthoredFieldName: AuthorValueContract}` | recursive checked fields; `additional_properties: false` |
@@ -1023,6 +1024,59 @@ default and nullability rules in [Parameters and binding](#parameters).
 Leap seconds and out-of-range dates fail. These value rules apply without the
 optional text-time profile, which only adds transformations over the domain.
 
+<a id="signed64-values"></a>
+
+### Exact signed integers
+
+The closed logical contract is `{type: int64, nullable: boolean}`. It has no
+precision, scale, enum, minimum or maximum declaration fields. It is distinct
+from `number`, `decimal`, and `string`; sharing an internal integer/coefficient
+representation does not make their contracts or values interchangeable.
+
+<!-- requirement-block: signed64-values.full-signed-domain -->
+An `int64` value MUST be an exact integer in the inclusive range
+-9223372036854775808 through 9223372036854775807, including both
+9007199254740992 and 9007199254740993 as distinct values.
+
+<!-- requirement-block: signed64-values.canonical-schema-directed-wire -->
+Schema-directed JSON and JSONL serialization MUST encode a non-null `int64`
+as a canonical decimal String matching `0|-?[1-9][0-9]*` within that signed
+range. CSV uses the same text under its retained schema. A wire String is
+an integer only under the original `int64` contract, not by lexical inference.
+
+<!-- requirement-block: signed64-values.reject-noncanonical-and-overflow -->
+Admission MUST reject JSON Number inputs, negative zero, a leading plus,
+leading zeros, whitespace, fraction/exponent spellings and values outside
+the signed range without rounding, wrapping, saturation or conversion to
+another logical type. Null remains governed separately by `nullable`.
+
+<!-- requirement-block: signed64-values.distinct-typed-identity -->
+Typed value identity MUST retain the distinct `int64` tag and canonical
+integer text rather than the identity of its transport String or a Number
+or Decimal representation. The existing bound-value marker is
+`{"$actql_value":["int64","9007199254740993"]}`; existing business-object
+escaping still distinguishes that object from an integer value.
+
+<!-- requirement-block: signed64-values.exact-comparison-and-retention -->
+Equality, ordering and key correspondence MUST compare exact signed integers
+and preserve the same checked logical type through Parameters, Values,
+RowRun capture, Result serialization and attachment. Existing null behavior,
+complete type identity and original-capture requirements remain applicable.
+
+<!-- requirement-block: signed64-values.no-implicit-domain-coercion -->
+Assignment and common-type joining MUST preserve the `int64` leaf under the
+existing recursive structure, extents and nullability rules without implicit
+coercion to or from Number, Decimal or Text. `int64` is KeyComparable and
+AuthorOrderable only with that same logical domain.
+
+<!-- requirement-block: signed64-values.no-implicit-arithmetic-overload -->
+Adding this value domain MUST NOT widen existing arithmetic signatures,
+integer-literal interpretation or mixed-domain operations implicitly.
+An operation or conversion needs its own admitted exact signature and
+implementation; an unsupported route remains unavailable rather than using
+an approximate or relabeled value. Existing Number and Decimal bytes and
+identities are unchanged.
+
 <a id="decimal-values"></a>
 
 ### Exact decimal values
@@ -1140,11 +1194,11 @@ image/audio-specific carriers do not exist.
 
 ### Lexical and ordering rules
 
-`AuthorOrderable` comprises `string`, `number`, `decimal`, `boolean`,
+`AuthorOrderable` comprises `string`, `number`, `int64`, `decimal`, `boolean`,
 `timestamp`, and `date`. `CanonicalOrderable` comprises those types plus
 `resource_ref` and `content_ref`. These are specification classifications,
 not source syntax. A portable order is the specified total order over non-null
-values of a `CanonicalOrderable` type: numeric order for `number` and `decimal`, `false < true`
+values of a `CanonicalOrderable` type: exact signed order for `int64`, numeric order for `number` and `decimal`, `false < true`
 for `boolean`, chronological order for `timestamp` and `date`, the string order
 below, and reference identity order ([Opaque reference values](#opaque-references)). `object`, `array`, `json`, and
 `vector` have no portable order. Null placement follows the operation's rules;
@@ -1716,7 +1770,7 @@ steps:
 ```
 
 <!-- requirement-block: parameters.decimal-declarations-must-specify-literal-precision-and-scale-under -->
-Scalar parameter types are `string`, `number`, `decimal`, `boolean`,
+Scalar parameter types are `string`, `number`, `int64`, `decimal`, `boolean`,
 `timestamp`, and `date`. Closed typed objects and homogeneous recursive arrays
 are also admitted. Arrays declare one item contract under `items`
 and MAY declare a positive fixed

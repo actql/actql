@@ -2321,6 +2321,22 @@
                   "minLength": 1
                 }
               }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
             }
           ]
         }
@@ -3386,6 +3402,22 @@
                 "media_type": {
                   "type": "string",
                   "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
                 }
               }
             }

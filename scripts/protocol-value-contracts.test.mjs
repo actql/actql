@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {valueBodyContract,generateValueKinds,commandInputPresenceBody,commandInputPresenceSchemas,textEnumerationBody} from './protocol-value-contracts.mjs';
+import {valueBodyContract,generateValueKinds,commandInputPresenceBody,commandInputPresenceSchemas,textEnumerationBody,signed64Body} from './protocol-value-contracts.mjs';
 const protocol=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8'));
 test('all eight legacy value roles use the checked grammar, never the carrier grammar',()=>{
   const body=valueBodyContract(protocol);
@@ -106,4 +106,42 @@ test('original Text enum vectors and the Values dependency retain independently 
   const expected=vectors.valuesExecution;
   verifyIdentity(aoa.execution_contracts['REL.values'],expected.cid,expected.canonicalPreimage);
   assert.deepEqual(aoa.execution_contracts['REL.values'],expected.body);
+});
+
+
+test('signed64 has one closed distinct initial contract without Decimal or Number constraints',()=>{
+  const body=signed64Body(protocol);
+  assert.deepEqual(body.domain,{minimum:'-9223372036854775808',maximum:'9223372036854775807'});
+  assert.match(body.identity,/distinct_complete_checked_int64/);
+  assert.match(body.operations,/no_implicit_arithmetic_overload/);
+  assert.deepEqual(valueBodyContract(protocol).signed64,body);
+  for(const name of ['author_value_contract','canonical_value_contract']){
+    for(const mutate of [
+      branches=>branches.pop(),
+      branches=>branches.push(structuredClone(branches.at(-1))),
+      branches=>branches.at(-1).properties.type.const='decimal',
+      branches=>branches.at(-1).properties.precision={const:19},
+      branches=>branches.at(-1).properties.minimum={const:0},
+      branches=>branches.at(-1).properties.nullable={const:false},
+    ]){
+      const changed=structuredClone(protocol);mutate(changed.schemas[name].$defs.value_contract.oneOf);
+      assert.throws(()=>signed64Body(changed));
+    }
+  }
+});
+
+test('generated structural type validation preserves signed64 schema without claiming value admission',async()=>{
+  const {project,structuralValidatorSource}=await import('./generate-client-publication-wire.mjs');
+  const schema=project(protocol.schemas.canonical_value_contract.$defs.value_contract);
+  const source='const schemas={value_contract:'+JSON.stringify(schema)+'};\n'+
+    structuralValidatorSource({extended:true})+'export const check=value=>valid(value,schemas.value_contract);';
+  const generated=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+  for(const nullable of [false,true]){
+    const contract={type:'int64',nullable};assert.equal(generated.check(contract),true);
+    assert.equal(generated.check({type:'array',nullable:false,items:contract}),true);
+    for(const extra of [{precision:19,scale:0},{minimum:0},{enum:['1']},{max_utf8_bytes:20},{default:'1'}])
+      assert.equal(generated.check({...contract,...extra}),false);
+  }
+  for(const input of [{type:'int64'},{type:'Int64',nullable:false},{type:'int64',nullable:null}])
+    assert.equal(generated.check(input),false);
 });

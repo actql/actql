@@ -1085,6 +1085,22 @@
                 "minLength": 1
               }
             }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "nullable"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "const": "int64"
+              },
+              "nullable": {
+                "type": "boolean"
+              }
+            }
           }
         ]
       }
