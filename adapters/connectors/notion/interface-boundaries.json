@@ -981,7 +981,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/database-discovery.mjs",
-      "sha256": "12580658dbea3f5872195b44b2428ecc814bb8327e9238726ec7386e9f22ef3e",
+      "sha256": "9aa46d82b3f853f064a99aeb2e9122f7e904769f947988e946c8ba14a7fb3cfb",
       "exports": [
         "NOTION_DATABASE_RETRIEVE_OPERATION",
         "NOTION_DATA_SOURCE_RETRIEVE_OPERATION",
@@ -1163,6 +1163,20 @@
         },
         {
           "name": "ownPublication/ports/ports",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownPublication/retained/retained",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownPublication/retained/retained#2",
           "parameters": [
             "name"
           ],
@@ -1576,7 +1590,9 @@
             "ownPublication/ownPublication",
             "ownPublication/ports/ports",
             "sameRequestData",
-            "sameRequestData/sameRequestData"
+            "sameRequestData/sameRequestData",
+            "ownPublication/retained/retained",
+            "ownPublication/retained/retained#2"
           ],
           "exports": [
             "captureNotionDatabaseDiscoveryPublication",
