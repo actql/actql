@@ -41,8 +41,11 @@ under the same original metadata Contracts. It keeps detached collections of
 those Common checked values for the Mapping/Preview caller. Quoted physical names
 remain unchanged; values become ordered SQL API binding parameters. Decimal
 conversion specifies the observed precision and scale and uses no floating
-intermediate. SQL NULL is a template literal, while typed JSON null remains a
-distinct unsupported non-null JSON write value.
+intermediate. SQL NULL is a template literal. Typed JSON uses Common payload
+encoding and an explicit `PARSE_JSON` expression, preserving JSON null as a
+VARIANT value. OBJECT/ARRAY writes require the corresponding JSON shape before
+their explicit conversion; scalar wrapping and JSON-null-to-SQL-null coercion
+are refused.
 
 The fixed UPDATE template counts all target rows matching the original key,
 independently of the before-image conditions. Its additional null-safe predicates
@@ -59,8 +62,11 @@ An independently generated candidate cannot supply those missing facts.
 
 Provider spelling follows the official [SQL API bindings](https://docs.snowflake.com/en/developer-guide/sql-api/submitting-requests#using-bind-variables-in-a-statement)
 and [explicit UTF-8 binary conversion](https://docs.snowflake.com/en/sql-reference/functions/to_binary)
-contracts. Temporal, binary and non-null JSON write carriers remain named refusals;
-they are not converted to arbitrary text, JSON or a rounded number.
+contracts. JSON transport follows [PARSE_JSON](https://docs.snowflake.com/en/sql-reference/functions/parse_json),
+[TO_OBJECT](https://docs.snowflake.com/en/sql-reference/functions/to_object) and
+[TO_ARRAY](https://docs.snowflake.com/en/sql-reference/functions/to_array).
+Temporal and binary contracts remain named refusals pending the existing Common
+carriers; they are not converted to arbitrary text, JSON or a rounded number.
 
 ## Interface responsibilities
 

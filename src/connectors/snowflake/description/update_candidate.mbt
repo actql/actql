@@ -44,6 +44,7 @@ priv struct UpdateBudget {
   mut text : Int
   depth : Int
   body_ceiling : Int
+  json_node_ceiling : Int
   mut sql_left : Int
   sql : StringBuilder
   bindings : Array[(String, String)]
@@ -169,6 +170,37 @@ fn update_parameter(
     update_sql(budget, "NULL")
     return
   }
+  if value.value is @admitted.JsonData(payload) {
+    let expression = match (field.native_type, payload) {
+      ("VARIANT", _) => "PARSE_JSON(?)"
+      ("OBJECT", @admitted.Object(_)) => "TO_OBJECT(PARSE_JSON(?))"
+      ("ARRAY", @admitted.Array(_)) => "TO_ARRAY(PARSE_JSON(?))"
+      ("OBJECT" | "ARRAY", _) => raise UpdateStop(InvalidValue(field.name))
+      _ => raise UpdateStop(UnsupportedWriteType(field.name, field.native_type))
+    }
+    let json = @encode.writer(
+      budget.body_ceiling,
+      budget.json_node_ceiling,
+      budget.depth,
+    ) catch {
+      _ => raise UpdateStop(Limit)
+    }
+    let text = try {
+      // The existing Common JSON carrier already excludes non-JSON members.
+      // Transport TEXT plus PARSE_JSON preserves its type and JSON null; this
+      // is not advertising an unsupported carrier as ordinary text.
+      @admitted.emit_wire_value(payload, json)
+      @encode.finish(json)
+    } catch {
+      _ => {
+        @encode.cancel_writer(json)
+        raise UpdateStop(Limit)
+      }
+    }
+    budget.bindings.push(("TEXT", text))
+    update_sql(budget, expression)
+    return
+  }
   let (kind, expression) = match (field.native_type, value.value) {
     ("NUMBER" | "DECIMAL" | "NUMERIC", @admitted.Decimal(_)) => {
       guard field.precision is Some(p) && field.scale is Some(s) else {
@@ -257,6 +289,7 @@ pub fn prepare_update_candidate(
     text: limits.max_value_text_bytes,
     depth: limits.max_value_depth,
     body_ceiling: limits.max_body_bytes,
+    json_node_ceiling: limits.max_value_nodes,
     sql_left: limits.max_statement_bytes,
     sql: StringBuilder(),
     bindings: [],

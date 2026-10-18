@@ -280,7 +280,7 @@ test "UPDATE bounds comparison admission statement and binding output independen
 }
 
 ///|
-test "UPDATE preserves a read-only unsupported non-null JSON carrier as named refusal" {
+test "UPDATE JSON values use Common payload encoding and explicit provider JSON parsing" {
   let rows = [metadata_row("K", 1, "TEXT"), metadata_row("J", 2, "VARIANT")]
   let original = project_table_description(
     target(),
@@ -297,16 +297,24 @@ test "UPDATE preserves a read-only unsupported non-null JSON carrier as named re
       { max_nodes: 8, max_depth: 4, max_text_bytes: 4096, },
     ).unwrap().0.value,
   )
+  let candidate = prepare_update_candidate(
+    original,
+    "K",
+    key,
+    [("K", key), ("J", json)],
+    [("J", json)],
+    update_limits(),
+  ).unwrap()
   assert_true(
-    prepare_update_candidate(
-      original,
-      "K",
-      key,
-      [("K", key), ("J", json)],
-      [("J", json)],
-      update_limits(),
-    )
-    is Err(UnsupportedWriteType("J", "VARIANT")),
+    update_candidate_statement(candidate).contains("SET \"J\" = PARSE_JSON(?)"),
+  )
+  assert_true(
+    update_candidate_bindings(candidate).contains(
+      "\"value\":\"\\\"payload\\\"\"",
+    ),
+  )
+  assert_true(
+    update_candidate_assignments(candidate)[0].1.value is @admitted.JsonData(_),
   )
 }
 
@@ -539,15 +547,114 @@ test "UPDATE SQL NULL and typed JSON null remain different original values" {
   assert_true(
     update_candidate_statement(candidate).contains("SET \"J\" = NULL"),
   )
+  let variant_null = prepare_update_candidate(
+    original,
+    "K",
+    key,
+    before,
+    [("J", json_null)],
+    update_limits(),
+  ).unwrap()
   assert_true(
-    prepare_update_candidate(
-      original,
-      "K",
-      key,
-      before,
-      [("J", json_null)],
-      update_limits(),
-    )
-    is Err(UnsupportedWriteType("J", "VARIANT")),
+    update_candidate_statement(variant_null).contains(
+      "SET \"J\" = PARSE_JSON(?)",
+    ),
   )
+  assert_true(
+    update_candidate_bindings(variant_null).contains("\"value\":\"null\""),
+  )
+  assert_false(
+    update_candidate_statement(variant_null).contains("SET \"J\" = NULL"),
+  )
+}
+
+///|
+test "UPDATE native Object and Array cannot coerce a JSON scalar or JSON null" {
+  let rows = [
+    metadata_row("K", 1, "TEXT"),
+    metadata_row("O", 2, "OBJECT"),
+    metadata_row("A", 3, "ARRAY"),
+  ]
+  let original = project_table_description(
+    target(),
+    metadata_response(rows),
+    [],
+    limits(),
+  ).unwrap()
+  let key = write_value(original, 0, @admitted.text_value("key", 4096).unwrap())
+  let bounds : @admitted.Limits = {
+    max_nodes: 64,
+    max_depth: 8,
+    max_text_bytes: 4096,
+  }
+  let object = write_value(
+    original,
+    1,
+    @admitted.admit_json_literal(
+      "{\"$json\":null,\"x\":[true,\"é😀\"]}", bounds,
+    ).unwrap().0.value,
+  )
+  let array = write_value(
+    original,
+    2,
+    @admitted.admit_json_literal("[null,1,\"x\"]", bounds).unwrap().0.value,
+  )
+  let before = [("K", key), ("O", object), ("A", array)]
+  let candidate = prepare_update_candidate(
+    original,
+    "K",
+    key,
+    before,
+    [("O", object), ("A", array)],
+    update_limits(),
+  ).unwrap()
+  assert_true(
+    update_candidate_statement(candidate).contains(
+      "\"O\" = TO_OBJECT(PARSE_JSON(?))",
+    ),
+  )
+  assert_true(
+    update_candidate_statement(candidate).contains(
+      "\"A\" = TO_ARRAY(PARSE_JSON(?))",
+    ),
+  )
+  assert_true(
+    update_candidate_bindings(candidate).contains("\\\"$json\\\":null"),
+  )
+  for wire in ["null", "\"scalar\"", "1", "true", "[]"] {
+    let wrong = write_value(
+      original,
+      1,
+      @admitted.admit_json_literal(wire, bounds).unwrap().0.value,
+    )
+    assert_true(
+      prepare_update_candidate(
+        original,
+        "K",
+        key,
+        before,
+        [("O", wrong)],
+        update_limits(),
+      )
+      is Err(InvalidValue("O")),
+    )
+  }
+  for wire in ["null", "\"scalar\"", "1", "true", "{}"] {
+    let wrong = write_value(
+      original,
+      2,
+      @admitted.admit_json_literal(wire, bounds).unwrap().0.value,
+    )
+    assert_true(
+      prepare_update_candidate(
+        original,
+        "K",
+        key,
+        before,
+        [("A", wrong)],
+        update_limits(),
+      )
+      is Err(InvalidValue("A")),
+    )
+  }
 }
