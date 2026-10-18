@@ -11,6 +11,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+_Noreturn void moonbit_panic(void) { abort(); }
+
 static int fail_stat;
 static int fail_close;
 static int observed_descriptor = -1;
