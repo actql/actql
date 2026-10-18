@@ -100,14 +100,37 @@ test "mock physical source exact integer spans reach the original typed input wi
       "-9223372036854775808", "9007199254740992", "9007199254740993", "9223372036854775807",
     ] {
     let read = mock_document_read()
-    let rows = mock_churn_risk_document_rows(
-      read,
-      snowflake,
-      salesforce,
-      snowflake,
-      @utf8.encode(mock_document_text(count=text)),
-      10000000,
-    ).unwrap()
+    let rows = match
+      mock_churn_risk_document_rows(
+        read,
+        snowflake,
+        salesforce,
+        snowflake,
+        @utf8.encode(mock_document_text(count=text)),
+        10000000,
+      ) {
+      Ok(rows) => rows
+      Err(InvalidPage) => {
+        fail("InvalidPage for " + text)
+        abort("failed")
+      }
+      Err(InvalidInputSchema) => {
+        fail("InvalidInputSchema for " + text)
+        abort("failed")
+      }
+      Err(ForeignSource) => {
+        fail("ForeignSource for " + text)
+        abort("failed")
+      }
+      Err(Value(name)) => {
+        fail("Value " + name + " for " + text)
+        abort("failed")
+      }
+      Err(_) => {
+        fail("other row issue for " + text)
+        abort("failed")
+      }
+    }
     assert_eq(rows.length(), 2)
     assert_true(
       physical_equal(
