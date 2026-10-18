@@ -172,7 +172,9 @@ fn binary_input_scan_frame(
             return Err(WorkspaceLimit)
           }
         }
-        @admitted.Null | @admitted.Boolean(_) | @admitted.Number(_)
+        @admitted.Null
+        | @admitted.Boolean(_)
+        | @admitted.Number(_)
         | @admitted.Signed64(_) => ()
         @admitted.Text(text)
         | @admitted.Date(text)
