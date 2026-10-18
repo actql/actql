@@ -8425,7 +8425,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "315c9b3be6644ca84ca30243132c280de6afc1fca4c1df12e8af4f35fb2f03fb",
+      "sha256": "7a4989a7c722cfea673066d3ec1a5aea8cf7ae86cf65445313d2f4898824f4e7",
       "role": "connector-semantics",
       "owner": "Exact installed Salesforce org/Site binding with existing account gate, credential journal and release custody",
       "exports": [
@@ -8562,6 +8562,11 @@
             "name"
           ],
           "async": true
+        },
+        {
+          "name": "loadInstalledSalesforceSite/custody/custody",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "loadInstalledSalesforceSite/declarationLimits/declarationLimits",
@@ -8895,8 +8900,8 @@
             "<module>",
             "cid/cid",
             "fail/fail",
-            "installedSalesforceSiteBinding",
             "installSalesforceAuthorization",
+            "installedSalesforceSiteBinding",
             "loadInstalledSalesforceSite",
             "loadInstalledSalesforceSite/admitCheckpointEffectTargetRead",
             "loadInstalledSalesforceSite/admitCheckpointEffectTargetRead/admitCheckpointEffectTargetRead",
@@ -8907,14 +8912,15 @@
             "loadInstalledSalesforceSite/catalogSyncRequest",
             "loadInstalledSalesforceSite/catalogSyncRequest/grant/grant",
             "loadInstalledSalesforceSite/catalogSyncRequest/request/request",
+            "loadInstalledSalesforceSite/custody/custody",
             "loadInstalledSalesforceSite/declarationLimits/declarationLimits",
             "loadInstalledSalesforceSite/declareCatalog",
-            "loadInstalledSalesforceSite/describedTargets/describedTargets",
-            "loadInstalledSalesforceSite/describedTargets/describedTargets/described/described",
             "loadInstalledSalesforceSite/describeEffectCatalog",
             "loadInstalledSalesforceSite/describeForAcquisition",
             "loadInstalledSalesforceSite/describeNamed",
             "loadInstalledSalesforceSite/describeNamed/describeNamed",
+            "loadInstalledSalesforceSite/describedTargets/describedTargets",
+            "loadInstalledSalesforceSite/describedTargets/describedTargets/described/described",
             "loadInstalledSalesforceSite/generate/generate",
             "loadInstalledSalesforceSite/issueGrant",
             "loadInstalledSalesforceSite/loadInstalledSalesforceSite",
@@ -9212,14 +9218,12 @@
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/local-account-config.mjs",
         "../../../host-node/source-profile-json.mjs",
-        "../../../site-node/sqlite-credential-journal.mjs",
         "../site/salesforce-catalog-sync.mjs",
         "../site/salesforce-cli-secret.mjs",
         "../site/salesforce-effect-capability.mjs",
         "../site/salesforce-named-describe.mjs",
         "../site/salesforce-query-read.mjs",
         "node:crypto",
-        "node:fs/promises",
         "node:path"
       ],
       "compilerFields": [],

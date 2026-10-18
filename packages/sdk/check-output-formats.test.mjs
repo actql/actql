@@ -7,6 +7,8 @@ const metadata = {version: 'actql-check-outcome/0.1', reason_schema_cid: checkRe
   outcome_schema_cid: checkOutcomeSchemaCid};
 const report = (verdict, reasons = [], requirements = [], limits = [], unresolved = []) =>
   ({scope: {kind: 'bound_input'}, context_ref: 'ctx:fixture', verdict,
+    runnable: verdict === 'verified' ? {verdict: 'yes', reasons: []} :
+      {verdict: 'no', reasons: [...reasons, ...requirements, ...limits].slice(0, 1).map(({code}) => ({code}))},
     inputs: [{document_id: 'source', kind: 'text', revision: 'rev:' + '1'.repeat(64), byte_length: 8}],
     reasons, requirements, coverage: {limits, unresolved}});
 const completed = (...args) => ({...metadata, outcome: 'completed', report: report(...args)});
