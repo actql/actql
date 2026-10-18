@@ -87,3 +87,26 @@ test('two installed Sites resume only the unsent original member of the same Set
         '{"External_Key__c":"original-row","Name":"original-row"}');
     }
   });
+
+test('a foreign saved installation refuses composed recovery before either Site sends',
+  {timeout: 30_000}, async t => {
+    const {values, compose} = await installations(t);
+    const original = await compose();
+    const state = join(values[0].root, 'foreign-composed-host');
+    const first = await effectHost(t, values[0], state, {effect: original.effect,
+      stopBeforeApply: true});
+    const program = effectProgram(Object.fromEntries(original.descriptors.map(value =>
+      [value.effectId, {create: {target: value.target, mapping: value.mappingRef,
+        from: {result: 'rows'}}}])), [{id: 'retained-original'}]);
+    const captured = await first.run(program, 'foreign-composed');
+    assert.equal(captured.started.value.status, 'captured');
+    const continuation = JSON.parse(first.outcomes[0].stage.continuationWire);
+    continuation.members[1].installation = {...continuation.members[0].installation};
+    await first.close();
+    const reopened = await compose();
+    const second = await effectHost(t, values[0], state, {effect: reopened.effect});
+    await assert.rejects(second.resume('foreign-composed',
+      captured.accepted.ref.runDefinitionCid, continuation),
+    {code: 'InstalledRowEffectInstallationChanged'});
+    assert.deepEqual(values.map(value => writesOf(value).length), [0, 0]);
+  });
