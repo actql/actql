@@ -172,6 +172,46 @@ preparation encoding disposition retains 48 bounded 65536-byte encodings for
 each of 128 Tasks plus configuration and registry. None of these terms is
 reduced using a smaller observed source, low current heap usage or GC.
 
+The ordinary installed public import has a separate fixed package-prefix
+recipe. It does not broaden the preload selector, pretend to be `--no-lazy`,
+or recover earlier application work. Its original public delivery module enters
+the existing Host responsibility before the covered SDK/Host image graph and
+before acquiring a caller packet. The generated inventory retains distinct
+ordinary backend correspondence with `eager: false`; a matching label remains
+DATA, not the operational issuer. The actual prefix retains its own runtime,
+module, delivery and installed Local references, captured package Sources and
+Host namespace, and the same private registry's five preparation originals.
+
+The ordinary recipe retains lazy compilation, tiering and cache overlap for
+the bounded selected graph through process and escaped-function lifetime.
+Its separate conservative compiler disposition is 64 times the bounded source
+graph, replacing rather than adding a second eager compiler or whole VM. The
+managed heap, fixed native, module, source, encoding and physical-child terms
+remain simultaneously present. Neither this implementation assumption nor a
+successful package-image check supplies a general VM lease or business phase.
+
+The initial ordinary caller recipe supports the documented own-DATA local
+Mock packet with an installation directory and no opaque callback graph.
+Its captured reader snapshots the same input before an initialization await;
+the mutable caller alias is cut after synchronous consumption while the
+original immutable packet and cleanup duty remain retained. Unknown fields
+are not silently discarded. An explicit connected-Local endpoint and Remote
+selection retain their existing SDK route without opening an embedded Host.
+The fixed selector invokes no getter or Proxy trap and issues no scope. Other
+valid but unsupported embedded inputs remain backend Unavailable, not a new
+public language restriction or permission to substitute live providers.
+
+The ordinary prefix preserves one process generation, sticky original image
+or namespace failures, and child-first retirement. A failed image's original
+FD carrier stays reachable without a second read. Scope closure acknowledges
+only its original preparation duty after retained children finish; captured
+images, compiled/lazy code, native/library domains and escaped aliases keep
+their actual lifetimes. Source, Compute, Model, Effect, transport and Result
+still require their separate original suppliers. Descriptor/currentness checks
+do not prove all loader registration history or authenticate arbitrary earlier
+application code; the selected actual prefix and loader responsibility remain
+independent of a published property fence.
+
 External physical children are a distinct part of that phase, not resources
 issued by the declaration. Actual image, Project and Task readers retain their
 same file handles, bounded backing and lookahead through close failure. Journal

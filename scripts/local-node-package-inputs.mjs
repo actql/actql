@@ -14,6 +14,7 @@ const hostRuntimes = [
 ];
 const hostAdapters = [
   'adapters/host-node/infer-trusted-node-preload.cjs',
+  'adapters/host-node/node-public-initial-control-bootstrap.cjs',
   'adapters/host-node/entry.mjs',
   'adapters/host-node/embedded-local.mjs',
   'adapters/host-node/captured-duckdb-source.mjs',

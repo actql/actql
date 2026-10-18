@@ -35,6 +35,23 @@ test('finite disposition includes simultaneous managed, native, compiler and ful
   assert.equal(selected.begin, undefined); assert.equal(selected.close, undefined);
 });
 
+test('ordinary lazy compilation is a separate selected disposition without an eager or second-VM claim', () => {
+  const runtime=Object.freeze({...original,eager:false});
+  const data={...inventory(),ordinaryEngine:runtime};
+  const declaration=module.declareOrdinaryInitialControlPhaseEnvelope(1024*1024);
+  const phase=module.inspectOrdinaryInitialControlPhaseEnvelope(data,declaration,runtime);
+  assert.equal(phase.declaration.eager,false);
+  assert.equal(phase.declaration.compilation,'ordinary-lazy');
+  assert.equal(phase.declaration.heapCeilingBytes,1048576);
+  assert.equal(phase.declaration.compilerBytes,8589934592);
+  assert.equal(phase.declaration.nativeBytes,8992587776);
+  assert.equal(phase.declaration.bytes,9571467264);
+  assert.equal(phase.declaration.lifetime,'original-process-and-escaped-module-lifetime');
+  assert.throws(()=>module.inspectOrdinaryInitialControlPhaseEnvelope(
+    {...data,ordinaryEngine:original},declaration,runtime),unavailable);
+  assert.throws(()=>module.inspectInitialControlPhaseEnvelope(data,declaration,runtime),unavailable);
+});
+
 test('all package/facade images and dependency edges contribute, not just Local sourceBytes', () => {
   const value = inventory();
   value.sourceBytes = 0;
