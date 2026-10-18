@@ -141,6 +141,33 @@ precede actual Host registration where the original factory needs the resulting
 Task identity, but the existing original registration and Task admission must
 then bind the same captured configuration/revision, not a replacement.
 
+The private Host may prepare configuration defaults before it registers a
+Task-specific physical assembler. This stage captures the same three original
+configuration records and runtime and uses the existing Common reader once.
+It has no Provider or invocation callback. Its project Task view exposes checked
+candidate materials, but not an installed check-Environment projection.
+
+The later physical registration must explicitly adopt that exact frozen
+configuration snapshot through the same preparation. Copied or equal-wire
+records, another runtime/provider and a second installation are refused before
+creating a Core Provider. The installed project view retains the same Task,
+selection, normalization and Common defaults rather than rereading files or
+reissuing their canonical identities. It projects the ordinary Environment only
+after checking the actual installed Provider map and that original adoption.
+Both the initial configuration-current predicate and the actual registration's
+new-borrow/current predicate remain required. The latter must retain the exact
+initial Host predicate, not another closure with apparently equivalent checks.
+Ordinary legacy registration and
+its single-attempt defaults reader retain their existing behaviour.
+
+These preparation records, WeakMap associations, retained configuration Strings,
+reader callbacks, Task views and binding closures belong to the same Host
+inventory. Candidate and installed views may overlap; their aliases and the
+original decode/normalization workspace must be included together. A spent
+registration cannot move the candidate to another installation after failure.
+This connection neither acquires Model input nor issues startup, capacity,
+handling truth, egress, a resource loan, send authority or cleanup acknowledgment.
+
 Records, per-model generation values, selection references, bounded parser and
 decoder workspace, temporary name index, normalized wire and checked Contract
 holdings remain in the existing Host/Run phase inventory. The default profile
@@ -363,6 +390,37 @@ They belong to the existing Host/Run phase inventory; weak membership and
 reference retirement are neither zero cost, GC evidence nor physical ACK.
 
 ### Original project profile choice
+
+#### Original mock answer materials
+
+The existing Model Owner admits the selected `task`/`answers` document against
+the same original public Task declaration's output Contract. `default` and
+every `by_key` value, including unused entries, are checked under aggregate
+value node/text and document/work limits. Key labels remain exact data; this
+admission neither establishes input-key uniqueness nor selects an answer for a
+request. Empty declared answers remain empty, not an invented default. Equal
+Task identifiers, copied inventories and retired originals cannot replace the
+same declaration/inventory pair. Escaped checked values retain their own
+Contract references after inventory retirement.
+
+The private Node installation reader acquires only the original selected
+profile's named answer files and their registered Task files. Task locators
+are relative to the original registry; answer locators are relative to the
+original project configuration. The same captured runtime, project/profile
+pair and currentness callback survive each awaited read/close. Replacing a file
+does not rewrite a retained original. Read/close failure keeps the existing
+original-FD cleanup carrier and does not retry the read.
+
+All wires, source/decoded trees, typed default/entry values, exact key strings,
+project/profile/Task references, selection traversal, reader buffers and
+callback/view closures overlap until their original retirement. The Host funds
+that complete inventory independently; finite bounds are not funding. Managed
+retirement drops these aliases only, not escaped values, physical cleanup or
+capacity. Original file acquisition/admission is not installation of mock
+records, a Model invocation, policy/default resolution, a Provider grant,
+durable Run adoption or a supported complete mock execution profile. Existing
+unsupported Host profile entry points continue to refuse until those suppliers
+are connected.
 
 The same project configuration Owner selects an explicit profile override or
 the original project's default without changing either original. Selection

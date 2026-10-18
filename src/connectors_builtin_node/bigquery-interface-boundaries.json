@@ -1,0 +1,405 @@
+{
+  "qualification": "Actual source-reference responsibilities only; not physical transport, installed supplier, normal funding or independent RelA semantics",
+  "declarations": [
+    {
+      "module": "src/connectors_builtin_node_rela/client_bigquery_read_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "Same-runtime BigQuery and Common wrappers; RelA source is the generated mirror of the same Owner",
+      "sha256": "0ac1473d87119bbcf686c26ca564f25e589b27fcd23e6d1b0751f7ad09d130be",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_bigquery_accept_response",
+          "declaration": "client_program_bigquery_accept_response ( value : @ bigquery_read . JobRead , response : @ bigquery_read . JobResponse , body : Bytes , ) - > Result [ Unit , @ bigquery_read . JobIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_attempt_request",
+          "declaration": "client_program_bigquery_attempt_request ( value : @ bigquery_read . JobRead , request : @ bigquery_read . JobRequest , ) - > Result [ Unit , @ bigquery_read . JobIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_bind_read_transport",
+          "declaration": "client_program_bigquery_bind_read_transport ( value : @ bigquery_read . Read , observe_stop : ( ) - > Bool , ) - > Result [ Unit , @ bigquery_read . ReadIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_borrow_read",
+          "declaration": "client_program_bigquery_borrow_read ( prepared : @ bigquery_read . PreparedRead , run : @ client_row_source_host . RowRun , job : @ bigquery_catalog . QueryJob , limits : @ bigquery_catalog . QueryLimits , max_pages : Int , ) - > Result [ @ bigquery_read . Read , @ bigquery_read . ReadIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_charge_response",
+          "declaration": "client_program_bigquery_charge_response ( value : @ bigquery_read . JobRead , request : @ bigquery_read . JobRequest , status : Int , body : Bytes , ) - > Result [ @ bigquery_read . JobResponse , @ bigquery_read . JobIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_declaration_limits",
+          "declaration": "client_program_bigquery_declaration_limits ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_views : Int , max_fields : Int , ) - > @ client_row_source_host . RowDeclarationLimits"
+        },
+        {
+          "name": "client_program_bigquery_describe_table",
+          "declaration": "client_program_bigquery_describe_table ( project : String , dataset : String , table : String , body : Bytes , limits : @ bigquery_catalog . DescriptionLimits , ) - > Result [ @ bigquery_catalog . TableDescription , @ bigquery_catalog . DescriptionIssue , ]"
+        },
+        {
+          "name": "client_program_bigquery_description_limits",
+          "declaration": "client_program_bigquery_description_limits ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_fields : Int , max_name_bytes : Int , max_schema_bytes : Int , ) - > @ bigquery_catalog . DescriptionLimits"
+        },
+        {
+          "name": "client_program_bigquery_generate_read_declaration",
+          "declaration": "client_program_bigquery_generate_read_declaration ( description : @ bigquery_catalog . TableDescription , resource : String , connector : String , revision : String , description_limits : @ bigquery_catalog . DescriptionLimits , declaration_limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ client_row_source_host . RowDeclaration , @ bigquery_read . ReadIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_interrupt_read",
+          "declaration": "client_program_bigquery_interrupt_read ( value : @ bigquery_read . Read , ) - > Unit"
+        },
+        {
+          "name": "client_program_bigquery_job_complete",
+          "declaration": "client_program_bigquery_job_complete ( value : @ bigquery_read . JobRead , ) - > Bool"
+        },
+        {
+          "name": "client_program_bigquery_job_original",
+          "declaration": "client_program_bigquery_job_original ( value : @ bigquery_read . JobRead , ) - > ( String , String , String )"
+        },
+        {
+          "name": "client_program_bigquery_job_remote_done",
+          "declaration": "client_program_bigquery_job_remote_done ( value : @ bigquery_read . JobRead , ) - > Bool"
+        },
+        {
+          "name": "client_program_bigquery_next_request",
+          "declaration": "client_program_bigquery_next_request ( value : @ bigquery_read . JobRead , ) - > Result [ @ bigquery_read . JobRequest ? , @ bigquery_read . JobIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_original_job",
+          "declaration": "client_program_bigquery_original_job ( project : String , job_id : String , location : String , max_bytes : Int , ) - > Result [ @ bigquery_catalog . QueryJob , @ bigquery_catalog . QueryIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_prepare_job",
+          "declaration": "client_program_bigquery_prepare_job ( read : @ bigquery_read . Read , maximum_bytes_billed : Int64 , max_results : Int , timeout_ms : Int , max_requests : Int , max_request_bytes : Int , ) - > Result [ @ bigquery_read . JobRead , @ bigquery_read . JobIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_prepare_read",
+          "declaration": "client_program_bigquery_prepare_read ( description : @ bigquery_catalog . TableDescription , declaration : @ client_row_source_host . RowDeclaration , requirement : @ planning . QueryRequirement , query_contract : String , evidence_contract : String , description_limits : @ bigquery_catalog . DescriptionLimits , declaration_limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ bigquery_read . PreparedRead , @ bigquery_read . ReadIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_query_limits",
+          "declaration": "client_program_bigquery_query_limits ( description : @ bigquery_catalog . DescriptionLimits , max_rows : Int , max_total_rows : Int64 , max_value_nodes : Int , max_value_text_bytes : Int , max_job_bytes : Int , max_page_token_bytes : Int , ) - > @ bigquery_catalog . QueryLimits"
+        },
+        {
+          "name": "client_program_bigquery_read_acquisition",
+          "declaration": "client_program_bigquery_read_acquisition ( read : @ bigquery_read . PreparedRead , ) - > @ client_row_source_host . RowAcquisition"
+        },
+        {
+          "name": "client_program_bigquery_read_usage",
+          "declaration": "client_program_bigquery_read_usage ( value : @ bigquery_read . Read , ) - > ( Int , Int64 )"
+        },
+        {
+          "name": "client_program_bigquery_record_decoder_refusal",
+          "declaration": "client_program_bigquery_record_decoder_refusal ( value : @ bigquery_read . JobRead , response : @ bigquery_read . JobResponse , ) - > Result [ Unit , @ bigquery_read . JobIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_record_response_loss",
+          "declaration": "client_program_bigquery_record_response_loss ( value : @ bigquery_read . JobRead , request : @ bigquery_read . JobRequest , ) - > Result [ Unit , @ bigquery_read . JobIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_request_material",
+          "declaration": "client_program_bigquery_request_material ( request : @ bigquery_read . JobRequest , ) - > ( String , String , String ? , Int )"
+        },
+        {
+          "name": "client_program_bigquery_retire_read_borrow",
+          "declaration": "client_program_bigquery_retire_read_borrow ( value : @ bigquery_read . Read , ) - > Result [ Unit , @ bigquery_read . ReadIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_bigquery_accept_response",
+            "client_program_bigquery_attempt_request",
+            "client_program_bigquery_bind_read_transport",
+            "client_program_bigquery_borrow_read",
+            "client_program_bigquery_charge_response",
+            "client_program_bigquery_declaration_limits",
+            "client_program_bigquery_describe_table",
+            "client_program_bigquery_description_limits",
+            "client_program_bigquery_generate_read_declaration",
+            "client_program_bigquery_interrupt_read",
+            "client_program_bigquery_job_complete",
+            "client_program_bigquery_job_original",
+            "client_program_bigquery_job_remote_done",
+            "client_program_bigquery_next_request",
+            "client_program_bigquery_original_job",
+            "client_program_bigquery_prepare_job",
+            "client_program_bigquery_prepare_read",
+            "client_program_bigquery_query_limits",
+            "client_program_bigquery_read_acquisition",
+            "client_program_bigquery_read_usage",
+            "client_program_bigquery_record_decoder_refusal",
+            "client_program_bigquery_record_response_loss",
+            "client_program_bigquery_request_material",
+            "client_program_bigquery_retire_read_borrow"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_bigquery_read_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "Same-runtime BigQuery and Common wrappers; RelA source is the generated mirror of the same Owner",
+      "sha256": "8ebaeb7280278634d685fc6983f14d788124ad3274d41ec4bf8b2f50d344045d",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_bigquery_accept_response",
+          "declaration": "client_program_bigquery_accept_response ( value : @ bigquery_read . JobRead , response : @ bigquery_read . JobResponse , body : Bytes , ) - > Result [ Unit , @ bigquery_read . JobIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_attempt_request",
+          "declaration": "client_program_bigquery_attempt_request ( value : @ bigquery_read . JobRead , request : @ bigquery_read . JobRequest , ) - > Result [ Unit , @ bigquery_read . JobIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_bind_read_transport",
+          "declaration": "client_program_bigquery_bind_read_transport ( value : @ bigquery_read . Read , observe_stop : ( ) - > Bool , ) - > Result [ Unit , @ bigquery_read . ReadIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_borrow_read",
+          "declaration": "client_program_bigquery_borrow_read ( prepared : @ bigquery_read . PreparedRead , run : @ client_row_source_host . RowRun , job : @ bigquery_catalog . QueryJob , limits : @ bigquery_catalog . QueryLimits , max_pages : Int , ) - > Result [ @ bigquery_read . Read , @ bigquery_read . ReadIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_charge_response",
+          "declaration": "client_program_bigquery_charge_response ( value : @ bigquery_read . JobRead , request : @ bigquery_read . JobRequest , status : Int , body : Bytes , ) - > Result [ @ bigquery_read . JobResponse , @ bigquery_read . JobIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_declaration_limits",
+          "declaration": "client_program_bigquery_declaration_limits ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_views : Int , max_fields : Int , ) - > @ client_row_source_host . RowDeclarationLimits"
+        },
+        {
+          "name": "client_program_bigquery_describe_table",
+          "declaration": "client_program_bigquery_describe_table ( project : String , dataset : String , table : String , body : Bytes , limits : @ bigquery_catalog . DescriptionLimits , ) - > Result [ @ bigquery_catalog . TableDescription , @ bigquery_catalog . DescriptionIssue , ]"
+        },
+        {
+          "name": "client_program_bigquery_description_limits",
+          "declaration": "client_program_bigquery_description_limits ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_fields : Int , max_name_bytes : Int , max_schema_bytes : Int , ) - > @ bigquery_catalog . DescriptionLimits"
+        },
+        {
+          "name": "client_program_bigquery_generate_read_declaration",
+          "declaration": "client_program_bigquery_generate_read_declaration ( description : @ bigquery_catalog . TableDescription , resource : String , connector : String , revision : String , description_limits : @ bigquery_catalog . DescriptionLimits , declaration_limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ client_row_source_host . RowDeclaration , @ bigquery_read . ReadIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_interrupt_read",
+          "declaration": "client_program_bigquery_interrupt_read ( value : @ bigquery_read . Read , ) - > Unit"
+        },
+        {
+          "name": "client_program_bigquery_job_complete",
+          "declaration": "client_program_bigquery_job_complete ( value : @ bigquery_read . JobRead , ) - > Bool"
+        },
+        {
+          "name": "client_program_bigquery_job_original",
+          "declaration": "client_program_bigquery_job_original ( value : @ bigquery_read . JobRead , ) - > ( String , String , String )"
+        },
+        {
+          "name": "client_program_bigquery_job_remote_done",
+          "declaration": "client_program_bigquery_job_remote_done ( value : @ bigquery_read . JobRead , ) - > Bool"
+        },
+        {
+          "name": "client_program_bigquery_next_request",
+          "declaration": "client_program_bigquery_next_request ( value : @ bigquery_read . JobRead , ) - > Result [ @ bigquery_read . JobRequest ? , @ bigquery_read . JobIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_original_job",
+          "declaration": "client_program_bigquery_original_job ( project : String , job_id : String , location : String , max_bytes : Int , ) - > Result [ @ bigquery_catalog . QueryJob , @ bigquery_catalog . QueryIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_prepare_job",
+          "declaration": "client_program_bigquery_prepare_job ( read : @ bigquery_read . Read , maximum_bytes_billed : Int64 , max_results : Int , timeout_ms : Int , max_requests : Int , max_request_bytes : Int , ) - > Result [ @ bigquery_read . JobRead , @ bigquery_read . JobIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_prepare_read",
+          "declaration": "client_program_bigquery_prepare_read ( description : @ bigquery_catalog . TableDescription , declaration : @ client_row_source_host . RowDeclaration , requirement : @ planning . QueryRequirement , query_contract : String , evidence_contract : String , description_limits : @ bigquery_catalog . DescriptionLimits , declaration_limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ bigquery_read . PreparedRead , @ bigquery_read . ReadIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_query_limits",
+          "declaration": "client_program_bigquery_query_limits ( description : @ bigquery_catalog . DescriptionLimits , max_rows : Int , max_total_rows : Int64 , max_value_nodes : Int , max_value_text_bytes : Int , max_job_bytes : Int , max_page_token_bytes : Int , ) - > @ bigquery_catalog . QueryLimits"
+        },
+        {
+          "name": "client_program_bigquery_read_acquisition",
+          "declaration": "client_program_bigquery_read_acquisition ( read : @ bigquery_read . PreparedRead , ) - > @ client_row_source_host . RowAcquisition"
+        },
+        {
+          "name": "client_program_bigquery_read_usage",
+          "declaration": "client_program_bigquery_read_usage ( value : @ bigquery_read . Read , ) - > ( Int , Int64 )"
+        },
+        {
+          "name": "client_program_bigquery_record_decoder_refusal",
+          "declaration": "client_program_bigquery_record_decoder_refusal ( value : @ bigquery_read . JobRead , response : @ bigquery_read . JobResponse , ) - > Result [ Unit , @ bigquery_read . JobIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_record_response_loss",
+          "declaration": "client_program_bigquery_record_response_loss ( value : @ bigquery_read . JobRead , request : @ bigquery_read . JobRequest , ) - > Result [ Unit , @ bigquery_read . JobIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_request_material",
+          "declaration": "client_program_bigquery_request_material ( request : @ bigquery_read . JobRequest , ) - > ( String , String , String ? , Int )"
+        },
+        {
+          "name": "client_program_bigquery_retire_read_borrow",
+          "declaration": "client_program_bigquery_retire_read_borrow ( value : @ bigquery_read . Read , ) - > Result [ Unit , @ bigquery_read . ReadIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_bigquery_accept_response",
+            "client_program_bigquery_attempt_request",
+            "client_program_bigquery_bind_read_transport",
+            "client_program_bigquery_borrow_read",
+            "client_program_bigquery_charge_response",
+            "client_program_bigquery_declaration_limits",
+            "client_program_bigquery_describe_table",
+            "client_program_bigquery_description_limits",
+            "client_program_bigquery_generate_read_declaration",
+            "client_program_bigquery_interrupt_read",
+            "client_program_bigquery_job_complete",
+            "client_program_bigquery_job_original",
+            "client_program_bigquery_job_remote_done",
+            "client_program_bigquery_next_request",
+            "client_program_bigquery_original_job",
+            "client_program_bigquery_prepare_job",
+            "client_program_bigquery_prepare_read",
+            "client_program_bigquery_query_limits",
+            "client_program_bigquery_read_acquisition",
+            "client_program_bigquery_read_usage",
+            "client_program_bigquery_record_decoder_refusal",
+            "client_program_bigquery_record_response_loss",
+            "client_program_bigquery_request_material",
+            "client_program_bigquery_retire_read_borrow"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/bigquery-read-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

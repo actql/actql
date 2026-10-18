@@ -62,6 +62,8 @@ import {
   "actql/actql/connectors/snowflake/read" @snowflake_read,
   "actql/actql/connectors/kintone/catalog" @kintone_catalog,
   "actql/actql/connectors/kintone/host" @kintone_host,
+  "actql/actql/connectors/bigquery/catalog" @bigquery_catalog,
+  "actql/actql/connectors/bigquery/read" @bigquery_read,
   "actql/actql/local_sga_provider",
   "actql/actql/managed_graph_storage" @graph_storage,
   "actql/actql/local_tea_provider",

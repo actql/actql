@@ -44,3 +44,36 @@ export async function sendMappedKintoneCreate({moon, mapping, declaration, reque
   }
   return sendRawKintoneWrite({...options, moon, kind: 'create', request});
 }
+
+
+// One actual typed CREATE acknowledgement, not bytes-as-success. The original
+// Effect Owner still owns saved response/dispatch correlation, current grant,
+// footprint and terminal Ledger admission. No response is retried here.
+export function projectMappedKintoneCreateOutcome({moon, mapping, declaration,
+  request, response, preview, memberIndex, rowIndex, limits}) {
+  originalMapping(moon, mapping, declaration);
+  const names = ['clientProgramKintoneCreatePreviewOutcome',
+    'clientProgramKintoneCreatePreviewOutcomeWire', 'clientProgramKintoneCreatePreviewOutcomeRowCid',
+    'clientProgramKintoneCreatePreviewOutcomeResponseSha256', 'clientProgramKintoneCreatePreviewOutcomeMatches'];
+  if (names.some(name => typeof moon?.[name] !== 'function')) {
+    fail('KintoneCreateOutcomeRuntimeUnavailable');
+  }
+  if (!Number.isSafeInteger(memberIndex) || memberIndex < 0 ||
+      !Number.isSafeInteger(rowIndex) || rowIndex < 0 ||
+      !['maxRequestBytes', 'maxResponseBytes', 'maxNodes', 'maxDepth', 'maxFields',
+        'maxNameUnits', 'maxRows', 'maxIdentityBytes', 'maxComparisonWork']
+        .every(name => positive(limits?.[name]))) fail('InvalidKintoneCreateOutcome');
+  const write = moon.clientProgramKintoneWriteLimits(limits.maxFields, limits.maxNameUnits,
+    limits.maxNodes, limits.maxDepth, limits.maxRequestBytes, limits.maxRequestBytes);
+  const bounds = moon.clientProgramKintoneMutationLimits(limits.maxRows,
+    limits.maxIdentityBytes, limits.maxComparisonWork, limits.maxResponseBytes,
+    limits.maxNodes, limits.maxDepth);
+  const projected = checked(moon.clientProgramKintoneCreatePreviewOutcome(mapping,
+    request, response, preview, memberIndex, rowIndex, limits.maxRequestBytes, write, bounds));
+  if (!moon.clientProgramKintoneCreatePreviewOutcomeMatches(projected,
+    mapping, request, preview, memberIndex, rowIndex)) fail('ForeignKintoneCreateOutcome');
+  return Object.freeze({kind: 'typed-success-response', projected,
+    outcome: JSON.parse(moon.clientProgramKintoneCreatePreviewOutcomeWire(projected)),
+    rowPreviewCid: moon.clientProgramKintoneCreatePreviewOutcomeRowCid(projected),
+    responseSha256: moon.clientProgramKintoneCreatePreviewOutcomeResponseSha256(projected)});
+}

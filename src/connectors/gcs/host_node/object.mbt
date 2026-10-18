@@ -92,6 +92,25 @@ pub fn gcs_object_mutation_kind(
 }
 
 ///|
+// Same provider Mapping owner as the portable declaration consumer. This is
+// bounded DATA, not an installed original, grant or funded preparation port.
+#export_name("gcsObjectMutationMappingJson")
+pub fn gcs_object_mutation_mapping_json(
+  binding : @catalog.ObjectMutationBinding,
+  declared_wire : String,
+  connector_id : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @catalog.ObjectUploadDeclarationIssue] {
+  @catalog.object_mutation_mapping_json(binding, declared_wire, connector_id, {
+    max_bytes,
+    max_nodes,
+    max_depth,
+  })
+}
+
+///|
 #export_name("gcsObjectMetadataPath")
 pub fn gcs_object_metadata_path(
   binding : @catalog.ObjectMutationBinding,

@@ -2,6 +2,7 @@
 /// Protocol DATA under one original Form, not an insertion grant or an
 /// absence observation. Omitted fields remain omitted, including defaults.
 pub struct RecordCreateRequest {
+  priv mut self : RecordCreateRequest?
   priv catalog : FormFieldCatalog
   priv records : Array[RecordWriteValues]
   priv document : @encode.EncodedDocument
@@ -61,7 +62,14 @@ pub fn prepare_record_create_request(
       return Err(BudgetExceeded)
     }
   }
-  Ok({ catalog, records: records.copy(), document, })
+  let result : RecordCreateRequest = {
+    self: None,
+    catalog,
+    records: records.copy(),
+    document,
+  }
+  result.self = Some(result)
+  Ok(result)
 }
 
 ///|
@@ -176,6 +184,7 @@ pub fn record_update_request_values(
 /// Complete response DATA for the original request, not commit/current/cleanup
 /// authority. The physical caller must bind the received bytes to its claim.
 pub struct RecordCreateAcknowledgement {
+  priv mut self : RecordCreateAcknowledgement?
   priv request : RecordCreateRequest
   priv records : Array[(String, String)]
   response_sha256 : String
@@ -306,7 +315,14 @@ pub fn project_record_create_acknowledgement(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  Ok({ request, records, response_sha256: @sha.hex(bytes), })
+  let result : RecordCreateAcknowledgement = {
+    self: None,
+    request,
+    records,
+    response_sha256: @sha.hex(bytes),
+  }
+  result.self = Some(result)
+  Ok(result)
 }
 
 ///|
@@ -432,4 +448,17 @@ pub fn record_update_request_observation(
   limits : RecordMutationLimits,
 ) -> Result[RecordDeleteRequest, RecordMutationIssue] {
   prepare_record_delete_request(request.records.map(record => record.0), limits)
+}
+
+///|
+/// Constructor correspondence only, not physical dispatch or response custody.
+pub fn record_create_request_is_original(value : RecordCreateRequest) -> Bool {
+  value.self is Some(original) && physical_equal(original, value)
+}
+
+///|
+pub fn record_create_acknowledgement_is_original(
+  value : RecordCreateAcknowledgement,
+) -> Bool {
+  value.self is Some(original) && physical_equal(original, value)
 }
