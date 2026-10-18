@@ -9232,16 +9232,14 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-write.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e094014e54c8d2ec237c875520ff92f0f9aa679330e2310468cd762265604337",
+      "sha256": "bb20b04e63fbaabd1a1f2ee2da1c6306786ffbff43ce987c697b36aa12dab888",
       "role": "connector-semantics",
-      "owner": "Salesforce original request recovery and physical-response custody under existing Preview/Effect Ledger, never restored send authority",
+      "owner": "Salesforce legacy response capture and settlement adapters; ordinary installed execution uses the shared Row Effect owner",
       "exports": [
         "captureClaimedSalesforceSingleResponse",
         "captureSalesforceCollectionEffectWrite",
         "captureSalesforceSingleEffectWrite",
         "reconcileStoredSalesforceSingleEffectWrite",
-        "recoverCapturedSalesforceSingleRequests",
-        "recoverPreparedSalesforceSingleRequests",
         "recoverStoredSalesforceCollectionResponse",
         "recoverStoredSalesforceSingleResponse"
       ],
@@ -9390,79 +9388,6 @@
           "async": true
         },
         {
-          "name": "recoverCapturedSalesforceSingleRequests",
-          "parameters": [
-            "moon",
-            "recovered",
-            "recorded",
-            "previewWire",
-            "runIdentityCid",
-            "authoringContextCid",
-            "previewLimits",
-            "bodyLimits",
-            "requestLimits",
-            "maxMembers",
-            "maxRows",
-            "maxRetainedBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "recoverCapturedSalesforceSingleRequests/members/members",
-          "parameters": [
-            "entry",
-            "memberIndex"
-          ],
-          "async": false
-        },
-        {
-          "name": "recoverCapturedSalesforceSingleRequests/members/members/members",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "recoverPreparedSalesforceSingleRequests",
-          "parameters": [
-            "moon",
-            "previewWire",
-            "runIdentityCid",
-            "authoringContextCid",
-            "members",
-            "previewLimits",
-            "bodyLimits",
-            "requestLimits",
-            "maxMembers",
-            "maxRows",
-            "maxIdentityBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "recoverPreparedSalesforceSingleRequests/positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "recoverPreparedSalesforceSingleRequests/requests/requests",
-          "parameters": [
-            "member",
-            "memberIndex"
-          ],
-          "async": false
-        },
-        {
-          "name": "recoverPreparedSalesforceSingleRequests/requests/requests/requests",
-          "parameters": [
-            "claim",
-            "rowIndex"
-          ],
-          "async": false
-        },
-        {
           "name": "recoverStoredSalesforceCollectionResponse",
           "parameters": [
             "ledger",
@@ -9540,13 +9465,6 @@
             "captureSalesforceSingleEffectWrite",
             "fail/fail",
             "reconcileStoredSalesforceSingleEffectWrite",
-            "recoverCapturedSalesforceSingleRequests",
-            "recoverCapturedSalesforceSingleRequests/members/members",
-            "recoverCapturedSalesforceSingleRequests/members/members/members",
-            "recoverPreparedSalesforceSingleRequests",
-            "recoverPreparedSalesforceSingleRequests/positive/positive",
-            "recoverPreparedSalesforceSingleRequests/requests/requests",
-            "recoverPreparedSalesforceSingleRequests/requests/requests/requests",
             "recoverStoredSalesforceCollectionResponse",
             "recoverStoredSalesforceCollectionResponse/recoverStoredSalesforceCollectionResponse",
             "recoverStoredSalesforceSingleResponse",
@@ -9558,8 +9476,6 @@
             "captureSalesforceCollectionEffectWrite",
             "captureSalesforceSingleEffectWrite",
             "reconcileStoredSalesforceSingleEffectWrite",
-            "recoverCapturedSalesforceSingleRequests",
-            "recoverPreparedSalesforceSingleRequests",
             "recoverStoredSalesforceCollectionResponse",
             "recoverStoredSalesforceSingleResponse"
           ],
@@ -9567,13 +9483,13 @@
             "responsibility": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-effect-write.mjs",
-                "anchor": "does not restore apply or credential authority"
+                "anchor": "Bind one physical REST request to the admitted member and row"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-effect-write.mjs",
-                "anchor": "recoverPreparedSalesforceSingleRequests"
+                "anchor": "captureSalesforceSingleEffectWrite"
               }
             ],
             "identity": [
@@ -9597,7 +9513,7 @@
             "failure": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-effect-write.mjs",
-                "anchor": "InvalidSalesforceCapturedRequestRecovery"
+                "anchor": "ForeignSalesforceEffectWrite"
               }
             ],
             "cancellation": [
@@ -9609,7 +9525,7 @@
             "resources": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-effect-write.mjs",
-                "anchor": "maxRetainedBytes"
+                "anchor": "maxResponseBytes"
               }
             ],
             "extension": [
@@ -9630,7 +9546,19 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-core.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/effect-physical-dispatch.mjs",
+        "../../../host-node/effect-response-recovery.mjs",
+        "../site/salesforce-collection-write.mjs",
+        "../site/salesforce-credential-binding.mjs",
+        "../site/salesforce-single-write.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
@@ -12343,6 +12271,191 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "7320373d6fe3290c7062e9bf2b3132c786ebaa4b020a552577419fe2e2644baf",
+      "role": "connector-semantics",
+      "owner": "Salesforce bounded retained Catalog and exact prepared request recovery; no restored current, credential, dispatch or response authority",
+      "exports": [
+        "recoverCapturedSalesforceSingleRequests",
+        "recoverPreparedSalesforceSingleRequests"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "recoverCapturedSalesforceSingleRequests",
+          "parameters": [
+            "moon",
+            "recovered",
+            "recorded",
+            "previewWire",
+            "runIdentityCid",
+            "authoringContextCid",
+            "previewLimits",
+            "bodyLimits",
+            "requestLimits",
+            "maxMembers",
+            "maxRows",
+            "maxRetainedBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "recoverCapturedSalesforceSingleRequests/members/members",
+          "parameters": [
+            "entry",
+            "memberIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "recoverCapturedSalesforceSingleRequests/members/members/members",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "recoverPreparedSalesforceSingleRequests",
+          "parameters": [
+            "moon",
+            "previewWire",
+            "runIdentityCid",
+            "authoringContextCid",
+            "members",
+            "previewLimits",
+            "bodyLimits",
+            "requestLimits",
+            "maxMembers",
+            "maxRows",
+            "maxIdentityBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "recoverPreparedSalesforceSingleRequests/positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "recoverPreparedSalesforceSingleRequests/requests/requests",
+          "parameters": [
+            "member",
+            "memberIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "recoverPreparedSalesforceSingleRequests/requests/requests/requests",
+          "parameters": [
+            "claim",
+            "rowIndex"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "recoverCapturedSalesforceSingleRequests",
+            "recoverCapturedSalesforceSingleRequests/members/members",
+            "recoverCapturedSalesforceSingleRequests/members/members/members",
+            "recoverPreparedSalesforceSingleRequests",
+            "recoverPreparedSalesforceSingleRequests/positive/positive",
+            "recoverPreparedSalesforceSingleRequests/requests/requests",
+            "recoverPreparedSalesforceSingleRequests/requests/requests/requests"
+          ],
+          "exports": [
+            "recoverCapturedSalesforceSingleRequests",
+            "recoverPreparedSalesforceSingleRequests"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
+                "anchor": "does not restore apply or credential authority"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
+                "anchor": "recoverCapturedSalesforceSingleRequests"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/salesforce/catalog/write_request.mbt",
+                "anchor": "recover_single_write_request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
+                "anchor": "the caller retains Run, cancellation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
+                "anchor": "Synchronous, bounded reconstruction only"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
+                "anchor": "InvalidSalesforceCapturedRequestRecovery"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
+                "anchor": "current authorization, response custody and physical send responsibilities"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
+                "anchor": "maxRetainedBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "## Recovery"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/salesforce/test/installed-salesforce-effect-recovery.test.mjs",
+                "anchor": "a restart after a partial apply sends only the unsent rows"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/installed-execution-closure.test.mjs",
+                "anchor": "ordinary Salesforce installation uses only shared Effect execution and vendor request recovery"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../../../host-common/runtime-result.mjs",
+        "../site/salesforce-catalog-recovery.mjs",
+        "../site/salesforce-named-describe.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ]
 }
