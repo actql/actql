@@ -1781,6 +1781,330 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/slack/site/message-history-read.mjs",
+      "sha256": "2aaaffee9923e92f057e41708fe8c3b3f2362062c5e0bfcda511a76311ffe931",
+      "exports": [
+        "SLACK_MESSAGE_HISTORY_OPERATION",
+        "SLACK_WORKSPACE_IDENTITY_OPERATION",
+        "SlackMessageHistoryReadFailure",
+        "createSlackMessageHistoryReader"
+      ],
+      "operations": [
+        {
+          "name": "createSlackMessageHistoryReader",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageHistoryReader/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageHistoryReader/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createSlackMessageHistoryReader/handle/init:read/init:read/result/result",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageHistoryReader/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeRead",
+          "parameters": [
+            "prepared",
+            "received"
+          ],
+          "async": true
+        },
+        {
+          "name": "executeRead/request/request",
+          "parameters": [
+            "operation",
+            "index",
+            "method",
+            "path",
+            "query",
+            "body"
+          ],
+          "async": true
+        },
+        {
+          "name": "executeRead/request/request/response/response",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeRead/request/request/response/response/response",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "executeRead/verify/verify",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReader",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead",
+          "parameters": [
+            "moon",
+            "workspaceId",
+            "channel",
+            "names",
+            "initialAuthorization",
+            "credential",
+            "authorizationFor",
+            "limits",
+            "current",
+            "chargeResponse",
+            "consumeObservation",
+            "consumePage",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead",
+          "parameters": [
+            "fn"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead#4",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/provider/provider/provider",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "SlackMessageHistoryReadFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observations"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/http-exchange.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Slack Catalog and scoped physical reader; Account, Credential/Site, Common RowRun and Resource retain current authority, original uses, charge, capture and cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createSlackMessageHistoryReader",
+            "createSlackMessageHistoryReader/handle/init:observe/init:observe",
+            "createSlackMessageHistoryReader/handle/init:read/init:read",
+            "createSlackMessageHistoryReader/handle/init:read/init:read/result/result",
+            "createSlackMessageHistoryReader/handle/init:requestStop/init:requestStop",
+            "executeRead",
+            "executeRead/request/request",
+            "executeRead/request/request/response/response",
+            "executeRead/request/request/response/response/response",
+            "executeRead/verify/verify",
+            "fail/fail",
+            "originalReader",
+            "positive/positive",
+            "prepareRead",
+            "prepareRead/prepareRead",
+            "prepareRead/prepareRead#2",
+            "prepareRead/prepareRead#3",
+            "prepareRead/prepareRead#4",
+            "prepareRead/provider/provider",
+            "prepareRead/provider/provider/provider",
+            "SlackMessageHistoryReadFailure/constructor:constructor/constructor:constructor"
+          ],
+          "exports": [
+            "SLACK_MESSAGE_HISTORY_OPERATION",
+            "SLACK_WORKSPACE_IDENTITY_OPERATION",
+            "SlackMessageHistoryReadFailure",
+            "createSlackMessageHistoryReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Original history transport"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "function prepareRead("
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "async function executeRead("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "invocationBindingsMatch(authorization.scope,context.scope)"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "slackMessageHistoryRequestMatches(history,pending)"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "The same retained credential binding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "const readers = new WeakMap();"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "The live reader retains"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "await context.callbacks.consumePage(rows,Object.freeze({charge}));"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "await context.callbacks.consumeObservation(observed.charge);"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "currentBeforeSend:()=>verify(operation)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "throw new SlackMessageHistoryReadFailure(cause,observations);"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-history-read.test.mjs",
+                "anchor": "test('Slack history lost response retains original Unknown use and refuses resend'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "signal.throwIfAborted();"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-history-read.test.mjs",
+                "anchor": "test('Slack history current and stop after page consumption prevent next Common request and send'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "The actual Host supplier"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "cleanupConfirmed:false"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "A terminal Catalog control does not prove complete"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "Replies require their own"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/slack/test/message-history-read.test.mjs",
+                "anchor": "test('Slack history actual Account Credential TLS and RowRun retain exact message counts and instants'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-history-read.test.mjs",
+                "anchor": "test('Slack identity consumption currentness is checked before preparing any history request'"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
