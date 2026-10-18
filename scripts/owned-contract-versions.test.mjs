@@ -31,6 +31,22 @@ test('existing cross-language old-version refusals admit only their two exact ne
   }
 });
 
+test('BigQuery Job format refusal admits only its original negative context once', () => {
+  const path = 'adapters/connectors/bigquery/test/bigquery-node-bridge.test.mjs';
+  const text = readFileSync(new URL('../' + path, import.meta.url), 'utf8');
+  const inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url)));
+  const found = occurrences(text, path);
+  assert.equal(found.length, 1);
+  assert.equal(found[0].token, 'actql.bigquery-job-original/' + future);
+  const selected = inventory.entries.filter(value => value.path === path);
+  assert.equal(selected.length, 1);
+  assert.equal(selected[0].count, 1);
+  assert.deepEqual(violations(found, inventory), []);
+  assert.equal(violations([...found, ...found], inventory).length, 1);
+  assert.equal(violations(occurrences(text, 'adapters/connectors/bigquery/job-writer.mjs'), inventory).length, 1);
+  assert.equal(violations(occurrences(text.replace('data.format=', 'data.changedFormat='), path), inventory).length, 1);
+});
+
 test('owned namespaces, schema URNs and law versions reject advances', () => {
   for (const prefix of ['actql/', 'actql-private-target/', 'aoa-pipeline/',
     'aoa.pipeline.effect.v', 'actql.private.v', 'urn:actql:expression:',
