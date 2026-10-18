@@ -331,6 +331,31 @@ test('Run response original unconfirmed outcome COMMIT is not repeated or publis
   assert.equal(setup.requests(), 1);
 });
 
+test('Run response original refuses the actual installation-metadata purpose before claim or I/O', async t => {
+  const setup = await fixture(t);
+  // Actual Common DATA fixtures, not an operational metadata issuer.
+  const metadata = runtimeCore(moon).installationPreparationMetadata();
+  const subject = metadata.prepareSubject({accountConfigurationCid: cid('1'),
+    accountId: 'account-a', connection: 'crm', connectorRegistration: 'salesforce',
+    connectorRevision: 'salesforce/0.1', declarationSourceCid: cid('2'),
+    installationRequestId: 'publication-original', principal: 'principal-a',
+    runtimeBundleCid: cid('a'), siteGeneration: 4, siteKey: 'site-a'});
+  const selected = metadata.prepareScope(subject, {metadataOccurrenceId: 'describe-a',
+    operation: 'salesforce:catalog:describe', resourceOrigin: setup.origin,
+    requestMethod: 'GET', requestPath: '/records',
+    requestBodyCid: `sha256:${createHash('sha256').update('').digest('hex')}`});
+  const metadataControl = metadata.forSubject(subject);
+  const grant = metadataControl.prepare({issuerAuthority: 'credential-authority-a',
+    scope: selected, expiresUnixMilliseconds: 2_000_000_000_000n, maxUses: 1});
+  try {
+    await assert.rejects(call(setup, grant, selected, 'wrong-purpose',
+      {control: metadataControl, retainRunResponseOriginal: true}),
+    {code: 'InvalidRemoteCredentialRunResponseCapture'});
+    assert.equal(setup.journal.recover().length, 0);
+    assert.equal(setup.requests(), 0);
+  } finally { metadata.retireMetadataView(); }
+});
+
 test('scoped credential is claimed before an authenticated HTTPS request',
   async t => {
     const setup = await fixture(t);

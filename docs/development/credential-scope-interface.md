@@ -573,3 +573,48 @@ or a normal profile. Component fixtures use actual Host publication selection,
 Common, SQLite and controlled loopback TLS with explicit private fixture
 Account/current/signing material; they are not operational installation or
 live-provider acceptance.
+
+### Original Run response correspondence
+
+The existing HTTPS Credential Owner can explicitly retain correspondence for a
+legacy Run-purpose response. This is independent of installation-metadata
+Subjects: neither control nor use is converted between those purposes.
+
+- Run response responsibility: the Credential Owner retains the actual claim's
+  signature-admitted grant and use. It does not re-admit a use CID to fabricate
+  a physical acquisition or supply a new publication issuer.
+- Run response inputs and outputs: `retainRunResponseOriginal` opts one call
+  into private correspondence. The exact returned response, same control and
+  same Journal admit a synchronous private receiver; ordinary response keys and
+  default calls are unchanged. No secret, resolver or token material is exposed.
+- Run response identity: the original response is a nominal WeakMap member.
+  Copied responses, foreign control/Journal references and installation-metadata
+  controls refuse. The original immutable Run-scope envelope, actual method,
+  exact path, body length and response digest accompany the actual opaque pair.
+- Run response ownership: one private record retains the original grant/use,
+  control/Journal/scope aliases, response/body backing and fixed request facts.
+  Escaped receiver references remain in the caller's original lifetime and
+  capacity inventory; alias retirement is not physical release or Store ACK.
+- Run response synchronization: correspondence becomes receivable only after
+  confirmed outcome recording. It is historical DATA, not current Site,
+  Account, credential-generation, approval, dispatch or publication authority.
+- Run response failure: response loss and unconfirmed COMMIT expose no original
+  response, and the capture path does not repeat the outcome COMMIT. Changed
+  response bytes permanently refuse that record. A receiver exception cannot
+  reclassify the confirmed Journal outcome or trigger another provider request.
+- Run response cancellation: original claim, Unknown/non-resend, active socket
+  and cleanup duties remain with the existing acquisition and Credential Owners.
+  Receiving DATA adds no cancel, close, reservation return or release ACK.
+- Run response resources: the opt-in record and frozen fact record overlap the
+  original bounded body, grant/use/scope, control and Journal references. One
+  SHA-256 workspace and digest String cover at most the original response bound;
+  verification repeats that bounded hash without copying the body. Caller-held
+  responses and escaped originals require whole-phase supply; this is no normal
+  numerical-profile adoption or independent byte grant.
+- Run response extension: this private legacy-purpose connection does not issue
+  an installation-metadata Subject/use, saved publication holding, cold local
+  Catalog, Provider success, terminal Run state or independent cleanup Owner.
+- Run response verification: actual Common/SQLite/TLS cases check same-claim
+  physical identity, copied/foreign rejection, byte mutation, receiver errors,
+  lost replies, COMMIT uncertainty and purpose separation. These components do
+  not establish complete installed publication, recovery or live service.
