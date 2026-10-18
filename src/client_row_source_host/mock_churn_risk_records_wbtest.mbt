@@ -94,11 +94,17 @@ fn mock_document_read(warehouse? : Bool = true) -> RowSourceRead {
     @lower.bound_preparation(owner),
     0,
   ).unwrap()
+  let columns = []
+  for index in 0..<@schema.field_count(original) {
+    columns.push(
+      @schema.field_reference_name(@schema.field_at(original, index).unwrap()),
+    )
+  }
   new_row_source_read(
     owner,
     0,
     original,
-    names,
+    columns,
     names,
     { max_bytes: 65536, max_nodes: 8192, max_depth: 32, max_rows: 100, },
     100,
@@ -305,14 +311,19 @@ test "mock Salesforce input retains both original keys and nullable values" {
         ),
       )
     }
-    assert_true(rows[row][4].value is @admitted.Null)
+    assert_true(
+      rows[row][read.columns.search("Risk_Reason__c").unwrap()].value
+      is @admitted.Null,
+    )
   }
   assert_eq(accept_row_source_values(read, read.columns, rows).unwrap(), 2)
   let captured = @execution.finish_admitted_input(read.input).unwrap()
   assert_true(
-    @execution.captured_cell(captured, 0, 0) is Some(@admitted.Text("001Acme")),
+    @execution.captured_cell(captured, 0, read.columns.search("id").unwrap())
+    is Some(@admitted.Text("001Acme")),
   )
   assert_true(
-    @execution.captured_cell(captured, 1, 0) is Some(@admitted.Text("001Globex")),
+    @execution.captured_cell(captured, 1, read.columns.search("id").unwrap())
+    is Some(@admitted.Text("001Globex")),
   )
 }
