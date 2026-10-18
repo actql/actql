@@ -20,8 +20,6 @@ extern int actql_read_context_release_after_owner_ack(actql_read_context *);
 typedef struct block block;
 struct block {
     size_t available, requested;
-    block *next;
-    unsigned live;
 };
 typedef struct {
     actql_owned_capacity *lease;
@@ -63,24 +61,29 @@ static void unlock_state(void) {
     atomic_flag_clear_explicit(&state->lock, memory_order_release);
 }
 static void *payload(block *b) { return (unsigned char *)b + header_bytes(); }
+static block *next_block(block *b) {
+    unsigned char *next = (unsigned char *)payload(b) + b->available;
+    unsigned char *end = (unsigned char *)state + state->bytes;
+    return next == end ? NULL : (block *)next;
+}
 /* Compare only known original block addresses; never dereference caller memory
  * to classify a foreign pointer, including after a different current scope. */
 static block *find(void *p) {
-    for (block *b = state->first; b; b = b->next)
-        if (payload(b) == p && b->live) return b;
+    for (block *b = state->first; b; b = next_block(b))
+        if (payload(b) == p && b->requested) return b;
     return NULL;
 }
 static void *allocate_locked(size_t n) {
     size_t size = rounded(n);
     if (!n || !size || !current() || state->closing || state->failed) return NULL;
-    for (block *b = state->first; b; b = b->next) {
-        if (b->live || b->available < size) continue;
+    for (block *b = state->first; b; b = next_block(b)) {
+        if (b->requested || b->available < size) continue;
         if (b->available - size >= header_bytes() + alignment) {
             block *tail = (block *)((unsigned char *)payload(b) + size);
-            *tail = (block){.available = b->available - size - header_bytes(), .next = b->next};
-            b->available = size; b->next = tail;
+            *tail = (block){.available = b->available - size - header_bytes()};
+            b->available = size;
         }
-        b->live = 1; b->requested = n;
+        b->requested = n;
         state->live_bytes += n; state->aligned_bytes += b->available; state->blocks++;
         if (state->aligned_bytes > state->peak) state->peak = state->aligned_bytes;
         return payload(b);
@@ -91,12 +94,12 @@ static void *allocate_locked(size_t n) {
 static void free_locked(block *b) {
     state->live_bytes -= b->requested; state->aligned_bytes -= b->available; state->blocks--;
     OPENSSL_cleanse(payload(b), b->available);
-    b->live = 0; b->requested = 0;
-    for (block *p = state->first; p && p->next;) {
-        if (!p->live && !p->next->live) {
-            p->available += header_bytes() + p->next->available;
-            p->next = p->next->next;
-        } else p = p->next;
+    b->requested = 0;
+    for (block *p = state->first; p && next_block(p);) {
+        block *next = next_block(p);
+        if (!p->requested && !next->requested) {
+            p->available += header_bytes() + next->available;
+        } else p = next;
     }
 }
 static void *component_malloc(size_t n, const char *file, int line) {
@@ -138,7 +141,7 @@ static int provider_origin(void) {
     return 1;
 }
 int actql_crypto_component_bind(actql_read_context *original, size_t bytes) {
-    if (!original || bytes < rounded(sizeof(component_state)) + header_bytes() + alignment ||
+    if (!original || bytes % alignment || bytes < rounded(sizeof(component_state)) + header_bytes() + alignment ||
         actql_bootstrap_current_read_context() != original ||
         !actql_native_owned_current() || !provider_origin()) return ACTQL_CRYPTO_COMPONENT_INVALID;
     int expected = 0;
@@ -212,8 +215,8 @@ void *actql_crypto_component_symbol(const char *name) {
 int actql_crypto_component_inventory(uint64_t out[12]) {
     if (!out || !lock_state()) return ACTQL_CRYPTO_COMPONENT_INVALID;
     size_t headers = rounded(sizeof(*state)), free_bytes = 0;
-    for (block *b = state->first; b; b = b->next) {
-        headers += header_bytes(); if (!b->live) free_bytes += b->available;
+    for (block *b = state->first; b; b = next_block(b)) {
+        headers += header_bytes(); if (!b->requested) free_bytes += b->available;
     }
     uint64_t values[12] = {state->bytes,state->live_bytes,state->aligned_bytes,state->blocks,
         state->peak,headers,free_bytes,state->failures,state->libraries,state->operations,
