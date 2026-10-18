@@ -50,7 +50,12 @@ function fixture(t, limits = {maxRecords: 8, maxWireBytes: 4096}, missingJobProj
   const frame = Object.freeze({run: {}, acquisition: {}, requestId: 'original-attempt',
     runInvocationCid: 'sha256:' + '6'.repeat(64), dispatchRequestCid: 'sha256:' + '7'.repeat(64)});
   const jobRead = {}, firstRequest = {}, record = {};
-  const wire = '{"body":"original","format":"actql.bigquery-job-original/0.1"}';
+  const recordWire = jobId => JSON.stringify({
+    body: JSON.stringify({configuration: {query: {query: 'SELECT 1', useLegacySql: false}},
+      jobReference: {jobId, location: 'EU', projectId: 'acme-project'}}),
+    format: 'actql.bigquery-job-original/0.1', jobId, location: 'EU', method: 'POST',
+    path: '/bigquery/v2/projects/acme-project/jobs', project: 'acme-project'});
+  const wire = recordWire(frame.requestId);
   const moon = control;
   const occurrence = {stage: 0, input: 0, task: 0};
   const original = Object.freeze({jobRead, request: firstRequest, record, wire, frame});
@@ -62,7 +67,7 @@ function fixture(t, limits = {maxRecords: 8, maxWireBytes: 4096}, missingJobProj
     port(value) {return bindClientSourceOperationRowRun(value, moon, program, prepared, frame);},
     reopen() {journal.close(); journal = openClientRequestJournal(directory, {sourceOperationLimits: limits});},
     reopenWithoutSourceOperations() {journal.close(); journal = openClientRequestJournal(directory);},
-    closeStore() {storeClosed = true;}, registerJob,
+    closeStore() {storeClosed = true;}, registerJob, recordWire,
     mutate(sql) {const db = new DatabaseSync(join(directory, 'client-requests.sqlite3')); try {db.exec(sql);} finally {db.close();}}};
 }
 
@@ -168,7 +173,7 @@ test('same-Run sibling original Sources retain separate keys without releasing t
   const first = f.source(), secondAt = {stage: 1, input: 0, task: 1}, prepared = {};
   const second = f.source(secondAt, prepared);
   const frame = Object.freeze({...f.frame, run: {}, acquisition: {}, requestId: 'sibling-attempt'});
-  const original = Object.freeze({...f.original, jobRead: {}, request: {}, record: {}, frame, wire: 'sibling-original'});
+  const original = Object.freeze({...f.original, jobRead: {}, request: {}, record: {}, frame, wire: f.recordWire(frame.requestId)});
   f.registerJob(original);
   f.port(first)(f.original, () => sent++);
   bindClientSourceOperationRowRun(second, f.moon, f.program, prepared, frame)(original, () => sent++);
