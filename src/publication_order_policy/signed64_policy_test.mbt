@@ -1,5 +1,6 @@
 ///|
 test "publication fallback retains signed64 order without admitting Array values" {
+  let no_lineage : Int? = None
   for nullable in [false, true] {
     let s = @schema.from_fields(
       [
@@ -18,7 +19,7 @@ test "publication fallback retains signed64 order without admitting Array values
       ["number"],
       None,
       None,
-      None,
+      no_lineage,
       max_work=100,
       max_text_bytes=100,
     ).unwrap()
@@ -62,7 +63,7 @@ test "publication fallback retains signed64 order without admitting Array values
     ["items"],
     None,
     None,
-    None,
+    no_lineage,
     max_work=100,
     max_text_bytes=100,
   ).unwrap()
