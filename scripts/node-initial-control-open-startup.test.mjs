@@ -95,8 +95,14 @@ const raw=new Proxy({}, {get(){reads++;throw new Error('RawGet');},
  getOwnPropertyDescriptor(){reads++;throw new Error('RawDescriptor');}});
 await assert.rejects(open(),{code:'NodeInitialControlAdmissionUnavailable'});
 await assert.rejects(open(raw),{code:'NodeInitialControlAdmissionUnavailable'});
-assert.equal(reads,0);assert.equal(hostInitializations,1);assert.equal(localInitializations,1);
-assert.equal(hostConsumerCalls,0);assert.equal(localConnects,0);
+// Only the existing --no-lazy recipe captures and compiles the image namespace.
+// A plain selected preload still delivers the unavailable original, without
+// inventing initialization or treating an absent counter as a physical zero.
+assert.equal(reads,0);
+assert.equal(globalThis.hostInitializations,${flags.length ? '1' : 'undefined'});
+assert.equal(globalThis.localInitializations,${flags.length ? '1' : 'undefined'});
+assert.equal(globalThis.hostConsumerCalls,${flags.length ? '0' : 'undefined'});
+assert.equal(globalThis.localConnects,${flags.length ? '0' : 'undefined'});
 let replacements=0;
 for(const path of [require.resolve('@actql/node/selected-infer-startup'),
  ${JSON.stringify(join(f.node, 'initial-control-public-dispatch.cjs'))},
@@ -106,7 +112,9 @@ for(const path of [require.resolve('@actql/node/selected-infer-startup'),
   connectInitialControlHostPreparation(){replacements++;return{};}};
 }
 await assert.rejects(open(raw),{code:'NodeInitialControlAdmissionUnavailable'});
-assert.equal(reads,0);assert.equal(replacements,0);assert.equal(hostConsumerCalls,0);assert.equal(localConnects,0);
+assert.equal(reads,0);assert.equal(replacements,0);
+assert.equal(globalThis.hostConsumerCalls,${flags.length ? '0' : 'undefined'});
+assert.equal(globalThis.localConnects,${flags.length ? '0' : 'undefined'});
 console.log('same original selected refusal; raw observations0; replacement dispatch0');
 `);
     const child = spawnSync(process.execPath, [...flags, '--require', '@actql/node/selected-infer-startup', entry],
