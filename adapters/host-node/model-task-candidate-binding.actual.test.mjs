@@ -5,6 +5,7 @@ import {mkdtemp, writeFile, rm, open} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {readFileSync} from 'node:fs';
 import {loadInstalledProjectConfiguration} from './installed-project-configuration.mjs';
 import {prepareInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
 import {installModelProviders, prepareInstalledModelProviderDefaults,
@@ -94,6 +95,10 @@ test('actual Common Task candidates precede registration and retain the same def
   assert.equal(adopted.binding.value, task.defaults.binding.value);
   assert.equal(adopted.binding.originals, f.defaults.bindingOriginals);
   assert.equal(typeof installed.projectEnvironmentForRuntime, 'function');
+  const base = readFileSync(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8').trimEnd();
+  const projected = installed.projectEnvironmentForRuntime(moon, base, JSON.parse(base).evidence_bundle_cid);
+  assert.deepEqual(JSON.parse(projected.environmentWire).model_task_contracts,
+    [JSON.parse(task.taskWire)]);
   assert.deepEqual(f.counts(), {registrations: 1, invokes: 0});
 });
 

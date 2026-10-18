@@ -162,19 +162,19 @@ async function loadProjectModelTasks(moon, project, providers,
   function installedView(installedTasks, assertOriginals) {
     return Object.freeze({originalsForRuntime: assertOriginals,
       projectEnvironmentForRuntime(runtime, wire, evidenceCid) {
-      assertOriginals(runtime);
-      if (typeof wire !== 'string' || typeof evidenceCid !== 'string') {
-        fail('InvalidInstalledProjectEnvironment');
-      }
-      const projection = checked(call('environment', wire, evidenceCid,
-        installedTasks.map(task => task.normalized), ...coreBounds));
-      const environmentWire = runtimeField(projection, 0), identity = runtimeField(projection, 1);
-      const work = runtimeField(projection, 2);
-      if (typeof environmentWire !== 'string' || typeof identity !== 'string' ||
-          !Number.isSafeInteger(work) || work < 0) fail('InvalidHostRuntimeResult');
-      assertOriginals(runtime);
-      return Object.freeze({environmentWire, evidenceCid: identity, work});
-    }});
+        assertOriginals(runtime);
+        if (typeof wire !== 'string' || typeof evidenceCid !== 'string') {
+          fail('InvalidInstalledProjectEnvironment');
+        }
+        const projection = checked(call('environment', wire, evidenceCid,
+          installedTasks.map(task => task.normalized), ...coreBounds));
+        const environmentWire = runtimeField(projection, 0), identity = runtimeField(projection, 1);
+        const work = runtimeField(projection, 2);
+        if (typeof environmentWire !== 'string' || typeof identity !== 'string' ||
+            !Number.isSafeInteger(work) || work < 0) fail('InvalidHostRuntimeResult');
+        assertOriginals(runtime);
+        return Object.freeze({environmentWire, evidenceCid: identity, work});
+      }});
   }
   if (!candidate) return installedView(retained, originalsForRuntime);
   return Object.freeze({originalsForRuntime,

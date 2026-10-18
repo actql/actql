@@ -52633,7 +52633,7 @@
     },
     {
       "module": "adapters/host-node/installed-project-model-tasks.mjs",
-      "sha256": "113ae4815f55d8ed8548219fac98cef0929a389005ab8fca971ab669fc5c7aa8",
+      "sha256": "f1f42b77c2b502571257fa4e56844c7b9c47316d8356aa96a783c92fee3fa3da",
       "exports": [
         "loadInstalledProjectModelTasks",
         "prepareInstalledProjectModelTasks"
