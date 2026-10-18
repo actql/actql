@@ -117,6 +117,8 @@ export function restoreSourceProgram(originals: SourceProgramOriginals,
   environment: CheckEnvironment): PreparedSourceProgram;
 export function prepareSourceRequest(prepared: PreparedProgram | PreparedEffectProgram,
   intent: SubmittedIntent, authorityScopeCid: string, requestId: string): RequestIdentity;
+export function admitSourceRequestFields(prepared: PreparedProgram | PreparedEffectProgram,
+  intent: SubmittedIntent, fields: RequestFields): RequestIdentity;
 export function prepareEffect(document: string, format: 'json' | 'yaml',
   environment: CheckEnvironment, parametersWire?: string): PreparedEffectProgram;
 /** Explicit finite normalization selected by the original checked create/update kind.

@@ -254,6 +254,16 @@ export function prepareSourceRequest(prepared, intent, authorityScopeCid, reques
     authorityScopeCid, requestId), 'RunHostRequestRejected'), 'request-identity');
 }
 
+/** Restore only a request that belongs to this original source preparation. */
+export function admitSourceRequestFields(prepared, intent, fields) {
+  const retained = admitRequestFields(fields);
+  const current = prepareSourceRequest(prepared, intent, fields.authorityScopeCid, fields.requestId);
+  if (requestRelation(current, retained) !== 'same_request') {
+    throw Object.assign(new Error('RunHostRequestRecordRejected'), {code: 'RunHostRequestRecordRejected'});
+  }
+  return retained;
+}
+
 export function compileValues(prepared) {
   const value = checked(owner.clientValuesHostCompile(
     requireHandle(preparations, prepared)), 'RunHostCompilationRejected');
@@ -838,6 +848,12 @@ export function admitSourceFreeRequestFields(prepared, compilation, fields) {
         [...requestKeys].sort().join('\0') ||
       requestKeys.some(key => typeof fields[key] !== 'string')) {
     throw new TypeError('InvalidRunHostRequestRecord');
+  }
+  const source = sourcePreparations.get(prepared);
+  if (source !== undefined) {
+    const compiled = requireHandle(compilations, compilation);
+    if (compiled.prepared !== prepared) throw new TypeError('ForeignRunHostCompilation');
+    return admitSourceRequestFields(prepared, source.intent, fields);
   }
   const value = checked(owner.clientValuesHostAdmitSourceFreeRequestIdentity(
     fields.authorityScopeCid, fields.requestId,
