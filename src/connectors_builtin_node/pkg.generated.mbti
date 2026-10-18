@@ -253,6 +253,8 @@ pub fn client_program_admit_local_values_plan_graph(@run_publication_host.Prepar
 
 pub fn client_program_admit_model_provider(@model_execution.ModelProvider, @check_environment.ModelExecutionContract, @check_environment.SingleAttemptModelDependencies, (String, String, String) -> Bool) -> Result[@model_execution.AdmittedModelProvider, @model_execution.ModelProviderAdmissionIssue]
 
+pub fn client_program_admit_original_mock_provider(@model_execution.ModelMockInstallation, @check_environment.ModelExecutionContract, @check_environment.SingleAttemptModelDependencies) -> Result[@model_execution.AdmittedModelProvider, @model_execution.ModelProviderAdmissionIssue]
+
 pub fn client_program_admit_publication(@run_publication_host.PreparedClientProgram, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> @run_publication.RunPublicationAdmission?
 
 pub fn client_program_admit_publication_binding_set(@run_publication_host.PreparedClientProgram, Array[String]) -> Result[Unit, @run_publication_host.ClientPublicationBindingSetIssue]

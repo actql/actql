@@ -111,6 +111,16 @@ pub fn client_program_original_mock_provider(
 }
 
 ///|
+#export_name("clientProgramAdmitOriginalMockProvider")
+pub fn client_program_admit_original_mock_provider(
+  original : @model.ModelMockInstallation,
+  execution : @check_environment.ModelExecutionContract,
+  dependencies : @check_environment.SingleAttemptModelDependencies,
+) -> Result[@model.AdmittedModelProvider, @model.ModelProviderAdmissionIssue] {
+  @model.admit_original_model_mock_provider(original, execution, dependencies)
+}
+
+///|
 #export_name("clientProgramRetireOriginalMock")
 pub fn client_program_retire_original_mock(
   original : @model.ModelMockInstallation,

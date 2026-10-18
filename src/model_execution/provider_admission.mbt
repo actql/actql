@@ -50,6 +50,33 @@ pub fn admit_model_provider(
 }
 
 ///|
+/// The same original Mock installation owns its prompt implementation. This
+/// delegates to the ordinary Task/dependency/execution admission with a closed
+/// validator from that Owner; no Host callback, physical Provider or grant is
+/// synthesized for the local fixture implementation.
+pub fn admit_original_model_mock_provider(
+  original : ModelMockInstallation,
+  execution : @environment.ModelExecutionContract,
+  dependencies : @environment.SingleAttemptModelDependencies,
+) -> Result[AdmittedModelProvider, ModelProviderAdmissionIssue] {
+  let provider = match original_model_mock_provider(original) {
+    Ok(value) => value
+    Err(_) => return Err(ForeignProvider)
+  }
+  admit_model_provider(provider, execution, dependencies, (task, prompt) => {
+    original.require_original() is Ok(_) &&
+    !original.closing &&
+    @environment.normalized_public_mock_model_task_matches_prompt(
+      original.normalized.unwrap(),
+      original.declaration.unwrap(),
+      original.profile.unwrap(),
+      task,
+      prompt,
+    )
+  })
+}
+
+///|
 /// Dispatch must consume the same installed provider and execution contract.
 /// This reader does not replace the current authority/account admission.
 pub fn admitted_model_provider_for(
