@@ -12,6 +12,22 @@ export const SLACK_WORKSPACE_IDENTITY_OPERATION = 'slack:workspace:identity';
 const readers = new WeakMap();
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
+const arrayIsArray = Array.isArray, safeInteger = Number.isSafeInteger;
+const defineOwned = Object.defineProperty, freezeOwned = Object.freeze;
+
+// Capture each original indexed value once, including permitted index getters.
+// Caller methods, iterators and Array species never choose the retained fields.
+function ownColumnArray(value, maximum) {
+  if (!arrayIsArray(value)) fail('InvalidSlackMessageHistoryRead');
+  const length = value.length;
+  if (!safeInteger(length) || length < 0 || length > maximum) fail('InvalidSlackMessageHistoryRead');
+  const owned = [];
+  for (let index=0; index<length; index++) {
+    defineOwned(owned,index,{value:value[index],enumerable:true});
+  }
+  return freezeOwned(owned);
+}
+
 const providerExports = ['slackAdmitMessageHistoryPage','slackMessageHistoryRequestMatches','slackMessagePageRowsWire',
   'slackMessagePageRowCount','slackMessageColumnNames',
   'slackProjectWorkspaceIdentity','slackWorkspaceIdentityMatches',
@@ -55,10 +71,21 @@ function prepareRead({moon, workspaceId, channel, names, initialAuthorization, c
       Buffer.byteLength(workspaceId) > context.limits.maxIdentityBytes ||
       Buffer.byteLength(channel) > context.limits.maxIdentityBytes) fail('InvalidSlackMessageHistoryRead');
   if (context.scope.operation !== SLACK_MESSAGE_HISTORY_OPERATION) fail('ForeignSlackMessageHistoryOperation');
-  const columns = Object.freeze(provider.slackMessageColumnNames().slice());
-  if (names.length > columns.length || new Set(names).size !== names.length ||
-      names.some(name=>!columns.includes(name))) fail('InvalidSlackMessageHistoryRead');
-  return Object.freeze({provider,context,workspaceId,channel,names:Object.freeze(names.slice()),signal});
+  const columns = ownColumnArray(provider.slackMessageColumnNames(),2147483647);
+  const selected = ownColumnArray(names,columns.length);
+  for (let index=0; index<selected.length; index++) {
+    const name = selected[index];
+    if (typeof name !== 'string') fail('InvalidSlackMessageHistoryRead');
+    let found = false;
+    for (let column=0; column<columns.length; column++) {
+      if (columns[column] === name) {found=true;break;}
+    }
+    if (!found) fail('InvalidSlackMessageHistoryRead');
+    for (let previous=0; previous<index; previous++) {
+      if (selected[previous] === name) fail('InvalidSlackMessageHistoryRead');
+    }
+  }
+  return Object.freeze({provider,context,workspaceId,channel,names:selected,signal});
 }
 
 async function executeRead(prepared, received) {
