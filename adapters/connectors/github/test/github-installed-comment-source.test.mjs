@@ -93,7 +93,14 @@ async function fixture(t, {commentsRead = 'allow'} = {}) {
   // Explicit test allocations only, with the same original debt owner.
   const ledger = () => checked(common.clientProgramAcquisitionLedger(1, 1,
     100000000n, 100000000n, 100000000n, 0));
-  return {root, state, api, publication, load, prepare, ledger, captures,
+  const prepareSource = async (source, inputs) => {
+    try { return await source.prepare(inputs); }
+    catch (cause) {
+      t.diagnostic(`Original installed Source preparation cause: ${inspect(cause.cause, {depth: 10})}`);
+      throw cause;
+    }
+  };
+  return {root, state, api, publication, load, prepare, prepareSource, ledger, captures,
     resolutions: () => resolutions};
 }
 
@@ -106,7 +113,7 @@ test('installed GitHub comments retain their declared contracts through the orig
   assert.ok(source.sourceReadAccesses.some(value => value.resource === 'issue_comments'));
   const before = f.api.seen().length;
   const inputs = await f.prepare(source);
-  const preparedSource = await source.prepare(inputs);
+  const preparedSource = await f.prepareSource(source, inputs);
   assert.equal(f.api.seen().length, before, 'preparation performs no provider lookup');
   const ledger = f.ledger();
   const opened = await source.openCapture({...inputs, preparedSource, ledger});f.captures.push(opened);
@@ -124,7 +131,7 @@ test('installed GitHub comments retain their declared contracts through the orig
 test('installed GitHub comments do not inherit the publication Issue read permission', async t => {
   const f = await fixture(t, {commentsRead: 'deny'}), source = await f.load();
   const before = f.api.seen().length, resolutions = f.resolutions();
-  await assert.rejects(source.prepare(await f.prepare(source)), {code: 'ExecutionAuthorizationDenied'});
+  await assert.rejects(f.prepareSource(source, await f.prepare(source)), {code: 'ExecutionAuthorizationDenied'});
   assert.equal(f.api.seen().length, before);
   assert.equal(f.resolutions(), resolutions);
 });
