@@ -156,7 +156,7 @@ test('pending current observation admits neither a competing observation nor a p
 test('a lost original Describe reply remains Unknown with no live capture or automatic resend', async t => {
   const f = await fixture(t), before = f.seen.length;
   f.loseNextDescribeReply();
-  await assert.rejects(f.describe(), {code: 'SalesforceCatalogRefreshInterrupted'});
+  await assert.rejects(f.describe(), {code: 'ECONNRESET'});
   const unknown = f.journal.recover().filter(row => row.outcome === 'unknown');
   assert.equal(unknown.length, 1);
   assert.equal(f.seen.length, before + 1);

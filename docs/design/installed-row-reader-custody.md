@@ -239,7 +239,9 @@ text and restored Catalogs cannot enter this live-only receiver.
 - Live publication failure: copied or foreign Sites and declarations, modified
   generation text, lost/unconfirmed claims and changed raw responses refuse
   original projection. Receiver exceptions do not reclassify a confirmed Journal
-  outcome. Returning a Promise is refused rather than treated as synchronous
+  outcome. The live path propagates the original physical/Journal error carrier
+  after closing its Catalog builder; it does not replace it with an interruption
+  spelling. Returning a Promise is refused rather than treated as synchronous
   semantic admission. No automatic Describe retry or provider rediscovery occurs.
 - Live publication cancellation: the same original signal and Site closure stop
   receiving. Physical response, socket, Journal and bounded-file cleanup retain

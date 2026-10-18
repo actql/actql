@@ -68,6 +68,7 @@ export async function describeSalesforceResources({
   let scope;
   let retainedBytes = 0;
   let interruptionCode;
+  let originalPublicationFailure;
   for (const name of resources) {
     if (signal?.aborted) {
       interruptionCode = 'SalesforceCatalogCancelled';
@@ -115,11 +116,15 @@ export async function describeSalesforceResources({
       interruptionCode = signal?.aborted ? 'SalesforceCatalogCancelled'
         : typeof error?.code === 'string' ? error.code
           : 'SalesforceCatalogInterrupted';
+      if (retainPublicationOriginals) originalPublicationFailure = {cause: error};
       checked(moon.salesforceCatalogCancel(sync));
       break;
     }
   }
   checked(moon.salesforceCatalogFinish(sync));
+  // Original Journal outcome/cleanup failures belong to the same Host owner.
+  // The live publication path must not replace their carrier with a status code.
+  if (originalPublicationFailure !== undefined) throw originalPublicationFailure.cause;
   if (scope === undefined) {
     // No describe was authorized: nothing was observed.
     fail(interruptionCode ?? 'SalesforceCatalogInterrupted');
