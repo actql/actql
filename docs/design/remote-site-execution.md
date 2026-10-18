@@ -1057,7 +1057,7 @@ Migration is complete only when existing product call sites use the MoonBit
 control and the superseded JavaScript decision code is removed. Temporary
 duplication must name its removal condition. Independent fixtures remain, but
 two product state machines are not retained as mutual tests.
-# Original Salesforce Account conditional target observations
+## Original Salesforce Account conditional target observations
 
 The Salesforce Target Observation owner has a distinct Account-by-record-ID
 read profile for strong conditional evidence. It uses the original read grant,
