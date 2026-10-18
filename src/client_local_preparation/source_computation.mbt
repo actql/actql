@@ -108,9 +108,12 @@ pub fn prepare_local_source_computation(
       @decode.admit(source, limits.checking.input.tree).map_err(_ => Input),
     )
     let root = source_result(@decode.open_object(cursor).map_err(_ => Input))
-    let parameters = source_result(
-      @decode.required(root, "parameters").map_err(_ => Input),
-    )
+    // Explicit null is the original absence of supplied values, not a
+    // missing/non-null required-field failure.
+    let parameters = match @decode.lookup(root, "parameters") {
+      Some(value) => value
+      None => return Err(Input)
+    }
     let supplied = if @decode.is_null(parameters) {
       None
     } else {
