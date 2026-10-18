@@ -139,20 +139,37 @@ fn submitted_intent_body(
 /// issuance record. It is not an automatic repair of missing intent custody.
 fn initialize_native_client_submitted_intents(
   database : @sqlite.Database,
+  bootstrap? : NativeClientJournalBootstrapAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
-  if database.transaction_fenced() {
+  if client_journal_transaction_fenced(
+      database,
+      bootstrap_journal_reads(bootstrap),
+    ) {
     return Err(Fenced)
   }
-  match database.scan_after("client_submitted_intent_custody", "") {
+  match
+    scan_client_journal_value(
+      database,
+      "client_submitted_intent_custody",
+      "",
+      bootstrap_journal_reads(bootstrap),
+    ) {
     Err(@sqlite.NotFound) => ()
     _ => return Err(CustodyLost)
   }
-  match database.scan_after("client_submitted_intents", "") {
+  match
+    scan_client_journal_value(
+      database,
+      "client_submitted_intents",
+      "",
+      bootstrap_journal_reads(bootstrap),
+    ) {
     Err(@sqlite.NotFound) => ()
     _ => return Err(CustodyLost)
   }
-  database
-  .insert("client_submitted_intent_custody", "issued", b"0")
+  insert_bootstrap_journal_value(
+    database, "client_submitted_intent_custody", "issued", b"0", bootstrap,
+  )
   .map(_ => ())
   .map_err(issue => Physical(issue))
 }

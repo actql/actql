@@ -136,3 +136,62 @@ fn[T] NativeLocalJournalOriginalResources::audit_read_stage(
     }
   })
 }
+
+///|
+// Only the original trusted initializer receives this private routing view.
+// Each physical SQL call leaves and reenters the same retained Read, just like
+// the startup audit. A failed exchange remains with the original capture.
+fn NativeLocalJournalReadQueries::bootstrap_access(
+  self : NativeLocalJournalReadQueries,
+) -> NativeClientJournalBootstrapAccess {
+  {
+    reads: self.access(),
+    insert: (table_name, key, body) => {
+      match self.query(() => self.database.insert(table_name, key, body)) {
+        Ok(value) => value.map(_ => ())
+        Err(issue) => Err(issue)
+      }
+    },
+    capacity: table_name => {
+      match self.query(() => self.database.capacity_usage(table_name)) {
+        Ok(value) => value
+        Err(issue) => Err(issue)
+      }
+    },
+    install_names: () => {
+      self
+      .query(() => submission_name_install_ffi(self.database))
+      .unwrap_or(false)
+    },
+  }
+}
+
+///|
+// The first marker is admitted by the original Session before this private
+// route is selected. Keep the original transaction/rollback and Unknown fence;
+// a failed phase exchange never replays initialization or confirms a COMMIT.
+fn[T] NativeLocalJournalOriginalResources::bootstrap_read_stage(
+  self : NativeLocalJournalOriginalResources,
+  database : @sqlite.Database,
+  initialize : (NativeClientJournalBootstrapAccess) -> Result[
+    T,
+    NativeLocalAdoptionIssue,
+  ],
+) -> Result[T, NativeLocalAdoptionIssue] {
+  self.stage(@arena.HostRead, fn() {
+    let queries : NativeLocalJournalReadQueries = {
+      original: self,
+      database,
+      failure: None,
+    }
+    let result = initialize(queries.bootstrap_access())
+    match (queries.failure, result) {
+      (Some(original), Err(TransactionUnknown)) =>
+        Err(InstallationReadTransactionFailure(original, TransactionUnknown))
+      (Some(original), Err(Journal(TransactionUnknown))) =>
+        Err(InstallationReadTransactionFailure(original, TransactionUnknown))
+      (Some(original), _) => Err(original)
+      (None, value) => value
+    }
+  })
+}

@@ -79,12 +79,20 @@ fn NativeLocalAdoptionSession::bind_journal_sqlite_originals(
   ttl_ms : Double,
   max_records : Int,
   reads? : NativeClientJournalReadAccess? = None,
+  bootstrap? : NativeClientJournalBootstrapAccess? = None,
 ) -> Result[
   (NativeClientEpochAuthority, NativeClientRunJournal),
   NativeLocalAdoptionIssue,
 ] {
   if first {
-    if reads is Some(_) {
+    // A scoped initializer must use the exact same private SQL routing view
+    // for its first writes and the following retained-original audit.
+    if reads is Some(original_reads) {
+      guard bootstrap is Some(original_bootstrap) &&
+        physical_equal(original_reads, original_bootstrap.reads) else {
+        return Err(InvalidInput)
+      }
+    } else if bootstrap is Some(_) {
       return Err(InvalidInput)
     }
     match
@@ -94,6 +102,7 @@ fn NativeLocalAdoptionSession::bind_journal_sqlite_originals(
         adoption_body,
         settings=Some(self.settings),
         initial_signing=initial,
+        bootstrap~,
       ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)

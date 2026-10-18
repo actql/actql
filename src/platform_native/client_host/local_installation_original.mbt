@@ -19,29 +19,40 @@ priv suberror LocalInstallationPreparationStop {
 fn initialize_local_installation_originals(
   database : @sqlite.Database,
   adoption : Bytes,
+  bootstrap? : NativeClientJournalBootstrapAccess? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  match check_empty_local_installation_originals(database) {
+  match check_empty_local_installation_originals(database, bootstrap~) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  insert_local_installation_control(database, adoption)
+  insert_local_installation_control(database, adoption, bootstrap~)
 }
 
 ///|
 fn check_empty_local_installation_originals(
   database : @sqlite.Database,
+  bootstrap? : NativeClientJournalBootstrapAccess? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   for
     table in [
       "client_local_installation_custody", "client_local_installation_originals",
     ] {
-    match database.scan_after(table, "") {
+    match
+      scan_client_journal_value(
+        database,
+        table,
+        "",
+        bootstrap_journal_reads(bootstrap),
+      ) {
       Err(@sqlite.NotFound) => ()
       Ok(_) => return Err(CustodyLost)
       Err(issue) => return Err(Physical(issue))
     }
   }
-  match database.capacity_usage("client_local_settings") {
+  match
+    bootstrap_journal_capacity_usage(
+      database, "client_local_settings", bootstrap,
+    ) {
     Ok(value) if value.reserved_bytes == 0L && value.reserved_objects == 0L =>
       ()
     Ok(_) => return Err(CustodyLost)
@@ -54,13 +65,18 @@ fn check_empty_local_installation_originals(
 fn insert_local_installation_control(
   database : @sqlite.Database,
   body : Bytes,
+  bootstrap? : NativeClientJournalBootstrapAccess? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  match database.insert("client_local_installation_custody", "host", body) {
+  match
+    insert_bootstrap_journal_value(
+      database, "client_local_installation_custody", "host", body, bootstrap,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
-  database
-  .insert("client_local_installation_custody", "issued", b"0")
+  insert_bootstrap_journal_value(
+    database, "client_local_installation_custody", "issued", b"0", bootstrap,
+  )
   .map(_ => ())
   .map_err(issue => NativeLocalAdoptionIssue::Physical(issue))
 }
@@ -165,11 +181,12 @@ fn local_installation_packet_in_transaction(
   database : @sqlite.Database,
   crypto : @crypto.Library,
   payload : Bytes,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
   // The initializer and established Host use the same original epoch key and
   // exact packet encoding. Existing callers and their refusal order are intact.
   try {
-    let (key, _, _) = read_epoch_custody(database)
+    let (key, _, _) = read_epoch_custody(database, reads~)
       .map_err(issue => NativeLocalAdoptionIssue::Epoch(issue))
       .map_err(issue => LocalInstallationAdoptionStop(issue))
       .unwrap_or_error()

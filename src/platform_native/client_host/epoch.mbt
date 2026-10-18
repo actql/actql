@@ -227,11 +227,21 @@ fn initialize_native_client_epoch_authority(
 fn initialize_native_client_epoch_in_transaction(
   database : @sqlite.Database,
   crypto : @crypto.Library,
+  bootstrap? : NativeClientJournalBootstrapAccess? = None,
 ) -> Result[Unit, NativeClientEpochIssue] {
-  if database.transaction_fenced() {
+  if client_journal_transaction_fenced(
+      database,
+      bootstrap_journal_reads(bootstrap),
+    ) {
     return Err(Fenced)
   }
-  match database.scan_after("client_submission_epoch", "") {
+  match
+    scan_client_journal_value(
+      database,
+      "client_submission_epoch",
+      "",
+      bootstrap_journal_reads(bootstrap),
+    ) {
     Ok(_) => Err(AlreadyInitialized)
     Err(@sqlite.NotFound) =>
       match crypto.random_bytes(32) {
@@ -240,8 +250,9 @@ fn initialize_native_client_epoch_in_transaction(
           match epoch_custody_body(key, 0.0) {
             Err(issue) => Err(issue)
             Ok(body) =>
-              database
-              .insert("client_submission_epoch", "authority", body)
+              insert_bootstrap_journal_value(
+                database, "client_submission_epoch", "authority", body, bootstrap,
+              )
               .map(_ => ())
               .map_err(issue => Physical(issue))
           }

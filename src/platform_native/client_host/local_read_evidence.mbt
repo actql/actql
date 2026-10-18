@@ -4,26 +4,40 @@
 fn initialize_local_read_evidence(
   database : @sqlite.Database,
   adoption : Bytes,
+  bootstrap? : NativeClientJournalBootstrapAccess? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   for table in ["client_local_read_custody", "client_local_read_evidence"] {
-    match database.scan_after(table, "") {
+    match
+      scan_client_journal_value(
+        database,
+        table,
+        "",
+        bootstrap_journal_reads(bootstrap),
+      ) {
       Err(@sqlite.NotFound) => ()
       Ok(_) => return Err(CustodyLost)
       Err(issue) => return Err(Physical(issue))
     }
   }
-  match database.capacity_usage("client_local_read_evidence") {
+  match
+    bootstrap_journal_capacity_usage(
+      database, "client_local_read_evidence", bootstrap,
+    ) {
     Ok(value) if value.reserved_bytes == 0L && value.reserved_objects == 0L =>
       ()
     Ok(_) => return Err(CustodyLost)
     Err(issue) => return Err(Physical(issue))
   }
-  match database.insert("client_local_read_custody", "host", adoption) {
+  match
+    insert_bootstrap_journal_value(
+      database, "client_local_read_custody", "host", adoption, bootstrap,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
-  database
-  .insert("client_local_read_custody", "issued", b"0")
+  insert_bootstrap_journal_value(
+    database, "client_local_read_custody", "issued", b"0", bootstrap,
+  )
   .map(_ => ())
   .map_err(issue => Physical(issue))
 }

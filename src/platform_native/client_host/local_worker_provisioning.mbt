@@ -38,12 +38,19 @@ fn initialize_local_worker_provisioning(
   database : @sqlite.Database,
   adoption : Bytes,
   crypto : @crypto.Library,
+  bootstrap? : NativeClientJournalBootstrapAccess? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   for
     record_namespace in [
       "client_worker_provisioning_custody", "client_worker_provisioning",
     ] {
-    match database.scan_after(record_namespace, "") {
+    match
+      scan_client_journal_value(
+        database,
+        record_namespace,
+        "",
+        bootstrap_journal_reads(bootstrap),
+      ) {
       Err(@sqlite.NotFound) => ()
       Ok(_) => return Err(CustodyLost)
       Err(issue) => return Err(Physical(issue))
@@ -54,12 +61,15 @@ fn initialize_local_worker_provisioning(
     Ok(value) => @utf8.encode(value)
   }
   match
-    database.insert("client_worker_provisioning_custody", "parent", parent) {
+    insert_bootstrap_journal_value(
+      database, "client_worker_provisioning_custody", "parent", parent, bootstrap,
+    ) {
     Err(issue) => return Err(Physical(issue))
     Ok(_) => ()
   }
-  database
-  .insert("client_worker_provisioning_custody", "selected", b"unissued")
+  insert_bootstrap_journal_value(
+    database, "client_worker_provisioning_custody", "selected", b"unissued", bootstrap,
+  )
   .map(_ => ())
   .map_err(issue => Physical(issue))
 }
