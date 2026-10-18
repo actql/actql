@@ -35,7 +35,9 @@ business Run or authorize a metadata request.
 - Extension: these private typed entry points add no wire, CID, credential
   domain, grant, numerical profile or alternate cleanup Owner. Host/Site/Account
   current authority, I/O admission and complete startup/phase funding remain
-  independent prerequisites.
+  independent prerequisites. An initial control/preparation-only bootstrap
+  cannot supply metadata HTTP, Source, Model, Result or business-Run capacity
+  through this capture; each consuming domain still needs its actual supplier.
 - Verification: owner tests cover the post-claim phase, single entry, foreign
   originals, insufficient envelopes and both orders of read/workspace cleanup.
   Their explicit synthetic envelopes are not an installed physical supplier or
