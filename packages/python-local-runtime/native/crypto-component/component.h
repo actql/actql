@@ -17,6 +17,10 @@ int actql_crypto_component_bind(actql_read_context *original, size_t heap_bytes)
 /* Existing typed Library construction uses these current-original aliases;
  * they never select a context or rebind an existing component by DATA. */
 int actql_crypto_component_bind_current(size_t heap_bytes);
+/* Closed out-slot: zero on refusal, one only for the original CAS winner,
+ * including its subsequent failed/partial initialization. A refused caller
+ * owns its module reference only and must not invoke global component close. */
+int actql_crypto_component_bind_current_with_custody(size_t heap_bytes, int *acquired);
 int actql_crypto_component_enter_current(void);
 int actql_crypto_component_leave_current(void);
 int actql_crypto_component_is_current(void);

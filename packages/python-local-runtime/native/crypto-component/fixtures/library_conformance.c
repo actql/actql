@@ -124,6 +124,15 @@ int main(int argc, char **argv) {
         atomic_store(&call.go, 1);
         assert(actql_native_signature_sha256_close(hash));
         assert(actql_native_signature_library_close(outer) == 0);
+        if (!strcmp(argv[2], "duplicate")) {
+            moonbit_bytes_t same_path = bytes(argv[1]);
+            void *refused = actql_native_crypto_component_load(same_path, (int32_t)strlen(argv[1]), (int64_t)(32 * page), 256);
+            moonbit_decref(same_path);
+            assert(!actql_native_crypto_component_ready(refused));
+            assert(actql_native_crypto_component_close(refused) == 0);
+            assert(actql_native_crypto_component_ready(component));
+            moonbit_decref(refused);
+        }
         assert(actql_native_crypto_component_close(component) == 0);
         assert(pthread_join(thread, NULL) == 0);
         assert(!actql_native_crypto_component_ready(component));

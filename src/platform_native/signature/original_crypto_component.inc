@@ -3,7 +3,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-typedef int (*actql_component_bind_fn)(size_t);
+typedef int (*actql_component_bind_fn)(size_t, int *);
 typedef int (*actql_component_unit_fn)(void);
 typedef void *(*actql_component_symbol_fn)(const char *);
 struct actql_original_crypto_component {
@@ -13,7 +13,7 @@ struct actql_original_crypto_component {
   pid_t process;
   int32_t diagnostic_ceiling;
   uint32_t libraries;
-  bool attempted, ready, closing, closed, close_unconfirmed;
+  bool binding_owned, ready, closing, closed, close_unconfirmed;
   actql_component_bind_fn bind;
   actql_component_unit_fn current, enter, leave, borrow, release, close;
   actql_component_symbol_fn symbol;
@@ -76,7 +76,7 @@ void *actql_native_crypto_component_load(moonbit_bytes_t path, int32_t length,
     dlerror(); *(void **)(&value->field) = dlsym(value->module, spelling); \
     if (dlerror() != NULL || !value->field) return value; \
   } while (0)
-  COMPONENT(bind, "actql_crypto_component_bind_current");
+  COMPONENT(bind, "actql_crypto_component_bind_current_with_custody");
   COMPONENT(current, "actql_crypto_component_is_current");
   COMPONENT(enter, "actql_crypto_component_enter_current");
   COMPONENT(leave, "actql_crypto_component_leave_current");
@@ -85,8 +85,10 @@ void *actql_native_crypto_component_load(moonbit_bytes_t path, int32_t length,
   COMPONENT(close, "actql_crypto_component_close");
   COMPONENT(symbol, "actql_crypto_component_symbol");
 #undef COMPONENT
-  value->attempted = true;
-  value->ready = value->bind((size_t)heap_bytes) == 0;
+  int acquired = 0;
+  int result = value->bind((size_t)heap_bytes, &acquired);
+  value->binding_owned = acquired == 1;
+  value->ready = value->binding_owned && result == 0;
 #else
   (void)path; (void)length; (void)heap_bytes;
 #endif
@@ -108,7 +110,7 @@ int32_t actql_native_crypto_component_close(actql_original_crypto_component *val
   if (value->libraries) return 1;
   value->closing = true;
   if (value->close_unconfirmed) return 3;
-  if (value->attempted && value->close() != 0) return 1;
+  if (value->binding_owned && value->close() != 0) return 1;
   /* Component ACK is not dlclose ACK. A failed dlclose stays sticky and is
    * never retried or repaired through another module load. */
   if (value->module && dlclose(value->module) != 0) {

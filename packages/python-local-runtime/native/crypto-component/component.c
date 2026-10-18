@@ -153,12 +153,16 @@ static int provider_origin(void) {
         if (!dladdr(ports[i], &observed) || observed.dli_fbase != original.dli_fbase) return 0;
     return 1;
 }
-int actql_crypto_component_bind(actql_read_context *original, size_t bytes) {
+static int bind_original(actql_read_context *original, size_t bytes, int *acquired) {
+    *acquired = 0;
     if (!original || bytes % alignment || bytes < rounded(sizeof(component_state)) + header_bytes() + alignment ||
         actql_bootstrap_current_read_context() != original ||
         !actql_native_owned_current() || !provider_origin()) return ACTQL_CRYPTO_COMPONENT_INVALID;
     int expected = 0;
     if (!atomic_compare_exchange_strong(&attempted, &expected, 1)) return ACTQL_CRYPTO_COMPONENT_INVALID;
+    /* Publish custody only to the caller that consumed the original CAS,
+     * before any partial context/extent/OpenSSL acquisition can fail. */
+    *acquired = 1;
     original_thread = pthread_self(); original_process = getpid();
     atomic_store_explicit(&original_thread_published, 1, memory_order_release);
     original_lease = actql_native_owned_current();
@@ -185,6 +189,14 @@ int actql_crypto_component_bind(actql_read_context *original, size_t bytes) {
     if (!state->default_provider) return ACTQL_CRYPTO_COMPONENT_FAILED;
     state->initialized = 1;
     return ACTQL_CRYPTO_COMPONENT_OK;
+}
+int actql_crypto_component_bind(actql_read_context *original, size_t bytes) {
+    int acquired = 0;
+    return bind_original(original, bytes, &acquired);
+}
+int actql_crypto_component_bind_current_with_custody(size_t bytes, int *acquired) {
+    if (!acquired) return ACTQL_CRYPTO_COMPONENT_INVALID;
+    return bind_original(actql_bootstrap_current_read_context(), bytes, acquired);
 }
 int actql_crypto_component_enter(actql_read_context *original) {
     if (!current() || original != original_context || !lock_state()) return ACTQL_CRYPTO_COMPONENT_INVALID;
