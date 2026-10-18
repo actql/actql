@@ -739,7 +739,7 @@
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "rowIndex, authorizationForRow, assertCurrent})` (command or guarded write)"
+                "anchor": "rowIndex, authorizationForRow, assertCurrent})`"
               },
               {
                 "path": "docs/design/connector-layout.md",
