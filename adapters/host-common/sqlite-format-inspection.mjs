@@ -7,6 +7,8 @@ import {closeSync, constants, existsSync, fstatSync, lstatSync, mkdtempSync,
 import {tmpdir} from 'node:os';
 import {basename, dirname, join, relative, isAbsolute, sep} from 'node:path';
 import {throwSqliteInitializationFailure} from './sqlite-transaction.mjs';
+import {snapshotSqliteSchemaReadLimits, inspectBoundedSqliteSchema}
+  from './sqlite-schema-resource-bounds.mjs';
 
 const sameFile = (left, right) => ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']
   .every(key => left[key] === right[key]);
@@ -80,12 +82,14 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
   validateSource = () => true,
   maxSourceBytes = Number.MAX_SAFE_INTEGER,
   unavailableCode = 'SqliteSnapshotInspectionUnavailable',
+  schemaReadLimits,
 } = {}) {
   if (!Number.isSafeInteger(maxSourceBytes) || maxSourceBytes < 1 ||
       typeof unavailableCode !== 'string' || unavailableCode.length === 0) {
     throw Object.assign(new Error('InvalidSqliteSnapshotInspectionConfiguration'),
       {code: 'InvalidSqliteSnapshotInspectionConfiguration'});
   }
+  schemaReadLimits = snapshotSqliteSchemaReadLimits(schemaReadLimits);
   const fail = cause => {
     throw Object.assign(new Error(code, {cause}), {code, path: databasePath});
   };
@@ -167,12 +171,14 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
         (withinSource !== '..' && !withinSource.startsWith(`..${sep}`) &&
           !isAbsolute(withinSource))) fail();
     isolated = mkdtempSync(join(scratch, 'actql-journal-format-'));
+    // One original backing serves both DB and WAL copying. Falling out of a
+    // loop iteration is not a physical release of a previous Buffer backing.
+    const chunk = Buffer.allocUnsafe(64 * 1024);
     for (const source of sources) {
       const output = openSync(join(isolated, basename(source.path)), 'wx', 0o600);
       const originalOutput = {fd: output, close: closeSync};
       outputs.push(originalOutput);
       try {
-        const chunk = Buffer.allocUnsafe(64 * 1024);
         let offset = 0;
         while (offset < Number(source.identity.size)) {
           const count = readSync(source.fd, chunk, 0,
@@ -189,6 +195,23 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
         }
       } finally {
         closeFile(originalOutput);
+        outputs.pop();
+      }
+    }
+    if (schemaReadLimits !== undefined) {
+      // The same isolated-copy Owner retains these original read FDs before
+      // the schema walk. They coexist with the pinned source FDs, and close
+      // before native SQLite construction; failure stays under cleanup below.
+      const copies = [];
+      for (const source of sources) {
+        const fd = openSync(join(isolated, basename(source.path)), constants.O_RDONLY |
+          (constants.O_NOFOLLOW ?? 0));
+        outputs.push({fd, close: closeSync});
+        copies.push({fd, bytes: Number(source.identity.size)});
+      }
+      inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits, maxSourceBytes);
+      while (outputs.length !== 0) {
+        closeFile(outputs.at(-1));
         outputs.pop();
       }
     }

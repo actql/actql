@@ -892,6 +892,18 @@ Boolean or a successful semantic transaction cannot provide this observation.
 It issues no capacity or authority and does not certify the optional observation
 connection from the primary connection's close.
 
+Selected cold inspection may additionally bound the SQLite schema table's
+declared row payload and traversal before native SQLite opens the isolated
+copy. The resource reader follows table-btree pages and the same last valid
+committed WAL prefix; an uncommitted or invalid-checksum trailer cannot hide
+an earlier schema. It streams bounded buffers and a bounded frame index rather
+than materializing schema SQL or a complete file. The same copy Owner retains
+its read descriptors through this inspection and original cleanup. This is a
+backend preparation support condition, not a new Journal format, SQL decoder,
+physical capacity issuer or semantic admission. SQLite still performs format
+and SQL checking; native schema construction and all other facility terms must
+remain in the complete phase disposition.
+
 Installation-time Mock answer documents are bounded Host-preparation
 definitions, not Model execution capacity. The selected control recipe includes
 the additional original Task reread and answer document for each selected Task,

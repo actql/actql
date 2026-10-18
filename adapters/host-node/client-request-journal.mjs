@@ -12,6 +12,7 @@ import {types as utilTypes} from 'node:util';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
 import {inspectSqliteSnapshot, inspectJournalDirectory} from '../host-common/sqlite-format-inspection.mjs';
+import {snapshotSqliteSchemaReadLimits} from '../host-common/sqlite-schema-resource-bounds.mjs';
 import {openClientObservationStorage} from './client-observation-journal.mjs';
 import {isHostObservationProjection} from '../host-common/observation.mjs';
 import {canonicalJson} from './local-account-config.mjs';
@@ -977,7 +978,7 @@ function inspectCancellationStorage(database, enabled) {
 // A read-only SQLite connection can still create -shm beside a WAL database.
 // Inspect a private copy and refuse a source that changes during inspection.
 function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries, maxInspectionBytes,
-  primarySqlLimits, primaryExecutionLimits) {
+  primarySqlLimits, primaryExecutionLimits, primarySchemaLimits) {
   const entries = journalDirectoryEntries(directory, maxInspectionEntries);
   const featurePath = join(directory, cancellationMarkerName);
   const enabled = entries.includes(cancellationMarkerName);
@@ -1038,6 +1039,7 @@ function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspecti
     inspectClientSourceOperationStorage(database);
   }, {code: 'UnknownClientRequestJournalFormat', maxSourceBytes: maxInspectionBytes,
     unavailableCode: 'ClientRequestJournalInspectionUnavailable',
+    schemaReadLimits: primarySchemaLimits,
     validateSource: () => journalMarkerMatches(markerPath, journalMarker) &&
       (!enabled || journalMarkerMatches(featurePath, cancellationMarker)) &&
       (!submissionEnabled || journalMarkerMatches(submissionPath, submissionMarker)) &&
@@ -1082,7 +1084,7 @@ function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspecti
 }
 
 function admitJournalDirectory(directory, maxInspectionEntries, maxInspectionBytes,
-  primarySqlLimits, primaryExecutionLimits) {
+  primarySqlLimits, primaryExecutionLimits, primarySchemaLimits) {
   if (!existsSync(directory)) return false;
   const state = lstatSync(directory);
   if (!state.isDirectory() || state.isSymbolicLink()) {
@@ -1107,12 +1109,13 @@ function admitJournalDirectory(directory, maxInspectionEntries, maxInspectionByt
   }
   try {
     inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries, maxInspectionBytes,
-      primarySqlLimits, primaryExecutionLimits);
+      primarySqlLimits, primaryExecutionLimits, primarySchemaLimits);
   } catch (cause) {
     if (cause?.cleanupPending) throw cause;
     if (cause?.code === 'ClientRequestJournalInspectionUnavailable') throw cause;
     if (cause?.code === 'ClientRequestJournalSqlUnavailable' ||
         cause?.code === 'ClientRequestJournalSqlCleanupPending') throw cause;
+    if (cause?.code === 'SqliteSchemaPreparationUnavailable') throw cause;
     if (cause?.code === 'UnknownClientRequestJournalFormat') throw cause;
     fail('UnknownClientRequestJournalFormat', cause);
   }
@@ -1126,6 +1129,7 @@ export function openClientRequestJournal(directory, {
   maxDatabaseBytes,
   primarySqlLimits,
   primaryExecutionLimits,
+  primarySchemaLimits,
   maxRunDefinitionWireBytes = 65_536,
   submissionEpochTtlMs = maxEpochTtlMs,
   submissionEpochNow = Date.now,
@@ -1146,8 +1150,12 @@ export function openClientRequestJournal(directory, {
   sourceOperationLimits = snapshotClientSourceOperationLimits(sourceOperationLimits);
   primarySqlLimits = snapshotPrimarySqlLimits(primarySqlLimits);
   primaryExecutionLimits = snapshotPrimaryExecutionLimits(primaryExecutionLimits);
+  primarySchemaLimits = snapshotSqliteSchemaReadLimits(primarySchemaLimits);
   if (primaryExecutionLimits !== undefined &&
       (primarySqlLimits === undefined || maxDatabaseBytes === undefined)) {
+    fail('InvalidClientRequestJournalConfiguration');
+  }
+  if (primarySchemaLimits !== undefined && maxDatabaseBytes === undefined) {
     fail('InvalidClientRequestJournalConfiguration');
   }
   // An optional selected-facility support bound is not a format rule or a
@@ -1156,7 +1164,7 @@ export function openClientRequestJournal(directory, {
   const inspectionBytes = maxDatabaseBytes === undefined ? maxInspectionBytes :
     Math.min(maxInspectionBytes, maxDatabaseBytes);
   const current = admitJournalDirectory(directory, maxInspectionEntries, inspectionBytes,
-    primarySqlLimits, primaryExecutionLimits);
+    primarySqlLimits, primaryExecutionLimits, primarySchemaLimits);
   mkdirSync(directory, {recursive: true, mode: 0o700});
   const root = realpathSync(directory);
   const path = join(root, 'client-requests.sqlite3');
