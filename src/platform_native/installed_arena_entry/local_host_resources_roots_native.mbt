@@ -35,6 +35,7 @@ extern "C" fn register_local_host_resource_roots_ffi(
   origin : FuncRef[(@control.InstalledArenaLocalHostResourcesReply) -> Int],
   family : FuncRef[(@control.InstalledArenaLocalHostResourcesReply) -> Int],
   closed : FuncRef[(@control.InstalledArenaLocalHostResourcesReply) -> Bool],
+  capacity : FuncRef[(@control.InstalledArenaHost, Int) -> Int64],
 ) -> Unit = "actql_native_control_register_local_host_resource_roots"
 
 ///|
@@ -57,5 +58,6 @@ fn register_original_local_host_resources_roots() -> Unit {
     fn(reply) { reply.issue_origin() },
     fn(reply) { reply.issue_family() },
     fn(reply) { reply.close_confirmed() },
+    fn(host, index) { @control.installed_arena_capacity_scalar(host, index) },
   )
 }

@@ -10,6 +10,27 @@ struct InstalledArenaLocalHostResourcesReply {
 }
 
 ///|
+/// Same original SharedCapacity observation only. Missing/closing is -1,
+/// never zero capacity or credit. Actual allocation still goes through the
+/// existing Owner; the caller's declared control envelope is not subtracted.
+pub fn installed_arena_capacity_scalar(
+  host : InstalledArenaHost,
+  index : Int,
+) -> Int64 {
+  let backing = match host.original_backing() {
+    Err(_) => return -1L
+    Ok(backing) => backing
+  }
+  let usage = backing.capacity_usage()
+  match index {
+    0 => usage.capacity
+    1 => usage.allocated
+    2 => if usage.closing { 1L } else { 0L }
+    _ => -1L
+  }
+}
+
+///|
 pub fn bind_installed_local_host_resources_reply(
   host : InstalledArenaHost,
   read : InstalledArenaOriginalRead,

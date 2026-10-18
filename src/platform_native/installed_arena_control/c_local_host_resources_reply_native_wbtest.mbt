@@ -1,4 +1,27 @@
 ///|
+test "capacity observation follows actual original accounting without treating a declaration as credit" {
+  let bytes = 64L * domain_page_bytes()
+  let host = prepared_host(bytes)
+  assert_eq(installed_arena_capacity_scalar(host, 0), -1L)
+  assert_eq(installed_arena_capacity_scalar(host, 1), -1L)
+  host.acquire().unwrap()
+  assert_eq(installed_arena_capacity_scalar(host, 0), bytes)
+  let control = installed_arena_capacity_scalar(host, 1)
+  assert_true(control > 0L && control <= bytes)
+  assert_eq(installed_arena_capacity_scalar(host, 2), 0L)
+  assert_eq(installed_arena_capacity_scalar(host, -1), -1L)
+  assert_eq(installed_arena_capacity_scalar(host, 3), -1L)
+  let allocation = host.allocate(1L).unwrap()
+  let used = installed_arena_capacity_scalar(host, 1)
+  assert_true(used > control && used <= bytes)
+  host.retire(allocation).unwrap()
+  assert_eq(installed_arena_capacity_scalar(host, 1), control)
+  host.try_close().unwrap()
+  assert_eq(installed_arena_capacity_scalar(host, 0), -1L)
+  assert_eq(installed_arena_capacity_scalar(host, 1), -1L)
+}
+
+///|
 test "refused Host resources binding reply retains both original inputs without issuing a pair" {
   let host = domain_test_host()
   let (read, sqlite) = local_host_resources_pending(host)
