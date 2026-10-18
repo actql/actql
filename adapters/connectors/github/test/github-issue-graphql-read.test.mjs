@@ -4,7 +4,7 @@
 // RATE_LIMITED in an HTTP 200) is never a page.
 import assert from 'node:assert/strict';
 import {generateKeyPairSync, randomUUID} from 'node:crypto';
-import {mkdtemp, readFile, rm} from 'node:fs/promises';
+import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -44,6 +44,8 @@ async function setup(t, state, {faults = [], beforeAuthorize, accounted = false}
     routes: [graphqlRoute(() => state)]});
   const root = await mkdtemp(join(tmpdir(), 'actql-github-graphql-'));
   const authority = generateKeyPairSync('ed25519');
+  await writeFile(join(root, 'credential-authority.key'), authority.privateKey.export({format: 'pem', type: 'pkcs8'}), {mode: 0o600});
+  await writeFile(join(root, 'credential-authority.pub'), authority.publicKey.export({format: 'pem', type: 'spki'}));
   const journal = openSqliteCredentialJournal(join(root, 'journal'), {
     credentialAuthorities: new Map([['authority-a',
       new Map([['key-a', authority.publicKey]])]]),
@@ -55,6 +57,7 @@ async function setup(t, state, {faults = [], beforeAuthorize, accounted = false}
     if (rowRun !== undefined) rowRun.close();
     journal.close();
     if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      await writeFile(join(root, 'physical-requests.json'), JSON.stringify(fixture.seen()), {mode: 0o600});
       t.diagnostic(`Retained GitHub GraphQL credential fixture: ${root}`);
     } else await rm(root, {recursive: true, force: true});
   });
