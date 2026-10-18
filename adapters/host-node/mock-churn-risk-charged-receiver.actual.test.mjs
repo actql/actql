@@ -68,10 +68,14 @@ function fixture() {
     return {acquisition, requirement};
   });
   const runs = [];
-  function start(index, nonce) {
+  function pending(index, nonce) {
     const run = checked(moon.clientProgramRowSourceStart(acquisitions[index].acquisition,
       nonce, () => true));
     runs.push(run);
+    return run;
+  }
+  function start(index, nonce) {
+    const run = pending(index, nonce);
     checked(moon.clientProgramRowSourceBegin(run, 65536, 100, 100, undefined));
     return run;
   }
@@ -88,7 +92,7 @@ function fixture() {
       throw error;
     }
   }
-  return {declarations, acquisitions, start, accept,
+  return {declarations, acquisitions, pending, start, accept,
     close() { for (const run of runs) moon.clientProgramRowSourceClose(run); }};
 }
 
@@ -186,5 +190,46 @@ test('actual charged receiver cannot resume a closed attempt with its pending ti
     assert.throws(() => f.accept(run, charge, f.acquisitions[0].acquisition),
       {code: 'MoonBitHostFailure'});
     cannotCapture(run);
+  } finally { f.close(); }
+});
+
+test('same original RowRun admits the document under a narrower page and work envelope', () => {
+  const f = fixture();
+  try {
+    for (const index of [0, 1]) {
+      const run = f.pending(index, `narrow-original-${index}`);
+      checked(moon.clientProgramRowSourceBeginWithPageLimits(
+        run, 1048576, 4096, 32, 100, 100, undefined));
+      const charge = checked(moon.clientProgramRowSourceChargePage(run, body));
+      assert.equal(f.accept(run, charge, f.acquisitions[index].acquisition,
+        body, 2097152), 2);
+      checked(moon.clientProgramRowSourceFinish(run));
+      checked(moon.clientProgramRowSourceCapture(run));
+    }
+  } finally { f.close(); }
+});
+
+test('same original RowRun enforces the selected small node ceiling before capture', () => {
+  const f = fixture();
+  try {
+    const run = f.pending(0, 'narrow-nodes-refusal');
+    checked(moon.clientProgramRowSourceBeginWithPageLimits(
+      run, 1048576, 10, 32, 100, 100, undefined));
+    const charge = checked(moon.clientProgramRowSourceChargePage(run, body));
+    assert.throws(() => f.accept(run, charge, f.acquisitions[0].acquisition,
+      body, 2097152), {code: 'MoonBitHostFailure'});
+    cannotCapture(run);
+  } finally { f.close(); }
+});
+
+test('original page bounds refuse invalid or widened standard envelopes without capture', () => {
+  const f = fixture();
+  try {
+    for (const [nodes, depth] of [[0, 32], [4096, 0], [400001, 32], [4096, 33]]) {
+      const run = f.pending(0, `invalid-page-${nodes}-${depth}`);
+      assert.throws(() => checked(moon.clientProgramRowSourceBeginWithPageLimits(
+        run, 1048576, nodes, depth, 100, 100, undefined)), {code: 'MoonBitHostFailure'});
+      cannotCapture(run);
+    }
   } finally { f.close(); }
 });
