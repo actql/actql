@@ -226,6 +226,13 @@ bootstrap bodies, nested export referents, stock resolution and fixed asset
 reads still need their independent selected-domain correspondence; this cache
 handoff alone is neither a complete loader proof nor an operational issuer.
 
+The original startup publishes its same immutable forwarder table before
+synchronous Host namespace initialization can reenter that Module. A missing
+captured callback must not be confused with a refusal from the original Owner
+merely because both report unavailable. Early table capture neither admits an
+installation nor covers initialization work: the original unavailable Owner
+remains unavailable until the independent selected operational original exists.
+
 Fixed control assets are projected from that same selected immutable Source
 holding through the private nominal installation port. It checks the original
 scope, five references and currentness before and after the captured supplier
