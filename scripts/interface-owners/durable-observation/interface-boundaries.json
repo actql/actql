@@ -3983,7 +3983,7 @@
     {
       "module": "adapters/host-node/sqlite-coordinator-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6c40cc15dc9dcd32067bf47d0ad7335638b65575f478999625498cdacded020d",
+      "sha256": "015e759ddb4a64a69c361a7721df95410109412eb96d377afd5004aa0637394c",
       "exports": [
         "openSqliteCoordinatorDispatchJournal"
       ],
@@ -4563,6 +4563,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+                "anchor": "if (metadataTable?.type !== 'table' || typeof metadataTable.sql !== 'string' ||"
               }
             ],
             "ownership": [
@@ -4583,6 +4587,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+                "anchor": "// Admit the closed plain metadata table BEFORE selecting any of its values."
               }
             ],
             "failure": [
@@ -4593,6 +4601,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+                "anchor": "// A small file can otherwise substitute a VIEW or generated-column expression"
               }
             ],
             "cancellation": [
@@ -4617,6 +4629,10 @@
               {
                 "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
                 "anchor": "maxInspectionBytes = 64 * 1024 * 1024,"
+              },
+              {
+                "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+                "anchor": "SELECT type, CASE WHEN length(sql) <= 512 THEN sql ELSE NULL END AS sql FROM sqlite_schema"
               }
             ],
             "extension": [
@@ -4641,6 +4657,10 @@
               {
                 "path": "adapters/host-node/coordinator-inspection-bounds.test.mjs",
                 "anchor": "Coordinator pending Dir cleanup keeps the same original receiver before any database handoff"
+              },
+              {
+                "path": "adapters/host-node/coordinator-schema-before-values.test.mjs",
+                "anchor": "refuses before selecting any of its values"
               }
             ]
           }

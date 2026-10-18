@@ -163,6 +163,12 @@ extents remain a distinct physical-storage vector, not reclaimed heap credit.
 Larger valid retained state is inspection Unavailable, not corrupt, truncated,
 deleted or permission to bypass classification. These work limits do not fund
 stored business records or authorize another database, Source or metadata read.
+Before selecting Coordinator metadata values, classification admits the known
+plain two-column STRICT metadata table from SQLite's schema table. A substituted
+view, virtual/generated column, expression or different DDL is refused before
+its value query can execute. The closed table spelling tolerates only whitespace
+differences between the existing generated and legacy layouts, so the original
+legacy observation-history refusal remains separate from schema admission.
 
 The actual preload's private operational closure, not this accounting DATA,
 issues the nominal scope. Its persistent native/module/library/image domains

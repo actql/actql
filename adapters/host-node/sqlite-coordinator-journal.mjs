@@ -127,6 +127,13 @@ const tableDefinitions = [...schemaSql.matchAll(
 )].map(([sql, name]) => [name,
   sql.replace(' IF NOT EXISTS', '').replace(/;$/u, '')]);
 
+// Admit the closed plain metadata table BEFORE selecting any of its values.
+// A small file can otherwise substitute a VIEW or generated-column expression
+// whose SQL executes during classification. Only whitespace may differ between
+// the existing generated and legacy two-column STRICT table spellings; no
+// expression, virtual table, collation or extra column inherits that format.
+const metadataTableDefinition = /^CREATE\s+TABLE\s+journal_metadata\s*\(\s*key\s+TEXT\s+PRIMARY\s+KEY\s+NOT\s+NULL\s*,\s*value\s+TEXT\s+NOT\s+NULL\s*\)\s*STRICT$/u;
+
 function inspectCoordinatorFormat(root, coordinatorAuthority, maxInspectionEntries, maxInspectionBytes) {
   const path = join(root, 'coordinator-dispatch-journal.sqlite3');
   if (!existsSync(root)) return false;
@@ -139,6 +146,11 @@ function inspectCoordinatorFormat(root, coordinatorAuthority, maxInspectionEntri
     return false;
   }
   inspectSqliteSnapshot(path, database => {
+    const metadataTable = database.prepare(
+      "SELECT type, CASE WHEN length(sql) <= 512 THEN sql ELSE NULL END AS sql FROM sqlite_schema WHERE name = ?",
+    ).get('journal_metadata');
+    if (metadataTable?.type !== 'table' || typeof metadataTable.sql !== 'string' ||
+        !metadataTableDefinition.test(metadataTable.sql)) fail('UnknownCoordinatorJournalFormat');
     const metadata = database.prepare(
       'SELECT value FROM journal_metadata WHERE key = ?');
     const version = metadata.get('schema_version')?.value;
