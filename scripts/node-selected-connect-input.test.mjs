@@ -13,7 +13,7 @@ const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 const declaration = tree.body.map(node => node.declaration ?? node)
   .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'connect');
 assert.ok(declaration);
-const make = compileFunction('return async function(options,stringOptions){' +
+const make = compileFunction('"use strict";return async function(options,stringOptions){' +
   source.slice(declaration.body.start + 1, declaration.body.end - 1) + '};',
 ['connectHost', 'ClientError', 'selectedInitialControlHostPreparation',
   'applyInitialControl', 'initialControlPublicDispatch', 'localProvider']);
@@ -81,6 +81,31 @@ test('undefined routing result preserves the original Remote selection without l
     }, Reflect.apply, {}, unused);
   assert.equal(await route(raw), client);
   assert.equal(routed, 1); assert.equal(connected, 1);
+});
+
+test('connected Local endpoint keeps the original SDK packet and receiver without embedded acquisition', async () => {
+  const raw = {mode: 'local', owner: 'local', endpoint: 'https://host.example/'};
+  Object.defineProperty(raw, 'installation', {get() {assert.fail('NoEmbeddedInstallationRead');}});
+  Object.defineProperty(raw, 'profile', {get() {assert.fail('NoEmbeddedProfileRead');}});
+  Object.freeze(raw);
+  const client = {}, receiver = {};
+  let routed = 0, connected = 0;
+  const route = make(function(input) {
+    connected++;
+    assert.equal(this, undefined);
+    assert.equal(arguments.length, 1);
+    assert.equal(input, raw);
+    return client;
+  }, ErrorFixture, function(kind, input) {
+    routed++;
+    assert.equal(this, receiver);
+    assert.equal(kind, 'connect');
+    assert.equal(input, raw);
+    return undefined;
+  }, Reflect.apply, receiver, unused);
+  assert.equal(await route(raw), client);
+  assert.equal(routed, 1);
+  assert.equal(connected, 1);
 });
 
 test('connection strings retain the SDK route and do not acquire a Local input scope', async () => {
