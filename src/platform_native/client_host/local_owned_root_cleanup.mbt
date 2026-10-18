@@ -16,7 +16,16 @@ pub fn NativeLocalHostConnection::close_owned_root_descriptors(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if self.session.settings.managed is Some(managed) {
+  close_local_session_owned_root_descriptors(self.session)
+}
+
+///|
+// This directory-only tail is also used when an installed capture is abandoned
+// before its journal call. Its Session must already have acknowledged close.
+fn close_local_session_owned_root_descriptors(
+  session : NativeLocalAdoptionSession,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if session.settings.managed is Some(managed) {
     match managed.root.close() {
       Err(issue) => return Err(Filesystem(issue))
       Ok(_) => ()
@@ -25,13 +34,13 @@ pub fn NativeLocalHostConnection::close_owned_root_descriptors(
   // Each open produced its own Root even when source and parent have the same
   // ownership DATA. Do not deduplicate by path, device/inode or serialized CID.
   // Avoid allocating a new collection on this cleanup path.
-  match self.session.root.close() {
+  match session.root.close() {
     Err(issue) => return Err(Filesystem(issue))
     Ok(_) => ()
   }
-  match self.session.source_root.close() {
+  match session.source_root.close() {
     Err(issue) => return Err(Filesystem(issue))
     Ok(_) => ()
   }
-  self.session.parent.close().map_err(issue => Filesystem(issue))
+  session.parent.close().map_err(issue => Filesystem(issue))
 }

@@ -1022,3 +1022,35 @@ or funding claim. Unknown parents and unlisted empty directories are refused.
 Only the root descriptor path is self-hash-excluded; the same basename below
 a directory is an ordinary declared member. Exact selected npm dependency
 placement remains separate and does not exempt arbitrary node_modules content.
+
+## Original journal capture transport
+
+A trusted installed caller may transfer operational use of an already acquired
+Native adoption Session to a capture, retaining the same SQLite and crypto
+Libraries. Preparation performs no I/O. The caller publishes the opaque capture
+in its original output slot before opening the journal. Opening is attempted
+once; the capture records unconfirmed entry first, then retains the original
+Host or failed-open carrier before allocating a reply. A missing outcome cannot
+be replaced by another attempt. The caller must fence its other Session aliases;
+the transport does not discover or adopt a Session from metadata or a path.
+
+Current observation calls the retained Host's existing complete binding check.
+Cleanup uses that same Host or failed-open carrier; the immutable opening cause
+remains distinct from subsequent current or cleanup errors. Abandonment before
+open closes the original Session and its owned directory descriptors. Only an
+actual close acknowledgement permits retirement of the capture and reply DATA.
+Escaped Readers, Session/Host aliases, provider references, Domains and workspace
+loans require their separate acknowledgements and lifetime accounting.
+
+The private C transport borrows managed inputs and returns owned managed output
+references through initially empty, distinct slots. The same registered provider
+supplies all callbacks. A foreign capture cannot retire a reply, a filled slot
+cannot be overwritten, and a current/open reply cannot stand in for close.
+Opaque references remain pointers to the original managed objects, with no
+integer-handle registry, JSON restoration or direct compiler-layout access.
+
+This transport does not supply initial Root acquisition, an OriginalWorkspaceRead
+or a selected SQLite Library Domain. Those scopes remain distinct. It neither
+provides a joint scope nor makes an unbound Library or heap fallback admissible.
+A complete normal installed caller must still supply those original resources,
+current authority and outer lifetime obligations; absence remains unavailable.
