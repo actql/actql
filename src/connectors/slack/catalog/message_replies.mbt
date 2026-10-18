@@ -164,7 +164,9 @@ pub fn slack_message_replies_request_matches(
   replies : SlackMessageReplies,
   request : SlackMessageRepliesRequest,
 ) -> Bool {
-  replies.phase == Pending && physical_equal(request.replies, replies) &&
+  if replies.phase != Pending || !physical_equal(request.replies, replies) {
+    return false
+  }
   match replies.pending {
     Some(original) => physical_equal(original, request)
     None => false
