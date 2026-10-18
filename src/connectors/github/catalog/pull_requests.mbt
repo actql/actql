@@ -1,4 +1,61 @@
 ///|
+/// Repository-node-bound read only. Ref names survive deleted Ref objects.
+pub let pull_requests_query : String = "query ActqlPullRequests($id: ID!, $first: Int!, $after: String, $states: [PullRequestState!], $labels: [String!]) { node(id: $id) { __typename ... on Repository { id databaseId nameWithOwner pullRequests(first: $first, after: $after, states: $states, labels: $labels) { pageInfo { hasNextPage endCursor } nodes { __typename number id title state body author { login } assignees(first: 100) { totalCount pageInfo { hasNextPage endCursor } nodes { login } } labels(first: 100) { totalCount pageInfo { hasNextPage endCursor } nodes { name } } comments { totalCount } milestone { title } createdAt updatedAt closedAt url baseRefName headRefName isDraft mergeable mergedAt mergedBy { login } reviewDecision } } } } }"
+
+///|
+/// Native Source states only; this does not change authored write-state inputs.
+pub(all) struct PullRequestFilters {
+  state : String
+  labels : Array[String]
+} derive(Eq, Debug)
+
+///|
+pub fn pull_requests_request(
+  node_id : String,
+  first : Int,
+  after : String?,
+  filters : PullRequestFilters,
+) -> Result[String, GraphqlRequestIssue] {
+  if node_id.is_empty() || node_id.length() > 256 {
+    return Err(InvalidNodeId)
+  }
+  if first < 1 || first > 100 {
+    return Err(InvalidPageSize)
+  }
+  if after is Some(cursor) && (cursor.is_empty() || cursor.length() > 1024) {
+    return Err(InvalidCursor)
+  }
+  let states : Json = match filters.state {
+    "open" => ["OPEN".to_json()]
+    "closed" => ["CLOSED".to_json()]
+    "merged" => ["MERGED".to_json()]
+    "all" => Json::null()
+    _ => return Err(InvalidState)
+  }
+  if filters.labels.length() > 20 ||
+    filters.labels.any(label => label.is_empty() || label.length() > 256) {
+    return Err(InvalidLabel)
+  }
+  Ok(
+    (
+      {
+        "query": pull_requests_query.to_json(),
+        "variables": {
+          "id": node_id.to_json(),
+          "first": first.to_json(),
+          "after": optional_json(after),
+          "states": states,
+          "labels": if filters.labels.is_empty() {
+            Json::null()
+          } else {
+            filters.labels.to_json()
+          },
+        },
+      } : Json).stringify(),
+  )
+}
+
+///|
 /// Native PullRequest fields additional to the shared Issue-shaped columns.
 /// These values are observations, not merge permission or mutation selectors.
 pub(all) struct PullRequestNativeFields {

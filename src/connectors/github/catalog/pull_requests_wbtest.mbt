@@ -32,6 +32,58 @@ fn pull_request_fields_fixture(
 }
 
 ///|
+test "PullRequest fixed request preserves native state and repository variables without Issue-only reason" {
+  assert_true(pull_requests_query.contains("node(id: $id)"))
+  assert_true(pull_requests_query.contains("baseRefName headRefName"))
+  assert_true(!pull_requests_query.contains("stateReason"))
+  assert_true(!pull_requests_query.contains("mutation"))
+  for
+    (state, native) in [
+      ("open", "OPEN"),
+      ("closed", "CLOSED"),
+      ("merged", "MERGED"),
+    ] {
+    let wire = pull_requests_request("R_A", 17, Some("original-cursor"), {
+      state,
+      labels: [" é ", "none", "2"],
+    }).unwrap()
+    let expected : Json = {
+      "query": pull_requests_query.to_json(),
+      "variables": {
+        "id": "R_A".to_json(),
+        "first": (17).to_json(),
+        "after": "original-cursor".to_json(),
+        "states": [native.to_json()],
+        "labels": [" é ".to_json(), "none".to_json(), "2".to_json()],
+      },
+    }
+    assert_eq(wire, expected.stringify())
+  }
+  let filters : PullRequestFilters = { state: "all", labels: [], }
+  assert_eq(pull_requests_request("", 10, None, filters), Err(InvalidNodeId))
+  assert_eq(
+    pull_requests_request("R_A", 0, None, filters),
+    Err(InvalidPageSize),
+  )
+  assert_eq(
+    pull_requests_request("R_A", 101, None, filters),
+    Err(InvalidPageSize),
+  )
+  assert_eq(
+    pull_requests_request("R_A", 10, Some(""), filters),
+    Err(InvalidCursor),
+  )
+  assert_eq(
+    pull_requests_request("R_A", 10, None, { ..filters, state: "draft", }),
+    Err(InvalidState),
+  )
+  assert_eq(
+    pull_requests_request("R_A", 10, None, { ..filters, labels: [""], }),
+    Err(InvalidLabel),
+  )
+}
+
+///|
 test "PullRequest native fields retain exact ref names and undecided observations" {
   let fields = graphql_pull_request_fields(
     pull_request_fields_fixture([
