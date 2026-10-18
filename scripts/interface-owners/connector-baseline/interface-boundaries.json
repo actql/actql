@@ -5986,7 +5986,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e7204de10bf9d434bdfc7dcfb33a4d8fa2b3a8203af7bf637ec61a12d4beba3c",
+      "sha256": "d5a3f8b89b6902be8cb0e266fc2a863268ef4bbbb8da09e8d394e855b5e5021c",
       "role": "connector-semantics",
       "owner": "Published stable repository identity and installed Issue Source; Host RowSource owns capture and disclosure",
       "exports": [
@@ -6227,6 +6227,10 @@
               {
                 "path": "adapters/connectors/github/host/installed-github-source.mjs",
                 "anchor": "provider-neutral row source"
+              },
+              {
+                "path": "src/connectors/github/source-views.json",
+                "anchor": "pull_requests"
               }
             ],
             "inputsOutputs": [
@@ -6293,6 +6297,10 @@
               {
                 "path": "adapters/host-node/connector-configuration-bounds.test.mjs",
                 "anchor": "GitHub Source and Effect identity"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-milestone-declaration.test.mjs",
+                "anchor": "the PullRequest declaration keeps native read types and an inapplicable nullable reason"
               }
             ]
           }
@@ -6611,13 +6619,14 @@
     {
       "module": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3e0be725fcc730f52925d47996086db9c1fa8dbcf498b7f9169e261ea17da640",
+      "sha256": "ca9247b29067477b2b999bad1c840a3f7d14a7445c4a46b1958d6833197b16fd",
       "role": "physical-io",
       "owner": "Stable-node GraphQL Issue pagination; provider MoonBit fixes query, variables, projection and refusal",
       "exports": [
         "GITHUB_GRAPHQL_PATH",
         "GITHUB_GRAPHQL_READ_OPERATION",
-        "readGitHubIssuesByNode"
+        "readGitHubIssuesByNode",
+        "readGitHubPullRequestsByNode"
       ],
       "operations": [
         {
@@ -6666,6 +6675,20 @@
         {
           "name": "readGitHubIssuesByNode",
           "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "readGitHubPullRequestsByNode",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "readGitHubRowsByNode",
+          "parameters": [
             "moon",
             "repository",
             "filters",
@@ -6676,59 +6699,60 @@
             "chargePage",
             "consumeObservation",
             "consumePage",
-            "signal"
+            "signal",
+            "pullRequests"
           ],
           "async": true
         },
         {
-          "name": "readGitHubIssuesByNode/checkPrefix/checkPrefix",
+          "name": "readGitHubRowsByNode/checkPrefix/checkPrefix",
           "parameters": [],
           "async": false
         },
         {
-          "name": "readGitHubIssuesByNode/checkPrefix/checkPrefix/checkPrefix",
+          "name": "readGitHubRowsByNode/checkPrefix/checkPrefix/checkPrefix",
           "parameters": [
             "facts"
           ],
           "async": false
         },
         {
-          "name": "readGitHubIssuesByNode/decoded/decoded",
+          "name": "readGitHubRowsByNode/decoded/decoded",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "readGitHubIssuesByNode/exchange/exchange",
+          "name": "readGitHubRowsByNode/exchange/exchange",
           "parameters": [
             "body"
           ],
           "async": true
         },
         {
-          "name": "readGitHubIssuesByNode/exchange/exchange/facts/facts",
+          "name": "readGitHubRowsByNode/exchange/exchange/facts/facts",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "readGitHubIssuesByNode/exchange/exchange/facts/facts/facts",
+          "name": "readGitHubRowsByNode/exchange/exchange/facts/facts/facts",
           "parameters": [
             "previous"
           ],
           "async": false
         },
         {
-          "name": "readGitHubIssuesByNode/readGitHubIssuesByNode",
+          "name": "readGitHubRowsByNode/readGitHubRowsByNode",
           "parameters": [
-            "name"
+            "value"
           ],
           "async": false
         },
         {
-          "name": "readGitHubIssuesByNode/stopped/stopped",
+          "name": "readGitHubRowsByNode/stopped/stopped",
           "parameters": [
             "code",
             "details"
@@ -6747,25 +6771,32 @@
             "pairs/pairs/pairs",
             "pairs/pairs/pairs#2",
             "readGitHubIssuesByNode",
-            "readGitHubIssuesByNode/checkPrefix/checkPrefix",
-            "readGitHubIssuesByNode/checkPrefix/checkPrefix/checkPrefix",
-            "readGitHubIssuesByNode/decoded/decoded",
-            "readGitHubIssuesByNode/exchange/exchange",
-            "readGitHubIssuesByNode/exchange/exchange/facts/facts",
-            "readGitHubIssuesByNode/exchange/exchange/facts/facts/facts",
-            "readGitHubIssuesByNode/readGitHubIssuesByNode",
-            "readGitHubIssuesByNode/stopped/stopped"
+            "readGitHubPullRequestsByNode",
+            "readGitHubRowsByNode",
+            "readGitHubRowsByNode/checkPrefix/checkPrefix",
+            "readGitHubRowsByNode/checkPrefix/checkPrefix/checkPrefix",
+            "readGitHubRowsByNode/decoded/decoded",
+            "readGitHubRowsByNode/exchange/exchange",
+            "readGitHubRowsByNode/exchange/exchange/facts/facts",
+            "readGitHubRowsByNode/exchange/exchange/facts/facts/facts",
+            "readGitHubRowsByNode/readGitHubRowsByNode",
+            "readGitHubRowsByNode/stopped/stopped"
           ],
           "exports": [
             "GITHUB_GRAPHQL_PATH",
             "GITHUB_GRAPHQL_READ_OPERATION",
-            "readGitHubIssuesByNode"
+            "readGitHubIssuesByNode",
+            "readGitHubPullRequestsByNode"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "src/connectors/github/catalog/issue_fields.mbt",
                 "anchor": "begin_issue_page_read"
+              },
+              {
+                "path": "src/connectors/github/catalog/pull_requests.mbt",
+                "anchor": "begin_pull_request_page_read"
               }
             ],
             "inputsOutputs": [
@@ -6868,6 +6899,10 @@
               {
                 "path": "adapters/connectors/github/test/github-issue-graphql-read.test.mjs",
                 "anchor": "native label snapshot validates the single captured value"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-pull-request-read.test.mjs",
+                "anchor": "original PullRequest pages complete through actual Credential uses and one accounted RowRun"
               }
             ]
           }
