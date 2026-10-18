@@ -91,7 +91,12 @@ pub fn InstalledArenaHost::require_local_host_resources_current(
   if record.closing || record.closed {
     return Err(Domain(@bootstrap.Bootstrap(@bootstrap.Closing)))
   }
-  match self.require_domain_original_read_current(record.read) {
+  let read_current = match record.read.consumer {
+    None => self.require_domain_original_read_current(record.read)
+    Some(consumer) =>
+      self.require_domain_original_read_consumer_current(consumer)
+  }
+  match read_current {
     Err(issue) => return Err(Read(issue))
     Ok(_) => ()
   }
@@ -118,11 +123,19 @@ pub fn InstalledArenaHost::enter_local_host_phase(
     return Err(Domain(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed)))
   }
   match phase {
-    HostRead =>
-      match self.enter_domain_original_read(record.read) {
+    HostRead => {
+      let entered = match record.read.consumer {
+        None => self.enter_domain_original_read(record.read)
+        Some(consumer) if consumer.scope == ConsumerScopeNew =>
+          self.enter_domain_original_read_consumer(consumer)
+        Some(consumer) =>
+          self.resume_domain_original_read_consumer_scope(consumer)
+      }
+      match entered {
         Err(issue) => return Err(Read(issue))
         Ok(_) => ()
       }
+    }
     HostSqlite =>
       match self.enter_domain_read(record.sqlite.domain) {
         Err(issue) => return Err(Domain(issue))
@@ -184,11 +197,16 @@ pub fn InstalledArenaHost::leave_local_host_phase(
     return Err(Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable)))
   }
   match phase {
-    HostRead =>
-      match self.leave_domain_original_read(record.read) {
+    HostRead => {
+      let left = match record.read.consumer {
+        None => self.leave_domain_original_read(record.read)
+        Some(consumer) => self.leave_domain_original_read_consumer(consumer)
+      }
+      match left {
         Err(issue) => return Err(Read(issue))
         Ok(_) => ()
       }
+    }
     HostSqlite =>
       match self.leave_domain_read(record.sqlite.domain) {
         Err(issue) => return Err(Domain(issue))
@@ -267,4 +285,34 @@ pub fn InstalledArenaHost::close_local_host_resources(
   }
   record.closed = true
   Ok(())
+}
+
+///|
+/// Claim this bound pair's original read once, before the Host preparation
+/// caller allocates or executes. Quotes describe its complete simultaneous
+/// envelope; they neither issue capacity nor establish a normal profile.
+/// The pair then uses this same consumer, never its spent available-pair port.
+pub fn InstalledArenaHost::prepare_local_host_read_consumer(
+  self : InstalledArenaHost,
+  record : InstalledArenaLocalHostResources,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[
+  InstalledArenaOriginalReadConsumer,
+  InstalledArenaLocalHostResourcesIssue,
+] {
+  match self.require_local_host_resources_current(record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if record.active is Some(_) {
+    return Err(Domain(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed)))
+  }
+  self
+  .prepare_domain_original_read_consumer(
+    record.read,
+    retained_bytes,
+    execution_bytes,
+  )
+  .map_err(issue => Read(issue))
 }

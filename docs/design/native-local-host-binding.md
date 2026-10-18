@@ -1172,3 +1172,12 @@ capacity. Retiring one managed alias does not establish that all row, schema,
 renderer or final Writer aliases have retired. Material transfer and final stdout
 write/flush require their own original receipts; without the actual supplier and
 complete profile the material path remains unavailable.
+
+A consuming execution may use serial physical Read scopes separated by SQLite
+work. Its logical Resource entry remains one-shot. Only a successful leave of
+that same registered consumer permits physical resumption, with current Host,
+domain, claim and WorkspaceLoan checked again. Failed or unconfirmed physical
+entry/leave permanently keeps that view cleanup-only; a later available context
+cannot revive it. The same pair retains the consuming view and never restores
+its spent available-read port. Scope leave does not retire managed aliases or
+acknowledge material, domain, Library or Host cleanup.
