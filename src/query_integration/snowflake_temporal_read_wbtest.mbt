@@ -108,7 +108,14 @@ test "Snowflake temporal output parameters follow only the original selected col
     let prepared = snowflake_read_preparation(
       query_text="SELECT " + column + " FROM snowflake.usage_30d",
       temporal=true,
+      selected_fields=[column],
     ).unwrap()
+    assert_eq(
+      @row_host.row_acquisition_columns(
+        @snowflake_read.prepared_read_acquisition(prepared),
+      ),
+      [column],
+    )
     let ledger = snowflake_read_ledger(prepared, 8192L)
     let read = @snowflake_read.start_accounted_read(
       prepared,
@@ -130,4 +137,35 @@ test "Snowflake temporal output parameters follow only the original selected col
     assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 0L)
     snowflake_assert_retired(read, ledger)
   }
+}
+
+///|
+test "Snowflake final query projection does not rewrite the original physical Source carrier" {
+  let prepared = snowflake_read_preparation(
+    query_text="SELECT ACCOUNT_ID FROM snowflake.usage_30d",
+    temporal=true,
+  ).unwrap()
+  assert_eq(
+    @row_host.row_acquisition_columns(
+      @snowflake_read.prepared_read_acquisition(prepared),
+    ),
+    ["ACCOUNT_ID", "ACTIVE_USERS", "TREND"],
+  )
+  let ledger = snowflake_read_ledger(prepared, 8192L)
+  let read = @snowflake_read.start_accounted_read(
+    prepared,
+    "original-physical-carrier",
+    _ => true,
+    ledger,
+    8192L,
+    4096L,
+    snowflake_read_limits(),
+    10,
+  ).unwrap()
+  let request = snowflake_next(snowflake_statement(read))
+  let expected =
+    #|{"parameters":{"date_output_format":"YYYY-MM-DD","multi_statement_count":"1","timestamp_ltz_output_format":"YYYY-MM-DD\"T\"HH24:MI:SS.FF9\"Z\"","timezone":"UTC"},"role":"READER","statement":"SELECT \"ACCOUNT_ID\",\"ACTIVE_USERS\",\"TREND\" FROM \"PRODUCT\".\"USAGE\".\"USAGE_30D\"","timeout":60,"warehouse":"ANALYTICS"}
+  assert_eq(@snowflake_read.statement_request_body(request), Some(expected))
+  assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 0L)
+  snowflake_assert_retired(read, ledger)
 }

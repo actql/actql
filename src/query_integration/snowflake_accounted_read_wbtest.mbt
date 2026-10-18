@@ -114,10 +114,11 @@ fn snowflake_read_preparation(
   fresh_precision? : Int = 38,
   query_text? : String = "SELECT ACCOUNT_ID, ACTIVE_USERS, TREND FROM snowflake.usage_30d",
   temporal? : Bool = false,
+  selected_fields? : Array[String] = ["ACCOUNT_ID", "ACTIVE_USERS", "TREND"],
 ) -> Result[@snowflake_read.PreparedRead, @snowflake_read.ReadIssue] raise {
   let declared = @snowflake_description.prepare_read_projection(
     snowflake_read_description(temporal~),
-    ["ACCOUNT_ID", "ACTIVE_USERS", "TREND"],
+    selected_fields,
     snowflake_description_limits(),
   ).unwrap()
   let declaration = @snowflake_description.generate_read_declaration(
@@ -225,7 +226,7 @@ fn snowflake_read_preparation(
           ],
           name: "remote",
           source: Captured(source),
-          visible_fields: ["ACCOUNT_ID", "ACTIVE_USERS", "TREND"],
+          visible_fields: selected_fields,
           graph_bindings: [],
         },
       ],
