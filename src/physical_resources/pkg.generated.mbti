@@ -92,6 +92,8 @@ pub fn[T] claim_model_io_admission(ModelIoAdmission[T], T, OriginalLedgerIdentit
 
 pub fn[T] claim_model_io_for_owned_ledger(ModelIoAdmission[T], T, Ledger, Reservation, Int, Int) -> Result[ModelIoTicket[T], ModelIoAdmissionIssue]
 
+pub fn[P] cleanup_node_managed_run_admission(NodeManagedRunAdmission[P]) -> Result[Unit, ImportedChildLedgerIssue]
+
 pub fn[P, C] close_backed_execution_region(BackedExecutionRegion[P, C], P) -> Result[Bool, BackedExecutionIssue]
 
 pub fn close_model_io_access(ModelIoAccess) -> Result[Bool, ModelIoAdmissionIssue]

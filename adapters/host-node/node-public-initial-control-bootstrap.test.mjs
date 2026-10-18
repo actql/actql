@@ -217,6 +217,25 @@ test('ordinary Source managed Run exhaustion retains its failed claim without is
   assert.equal(result.status,0,result.stderr);
 });
 
+test('ordinary Source managed Run unpublished initialization closes distinctly without a fabricated usage report',t=>{
+  const f=fixture(t,{source:true,managedRun:true});
+  const result=f.run(
+    'import assert from"node:assert/strict";import{createRequire}from"node:module";import{connect}from"@actql/local-node";'+
+    'const client=await connect({mode:"local",installation:{directory:".actql"},profile:"mock"});'+
+    'const root=createRequire(import.meta.url)('+JSON.stringify(join(f.root,'adapters/host-node/node-public-initial-control-bootstrap.cjs'))+');'+
+    'const source=await root.prepareSourceManagedInstallation(client.originals),receipt=root.beforeSourceSnapshot(source,client.originals,"aql","SELECT original",{});'+
+    'const body=Object.freeze({kind:"aql",input:"SELECT original",parameters:null});root.bindSourceSnapshot(source,client.originals,receipt,body);'+
+    'const request=Object.freeze({body}),prepared=Object.freeze({});client.bindFixtureRequest(request,prepared);root.bindSourceRequest(source,client.originals,receipt,body,request);'+
+    'const original=root.prepareSourceManagedRun(source,client.originals,prepared),ports=root.prepareOriginalManagedRunPorts(original,prepared);assert.equal(ports.status(0),0);'+
+    'assert.equal(ports.status(2),-42);root.finishSourceProducer(source,client.originals,receipt,"failed");'+
+    'assert.equal((await root.closeSourceManagedInstallation(source,client.originals)).pending,true);'+
+    'assert.equal(ports.cancelUnpublished(),0);assert.equal(ports.cancelUnpublished(),0);'+
+    'assert.equal(ports.report(0,0,0,0n,0n,0n,0n,0n,0n,0n),-42);'+
+    'const closed=await root.closeSourceManagedInstallation(source,client.originals);assert.equal(closed.pending,false);assert.equal(closed.physicalBackingReleased,false);'+
+    'assert.equal(root.prepareOriginalManagedRunPorts(original,prepared),null);assert.equal((await client.scope.close()).pending,false);');
+  assert.equal(result.status,0,result.stderr);
+});
+
 test('ordinary Source original retains two file children and separates logical stop from FD close',t=>{
   const f=fixture(t,{source:true});
   const result=f.run(
