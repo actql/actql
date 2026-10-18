@@ -133,18 +133,19 @@ fn epoch_custody_body(
 ///|
 fn read_epoch_custody(
   database : @sqlite.Database,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[(Bytes, Double, Int64), NativeClientEpochIssue] {
-  match database.scan_after("client_submission_epoch", "") {
+  match scan_client_journal_value(database, "client_submission_epoch", "", reads) {
     Ok(entry) if entry.key == "authority" => ()
     Ok(_) | Err(@sqlite.NotFound) => return Err(CustodyLost)
     Err(issue) => return Err(Physical(issue))
   }
-  match database.scan_after("client_submission_epoch", "authority") {
+  match scan_client_journal_value(database, "client_submission_epoch", "authority", reads) {
     Err(@sqlite.NotFound) => ()
     Ok(_) => return Err(CustodyLost)
     Err(issue) => return Err(Physical(issue))
   }
-  let row = match database.read("client_submission_epoch", "authority") {
+  let row = match read_client_journal_value(database, "client_submission_epoch", "authority", reads) {
     Ok(value) => value
     Err(@sqlite.NotFound) => return Err(CustodyLost)
     Err(issue) => return Err(Physical(issue))
@@ -248,13 +249,23 @@ pub fn open_native_client_epoch_authority(
   crypto : @crypto.Library,
   ttl_ms : Double,
 ) -> Result[NativeClientEpochAuthority, NativeClientEpochIssue] {
+  open_native_client_epoch_authority_with_reads(database, crypto, ttl_ms)
+}
+
+///|
+fn open_native_client_epoch_authority_with_reads(
+  database : @sqlite.Database,
+  crypto : @crypto.Library,
+  ttl_ms : Double,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[NativeClientEpochAuthority, NativeClientEpochIssue] {
   if database.transaction_fenced() {
     return Err(Fenced)
   }
   if !valid_epoch_clock(ttl_ms) || ttl_ms < 1.0 || ttl_ms > 86400000.0 {
     return Err(InvalidInput)
   }
-  match read_epoch_custody(database) {
+  match read_epoch_custody(database, reads=reads) {
     Ok(_) => Ok({ database, crypto, ttl_ms, fenced: false, })
     Err(issue) => Err(issue)
   }
