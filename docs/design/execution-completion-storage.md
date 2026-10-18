@@ -177,3 +177,106 @@ temporary cleanup, promise completion and reference retirement are not GC or a
 physical-byte acknowledgement. This correspondence supplies neither a Content
 read grant nor a consumer-phase capacity/allocation, physical loan or dispatch
 permission. Those must still come from their existing original suppliers.
+
+## Saved installation-publication physical custody
+
+The existing private publication holding admits the exact additional purpose
+`installation_publication`. It uses the unchanged `publication-private`
+namespace, physical holding format and AEAD preimage, with the actual selected
+Store's private evidence key. It is not Run `source_evidence`. Similar names,
+prefixes and arbitrary confirmation kinds remain refused.
+
+The Host/Source publication Owner must issue the semantic binding and holding
+identity from its admitted original publication and observations. The physical
+binding remains `{name, semanticCid, holdingCid, wire}`; accepting that shape is
+not semantic admission of a caller-authored body. A path, private mode, digest,
+historical UUID or process-local object pair cannot supply authenticated
+original-acquisition custody. No signing, Credential or Run-journal key is
+borrowed for this purpose.
+
+Cold physical reading requires the actual Store key, authority and selected
+holding. Authentication finishes before bytes escape. The consuming publication
+Owner must independently admit the exact body, original generation and actual
+new installation correspondence before reconstructing new local Catalog
+originals. It must then confirm the exact admitted binding and same holding's
+directory durability. This is not pointer equality with an old process, provider
+rediscovery or permission to publish replacement observations. Replaying the
+same selected durable original is distinct from a new publication.
+
+Commit, confirmation and close uncertainty retain the existing holding owner
+and its original prepared handles. Retry reconciles that record, not another
+metadata acquisition or a replacement preparation. Store authentication proves
+custody of the encrypted body, not the truth of arbitrary metadata or a grant
+for current acquisition, Credential use, egress, Content, Model or Effects.
+
+Before use, the existing installation phase must cover the key copy, encoded
+body and AAD, native crypto context, nonce/tag/ciphertext and Base64 envelope,
+prepared writer and FD duties, holding record/index, live binding aliases and
+overlapping cold ciphertext/plaintext/decoded inventories. Same-Store reuse,
+wire ceilings, successful authentication and reference retirement provide no
+capacity or cleanup credit. Without the actual semantic, storage and lifetime
+suppliers the installed path remains unavailable; this physical port does not
+invent them.
+
+The physical Store provides
+`observeOriginalInstallationPublicationStorageBinding()` and
+`originalInstallationPublicationStorageBindingEvidence(handle)` for this
+connection. The first re-reads the exact bounded original Store contract on
+one FD, then checks Store availability again before issuing its same
+process-local handle. The second checks that handle's identity in this very
+Store and returns immutable DATA: `storeContractWire`, `storeAuthorityCid`,
+`keyGenerationCid`, and `privateNamespace` (`publication-private`). Copying an
+equal handle or using another Store's handle does not restore membership.
+
+These DATA are neither Model RunEvidence nor an installation publication
+issuer. The getter is not a fresh asynchronous currentness observation; the
+Host must retain the actual factory result and use the observation at its
+required current fence. Common owns the separate bounded semantic storage
+binding and its identity. No unrelated evidence kind or key purpose is reused.
+A failed original contract FD close retains the existing read cleanup handle,
+blocks replacement observation and prevents Store retirement until that same
+FD acknowledges close. Successful Store ownership retirement drops only its
+private observation alias; escaped DATA remain their caller's inventory.
+
+One optional observation record, its handle and immutable four-field DATA,
+the two method closures, read/retirement callback and in-flight promise,
+bounded contract backing/probe, UTF-8 String, key digest context and escaped
+references overlap the installation originals. These are additional Host
+phase costs, not a new reservation, zero-byte record or physical cleanup ACK.
+## Content physical reader backing
+
+The physical Content consumer fills each at-most-64-KiB piece directly from
+the same original FD into one dedicated backing, including repeated short
+reads. It does not acquire another piece while the consumer callback is
+pending or reuse a previously delivered backing. A truncated final prefix is
+a view of that original backing, not a shrink copy; the existing final
+size/hash/version checks still refuse the incomplete object. Empty objects
+retain stat/hash/close without a data allocation. Growth cannot extend the
+original admitted extent. Close failure retains the same FD and close-only
+retry, never a replacement read or permission to retire a live holding.
+
+For one such read, the sum of allocated piece payload extents is at most the
+original stat size, with each extent at most 65536 bytes. This is a byte-layout
+fact, not a whole-phase quote: Buffer/view/control objects, promises, hash
+state, metadata and independent verification reads, and all escaped consumer
+aliases still overlap. Callback return and losing a local reference are not
+physical backing retirement, GC acknowledgement, or capacity credit. The
+original Source/installation supplier must cover these components and retain
+its loan through actual physical and consumer cleanup.
+
+The mandatory object verifier has a distinct, non-escaping read lifetime.
+It reuses one dedicated backing of `min(65536, original_size + 1)` bytes,
+including the original overflow sentinel for an empty object. Each positional
+read is limited to the remaining admitted extent plus that one probe byte.
+The verifier refuses an overflowing read before hashing any bytes from that
+read; unchanged size, FD/path identity, modification time and content hash
+remain required. Short reads reuse the same backing, with only temporary
+subarray views for the synchronous hash update, not another payload copy or
+queued read. Verification still owns its original FD independently of the
+later Content consumer and retries only that FD's close if it fails.
+
+Its fixed backing extent does not price the FileHandle/native read and hash
+state, view/result/control records, or the containing metadata/holding phase.
+The original supplier must cover those simultaneous components before the
+verification I/O; an accepted hash and a zero pending count are not a new
+funding issuer or another Owner's physical cleanup acknowledgement.
