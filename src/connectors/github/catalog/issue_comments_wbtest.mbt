@@ -192,7 +192,7 @@ test "comment Source request chooses closed native subject and fixed read query 
       100,
       Some("cursor-original"),
     ).unwrap()
-    let json = @json.parse(request).unwrap()
+    let json = @json.parse(request) catch { _ => abort("invalid request JSON") }
     assert_eq(json["variables"]["id"], Json::string("S_original"))
     assert_eq(json["variables"]["first"], Json::number(100))
     assert_true(request.contains("comments(first: $first"))
