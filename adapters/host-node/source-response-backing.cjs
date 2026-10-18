@@ -94,7 +94,7 @@ function createSourceResponseBackingOwner(ports) {
     }
     const loan = freeze(Object.create(null));
     const state = {parent, scope, readOriginal, offset: parent.allocated, maxBytes,
-      written: 0, borrowed: undefined, buffer: undefined,
+      written: 0, borrowed: undefined, borrowObservation: undefined, buffer: undefined,
       entered: false, finished: false, failed: false,
       writerStopped: false, aliasesReleased: false, returned: false,
       body: undefined, firstError: undefined, lastError: undefined};
@@ -104,11 +104,13 @@ function createSourceResponseBackingOwner(ports) {
     parent.children[parent.children.length] = state;
     apply(set, loans, [loan, state]);
     try {
-      state.borrowed = apply(borrow, ports,
+      const borrowed = apply(borrow, ports,
         [scope, parent.original, readOriginal, state.offset, maxBytes]);
-      if (state.borrowed === undefined || isPromise(state.borrowed)) {
+      state.borrowObservation = borrowed;
+      if (borrowed === undefined || isPromise(borrowed)) {
         fail('SourceResponseBackingUnavailable');
       }
+      state.borrowed = borrowed;
       requireCurrent(scope);
       // Allocate the full original response backing BEFORE httpsRequest/read.
       // Never use pooled slices: the consumer can observe Buffer.buffer.
@@ -117,7 +119,22 @@ function createSourceResponseBackingOwner(ports) {
       state.buffer = apply(alloc, Buffer, [maxBytes]);
       requireCurrent(scope);
       return loan;
-    } catch (cause) { remember(state, cause); throw cause; }
+    } catch (cause) {
+      remember(state, cause);
+      // No writer, loan token or body escaped this failed constructor. Its
+      // write path and external aliases are absent by construction, NOT by a
+      // socket/Promise/GC observation. The same acquired borrow still needs
+      // the captured original Resource return. The physical Buffer, if any,
+      // remains charged to this process/module even after that child return.
+      state.failed = true;
+      state.writerStopped = true;
+      state.aliasesReleased = true;
+      const cleanupHandle = freeze({status: () => status(loan), retry: () => settle(loan)});
+      const carrier = new NativeError('SourceResponseBackingCleanupPending', {cause});
+      carrier.code = 'SourceResponseBackingCleanupPending';
+      carrier.cleanupHandle = cleanupHandle;
+      throw carrier;
+    }
   }
   function start(loan, scope, readOriginal) {
     const state = loanFor(loan);
@@ -169,7 +186,11 @@ function createSourceResponseBackingOwner(ports) {
   }
   function settle(loan) {
     const state = loanFor(loan);
-    if (state.returned || !state.writerStopped || !state.aliasesReleased) return status(loan);
+    // A missing/invalid borrow reply is Unknown, not an empty borrow to return.
+    // Its original partial record stays retained; never call Resource with an
+    // invented token or infer that the failed producer acquired nothing.
+    if (state.borrowed === undefined || state.returned ||
+        !state.writerStopped || !state.aliasesReleased) return status(loan);
     try {
       // Only the original Resource return may acknowledge the child borrow.
       // Promise/undefined/truthiness or writer.stop alone never does so.
