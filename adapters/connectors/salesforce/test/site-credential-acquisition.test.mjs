@@ -15,7 +15,7 @@ function deferred() {
   return {promise, resolve};
 }
 async function fixture(t, options = {}) {
-  let secret = 'original-test-secret', resolutions = 0;
+  let secret = 'test-only-secret', resolutions = 0;
   const setup = await openSalesforceEffectSiteFixture(t, {commonMoon, salesforceMoon,
     runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
     runAcquisitionLimits: {maxBindings: 2, maxSecretBytes: 64},
