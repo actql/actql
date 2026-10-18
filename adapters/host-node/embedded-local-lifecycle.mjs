@@ -1,6 +1,8 @@
 // The existing installed Host owns execution and durable data. This registry
 // only leases its in-process connection and retains its physical close retry.
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
+import {captureSourcePreparation, sourcePreparationPort} from
+  '../../packages/sdk/internal/private-source-preparation.mjs';
 import {createInstalledHostShutdown, retainInstalledHostRuntimeFailure,
   retainInstalledHostInitializationFailure, originalInitialControlClose}
   from './installed-host-cleanup.mjs';
@@ -194,6 +196,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     const opened = entry;
     let sealed = false, released = false, finished = false, flight;
     const handling = new Set();
+    const sourceProducers = new Map();
     function seal() {
       if (sealed) return;
       sealed = true;
@@ -210,6 +213,14 @@ export function createEmbeddedHostRegistry(sameInstallation) {
       flight = Promise.resolve().then(async () => {
         if (finished) return;
         await Promise.allSettled([...handling]);
+        // A producer can finish after the SDK's cleanup iteration started.
+        // Await that original attempt, but never treat its rejection as alias
+        // retirement. The SDK retains its same retry; the next close can drain
+        // it without resnapshotting, dispatching or replacing the receipt.
+        if (sourceProducers.size !== 0) {
+          throw Object.assign(new Error('InstalledSourceProducerCleanupPending'),
+            {code: 'InstalledSourceProducerCleanupPending'});
+        }
         if (opened.leases !== 0) { finished = true; return; }
         const host = await opened.host;
         await Promise.allSettled([...opened.handling.keys()]);
@@ -246,10 +257,53 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     }
     try {
     const originalPort = host.port, answer = originalPort.answerCheckpoint;
+    const sourcePreparation = captureSourcePreparation(originalPort);
     if (answer !== undefined && typeof answer !== 'function') {
       throw new TypeError('InvalidLocalCheckpointAnswerPort');
     }
     const port = Object.freeze({
+      ...(sourcePreparation === undefined ? {} : {[sourcePreparationPort]: Object.freeze({
+        beforeSourceSnapshot(kind, input, options) {
+          if (sealed || opened.closing) throw closing();
+          const receipt = sourcePreparation.beforeSourceSnapshot(kind, input, options);
+          if (sourceProducers.has(receipt)) {
+            throw Object.assign(new Error('InstalledSourceProducerAlreadyPending'),
+              {code: 'InstalledSourceProducerAlreadyPending'});
+          }
+          let settled;
+          const pending = new Promise(resolve => {settled = resolve;});
+          sourceProducers.set(receipt, {pending, settled});
+          handling.add(pending);
+          opened.handling.set(pending, undefined);
+          return receipt;
+        },
+        bindSourceSnapshot(receipt, body) {
+          if (sealed || opened.closing) throw closing();
+          return sourcePreparation.bindSourceSnapshot(receipt, body);
+        },
+        bindSourceRequest(receipt, body, request) {
+          if (sealed || opened.closing) throw closing();
+          return sourcePreparation.bindSourceRequest(receipt, body, request);
+        },
+        finishSourceProducer(receipt, terminal) {
+          const producer = sourceProducers.get(receipt);
+          if (producer === undefined) {
+            throw Object.assign(new Error('ForeignInstalledSourceProducer'),
+              {code: 'ForeignInstalledSourceProducer'});
+          }
+          try {
+            // Retirement stays legal after sealing. This same original Owner
+            // cuts only producer aliases; it grants no physical cleanup ACK.
+            const result = sourcePreparation.finishSourceProducer(receipt, terminal);
+            sourceProducers.delete(receipt);
+            return result;
+          } finally {
+            producer.settled();
+            handling.delete(producer.pending);
+            opened.handling.delete(producer.pending);
+          }
+        },
+      })}),
       ...(answer === undefined ? {} : {
         answerCheckpoint: (summary, decision, signal) => {
             if (sealed || opened.closing) return Promise.reject(closing());

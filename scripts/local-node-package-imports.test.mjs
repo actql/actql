@@ -24,3 +24,14 @@ import y from "@actql/client-wire";`);
   const ordinary = "import './local.mjs'; const url = 'connector://crm/records';";
   assert.equal(rewriteLocalNodePackageImports(ordinary, 'adapter.mjs'), ordinary);
 });
+
+test('Source preparation delivery retains the same private SDK module in the installed Host', () => {
+  const path = 'adapters/host-node/embedded-local-lifecycle.mjs';
+  const source = readFileSync(path, 'utf8');
+  const copied = rewriteLocalNodePackageImports(source, path);
+  assert.ok(copied.includes("'@actql/sdk/_internal/source-preparation'"));
+  assert.doesNotMatch(copied, /(?:\.\.\/)+packages\//u);
+  const manifest = JSON.parse(readFileSync('packages/sdk/package.json', 'utf8'));
+  assert.equal(manifest.exports['./_internal/source-preparation'],
+    './internal/private-source-preparation.mjs');
+});

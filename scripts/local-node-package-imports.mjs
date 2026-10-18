@@ -4,6 +4,7 @@ const exports = new Map([
   ['client-wire/index.mjs', '@actql/client-wire'],
   ['sdk/index.mjs', '@actql/sdk'],
   ['sdk/host-port.mjs', '@actql/sdk/host-port'],
+  ['sdk/internal/private-source-preparation.mjs', '@actql/sdk/_internal/source-preparation'],
   ['run-host-core/index.mjs', '@actql/run-host-core'],
 ]);
 export function rewriteLocalNodePackageImports(code, path) {
