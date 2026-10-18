@@ -49,3 +49,18 @@ test "ordinary row windows retain exact UTC nanoseconds at negative and end boun
     is Captured(@admitted.Timestamp("1969-12-31T23:59:59.999999999Z")),
   )
 }
+
+///|
+test "unfinished millisecond interval and prefix consumers refuse finer UTC without rounding" {
+  let value = admitted_scalar(
+    "{\"type\":\"timestamp\",\"nullable\":false}", "\"1969-12-31T23:59:59.999999999Z\"",
+  )
+  assert_true(
+    interval_clock(value, true, { remaining: 100, max_frames: 10, })
+    is Err(TemporalPrecisionUnavailable),
+  )
+  assert_true(
+    window_time_milliseconds(value, true, { remaining: 100, max_frames: 10, })
+    is Err(WindowTimePrecisionUnavailable),
+  )
+}

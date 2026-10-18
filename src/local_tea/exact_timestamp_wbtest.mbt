@@ -29,6 +29,63 @@ test "event clock projection and watermark threshold preserve one nanosecond" {
 }
 
 ///|
+test "unfinished millisecond session consumer refuses finer UTC without truncating" {
+  assert_true(
+    session_time(timestamp("1969-12-31T23:59:59.999999999Z"), true) is None,
+  )
+  assert_eq(
+    session_time(timestamp("1969-12-31T23:59:59.999Z"), true),
+    Some(-1L),
+  )
+}
+
+///|
+test "unfinished millisecond session reports a backend gap not an invalid Value" {
+  let producer = event_window_producer(timestamp=true)
+  let output = @records.prepare_output(
+    producer,
+    @pipeline.Step(0),
+    event_window_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  @records.append_record(output, [
+    (@schema.Unqualified("event_id"), number(1.0)),
+    (
+      @schema.Unqualified("occurred_at"),
+      timestamp("1969-12-31T23:59:59.999999999Z"),
+    ),
+    (@schema.Unqualified("payload"), text("original")),
+  ]).unwrap()
+  let source = @records.finish_output(output).unwrap()
+  let owner = session_owner(producer, "[]")
+  let read = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let execution = start_session(
+    @bounded.control(),
+    event_window_sequence(owner),
+    0,
+    read,
+    event_window_limits(fields=6),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut refused = false
+  for _ in 0..<1000 {
+    if !refused {
+      match advance_session(execution, 1).unwrap() {
+        SessionContinue(..) => ()
+        SessionFailed(SessionTimestampPrecisionUnavailable, ..) =>
+          refused = true
+        _ => fail("expected an implementation gap without an output")
+      }
+    }
+  }
+  assert_true(refused)
+  assert_true(cleanup_session(execution).unwrap())
+  assert_true(@records.producer_read_available(read))
+}
+
+///|
 test "actual watermark Owner marks only the original nanosecond-before record" {
   let producer = producer_owner(true)
   let output = @records.prepare_output(
