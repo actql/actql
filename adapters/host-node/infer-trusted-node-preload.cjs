@@ -181,8 +181,8 @@ module.exports = {
     // absence before raw reads, current callbacks or candidate construction.
     initialControl.requireOperational();
     currentStartup();
-    if (preparationOriginals !== undefined || preparationIntake !== undefined) inputUnavailable();
     if (kind === 'open') {
+      if (preparationOriginals !== undefined || preparationIntake !== undefined) inputUnavailable();
       if (rawInput !== undefined) inputUnavailable();
     } else if (kind === 'connect') {
       // Only classify an own DATA local-mode selector here. Other existing
@@ -191,6 +191,7 @@ module.exports = {
       if (rawInput === null || typeof rawInput !== 'object' || isProxy(rawInput)) return undefined;
       const mode = Object.getOwnPropertyDescriptor(rawInput,'mode');
       if (mode === undefined || !Object.hasOwn(mode,'value') || mode.value !== 'local') return undefined;
+      if (preparationOriginals !== undefined || preparationIntake !== undefined) inputUnavailable();
       const reader = startup.initialControlHostInputReader;
       if (reader === undefined) inputUnavailable();
       // This SAME selected finite control envelope precedes first ownKeys,

@@ -143,7 +143,7 @@ test('application-time package capture refuses before observing a caller invento
   assert.equal(result.status, 0, result.stderr);
 });
 
-for (const route of ['local-node', 'node']) test('the actual eager '+route+' preload refuses unsupported raw input before its Host consumer', t => {
+for (const route of ['local-node', 'node']) test('the actual eager '+route+' preload bounds original Mock input before its explicit Host fixture', t => {
   const f = fixture(t), local = join(f.directory, 'node_modules/@actql/local-node');
   mkdirSync(join(local, 'adapters/host-node'), {recursive: true});
   const sources = {...f.sources,
@@ -157,7 +157,11 @@ for (const route of ['local-node', 'node']) test('the actual eager '+route+' pre
       'catch(error){globalThis.initialDispatchCause=error.code;}'+
       'globalThis.originalDelivery=delivery;globalThis.actualHostImageValue="original";'+
       'globalThis.actualConsumerCalls=0;'+
-      'export function connectInitialControlHostPreparation(){actualConsumerCalls++;return Promise.resolve({});}'+
+      'export {snapshotInitialControlHostInput as readInitialControlHostInput}from"./initial-control-host-input.mjs";'+
+      'export function connectInitialControlHostPreparation(kind,raw){actualConsumerCalls++;'+
+      'const root=createRequire(import.meta.url)("./infer-trusted-node-preload.cjs");'+
+      'const held=Object.freeze({host:{},installation:{},generation:{},supplier:connectInitialControlHostPreparation,moduleLifetime:import.meta});'+
+      'return root.beginInitialControlInstallation(held,raw).then(scope=>({scope,held,input:root.readInitialControlInstallationInput(scope,held)}));}'+
       'export function assertInitialControlHostPreparation(){};'),
     'package.json': Buffer.from(JSON.stringify({name: '@actql/local-node', type: 'module',
       exports: {'.': './index.mjs', './selected-infer-startup': './selected-infer-startup.cjs'}})),
@@ -165,7 +169,7 @@ for (const route of ['local-node', 'node']) test('the actual eager '+route+' pre
     'initial-control-public-dispatch.cjs': readFileSync(new URL('../../packages/local-node/initial-control-public-dispatch.cjs', import.meta.url))};
   for (const name of ['infer-trusted-node-preload.cjs', 'initial-control-installation-owner.cjs',
     'initial-control-package-custody.cjs', 'initial-control-image-source.cjs', 'initial-control-image-loader.cjs',
-    'initial-control-phase-envelope.cjs']) {
+    'initial-control-phase-envelope.cjs', 'source-managed-phase-envelope.cjs', 'initial-control-host-input.mjs']) {
     sources['adapters/host-node/'+name] = actual(name);
   }
   const inventory = {...f.inventory, engine: {node: process.versions.node, v8: process.versions.v8,
@@ -219,6 +223,21 @@ for (const route of ['local-node', 'node']) test('the actual eager '+route+' pre
     'assert.throws(()=>root.connectInitialControlHostPreparation("open",raw),{code:"NodeInitialControlInputUnavailable"});',
     'assert.throws(()=>originalLocalDispatch.selectedInitialControlHostPreparation("open",raw),{code:"NodeInitialControlInputUnavailable"});',
     ...(route === 'node' ? ['assert.throws(()=>originalNodeDispatch.selectedInitialControlHostPreparation("open",raw),{code:"NodeInitialControlInputUnavailable"});'] : []),
+    'assert.equal(actualConsumerCalls,0);',
+    'assert.equal(root.connectInitialControlHostPreparation("connect",{mode:"remote"}),undefined);',
+    'assert.equal(root.connectInitialControlHostPreparation("connect",{get mode(){throw new Error("UnselectedGetter");}}),undefined);',
+    'assert.equal(root.connectInitialControlHostPreparation("connect",raw),undefined);',
+    'const packet={mode:"local",installation:{directory:".actql"},profile:"mock"};',
+    'assert.throws(()=>root.connectInitialControlHostPreparation("connect",{...packet,unknown:true}),{code:"NodeInitialControlInputUnavailable"});',
+    'assert.throws(()=>root.connectInitialControlHostPreparation("connect",{...packet,installation:{directory:".actql",resolveSecret(){throw new Error("CallbackMustNotRun");}}}),{code:"NodeInitialControlInputUnavailable"});',
+    'const pending=root.connectInitialControlHostPreparation("connect",packet);',
+    'packet.profile="replacement";packet.installation.directory="replacement";',
+    'const admitted=await pending;assert.equal(admitted.input.profile,"mock");assert.equal(admitted.input.installation.directory,".actql");',
+    'assert.ok(Object.isFrozen(admitted.input));assert.ok(Object.isFrozen(admitted.input.installation));',
+    'assert.equal(actualConsumerCalls,1);',
+    'assert.equal((await admitted.scope.close()).pending,false);',
+    'assert.equal(root.connectInitialControlHostPreparation("connect",{mode:"remote"}),undefined);',
+    'assert.throws(()=>root.connectInitialControlHostPreparation("connect",{mode:"local",installation:{directory:".actql"},profile:"mock"}),{code:"NodeInitialControlInputUnavailable"});',
     'let fakeCalls=0;',
     'require.cache[require.resolve("@actql/'+route+'/selected-infer-startup")].exports={selectedInitialControlHostPreparation(){fakeCalls++;}};',
     'require.cache[rootFile].exports={connectInitialControlHostPreparation(){fakeCalls++;}};',
@@ -226,7 +245,7 @@ for (const route of ['local-node', 'node']) test('the actual eager '+route+' pre
     ...(route === 'node' ? ['assert.throws(()=>originalNodeDispatch.selectedInitialControlHostPreparation("open",raw),{code:"InitialControlImageLoaderChanged"});'] : []),
     'assert.equal(fakeCalls,0);',
     'assert.equal(reads,0);',
-    'assert.equal(actualConsumerCalls,0);',
+    'assert.equal(actualConsumerCalls,1);',
   ].join('\n'));
   const result = spawnSync(process.execPath,
     ['--no-lazy', '--require', '@actql/'+route+'/selected-infer-startup', entry], {
