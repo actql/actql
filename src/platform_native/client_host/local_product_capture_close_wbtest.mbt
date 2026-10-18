@@ -65,8 +65,7 @@ test "acquired Product capture retains its exclusive Lock while original child R
   let observer = @filesystem.open_private_root(capture.parent_path).unwrap()
   adoption_open_fail_census_close(session.root, 1)
   assert_true(
-    session.root.check_directory_members([])
-    is Err(@filesystem.Cleanup(_)),
+    session.root.check_directory_members([]) is Err(@filesystem.Cleanup(_)),
   )
   assert_true(capture.close() is Err(Filesystem(@filesystem.Cleanup(_))))
   assert_false(capture.descriptor_cleanup_acknowledged())
@@ -82,4 +81,34 @@ test "acquired Product capture retains its exclusive Lock while original child R
   session.lock.close_checked().unwrap()
   assert_false(capture.descriptor_cleanup_acknowledged())
   observer.close().unwrap()
+}
+
+///|
+#borrow(lock)
+extern "C" fn product_mark_original_lock_unknown(
+  lock : @filesystem.Lock,
+) -> Bool = "actql_native_filesystem_test_lock_consumed_unknown"
+
+///|
+test "acquired Product capture cannot acknowledge consumed original Lock Unknown" {
+  let capture = product_acquired_capture_for_close(
+    "product-capture-lock-unknown",
+  )
+  guard capture.opening is ProductAcquired(session) else {
+    fail("missing Session")
+    abort("unreachable")
+  }
+  assert_true(product_mark_original_lock_unknown(session.lock))
+  for _ in 0..<2 {
+    assert_true(capture.close() is Err(Filesystem(@filesystem.Cleanup(_))))
+    assert_false(capture.descriptor_cleanup_acknowledged())
+    assert_false(session.closed)
+    assert_true(capture.original.root is None)
+    assert_true(capture.original.parent is None)
+    assert_true(
+      capture.original.lock is Some(lock) && physical_equal(lock, session.lock),
+    )
+  }
+  assert_true(session.lock.close_checked() is Err(@filesystem.Cleanup(_)))
+  assert_false(session.lock.close())
 }
