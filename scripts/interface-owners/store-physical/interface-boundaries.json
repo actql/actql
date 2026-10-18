@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "94f594cecb19f1ad9582c7827dc5279bcc876e200cc05b0e1bfe48acc3433772",
+      "sha256": "9ede7aae10ba1a08450f7b0ee77c85d19f5186708d6bdc1db8171352589efdfb",
       "exports": [
         "PublicationStoreError",
         "openLocalPublicationStore",
@@ -7471,6 +7471,14 @@
               {
                 "path": "adapters/store-local/physical-reader-close-ack.test.mjs",
                 "anchor": "setter cannot discard the original Content FD responsibility"
+              },
+              {
+                "path": "adapters/store-local/installation-publication-custody.test.mjs",
+                "anchor": "installation publication survives fresh-process cold read without metadata acquisition"
+              },
+              {
+                "path": "docs/design/execution-completion-storage.md",
+                "anchor": "## Saved installation-publication physical custody"
               }
             ]
           }
