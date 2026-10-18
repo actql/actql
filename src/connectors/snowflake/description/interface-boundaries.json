@@ -4,7 +4,7 @@
     {
       "module": "src/connectors/snowflake/description/description.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "b81ae75f7d23909b69ed0a295a0b67edcb7ced56725c1bfc5b29be5ce112985e",
+      "sha256": "e2c7f6d9fa3afd2866d65eee35bfac0157d9121016d32b2b106ffe503afefa4c",
       "role": "connector-semantics",
       "owner": "Snowflake original metadata projection; Common owns contracts, encoding and relation declaration issuance",
       "exports": [],

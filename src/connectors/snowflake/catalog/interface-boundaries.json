@@ -4,7 +4,7 @@
     {
       "module": "src/connectors/snowflake/catalog/response.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "53941fad7abfc2bc53df95c597215c55f815194f9f8a4dc23c32d45b56d4e07e",
+      "sha256": "362e51e88e77067bee3fb672e968a16e425493113e561abf401472d57cd16ea5",
       "role": "connector-semantics",
       "owner": "Snowflake bounded original SQL API response spelling; Common retains scalar contract and value admission",
       "exports": [],
