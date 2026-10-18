@@ -39340,6 +39340,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "beginInitialControlInstallation"
           ],
           "exports": [
