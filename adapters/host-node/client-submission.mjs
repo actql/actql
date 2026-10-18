@@ -19,6 +19,21 @@ const immutable = value => {
   }
   return value;
 };
+const scopeFields = selected => {
+  const authorityScopeCid = selected?.authorityScopeCid;
+  const namespaceId = selected?.namespaceId;
+  if (typeof authorityScopeCid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(authorityScopeCid) ||
+      typeof namespaceId !== 'string' || !namespaceId) fail('ClientRequestLookupDenied');
+  return {authorityScopeCid, namespaceId, currentAuthorization: true};
+};
+const snapshot = value => immutable(JSON.parse(canonicalJson(value, {dataKeys: true})));
+
+// The same Journal-owned epoch operation is available before optional Result
+// and Model services are constructed. This issues no Run, Account or Store
+// permission and keeps the original authenticated scope and packet snapshot.
+export async function issueNodeClientSubmissionEpoch({journal, moon, authorizedScope}, request) {
+  return journal.issueSubmissionEpoch(scopeFields(await authorizedScope(snapshot(request))), moon);
+}
 
 export function installNodeClientSubmission({journal, moon, authorizedScope,
   prepareSubmit, submit, lookupRequest, checkSubmissionInput, bindOwnedRequest}) {
@@ -31,15 +46,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     throw new TypeError('InvalidClientSubmissionInstallation');
   }
   const flights = new Map();
-  const scopeFields = selected => {
-    const authorityScopeCid = selected?.authorityScopeCid;
-    const namespaceId = selected?.namespaceId;
-    if (typeof authorityScopeCid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(authorityScopeCid) ||
-        typeof namespaceId !== 'string' || !namespaceId) fail('ClientRequestLookupDenied');
-    return {authorityScopeCid, namespaceId, currentAuthorization: true};
-  };
   const authorize = async value => scopeFields(await authorizedScope(value));
-  const snapshot = value => immutable(JSON.parse(canonicalJson(value, {dataKeys: true})));
   const own = (parent, derived) => {
     if (bindOwnedRequest !== undefined && bindOwnedRequest(parent, derived) !== undefined) {
       fail('SourceManagedPreparationUnavailable');
@@ -408,5 +415,5 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     return immutable(answer);
   };
   return Object.freeze({submitIntent, submitAttempt, submitNamedAttempt, lookupSubmission,
-    async issueEpoch(request) {return journal.issueSubmissionEpoch(await authorize(snapshot(request)), moon);}});
+    issueEpoch(request) {return issueNodeClientSubmissionEpoch({journal,moon,authorizedScope},request);}});
 }

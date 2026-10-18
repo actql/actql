@@ -64,16 +64,22 @@ export function createNodeInProcessClientHost({
   attach, lookupRequest, stateService, resultService, observeRun, observeOwners, wait,
   cancel, lookupCancellation, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
   resources, inspectResource, peekResource, check, plan, inspectRun, runPlan, maxRowBytes, observe,
+  performInstalledRequest,
 }) {
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
       typeof negotiate !== 'function' ||
+      performInstalledRequest !== undefined && typeof performInstalledRequest !== 'function' ||
       bindOwnedRequest !== undefined && typeof bindOwnedRequest !== 'function' ||
       !Number.isSafeInteger(maxRowBytes) || maxRowBytes < 1) {
     throw new TypeError('InvalidInProcessClientHostInstallation');
   }
   return Object.freeze({async perform(operation, body, signal) {
     try {
+      // Only a selected same-Host deferred installation retains this extra
+      // original packet across its constructor wait. Ordinary ingress keeps
+      // its existing body/await path and acquires no continuation callback.
+      const installedBody = performInstalledRequest === undefined ? undefined : body;
       const tracksSource = bindOwnedRequest !== undefined &&
         ['submit', 'submit-intent', 'submit-named-intent', 'restart-intent'].includes(operation);
       const own = (parent, derived) => {
@@ -122,6 +128,12 @@ export function createNodeInProcessClientHost({
       if (authorized !== true) {
         if (operation === 'check') return await projectClientCheckUnavailable(check);
         fail('ClientConnectionDenied');
+      }
+      if (performInstalledRequest !== undefined && operation !== 'connect') {
+        // Validation and current connection authorization precede optional
+        // service construction. Continue with the SAME original packet, not
+        // a replacement prepared Program, reference or permission.
+        return await performInstalledRequest(operation,installedBody,signal);
       }
       const invoke = async (handler, preparedProgram) => {
         if (typeof handler !== 'function') fail('ClientOperationUnavailable');

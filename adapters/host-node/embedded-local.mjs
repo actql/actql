@@ -20,7 +20,7 @@ import {fileURLToPath} from 'node:url';
 import {validClientConnection} from '../../packages/client-wire/index.mjs';
 import {createEmbeddedHostRegistry, installedHostShutdown} from './embedded-local-lifecycle.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
-import {installNodeClientSubmission} from './client-submission.mjs';
+import {installNodeClientSubmission, issueNodeClientSubmissionEpoch} from './client-submission.mjs';
 import {admitHostRootFormat} from './host-root-format.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
@@ -823,6 +823,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   let observation;
   let localSnapshotConfiguration;
   let ownerViews;
+  let activationFlight, activationFailure;
   try {
     const delivery = createDiagnosticObserver(authorization?.observe);
     diagnostic = Object.assign((event, detail) => {
@@ -886,6 +887,37 @@ async function openInstalledHost(originalInstallation, preparation) {
           control.runDefinitionRunId(retained.runDefinition);
       }});
     if (observation !== undefined) journal.installObservationProjection(observation);
+    const hostConnection = ({principalId: actual, connection, ref}) =>
+      actual === principalId &&
+      connection.mode === mode && connection.owner === mode &&
+      (ref === undefined || ref.namespaceId === namespaceId &&
+        ref.authorityScopeCid === authorityScopeCid);
+    const authorizedScope = ({principalId: actual}) =>
+      actual === principalId ? {namespaceId, authorityScopeCid} : undefined;
+    const negotiate = async value => ({version: 'actql-client-host/0.1',
+      mode, owner: mode, durability: 'durable',
+      ...(value.connection.workspaceId === undefined ? {} : {workspaceId}),
+      scopeRef: authorityScopeCid,
+      ...(hostConnection(value) ? {submissionEpoch: await issueNodeClientSubmissionEpoch({
+        journal,moon,authorizedScope: request => hostConnection(request)
+          ? authorizedScope(request) : undefined},value)} : {}),
+      capabilities: ['result-jsonl'], limits: {
+        maxReadWireBytes: 10 * 1024 * 1024,
+        maxRowWireBytes: 1024 * 1024,
+        maxRowRetainedValueBytes: 1024 * 1024,
+        maxRetainedValueBytes: 10 * 1024 * 1024,
+        maxRows: 10000, maxBatchRows: 1000,
+        maxBatchRetainedValueBytes: 10 * 1024 * 1024,
+      }});
+    const initializePublicationServices = async () => {
+    try {
+    if (originalSourcePreparation !== undefined) {
+      // The selected writable Journal facility does not cover Publication
+      // Store/key/Result payload construction. Keep this precise missing
+      // operational boundary before its first constructor or I/O; do not
+      // create a key from path absence or borrow Source/Compute credit.
+      throw clientOperationError('InstalledPublicationPreparationUnavailable');
+    }
     // Generated Content also retains encrypted private proofs. This is Store
     // custody, not an Effect permission or an implicit external write grant.
     if (effectInstallation?.privateEvidenceKey === undefined) {
@@ -920,13 +952,6 @@ async function openInstalledHost(originalInstallation, preparation) {
       assertModelRuntime();
     }
     effectEvidenceKey?.key.fill(0);
-  const hostConnection = ({principalId: actual, connection, ref}) =>
-    actual === principalId &&
-    connection.mode === mode && connection.owner === mode &&
-    (ref === undefined || ref.namespaceId === namespaceId &&
-      ref.authorityScopeCid === authorityScopeCid);
-  const authorizedScope = ({principalId: actual}) =>
-    actual === principalId ? {namespaceId, authorityScopeCid} : undefined;
   const lookupRequest = installNodeClientRequestLookup({journal,
     control: moon, authorizedScope});
   const startRun = installNodeClientRunStart({journal,
@@ -2698,19 +2723,6 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (accepted === undefined) throw new Error('HeldRunDefinitionMissing');
     return (await observeRun({ref: accepted.ref, principalId})).status;
   };
-  const negotiate = async value => ({version: 'actql-client-host/0.1',
-    mode, owner: mode, durability: 'durable',
-    ...(value.connection.workspaceId === undefined ? {} : {workspaceId}),
-    scopeRef: authorityScopeCid,
-    ...(hostConnection(value) ? {submissionEpoch: await submissionService.issueEpoch(value)} : {}),
-    capabilities: ['result-jsonl'], limits: {
-      maxReadWireBytes: 10 * 1024 * 1024,
-      maxRowWireBytes: 1024 * 1024,
-      maxRowRetainedValueBytes: 1024 * 1024,
-      maxRetainedValueBytes: 10 * 1024 * 1024,
-      maxRows: 10000, maxBatchRows: 1000,
-      maxBatchRetainedValueBytes: 10 * 1024 * 1024,
-    }});
   // A held request is looked up through the Checkpoint journal until its Run
   // exists; then the request journal answers with its RunRef.
   const lookupHeld = async value => {
@@ -3517,6 +3529,92 @@ async function openInstalledHost(originalInstallation, preparation) {
       {journal, store, checkpoints, dispatchOwner,
         sourceProfile, installedEffect, observation, ownerViews});
   }
+    };
+    const activate = () => {
+      if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
+      if (activationFlight === undefined) {
+        // One actual Host and one optional service construction. Publish the
+        // flight before any fallible constructor; retain its original failure
+        // and cleanup rather than trying another Store/key/Host on retry.
+        activationFlight = Promise.resolve().then(initializePublicationServices)
+          .catch(cause => {
+            activationFailure = {cause,cleanupObserved:false,statusObserved:false,retryObserved:false};
+            modelRuntimeClosing = true; throw cause;
+          });
+      }
+      return activationFlight;
+    };
+    if (originalSourcePreparation === undefined) return await activate();
+    const bootstrapIngress = createNodeInProcessClientHost({
+      authenticate: () => principalId,
+      authorizeConnection: hostConnection,
+      workspaceForPrincipal: () => workspaceId,
+      negotiate, maxRowBytes: 1024 * 1024, observe: diagnostic,
+      async performInstalledRequest(operation,request,signal) {
+        const opened = await activate();
+        if (opened !== host) throw clientOperationError('InstalledHostPreparationChanged');
+        if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
+        return opened.port.perform(operation,request,signal);
+      },
+    });
+    const bootstrapPort = Object.freeze({
+      [sourcePreparationPort]: originalSourcePreparation,
+      async perform(operation, request, signal) {
+        if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
+        return bootstrapIngress.perform(operation,request,signal);
+      },
+    });
+    return Object.assign(host, {port:bootstrapPort,journal,sourceProfile,installedEffect,
+      diagnostic,observation,initialControl:preparation.initialControl,
+      stopModelRuntime() { modelRuntimeClosing = true; },retireModelRuntime,
+      async prepareShutdown() {
+        // Stop new work, then observe the SAME already-started activation to
+        // terminal. Never interrupt a child or treat its Promise as an ACK.
+        modelRuntimeClosing = true;
+        if (activationFlight !== undefined) {
+          try { await activationFlight; }
+          catch {
+            const cause = activationFailure.cause;
+            // Retain each successfully observed callback and its receiver.
+            // Only a getter that has not produced an observation may be
+            // observed again; later replacement cannot ACK this failure.
+            if (!activationFailure.cleanupObserved) {
+              activationFailure.cleanup = cause?.cleanupHandle;
+              activationFailure.cleanupObserved = true;
+            }
+            const cleanup = activationFailure.cleanup;
+            if (!activationFailure.statusObserved) {
+              activationFailure.status = cleanup?.status;
+              activationFailure.statusObserved = true;
+            }
+            if (!activationFailure.retryObserved) {
+              activationFailure.retry = cleanup?.retry;
+              activationFailure.retryObserved = true;
+            }
+            const status = activationFailure.status, retry = activationFailure.retry;
+            if (typeof status !== 'function' || typeof retry !== 'function') throw cause;
+            if (Reflect.apply(status,cleanup,[])?.pending !== false) {
+              await Reflect.apply(retry,cleanup,[]);
+            }
+            if (Reflect.apply(status,cleanup,[])?.pending !== false) throw cause;
+          }
+        }
+      },
+      closePublicationStore() {
+        // No Store exists before activation. An acquired or partially opened
+        // Store remains with its original initialization/physical cleanup.
+        if (store !== undefined) return store.close();
+      },
+    });
+  } catch (cause) {
+    // The optional initializer already retained/attempted these exact child
+    // duties. Do not add another close of the same Journal/Store here.
+    if (activationFlight !== undefined) throw cause;
+    diagnostic?.close();
+    effectEvidenceKey?.key.fill(0);
+    throw await retainInstalledHostInitializationFailure(cause,
+      {journal,store,checkpoints,dispatchOwner,sourceProfile,installedEffect,observation,ownerViews});
+  }
   } catch (cause) {
     modelRuntimeClosing = true;
     // Retain the same original failure/child and Host reference finalizer,
@@ -3994,11 +4092,9 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     mockPreparation.originalsForRuntime(moon);
     sourceManaged.assertCurrent();
   }
-  if (selectedProfile.selected !== undefined) {
-    // The original choice is admitted, but this Host has no installed mock
-    // records/answers or another named physical-profile supplier yet. Refuse
-    // before Source/Effect identity, credentials, Provider registration or Store
-    // opening rather than falling back to configured live connections.
+  if (selectedProfile.selected !== undefined && selectedProfile.selected !== 'mock') {
+    // No other named physical-profile supplier exists here. Keep its original
+    // admitted choice unavailable instead of falling back to live profiles.
     throw clientOperationError('InstalledProjectProfileUnavailable');
   }
   const root = installation?.directory === undefined ? project?.stateDirectory ?? localStateRoot() :

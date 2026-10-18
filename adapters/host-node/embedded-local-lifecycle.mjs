@@ -10,18 +10,30 @@ import {createInstalledHostShutdown, retainInstalledHostRuntimeFailure,
 export function installedHostShutdown(host) {
   const retireRuntime = host.retireModelRuntime;
   const initialControl = host.initialControl;
+  const prepareShutdown = host.prepareShutdown;
+  const closePublicationStore = host.closePublicationStore;
   const shutdown = createInstalledHostShutdown({
-    stop: () => {
+    stop: prepareShutdown === undefined ? () => {
       host.stopModelRuntime?.();
       return host.checkpoints?.stop();
+    } : async () => {
+      host.stopModelRuntime?.();
+      // The same Host's deferred constructor may already hold a physical
+      // child. Observe that original to terminal before enumerating shutdown
+      // duties; never replace it or turn its Promise into an ACK.
+      await Reflect.apply(prepareShutdown,host,[]);
+      return host.checkpoints?.stop();
     },
-    drain: () => host.dispatchOwner.drain(),
-    retire: () => host.retireTerminalEffects(),
+    drain: () => prepareShutdown === undefined
+      ? host.dispatchOwner.drain() : host.dispatchOwner?.drain(),
+    retire: () => prepareShutdown === undefined
+      ? host.retireTerminalEffects() : host.retireTerminalEffects?.(),
     checkpoint: () => host.checkpoints?.close(),
     journal: () => host.journal.close(),
     source: () => host.sourceProfile?.close(),
     effect: () => host.installedEffect?.close(),
-    store: () => host.store.close(),
+    store: closePublicationStore === undefined ? () => host.store.close() :
+      () => Reflect.apply(closePublicationStore,host,[]),
     ...(host.diagnostic === undefined ? {} :
       {diagnostic: () => host.diagnostic.close()}),
     ...(host.observation === undefined ? {} :
