@@ -883,3 +883,14 @@ sequential originals, not a refill of one live connection or two whole-process
 allowances. Native single-row conversion, schema/connection/cache/transaction
 workspace and the optional observation connection still require their complete
 selected facility coverage before acquisition.
+
+Installation-time Mock answer documents are bounded Host-preparation
+definitions, not Model execution capacity. The selected control recipe includes
+the additional original Task reread and answer document for each selected Task,
+their UTF8/read/parse/checked-value/normalization work and retained definition,
+typed Provider, clock and callback aliases. These extra originals are declared
+before the selected images and acquisition; they do not reuse the earlier Task
+wire allowance. The same Host/runtime/current predicate and original preparation
+lifetime apply through partial failure and escaped aliases. Creating a typed
+mock Provider does not fund its requests, Entry, quantity, output, invocation or
+transport; those remain separately admitted Model duties.
