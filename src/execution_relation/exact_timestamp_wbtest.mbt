@@ -57,10 +57,10 @@ test "unfinished millisecond interval and prefix consumers refuse finer UTC with
   )
   assert_true(
     interval_clock(value, true, { remaining: 100, max_frames: 10, })
-    is Err(InvalidRows),
+    is Err(TemporalPrecisionUnavailable),
   )
   assert_true(
     window_time_milliseconds(value, true, { remaining: 100, max_frames: 10, })
-    is Err(InvalidWindowTime),
+    is Err(WindowTimePrecisionUnavailable),
   )
 }

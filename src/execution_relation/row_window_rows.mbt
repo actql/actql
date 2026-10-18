@@ -10,6 +10,7 @@ fn window_timestamp_milliseconds(text : String) -> Double? {
 priv enum WindowTimeReadIssue {
   InvalidWindowTime
   WindowTimeResourceLimit
+  WindowTimePrecisionUnavailable
 }
 
 ///|
@@ -17,6 +18,7 @@ fn window_time_row_issue(issue : WindowTimeReadIssue, row : Int) -> RowIssue {
   match issue {
     InvalidWindowTime => WindowTime(row)
     WindowTimeResourceLimit => RowLimit
+    WindowTimePrecisionUnavailable => TemporalPrecisionUnavailable
   }
 }
 
@@ -35,7 +37,12 @@ fn window_time_milliseconds(
     }
     match window_timestamp_milliseconds(text) {
       Some(value) => Ok(value)
-      None => Err(InvalidWindowTime)
+      None =>
+        if @admitted.timestamp_instant(text) is Some(_) {
+          Err(WindowTimePrecisionUnavailable)
+        } else {
+          Err(InvalidWindowTime)
+        }
     }
   } else {
     match value {
