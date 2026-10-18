@@ -90,12 +90,41 @@ extern "C" fn initialize_owned_database_ffi(
 
 ///|
 #borrow(library, path)
+extern "C" fn open_existing_journal_database_ffi(
+  library : Library,
+  path : Bytes,
+  length : Int,
+  max_body_bytes : Int64,
+) -> Database = "actql_native_sqlite_open_existing_journal_database"
+
+///|
+#borrow(library, path)
+extern "C" fn initialize_owned_journal_database_ffi(
+  library : Library,
+  path : Bytes,
+  length : Int,
+  device : UInt64,
+  inode : UInt64,
+  max_body_bytes : Int64,
+) -> Database = "actql_native_sqlite_initialize_owned_journal_database"
+
+///|
+#borrow(library, path)
 extern "C" fn open_inspection_database_ffi(
   library : Library,
   path : Bytes,
   length : Int,
   max_body_bytes : Int64,
 ) -> Database = "actql_native_sqlite_open_inspection_database"
+
+///|
+#borrow(library, path)
+extern "C" fn open_journal_inspection_database_ffi(
+  library : Library,
+  path : Bytes,
+  length : Int,
+  max_body_bytes : Int64,
+) -> Database = "actql_native_sqlite_open_journal_inspection_database"
 
 ///|
 #borrow(database)
@@ -647,6 +676,56 @@ pub fn Library::open_existing_database_with_custody(
 }
 
 ///|
+/// Selected original adoption Journal only. Its caller retains the same
+/// Session/Lock and resource supplier. This restriction supplies neither.
+/// The matching component must confirm actual heap-backed exclusive WAL;
+/// generic existing-only opens retain their previous behavior.
+pub fn Library::open_existing_journal_database_with_custody(
+  self : Library,
+  path : String,
+  max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  if max_body_bytes < 0L {
+    return Err({ original_issue: InvalidLimit, database: None, })
+  }
+  let encoded = @utf8.encode(path)
+  sqlite_open_result_with_custody(
+    open_existing_journal_database_ffi(
+      self,
+      encoded,
+      encoded.length(),
+      max_body_bytes,
+    ),
+  )
+}
+
+///|
+/// Same Journal restriction for the exact exclusively created empty file.
+/// Failed selection retains original open/cleanup custody without NORMAL,
+/// stock-library, missing-file or schema-repair fallback.
+pub fn Library::initialize_owned_journal_database_with_custody(
+  self : Library,
+  path : String,
+  ownership : @filesystem.NativeFileOwnership,
+  max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  if max_body_bytes < 0L {
+    return Err({ original_issue: InvalidLimit, database: None, })
+  }
+  let encoded = @utf8.encode(path)
+  sqlite_open_result_with_custody(
+    initialize_owned_journal_database_ffi(
+      self,
+      encoded,
+      encoded.length(),
+      ownership.device,
+      ownership.inode,
+      max_body_bytes,
+    ),
+  )
+}
+
+///|
 /// Initialize only the exact exclusively created empty file. This never opens
 /// with CREATE and never repairs a previously initialized database. Ownership
 /// alone is not authorization; a trusted Host must bind its original durable
@@ -807,6 +886,25 @@ pub fn Library::open_inspection_database(
 ) -> Database {
   let bytes = @utf8.encode(path)
   open_inspection_database_ffi(self, bytes, bytes.length(), max_body_bytes)
+}
+
+///|
+/// Only the original Journal inspection Owner's unique copied DB/WAL and
+/// owned empty SHM. The copy remains read-only and WAL-visible; status checks
+/// the matching component's actual private-index path. This supplies neither
+/// copy ownership nor resources, and never changes generic inspection.
+pub fn Library::open_journal_inspection_database(
+  self : Library,
+  path : String,
+  max_body_bytes : Int64,
+) -> Database {
+  let bytes = @utf8.encode(path)
+  open_journal_inspection_database_ffi(
+    self,
+    bytes,
+    bytes.length(),
+    max_body_bytes,
+  )
 }
 
 ///|

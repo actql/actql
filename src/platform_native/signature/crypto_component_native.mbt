@@ -34,6 +34,22 @@ extern "C" fn crypto_component_library_ffi(
 ) -> Library = "actql_native_crypto_component_library"
 
 ///|
+#borrow(component, library)
+extern "C" fn crypto_component_owns_library_ffi(
+  component : OriginalCryptoComponent,
+  library : Library,
+) -> Bool = "actql_native_crypto_component_owns_library"
+
+///|
+/// Original association, not readiness or a scope/cleanup acknowledgement.
+pub fn OriginalCryptoComponent::owns_library(
+  self : OriginalCryptoComponent,
+  library : Library,
+) -> Bool {
+  crypto_component_owns_library_ffi(self, library)
+}
+
+///|
 /// Requires the selected scoped runtime and an already admitted original Read
 /// context before dlopen or OpenSSL initialization. Heap bytes select one extent
 /// inside that original holding; they do not supply funding or authority.

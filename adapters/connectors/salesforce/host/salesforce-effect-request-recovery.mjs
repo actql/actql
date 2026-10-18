@@ -8,6 +8,27 @@ const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
 
+// Select original positions in the unchanged whole Preview. Read the caller's
+// length and each selected index once, before invoking any Catalog decoder.
+function selectedMemberIndexes(value, count, maximum, code) {
+  if (!Number.isSafeInteger(maximum) || maximum < 1 ||
+      !Number.isSafeInteger(count) || count < 1 || count > maximum) fail(code);
+  if (value === undefined) return Array.from({length: count}, (_, index) => index);
+  if (!Array.isArray(value)) fail(code);
+  const length = value.length;
+  if (!Number.isSafeInteger(length) || length < 1 || length > count) fail(code);
+  const selected = [];
+  let previous = -1;
+  for (let index = 0; index < length; index++) {
+    const memberIndex = value[index];
+    if (!Number.isSafeInteger(memberIndex) || memberIndex <= previous ||
+        memberIndex >= count) fail(code);
+    selected.push(memberIndex);
+    previous = memberIndex;
+  }
+  return Object.freeze(selected);
+}
+
 // Synchronous, bounded reconstruction only: the caller retains Run, cancellation,
 // current authorization, response custody and physical send responsibilities.
 // Rebuild provider request material from a recovered Preview and exact
@@ -16,7 +37,7 @@ const fail = code => {
 export function recoverPreparedSalesforceSingleRequests({
   moon, previewWire, runIdentityCid, authoringContextCid, members,
   previewLimits, bodyLimits, requestLimits, maxMembers, maxRows,
-  maxIdentityBytes = 4096,
+  maxIdentityBytes = 4096, memberIndexes,
 }) {
   const positive = value => Number.isSafeInteger(value) && value > 0;
   if (!moon || typeof previewWire !== 'string' ||
@@ -52,11 +73,14 @@ export function recoverPreparedSalesforceSingleRequests({
     previewWire, runIdentityCid, authoringContextCid,
     previewLimits.maxWireBytes, previewLimits.maxNodes,
     previewLimits.maxDepth));
-  if (moon.salesforceRecoveryPreviewMemberCount(preview) !==
-      members.length) {
+  const selected = selectedMemberIndexes(memberIndexes,
+    moon.salesforceRecoveryPreviewMemberCount(preview), maxMembers,
+    'InvalidSalesforcePreparedRequestRecovery');
+  if (selected.length !== members.length) {
     fail('InvalidSalesforcePreparedRequestRecovery');
   }
-  const requests = members.map((member, memberIndex) => {
+  const requests = members.map((member, selectedIndex) => {
+    const memberIndex = selected[selectedIndex];
     if (moon.salesforceRecoveryPreviewRowCount(preview, memberIndex) !==
         member.claims.length) {
       fail('InvalidSalesforcePreparedRequestRecovery');
@@ -86,11 +110,13 @@ export function recoverPreparedSalesforceSingleRequests({
 export function recoverCapturedSalesforceSingleRequests({
   moon, recovered, recorded, previewWire, runIdentityCid,
   authoringContextCid, previewLimits, bodyLimits, requestLimits,
-  maxMembers, maxRows, maxRetainedBytes,
+  maxMembers, maxRows, maxRetainedBytes, memberIndexes,
 }) {
   if (!Array.isArray(recovered?.connectorRecovery) ||
       !Array.isArray(recorded?.members) ||
-      recovered.connectorRecovery.length !== recorded.members.length ||
+      (memberIndexes === undefined &&
+        recovered.connectorRecovery.length !== recorded.members.length) ||
+      recovered.connectorRecovery.length > maxMembers ||
       typeof previewWire !== 'string' ||
       !Number.isSafeInteger(maxRetainedBytes) ||
       maxRetainedBytes < 1) {
@@ -103,9 +129,26 @@ export function recoverCapturedSalesforceSingleRequests({
       previewBody.effects.length !== recorded.members.length) {
     fail('InvalidSalesforceCapturedRequestRecovery');
   }
+  const selected = selectedMemberIndexes(memberIndexes,
+    recorded.members.length, maxMembers, 'InvalidSalesforceCapturedRequestRecovery');
+  const retainedByIndex = new Map();
+  let originalPosition = 0;
+  for (const entry of recovered.connectorRecovery) {
+    const index = entry?.memberIndex;
+    if (memberIndexes === undefined && index !== originalPosition) {
+      fail('InvalidSalesforceCapturedRequestRecovery');
+    }
+    originalPosition++;
+    if (!Number.isSafeInteger(index) || index < 0 ||
+        index >= recorded.members.length || retainedByIndex.has(index)) {
+      fail('InvalidSalesforceCapturedRequestRecovery');
+    }
+    retainedByIndex.set(index, entry);
+  }
   const catalogs = [];
-  const members = recovered.connectorRecovery.map((entry, memberIndex) => {
-    if (entry.memberIndex !== memberIndex ||
+  const members = selected.map(memberIndex => {
+    const entry = retainedByIndex.get(memberIndex);
+    if (entry?.memberIndex !== memberIndex ||
         !['salesforce-catalog', 'salesforce-named-catalog']
           .includes(entry.kind) ||
         typeof entry.wire !== 'string') {
@@ -162,6 +205,7 @@ export function recoverCapturedSalesforceSingleRequests({
   });
   const result = recoverPreparedSalesforceSingleRequests({moon, previewWire,
     runIdentityCid, authoringContextCid, members,
-    previewLimits, bodyLimits, requestLimits, maxMembers, maxRows});
+    previewLimits, bodyLimits, requestLimits, maxMembers, maxRows,
+    memberIndexes: selected});
   return Object.freeze({...result, catalogs: Object.freeze(catalogs)});
 }

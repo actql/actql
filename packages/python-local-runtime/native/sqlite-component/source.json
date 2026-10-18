@@ -35,12 +35,12 @@
   ],
   "local": {
     "component.c": {
-      "bytes": 10215,
-      "sha256": "e99579788588ea34144f80af8069c0ee08bdc69b835c363387e229a182218eee"
+      "bytes": 15911,
+      "sha256": "abdb1663e676ff570aaec2405484b2ba15288afc804c433e74384c18fb905d17"
     },
     "component.h": {
-      "bytes": 1628,
-      "sha256": "7adee8a4f85828a0bcc81f9a8c666fd82bfa035bbb0cfc7358367d44aca3609d"
+      "bytes": 2331,
+      "sha256": "1e525d67d9ce4f3b4884b24808b1a2fb5e365ee498a9ae96ce2f226e417a83f2"
     },
     "NOTICE": {
       "bytes": 545,

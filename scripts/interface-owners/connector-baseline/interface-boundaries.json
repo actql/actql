@@ -5986,7 +5986,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e7204de10bf9d434bdfc7dcfb33a4d8fa2b3a8203af7bf637ec61a12d4beba3c",
+      "sha256": "d5a3f8b89b6902be8cb0e266fc2a863268ef4bbbb8da09e8d394e855b5e5021c",
       "role": "connector-semantics",
       "owner": "Published stable repository identity and installed Issue Source; Host RowSource owns capture and disclosure",
       "exports": [
@@ -6227,6 +6227,10 @@
               {
                 "path": "adapters/connectors/github/host/installed-github-source.mjs",
                 "anchor": "provider-neutral row source"
+              },
+              {
+                "path": "src/connectors/github/source-views.json",
+                "anchor": "pull_requests"
               }
             ],
             "inputsOutputs": [
@@ -6293,6 +6297,10 @@
               {
                 "path": "adapters/host-node/connector-configuration-bounds.test.mjs",
                 "anchor": "GitHub Source and Effect identity"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-milestone-declaration.test.mjs",
+                "anchor": "the PullRequest declaration keeps native read types and an inapplicable nullable reason"
               }
             ]
           }
@@ -6611,13 +6619,14 @@
     {
       "module": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3e0be725fcc730f52925d47996086db9c1fa8dbcf498b7f9169e261ea17da640",
+      "sha256": "ca9247b29067477b2b999bad1c840a3f7d14a7445c4a46b1958d6833197b16fd",
       "role": "physical-io",
       "owner": "Stable-node GraphQL Issue pagination; provider MoonBit fixes query, variables, projection and refusal",
       "exports": [
         "GITHUB_GRAPHQL_PATH",
         "GITHUB_GRAPHQL_READ_OPERATION",
-        "readGitHubIssuesByNode"
+        "readGitHubIssuesByNode",
+        "readGitHubPullRequestsByNode"
       ],
       "operations": [
         {
@@ -6666,6 +6675,20 @@
         {
           "name": "readGitHubIssuesByNode",
           "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "readGitHubPullRequestsByNode",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "readGitHubRowsByNode",
+          "parameters": [
             "moon",
             "repository",
             "filters",
@@ -6676,59 +6699,60 @@
             "chargePage",
             "consumeObservation",
             "consumePage",
-            "signal"
+            "signal",
+            "pullRequests"
           ],
           "async": true
         },
         {
-          "name": "readGitHubIssuesByNode/checkPrefix/checkPrefix",
+          "name": "readGitHubRowsByNode/checkPrefix/checkPrefix",
           "parameters": [],
           "async": false
         },
         {
-          "name": "readGitHubIssuesByNode/checkPrefix/checkPrefix/checkPrefix",
+          "name": "readGitHubRowsByNode/checkPrefix/checkPrefix/checkPrefix",
           "parameters": [
             "facts"
           ],
           "async": false
         },
         {
-          "name": "readGitHubIssuesByNode/decoded/decoded",
+          "name": "readGitHubRowsByNode/decoded/decoded",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "readGitHubIssuesByNode/exchange/exchange",
+          "name": "readGitHubRowsByNode/exchange/exchange",
           "parameters": [
             "body"
           ],
           "async": true
         },
         {
-          "name": "readGitHubIssuesByNode/exchange/exchange/facts/facts",
+          "name": "readGitHubRowsByNode/exchange/exchange/facts/facts",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "readGitHubIssuesByNode/exchange/exchange/facts/facts/facts",
+          "name": "readGitHubRowsByNode/exchange/exchange/facts/facts/facts",
           "parameters": [
             "previous"
           ],
           "async": false
         },
         {
-          "name": "readGitHubIssuesByNode/readGitHubIssuesByNode",
+          "name": "readGitHubRowsByNode/readGitHubRowsByNode",
           "parameters": [
-            "name"
+            "value"
           ],
           "async": false
         },
         {
-          "name": "readGitHubIssuesByNode/stopped/stopped",
+          "name": "readGitHubRowsByNode/stopped/stopped",
           "parameters": [
             "code",
             "details"
@@ -6747,25 +6771,32 @@
             "pairs/pairs/pairs",
             "pairs/pairs/pairs#2",
             "readGitHubIssuesByNode",
-            "readGitHubIssuesByNode/checkPrefix/checkPrefix",
-            "readGitHubIssuesByNode/checkPrefix/checkPrefix/checkPrefix",
-            "readGitHubIssuesByNode/decoded/decoded",
-            "readGitHubIssuesByNode/exchange/exchange",
-            "readGitHubIssuesByNode/exchange/exchange/facts/facts",
-            "readGitHubIssuesByNode/exchange/exchange/facts/facts/facts",
-            "readGitHubIssuesByNode/readGitHubIssuesByNode",
-            "readGitHubIssuesByNode/stopped/stopped"
+            "readGitHubPullRequestsByNode",
+            "readGitHubRowsByNode",
+            "readGitHubRowsByNode/checkPrefix/checkPrefix",
+            "readGitHubRowsByNode/checkPrefix/checkPrefix/checkPrefix",
+            "readGitHubRowsByNode/decoded/decoded",
+            "readGitHubRowsByNode/exchange/exchange",
+            "readGitHubRowsByNode/exchange/exchange/facts/facts",
+            "readGitHubRowsByNode/exchange/exchange/facts/facts/facts",
+            "readGitHubRowsByNode/readGitHubRowsByNode",
+            "readGitHubRowsByNode/stopped/stopped"
           ],
           "exports": [
             "GITHUB_GRAPHQL_PATH",
             "GITHUB_GRAPHQL_READ_OPERATION",
-            "readGitHubIssuesByNode"
+            "readGitHubIssuesByNode",
+            "readGitHubPullRequestsByNode"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "src/connectors/github/catalog/issue_fields.mbt",
                 "anchor": "begin_issue_page_read"
+              },
+              {
+                "path": "src/connectors/github/catalog/pull_requests.mbt",
+                "anchor": "begin_pull_request_page_read"
               }
             ],
             "inputsOutputs": [
@@ -6868,6 +6899,10 @@
               {
                 "path": "adapters/connectors/github/test/github-issue-graphql-read.test.mjs",
                 "anchor": "native label snapshot validates the single captured value"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-pull-request-read.test.mjs",
+                "anchor": "original PullRequest pages complete through actual Credential uses and one accounted RowRun"
               }
             ]
           }
@@ -9516,337 +9551,6 @@
       "unresolvedSyntax": []
     },
     {
-      "module": "adapters/connectors/salesforce/host/salesforce-effect-write.mjs",
-      "responsibilityFacet": "primary",
-      "sha256": "bb20b04e63fbaabd1a1f2ee2da1c6306786ffbff43ce987c697b36aa12dab888",
-      "role": "connector-semantics",
-      "owner": "Salesforce legacy response capture and settlement adapters; ordinary installed execution uses the shared Row Effect owner",
-      "exports": [
-        "captureClaimedSalesforceSingleResponse",
-        "captureSalesforceCollectionEffectWrite",
-        "captureSalesforceSingleEffectWrite",
-        "reconcileStoredSalesforceSingleEffectWrite",
-        "recoverStoredSalesforceCollectionResponse",
-        "recoverStoredSalesforceSingleResponse"
-      ],
-      "operations": [
-        {
-          "name": "admitSalesforceSingleEffectRow/admitSalesforceSingleEffectRow",
-          "parameters": [
-            "commonMoon",
-            "admittedPreview",
-            "memberIndex",
-            "rowIndex",
-            "rowPreviewCid",
-            "claim",
-            "moon",
-            "request",
-            "maxRequestIdentityBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureClaimedSalesforceSingleResponse",
-          "parameters": [
-            "ledger",
-            "claim",
-            "moon",
-            "request",
-            "currentObservation",
-            "authorization",
-            "credential",
-            "limits",
-            "signal",
-            "maxRequestIdentityBytes",
-            "callResource"
-          ],
-          "async": true
-        },
-        {
-          "name": "captureClaimedSalesforceSingleResponse/captured/captured",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "captureClaimedSalesforceSingleResponse/captured/captured#2",
-          "parameters": [
-            "stored"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureSalesforceCollectionEffectWrite",
-          "parameters": [
-            "ledger",
-            "claims",
-            "admittedPreview",
-            "memberIndex",
-            "firstRow",
-            "commonMoon",
-            "moon",
-            "request",
-            "currentObservation",
-            "authorization",
-            "credential",
-            "limits",
-            "signal",
-            "maxRequestIdentityBytes",
-            "maxBindingWork",
-            "authorizeEvidenceRead",
-            "callResource"
-          ],
-          "async": true
-        },
-        {
-          "name": "captureSalesforceCollectionEffectWrite/captured/captured",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "captureSalesforceCollectionEffectWrite/captured/captured#2",
-          "parameters": [
-            "stored"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureSalesforceCollectionEffectWrite/captureSalesforceCollectionEffectWrite",
-          "parameters": [
-            "claim"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureSalesforceCollectionEffectWrite/captureSalesforceCollectionEffectWrite#2",
-          "parameters": [
-            "claim"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureSalesforceCollectionEffectWrite/rowCids/rowCids",
-          "parameters": [
-            "_",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureSalesforceSingleEffectWrite",
-          "parameters": [
-            "commonMoon",
-            "admittedPreview",
-            "memberIndex",
-            "rowIndex",
-            "rowPreviewCid",
-            "claim",
-            "moon",
-            "request",
-            "authorizeEvidenceRead",
-            "physical"
-          ],
-          "async": true
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "reconcileStoredSalesforceSingleEffectWrite",
-          "parameters": [
-            "ledger",
-            "commonMoon",
-            "admittedPreview",
-            "memberIndex",
-            "rowIndex",
-            "rowPreviewCid",
-            "claim",
-            "moon",
-            "request",
-            "resourceOrigin",
-            "authorizeEvidenceRead",
-            "limits",
-            "maxRequestIdentityBytes"
-          ],
-          "async": true
-        },
-        {
-          "name": "recoverStoredSalesforceCollectionResponse",
-          "parameters": [
-            "ledger",
-            "claims",
-            "commonMoon",
-            "moon",
-            "request",
-            "resourceOrigin",
-            "authorizeEvidenceRead",
-            "limits",
-            "maxRequestIdentityBytes"
-          ],
-          "async": true
-        },
-        {
-          "name": "recoverStoredSalesforceCollectionResponse/recoverStoredSalesforceCollectionResponse",
-          "parameters": [
-            "stored"
-          ],
-          "async": false
-        },
-        {
-          "name": "recoverStoredSalesforceSingleResponse",
-          "parameters": [
-            "ledger",
-            "claim",
-            "commonMoon",
-            "moon",
-            "request",
-            "resourceOrigin",
-            "authorizeEvidenceRead",
-            "limits",
-            "maxRequestIdentityBytes"
-          ],
-          "async": true
-        },
-        {
-          "name": "recoverStoredSalesforceSingleResponse/recoverStoredSalesforceSingleResponse",
-          "parameters": [
-            "stored"
-          ],
-          "async": false
-        },
-        {
-          "name": "settleSalesforceSingleEffectResponse/settleSalesforceSingleEffectResponse",
-          "parameters": [
-            "ledger",
-            "claim",
-            "admittedPreview",
-            "memberIndex",
-            "rowIndex",
-            "moon",
-            "request",
-            "observed",
-            "limits",
-            "maxRequestIdentityBytes"
-          ],
-          "async": false
-        }
-      ],
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "admitSalesforceSingleEffectRow/admitSalesforceSingleEffectRow",
-            "captureClaimedSalesforceSingleResponse",
-            "captureClaimedSalesforceSingleResponse/captured/captured",
-            "captureClaimedSalesforceSingleResponse/captured/captured#2",
-            "captureSalesforceCollectionEffectWrite",
-            "captureSalesforceCollectionEffectWrite/captured/captured",
-            "captureSalesforceCollectionEffectWrite/captured/captured#2",
-            "captureSalesforceCollectionEffectWrite/captureSalesforceCollectionEffectWrite",
-            "captureSalesforceCollectionEffectWrite/captureSalesforceCollectionEffectWrite#2",
-            "captureSalesforceCollectionEffectWrite/rowCids/rowCids",
-            "captureSalesforceSingleEffectWrite",
-            "fail/fail",
-            "reconcileStoredSalesforceSingleEffectWrite",
-            "recoverStoredSalesforceCollectionResponse",
-            "recoverStoredSalesforceCollectionResponse/recoverStoredSalesforceCollectionResponse",
-            "recoverStoredSalesforceSingleResponse",
-            "recoverStoredSalesforceSingleResponse/recoverStoredSalesforceSingleResponse",
-            "settleSalesforceSingleEffectResponse/settleSalesforceSingleEffectResponse"
-          ],
-          "exports": [
-            "captureClaimedSalesforceSingleResponse",
-            "captureSalesforceCollectionEffectWrite",
-            "captureSalesforceSingleEffectWrite",
-            "reconcileStoredSalesforceSingleEffectWrite",
-            "recoverStoredSalesforceCollectionResponse",
-            "recoverStoredSalesforceSingleResponse"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/connectors/salesforce/host/salesforce-effect-write.mjs",
-                "anchor": "Bind one physical REST request to the admitted member and row"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/connectors/salesforce/host/salesforce-effect-write.mjs",
-                "anchor": "captureSalesforceSingleEffectWrite"
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/connectors/salesforce/catalog/write_request.mbt",
-                "anchor": "recover_single_write_request"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
-                "anchor": "snapshotEffectDispatchClaim"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/connectors/salesforce/host/salesforce-effect-write.mjs",
-                "anchor": "captureClaimedEffectResponse"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/connectors/salesforce/host/salesforce-effect-write.mjs",
-                "anchor": "ForeignSalesforceEffectWrite"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/connectors/salesforce/host/salesforce-effect-write.mjs",
-                "anchor": "signal"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/connectors/salesforce/host/salesforce-effect-write.mjs",
-                "anchor": "maxResponseBytes"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/salesforce-write-capability.md",
-                "anchor": "## Recovery"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/connectors/salesforce/test/salesforce-catalog-sync.test.mjs",
-                "anchor": "lost HTTPS reply remains uncertain across Effect ledger restart"
-              },
-              {
-                "path": "adapters/connectors/salesforce/test/installed-salesforce-effect.test.mjs",
-                "anchor": "test("
-              }
-            ]
-          }
-        }
-      ],
-      "imports": [
-        "../../../host-common/owned-invocation-context.mjs",
-        "../../../host-common/runtime-core.mjs",
-        "../../../host-common/runtime-result.mjs",
-        "../../../host-node/effect-physical-dispatch.mjs",
-        "../../../host-node/effect-response-recovery.mjs",
-        "../site/salesforce-collection-write.mjs",
-        "../site/salesforce-credential-binding.mjs",
-        "../site/salesforce-single-write.mjs"
-      ],
-      "compilerFields": [],
-      "unresolvedSyntax": []
-    },
-    {
       "module": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
       "responsibilityFacet": "primary",
       "sha256": "f5841347349bdba10bd3761d906a7030e59ec15e78424571cb3a4bfe77e47a5f",
@@ -11619,7 +11323,11 @@
             "verification": [
               {
                 "path": "adapters/connectors/salesforce/test/salesforce-catalog-sync.test.mjs",
-                "anchor": "lost HTTPS reply remains uncertain across Effect ledger restart"
+                "anchor": "Site Collections do not turn malformed or rejected HTTP into success"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/installed-salesforce-effect-recovery.test.mjs",
+                "anchor": "an unknown row is never resent after a restart"
               }
             ]
           }
@@ -12413,7 +12121,11 @@
             "verification": [
               {
                 "path": "adapters/connectors/salesforce/test/salesforce-catalog-sync.test.mjs",
-                "anchor": "lost HTTPS reply remains uncertain across Effect ledger restart"
+                "anchor": "Site does not promote rejected or malformed writes to Effect success"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/installed-salesforce-effect-recovery.test.mjs",
+                "anchor": "an unknown row is never resent after a restart"
               }
             ]
           }
@@ -12710,7 +12422,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "58e0e95f5916971419de92d2318f24271df168b5702dde657e2be5d7be2517d3",
+      "sha256": "577c474e65590438976541050e7108ad71e20f91d72c23a9a024dd5767a075f5",
       "role": "connector-semantics",
       "owner": "Salesforce bounded retained Catalog and exact prepared request recovery; no restored current, credential, dispatch or response authority",
       "exports": [
@@ -12739,14 +12451,14 @@
             "requestLimits",
             "maxMembers",
             "maxRows",
-            "maxRetainedBytes"
+            "maxRetainedBytes",
+            "memberIndexes"
           ],
           "async": false
         },
         {
           "name": "recoverCapturedSalesforceSingleRequests/members/members",
           "parameters": [
-            "entry",
             "memberIndex"
           ],
           "async": false
@@ -12771,7 +12483,8 @@
             "requestLimits",
             "maxMembers",
             "maxRows",
-            "maxIdentityBytes"
+            "maxIdentityBytes",
+            "memberIndexes"
           ],
           "async": false
         },
@@ -12786,7 +12499,7 @@
           "name": "recoverPreparedSalesforceSingleRequests/requests/requests",
           "parameters": [
             "member",
-            "memberIndex"
+            "selectedIndex"
           ],
           "async": false
         },
@@ -12795,6 +12508,24 @@
           "parameters": [
             "claim",
             "rowIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectedMemberIndexes",
+          "parameters": [
+            "value",
+            "count",
+            "maximum",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectedMemberIndexes/selectedMemberIndexes",
+          "parameters": [
+            "_",
+            "index"
           ],
           "async": false
         }
@@ -12810,7 +12541,9 @@
             "recoverPreparedSalesforceSingleRequests",
             "recoverPreparedSalesforceSingleRequests/positive/positive",
             "recoverPreparedSalesforceSingleRequests/requests/requests",
-            "recoverPreparedSalesforceSingleRequests/requests/requests/requests"
+            "recoverPreparedSalesforceSingleRequests/requests/requests/requests",
+            "selectedMemberIndexes",
+            "selectedMemberIndexes/selectedMemberIndexes"
           ],
           "exports": [
             "recoverCapturedSalesforceSingleRequests",
@@ -12821,54 +12554,90 @@
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
                 "anchor": "does not restore apply or credential authority"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Responsibility: the existing installed Row Effect routes recovery"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
                 "anchor": "recoverCapturedSalesforceSingleRequests"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Inputs and outputs: optional `recoverMemberRequests` receives"
               }
             ],
             "identity": [
               {
                 "path": "src/connectors/salesforce/catalog/write_request.mbt",
                 "anchor": "recover_single_write_request"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Identity: each selected position belongs"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
                 "anchor": "the caller retains Run, cancellation"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Ownership: original installations retain their Sites"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
                 "anchor": "Synchronous, bounded reconstruction only"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Synchronization: reconstruction is synchronous"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
                 "anchor": "InvalidSalesforceCapturedRequestRecovery"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Failure: missing scoped recovery support"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
                 "anchor": "current authorization, response custody and physical send responsibilities"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Cancellation: successful reconstruction neither cancels"
               }
             ],
             "resources": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
                 "anchor": "maxRetainedBytes"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Resources: selection is bounded"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/salesforce-write-capability.md",
                 "anchor": "## Recovery"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Extension: this composition profile remains"
               }
             ],
             "verification": [
@@ -12879,6 +12648,10 @@
               {
                 "path": "adapters/connectors/salesforce/test/installed-execution-closure.test.mjs",
                 "anchor": "ordinary Salesforce installation uses only shared Effect execution and vendor request recovery"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Verification: `installed-composed-recovery.integration.test.mjs` exercises"
               }
             ]
           }

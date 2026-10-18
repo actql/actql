@@ -30,7 +30,7 @@ import {invokeScopedCredentialOperation} from
   '../../../host-common/owned-invocation-context.mjs';
 import {githubIssueListPath} from '../site/github-issue-read.mjs';
 import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION,
-  readGitHubIssuesByNode} from '../site/github-issue-graphql-read.mjs';
+  readGitHubIssuesByNode, readGitHubPullRequestsByNode} from '../site/github-issue-graphql-read.mjs';
 
 export const INSTALLED_GITHUB_SOURCE_VERSION =
   'actql-installed-github-source/0.1';
@@ -308,8 +308,10 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
       limits: rowLimits,
       readPages: async ({resource, authorizationFor, chargePage, consumeObservation, consumePage,
         signal}) => {
-        if (resource !== 'issues') fail('UndeclaredGitHubResource');
-        return readGitHubIssuesByNode({moon: providerMoon,
+        const read = resource === 'issues' ? readGitHubIssuesByNode
+          : resource === 'pull_requests' ? readGitHubPullRequestsByNode : undefined;
+        if (read === undefined) fail('UndeclaredGitHubResource');
+        return read({moon: providerMoon,
           repository: {nodeId: publication.repository.node_id,
             databaseId: publication.repository.id,
             nameWithOwner: `${site.owner}/${site.repo}`},

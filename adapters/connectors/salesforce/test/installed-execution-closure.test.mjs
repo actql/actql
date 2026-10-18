@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import {existsSync} from 'node:fs';
+import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {adapterModuleGraph} from '../../../../scripts/adapter-module-graph.mjs';
@@ -23,6 +25,7 @@ test('ordinary Salesforce installation uses only shared Effect execution and ven
   for (const name of ['preview', 'current-use', 'dispatch', 'route', 'write']) {
     const path = `${host}salesforce-effect-${name}.mjs`;
     assert.ok(!graph.includes(path), `Parallel execution is reachable: ${path}`);
+    assert.equal(existsSync(join(root, path)), false, `Retired execution remains: ${path}`);
   }
   const installation = installedConnectors.find(entry => entry.registration === 'salesforce');
   assert.ok(installation);
