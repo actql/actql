@@ -1,0 +1,105 @@
+#define _DARWIN_C_SOURCE
+#include "component.h"
+#include "owned_capacity.h"
+#include <openssl/evp.h>
+#include <openssl/crypto.h>
+#include <assert.h>
+#include <dlfcn.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+extern int actql_read_context_create(actql_owned_capacity *, actql_read_context **);
+extern int actql_read_context_enter(actql_read_context *);
+extern int actql_read_context_leave(actql_read_context *);
+extern int actql_read_context_try_close(actql_read_context **);
+
+#define GET(type, name) type name = (type)actql_crypto_component_symbol(#name); assert(name)
+typedef EVP_MD_CTX *(*md_new_fn)(void);
+typedef void (*md_free_fn)(EVP_MD_CTX *);
+typedef const EVP_MD *(*sha_fn)(void);
+typedef int (*init_fn)(EVP_MD_CTX *, const EVP_MD *, ENGINE *);
+typedef int (*update_fn)(EVP_MD_CTX *, const void *, size_t);
+typedef int (*finish_fn)(EVP_MD_CTX *, unsigned char *, unsigned int *);
+typedef EVP_PKEY_CTX *(*key_context_fn)(int, ENGINE *);
+typedef int (*key_init_fn)(EVP_PKEY_CTX *);
+typedef int (*keygen_fn)(EVP_PKEY_CTX *, EVP_PKEY **);
+typedef void (*key_context_free_fn)(EVP_PKEY_CTX *);
+typedef void (*key_free_fn)(EVP_PKEY *);
+typedef int (*der_fn)(const EVP_PKEY *, unsigned char **);
+typedef void (*memory_functions_fn)(CRYPTO_malloc_fn *, CRYPTO_realloc_fn *, CRYPTO_free_fn *);
+
+int main(int argc, char **argv) {
+    assert(argc == 3);
+    const char *name = argv[1];
+    void *system = dlopen(argv[2], RTLD_NOW | RTLD_LOCAL); assert(system);
+    memory_functions_fn system_memory = (memory_functions_fn)dlsym(system, "CRYPTO_get_mem_functions");
+    assert(system_memory);
+    CRYPTO_malloc_fn before_malloc, after_malloc; CRYPTO_realloc_fn before_realloc, after_realloc;
+    CRYPTO_free_fn before_free, after_free;
+    system_memory(&before_malloc, &before_realloc, &before_free);
+    const unsigned char recipe[32] = {17};
+    actql_owned_capacity *lease = NULL; actql_read_context *context = NULL;
+    size_t page = (size_t)sysconf(_SC_PAGESIZE);
+    assert(actql_native_owned_acquire(64 * page, 1, recipe, &lease) == 0);
+    assert(actql_native_owned_transfer(lease, 1, recipe) == 0);
+    assert(actql_native_owned_enter(lease) == 0);
+    assert(actql_read_context_create(lease, &context) == 0);
+    assert(actql_read_context_enter(context) == 0);
+    if (!strcmp(name, "missing-current")) {
+        assert(actql_read_context_leave(context) == 0);
+        assert(actql_crypto_component_bind(context, 32 * page) == ACTQL_CRYPTO_COMPONENT_INVALID);
+        assert(actql_read_context_enter(context) == 0);
+    }
+    int bound = actql_crypto_component_bind(context,
+        !strcmp(name, "initialization-exhaustion") ? 4096 : 32 * page);
+    if (!strcmp(name, "initialization-exhaustion")) {
+        assert(bound == ACTQL_CRYPTO_COMPONENT_FAILED);
+        assert(actql_crypto_component_bind(context, 32 * page) == ACTQL_CRYPTO_COMPONENT_INVALID);
+        assert(actql_crypto_component_close() == 0);
+    } else {
+        assert(bound == 0);
+        uint64_t baseline[12] = {0}, held[12] = {0};
+        assert(actql_crypto_component_inventory(baseline) == 0);
+        assert(baseline[0] == 32 * page && baseline[3] > 0);
+        assert(baseline[2] + baseline[5] + baseline[6] == baseline[0]);
+        assert(actql_crypto_component_enter(context) == 0);
+        assert(actql_crypto_component_borrow_library() == 0);
+        assert(actql_crypto_component_close() == ACTQL_CRYPTO_COMPONENT_BUSY);
+        assert(actql_crypto_component_symbol("malloc") == NULL);
+        GET(md_new_fn, EVP_MD_CTX_new); GET(md_free_fn, EVP_MD_CTX_free);
+        GET(sha_fn, EVP_sha256); GET(init_fn, EVP_DigestInit_ex);
+        GET(update_fn, EVP_DigestUpdate); GET(finish_fn, EVP_DigestFinal_ex);
+        EVP_MD_CTX *md = EVP_MD_CTX_new(); assert(md);
+        assert(EVP_DigestInit_ex(md, EVP_sha256(), NULL) == 1);
+        assert(EVP_DigestUpdate(md, "abc", 3) == 1);
+        unsigned char digest[32]; unsigned int size = 0;
+        assert(EVP_DigestFinal_ex(md, digest, &size) == 1 && size == 32);
+        const unsigned char expected[32] = {0xba,0x78,0x16,0xbf,0x8f,0x01,0xcf,0xea,
+            0x41,0x41,0x40,0xde,0x5d,0xae,0x22,0x23,0xb0,0x03,0x61,0xa3,0x96,0x17,
+            0x7a,0x9c,0xb4,0x10,0xff,0x61,0xf2,0x00,0x15,0xad};
+        assert(!memcmp(digest, expected, sizeof expected)); EVP_MD_CTX_free(md);
+        GET(key_context_fn, EVP_PKEY_CTX_new_id); GET(key_init_fn, EVP_PKEY_keygen_init);
+        GET(keygen_fn, EVP_PKEY_keygen); GET(key_context_free_fn, EVP_PKEY_CTX_free);
+        GET(key_free_fn, EVP_PKEY_free); GET(der_fn, i2d_PrivateKey); GET(der_fn, i2d_PUBKEY);
+        EVP_PKEY_CTX *key_context = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, NULL); assert(key_context);
+        assert(EVP_PKEY_keygen_init(key_context) == 1);
+        EVP_PKEY *key = NULL; assert(EVP_PKEY_keygen(key_context, &key) == 1 && key);
+        unsigned char private_der[48], public_der[44], *priv = private_der, *pub = public_der;
+        assert(i2d_PrivateKey(key, &priv) == 48 && i2d_PUBKEY(key, &pub) == 44);
+        memset(private_der, 0, sizeof private_der);
+        assert(actql_crypto_component_inventory(held) == 0 && held[3] > baseline[3]);
+        EVP_PKEY_free(key); EVP_PKEY_CTX_free(key_context);
+        assert(actql_crypto_component_leave(context) == 0);
+        assert(actql_crypto_component_release_library() == 0);
+        assert(actql_crypto_component_close() == 0);
+        assert(actql_crypto_component_bind(context, 32 * page) == ACTQL_CRYPTO_COMPONENT_INVALID);
+    }
+    system_memory(&after_malloc, &after_realloc, &after_free);
+    assert(before_malloc == after_malloc && before_realloc == after_realloc && before_free == after_free);
+    assert(actql_read_context_leave(context) == 0);
+    assert(actql_native_owned_leave(lease) == 0);
+    assert(actql_read_context_try_close(&context) == 0 && !context);
+    assert(actql_native_owned_try_close(&lease) == 0 && !lease);
+    assert(dlclose(system) == 0);
+    printf("{\"case\":\"%s\",\"pass\":true,\"private_host_pages\":64,\"normal_funding\":false}\n", name);
+}

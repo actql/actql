@@ -1,0 +1,252 @@
+#define _DARWIN_C_SOURCE
+#include "component.h"
+#include "owned_capacity.h"
+#include <openssl/crypto.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <openssl/err.h>
+#include <openssl/provider.h>
+#include <dlfcn.h>
+#include <stdalign.h>
+#include <stdatomic.h>
+#include <stdint.h>
+#include <string.h>
+#include <unistd.h>
+
+extern actql_read_context *actql_bootstrap_current_read_context(void);
+extern int actql_read_context_retain(actql_read_context *);
+extern int actql_read_context_release_after_owner_ack(actql_read_context *);
+
+typedef struct block block;
+struct block {
+    size_t available, requested;
+    block *next;
+    unsigned live;
+};
+typedef struct {
+    actql_owned_capacity *lease;
+    actql_read_context *context;
+    pid_t process;
+    size_t bytes, live_bytes, aligned_bytes, blocks, peak, failures;
+    block *first;
+    atomic_flag lock;
+    unsigned initialized, closing, failed, operations, libraries;
+    OSSL_PROVIDER *default_provider;
+} component_state;
+
+/* The pointer is only an index into the original provider extent. Control,
+ * allocator headers and every block live in that same non-exported extent. */
+static component_state *state;
+static void *original_extent;
+static actql_owned_capacity *original_lease;
+static actql_read_context *original_context;
+static _Atomic int attempted;
+static int cleanup_ack, heap_ack, context_ack, context_retained, hooks_installed;
+static pid_t original_process;
+static const size_t alignment = alignof(max_align_t);
+
+static size_t rounded(size_t n) {
+    if (n > SIZE_MAX - (alignment - 1)) return 0;
+    return (n + alignment - 1) & ~(alignment - 1);
+}
+static size_t header_bytes(void) { return rounded(sizeof(block)); }
+static int current(void) {
+    return state && original_process == getpid() &&
+        actql_native_owned_current() == original_lease &&
+        actql_bootstrap_current_read_context() == original_context;
+}
+static int lock_state(void) {
+    return state && original_process == getpid() &&
+        !atomic_flag_test_and_set_explicit(&state->lock, memory_order_acquire);
+}
+static void unlock_state(void) {
+    atomic_flag_clear_explicit(&state->lock, memory_order_release);
+}
+static void *payload(block *b) { return (unsigned char *)b + header_bytes(); }
+/* Compare only known original block addresses; never dereference caller memory
+ * to classify a foreign pointer, including after a different current scope. */
+static block *find(void *p) {
+    for (block *b = state->first; b; b = b->next)
+        if (payload(b) == p && b->live) return b;
+    return NULL;
+}
+static void *allocate_locked(size_t n) {
+    size_t size = rounded(n);
+    if (!n || !size || !current() || state->closing || state->failed) return NULL;
+    for (block *b = state->first; b; b = b->next) {
+        if (b->live || b->available < size) continue;
+        if (b->available - size >= header_bytes() + alignment) {
+            block *tail = (block *)((unsigned char *)payload(b) + size);
+            *tail = (block){.available = b->available - size - header_bytes(), .next = b->next};
+            b->available = size; b->next = tail;
+        }
+        b->live = 1; b->requested = n;
+        state->live_bytes += n; state->aligned_bytes += b->available; state->blocks++;
+        if (state->aligned_bytes > state->peak) state->peak = state->aligned_bytes;
+        return payload(b);
+    }
+    state->failures++;
+    return NULL;
+}
+static void free_locked(block *b) {
+    state->live_bytes -= b->requested; state->aligned_bytes -= b->available; state->blocks--;
+    OPENSSL_cleanse(payload(b), b->available);
+    b->live = 0; b->requested = 0;
+    for (block *p = state->first; p && p->next;) {
+        if (!p->live && !p->next->live) {
+            p->available += header_bytes() + p->next->available;
+            p->next = p->next->next;
+        } else p = p->next;
+    }
+}
+static void *component_malloc(size_t n, const char *file, int line) {
+    (void)file; (void)line;
+    if (!lock_state()) return NULL;
+    void *result = allocate_locked(n); unlock_state(); return result;
+}
+static void component_free(void *p, const char *file, int line) {
+    (void)file; (void)line;
+    if (!p) return;
+    if (!lock_state()) return; /* A busy/foreign free never reaches stock free. */
+    block *b = find(p);
+    if (b) free_locked(b); else {state->failed = 1; state->failures++;}
+    unlock_state();
+}
+static void *component_realloc(void *p, size_t n, const char *file, int line) {
+    (void)file; (void)line;
+    if (!p) return component_malloc(n, file, line);
+    if (!lock_state()) return NULL;
+    block *b = find(p);
+    if (!b || !current() || state->closing || state->failed) {
+        if (!b) {state->failed = 1; state->failures++;}
+        unlock_state(); return NULL;
+    }
+    if (!n) {free_locked(b); unlock_state(); return NULL;}
+    /* The new allocation must fit while the old allocation remains live. */
+    void *next = allocate_locked(n);
+    if (next) {memcpy(next, p, n < b->requested ? n : b->requested); free_locked(b);}
+    unlock_state(); return next;
+}
+static int provider_origin(void) {
+    Dl_info original, observed;
+    if (!dladdr((void *)actql_native_owned_current, &original)) return 0;
+    void *ports[] = {(void *)actql_native_owned_allocate, (void *)actql_native_owned_retire,
+        (void *)actql_read_context_retain, (void *)actql_read_context_release_after_owner_ack,
+        (void *)actql_bootstrap_current_read_context};
+    for (size_t i = 0; i < sizeof ports / sizeof ports[0]; i++)
+        if (!dladdr(ports[i], &observed) || observed.dli_fbase != original.dli_fbase) return 0;
+    return 1;
+}
+int actql_crypto_component_bind(actql_read_context *original, size_t bytes) {
+    if (!original || bytes < rounded(sizeof(component_state)) + header_bytes() + alignment ||
+        actql_bootstrap_current_read_context() != original ||
+        !actql_native_owned_current() || !provider_origin()) return ACTQL_CRYPTO_COMPONENT_INVALID;
+    int expected = 0;
+    if (!atomic_compare_exchange_strong(&attempted, &expected, 1)) return ACTQL_CRYPTO_COMPONENT_INVALID;
+    original_process = getpid(); original_lease = actql_native_owned_current();
+    original_context = original;
+    if (actql_read_context_retain(original) != 0) return ACTQL_CRYPTO_COMPONENT_FAILED;
+    context_retained = 1;
+    if (actql_native_owned_allocate(original_lease, bytes, alignment, &original_extent) != 0)
+        return ACTQL_CRYPTO_COMPONENT_FAILED;
+    state = original_extent; memset(state, 0, sizeof(*state));
+    state->lease = original_lease; state->context = original; state->process = original_process;
+    state->bytes = bytes; atomic_flag_clear(&state->lock);
+    state->first = (block *)((unsigned char *)state + rounded(sizeof(*state)));
+    *state->first = (block){.available = bytes - rounded(sizeof(*state)) - header_bytes()};
+    if (CRYPTO_set_mem_functions(component_malloc, component_realloc, component_free) != 1) {
+        state->failed = 1;
+        return ACTQL_CRYPTO_COMPONENT_FAILED;
+    }
+    hooks_installed = 1;
+    /* No ambient configuration, dynamic provider load or atexit cleanup: the
+     * selected private instance and original lifetime remain explicit. */
+    if (OPENSSL_init_crypto(OPENSSL_INIT_NO_LOAD_CONFIG | OPENSSL_INIT_NO_ATEXIT, NULL) != 1)
+        return ACTQL_CRYPTO_COMPONENT_FAILED;
+    state->default_provider = OSSL_PROVIDER_load(NULL, "default");
+    if (!state->default_provider) return ACTQL_CRYPTO_COMPONENT_FAILED;
+    state->initialized = 1;
+    return ACTQL_CRYPTO_COMPONENT_OK;
+}
+int actql_crypto_component_enter(actql_read_context *original) {
+    if (!current() || original != original_context || !lock_state()) return ACTQL_CRYPTO_COMPONENT_INVALID;
+    int ok = state->initialized && !state->closing && !state->failed && !state->operations;
+    if (ok) state->operations = 1;
+    unlock_state(); return ok ? 0 : ACTQL_CRYPTO_COMPONENT_BUSY;
+}
+int actql_crypto_component_leave(actql_read_context *original) {
+    if (!current() || original != original_context || !lock_state()) return ACTQL_CRYPTO_COMPONENT_INVALID;
+    int ok = state->operations == 1;
+    if (ok) state->operations = 0;
+    unlock_state(); return ok ? 0 : ACTQL_CRYPTO_COMPONENT_INVALID;
+}
+int actql_crypto_component_borrow_library(void) {
+    if (!current() || !lock_state()) return ACTQL_CRYPTO_COMPONENT_INVALID;
+    int ok = state->initialized && !state->closing && !state->failed && state->libraries != UINT32_MAX;
+    if (ok) state->libraries++;
+    unlock_state(); return ok ? 0 : ACTQL_CRYPTO_COMPONENT_BUSY;
+}
+int actql_crypto_component_release_library(void) {
+    if (!state || original_process != getpid() || !lock_state()) return ACTQL_CRYPTO_COMPONENT_INVALID;
+    int ok = state->libraries != 0 && !state->operations;
+    if (ok) state->libraries--;
+    unlock_state(); return ok ? 0 : ACTQL_CRYPTO_COMPONENT_BUSY;
+}
+void *actql_crypto_component_symbol(const char *name) {
+    if (!name || !current() || !state->libraries || state->closing || !state->operations)
+        return NULL;
+#define SYMBOL(value) if (!strcmp(name, #value)) return (void *)value
+    SYMBOL(BIO_new_mem_buf); SYMBOL(BIO_free); SYMBOL(PEM_read_bio_PUBKEY);
+    SYMBOL(PEM_read_bio_PrivateKey); SYMBOL(EVP_PKEY_free); SYMBOL(EVP_PKEY_get_base_id);
+    SYMBOL(EVP_PKEY_get_raw_public_key); SYMBOL(EVP_MD_CTX_new); SYMBOL(EVP_MD_CTX_free);
+    SYMBOL(EVP_DigestVerifyInit); SYMBOL(EVP_DigestVerify); SYMBOL(EVP_sha256);
+    SYMBOL(EVP_DigestInit_ex); SYMBOL(EVP_DigestUpdate); SYMBOL(EVP_DigestFinal_ex);
+    SYMBOL(EVP_DigestSignInit); SYMBOL(EVP_DigestSign); SYMBOL(ERR_get_error);
+    SYMBOL(ERR_error_string_n); SYMBOL(EVP_PKEY_CTX_new_id); SYMBOL(EVP_PKEY_CTX_free);
+    SYMBOL(EVP_PKEY_keygen_init); SYMBOL(EVP_PKEY_keygen); SYMBOL(i2d_PrivateKey);
+    SYMBOL(i2d_PUBKEY); SYMBOL(PEM_write_bio_PrivateKey); SYMBOL(PEM_write_bio_PUBKEY);
+    SYMBOL(BIO_s_mem); SYMBOL(BIO_new); SYMBOL(BIO_ctrl); SYMBOL(BIO_read);
+#undef SYMBOL
+    return NULL;
+}
+int actql_crypto_component_inventory(uint64_t out[12]) {
+    if (!out || !lock_state()) return ACTQL_CRYPTO_COMPONENT_INVALID;
+    size_t headers = rounded(sizeof(*state)), free_bytes = 0;
+    for (block *b = state->first; b; b = b->next) {
+        headers += header_bytes(); if (!b->live) free_bytes += b->available;
+    }
+    uint64_t values[12] = {state->bytes,state->live_bytes,state->aligned_bytes,state->blocks,
+        state->peak,headers,free_bytes,state->failures,state->libraries,state->operations,
+        state->closing,state->initialized};
+    memcpy(out, values, sizeof values); unlock_state(); return 0;
+}
+int actql_crypto_component_close(void) {
+    if (!attempted || original_process != getpid()) return ACTQL_CRYPTO_COMPONENT_INVALID;
+    if (context_ack) return 0;
+    if (state) {
+        if (!current() || !lock_state()) return ACTQL_CRYPTO_COMPONENT_INVALID;
+        if (state->libraries || state->operations) {unlock_state(); return ACTQL_CRYPTO_COMPONENT_BUSY;}
+        state->closing = 1; unlock_state();
+        if (!hooks_installed) return ACTQL_CRYPTO_COMPONENT_FAILED;
+        if (!cleanup_ack) {
+            if (state->default_provider) {
+                if (OSSL_PROVIDER_unload(state->default_provider) != 1) return ACTQL_CRYPTO_COMPONENT_FAILED;
+                state->default_provider = NULL;
+            }
+            OPENSSL_thread_stop(); OPENSSL_cleanup(); cleanup_ack = 1;
+        }
+        if (!lock_state()) return ACTQL_CRYPTO_COMPONENT_BUSY;
+        int pending = state->blocks != 0 || state->failed;
+        unlock_state();
+        if (pending) return ACTQL_CRYPTO_COMPONENT_BUSY;
+    }
+    if (!heap_ack && original_extent) {
+        if (actql_native_owned_retire(original_lease, original_extent) != 0)
+            return ACTQL_CRYPTO_COMPONENT_FAILED;
+        heap_ack = 1; state = NULL; original_extent = NULL;
+    }
+    if (context_retained && actql_read_context_release_after_owner_ack(original_context) != 0)
+        return ACTQL_CRYPTO_COMPONENT_FAILED;
+    context_ack = 1; return 0;
+}
+const char *actql_crypto_component_version(void) { return OPENSSL_VERSION_TEXT; }

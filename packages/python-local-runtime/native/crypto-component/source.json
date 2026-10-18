@@ -1,0 +1,44 @@
+{
+  "status": "private-component-candidate",
+  "version": "0.1",
+  "normal_profile": null,
+  "installed_supplier": false,
+  "target": "aarch64-apple-darwin",
+  "upstream": {
+    "version": "3.6.2",
+    "url": "https://github.com/openssl/openssl/releases/download/openssl-3.6.2/openssl-3.6.2.tar.gz",
+    "sha256": "aaf51a1fe064384f811daeaeb4ec4dce7340ec8bd893027eee676af31e83a04f"
+  },
+  "candidate_static_input": {
+    "qualification": "selected installed Homebrew static archive, not an ActQL source rebuild",
+    "bytes": 8571216,
+    "sha256": "074d179c9a8361e8f9143eb89a07954f4a251061dfb98a06c53f84153ed8d1b7",
+    "formula_sha256": "fe27b320fa5695b8b664e65696311b68b919f4ccceae2fc060a75d6206295239",
+    "receipt_sha256": "dac218841652230293ce6a3bd830c501c9484de3d14b659202f5e28fa9481205"
+  },
+  "local": {
+    "component.c": {
+      "bytes": 12068,
+      "sha256": "b32e8788721e0439af5504fb466a1157848d2f37e38c7703241f1ca050dce5a8"
+    },
+    "component.h": {
+      "bytes": 1564,
+      "sha256": "84f3e1917a0702d6af0e0d7bc228c10003e0fa86cdff9facc2c1720a4fad9b55"
+    },
+    "NOTICE": {
+      "bytes": 368,
+      "sha256": "b9f30cf5ef0cfcd3fc60d7ce9bd7fe65ba8de925629a730df7b3ad2ae364f40a"
+    },
+    "fixtures/conformance.c": {
+      "bytes": 6045,
+      "sha256": "ffec396ad641ef2a7572495909001f757e4dbb89f15d6bf8ebd1e126456d9bf6"
+    }
+  },
+  "isolation": [
+    "hidden static symbols",
+    "exported component entry points only",
+    "no shared crypto dylib link",
+    "first allocation hooks checked"
+  ],
+  "capacity": "one already-admitted original provider extent; headers/realloc overlap included; no fallback or growth"
+}
