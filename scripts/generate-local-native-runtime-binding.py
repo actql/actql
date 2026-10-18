@@ -16,12 +16,13 @@ ROOT = Path(__file__).resolve().parents[1]
 DECLARATION = ROOT / 'scripts/local-native-runtime-binding.json'
 ENTRY = ROOT / 'src/platform_native/installed_arena_entry'
 C_TYPES = {'host': 'actql_control_host *', 'read': 'actql_parent_read *',
+           'resources': 'actql_local_host_resources *',
            'runtime': 'actql_packaged_runtime *', 'reply': 'actql_packaged_runtime_reply *',
            'host_slot': 'actql_control_host **', 'read_slot': 'actql_parent_read **',
            'runtime_slot': 'actql_packaged_runtime **',
            'reply_slot': 'actql_packaged_runtime_reply **',
            'utf16': 'const uint16_t *', 'i32': 'int32_t', 'int': 'int'}
-PY_TYPES = {k: 'c_void_p' for k in ('host', 'read', 'runtime', 'reply')}
+PY_TYPES = {k: 'c_void_p' for k in ('host', 'read', 'runtime', 'reply', 'resources')}
 PY_TYPES.update({k: 'POINTER(c_void_p)' for k in
                 ('host_slot', 'read_slot', 'runtime_slot', 'reply_slot')})
 PY_TYPES.update({'utf16': 'POINTER(c_uint16)', 'i32': 'c_int32', 'int': 'c_int'})

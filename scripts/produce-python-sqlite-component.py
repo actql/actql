@@ -152,7 +152,7 @@ def verify_bundle(directory: Path, *, source: str, provider_source: str,
     require(body['provider']['sha256'] == provider_sha256,
             'SQLite bundle uses a different original provider')
     METADATA.library_target(directory / LIBRARY, identity=('@rpath/' + LIBRARY).encode(),
-                            bundled=(('@rpath/' + PROVIDER).encode(),), rpaths=(b'@loader_path',))
+                            bundled=(('@loader_path/' + PROVIDER).encode(),), rpaths=())
     METADATA.library_target(directory / PROVIDER, identity=('@rpath/' + PROVIDER).encode(), rpaths=())
     return cast(dict[str, Any], body)
 
@@ -181,6 +181,8 @@ def build(source: str, archive: Path, provider_receipt: Path, clang: Path, sdk: 
     checked_copy(stage / 'NOTICE', bundle / NOTICE, notice, 1024 * 1024)
     inputs = {str(path): identity(path, maximum) for path, maximum in (
         (clang, 512 * 1024 * 1024), (sdk / 'SDKSettings.json', 1024 * 1024),
+        (Path('/usr/bin/install_name_tool'), 16 * 1024 * 1024),
+        (Path('/usr/bin/codesign'), 16 * 1024 * 1024),
         (provider_receipt, 65536), (SOURCE / 'source.json', 65536),
         (ROOT / 'scripts/produce-python-sqlite-component.py', 65536),
         (ROOT / 'scripts/prepare-python-local-runtime.py', 65536),
@@ -210,7 +212,16 @@ def build(source: str, archive: Path, provider_receipt: Path, clang: Path, sdk: 
     run('compile', common + ['-MD', '-MF', str(destination / 'component.d'),
                             '-c', str(stage / 'component.c'), '-o', str(obj)])
     run('link', common + ['-dynamiclib', str(obj), '-L' + str(bundle), '-lactql_native_control',
-                         '-Wl,-rpath,@loader_path', '-Wl,-install_name,@rpath/' + LIBRARY, '-o', str(library)])
+                         '-Wl,-headerpad_max_install_names',
+                         '-Wl,-install_name,@rpath/' + LIBRARY, '-o', str(library)])
+    # The provider's own install identity remains unchanged. Bind this new
+    # component directly to its sibling, without adding a runtime search path.
+    run('bind-original-provider', ['/usr/bin/install_name_tool', '-change',
+        '@rpath/' + PROVIDER, '@loader_path/' + PROVIDER, str(library)])
+    # Refresh only this generated library's ad-hoc code signature after its
+    # load-command change; no credential or installed artifact is involved.
+    run('sign-generated-component', ['/usr/bin/codesign', '--force', '--sign', '-', str(library)])
+    run('verify-generated-component', ['/usr/bin/codesign', '--verify', '--strict', str(library)])
     symbols = run('exports', ['/usr/bin/nm', '-gU', str(library)])
     require({line.split()[-1] for line in symbols.splitlines() if line.strip()} == EXPORTS,
             'Unexpected SQLite component exports or public SQLite API')

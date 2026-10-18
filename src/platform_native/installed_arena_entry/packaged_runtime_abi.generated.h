@@ -2,10 +2,11 @@
 #ifndef ACTQL_PRIVATE_RUNTIME_ABI_GENERATED_H
 #define ACTQL_PRIVATE_RUNTIME_ABI_GENERATED_H
 #define ACTQL_PACKAGED_RUNTIME_BINDING_VERSION 1
-#define ACTQL_PACKAGED_RUNTIME_BINDING_SHA256 "43a69c40d3912c30a0ddd37ed054a5a32050de27cd8a106cb99fdbb5487b6c75"
+#define ACTQL_PACKAGED_RUNTIME_BINDING_SHA256 "8e643ac041760fc965ea8b7edfd2bccf20893748dda76c8ed180ba80ff1e9538"
 int32_t actql_packaged_runtime_binding_version(void);
 int32_t actql_packaged_runtime_binding_byte(int32_t index);
 int actql_packaged_runtime_capture_utf16_into(actql_control_host * host, actql_parent_read * read, const uint16_t * root, int32_t root_units, const uint16_t * source, int32_t source_units, const uint16_t * platform, int32_t platform_units, const uint16_t * manifest, int32_t manifest_units, int32_t ceiling, actql_packaged_runtime_reply ** reply);
+int actql_packaged_runtime_capture_host_resources_utf16_into(actql_control_host * host, actql_parent_read * read, actql_local_host_resources * resources, const uint16_t * root, int32_t root_units, const uint16_t * source, int32_t source_units, const uint16_t * platform, int32_t platform_units, const uint16_t * manifest, int32_t manifest_units, int32_t ceiling, actql_packaged_runtime_reply ** reply);
 int actql_packaged_runtime_current_into(actql_packaged_runtime * runtime, actql_packaged_runtime_reply ** reply);
 int actql_packaged_runtime_close_into(actql_packaged_runtime * runtime, actql_packaged_runtime_reply ** reply);
 int actql_packaged_runtime_originals_into(actql_packaged_runtime_reply * reply, actql_control_host ** host, actql_parent_read ** read, actql_packaged_runtime ** runtime);

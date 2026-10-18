@@ -59,6 +59,7 @@ pub(all) enum NativeLocalAdoptionIssue {
     NativeLocalAdoptionIssue,
     NativeClientRunJournalIssue
   )
+  InspectionCleanup(@journal.NativeRemoteJournalIssue)
 }
 
 ///|

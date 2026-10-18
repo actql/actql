@@ -11,10 +11,12 @@ import {createInstalledRowSource,installRowSourceAuthorization,openRowSourceCred
   rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 import {SLACK_USER_LIST_OPERATION} from '../site/user-list-read.mjs';
 import {createSlackUserSourceReaderFactory} from './user-source-reader.mjs';
+import {SLACK_CHANNEL_LIST_OPERATION} from '../site/channel-list-read.mjs';
+import {createSlackChannelSourceReaderFactory} from './channel-source-reader.mjs';
 
 export const INSTALLED_SLACK_SOURCE_VERSION='actql-installed-slack-source/0.1';
 export const INSTALLED_SLACK_SITE_VERSION='actql-installed-slack-site/0.1';
-const registration='slack',revision='slack/0.1',resource='users';
+const registration='slack',revision='slack/0.1';
 const profileKeys=['version','connectorId','workspaceId','siteProfilePath','accountConfigurationWire','limits'];
 const siteKeys=['version','apiOrigin','credentialAuthorityId','credentialKeyId','credentialPrivateKeyPath',
   'environment','journalRoot','namespaceId','siteGeneration','siteKey'];
@@ -96,22 +98,35 @@ export async function loadInstalledSlackSource(profile,{root,principalId,moon,pr
   if(typeof resolveSecret!=='function')fail('SlackCredentialMaterialUnavailable');
   const{installed,site:siteProfile,ca,binding}=await readInputs(profile);
   const{limits}=installed;
-  const wire=checked(provider.slackUserListSchemaWire(limits.maxDeclarationBytes,
-    limits.maxDeclarationNodes,limits.maxDepth));
+  if(provider===null||typeof provider!=='object'||types.isProxy(provider))fail('InvalidInstalledSlackProvider');
+  const declarationPorts=Object.freeze(Object.fromEntries(['slackUserListSchemaWire',
+    'slackUserListRelationFactsWire','slackChannelListSchemaWire','slackChannelListRelationFactsWire'].map(name=>{
+    const descriptor=Object.getOwnPropertyDescriptor(provider,name);
+    if(!descriptor||!Object.hasOwn(descriptor,'value')||typeof descriptor.value!=='function')fail('InvalidInstalledSlackProvider');
+    return [name,descriptor.value];
+  })));
+  const views=[['users','slack_users','slackUserListSchemaWire','slackUserListRelationFactsWire'],
+    ['channels','slack_channels','slackChannelListSchemaWire','slackChannelListRelationFactsWire']].map(
+    ([resource,resource_kind,schema,facts])=>{
+      const wire=checked(Reflect.apply(declarationPorts[schema],provider,[limits.maxDeclarationBytes,
+        limits.maxDeclarationNodes,limits.maxDepth]));
+      return {resource,resource_kind,schema_wire:wire,schema_cid:sha(wire),
+        facts_wire:Reflect.apply(declarationPorts[facts],provider,[])};
+    });
   const declaration=checked(moon.clientProgramRowSourceRestoreRelationDeclaration(installed.connectorId,
-    registration,revision,JSON.stringify({views:[{resource,resource_kind:'slack_users',schema_wire:wire,
-      schema_cid:sha(wire),facts_wire:provider.slackUserListRelationFactsWire()}]}),undefined));
+    registration,revision,JSON.stringify({views}),undefined));
   const declared=JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
   const environment=rowSourceCheckEnvironment(baseEnvironmentWire,declared);
   const authorization=await installRowSourceAuthorization({root,principalId,connectorRegistration:registration,
     accountConfiguration:installed.accountConfigurationWire});
   const connection=`slack:${installed.connectorId}`;
-  const target=(selected,fields)=>Object.freeze({version:'actql-installed-slack-users-target/0.1',
+  const target=(selected,fields)=>Object.freeze({version:selected==='users'
+    ?'actql-installed-slack-users-target/0.1':'actql-installed-slack-channels-target/0.1',
     apiOrigin:siteProfile.apiOrigin,workspaceId:installed.workspaceId,workspaceBytesCid:binding.workspaceBytesCid,
     resource:selected,fields:Object.freeze([...fields])});
-  const admitsApprovalTarget=(value,selected)=>selected===resource&&value?.workspaceId===installed.workspaceId&&
+  const admitsApprovalTarget=(value,selected)=>declared.views.some(view=>view.resource===selected)&&value?.workspaceId===installed.workspaceId&&
     Array.isArray(value?.fields)&&new Set(value.fields).size===value.fields.length&&
-    value.fields.every(name=>declared.views[0].fields.includes(name))&&
+    value.fields.every(name=>declared.views.find(view=>view.resource===selected).fields.includes(name))&&
     canonicalJson(value)===canonicalJson(target(selected,value.fields));
   const site=await openRowSourceCredentialSite({profile:{...siteProfile,resourceOrigin:siteProfile.apiOrigin},
     principalId,authorization,connection,connectorRegistration:registration,connectorRevision:revision,
@@ -119,13 +134,26 @@ export async function loadInstalledSlackSource(profile,{root,principalId,moon,pr
   try{
     return await createInstalledRowSource({moon,declaration,declared,environmentWire:environment.wire,
       connectorId:installed.connectorId,connectorRegistration:registration,connectorRevision:revision,
-      authorization,site,readOperation:SLACK_USER_LIST_OPERATION,physicalTarget:target,
-      bindingCid:cid({version:'actql-installed-slack-users-binding/0.1',connectorId:installed.connectorId,
+      authorization,site,readOperation:{users:SLACK_USER_LIST_OPERATION,channels:SLACK_CHANNEL_LIST_OPERATION},physicalTarget:target,
+      bindingCid:cid({version:'actql-installed-slack-source-binding/0.1',connectorId:installed.connectorId,
         connectorRegistration:registration,connectorRevision:revision,contextCid:authorization.context.contextCid,
         runtimeBundleCid,workspaceId:installed.workspaceId,...binding,site:siteProfile}),
       limits:{maxPages:limits.maxPages,maxPageBytes:limits.maxResponseBytes,maxPageRows:limits.maxRows,maxCaptureRows:limits.maxTotalRows},
-      providerReader:createSlackUserSourceReaderFactory({provider,site,capacity:readerCapacity,
-        workspaceId:installed.workspaceId,limits,maxSecretBytes:limits.maxSecretBytes}),
+      providerReader:(()=>{
+        const selected=new Map([
+          ['users',createSlackUserSourceReaderFactory],['channels',createSlackChannelSourceReaderFactory],
+        ].map(([name,factory])=>[name,factory({provider,site,capacity:readerCapacity,
+          workspaceId:installed.workspaceId,limits,maxSecretBytes:limits.maxSecretBytes})]));
+        const reader=Object.freeze({capacity:readerCapacity,prepare(options){
+          if(this!==reader)fail('ForeignInstalledSlackReaderFactory');
+          if(options===null||typeof options!=='object'||types.isProxy(options))fail('ForeignInstalledSlackRead');
+          const descriptor=Object.getOwnPropertyDescriptor(options,'resource');
+          if(!descriptor||!Object.hasOwn(descriptor,'value'))fail('ForeignInstalledSlackRead');
+          const factory=selected.get(descriptor.value);if(factory===undefined)fail('ForeignInstalledSlackRead');
+          return Reflect.apply(factory.prepare,factory,[options]);
+        }});
+        return reader;
+      })(),
       readPages(){fail('InstalledSlackLegacyReaderUnavailable');}});
   }catch(cause){throw await retainInstalledHostInitializationFailure(cause,{sourceProfile:site});}
 }

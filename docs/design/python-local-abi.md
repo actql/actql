@@ -2181,6 +2181,24 @@ remain distinct. The existing inner Runtime close ACK clears only its data;
 outer original Root/Reader/Host retirement still requires its original Owner's
 separate stop/cleanup acknowledgment. No pointer is a public integer identity,
 serialized wire, authority, or permission to recreate a missing original.
+
+An already claimed original Host Read/SQLite pair can supply the private
+packaged Runtime capture entrance. The Runtime retains that exact pair and
+original Read; it neither claims another consumer nor creates another Read
+context. Every capture and current check enters the pair's existing Read phase,
+checks the captured Roots against that original physical context, and leaves
+through the same phase Owner. A foreign, retired, active or unclaimed pair
+refuses without falling back to the standalone capture entrance. A known pair
+refusal remains distinct from an unconfirmed Read-child outcome.
+
+SQLite work and Runtime Read work use their separate phases. Normal Runtime
+Read may resume after a transaction while the original read use remains live;
+SQLite cleanup that stops that use does not authorize another normal Read.
+Runtime aliases must retire before outer pair cleanup, and its inner close
+acknowledgment does not substitute for Root FD, managed alias, Library,
+context, domain, loan or Host retirement acknowledgments. Failed phase leave
+and partial capture retain the original cleanup carrier.
+
 ## Private Native transport declarations
 
 The installed Native control component's named C shim definitions are the
