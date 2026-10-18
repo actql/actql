@@ -3410,7 +3410,18 @@ export async function publishInstalledEffect({effectProfilePath, directory,
       baseEnvironmentWire, resolveSecret: resolveEffectSecret, signal, connectorTable});
 }
 
-export async function connectEmbeddedLocal(options) {
+// Only the actual early startup captures this operation. The first supported
+// producer is the omitted open input; an arbitrary object is not converted
+// into an admitted packet by this selector. This is not a public API grammar
+// restriction, an operational issuer, or a replacement Host factory.
+export function connectInitialControlHostPreparation(kind, rawInput) {
+  if (kind !== 'open' || rawInput !== undefined) {
+    throw clientOperationError('NodeInitialControlInputUnavailable');
+  }
+  return connectEmbeddedLocal(rawInput, 'open');
+}
+
+export async function connectEmbeddedLocal(options, initialEntry) {
   // The actual Host generation and original installation are allocated here,
   // not reconstructed from a later view, Project DATA or current config. Their
   // minimal candidate record belongs to the selected prior startup envelope.
@@ -3470,7 +3481,16 @@ export async function connectEmbeddedLocal(options) {
   try {
   // Before options snapshot, Common import, Project read, normalization or
   // Provider installation. Missing actual startup coverage remains unavailable.
-  control = await beginInitialControlInstallation(originals, options);
+  const begun = beginInitialControlInstallation(originals, options);
+  // The actual prior startup envelope must already cover this same candidate
+  // and primitive path observation. Preserve open's call-time directory before
+  // initialization awaits; do not resolve it again from a later process cwd.
+  // A path failure still awaits and retains the original scope for cleanup.
+  if (initialEntry === 'open') {
+    try { record.openStateDirectory = resolve('.actql'); }
+    catch (cause) { record.openPathFailure = {cause}; }
+  }
+  control = await begun;
   controlClose = control.close;
   assertInitialControlInstallationCurrent(control, originals);
   duty = control.retainPreparation(record);
@@ -3481,6 +3501,18 @@ export async function connectEmbeddedLocal(options) {
   // this record owns only the Host's additional managed packet reference.
   options = readInitialControlInstallationInput(control, originals);
   record.input = options;
+  if (record.openPathFailure !== undefined) throw record.openPathFailure.cause;
+  if (initialEntry === 'open') {
+    // Only the original supplier may produce this empty packet from omitted
+    // raw input after its acquisition coverage. Never drop fields from another
+    // packet, rerun the public validator, or manufacture a second admission.
+    if (Reflect.ownKeys(options).length !== 0) {
+      throw clientOperationError('NodeInitialControlOriginalChanged');
+    }
+    options = {mode: 'local', owner: 'local',
+      installation: {directory: record.openStateDirectory}};
+    record.openOptions = options;
+  }
   // Host-owned values never enter the SDK's transport-options packet. Snapshot
   // both once before awaits; selecting a profile is not silently ignoring it.
   const {installation: suppliedInstallation, profile: requestedProfile,
@@ -3558,13 +3590,15 @@ export async function connectEmbeddedLocal(options) {
     observation: installation?.observation,
     valuesMaxRows: installation?.valuesMaxRows});
   record.installation = originalInstallation;
-  return await profiles.connect(root, identity,
+  const client = await profiles.connect(root, identity,
     () => {
       // This same registry entry now owns even a refused opening/current gate.
       adopted = true;
       assertInitialControlInstallationCurrent(control, originals);
       return openInstalledHost(originalInstallation, preparation);
     }, clientOptions, host, releaseUnadopted, initialControl);
+  return initialEntry === 'open'
+    ? Object.freeze({...client, info: Object.freeze({stateDir: root})}) : client;
   } catch (cause) {
     // An unadopted preparation is released here. An opened or failed
     // Host, however, keeps this same view until its existing shutdown finishes.
@@ -3572,7 +3606,10 @@ export async function connectEmbeddedLocal(options) {
     if (observedClose !== undefined) throw cause;
     if (control === undefined) {
       throw retainInstalledHostRuntimeFailure(cause,
-        () => profiles.retirePreparation(host, originalInstallation, host));
+        () => {
+          retirePreparationReferences();
+          profiles.retirePreparation(host, originalInstallation, host);
+        });
     }
     const retained = await retainInstalledHostInitializationFailure(cause, {initialControl});
     if (retained.cleanupHandle.status().pending === false) throw cause;
