@@ -30,7 +30,7 @@ test('inherited Unicode data resolves the semantic and bound-law dependencies', 
     '4d4c03892dea9146d674b686e495df2d55a28d071ac474041d73518f887abddc');
   const changed = structuredClone(data);
   changed.ccc[0][1]++;
-  assert.notEqual(machineCid(changed), vectors.currentCid);
+  assert.notEqual(machineCid(changed), expected);
 });
 
 test('inherited text/time dependency edges resolve through explicit roles', () => {

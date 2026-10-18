@@ -14,28 +14,29 @@ const protocol = read('spec/contracts/actql-protocol-schemas.json');
 const leaf = {type:'object', required:['type','nullable'], additionalProperties:false,
   properties:{type:{const:'int64'},nullable:{type:'boolean'}}};
 
-test('signed64 preserves legacy alternatives and refreshes the two original row-kernel type copies', () => {
-  let copies = 0;
+test('signed64 preserves legacy alternatives and refreshes the five original constructor/row-kernel type copies', () => {
+  let copies = 0, refreshed = 0;
   const inspect = (current, previous, path) => {
     if (!current || typeof current !== 'object' || !previous || typeof previous !== 'object') return;
     if (previous.$defs?.value_contract) {
       const before = previous.$defs.value_contract.oneOf;
       const after = current.$defs.value_contract.oneOf;
-      if (/\/row_kernel_evidence\/properties\/(contexts|shapes)\/items$/u.test(path)) {
-        const original = structuredClone(before);
-        const text = original.find(value => value.properties.type.const === 'string');
-        assert.equal(text.properties.enum, undefined, 'the previous row-kernel copy omitted its existing Text constraint');
+      const original = structuredClone(before);
+      const text = original.find(value => value.properties.type.const === 'string');
+      if (text && text.properties.enum === undefined) {
         const complete = prior['spec/contracts/actql-protocol-schemas.json'].schemas.canonical_value_contract.$defs.value_contract.oneOf;
         text.properties.enum = complete.find(value => value.properties.type.const === 'string').properties.enum;
-        assert.deepEqual(original, complete, 'only the already-owned Text enum copy was stale');
+        assert.deepEqual(original, complete, 'only the already-owned Text enum copy was stale: '+path);
         assert.deepEqual(after, [...complete, leaf]);
+        refreshed++;
       } else assert.deepEqual(after, [...before, leaf], path);
       copies++;
     }
     for (const [key, value] of Object.entries(previous)) inspect(current[key], value, path+'/'+key);
   };
   for (const [path, previous] of Object.entries(prior)) inspect(read(path), previous, path);
-  assert(copies >= 20, 'actual containing schema copies were inspected');
+  assert(copies >= 24, 'actual containing schema copies were inspected');
+  assert.equal(refreshed, 5, 'existing complete canonical copies now retain their original Text constraint');
   const before = prior['spec/contracts/actql-protocol-schemas.json'];
   for (const name of ['author_value_contract', 'canonical_value_contract']) {
     const expected = structuredClone(before.schemas[name]);
