@@ -75,10 +75,14 @@ function fixture() {
     checked(moon.clientProgramRowSourceBegin(run, 65536, 100, 100, undefined));
     return run;
   }
-  function accept(run, charge, acquisition, bytes = body) {
+  // begin_row_run uses the existing 400,000-node page ceiling and 20,000,000
+  // admission-work ceiling. The decoder conservatively charges those original
+  // node ceilings for contract comparisons; this explicit diagnostic budget
+  // follows that existing ceiling, not a sampled document size or a grant.
+  function accept(run, charge, acquisition, bytes = body, maxWork = 20000000) {
     try {
       return checked(moon.clientProgramMockChurnRiskAcceptChargedDocument(run, charge,
-        acquisition, declarations[0], declarations[1], bytes, 1000000));
+        acquisition, declarations[0], declarations[1], bytes, maxWork));
     } catch (error) {
       error.message += `: ${inspect(error.cause, {depth: 12})}`;
       throw error;
@@ -98,6 +102,11 @@ function cannotCapture(run) {
 test('actual charged receiver captures both original sources with separate one-use tickets', () => {
   const f = fixture();
   try {
+    const insufficient = f.start(0, 'original-source-short-work');
+    const shortCharge = checked(moon.clientProgramRowSourceChargePage(insufficient, body));
+    assert.throws(() => f.accept(insufficient, shortCharge,
+      f.acquisitions[0].acquisition, body, 1000000), {code: 'MoonBitHostFailure'});
+    cannotCapture(insufficient);
     for (const index of [0, 1]) {
       const run = f.start(index, `original-source-${index}`);
       const charge = checked(moon.clientProgramRowSourceChargePage(run, body));
@@ -163,7 +172,7 @@ test('actual charged receiver rejects equal-wire declarations issued as differen
       moon.clientProgramRowSourceDeclarationJson(foreign.declarations[0]));
     assert.throws(() => checked(moon.clientProgramMockChurnRiskAcceptChargedDocument(
       run, charge, f.acquisitions[0].acquisition, foreign.declarations[0],
-      foreign.declarations[1], body, 1000000)), {code: 'MoonBitHostFailure'});
+      foreign.declarations[1], body, 20000000)), {code: 'MoonBitHostFailure'});
     cannotCapture(run);
   } finally { f.close(); foreign.close(); }
 });
