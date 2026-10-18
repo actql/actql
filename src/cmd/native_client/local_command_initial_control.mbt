@@ -9,6 +9,11 @@ priv struct LocalCommandParsedInput {
 }
 
 ///|
+// Capture actual entry provenance only. The complete selected initial envelope
+// remains a separate requirement; this call issues no operational admission.
+extern "C" fn command_capture_native_entry() -> Unit = "actql_native_client_capture_command_entry"
+
+///|
 // Only immutable application text crosses this boundary after a successful
 // Read leave. Actual partial-acquisition receivers stay with their own Owner.
 #borrow(original)

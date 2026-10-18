@@ -288,3 +288,5 @@ int32_t actql_native_client_copy_bounded_home(moonbit_bytes_t bytes,
   memcpy(bytes, original, (size_t)size);
   return size;
 }
+
+#include "command_platform_entry.h"
