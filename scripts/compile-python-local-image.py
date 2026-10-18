@@ -630,6 +630,69 @@ def prepare_compiler_runtime(original: dict[str, Any], bindings_source: Path,
                             _runtime_files(destination, original['recipe']))
 
 
+class _PhysicalCoreInputs:
+    """Verified preparation DATA, not components, parent funding or authority.
+
+    The actual Native parent/domain admission remains an independent mandatory
+    input to the physical caller. No preparation can issue an instance, acquire
+    a replacement holding or satisfy the final component verifier by itself.
+    """
+
+    def __init__(self) -> None:
+        raise TypeError('Physical Core inputs require original preparation')
+
+    @classmethod
+    def prepare(cls, core_receipt: Path, image_receipt: Path, expected_source: str,
+                *, scope: str, bindings_source: Path, native_libraries: Path,
+                destination: Path) -> _PhysicalCoreInputs:
+        if scope != 'physical_core_conformance_only':
+            raise ValueError('Select the closed private physical Core verifier scope')
+        if any(not path.is_absolute() for path in (core_receipt, image_receipt)):
+            raise ValueError('Select absolute original physical Core receipts')
+        original = verify(core_receipt, expected_source)
+        image, image_receipt_hash = assembly.read_receipt(image_receipt)
+        image_path, item = assembly.verify_original_image(image, original['recipe'],
+            original['source'], original['module_sha256'])
+        # Shared ordinary source, ABI, two-library, target, license and actual
+        # link-input preparation. No native import or final component is used.
+        runtime = prepare_compiler_runtime(original, bindings_source, native_libraries, destination)
+        value = cls.__new__(cls)
+        value._original = value
+        value._core_receipt, value._image_receipt = core_receipt, image_receipt
+        value._source = expected_source
+        value._module_sha256 = original['module_sha256']
+        value._module_receipt_hash = original['core_receipt_sha256']
+        value._image_receipt_hash = image_receipt_hash
+        value._image_path, value._image_bytes, value._image_sha256 = image_path, item['bytes'], item['sha256']
+        value._runtime = runtime
+        value.require_current()
+        return value
+
+    def __copy__(self) -> _PhysicalCoreInputs:
+        raise TypeError('Original physical Core preparation cannot be copied')
+
+    def __deepcopy__(self, memo: dict[int, object]) -> _PhysicalCoreInputs:
+        raise TypeError('Original physical Core preparation cannot be copied')
+
+    def __reduce__(self) -> Any:
+        raise TypeError('Original physical Core preparation cannot be serialized')
+
+    def require_current(self) -> dict[str, Any]:
+        if self._original is not self:
+            raise ValueError('Foreign physical Core preparation')
+        original = verify(self._core_receipt, self._source)
+        image, receipt_hash = assembly.read_receipt(self._image_receipt)
+        path, item = assembly.verify_original_image(image, original['recipe'],
+            original['source'], original['module_sha256'])
+        if (original['core_receipt_sha256'] != self._module_receipt_hash
+                or original['module_sha256'] != self._module_sha256
+                or receipt_hash != self._image_receipt_hash
+                or (path, item['bytes'], item['sha256']) !=
+                   (self._image_path, self._image_bytes, self._image_sha256)):
+            raise ValueError('Original physical Core inputs changed')
+        return _runtime_original(original, self._runtime)
+
+
 def _runtime_original(original: dict[str, Any], prepared: _CompilerRuntime | None) -> dict[str, Any]:
     if (type(prepared) is not _CompilerRuntime or prepared.source_sha != original['source']
             or prepared.recipe != original['recipe']

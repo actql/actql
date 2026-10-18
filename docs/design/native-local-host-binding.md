@@ -843,6 +843,24 @@ cleanup responsibility. Matching compiler diagnostics remain outside the
 successful image response protocol.
 
 
+#### Private physical Core preparation
+
+The maintainer `physical_core_conformance_only` scope selects the existing
+physical verifier. Its preparation separates verified module, compiled image,
+Engine recipe and private library DATA from actual parent/domain admission.
+The same closed image validator serves this preparation and the final component
+producer. Preparation never constructs final `LocalComponents` or supplies an
+`OriginalWorkerFunding` substitute. Compile-only evidence remains insufficient
+for the final physical verifier.
+
+The physical caller must consume the independently admitted original Native
+parent/domain, child Ledger, control channel and holding before Config or any
+image capture. A scope label, matching bytes, the compiler's holding or a local
+resource-guard reservation cannot establish independent pre-root funding. The
+actual supplier must retain Python, loader, process, descriptor and control
+responsibility separately from runtime/Result/workspace overlap. Missing
+funding refuses; it does not select a scalar Root or raw-module JIT path.
+
 #### Original Rust buffer inspection
 
 A trusted native caller may inspect physical containment of an original Rust

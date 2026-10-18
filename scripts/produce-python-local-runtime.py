@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk._local_wasm_abi import LOCAL_CORE_ABI  # noqa: E402
 from actql_sdk._local_distribution import WASMTIME_VERSION, _pairs, _read_file, _valid_image_header  # noqa: E402
-from actql_sdk._local_image_recipe import _recipe_from_original  # noqa: E402
+from actql_sdk._local_image_recipe import _SelectedImageRecipe, _recipe_from_original  # noqa: E402
 
 _spec = importlib.util.spec_from_file_location(
     'python_local_runtime_recipe', ROOT / 'scripts/prepare-python-local-runtime.py')
@@ -239,6 +239,39 @@ def verify_original_core(root: Path, core: dict[str, Any], source: str) -> str:
     return cast(str, digest)
 
 
+def verify_original_image(image: dict[str, Any], selected: _SelectedImageRecipe, source: str,
+                          digest: str) -> tuple[Path, dict[str, object]]:
+    """Verify image DATA only; physical admission remains an independent input.
+
+    The final producer and private physical preparation use the same closed
+    original fields, recipe, bytes and binary-target checks. This does not load
+    a DLL, issue final components or accept a compiler receipt as physical work.
+    """
+    require(set(image) == {'source_sha', 'module_sha256', 'core_abi', 'wasmtime_version',
+        'runtime_library_sha256', 'provider_library_sha256', 'engine_sha256', 'image', 'image_sha256',
+        'compiled', 'runtime_executed', 'public_local_acceptance'},
+        'Select the original compiled-image production receipt')
+    engine_hash = hashlib.sha256(selected.engine_body).hexdigest()
+    require(image['source_sha'] == source and image['module_sha256'] == digest
+        and type(image['core_abi']) is int and image['core_abi'] == LOCAL_CORE_ABI
+        and image['wasmtime_version'] == WASMTIME_VERSION
+        and image['runtime_library_sha256'] == selected.runtime_library_sha256
+        and image['provider_library_sha256'] == selected.provider_library_sha256
+        and image['engine_sha256'] == engine_hash and image['compiled'] is True
+        and image['runtime_executed'] is False and image['public_local_acceptance'] is False,
+        'Compiled image receipt does not match the selected original recipe')
+    require(type(image['image']) is str and Path(image['image']).is_absolute(),
+            'Original compiled image path is unavailable')
+    image_path = Path(image['image'])
+    image_item = component(image_path, image['image_sha256'], selected.image_bytes_limit,
+                           'client_host_wasm.cwasm')
+    image_size, image_hash = cast(int, image_item['bytes']), cast(str, image_item['sha256'])
+    header = _read_file(image_path, maximum=selected.image_bytes_limit,
+                        expected=image_size, digest=image_hash, prefix=20)
+    require(_valid_image_header(header, image_size), 'Incompatible original image binary target')
+    return image_path, image_item
+
+
 def produce(core_receipt: Path, duckdb_receipt: Path, image_receipt: Path, destination: Path) -> dict[str, object]:
     source = clean_source()
     core, core_hash = read_receipt(core_receipt)
@@ -273,28 +306,8 @@ def produce(core_receipt: Path, duckdb_receipt: Path, image_receipt: Path, desti
     original = recipe.image_recipe_original(ROOT, source)
     selected = _recipe_from_original(original, source_sha=source,
         package_version=sdk['version'], module_sha256=digest)
-    require(set(image) == {'source_sha', 'module_sha256', 'core_abi', 'wasmtime_version',
-        'runtime_library_sha256', 'provider_library_sha256', 'engine_sha256', 'image', 'image_sha256',
-        'compiled', 'runtime_executed', 'public_local_acceptance'},
-        'Select the original compiled-image production receipt')
+    image_path, image_item = verify_original_image(image, selected, source, digest)
     engine_hash = hashlib.sha256(selected.engine_body).hexdigest()
-    require(image['source_sha'] == source and image['module_sha256'] == digest
-        and type(image['core_abi']) is int and image['core_abi'] == LOCAL_CORE_ABI
-        and image['wasmtime_version'] == WASMTIME_VERSION
-        and image['runtime_library_sha256'] == selected.runtime_library_sha256
-        and image['provider_library_sha256'] == selected.provider_library_sha256
-        and image['engine_sha256'] == engine_hash and image['compiled'] is True
-        and image['runtime_executed'] is False and image['public_local_acceptance'] is False,
-        'Compiled image receipt does not match the selected original recipe')
-    require(type(image['image']) is str and Path(image['image']).is_absolute(),
-            'Original compiled image path is unavailable')
-    image_path = Path(image['image'])
-    image_item = component(image_path, image['image_sha256'], selected.image_bytes_limit,
-                           'client_host_wasm.cwasm')
-    image_size, image_hash = cast(int, image_item['bytes']), cast(str, image_item['sha256'])
-    header = _read_file(image_path, maximum=selected.image_bytes_limit,
-                        expected=image_size, digest=image_hash, prefix=20)
-    require(_valid_image_header(header, image_size), 'Incompatible original image binary target')
     image_body = {'source_sha': source, 'package_version': sdk['version'],
         'module_sha256': digest, 'core_abi': LOCAL_CORE_ABI,
         'wasmtime_version': WASMTIME_VERSION,
