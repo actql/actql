@@ -1,7 +1,7 @@
 ///|
 // An ordinary legacy Library fixture cannot acquire the original Read route.
 // These are actual Journal/descriptor refusal tests, not a funded pair positive.
-test "preparation read refuses an ordinary Host before the callback or selected getters" {
+fn preparation_read_refusal_without_pair() -> (@sqlite.Library, @crypto.Library) raise {
   let capture = journal_capture_fixture("preparation-without-original-read")
   assert_eq(capture.open().issue_family(), 0)
   let calls = Ref(0)
@@ -31,12 +31,15 @@ test "preparation read refuses an ordinary Host before the callback or selected 
   assert_true(capture.original_resources is None)
   assert_false(capture.descriptor_cleanup_acknowledged())
   assert_eq(capture.close().issue_family(), 0)
-  capture.library.unwrap().close_checked().unwrap()
-  capture.crypto.close_checked().unwrap()
+  let library = capture.library.unwrap()
+  // Actual DB close has acknowledged, but this closed capture still retains
+  // the original DB's managed Library borrow until this helper returns.
+  assert_true(library.close_checked() is Err(Physical(_)))
+  (library, capture.crypto)
 }
 
 ///|
-test "finishing a captured scope fences new work without acknowledging original DB or lock retirement" {
+fn preparation_read_scope_stop() -> (@sqlite.Library, @crypto.Library) raise {
   let capture = journal_capture_fixture("preparation-scope-stop")
   assert_eq(capture.open().issue_family(), 0)
   let host = capture.original_host().unwrap()
@@ -62,6 +65,23 @@ test "finishing a captured scope fences new work without acknowledging original 
     is Err(@sqlite.DatabaseClosed),
   )
   assert_eq(capture.close().issue_family(), 0)
-  capture.library.unwrap().close_checked().unwrap()
-  capture.crypto.close_checked().unwrap()
+  let library = capture.library.unwrap()
+  assert_true(library.close_checked() is Err(Physical(_)))
+  (library, capture.crypto)
+}
+
+///|
+test "preparation read refuses an ordinary Host before the callback or selected getters" {
+  let (library, crypto) = preparation_read_refusal_without_pair()
+  // The helper's original closed capture/DB aliases have now retired. This
+  // separate actual close, rather than helper return itself, is the ACK.
+  library.close_checked().unwrap()
+  crypto.close_checked().unwrap()
+}
+
+///|
+test "finishing a captured scope fences new work without acknowledging original DB or lock retirement" {
+  let (library, crypto) = preparation_read_scope_stop()
+  library.close_checked().unwrap()
+  crypto.close_checked().unwrap()
 }
