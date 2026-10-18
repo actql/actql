@@ -8,7 +8,7 @@ function fixture() {
   const calls = [];
   const preview = {};
   const moon = {
-    salesforceAdmitRecoveryPreview: () => ({$tag: 0, _0: preview}),
+    salesforceAdmitRecoveryPreview: () => ({$tag: 1, _0: preview}),
     salesforceRecoveryPreviewMemberCount: original => {
       assert.equal(original, preview);
       return 3;
@@ -19,7 +19,7 @@ function fixture() {
     },
     salesforceRecoverSingleWriteRequest: (original, index, row) => {
       calls.push(['request', original, index, row]);
-      return {$tag: 0, _0: {index, row}};
+      return {$tag: 1, _0: {index, row}};
     },
   };
   const member = {projection: {}, apiVersion: 'v62.0', resourceOrigin: 'https://example.test',
