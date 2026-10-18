@@ -36393,7 +36393,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e75d1c1c87dec77a5060876a22aae4c4211519f67e65f5f14c65cbaa7711fc0f",
+      "sha256": "accd94117639b8575f8229725afe4bf0abc664e53964362045ffbe3aba0b4b48",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -36457,6 +36457,13 @@
           "name": "connectEmbeddedLocal/initialControl/init:close/init:close",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:readAsset/init:readAsset",
+          "parameters": [
+            "path"
+          ],
+          "async": false
         },
         {
           "name": "connectEmbeddedLocal/preparation/init:readEnvironmentSource/init:readEnvironmentSource",
@@ -42465,6 +42472,82 @@
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
                 "anchor": "test('the selected Host consumer forwards only omitted open input without a raw observation'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:readAsset/init:readAsset"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The prepared installed Host uses this same projection for its fixed numeric"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "readAsset(path) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "return readInitialControlInstallationAsset(control, originals, path);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The private preparation method, original String aliases, decoded trees and"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "scope, five references and currentness before and after the captured supplier"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/initial-control-fixed-assets.test.mjs",
+                "anchor": "missing captured fixed asset never falls back to a pathname and retains the original cleanup duty"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/initial-control-fixed-assets.test.mjs",
+                "anchor": "current refusal after a fixed asset callback preserves the same original pending custody"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "canonical encodings overlap the same preparation/image lifetime. Borrowing an"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "entrances retain their independent existing file-acquisition responsibility."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/initial-control-fixed-assets.test.mjs",
+                "anchor": "prepared Host fixed assets use the same original Scope and captured bytes without pathname reads"
+              },
+              {
+                "path": "adapters/host-node/initial-control-fixed-assets.test.mjs",
+                "anchor": "copied foreign and changed original pairs refuse before every captured fixed asset read"
+              },
+              {
+                "path": "adapters/host-node/initial-control-fixed-assets.test.mjs",
+                "anchor": "a retired preparation cannot borrow any fixed asset after its same original close"
               }
             ]
           }

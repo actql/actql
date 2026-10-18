@@ -25,6 +25,44 @@ type CoordinatorJournal
 type CoordinatorInitializationCleanup
 
 ///|
+pub fn prepare_sqlite_source_inspection(
+  _path : String,
+  _max_record_bytes : Int64,
+  _max_snapshot_bytes : Int64,
+) -> Result[CoordinatorInitializationCleanup, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn CoordinatorInitializationCleanup::open_database(
+  _self : CoordinatorInitializationCleanup,
+  _library : @sqlite.Library,
+) -> Result[@sqlite.Database?, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn CoordinatorInitializationCleanup::validate_source(
+  _self : CoordinatorInitializationCleanup,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn CoordinatorInitializationCleanup::close_database(
+  _self : CoordinatorInitializationCleanup,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn CoordinatorInitializationCleanup::close_snapshot(
+  _self : CoordinatorInitializationCleanup,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn[T] inspect_sqlite_source(
   _library : @sqlite.Library,
   _path : String,

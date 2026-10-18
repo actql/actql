@@ -41,6 +41,7 @@ options(
     "effect_checkpoint_reports_native_wbtest.mbt": [ "native" ],
     "effect_checkpoint_reports_unsupported.mbt": [ "not", "native" ],
     "inspection_native.mbt": [ "native" ],
+    "inspection_phases_native_wbtest.mbt": [ "native" ],
     "journal_native.mbt": [ "native" ],
     "initial_catalog_use_native.mbt": [ "native" ],
     "initial_catalog_use_native_wbtest.mbt": [ "native" ],

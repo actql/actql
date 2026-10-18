@@ -364,6 +364,15 @@ unavailable; callers cannot substitute a file, receiver, Promise or matching
 digest. Scope retirement does not collect escaped Strings or acknowledge the
 separate module/image holding.
 
+The prepared installed Host uses this same projection for its fixed numeric
+profile, graph laws, pipeline Registry and AoA contract body before parsing or
+checking them. It does not reopen those four pathnames after package capture,
+including on an unavailable or current-refused projection. Unprepared Host
+entrances retain their independent existing file-acquisition responsibility.
+The private preparation method, original String aliases, decoded trees and
+canonical encodings overlap the same preparation/image lifetime. Borrowing an
+asset does not retire that holding or issue business capacity or authority.
+
 This admission has no conversion to metadata HTTP, Source, Result, business Run,
 Model invocation, Content/driver or external-VM capacity or authority. Their
 existing Resource suppliers and current authorization remain separate. The

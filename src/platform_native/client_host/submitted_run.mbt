@@ -39,6 +39,7 @@ pub fn native_client_submitted_run_admission_revision(
 fn NativeClientRunJournal::validate_submitted_run_admission(
   self : NativeClientRunJournal,
   record : NativeClientSubmittedIntentRecord,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   guard record.run_admission is Some(admission) else { return Ok(()) }
   let reference = match
@@ -46,7 +47,7 @@ fn NativeClientRunJournal::validate_submitted_run_admission(
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  match self.retained(admission.request) {
+  match self.retained(admission.request, reads~) {
     Ok(Some(run)) => {
       if record.run_state_observation is Some(_) &&
         run.run_observation_originals is None {

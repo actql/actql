@@ -1,0 +1,134 @@
+///|
+// Private routing state, not another physical Owner. The same original pair
+// and DB remain with the capture/failure. Remember the first scope failure so
+// a conservative internal SQL refusal cannot replace its actual cause.
+priv struct NativeLocalJournalReadQueries {
+  original : NativeLocalJournalOriginalResources
+  database : @sqlite.Database
+  mut failure : NativeLocalAdoptionIssue?
+}
+
+///|
+fn[T] NativeLocalJournalOriginalResources::query_while_read(
+  self : NativeLocalJournalOriginalResources,
+  query : () -> T,
+) -> Result[T, NativeLocalAdoptionIssue] {
+  if self.interrupted || !(self.active_phase is Some(@arena.HostRead)) {
+    return Err(OriginalResourceScopePending)
+  }
+  // Leave only the actual original Read scope; its material aliases and loan
+  // remain retained. A missing leave ACK cannot authorize another entry.
+  match self.host.leave_local_host_phase(self.pair) {
+    Err(issue) => {
+      self.interrupted = true
+      return Err(OriginalResourceLeave(None, issue))
+    }
+    Ok(_) => self.active_phase = None
+  }
+  let value = match self.stage(@arena.HostSqlite, fn() { Ok(query()) }) {
+    Ok(value) => value
+    Err(issue) => {
+      self.interrupted = true
+      return Err(issue)
+    }
+  }
+  match
+    self.host.require_local_host_consuming_read_current(self.pair, self.read) {
+    Err(issue) => {
+      self.interrupted = true
+      return Err(OriginalResources(issue))
+    }
+    Ok(_) => ()
+  }
+  match self.host.enter_local_host_phase(self.pair, @arena.HostRead) {
+    Err(issue) => {
+      self.interrupted = true
+      Err(OriginalResources(issue))
+    }
+    Ok(_) => {
+      self.active_phase = Some(@arena.HostRead)
+      Ok(value)
+    }
+  }
+}
+
+///|
+fn[T] NativeLocalJournalReadQueries::query(
+  self : NativeLocalJournalReadQueries,
+  query : () -> T,
+) -> Result[T, @sqlite.NativeSqliteIssue] {
+  if self.failure is Some(_) {
+    return Err(@sqlite.Busy)
+  }
+  match self.original.query_while_read(query) {
+    Ok(value) => Ok(value)
+    Err(issue) => {
+      self.failure = Some(issue)
+      // The private audit immediately returns its recorded original scope
+      // issue. This internal refusal never becomes a public replacement cause.
+      Err(@sqlite.Busy)
+    }
+  }
+}
+
+///|
+fn NativeLocalJournalReadQueries::access(
+  self : NativeLocalJournalReadQueries,
+) -> NativeClientJournalReadAccess {
+  {
+    database: self.database,
+    read: (table_name, key) => {
+      match self.query(() => self.database.read(table_name, key)) {
+        Ok(value) => value
+        Err(issue) => Err(issue)
+      }
+    },
+    scan: (table_name, cursor) => {
+      match self.query(() => self.database.scan_after(table_name, cursor)) {
+        Ok(value) => value
+        Err(issue) => Err(issue)
+      }
+    },
+    schema: () => {
+      self.query(() => submission_name_schema_ffi(self.database)).unwrap_or(-1)
+    },
+    census: () => {
+      self.query(() => submission_name_census_ffi(self.database)).unwrap_or(-1L)
+    },
+    transaction: operation => {
+      match
+        self.query(() => {
+          match operation {
+            JournalBegin => self.database.begin_immediate()
+            JournalCommit => self.database.commit()
+            JournalRollback => self.database.rollback()
+          }
+        }) {
+        Ok(value) => value
+        Err(issue) => Err(issue)
+      }
+    },
+  }
+}
+
+///|
+fn[T] NativeLocalJournalOriginalResources::audit_read_stage(
+  self : NativeLocalJournalOriginalResources,
+  database : @sqlite.Database,
+  audit : (NativeClientJournalReadAccess) -> Result[T, NativeLocalAdoptionIssue],
+) -> Result[T, NativeLocalAdoptionIssue] {
+  self.stage(@arena.HostRead, fn() {
+    let queries : NativeLocalJournalReadQueries = {
+      original: self,
+      database,
+      failure: None,
+    }
+    let result = audit(queries.access())
+    match (queries.failure, result) {
+      (Some(original), Err(Journal(TransactionUnknown))) =>
+        Err(InstallationReadTransactionFailure(original, TransactionUnknown))
+      (Some(original), _) => Err(original)
+      (None, value) => value
+    }
+  })
+}

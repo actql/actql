@@ -338,12 +338,18 @@ export async function startExplorerGateway({port = 0, ...options}) {
         server.close(error => error ? reject(error) : resolve());
         server.closeAllConnections();
       });
-      closing = Promise.allSettled([socket, originalCalls]).then(results => {
+      const attempt = Promise.allSettled([socket, originalCalls]).then(results => {
         const failed = results.filter(result => result.status === 'rejected');
         if (failed.length) throw new AggregateError(failed.map(result => result.reason),
           'ExplorerGatewayCleanupPending');
       });
-      return closing;
+      closing = attempt;
+      // Only a settled failed attempt may retry this same server. A missing
+      // callback or outstanding SDK read keeps its original attempt retained.
+      void attempt.then(undefined, () => {
+        if (closing === attempt) closing = undefined;
+      });
+      return attempt;
     },
   });
 }
