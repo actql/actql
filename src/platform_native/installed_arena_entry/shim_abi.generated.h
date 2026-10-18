@@ -12,7 +12,9 @@
 #include "sqlite_shim.h"
 #include "sqlite_database_shim.h"
 #include "packaged_product_shim.h"
+#include "runtime_initialization_shim.h"
 #include "local_journal_shim.h"
+#include "local_host_resources_shim.h"
 int actql_backing_borrow_into(actql_control_host * host, actql_backing_reply ** reply_slot);
 int actql_backing_current_into(actql_control_host * host, actql_backing_loan * loan, actql_backing_reply ** reply_slot);
 int actql_backing_drop_reply(actql_backing_reply ** reply_slot, actql_control_host * retained_host, actql_backing_loan * retained_loan);
@@ -40,6 +42,9 @@ int32_t actql_control_issue_family(actql_control_reply * reply);
 int32_t actql_control_operation(actql_control_reply * reply);
 int actql_control_originals_into(actql_control_reply * reply, actql_control_host ** original_slot, actql_control_host ** retained_slot);
 int actql_control_prepare_utf16_into(const uint16_t * source, int32_t source_units, const uint8_t * recipe, int32_t recipe_bytes, int64_t generation, int64_t bytes, int32_t planning, int32_t attempts, int32_t holdings, int64_t transfer, int64_t retained, int64_t execution, int64_t envelope, actql_control_reply ** reply_slot);
+int actql_control_runtime_current(actql_control_runtime_origin * original);
+int actql_control_runtime_initialize_into(actql_control_runtime_origin ** slot);
+int actql_control_runtime_roots_state(void);
 int actql_control_try_close_and_drop(actql_control_host ** original_slot, actql_control_reply ** pending_slot);
 int actql_domain_close_into(actql_control_host * host, actql_domain * domain, actql_domain_reply ** slot);
 int actql_domain_copy_material(actql_domain_reply * reply, actql_control_host * host, actql_domain * domain, unsigned char * source, unsigned char * recipe, int64_t * scalars);
@@ -52,6 +57,7 @@ int32_t actql_domain_issue_family(actql_domain_reply * reply);
 int actql_domain_leave_into(actql_control_host * host, actql_domain * domain, actql_domain_reply ** slot);
 int32_t actql_domain_operation(actql_domain_reply * reply);
 int actql_domain_originals_into(actql_domain_reply * reply, actql_control_host ** host, actql_domain ** domain);
+int actql_domain_prepare_initial_into(actql_control_host * host, actql_backing_loan * scope, int32_t fd, int32_t work, int32_t attempts, int32_t holdings, int64_t transfer, actql_domain_reply ** slot);
 int actql_domain_prepare_into(actql_control_host * host, actql_backing_loan * scope, int32_t fd, int64_t bytes, int32_t work, int32_t attempts, int32_t holdings, int64_t transfer, int64_t retained, int64_t execution, actql_domain_reply ** slot);
 int actql_domain_project_into(actql_control_host * host, actql_domain * domain, actql_domain_reply ** slot);
 int actql_domain_read_cleanup_into(actql_control_host * host, actql_domain * domain, actql_domain_reply ** reply);
@@ -61,6 +67,16 @@ int actql_domain_read_enter_into(actql_control_host * host, actql_domain * domai
 int actql_domain_read_leave_into(actql_control_host * host, actql_domain * domain, actql_domain_reply ** reply);
 int actql_domain_read_prepare_into(actql_control_host * host, actql_domain * domain, actql_domain_reply ** reply);
 int actql_domain_transfer_into(actql_control_host * host, actql_domain * domain, actql_domain_reply ** slot);
+int actql_host_resources_bind_into(actql_control_host * host, actql_parent_read * read, actql_sqlite_original * sqlite, actql_local_host_resources_reply ** reply);
+int64_t actql_host_resources_capacity_scalar(actql_control_host * host, int32_t index);
+int32_t actql_host_resources_close_confirmed(actql_local_host_resources_reply * reply);
+int actql_host_resources_drop_reply(actql_local_host_resources_reply ** reply, actql_control_host * host, actql_control_host * sqlite_host, actql_parent_read * read, actql_sqlite_original * sqlite, actql_local_host_resources * original);
+int actql_host_resources_finish_closed_data(actql_control_host ** host, actql_control_host ** sqlite_host, actql_parent_read ** read, actql_sqlite_original ** sqlite, actql_local_host_resources ** original, actql_local_host_resources_reply ** reply);
+int32_t actql_host_resources_issue_family(actql_local_host_resources_reply * reply);
+int32_t actql_host_resources_issue_origin(actql_local_host_resources_reply * reply);
+int actql_host_resources_operate_into(actql_control_host * host, actql_local_host_resources * original, int32_t operation, actql_local_host_resources_reply ** reply);
+int32_t actql_host_resources_operation(actql_local_host_resources_reply * reply);
+int actql_host_resources_originals_into(actql_local_host_resources_reply * reply, actql_control_host ** host, actql_control_host ** sqlite_host, actql_parent_read ** read, actql_sqlite_original ** sqlite, actql_local_host_resources ** original);
 int actql_live_channel_bind_child_into(actql_control_host * host, actql_domain * domain, actql_live_channel * channel, int32_t child, actql_live_channel_reply ** slot);
 int actql_live_channel_bind_into(actql_control_host * host, actql_domain * domain, actql_live_channel * channel, int64_t nonce, int64_t offset, int64_t bytes, actql_live_channel_reply ** slot);
 int actql_live_channel_copy_capacities(actql_live_channel_reply * reply, actql_control_host * host, actql_domain * domain, actql_live_channel * channel, int64_t * out);
