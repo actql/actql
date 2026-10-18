@@ -262,3 +262,35 @@ test "Slack retained thread hints cannot turn a missing reply count into zero" {
     assert_true(page.rows[0][6].value is @admitted.Null, msg=fragment)
   }
 }
+
+///|
+test "Slack ordinary history bot messages obey the same absence and thread hint rule" {
+  let ordinary = "{\"type\":\"message\",\"subtype\":\"bot_message\",\"ts\":\"1.000001\",\"text\":\"ordinary bot\""
+  for
+    (extra, expected) in [
+      ("", "\"0\""),
+      (",\"reply_count\":2", "\"2\""),
+      (",\"reply_count\":null", "null"),
+      (",\"thread_ts\":null", "null"),
+      (",\"thread_ts\":\"1.000001\"", "null"),
+      (",\"reply_users\":[]", "null"),
+      (",\"event_ts\":\"1.000001\"", "null"),
+    ] {
+    let history = message_history()
+    let request = begin_slack_message_history(history).unwrap()
+    let page = history_admit(
+      history,
+      request,
+      "[" + ordinary + extra + "}]",
+      ",\"has_more\":false",
+    ).unwrap()
+    assert_eq(
+      message_wire(page, ["reply_count"]),
+      "[{\"reply_count\":" + expected + "}]",
+    )
+  }
+  let generic = message_project(
+    "{\"ok\":true,\"has_more\":false,\"messages\":[" + ordinary + "}]}",
+  ).unwrap()
+  assert_true(generic.rows[0][6].value is @admitted.Null)
+}

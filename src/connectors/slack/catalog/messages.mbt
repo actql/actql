@@ -267,8 +267,17 @@ fn ordinary_history_without_thread(row : @decode.ObjectView) -> Bool {
   // Only actual absent keys support the adopted non-thread projection. An
   // explicit count wins, including a positive count without thread metadata.
   if !(@decode.field(row, "reply_count") is Missing) ||
-    !(@decode.field(row, "thread_ts") is Missing) ||
-    !(@decode.field(row, "subtype") is Missing) {
+    !(@decode.field(row, "thread_ts") is Missing) {
+    return false
+  }
+  // A known ordinary bot message is not partial merely because its subtype
+  // is present. Unknown, null and thread/event subtypes supply no such proof.
+  let ordinary_subtype = match @decode.field(row, "subtype") {
+    Missing => true
+    Present(value) => @decode.text(value) == Ok("bot_message")
+    ExplicitNull => false
+  }
+  if !ordinary_subtype {
     return false
   }
   guard @decode.lookup(row, "text") is Some(text) && @decode.text(text) is Ok(_) else {
