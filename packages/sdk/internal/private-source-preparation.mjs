@@ -23,13 +23,13 @@ export function captureSourcePreparation(port) {
       typeof entry.value !== 'object') throw unavailable();
   const receiver = entry.value;
   const methods = ['beforeSourceSnapshot', 'bindSourceSnapshot',
-    'bindSourceRequest', 'finishSourceProducer'].map(name => {
+    'bindSourceRequest', 'finishSourceProducer', 'intentCid'].map(name => {
       const field = descriptor(receiver, name);
       if (field === undefined || !hasOwn(field, 'value') ||
           typeof field.value !== 'function') throw unavailable();
       return field.value;
     });
-  const [before, snapshot, request, finish] = methods;
+  const [before, snapshot, request, finish, intent] = methods;
   return Object.freeze({
     beforeSourceSnapshot(kind, input, options) {
       const receipt = apply(before, receiver, [kind, input, options]);
@@ -47,6 +47,16 @@ export function captureSourcePreparation(port) {
     },
     bindSourceRequest(receipt, originalBody, actualClonedRequest) {
       return apply(request, receiver, [receipt, originalBody, actualClonedRequest]);
+    },
+    intentCid(receipt, originalBody) {
+      const value = apply(intent, receiver, [receipt, originalBody]);
+      if (typeof value !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(value)) {
+        // No Promise/thenable or native-hash fallback can escape this original
+        // synchronous Source operation. This CID remains metadata, not a grant.
+        if (value instanceof originalPromise) apply(promiseThen, value, [undefined, () => {}]);
+        throw unavailable();
+      }
+      return value;
     },
     finishSourceProducer(receipt, terminal) {
       return apply(finish, receiver, [receipt, terminal]);

@@ -1,9 +1,14 @@
 import {createRequire} from 'node:module';
 import {types} from 'node:util';
 
-// The preload may synchronously initialize this ESM namespace. Its already
-// published CJS receiver avoids a static CJS/ESM initialization cycle.
-const originalOwner = createRequire(import.meta.url)('./infer-trusted-node-preload.cjs');
+// The actual ordinary prefix or the unchanged preload initializes this ESM
+// namespace. Capture that SAME published receiver before application entry;
+// never discover a later callback table or use one entrance's original to
+// rescue another entrance. Selection alone supplies no Source admission.
+const require = createRequire(import.meta.url);
+const ordinary = process.execArgv.length === 0 && process.env.NODE_OPTIONS === undefined;
+const originalOwner = ordinary ? require('./node-public-initial-control-bootstrap.cjs') :
+  require('./infer-trusted-node-preload.cjs');
 
 // Fixed private startup receiver only. A shape, callback supplied by a Client,
 // scalar quota or initial-control scope cannot create a Source installation.
@@ -14,7 +19,7 @@ const get = WeakMap.prototype.get, set = WeakMap.prototype.set;
 const installations = new NativeWeakMap();
 const names = freeze(['prepareSourceManagedInstallation', 'assertSourceManagedInstallationCurrent',
   'beforeSourceSnapshot', 'bindSourceSnapshot', 'bindSourceRequest',
-  'finishSourceProducer', 'closeSourceManagedInstallation']);
+  'finishSourceProducer', 'closeSourceManagedInstallation', 'sourceIntentCid']);
 const callbacks = names.map(name => {
   const d = descriptor(originalOwner, name);
   return d !== undefined && hasOwn(d, 'value') && typeof d.value === 'function' ? d.value : undefined;
@@ -66,6 +71,15 @@ function syncVoid(state, index, args) {
   }
 }
 
+// The selected Root may retain a partial original while its fixed Host
+// metadata operation is still running. Check that SAME nominal original in
+// the captured Owner before/after each metadata await, without constructing a
+// view early, issuing a child or treating a callback/Boolean as admission.
+// Its constructor keeps partial cleanup if this observation refuses.
+export function assertSourceManagedPreparationCurrent(originalInstallation, sameOriginals) {
+  if (invoke(1, [originalInstallation, sameOriginals]) !== undefined) unavailable();
+}
+
 export async function prepareSourceManagedInstallation(originals) {
   // This connect-time initialization may await. None of the four submission
   // operations below may await before the SDK's original snapshot/clone.
@@ -98,6 +112,21 @@ export async function prepareSourceManagedInstallation(originals) {
     },
     bindSourceSnapshot(receipt, body) {syncVoid(state, 3, [receipt, body]);},
     bindSourceRequest(receipt, body, request) {syncVoid(state, 4, [receipt, body, request]);},
+    intentCid(receipt, originalFrozenBody) {
+      current(state);
+      // The fixed Root binds this exact receipt/body before using the same
+      // Common submitted-intent Owner. This result is DATA, not an issuer or
+      // permission. A selected Source never falls back to a native hash task
+      // whose separate allocator/work lifetime has not been supplied.
+      const result = invoke(7, [state.installation, state.originals, receipt, originalFrozenBody]);
+      if (typeof result !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(result)) {
+        state.failure = Object.assign(new NativeError('SourceManagedSynchronousProtocolChanged', {cause: result}),
+          {code: 'SourceManagedSynchronousProtocolChanged'});
+        throw state.failure;
+      }
+      current(state);
+      return result;
+    },
     finishSourceProducer(receipt, terminal) {
       // Producer retirement may follow lost currentness. Only the original
       // Owner can cut this producer's aliases; this is no child/physical ACK.

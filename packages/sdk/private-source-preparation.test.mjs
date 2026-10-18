@@ -13,6 +13,7 @@ test('private Source forwarding retains the same receiver and original arguments
     bindSourceSnapshot(...args) {calls.push([this, 'snapshot', ...args]);},
     bindSourceRequest(...args) {calls.push([this, 'request', ...args]);},
     finishSourceProducer(...args) {calls.push([this, 'finish', ...args]);},
+    intentCid(...args) {calls.push([this, 'intent', ...args]); return 'sha256:' + 'a'.repeat(64);},
   };
   const port = {[sourcePreparationPort]: receiver};
   const captured = captureSourcePreparation(port);
@@ -20,11 +21,13 @@ test('private Source forwarding retains the same receiver and original arguments
   for (const name of Object.keys(receiver)) receiver[name] = () => assert.fail('ReplacementCalled');
   assert.equal(captured.beforeSourceSnapshot('aql', input, options), receipt);
   captured.bindSourceSnapshot(receipt, body);
+  assert.equal(captured.intentCid(receipt, body), 'sha256:' + 'a'.repeat(64));
   captured.bindSourceRequest(receipt, body, packet);
   captured.finishSourceProducer(receipt, 'returned');
   assert.deepEqual(calls, [
     [receiver, 'before', 'aql', input, options],
     [receiver, 'snapshot', receipt, body],
+    [receiver, 'intent', receipt, body],
     [receiver, 'request', receipt, body, packet],
     [receiver, 'finish', receipt, 'returned'],
   ]);
@@ -57,6 +60,7 @@ test('asynchronous Source admission cannot move the synchronous snapshot past an
     bindSourceSnapshot() {assert.fail('NoOriginalSnapshot');},
     bindSourceRequest() {assert.fail('NoOriginalPacket');},
     finishSourceProducer() {assert.fail('NoProducerTerminal');},
+    intentCid() {assert.fail('NoIntent');},
   }});
   assert.throws(() => captured.beforeSourceSnapshot('aql', input, {}),
     {code: 'NodeSourceManagedAdmissionUnavailable'});
@@ -71,7 +75,29 @@ test('original Source preparation failure retains its original cleanup handle', 
   const captured = captureSourcePreparation({[sourcePreparationPort]: {
     beforeSourceSnapshot() {throw original;},
     bindSourceSnapshot() {}, bindSourceRequest() {}, finishSourceProducer() {},
+    intentCid() {assert.fail('NoIntent');},
   }});
   assert.throws(() => captured.beforeSourceSnapshot('aql', 'original', {}),
     error => error === original && error.cleanupHandle === cleanupHandle);
+});
+
+test('a selected Source receiver cannot omit the original intent identity operation', () => {
+  const receiver = {beforeSourceSnapshot() {}, bindSourceSnapshot() {},
+    bindSourceRequest() {}, finishSourceProducer() {}};
+  assert.throws(() => captureSourcePreparation({[sourcePreparationPort]: receiver}),
+    {code: 'NodeSourceManagedAdmissionUnavailable'});
+});
+
+test('Source intent identity refuses asynchronous or malformed observations without assimilation', async () => {
+  let observed, reads = 0;
+  const captured = captureSourcePreparation({[sourcePreparationPort]: {
+    beforeSourceSnapshot() {}, bindSourceSnapshot() {}, bindSourceRequest() {}, finishSourceProducer() {},
+    intentCid() {return observed;},
+  }});
+  for (observed of [undefined, 'sha256:short', Object.defineProperty({}, 'then',
+    {get() {reads++;}}), Promise.reject(new Error('OriginalIntentIdentityPending'))]) {
+    assert.throws(() => captured.intentCid({}, {}), {code: 'NodeSourceManagedAdmissionUnavailable'});
+  }
+  await Promise.resolve();
+  assert.equal(reads, 0);
 });

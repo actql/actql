@@ -955,7 +955,8 @@ export async function createInstalledRowSource({moon, declaration,
   connectorRevision, site, authorization, readOperation, physicalTarget,
   readPages, bindingCid, limits, referenceIssuer, listingPolicy, captureContent,
   listingReportCapacity, prepareAcquisition, directReadIdentity,
-  prepareRead, grantBeforeBegin = false, originalSourceAccess, providerReader}) {
+  prepareRead, grantBeforeBegin = false, originalSourceAccess, providerReader,
+  prepareSourceRead}) {
   // Trusted installation compatibility only: preserve an existing provider
   // identity and ordering while this one Owner retains preparation, current
   // authorization, RowRun, capture and failure cleanup. No wire selects this
@@ -979,6 +980,11 @@ export async function createInstalledRowSource({moon, declaration,
   // Public packets/configuration cannot replace either after preparation.
   // The declaration is DATA; Core still reserves on the original Run Ledger.
   let originalReader;
+  if (prepareSourceRead !== undefined && (typeof prepareSourceRead !== 'function' ||
+      providerReader !== undefined || listingReportCapacity !== undefined ||
+      ['clientProgramInstalledSourceReadCheckCurrent', 'clientProgramInstalledSourceReadBindProgram',
+        'clientProgramInstalledSourceReadBindEffectProgram', 'clientProgramInstalledSourceReadAttachAcquisition']
+        .some(name => typeof moon?.[name] !== 'function'))) fail('InstalledSourceReadUnavailable');
   if (providerReader !== undefined) {
     if (providerReader === null || typeof providerReader !== 'object' ||
         Object.keys(providerReader).length !== 2 ||
@@ -1294,6 +1300,18 @@ export async function createInstalledRowSource({moon, declaration,
     // Original provider compatibility authorizes before its pure acquisition
     // preparation. The ordinary path keeps its original opposite order.
     if (directReadIdentity !== undefined) await authorizePreparation();
+    // The actual installation retains the imported child before returning
+    // this same opaque read. A failure below remains with that original
+    // supplier; no local scalar/fallback Ledger or cleanup ACK is created.
+    const originalRead = prepareSourceRead === undefined ? undefined :
+      prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement, occurrence}));
+    if (prepareSourceRead !== undefined) {
+      if (originalRead === undefined || nodeTypes.isPromise(originalRead)) fail('InstalledSourceReadUnavailable');
+      checked(moon.clientProgramInstalledSourceReadCheckCurrent(originalRead));
+      checked(effectful
+        ? moon.clientProgramInstalledSourceReadBindEffectProgram(originalRead, checkedOwner)
+        : moon.clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner));
+    }
     // An installed provider may select its existing pure typed preparer. It
     // must return this exact requirement/declaration's original acquisition;
     // this is neither an I/O callback nor permission to replace a checked Run.
@@ -1306,6 +1324,8 @@ export async function createInstalledRowSource({moon, declaration,
       checked(moon.clientProgramRowSourceCheckOriginalAcquisition(
         acquisition, declaration, requirement));
     }
+    if (originalRead !== undefined) checked(moon.clientProgramInstalledSourceReadAttachAcquisition(
+      originalRead, declaration, requirement, acquisition, occurrence.stage, occurrence.input));
     const providerCaptureCapacity = originalReader === undefined ? undefined :
       moon.clientProgramInstalledProviderRowCaptureCapacity(acquisition, originalReader.capacity);
     if (originalReader !== undefined && providerCaptureCapacity === undefined) {
@@ -1314,7 +1334,7 @@ export async function createInstalledRowSource({moon, declaration,
     if (directReadIdentity === undefined) await authorizePreparation();
     preparations.set(prepared, Object.freeze({checkedOwner, effectful,
       requirement, resource, access, acquisition,
-      occurrence, physicalBindingCid, providerCaptureCapacity}));
+      occurrence, physicalBindingCid, providerCaptureCapacity, originalRead}));
     ordinaryRecoveryBinding(prepared);
     return prepared;
   }
@@ -1859,7 +1879,8 @@ export async function createInstalledRowSource({moon, declaration,
       // this JS caller when capture returns. Ordinary rows have no new field.
       capacity.listingReport = listingReportCapacity;
     }
-    const session = startInstalledRowRun({moon, acquisition, nonce, ledger, capacity});
+    const session = startInstalledRowRun({moon, acquisition, nonce, ledger, capacity,
+      originalRead: owner.originalRead});
     const {run} = session;
     const complete = async () => {
       const verifyRead = () => currentRead(prepared, access, signal);
@@ -1895,7 +1916,8 @@ export async function createInstalledRowSource({moon, declaration,
       if (!grantBeforeBegin) grant = issueGrant();
       state.started = true;
       const rowRun = Object.freeze({acquisition, run, requestId: nonce,
-        runInvocationCid, dispatchRequestCid});
+        runInvocationCid, dispatchRequestCid,
+        ...(owner.originalRead === undefined ? {} : {originalRead: owner.originalRead})});
       const withOriginalJob = originalOperationScope === undefined ? undefined
         : bindClientSourceOperationRowRun(originalOperationScope, moon,
           preparedProgram, prepared, rowRun);

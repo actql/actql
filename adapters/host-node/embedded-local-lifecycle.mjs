@@ -61,8 +61,19 @@ export function createEmbeddedHostRegistry(sameInstallation) {
       profiles.delete(entry.originalHost);
     }
     entry.preparationRetired = true;
+    entry.mockPreparation = undefined;
     entry.originalHost = entry.originalInstallation = entry.generation = undefined;
   };
+  function originalSourceRequest(host, installation, generation, request) {
+    const entry = preparationFor(host, installation, generation);
+    if (entry.closing || entry.failure !== undefined ||
+        request === null || typeof request !== 'object') preparationChanged();
+    for (const original of entry.handling.values()) {
+      if (original !== undefined && (original.request === request ||
+          original.aliases.includes(request))) return original.request;
+    }
+    preparationChanged();
+  }
   return Object.freeze({
   // A candidate belongs to this SAME registry, before Project discovery. It
   // has no root lease or physical Host yet and issues no capacity/permission.
@@ -81,18 +92,51 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     const entry = preparationFor(host, installation, generation);
     if (entry.closing || entry.failure !== undefined) preparationChanged();
   },
+  // Retain only this original Host's prepared mock view. This existing
+  // registry association is not the Source supplier or a DATA admission.
+  retainMockPreparation(host, installation, generation, view) {
+    const entry = preparationFor(host, installation, generation);
+    if (entry.closing || entry.failure !== undefined || entry.mockPreparation !== undefined ||
+        view === null || typeof view !== 'object') preparationChanged();
+    entry.mockPreparation = view;
+  },
+  mockPreparation(host, installation, generation, allowMissing = false) {
+    const entry = preparationFor(host, installation, generation);
+    if (entry.closing || entry.failure !== undefined ||
+        entry.mockPreparation === undefined && !allowMissing) preparationChanged();
+    return entry.mockPreparation;
+  },
+  retainedMockPreparation(host, installation, generation) {
+    // Cleanup may outlive new-operation currentness. Keep the exact registry
+    // pair while closing; this projection cannot admit another preparation.
+    return preparationFor(host, installation, generation).mockPreparation;
+  },
   // Identity-only projection from this registry's actual pending calls. The
   // Source operational supplier covers the additional request reference and
   // Map backing before installing its consumer. This is not an issuer, grant,
   // request parser or evidence that the call's physical work has stopped.
+  originalSourceRequest,
   assertSourceRequest(host, installation, generation, request) {
+    originalSourceRequest(host, installation, generation, request);
+  },
+  bindSourceRequest(host, installation, generation, parent, derived) {
+    const originalRequest = originalSourceRequest(host, installation, generation, parent);
+    if (derived === null || typeof derived !== 'object') preparationChanged();
     const entry = preparationFor(host, installation, generation);
-    if (entry.closing || entry.failure !== undefined ||
-        request === null || typeof request !== 'object') preparationChanged();
+    let selected;
     for (const original of entry.handling.values()) {
-      if (original === request) return;
+      if (original === undefined) continue;
+      if (original.request === originalRequest) selected = original;
+      else if (original.request === derived || original.aliases.includes(derived)) preparationChanged();
     }
-    preparationChanged();
+    if (derived === originalRequest || selected.aliases.includes(derived)) return;
+    // Selected private operational retention only. This does not change the
+    // public packet grammar, issue capacity or prove any clone's backing.
+    if (selected.aliases.length === 16) {
+      throw Object.assign(new Error('SourceManagedPreparationUnavailable'),
+        {code: 'SourceManagedPreparationUnavailable'});
+    }
+    selected.aliases.push(derived);
   },
   retirePreparation(host, installation, generation) {
     const entry = preparationFor(host, installation, generation);
@@ -290,6 +334,14 @@ export function createEmbeddedHostRegistry(sameInstallation) {
           if (sealed || opened.closing) throw closing();
           return sourcePreparation.bindSourceRequest(receipt, body, request);
         },
+        intentCid(receipt, body) {
+          if (sealed || opened.closing) throw closing();
+          if (!sourceProducers.has(receipt)) {
+            throw Object.assign(new Error('ForeignInstalledSourceProducer'),
+              {code: 'ForeignInstalledSourceProducer'});
+          }
+          return sourcePreparation.intentCid(receipt, body);
+        },
         finishSourceProducer(receipt, terminal) {
           const producer = sourceProducers.get(receipt);
           if (producer === undefined) {
@@ -335,7 +387,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         // Same pending operation, not a second request index or cache. The
         // supplier may retain an admitted original after this Promise retires;
         // deleting this association is neither a holding nor physical ACK.
-        opened.handling.set(pending, request);
+        opened.handling.set(pending, {request, aliases: []});
         pending.finally(() => {
           handling.delete(pending);
           opened.handling.delete(pending);

@@ -59845,6 +59845,540 @@
         }
       ],
       "referenceQualification": "Existing original Host/Resource responsibility references; neither syntax coverage nor a helper call supplies operational business capacity or installed acceptance."
+    },
+    {
+      "module": "adapters/host-node/node-source-managed-installation.mjs",
+      "sha256": "9a52e69708e27980aa43667fd3602fc14f480ba097dac00d3a980683f66d9988",
+      "exports": [
+        "assertSourceManagedInstallationCurrent",
+        "assertSourceManagedPreparationCurrent",
+        "prepareSourceManagedInstallation"
+      ],
+      "operations": [
+        {
+          "name": "assertSourceManagedInstallationCurrent",
+          "parameters": [
+            "view",
+            "sameOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertSourceManagedPreparationCurrent",
+          "parameters": [
+            "originalInstallation",
+            "sameOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "callbacks/callbacks",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "close",
+          "parameters": [
+            "state"
+          ],
+          "async": true
+        },
+        {
+          "name": "close/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "current",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "invoke",
+          "parameters": [
+            "index",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "original",
+          "parameters": [
+            "view",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSourceManagedInstallation",
+          "parameters": [
+            "originals"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareSourceManagedInstallation/prepareSourceManagedInstallation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSourceManagedInstallation/prepareSourceManagedInstallation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSourceManagedInstallation/view/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSourceManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+          "parameters": [
+            "kind",
+            "input",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSourceManagedInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
+          "parameters": [
+            "receipt",
+            "body",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSourceManagedInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSourceManagedInstallation/view/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSourceManagedInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
+          "parameters": [
+            "receipt",
+            "terminal"
+          ],
+          "async": false
+        },
+        {
+          "name": "syncVoid",
+          "parameters": [
+            "state",
+            "index",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./infer-trusted-node-preload.cjs",
+        "./node-public-initial-control-bootstrap.cjs",
+        "node:module",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "owner": "Existing Host/Resource Source installation and original acquisition custody",
+      "role": "physical-io",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "assertSourceManagedInstallationCurrent",
+            "assertSourceManagedPreparationCurrent",
+            "callbacks/callbacks",
+            "close",
+            "close/flight/flight",
+            "current",
+            "invoke",
+            "original",
+            "prepareSourceManagedInstallation",
+            "prepareSourceManagedInstallation/prepareSourceManagedInstallation",
+            "prepareSourceManagedInstallation/prepareSourceManagedInstallation#2",
+            "prepareSourceManagedInstallation/view/init:assertCurrent/init:assertCurrent",
+            "prepareSourceManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+            "prepareSourceManagedInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
+            "prepareSourceManagedInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
+            "prepareSourceManagedInstallation/view/init:close/init:close",
+            "prepareSourceManagedInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
+            "syncVoid",
+            "unavailable/unavailable"
+          ],
+          "exports": [
+            "assertSourceManagedInstallationCurrent",
+            "assertSourceManagedPreparationCurrent",
+            "prepareSourceManagedInstallation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "// Fixed private startup receiver only."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "export async function prepareSourceManagedInstallation(originals)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "if (state === undefined || state.closed || state.originals !== originals) unavailable();"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "export function assertSourceManagedPreparationCurrent(originalInstallation, sameOriginals) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "// Forward the SAME original close, retaining partial custody on refusal;"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "// Its constructor keeps partial cleanup if this observation refuses."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "function syncVoid(state, index, args)"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "const originalOwner = ordinary ? require('./node-public-initial-control-bootstrap.cjs') :"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "carrier.code = 'SourceManagedInstallationCleanupPending';"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "// Producer retirement may follow lost currentness."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "// shared VM byte credit; failure observations retain their real lifetime."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "// scalar quota or initial-control scope cannot create a Source installation."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.test.mjs",
+                "anchor": "the actual absent Source issuer refuses without observing caller originals"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.test.mjs",
+                "anchor": "ordinary Source absence cannot borrow the explicit preload receiver or observe caller originals"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.test.mjs",
+                "anchor": "partial Source metadata current checks the captured nominal original before a view exists"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original Host/Resource responsibility references; neither syntax coverage nor a helper call supplies operational business capacity or installed acceptance."
+    },
+    {
+      "module": "adapters/host-node/source-response-backing.cjs",
+      "sha256": "6c561b34797537877339d95697fe8c9bf3211aa6df071f8393a2c58093bfcb66",
+      "exports": [
+        "commonjs:createSourceResponseBackingOwner"
+      ],
+      "operations": [
+        {
+          "name": "callback",
+          "parameters": [
+            "receiver",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner",
+          "parameters": [
+            "ports"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/acquire",
+          "parameters": [
+            "pool",
+            "scope",
+            "readOriginal",
+            "maxBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/acquire/cleanupHandle/cleanupHandle",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/acquire/cleanupHandle/cleanupHandle#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/allocate",
+          "parameters": [
+            "scope",
+            "bytes",
+            "maxLoans"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/close",
+          "parameters": [
+            "pool",
+            "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/loanFor",
+          "parameters": [
+            "loan"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/poolFor",
+          "parameters": [
+            "pool",
+            "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/poolStatus",
+          "parameters": [
+            "pool",
+            "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/poolStatus/poolStatus",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/releaseAliases",
+          "parameters": [
+            "loan",
+            "scope",
+            "readOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/remember",
+          "parameters": [
+            "state",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/requireCurrent/requireCurrent",
+          "parameters": [
+            "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/settle",
+          "parameters": [
+            "loan"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/start",
+          "parameters": [
+            "loan",
+            "scope",
+            "readOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/start/init:finish/init:finish",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/start/init:stop/init:stop",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/start/init:write/init:write",
+          "parameters": [
+            "chunk"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/status",
+          "parameters": [
+            "loan"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:buffer",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "owner": "Existing Resource and Source receive physical-byte holding and original borrow custody",
+      "role": "physical-io",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "callback",
+            "createSourceResponseBackingOwner",
+            "createSourceResponseBackingOwner/acquire",
+            "createSourceResponseBackingOwner/acquire/cleanupHandle/cleanupHandle",
+            "createSourceResponseBackingOwner/acquire/cleanupHandle/cleanupHandle#2",
+            "createSourceResponseBackingOwner/allocate",
+            "createSourceResponseBackingOwner/close",
+            "createSourceResponseBackingOwner/loanFor",
+            "createSourceResponseBackingOwner/poolFor",
+            "createSourceResponseBackingOwner/poolStatus",
+            "createSourceResponseBackingOwner/poolStatus/poolStatus",
+            "createSourceResponseBackingOwner/releaseAliases",
+            "createSourceResponseBackingOwner/remember",
+            "createSourceResponseBackingOwner/requireCurrent/requireCurrent",
+            "createSourceResponseBackingOwner/settle",
+            "createSourceResponseBackingOwner/start",
+            "createSourceResponseBackingOwner/start/init:finish/init:finish",
+            "createSourceResponseBackingOwner/start/init:stop/init:stop",
+            "createSourceResponseBackingOwner/start/init:write/init:write",
+            "createSourceResponseBackingOwner/status",
+            "fail"
+          ],
+          "exports": [
+            "commonjs:createSourceResponseBackingOwner"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/source-response-backing.cjs",
+                "anchor": "// Physical byte storage only. This helper does not authenticate a startup,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-response-backing.cjs",
+                "anchor": "function createSourceResponseBackingOwner(ports)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/source-response-backing.cjs",
+                "anchor": "if (state === undefined || state.scope !== scope) fail('ForeignSourceResponseBacking');"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-response-backing.cjs",
+                "anchor": "// Strong original records deliberately survive alias-cut and child return."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-response-backing.cjs",
+                "anchor": "function start(loan, scope, readOriginal)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-response-backing.cjs",
+                "anchor": "carrier.code = 'SourceResponseBackingCleanupPending';"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/source-response-backing.cjs",
+                "anchor": "// It is not a socket/FD/native ACK and releases no physical byte credit."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-response-backing.cjs",
+                "anchor": "// gets a separate actual ArrayBuffer: exposing Buffer.buffer must not expose"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/source-response-backing.cjs",
+                "anchor": "// create Source capacity, admit managed decode or authorize HTTP."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/source-response-backing.test.mjs",
+                "anchor": "partial current refusal retains the acquired original borrow in the same cleanup carrier"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original Host/Resource responsibility references; neither syntax coverage nor a helper call supplies operational business capacity or installed acceptance."
     }
   ],
   "generated": [],

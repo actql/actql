@@ -246,11 +246,12 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
     submissionContexts.set(context, snapshot);
     const pending = (async () => {
       let intentCid;
-      try {intentCid = await bytesCid(new TextEncoder().encode(canonicalJson({
+      try {intentCid = sourceProducer === undefined ? await bytesCid(new TextEncoder().encode(canonicalJson({
         intent: {kind, input: body.input, parameters: body.parameters,
           ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {}),
           ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {})},
-        version: 'actql-submitted-intent/0.1'}, {dataKeys: true})));}
+        version: 'actql-submitted-intent/0.1'}, {dataKeys: true}))) :
+        await sourcePreparation.intentCid(sourceProducer.receipt, body);}
       catch (cause) {throw submissionNotSent(context, cause);}
       let outcome;
       let attempt;
