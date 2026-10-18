@@ -78,6 +78,12 @@ export async function retainInstalledHostInitializationFailure(cause,
     primaryFailure});
   let originalErrors = [];
   let observationFailure;
+  try {
+    const observedErrors = cause?.cleanupErrors;
+    if (Array.isArray(observedErrors)) originalErrors = observedErrors;
+  } catch (error) {
+    observationFailure = Object.freeze({owner: 'initialization', error});
+  }
   function observeOriginalCleanup() {
     try {
       captureOriginalStatus();

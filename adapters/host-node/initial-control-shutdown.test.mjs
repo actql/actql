@@ -180,6 +180,15 @@ test('a successfully absent original cleanup cannot be replaced to acknowledge i
   assert.equal(closes, 0);
 });
 
+test('completed initialization retains its original diagnostics through control cleanup', async () => {
+  const diagnostic = Object.freeze({owner: 'original-child', error: new Error('OriginalCloseFailure')});
+  const original = Object.freeze({cleanupPending: false, cleanupErrors: [diagnostic]});
+  const failure = await retainInstalledHostInitializationFailure(original,
+    {initialControl: {close: () => ({pending: false})}});
+  assert.equal(failure.cleanupHandle.status().pending, false);
+  assert.equal(failure.cleanupHandle.status().errors[0], diagnostic);
+});
+
 test('initialization preserves child-first control custody through the same retry', async () => {
   let pending = true, childRetries = 0, controlCloses = 0, storeCloses = 0;
   const child = {status: () => ({pending}), retry() {childRetries++;}};
