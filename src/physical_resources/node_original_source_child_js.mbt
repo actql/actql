@@ -11,6 +11,10 @@ priv type OriginalNodeSourceModuleLoader
 priv type OriginalNodeSourceChildPorts
 
 ///|
+#external
+priv type OriginalNodeSourceChildSupplier
+
+///|
 #module("node:module")
 extern "js" fn original_node_source_module_loader(
   url : String,
@@ -21,18 +25,35 @@ extern "js" fn original_node_source_module_url() -> String =
   #|() => import.meta.url
 
 ///|
-// Resolve only the SAME installed private startup. A caller cannot supply a
-// module path, callback table, numeric quota or substitute another receiver.
-extern "js" fn original_node_source_child_ports(
+// Capture the SAME selected startup once while the actual installed runtime
+// initializes. The ordinary Root publishes its table before loading this
+// namespace. Never resolve a later table at Source submission, and never
+// borrow a preload original for an ordinary installation.
+extern "js" fn capture_original_node_source_child_supplier(
   loader : OriginalNodeSourceModuleLoader,
+) -> OriginalNodeSourceChildSupplier =
+  #|loader => {
+  #|  const ordinary = process.execArgv.length === 0 && process.env.NODE_OPTIONS === undefined;
+  #|  const root = ordinary
+  #|    ? loader('../../../../../adapters/host-node/node-public-initial-control-bootstrap.cjs')
+  #|    : loader('../../../../../adapters/host-node/infer-trusted-node-preload.cjs');
+  #|  const method = Object.getOwnPropertyDescriptor(root, 'prepareOriginalSourceChildPorts');
+  #|  if (method === undefined || !Object.hasOwn(method, 'value') || typeof method.value !== 'function') return () => null;
+  #|  const callback = method.value, apply = Reflect.apply;
+  #|  return source => apply(callback, root, [source]);
+  #|}
+
+///|
+let original_node_source_child_supplier : OriginalNodeSourceChildSupplier = capture_original_node_source_child_supplier(
+  original_node_source_module_loader(original_node_source_module_url()),
+)
+
+///|
+extern "js" fn original_node_source_child_ports(
+  supplier : OriginalNodeSourceChildSupplier,
   source : OriginalNodeSourceReference,
 ) -> OriginalNodeSourceChildPorts =
-  #|(loader, source) => {
-  #|  const root = loader('../../../../../adapters/host-node/infer-trusted-node-preload.cjs');
-  #|  const method = Object.getOwnPropertyDescriptor(root, 'prepareOriginalSourceChildPorts');
-  #|  if (method === undefined || !Object.hasOwn(method, 'value') || typeof method.value !== 'function') return null;
-  #|  return Reflect.apply(method.value, root, [source]);
-  #|}
+  #|(supplier, source) => supplier(source)
 
 ///|
 extern "js" fn original_node_source_child_present(
@@ -81,8 +102,9 @@ extern "js" fn original_node_source_child_report(
 pub fn prepare_node_original_source_child(
   source : OriginalNodeSourceReference,
 ) -> Result[ImportedChildLedger, ImportedChildLedgerIssue] {
-  let loader = original_node_source_module_loader(original_node_source_module_url())
-  let ports = original_node_source_child_ports(loader, source)
+  let ports = original_node_source_child_ports(
+    original_node_source_child_supplier, source,
+  )
   if !original_node_source_child_present(ports) {
     return Err(Unavailable)
   }
