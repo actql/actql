@@ -178,15 +178,42 @@ pub fn prepare_statement_read(
     @scalar.admit_utf8_length(role, max_request_bytes) is Err(_) {
     return Err(InvalidSettings)
   }
+  let mut date_output = false
+  let mut utc_output = false
+  for index, _ in @rows.row_acquisition_columns(read.prepared.acquisition) {
+    guard @rows.row_acquisition_column_contract(
+        read.prepared.acquisition,
+        index,
+      )
+      is Some(contract) else {
+      return Err(InvalidSettings)
+    }
+    match contract.shape {
+      @contract.Date => date_output = true
+      @contract.Timestamp => utc_output = true
+      _ => ()
+    }
+  }
   let body = try {
-    // The fixed request has five root values and one fixed parameter value.
+    // Five root values, one parameter object and at most four parameters fit
+    // the existing structural bound. Old non-temporal request bytes stay exact.
     // This structural encoding bound is not a physical allocation grant.
     let writer = @encode.writer(max_request_bytes, 16, 4)
     @encode.begin_ordered_object(writer)
     @encode.ordered_key(writer, "parameters")
     @encode.begin_ordered_object(writer)
+    if date_output {
+      @encode.ordered_key(writer, "date_output_format")
+      @encode.string_value(writer, "YYYY-MM-DD")
+    }
     @encode.ordered_key(writer, "multi_statement_count")
     @encode.string_value(writer, "1")
+    if utc_output {
+      @encode.ordered_key(writer, "timestamp_ltz_output_format")
+      @encode.string_value(writer, "YYYY-MM-DD\"T\"HH24:MI:SS.FF9\"Z\"")
+      @encode.ordered_key(writer, "timezone")
+      @encode.string_value(writer, "UTC")
+    }
     @encode.end_object(writer)
     @encode.ordered_key(writer, "role")
     @encode.string_value(writer, role)

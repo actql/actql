@@ -142,6 +142,9 @@ fn description_contract(
     "FLOAT" | "REAL" | "DOUBLE" =>
       Some(@contract.primitive(@contract.NumberType, nullable~))
     "BOOLEAN" => Some(@contract.primitive(@contract.BooleanType, nullable~))
+    "DATE" => Some(@contract.primitive(@contract.DateType, nullable~))
+    "TIMESTAMP_LTZ" =>
+      Some(@contract.primitive(@contract.TimestampType, nullable~))
     "VARIANT" | "OBJECT" | "ARRAY" =>
       Some(@contract.primitive(@contract.JsonType, nullable~))
     _ => None

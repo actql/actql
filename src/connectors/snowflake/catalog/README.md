@@ -19,10 +19,16 @@ provider string transport and existing Common value admission. Row width,
 column uniqueness, nullability and caller budgets are checked explicitly.
 
 The initial read material supports TEXT, FIXED, finite REAL/FLOAT, BOOLEAN,
-VARIANT, OBJECT and ARRAY. Other provider types currently return a named
+VARIANT, OBJECT, ARRAY, DATE and UTC TIMESTAMP_LTZ. DATE uses the selected
+`YYYY-MM-DD` representation. LTZ accepts the selected fixed nine-digit UTC
+representation, checks its observed scale and delegates canonicalization to the
+existing exact Common Timestamp Owner. Values retain at least three fractional
+digits; only extra trailing zeros are removed, without binary64 or Host Date.
+Civil TIME/TIMESTAMP_NTZ, retained-offset TIMESTAMP_TZ and binary carriers remain
+unfinished. Other provider types currently return a named
 `UnsupportedColumn`; this is unfinished coverage against the full approved
 Snowflake profile, not a restriction of that profile. Source/catalog admission,
-current credential/use, pushdown, temporal/binary carriers, acquisition cleanup,
+current credential/use, pushdown, unfinished temporal/binary carriers, acquisition cleanup,
 SQL API submit/status/cancel, original request/handle reconciliation and every
 write operation remain separate integration work. No live service acceptance
 is established here.
