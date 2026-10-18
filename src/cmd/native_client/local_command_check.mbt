@@ -33,6 +33,9 @@ fn LocalCommandPreparationOriginal::execute_product_check(
   guard self.runtime is Some(physical) else {
     stop("LocalCommandPreparationUnavailable")
   }
+  // Project discovery was already inside this Read. Suspend only this scope
+  // while the Runtime performs its own original-current brackets.
+  command_preparation_result(self.leave())
   let runtime = local_packaged_runtime_from_physical(physical)
   let location = local_product_selected_location(
     optional(matches, "state-dir"),
@@ -154,4 +157,33 @@ fn LocalCommandPreparationOriginal::execute_adopted_check(
       }
     }),
   )
+}
+
+///|
+// Project discovery may advance only after the same missing-file receiver has
+// acknowledged its cleanup. Retain it before returning to the existing caller;
+// an unresolved Reader/Root prevents a second physical acquisition.
+fn command_project_original_text(
+  root : String,
+  name : String,
+) -> Result[String, @files.NativeBoundedTextFailure] {
+  guard command_preparation_invocation.val is Some(original) else {
+    return @files.read_bounded_text_file_with_custody(root, name, 65536L)
+  }
+  if original.read_failure is Some(previous) {
+    match previous.retry_cleanup() {
+      Err(_) => return Err(previous)
+      Ok(_) => original.read_failure = None
+    }
+  }
+  let result = @files.read_bounded_text_file_in_current_read_context_with_custody(
+    root,
+    name,
+    65536L,
+    original.profile.diagnostic_ceiling,
+  )
+  if result is Err(failure) {
+    original.read_failure = Some(failure)
+  }
+  result
 }

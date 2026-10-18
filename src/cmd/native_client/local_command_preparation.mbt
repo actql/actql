@@ -992,6 +992,7 @@ fn LocalCommandPreparationOriginal::prepare_adoption(
     )
     self.adoption = Some(capture)
     if capture.open().issue() is Some(issue) {
+      self.retain_primary(CommandCapture(issue))
       return Err(CommandCapture(issue))
     }
     match capture.original_session() {
