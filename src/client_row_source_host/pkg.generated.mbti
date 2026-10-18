@@ -125,6 +125,18 @@ pub fn keyed_row_read_facts(RowSourceRead) -> @sourceview_resolution.KeyedSource
 
 pub fn keyed_row_read_usage(RowSourceRead) -> (Int, Int64, Int64)
 
+pub fn mock_churn_risk_query_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?
+
+pub fn mock_churn_risk_query_alias_count(MockChurnRiskCatalogue) -> Int
+
+pub fn mock_churn_risk_source_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?
+
+pub fn mock_churn_risk_source_count(MockChurnRiskCatalogue) -> Int
+
+pub fn mock_churn_risk_update_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?
+
+pub fn mock_churn_risk_update_alias_count(MockChurnRiskCatalogue) -> Int
+
 pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]
 
 pub fn prepare_declared_row_acquisition(RowSourcePreparation, String, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]
@@ -134,6 +146,8 @@ pub fn prepare_declared_row_source(@query_planning.QueryRequirement, String, Row
 pub fn prepare_keyed_row_acquisition(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, @sourceview_resolution.KeyedRowRequest, RowDeclaration, RowKeyedLimits, input_available? : (() -> Bool)?) -> Result[RowKeyedAcquisition, RowHostIssue]
 
 pub fn prepare_keyed_row_capacity(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, RowDeclaration, RowKeyedLimits) -> Result[RowKeyedCapacity, RowHostIssue]
+
+pub fn prepare_mock_churn_risk_catalogue(RowDeclarationLimits) -> Result[MockChurnRiskCatalogue, RowHostIssue]
 
 pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]
 
@@ -224,6 +238,10 @@ pub fn start_row_acquisition(RowAcquisition, String, (RowAttempt) -> Bool) -> Re
 // Errors
 
 // Types and methods
+pub struct MockChurnRiskCatalogue {
+  // private fields
+}
+
 type RowAcquisition
 
 type RowAttempt
