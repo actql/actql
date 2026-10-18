@@ -119,7 +119,8 @@ fn eligible(field : KeyField, usage : KeyUse) -> Bool {
     return usage == CanonicalOrder
   }
   match c.shape {
-    Text(_) | Number | Boolean | Decimal(..) | Date | Timestamp => true
+    Text(_) | Number | Boolean | Decimal(..) | Date | Timestamp | Signed64 =>
+      true
     ResourceRef(..) | ContentRef(..) => usage == CanonicalOrder
     _ => false
   }

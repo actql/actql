@@ -257,6 +257,7 @@ pub fn[T] resolve(
             | Decimal(..)
             | Date
             | Timestamp
+            | Signed64
             | ResourceRef(..)
             | ContentRef(..) => ()
             _ =>
