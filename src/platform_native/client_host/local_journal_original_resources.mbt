@@ -2,7 +2,7 @@
 // Retained originals inside the existing Journal capture, not another resource
 // Owner. Only an actual successful enter sets leave_pending; only its original
 // physical leave clears it. An interruption never supplies a cleanup ACK.
-struct NativeLocalJournalOriginalResources {
+priv struct NativeLocalJournalOriginalResources {
   host : @arena.InstalledArenaHost
   pair : @arena.InstalledArenaLocalHostResources
   read : @arena.InstalledArenaOriginalRead
