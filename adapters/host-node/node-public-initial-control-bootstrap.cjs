@@ -40,6 +40,7 @@ const sourceOperations = freeze([
   [Buffer, 'alloc'], [Buffer, 'isBuffer'], [Buffer.prototype, 'subarray'], [Buffer.prototype, 'equals'],
   [sourceTypedArrayPrototype, 'buffer'], [sourceTypedArrayPrototype, 'byteOffset'],
   [sourceTypedArrayPrototype, 'byteLength'],
+  [WeakMap.prototype, 'get'], [WeakMap.prototype, 'set'], [Object, 'defineProperty'],
 ].map(([receiver, name]) => freeze({receiver, name, property: descriptor(receiver, name)})));
 const sourceAlloc = sourceOperations[0].property?.value;
 const sourceIsBuffer = sourceOperations[1].property?.value;
@@ -48,6 +49,13 @@ const sourceEquals = sourceOperations[3].property?.value;
 const sourceArrayBuffer = sourceOperations[4].property?.get;
 const sourceByteOffset = sourceOperations[5].property?.get;
 const sourceByteLength = sourceOperations[6].property?.get;
+const sourceMapGet = sourceOperations[7].property?.value;
+const sourceMapSet = sourceOperations[8].property?.value;
+const sourceDefineProperty = sourceOperations[9].property?.value;
+function appendSourceOriginal(array, value) {
+  apply(sourceDefineProperty, Object, [array, array.length,
+    {value, writable: true, enumerable: true, configurable: true}]);
+}
 function sourceOperationsChanged() {
   const entry = sourceInstallation;
   const cause = entry?.operationFailure?.cause ?? Object.assign(
@@ -61,7 +69,8 @@ function sourceOperationsChanged() {
 }
 function assertSourceOperationsCurrent() {
   if (![sourceAlloc, sourceIsBuffer, sourceSubarray, sourceEquals,
-    sourceArrayBuffer, sourceByteOffset, sourceByteLength].every(value => typeof value === 'function')) sourceOperationsChanged();
+    sourceArrayBuffer, sourceByteOffset, sourceByteLength, sourceMapGet, sourceMapSet,
+    sourceDefineProperty].every(value => typeof value === 'function')) sourceOperationsChanged();
   for (const held of sourceOperations) {
     const current = descriptor(held.receiver, held.name), original = held.property;
     if (current === undefined || original === undefined || current.value !== original.value ||
@@ -83,11 +92,13 @@ function allocateSourceBacking(entry, bytes) {
   entry.backingUnknown = true;
   const value = apply(sourceAlloc, Buffer, [bytes]);
   // Retain every constructor observation before validation/current checks.
-  entry.backings.push(value);
+  appendSourceOriginal(entry.backings, value);
   const range = sourceBackingRange(value, bytes);
   entry.backingUnknown = false;
-  if (entry.backingRanges.some(original => original.buffer === range.buffer)) sourceUnavailable();
-  entry.backingRanges.push(range);
+  for (let index = 0; index < entry.backingRanges.length; index++) {
+    if (entry.backingRanges[index].buffer === range.buffer) sourceUnavailable();
+  }
+  appendSourceOriginal(entry.backingRanges, range);
   assertSourceOperationsCurrent();
   return value;
 }
@@ -113,10 +124,17 @@ function sourceFailure(entry, cause) {
   entry.firstError ??= error;
   entry.latestError = error;
 }
+function sourceChildrenPending(entry) {
+  for (let index = 0; index < entry.children.length; index++) {
+    const child = entry.children[index];
+    if (!child.stopped || !child.released || child.flight !== undefined) return true;
+  }
+  return false;
+}
 function sourceStatus(entry) {
   return freeze({pending: !entry.closed, fdPending: entry.file !== undefined,
     backingUnknown: entry.backingUnknown,
-    childrenPending: entry.children.some(child => !child.stopped || !child.released),
+    childrenPending: sourceChildrenPending(entry),
     physicalBackingReleased: false});
 }
 async function closeSource(entry) {
@@ -125,7 +143,7 @@ async function closeSource(entry) {
   const flight = (async () => {
     if (entry.backingUnknown) return sourceStatus(entry);
     if (entry.receipt !== undefined && !entry.receipt.finished) return sourceStatus(entry);
-    if (entry.children.some(child => !child.stopped || !child.released || child.flight !== undefined)) {
+    if (sourceChildrenPending(entry)) {
       return sourceStatus(entry);
     }
     if (entry.openFlight !== undefined) {
@@ -190,11 +208,21 @@ async function prepareSource(held) {
 }
 function assertSourceRequest(entry, derived) {
   sourceCurrent(entry.original, entry.originals);
+  if (entry.receipt === undefined || entry.receipt.finished) sourceUnavailable();
   // Only the captured actual Host namespace can follow its own bounded
   // clone/preparation chain back to the original pending SDK packet.
   const request = apply(state.source.request, state.namespace, [entry.originals, derived]);
-  if (entry.receipt === undefined || entry.receipt.request !== request || entry.receipt.finished) sourceUnavailable();
+  if (entry.receipt.request !== request) sourceUnavailable();
   return request;
+}
+function sourceChildCurrent(child) {
+  const entry = sourceCurrent(child.entry.original, child.entry.originals);
+  if (apply(sourceMapGet, sourceChildren, [child.originalSource]) !== child || child.entry !== entry ||
+      child.producer !== entry.receipt || child.request !== child.producer.request ||
+      child.stopped || child.released) sourceUnavailable();
+  // This exact child was issued while the original request was pending.
+  // SDK reply/alias retirement cannot reconstruct or revoke this independent
+  // original read duty; no new lookup, value/CID match or grant is made here.
 }
 function sourceFileIdentity(value) {
   return [value.dev, value.ino, value.size, value.mtimeNs, value.ctimeNs];
@@ -207,7 +235,7 @@ async function assertSourceFile(entry) {
   else if (identity.some((value, ordinal) => value !== entry.fileIdentity[ordinal])) sourceUnavailable();
 }
 async function readSourceBytes(entry, child) {
-  assertSourceRequest(entry, child.derived);
+  sourceChildCurrent(child);
   if (!child.admitted || child.stopped || child.released || child.readAttempted) sourceUnavailable();
   child.readAttempted = true;
   const flight = (async () => {
@@ -225,31 +253,34 @@ async function readSourceBytes(entry, child) {
       })();
     }
     await entry.openFlight;
-    assertSourceRequest(entry, child.derived);
+    sourceChildCurrent(child);
     await assertSourceFile(entry);
-    assertSourceRequest(entry, child.derived);
+    sourceChildCurrent(child);
     let used = 0;
     const backing = entry.backings[child.ordinal], range = entry.backingRanges[child.ordinal];
     while (used < range.bytes) {
       const {bytesRead} = await apply(entry.fileRead, entry.file, [backing, used, range.bytes - used, used]);
-      assertSourceRequest(entry, child.derived);
+      sourceChildCurrent(child);
       if (!Number.isSafeInteger(bytesRead) || bytesRead < 0 || bytesRead > range.bytes - used) sourceUnavailable();
       if (bytesRead === 0) break;
       used += bytesRead;
     }
     if (used === range.bytes) {
       const {bytesRead} = await apply(entry.fileRead, entry.file, [entry.lookahead, 0, 1, used]);
-      assertSourceRequest(entry, child.derived);
+      sourceChildCurrent(child);
       if (bytesRead !== 0) sourceUnavailable();
     }
     await assertSourceFile(entry);
-    assertSourceRequest(entry, child.derived);
+    sourceChildCurrent(child);
     const bytes = apply(sourceSubarray, backing, [0, used]);
     const observed = sourceBackingRange(bytes, used);
     if (observed.buffer !== range.buffer || observed.offset !== range.offset) sourceUnavailable();
-    const sibling = entry.children.find(value => value !== child && value.bytes !== undefined);
-    if (sibling !== undefined && apply(sourceEquals, bytes, [sibling.bytes]) !== true) sourceUnavailable();
-    assertSourceRequest(entry, child.derived);
+    for (let index = 0; index < entry.children.length; index++) {
+      const sibling = entry.children[index];
+      if (sibling !== child && sibling.bytes !== undefined &&
+          apply(sourceEquals, bytes, [sibling.bytes]) !== true) sourceUnavailable();
+    }
+    sourceChildCurrent(child);
     child.bytes = bytes;
     return bytes;
   })();
@@ -259,34 +290,51 @@ async function readSourceBytes(entry, child) {
 }
 function prepareSourceRead(original, held, derived, declaration) {
   const entry = sourceCurrent(original, held);
-  assertSourceRequest(entry, derived);
-  const ordinal = entry.bundle.sources.findIndex(value => value.declaration === declaration);
-  if (ordinal < 0 || entry.children.some(value => value.ordinal === ordinal)) sourceUnavailable();
+  const request = assertSourceRequest(entry, derived);
+  let ordinal = -1;
+  for (let index = 0; index < entry.bundle.sources.length; index++) {
+    if (entry.bundle.sources[index].declaration === declaration) ordinal = index;
+  }
+  if (ordinal < 0) sourceUnavailable();
+  for (let index = 0; index < entry.children.length; index++) {
+    if (entry.children[index].ordinal === ordinal) sourceUnavailable();
+  }
   const originalSource = freeze(Object.create(null));
-  const child = {entry, ordinal, derived, originalSource, portsTaken: false,
+  const child = {entry, ordinal, derived, request, producer: entry.receipt, originalSource, portsTaken: false,
     admitted: false, stopped: false, released: false, readAttempted: false,
     flight: undefined, bytes: undefined, usage: undefined};
-  entry.children.push(child);
-  sourceChildren.set(originalSource, child);
+  appendSourceOriginal(entry.children, child);
+  apply(sourceMapSet, sourceChildren, [originalSource, child]);
   return freeze({originalSource,
     readOriginalBytes() {return readSourceBytes(entry, child);},
-    close() {child.released = true;return freeze({pending: child.flight !== undefined});},
+    close() {
+      if (!child.portsTaken) child.stopped = true;
+      child.released = true;
+      return freeze({pending: child.flight !== undefined});
+    },
     status() {return freeze({pending: !child.stopped || !child.released || child.flight !== undefined,
       fdPending: entry.file !== undefined, physicalBackingReleased: false});}});
 }
 function prepareOriginalSourceChildPorts(original) {
   // A missing original is refused without inspecting a caller reference.
-  const child = sourceChildren.get(original);
-  if (child === undefined || child.portsTaken) return null;
-  assertSourceRequest(child.entry, child.derived);
+  if (sourceInstallation === undefined || typeof sourceMapGet !== 'function') return null;
+  const child = apply(sourceMapGet, sourceChildren, [original]);
+  if (child === undefined || child.portsTaken || child.stopped || child.released) return null;
+  try {sourceChildCurrent(child);}
+  catch (cause) {
+    sourceFailure(child.entry, cause);
+    child.entry.closing = true;
+    child.stopped = true;
+    return null;
+  }
   child.portsTaken = true;
   const envelope = state.sourceEnvelope, partition = envelope.occurrencePartitions[child.ordinal];
   const quotas = [BigInt(Math.floor(envelope.limits.sourceWork / envelope.limits.sourceOccurrences)),
     BigInt(partition.responses), BigInt(partition.responses), BigInt(partition.responseBackingBytes),
     BigInt(partition.responseBackingBytes), BigInt(envelope.limits.decodedWireBytes)];
   const current = () => {
-    if (child.stopped || child.entry.closing || child.entry.receipt?.finished) return 1;
-    try {assertSourceRequest(child.entry, child.derived);return 0;}
+    if (child.stopped || child.released || child.entry.closing) return 1;
+    try {sourceChildCurrent(child);return 0;}
     catch {return 1;}
   };
   return freeze({
