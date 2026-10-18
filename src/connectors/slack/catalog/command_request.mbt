@@ -54,10 +54,7 @@ fn command_bounded_text(text : String, bound : Int) -> Bool {
 }
 
 ///|
-fn command_input_text(
-  input : @admitted.CheckedValue,
-  name : String,
-) -> String? {
+fn command_input_text(input : @admitted.CheckedValue, name : String) -> String? {
   guard input.value is @admitted.Object(fields) else { return None }
   for index in 0..<@admitted.element_count(fields) {
     let (field, value) = @admitted.element_at(fields, index).unwrap()
@@ -118,15 +115,12 @@ pub fn prepare_slack_command_request(
       return Err(InvalidField(field.name))
     }
   }
-  guard @admitted.recheck_runtime_value_usage(
-    input.value,
-    input.contract,
-    {
+  guard @admitted.recheck_runtime_value_usage(input.value, input.contract, {
       max_nodes: limits.max_nodes,
       max_depth: limits.max_depth,
       max_text_bytes: limits.max_value_text_bytes,
-    },
-  ) is Some(_) else {
+    })
+    is Some(_) else {
     return Err(BudgetExceeded)
   }
   for name in expected {
@@ -144,7 +138,9 @@ pub fn prepare_slack_command_request(
   }
   try {
     let writer = @encode.writer(
-      limits.max_bytes, limits.max_nodes, limits.max_depth,
+      limits.max_bytes,
+      limits.max_nodes,
+      limits.max_depth,
     )
     @encode.begin_object(writer)
     @encode.key(writer, "channel")
@@ -169,14 +165,22 @@ pub fn prepare_slack_command_request(
       @encode.string_value(writer, command_input_text(input, name).unwrap())
     }
     @encode.end_object(writer)
-    Ok({ kind, input, channel, marker: effect_item_id, document: @encode.finish_document(writer), })
+    Ok({
+      kind,
+      input,
+      channel,
+      marker: effect_item_id,
+      document: @encode.finish_document(writer),
+    })
   } catch {
     _ => Err(BudgetExceeded)
   }
 }
 
 ///|
-pub fn slack_command_request_kind(request : SlackCommandRequest) -> SlackCommandKind {
+pub fn slack_command_request_kind(
+  request : SlackCommandRequest,
+) -> SlackCommandKind {
   request.kind
 }
 
