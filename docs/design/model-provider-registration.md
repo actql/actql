@@ -421,6 +421,15 @@ another contract cannot borrow the Mock installation's identity. These are
 implementation ceilings rather than supplied credit: smaller original Host
 capacity remains binding, and unsupported size/capacity remains a backend gap.
 
+The Mock admission entrance uses the same Model Owner's closed prompt validator:
+it requires the original installation/profile/normalization, the same execution
+and dependencies, and the checked prompt's kind, canonical identity and payload
+bound to that normalized Task. A Host does not supply a permissive callback or
+impersonate a physical Provider to interpret this fixture. The general physical
+Provider entrance keeps its explicit implementation validator unchanged. This
+validation supplies no Account permission, startup admission or resource credit;
+the short-lived validator capture remains within the original preparation work.
+
 Installation retains the same public Task declaration, normalization and typed
 answer inventory. The first successful original startup binds the checked Task
 from those same prepared rows, and subsequent equal re-parsed Tasks cannot
