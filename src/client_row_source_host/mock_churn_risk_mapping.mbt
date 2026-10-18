@@ -4,6 +4,7 @@
 fn mock_churn_risk_original_key(
   declaration : RowDeclaration,
   limits : RowDeclarationLimits,
+  identity : String,
 ) -> Result[Unit, RowMappingIssue] {
   let (view, _, used_bytes, used_nodes) = match
     mapping_read_original(
@@ -47,7 +48,7 @@ fn mock_churn_risk_original_key(
       candidates.length() == 1 &&
       candidates[0] is Array(key) &&
       key.length() == 1 &&
-      key[0] == "id".to_json() else {
+      key[0] == identity.to_json() else {
       return Err(InvalidSpecification)
     }
     found = true
@@ -103,7 +104,7 @@ pub fn prepare_churn_risk_mock_update_mapping(
       return Err(InvalidSpecification)
     }
   }
-  match mock_churn_risk_original_key(declaration, limits) {
+  match mock_churn_risk_original_key(declaration, limits, "id") {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
