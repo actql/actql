@@ -1495,3 +1495,11 @@ Read leave, context, domain, parent loan, descriptor and Host retirement. Unknow
 retains the same slots and prevents resending the foreign operation. Python entry
 refusals occur before registration or a foreign call and do not manufacture a
 foreign-operation Unknown.
+
+When the original Read is already entered by the caller, the component-only
+close path preserves that exact frame and its parent read use. It performs the
+original component close and retains partial cleanup, but does not invoke the
+legacy domain-owning cleanup's stop/enter/leave sequence. Consequently the
+same-frame DATA retirement can check the original current Read after the child
+ACK without reviving a stopped use or interpreting it as a parent ACK. Older
+domain-owning callers retain their separate cleanup sequence.

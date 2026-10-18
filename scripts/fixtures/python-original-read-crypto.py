@@ -136,6 +136,8 @@ def main() -> None:
             step('separate Library acknowledgments retain the original component and parents')
         crypto.close()
         assert crypto._closed and not read._closed and not pair._closed and not host._closed
+        assert pair.current().operation == 2 and read.current().operation == 2
+        assert pair._phase == 'read' and read._scope_open
         before = capacity(host._original, 1)
         crypto.close()
         assert capacity(host._original, 1) == before

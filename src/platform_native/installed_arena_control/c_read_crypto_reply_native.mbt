@@ -208,20 +208,52 @@ pub fn close_installed_arena_read_crypto_library_reply(
 }
 
 ///|
+// This caller already owns the exact entered Read. Retire only its original
+// component, never stop/enter/leave the parent domain as the legacy owning
+// cleanup does. Failed native cleanup remains on this same component.
+fn InstalledArenaHost::close_read_crypto_component_in_original_frame(
+  self : InstalledArenaHost,
+  pair : InstalledArenaLocalHostResources,
+  read : InstalledArenaOriginalRead,
+  component : InstalledArenaCryptoComponent,
+) -> Result[Unit, ReadCryptoReplyIssue] {
+  match self.require_read_crypto_reply_original(pair, read, component) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if component.closed {
+    return Ok(())
+  }
+  if component.scope_open {
+    return Err(
+      ReadComponentIssue(
+        Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)),
+      ),
+    )
+  }
+  component.failed = true
+  match component.component {
+    Some(original) =>
+      match original.close_checked() {
+        Err(issue) => return Err(ReadComponentIssue(Signature(issue)))
+        Ok(_) => component.component = None
+      }
+    None => ()
+  }
+  component.closed = true
+  Ok(())
+}
+
+///|
 pub fn close_installed_arena_read_crypto_reply(
   host : InstalledArenaHost,
   pair : InstalledArenaLocalHostResources,
   read : InstalledArenaOriginalRead,
   component : InstalledArenaCryptoComponent,
 ) -> InstalledArenaReadCryptoReply {
-  let result = match
-    host.require_read_crypto_reply_original(pair, read, component) {
-    Err(issue) => Err(issue)
-    Ok(_) =>
-      host
-      .close_crypto_component(component)
-      .map_err(issue => ReadComponentIssue(issue))
-  }
+  let result = host.close_read_crypto_component_in_original_frame(
+    pair, read, component,
+  )
   read_crypto_reply(
     5,
     pair,
