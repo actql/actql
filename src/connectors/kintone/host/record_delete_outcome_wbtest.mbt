@@ -107,14 +107,14 @@ test "DELETE typed outcome refuses changed approved target revision Mapping and 
       is Err(ForeignPreview),
     )
   }
-  for (member, row) in [(1, 0), (0, 1), (-1, 0), (0, -1)] {
+  for (member_index, row) in [(1, 0), (0, 1), (-1, 0), (0, -1)] {
     assert_true(
       project_record_delete_preview_outcome(
         mapping,
         request,
         response,
         delete_outcome_preview(mapping),
-        member,
+        member_index,
         row,
         delete_preview_values(),
         delete_preview_limits(),

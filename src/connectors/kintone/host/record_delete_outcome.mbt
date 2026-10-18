@@ -6,7 +6,7 @@ pub enum RecordDeleteOutcomeIssue {
   Before(RecordReadIssue)
   Encoding
   Preview(@publication.EffectRowOutcomeIssue)
-} derive(Debug)
+}
 
 ///|
 /// A typed response for one original DELETE and its admitted Preview row.
