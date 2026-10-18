@@ -892,6 +892,19 @@ Boolean or a successful semantic transaction cannot provide this observation.
 It issues no capacity or authority and does not certify the optional observation
 connection from the primary connection's close.
 
+The selected Root captures the actual Journal constructor and nominal custody
+observer from its delivered Host namespace. It retains a returned Journal and
+its original close operation before any post-constructor current check. A
+refusal at that check therefore keeps the same native child reachable through
+the existing cleanup carrier. Constructor failures retain their original
+cleanup handle and captured status/retry receiver; cleanup cannot issue a
+replacement Journal. A close flight is published before callbacks, and only an
+explicit original pending-false observation can retire that constructor duty.
+The complete separate Journal disposition must precede this preparation: the
+captured namespace operations and initial-control or Source recipe are not its
+issuer. Primary native close cannot settle a separately attempted observation
+connection or release process-lived module/native backing.
+
 Selected cold inspection may additionally bound the SQLite schema table's
 declared row payload and traversal before native SQLite opens the isolated
 copy. The resource reader follows table-btree pages and the same last valid

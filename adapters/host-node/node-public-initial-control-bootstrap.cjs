@@ -33,6 +33,162 @@ let state, firstFailure, preparation, intake, closed = false;
 // These originals belong to this actual installed prefix, not to an exported
 // factory accepting a runtime label, caller callback, capacity or trust flag.
 let sourceInstallation;
+let journalInstallation;
+const journalUnavailable = () => fail('HostJournalPreparationUnavailable');
+const journalPromise = Promise, journalPromiseResolve = Promise.resolve;
+const journalPromiseThen = Promise.prototype.then;
+
+function journalOriginal(original, held, allowClosing = false) {
+  const entry = journalInstallation;
+  if (entry === undefined || entry.original !== original || entry.originals !== held ||
+      entry.closed || (!allowClosing && entry.closing)) journalUnavailable();
+  return entry;
+}
+function journalFailure(entry, cause) {
+  const failure = freeze({cause});
+  entry.firstError ??= failure;
+  entry.latestError = failure;
+}
+function journalCurrent(original, held) {
+  const entry = journalOriginal(original, held);
+  try {
+    assertSamePreparation(held);
+    if (entry.disposition !== state.journalDisposition) journalUnavailable();
+    apply(entry.subjectCurrent, entry.subject, []);
+    return entry;
+  } catch (cause) {
+    entry.closing = true;
+    journalFailure(entry, cause);
+    throw cause;
+  }
+}
+function journalStatus(entry) {
+  return freeze({pending: !entry.closed,
+    nativePending: entry.journal !== undefined,
+    constructorCleanupPending: entry.cleanup !== undefined,
+    // Retiring this facility never returns the process-lived module/native
+    // domain or escaped immutable records as physical byte credit.
+    physicalBackingReleased: false});
+}
+function journalCleanup(entry, cause) {
+  const property = cause !== null && typeof cause === 'object'
+    ? descriptor(cause, 'cleanupHandle') : undefined;
+  if (property === undefined || !own(property, 'value')) return;
+  // Retain the original handle BEFORE reading its fallible members. An
+  // inaccessible cleanup remains pending, not an invented successful close.
+  entry.cleanup = property.value;
+  const status = descriptor(entry.cleanup, 'status');
+  const retry = descriptor(entry.cleanup, 'retry');
+  if (status === undefined || retry === undefined || !own(status, 'value') ||
+      !own(retry, 'value') || typeof status.value !== 'function' ||
+      typeof retry.value !== 'function') journalUnavailable();
+  entry.cleanupStatus = status.value;
+  entry.cleanupRetry = retry.value;
+}
+function journalAcknowledged(observation) {
+  const pending = observation !== null && typeof observation === 'object'
+    ? descriptor(observation, 'pending') : undefined;
+  return pending !== undefined && own(pending, 'value') && pending.value === false;
+}
+function closeJournal(entry) {
+  entry.closing = true;
+  if (entry.closeFlight !== undefined) return entry.closeFlight;
+  // Publish before callbacks, including synchronous reentry from a retained
+  // native/constructor cleanup. Retry observes this same duty, not a re-open.
+  const flight = apply(journalPromiseThen, apply(journalPromiseResolve, journalPromise, []), [async () => {
+    try {
+      if (entry.cleanup !== undefined) {
+        if (typeof entry.cleanupStatus !== 'function' ||
+            typeof entry.cleanupRetry !== 'function') return journalStatus(entry);
+        let observation = await apply(entry.cleanupStatus, entry.cleanup, []);
+        if (!journalAcknowledged(observation)) {
+          observation = await apply(entry.cleanupRetry, entry.cleanup, []);
+        }
+        if (!journalAcknowledged(observation)) return journalStatus(entry);
+        entry.cleanup = entry.cleanupStatus = entry.cleanupRetry = undefined;
+      }
+      if (entry.journal !== undefined) {
+        if (typeof entry.journalClose !== 'function') return journalStatus(entry);
+        apply(entry.journalClose, entry.journal, []);
+        const observation = apply(state.journal.observe, state.namespace, [entry.journal]);
+        // The original nominal observer, never a public closed flag, owns
+        // primary native close. A separate observation connection is not
+        // certified by this existing primary-only observation.
+        if (field(observation, 'databaseClosed') !== true ||
+            field(observation, 'observationAttempted') !== false) return journalStatus(entry);
+        entry.journal = entry.journalClose = undefined;
+      }
+      entry.closed = true;
+      entry.subject = entry.subjectCurrent = undefined;
+      return journalStatus(entry);
+    } catch (cause) {
+      journalFailure(entry, cause);
+      return journalStatus(entry);
+    }
+  }]);
+  entry.closeFlight = flight;
+  const settled = () => { if (entry.closeFlight === flight) entry.closeFlight = undefined; };
+  apply(journalPromiseThen, flight, [settled, settled]);
+  return flight;
+}
+function journalCarrier(entry, cause) {
+  entry.closing = true;
+  journalFailure(entry, cause);
+  const carrier = new Error('HostJournalInstallationCleanupPending', {cause});
+  carrier.code = 'HostJournalInstallationCleanupPending';
+  carrier.cleanupHandle = freeze({status: () => journalStatus(entry),
+    retry: () => closeJournal(entry)});
+  return carrier;
+}
+function prepareJournal(held) {
+  // The complete separate native/external disposition must already have
+  // been adopted by this actual prefix before image/namespace acquisition.
+  // Namespace functions, support bounds or the initial/Source declarations
+  // alone cannot supply it. Until that original exists, refuse before reads.
+  assertSamePreparation(held);
+  if (state.journalDisposition === undefined || journalInstallation !== undefined ||
+      state.journal === undefined || Object.values(state.journal)
+        .some(value => typeof value !== 'function')) journalUnavailable();
+  const original = freeze(Object.create(null));
+  const entry = journalInstallation = {original, originals: held,
+    disposition: state.journalDisposition, subject: undefined, subjectCurrent: undefined,
+    argumentsForJournal: undefined,
+    attempted: false, journal: undefined, journalClose: undefined,
+    cleanup: undefined, cleanupStatus: undefined, cleanupRetry: undefined,
+    closing: false, closed: false, closeFlight: undefined,
+    firstError: undefined, latestError: undefined};
+  try {
+    entry.argumentsForJournal = field(entry.disposition, 'argumentsForOriginalJournal');
+    if (typeof entry.argumentsForJournal !== 'function') journalUnavailable();
+    entry.subject = apply(state.journal.read, state.namespace, [held]);
+    entry.subjectCurrent = field(entry.subject, 'assertCurrent');
+    if (typeof entry.subjectCurrent !== 'function') journalUnavailable();
+    journalCurrent(original, held);
+    return original;
+  } catch (cause) { throw journalCarrier(entry, cause); }
+}
+function openJournal(original, held, directory, options) {
+  const entry = journalCurrent(original, held);
+  if (entry.attempted || directory !== field(entry.subject, 'journalDirectory')) journalUnavailable();
+  // The selected disposition's fixed argument boundary must precede native
+  // work. No caller option object or scalar may select a facility/limit.
+  entry.attempted = true;
+  try {
+    const selected = apply(entry.argumentsForJournal, entry.disposition, [entry.subject, options]);
+    const journal = apply(state.journal.open, state.namespace, [directory, selected]);
+    entry.journal = journal;
+    // Retain returned native custody before all fallible field/current reads.
+    entry.journalClose = field(journal, 'close');
+    if (typeof entry.journalClose !== 'function') journalUnavailable();
+    apply(state.journal.observe, state.namespace, [journal]);
+    journalCurrent(original, held);
+    return journal;
+  } catch (cause) {
+    try { journalCleanup(entry, cause); }
+    catch (cleanupFailure) { journalFailure(entry, cleanupFailure); }
+    throw journalCarrier(entry, cause);
+  }
+}
 const sourceChildren = new WeakMap();
 const sourceUnavailable = () => fail('SourceManagedPreparationUnavailable');
 const sourceTypedArrayPrototype = Object.getPrototypeOf(Object.getPrototypeOf(Buffer.prototype));
@@ -611,6 +767,12 @@ const table = module.exports = {
   assertInitialControlInstallationCurrent(scope,originals) {return owner.assertCurrent(scope,originals);},
   readInitialControlInstallationInput(scope,originals) {return owner.readInput(scope,originals);},
   readInitialControlInstallationAsset(scope,originals,path) {return owner.readAsset(scope,originals,path);},
+  prepareHostJournalInstallation: prepareJournal,
+  assertHostJournalInstallationCurrent(original, originals) {journalCurrent(original, originals);},
+  closeHostJournalInstallation(original, originals) {
+    return closeJournal(journalOriginal(original, originals, true));
+  },
+  openHostJournalRequestJournal: openJournal,
   prepareSourceManagedInstallation: prepareSource,
   assertSourceManagedInstallationCurrent(original, originals) {sourceCurrent(original, originals);},
   beforeSourceSnapshot(original, originals, kind, input, options) {
@@ -743,8 +905,15 @@ try {
   const runRequirementProperty=descriptor(namespace,'readSourceManagedRunRequirements');
   const runRequirements=runRequirementProperty!==undefined&&own(runRequirementProperty,'value')
     ?runRequirementProperty.value:undefined;
+  const journal = {};
+  for (const [name, exported] of Object.entries({read: 'readHostJournalPreparation',
+    open: 'openOriginalHostRequestJournal', observe: 'observeOriginalHostRequestJournalCustody'})) {
+    const entry = descriptor(namespace, exported);
+    journal[name] = entry !== undefined && own(entry, 'value') ? entry.value : undefined;
+  }
+  freeze(journal);
   state = {declaration,runtime,envelope,sourceEnvelope,sourceComputeEnvelope,runRequirements,
-    inventory,images,namespace,consumer,validator,reader,source,prefixIntrinsics};
+    inventory,images,namespace,consumer,validator,reader,source,journal,prefixIntrinsics};
 } catch(cause) {
   // Keep original FD/namespace/compile failure and its close-only duty. A
   // failed prefix never becomes a second factory or a retrying image read.
