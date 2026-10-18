@@ -484,10 +484,19 @@ fn local_runtime_capture(
       if runtime.original_read is Some(_) &&
         (entry.role == "sqlite" || entry.role == "crypto") {
         let observation = runtime.witnesses[runtime.witnesses.length() - 1]
-        let component = observation.command_component_member(
-          if entry.role == "sqlite" { 1 } else { 2 },
-          source_sha, manifest_sha256, entry.sha256,
-        ).map_err(issue => Physical(issue)) |> local_runtime_result
+        let component = observation
+          .command_component_member(
+            if entry.role == "sqlite" {
+              1
+            } else {
+              2
+            },
+            source_sha,
+            manifest_sha256,
+            entry.sha256,
+          )
+          .map_err(issue => Physical(issue))
+          |> local_runtime_result
         if !local_runtime_bind_command_member(runtime, component) {
           local_runtime_stop(Changed)
         }
@@ -795,7 +804,10 @@ extern "C" fn local_runtime_bind_command_member(
 pub fn NativeLocalPackagedRuntime::command_library_members(
   self : NativeLocalPackagedRuntime,
 ) -> Result[
-  (@filesystem.NativeObservedComponentMember, @filesystem.NativeObservedComponentMember),
+  (
+    @filesystem.NativeObservedComponentMember,
+    @filesystem.NativeObservedComponentMember,
+  ),
   NativeLocalPackagedRuntimeIssue,
 ] {
   match self.check_current() {
@@ -803,6 +815,8 @@ pub fn NativeLocalPackagedRuntime::command_library_members(
     Ok(_) => ()
   }
   guard self.command_sqlite_member is Some(sqlite) &&
-    self.command_crypto_member is Some(crypto) else { return Err(Changed) }
+    self.command_crypto_member is Some(crypto) else {
+    return Err(Changed)
+  }
   Ok((sqlite, crypto))
 }
