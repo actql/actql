@@ -15,7 +15,8 @@ test('live publication capture retains actual Host request Catalog snapshot and 
     const reader=x.reader(),result=await reader.read(),token=await capture(reader,result,limits),view=originals(token);
     assert(Object.isFrozen(token));assert(Object.isFrozen(view));assert.equal(originals(token),view);
     assert.equal(view.publicationRequest,x.options.publication.request);
-    assert.deepEqual(view.publicationOriginals,x.options.publication.originals);
+    for(const[name,value]of Object.entries(view.publicationOriginals))assert.equal(value,x.options.publication.originals[name]);
+    assert.equal(Object.hasOwn(view.publicationOriginals,'publicationRequest'),false);
     assert.equal(view.subject,x.control.projection(x.options.initialAuthorization.grant).subject);
     assert.equal(view.control,x.control);assert.equal(view.credentialJournal,x.journal);
     for(const name of ['declaration','database','selection','source','readContracts','schemaWire','observations','responseCharges'])assert.equal(view[name],result[name]);
@@ -52,6 +53,10 @@ test('publication capture refuses copies mixed reader results and another captur
 test('publication origin is captured before I/O and copied requests or a missing original cannot issue live capture',async t=>{
   const f=await siteMetadataDiscoveryFixture(t);
   await f.run(async x=>{
+    let getterCalls=0;const expected={...x.options.publication.originals};
+    Object.defineProperty(expected,'unused',{get(){getterCalls++;throw Error('Unrelated getter I/O');}});
+    assert.equal(x.reader({publication:{...x.options.publication,originals:expected}}).observe().phase,'ready');
+    assert.equal(getterCalls,0);
     assert.throws(()=>x.reader({publication:{...x.options.publication,request:{...x.options.publication.request}}}),
       {code:'ForeignInstalledSourcePublication'});
     const reader=x.reader({publication:undefined}),result=await reader.read();

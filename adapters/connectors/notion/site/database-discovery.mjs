@@ -47,8 +47,12 @@ function ownPublication(value,moon,declaration,context){
   const {request,originals}=ownData(value,['request','originals'],'InvalidNotionDiscoveryPublication');
   if(types.isProxy(originals))fail('InvalidNotionDiscoveryPublication');
   assertInstalledSourcePublicationRequest(request,originals);
-  // The Host validates all eight original descriptors before this own copy.
-  const retained=Object.freeze({...originals});
+  // The Host validates its eight original descriptors. Copy only those DATA
+  // slots; unrelated caller properties must never invoke an accessor here.
+  const descriptors=Object.getOwnPropertyDescriptors(originals);
+  const retained=Object.freeze(Object.fromEntries(['root','principalId','moon','installation',
+    'profile','resolveSecret','runtimeBundleCid','providerMoon'].filter(name=>Object.hasOwn(descriptors,name))
+    .map(name=>[name,descriptors[name].value])));
   assertInstalledSourcePublicationRequest(request,retained);
   const control=context.credential.control;
   if(control?.kind!=='installation-metadata'||typeof control.projection!=='function')fail('ForeignNotionDiscoveryPublication');
