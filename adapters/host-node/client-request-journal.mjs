@@ -4,8 +4,8 @@ import {DatabaseSync} from 'node:sqlite';
 import {prepareInstalledRunStateObservation, issueInstalledRunControlObservation}
   from '../host-common/run-state-observation.mjs';
 import {createHash, createHmac, randomBytes, timingSafeEqual} from 'node:crypto';
-import {closeSync, existsSync, fsyncSync, lstatSync,
-  mkdirSync, openSync, opendirSync, readFileSync,
+import {closeSync, constants, existsSync, fstatSync, fsyncSync, lstatSync,
+  mkdirSync, openSync, opendirSync, readSync,
   realpathSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
@@ -94,6 +94,63 @@ function journalDirectoryEntries(directory, maxInspectionEntries) {
   }
   if (failed) throw primary;
   return entries;
+}
+
+// Closed format markers have a fixed exact length. A prior pathname stat
+// cannot bound a later readFile allocation: acquire one non-following original
+// FD, inspect it, and read only the fixed body plus one byte of lookahead.
+// Both classification and the final snapshot fence use this same operation.
+function journalMarkerMatches(path, expected) {
+  let original = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW |
+    constants.O_NONBLOCK);
+  const originalClose = closeSync;
+  const close = () => {
+    if (original === undefined) return;
+    if (applyOriginal(originalClose, undefined, [original]) !== undefined) {
+      throw new TypeError('JournalMarkerCleanupPending');
+    }
+    original = undefined;
+  };
+  let failed = false, primary, matches = false;
+  try {
+    const first = fstatSync(original, {bigint: true});
+    if (first.isFile() && first.size === BigInt(expected.length)) {
+      const body = Buffer.alloc(expected.length), lookahead = Buffer.alloc(1);
+      let offset = 0;
+      while (offset < body.length) {
+        const count = readSync(original, body, offset, body.length - offset, null);
+        if (!Number.isSafeInteger(count) || count <= 0 || count > body.length - offset) {
+          fail('UnknownClientRequestJournalFormat');
+        }
+        offset += count;
+      }
+      const end = readSync(original, lookahead, 0, 1, null);
+      const last = fstatSync(original, {bigint: true});
+      matches = end === 0 && body.equals(expected) &&
+        ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs'].every(name => first[name] === last[name]);
+    }
+  } catch (cause) { failed = true; primary = cause; }
+  try { close(); }
+  catch (cause) {
+    const first = cause;
+    let latest = cause;
+    const status = () => Object.freeze({pending: original !== undefined,
+      errors: Object.freeze(first === latest ? [first] : [first, latest])});
+    const retry = () => {
+      try { close(); } catch (error) { latest = error; }
+      return status();
+    };
+    const carrier = Object.assign(new Error('ClientRequestJournalInspectionCleanupPending',
+      {cause: failed ? primary : cause}), {
+      code: 'ClientRequestJournalInspectionCleanupPending',
+      primaryFailure: failed ? primary : cause,
+      cleanupHandle: Object.freeze({status, retry}),
+    });
+    Object.defineProperty(carrier, 'cleanupPending', {get: () => status().pending});
+    throw carrier;
+  }
+  if (failed) throw primary;
+  return matches;
 }
 function syncDirectory(path) {
   const descriptor = openSync(path, 'r');
@@ -790,37 +847,37 @@ function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspecti
   const featurePath = join(directory, cancellationMarkerName);
   const enabled = entries.includes(cancellationMarkerName);
   if (enabled && (!lstatSync(featurePath).isFile() ||
-      !readFileSync(featurePath).equals(cancellationMarker))) {
+      !journalMarkerMatches(featurePath, cancellationMarker))) {
     fail('UnknownClientRequestJournalFormat');
   }
   const submissionPath = join(directory, submissionMarkerName);
   const submissionEnabled = entries.includes(submissionMarkerName);
   if (submissionEnabled && (!lstatSync(submissionPath).isFile() ||
-      !readFileSync(submissionPath).equals(submissionMarker))) {
+      !journalMarkerMatches(submissionPath, submissionMarker))) {
     fail('UnknownClientRequestJournalFormat');
   }
   const epochPath = join(directory, epochMarkerName);
   const epochEnabled = entries.includes(epochMarkerName);
   if (epochEnabled && (!lstatSync(epochPath).isFile() ||
-      !readFileSync(epochPath).equals(epochMarker))) {
+      !journalMarkerMatches(epochPath, epochMarker))) {
     fail('UnknownClientRequestJournalFormat');
   }
   const intentPath = join(directory, intentMarkerName);
   const intentEnabled = entries.includes(intentMarkerName);
   if (intentEnabled && (!lstatSync(intentPath).isFile() ||
-      !readFileSync(intentPath).equals(intentMarker))) fail('UnknownClientRequestJournalFormat');
+      !journalMarkerMatches(intentPath, intentMarker))) fail('UnknownClientRequestJournalFormat');
   const retirementPath = join(directory, retirementMarkerName);
   const retirementEnabled = entries.includes(retirementMarkerName);
   if (retirementEnabled && (!intentEnabled || !lstatSync(retirementPath).isFile() ||
-      !readFileSync(retirementPath).equals(retirementMarker))) fail('UnknownClientRequestJournalFormat');
+      !journalMarkerMatches(retirementPath, retirementMarker))) fail('UnknownClientRequestJournalFormat');
   const restartPath = join(directory, restartMarkerName);
   const restartEnabled = entries.includes(restartMarkerName);
   if (restartEnabled && (!intentEnabled || !lstatSync(restartPath).isFile() ||
-      !readFileSync(restartPath).equals(restartMarker))) fail('UnknownClientRequestJournalFormat');
+      !journalMarkerMatches(restartPath, restartMarker))) fail('UnknownClientRequestJournalFormat');
   const namePath = join(directory, nameMarkerName);
   const nameEnabled = entries.includes(nameMarkerName);
   if (nameEnabled && (!intentEnabled || !lstatSync(namePath).isFile() ||
-      !readFileSync(namePath).equals(nameMarker))) fail('UnknownClientRequestJournalFormat');
+      !journalMarkerMatches(namePath, nameMarker))) fail('UnknownClientRequestJournalFormat');
   inspectSqliteSnapshot(databasePath, database => {
     const fields = database.prepare('PRAGMA table_info(client_requests)')
       .all().map(field => field.name).sort();
@@ -835,14 +892,14 @@ function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspecti
     inspectRestartStorage(database, restartEnabled);
     inspectNameStorage(database, nameEnabled);
   }, {code: 'UnknownClientRequestJournalFormat',
-    validateSource: () => readFileSync(markerPath).equals(journalMarker) &&
-      (!enabled || readFileSync(featurePath).equals(cancellationMarker)) &&
-      (!submissionEnabled || readFileSync(submissionPath).equals(submissionMarker)) &&
-      (!epochEnabled || readFileSync(epochPath).equals(epochMarker)) &&
-      (!intentEnabled || readFileSync(intentPath).equals(intentMarker)) &&
-      (!retirementEnabled || readFileSync(retirementPath).equals(retirementMarker)) &&
-      (!restartEnabled || readFileSync(restartPath).equals(restartMarker)) &&
-      (!nameEnabled || readFileSync(namePath).equals(nameMarker)) &&
+    validateSource: () => journalMarkerMatches(markerPath, journalMarker) &&
+      (!enabled || journalMarkerMatches(featurePath, cancellationMarker)) &&
+      (!submissionEnabled || journalMarkerMatches(submissionPath, submissionMarker)) &&
+      (!epochEnabled || journalMarkerMatches(epochPath, epochMarker)) &&
+      (!intentEnabled || journalMarkerMatches(intentPath, intentMarker)) &&
+      (!retirementEnabled || journalMarkerMatches(retirementPath, retirementMarker)) &&
+      (!restartEnabled || journalMarkerMatches(restartPath, restartMarker)) &&
+      (!nameEnabled || journalMarkerMatches(namePath, nameMarker)) &&
       JSON.stringify(journalDirectoryEntries(directory, maxInspectionEntries)) === JSON.stringify(entries)});
 }
 
@@ -862,7 +919,7 @@ function admitJournalDirectory(directory, maxInspectionEntries) {
   }
   if (!entries.includes('client-requests.sqlite3') ||
       !lstatSync(markerPath).isFile() ||
-      !readFileSync(markerPath).equals(journalMarker)) {
+      !journalMarkerMatches(markerPath, journalMarker)) {
     fail('UnknownClientRequestJournalFormat');
   }
   const databasePath = join(directory, 'client-requests.sqlite3');
