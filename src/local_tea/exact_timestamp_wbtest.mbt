@@ -29,6 +29,17 @@ test "event clock projection and watermark threshold preserve one nanosecond" {
 }
 
 ///|
+test "unfinished millisecond session consumer refuses finer UTC without truncating" {
+  assert_true(
+    session_time(timestamp("1969-12-31T23:59:59.999999999Z"), true) is None,
+  )
+  assert_eq(
+    session_time(timestamp("1969-12-31T23:59:59.999Z"), true),
+    Some(-1L),
+  )
+}
+
+///|
 test "actual watermark Owner marks only the original nanosecond-before record" {
   let producer = producer_owner(true)
   let output = @records.prepare_output(
