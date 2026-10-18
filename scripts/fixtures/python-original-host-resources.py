@@ -171,6 +171,17 @@ def main() -> None:
         except _OriginalPackagedRuntimeError as error:
             assert not error.unknown and error.fact and error.fact.issue_family == 10
             assert error.cleanup_runtime is runtime
+        before = list(calls)
+        try:
+            pair.close()
+            raise AssertionError('A live Runtime alias allowed outer retirement')
+        except ValueError:
+            pass
+        assert calls == before
+        runtime.close()
+        assert runtime._closed and not pair._closed and not read._closed
+        runtime.close()
+        step('Runtime aliases retain outer retirement until their own physical and data cleanup ACK')
 
     def pending() -> None:
         try:
@@ -188,18 +199,6 @@ def main() -> None:
     pending()
     step('physical Root FD close is distinct from the live managed Root alias')
     assert helper.actql_fixture_drop_root_alias(c.byref(root)) == 0 and root.value is None
-    if runtime is not None:
-        pending()
-        try:
-            runtime.current()
-            raise AssertionError('Closing pair was treated as normal Runtime current')
-        except _OriginalPackagedRuntimeError as error:
-            assert not error.unknown and error.fact and error.fact.issue_family == 10
-            assert error.cleanup_runtime is runtime
-        runtime.close()
-        assert runtime._closed and not pair._closed and not read._closed
-        runtime.close()
-        step('Runtime aliases retain outer retirement until their own physical and data cleanup ACK')
     pair.close()
     assert pair._closed and read._closed and sqlite._closed
     assert all(slot.value is None for slot in pair._slots())
