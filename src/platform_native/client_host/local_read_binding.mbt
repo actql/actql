@@ -9,6 +9,7 @@ pub(all) enum NativeLocalReadBindingIssue {
   InvalidObservationTime
   PolicyExpired
   PolicyNotSelected
+  MaterialUnavailable
 }
 
 ///|
@@ -60,6 +61,9 @@ pub fn NativeLocalHostConnection::bind_result_read_policy(
   if selection.principal != principal || selection.connection != connection {
     return Err(SelectionMismatch)
   }
+  if selection.sink != Stdout {
+    return Err(MaterialUnavailable)
+  }
   guard selection.expiry is Absolute(expires_at) else {
     return Err(SelectionMismatch)
   }
@@ -103,6 +107,9 @@ pub fn NativeLocalHostConnection::bind_result_read_policy_for_run(
   let selection = match admit_native_local_read_selection(text) {
     Ok(value) => value
     Err(issue) => return Err(Selection(issue))
+  }
+  if selection.sink != Stdout {
+    return Err(MaterialUnavailable)
   }
   guard selection.expiry is AcceptedRunProfile(roles) &&
     roles.profile_cid ==
@@ -206,6 +213,9 @@ fn NativeLocalReadPolicyBinding::require_request(
   original : @host.ClientRequestIdentity,
   facts : @result_access.NativeResultReadFacts,
 ) -> Result[Unit, NativeLocalReadBindingIssue] {
+  if self.selection.sink != Stdout {
+    return Err(MaterialUnavailable)
+  }
   match self.require_current() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
