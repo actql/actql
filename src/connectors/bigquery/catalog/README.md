@@ -22,7 +22,7 @@ schema order. The projection retains its nominal metadata observation.
 `client_row_source_host.generate_relation_row_declaration`; it does not construct
 another Catalog issuer, checker or Source grant.
 
-Exact supported contracts are STRING, finite FLOAT/FLOAT64, BOOL/BOOLEAN, DATE,
+Exact supported contracts are STRING, INTEGER/INT64, finite FLOAT/FLOAT64, BOOL/BOOLEAN, DATE,
 JSON, representable NUMERIC/DECIMAL and BIGNUMERIC/BIGDECIMAL parameters, and
 recursive RECORD/STRUCT and REPEATED fields composed entirely of supported
 contracts. Unparameterized NUMERIC is decimal(38,9); a declared precision without
@@ -33,7 +33,7 @@ For parameterized metadata, GoogleSQL's domain admits `P=S` when `S>0`:
 REST field-reference wording does not become an extra read restriction. This
 interpretation does not establish live REST acceptance or increase Common's cap.
 An unparameterized BIGNUMERIC or parameterized precision beyond the existing
-Common decimal38 law has no substitute contract. Full INT64, BYTES, TIME,
+Common decimal38 law has no substitute contract. BYTES, TIME,
 DATETIME, microsecond TIMESTAMP and provider-formatted read-only types also remain
 explicitly unsupported here until their existing Common/physical suppliers are
 connected. A selected unsupported record cannot emit a partial object schema.
@@ -95,7 +95,14 @@ Query nullability metadata cannot widen the original Common contract. Numeric
 parameters omitted from result metadata use the original contract, never a
 new decimal default; explicit parameters must match that effective contract.
 `f`/`v` wrappers preserve SQL NULL versus missing cells, JSON null, string data,
-RECORD field order and REPEATED element boundaries. Common admits exact decimal
+RECORD field order and REPEATED element boundaries. INTEGER and INT64 metadata
+select the existing Common `int64` contract. Result cells use its canonical
+signed decimal text admission through the original contract, preserving the
+entire signed 64-bit range, including adjacent values beyond binary64's exact
+integer range. Numeric JSON cells, noncanonical spellings and overflow refuse;
+there is no float or Decimal substitution. The same rules apply recursively
+inside records and repeated fields, with the original nullability and aggregate
+node/text budgets. Common admits exact decimal
 text, finite floats, dates, booleans and recursive objects/arrays. There is no
 binary64 decimal conversion, schema replacement or partial-schema acceptance.
 

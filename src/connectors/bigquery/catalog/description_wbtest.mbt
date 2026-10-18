@@ -287,8 +287,8 @@ test "invalid decimal metadata is refused before contract issuance" {
 test "missing lossless carriers stay explicit and never become string or float" {
   for
     kind in [
-      "INTEGER", "INT64", "BYTES", "TIME", "DATETIME", "TIMESTAMP", "BIGNUMERIC",
-      "GEOGRAPHY", "INTERVAL", "RANGE", "future-provider-type",
+      "BYTES", "TIME", "DATETIME", "TIMESTAMP", "BIGNUMERIC", "GEOGRAPHY", "INTERVAL",
+      "RANGE", "future-provider-type",
     ] {
     let value = describe([field("value", kind)])
     assert_eq(column_type(description_column(value, 0).unwrap()), kind)
