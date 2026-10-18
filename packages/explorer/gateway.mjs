@@ -116,7 +116,8 @@ export function createExplorerGateway({client, origin, assets = new Map(),
   }
   const staticAssets = copiedAssets(assets), epoch = createReadEpoch();
   const initialInput = copyExplorerLaunchInput(launchInput, gatewayLimits.bodyBytes);
-  let closed = false, scopeEpoch = 0, session, bootstrap, inFlight = 0;
+  let closed = false, scopeEpoch = 0, session, bootstrap, inFlight = 0, closing;
+  const outstanding = new Set();
   const invalidate = () => {epoch.invalidate(); scopeEpoch++; session = undefined; bootstrap = undefined;};
   const assertSession = selected => {
     if (closed || session !== selected || !session || now() >= session.expiresAt) {
@@ -179,7 +180,8 @@ export function createExplorerGateway({client, origin, assets = new Map(),
       assertSession(selected);
       if (timedOut) fail('ExplorerReadTimeout', 504);
     }};
-    const read = (async () => {try {
+    // Register before any SDK callback can run, including a reentrant close.
+    const read = Promise.resolve().then(async () => {try {
       const body = await readJson(c.req.raw);
       assertSession(selected); ticket.assertCurrent();
       let data;
@@ -255,7 +257,10 @@ export function createExplorerGateway({client, origin, assets = new Map(),
     } catch (error) {
       assertSession(selected); ticket.assertCurrent();
       throw error;
-    } finally {inFlight--;}})();
+    } finally {inFlight--;}});
+    outstanding.add(read);
+    const settled = () => {outstanding.delete(read);};
+    void read.then(settled, settled);
     // Timing out a presentation read neither cancels a Run nor releases the
     // outstanding SDK slot early. It remains held until that read settles.
     try {
@@ -284,7 +289,17 @@ export function createExplorerGateway({client, origin, assets = new Map(),
       return Object.freeze({origin, bootstrap: bootstrap.value, expiresAt: bootstrap.expiresAt});
     },
     invalidateScope() {invalidate();},
-    close() {closed = true; invalidate();},
+    close() {
+      if (!closing) {
+        closed = true;
+        invalidate();
+        // Presentation timeout, session invalidation and socket close do not
+        // settle an original SDK invocation. The Client still owns its own
+        // physical cleanup and must be closed separately after this settles.
+        closing = Promise.allSettled([...outstanding]).then(() => {});
+      }
+      return closing;
+    },
   });
 }
 
@@ -314,10 +329,15 @@ export async function startExplorerGateway({port = 0, ...options}) {
     invalidateScope: gateway.invalidateScope,
     close() {
       if (closing) return closing;
-      gateway.close();
-      closing = new Promise((resolve, reject) => {
+      const originalCalls = gateway.close();
+      const socket = new Promise((resolve, reject) => {
         server.close(error => error ? reject(error) : resolve());
         server.closeAllConnections();
+      });
+      closing = Promise.allSettled([socket, originalCalls]).then(results => {
+        const failed = results.filter(result => result.status === 'rejected');
+        if (failed.length) throw new AggregateError(failed.map(result => result.reason),
+          'ExplorerGatewayCleanupPending');
       });
       return closing;
     },
