@@ -6611,7 +6611,7 @@
     {
       "module": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "70c655bca2417240c58c1bb0a681c832863d57ff0ebe888a2bd4c72fd416cf34",
+      "sha256": "f2d048e980268658af6ca2e2a521ac0ea377317720b66ea5b83fcd1a7d1d5252",
       "role": "physical-io",
       "owner": "Stable-node GraphQL Issue pagination; provider MoonBit fixes query, variables, projection and refusal",
       "exports": [
@@ -6681,6 +6681,18 @@
           "async": true
         },
         {
+          "name": "readGitHubIssuesByNode/checkPrefix/checkPrefix",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readGitHubIssuesByNode/checkPrefix/checkPrefix/checkPrefix",
+          "parameters": [
+            "facts"
+          ],
+          "async": false
+        },
+        {
           "name": "readGitHubIssuesByNode/decoded/decoded",
           "parameters": [
             "value"
@@ -6693,6 +6705,20 @@
             "body"
           ],
           "async": true
+        },
+        {
+          "name": "readGitHubIssuesByNode/exchange/exchange/facts/facts",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readGitHubIssuesByNode/exchange/exchange/facts/facts/facts",
+          "parameters": [
+            "previous"
+          ],
+          "async": false
         },
         {
           "name": "readGitHubIssuesByNode/readGitHubIssuesByNode",
@@ -6728,8 +6754,12 @@
             "pairs/pairs/pairs",
             "pairs/pairs/pairs#2",
             "readGitHubIssuesByNode",
+            "readGitHubIssuesByNode/checkPrefix/checkPrefix",
+            "readGitHubIssuesByNode/checkPrefix/checkPrefix/checkPrefix",
             "readGitHubIssuesByNode/decoded/decoded",
             "readGitHubIssuesByNode/exchange/exchange",
+            "readGitHubIssuesByNode/exchange/exchange/facts/facts",
+            "readGitHubIssuesByNode/exchange/exchange/facts/facts/facts",
             "readGitHubIssuesByNode/readGitHubIssuesByNode",
             "readGitHubIssuesByNode/readGitHubIssuesByNode#2",
             "readGitHubIssuesByNode/stopped/stopped"
@@ -6760,6 +6790,14 @@
               {
                 "path": "src/connectors/github/catalog/issue_fields.mbt",
                 "anchor": "row.node_id"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "anchor": "withHttpsCredentialRunResponseOriginal"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "anchor": "expectedUseId"
               }
             ],
             "ownership": [
@@ -6794,6 +6832,14 @@
               {
                 "path": "src/connectors/github/catalog/issue_fields.mbt",
                 "anchor": "read.pages >= read.max_pages"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "anchor": "retainedReads"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "anchor": "prefix.responses.push"
               }
             ],
             "extension": [
@@ -6817,7 +6863,8 @@
       ],
       "imports": [
         "../../../host-common/owned-invocation-context.mjs",
-        "../../../host-common/runtime-result.mjs"
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
