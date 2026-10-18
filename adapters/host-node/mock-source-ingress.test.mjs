@@ -20,7 +20,7 @@ function collect(node) {
   }
 }
 collect(open.body);
-const selected = ['ingress', 'sourcePreparation', 'port'].map(name => {
+const selected = ['selectedSourcePreparation', 'bindOwnedRequest', 'ingress', 'sourcePreparation', 'port'].map(name => {
   const matches = declarations.filter(node => node.id.name === name);
   assert.equal(matches.length, 1, name);
   const [declaration] = matches;
@@ -59,7 +59,7 @@ test('selected ingress forwards the same original Source view and unchanged requ
   assert.equal(Object.isFrozen(port), true);
   assert.equal(port[sourcePreparationPort], original);
   assert.equal(await port.perform('submit-intent', request, signal), response);
-  assert.equal(reads, 1); assert.equal(sends, 1);
+  assert.equal(reads, 2); assert.equal(sends, 1);
   assert.equal(Object.hasOwn(request, sourcePreparationPort), false);
 });
 
