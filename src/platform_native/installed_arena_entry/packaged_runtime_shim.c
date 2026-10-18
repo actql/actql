@@ -18,21 +18,24 @@ static struct {
     actql_runtime_read_fn read;
     actql_runtime_original_fn runtime;
     actql_runtime_tag_fn operation, issue;
+    actql_runtime_pair_capture_fn capture_pair;
 } callbacks;
 static int registered;
 void actql_native_control_register_packaged_runtime_roots(
     actql_runtime_capture_fn capture, actql_runtime_operation_fn current,
     actql_runtime_operation_fn close, actql_runtime_host_fn host,
     actql_runtime_read_fn read, actql_runtime_original_fn runtime,
-    actql_runtime_tag_fn operation, actql_runtime_tag_fn issue) {
+    actql_runtime_tag_fn operation, actql_runtime_tag_fn issue,
+    actql_runtime_pair_capture_fn capture_pair) {
     if (registered) return;
-    if (!capture || !current || !close || !host || !read || !runtime || !operation || !issue) {
+    if (!capture || !current || !close || !host || !read || !runtime || !operation || !issue || !capture_pair) {
         registered = -1;
         return;
     }
     callbacks.capture = capture; callbacks.current = current; callbacks.close = close;
     callbacks.host = host; callbacks.read = read; callbacks.runtime = runtime;
     callbacks.operation = operation; callbacks.issue = issue;
+    callbacks.capture_pair = capture_pair;
     registered = 1;
 }
 static moonbit_string_t exact_string(const uint16_t *data, int32_t length) {
@@ -66,6 +69,26 @@ int actql_packaged_runtime_current_into(actql_packaged_runtime *runtime, actql_p
     if (actql_bootstrap_control_scope_clear() != 1) return ACTQL_CONTROL_UNAVAILABLE;
 #endif
     *reply = callbacks.current(runtime);
+    return *reply ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
+}
+int actql_packaged_runtime_capture_host_resources_utf16_into(actql_control_host *host,
+    actql_parent_read *read, actql_local_host_resources *resources,
+    const uint16_t *root, int32_t root_units, const uint16_t *source, int32_t source_units,
+    const uint16_t *platform, int32_t platform_units, const uint16_t *manifest, int32_t manifest_units,
+    int32_t ceiling, actql_packaged_runtime_reply **reply) {
+    if (!host || !read || !resources || !reply || *reply || !root || root_units < 1 || root_units > 4096 ||
+        !source || source_units != 40 || !platform || platform_units < 1 || platform_units > 32 ||
+        !manifest || manifest_units != 64 || ceiling < 1) return ACTQL_CONTROL_INVALID_SLOT;
+    if (registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+    if (actql_bootstrap_control_scope_clear() != 1) return ACTQL_CONTROL_UNAVAILABLE;
+#endif
+    moonbit_string_t r = exact_string(root, root_units);
+    moonbit_string_t s = exact_string(source, source_units);
+    moonbit_string_t p = exact_string(platform, platform_units);
+    moonbit_string_t m = exact_string(manifest, manifest_units);
+    *reply = callbacks.capture_pair(host, read, resources, r, s, p, m, ceiling);
+    moonbit_decref(m); moonbit_decref(p); moonbit_decref(s); moonbit_decref(r);
     return *reply ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
 }
 int actql_packaged_runtime_close_into(actql_packaged_runtime *runtime, actql_packaged_runtime_reply **reply) {

@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from test_local_native_control_custody import Function
 from test_local_native_original_read import ParentReadFixture
+from test_local_native_host_resources import PairFixture
 from actql_sdk._local_native_runtime_abi import BINDING_VERSION, BINDING_SHA256
 from actql_sdk._local_native_runtime import (
     _OriginalPackagedRuntimeCustody, _OriginalPackagedRuntimeFunctions,
@@ -14,9 +15,8 @@ from actql_sdk._local_native_runtime import (
 )
 
 
-class RuntimeFixture(ParentReadFixture):
-    def __init__(self):
-        super().__init__()
+class RuntimeCalls:
+    def install_runtime_calls(self):
         self.runtime_events, self.runtime_facts = [], {}
         self.runtime_present, self.runtime_wrong_host, self.runtime_wrong_op = True, False, False
         self.runtime_issue = self.runtime_current_issue = self.runtime_close_issue = 0
@@ -26,6 +26,7 @@ class RuntimeFixture(ParentReadFixture):
             'binding_version': lambda: BINDING_VERSION,
             'binding_byte': lambda index: BINDING_SHA256.encode('ascii')[index],
             'capture_utf16_into': self.capture_runtime,
+            'capture_host_resources_utf16_into': self.capture_runtime_pair,
             'originals_into': self.runtime_originals,
             'drop_reply': self.runtime_drop,
             'finish_closed_data': self.runtime_finish,
@@ -38,7 +39,6 @@ class RuntimeFixture(ParentReadFixture):
         for name, fn in functions.items():
             setattr(self.host._functions.library, 'actql_packaged_runtime_' + name, Function(fn))
         self.runtime_functions = _OriginalPackagedRuntimeFunctions(self.host._functions.library)
-        self.read = self.parent_read()
 
     def runtime_result(self, out, op, issue):
         key = 3500 + len(self.runtime_facts)
@@ -47,6 +47,13 @@ class RuntimeFixture(ParentReadFixture):
 
     def capture_runtime(self, h, r, a, an, b, bn, c, cn, d, dn, ceiling, out):
         self.runtime_events.append(('capture', h.value, r.value,
+            bytes(a).decode('utf-16-le'), an, bn, cn, dn, ceiling))
+        self.runtime_result(out, 1, self.runtime_issue)
+        if self.runtime_capture_fault: raise self.runtime_capture_fault
+        return 0
+
+    def capture_runtime_pair(self, h, r, resources, a, an, b, bn, c, cn, d, dn, ceiling, out):
+        self.runtime_events.append(('capture_pair', h.value, r.value, resources.value,
             bytes(a).decode('utf-16-le'), an, bn, cn, dn, ceiling))
         self.runtime_result(out, 1, self.runtime_issue)
         if self.runtime_capture_fault: raise self.runtime_capture_fault
@@ -88,6 +95,21 @@ class RuntimeFixture(ParentReadFixture):
             **({'root_path': '/private/runtime/日本😀', 'source_sha': 'a' * 40,
                 'platform': 'darwin-arm64', 'manifest_sha256': 'b' * 64,
                 'diagnostic_ceiling': 65536} | kwargs))
+
+
+class RuntimeFixture(RuntimeCalls, ParentReadFixture):
+    def __init__(self):
+        ParentReadFixture.__init__(self)
+        self.install_runtime_calls()
+        self.read = self.parent_read()
+
+
+class PairRuntimeFixture(RuntimeCalls, PairFixture):
+    def __init__(self):
+        PairFixture.__init__(self)
+        self.install_runtime_calls()
+        self.read = self.r
+        self.resources = self.pair()
 
 
 class OriginalRuntimeTests(unittest.TestCase):
@@ -293,6 +315,91 @@ class OriginalRuntimeTests(unittest.TestCase):
                 root_path='/runtime', source_sha='a' * 40, platform='darwin-arm64',
                 manifest_sha256='b' * 64, diagnostic_ceiling=65536)
         r.close()
+
+
+
+
+class OriginalHostPairRuntimeTests(unittest.TestCase):
+    def test_capture_uses_the_same_bound_pair_without_direct_read_or_second_claim(self):
+        f = PairRuntimeFixture()
+        f.resources.claim_read(123, 456)
+        pair_before = list(f.pair_events)
+        runtime = f.capture()
+        self.assertIs(runtime._resources, f.resources)
+        self.assertIs(runtime._read, f.r)
+        self.assertEqual([x[:4] for x in f.runtime_events if x[0] == 'capture_pair'],
+                         [('capture_pair', 101, 701, 801)])
+        self.assertFalse(any(x[0] == 'capture' for x in f.runtime_events))
+        self.assertEqual(f.pair_events, pair_before)
+        self.assertIsNone(f.resources._phase)
+        self.assertFalse(f.r._scope_open)
+        runtime.current()
+        runtime.close()
+        self.assertFalse(f.resources._closed or f.r._closed or f.s._closed)
+        self.assertEqual(len([x for x in f.pair_events if x[0] == 'claim']), 1)
+
+    def test_active_or_retired_pair_refuses_before_runtime_registration_and_foreign_calls(self):
+        f = PairRuntimeFixture()
+        with f.resources.scope('sqlite'):
+            with self.assertRaises(ValueError): f.capture()
+        self.assertEqual(f.runtime_events, [])
+        self.assertIsNone(f.r._runtime_original)
+        f.resources.close()
+        with self.assertRaises(ValueError): f.capture()
+        self.assertEqual(f.runtime_events, [])
+        self.assertIsNone(f.r._runtime_original)
+
+    def test_unrelated_domain_cannot_fall_back_to_the_direct_read_entry(self):
+        f = PairRuntimeFixture()
+        foreign_read = f.parent_read()
+        with self.assertRaises(ValueError):
+            _OriginalPackagedRuntimeCustody._capture_original(foreign_read, f.runtime_functions,
+                root_path='/unopened/runtime', source_sha='a'*40, platform='darwin-arm64',
+                manifest_sha256='b'*64, diagnostic_ceiling=65536)
+        self.assertEqual(f.runtime_events, [])
+        self.assertIsNone(foreign_read._runtime_original)
+
+    def test_known_pair_refusal_keeps_the_original_native_issue_and_parent_custody(self):
+        f = PairRuntimeFixture()
+        f.runtime_issue = 10
+        with self.assertRaises(_OriginalPackagedRuntimeError) as caught: f.capture()
+        runtime = caught.exception.cleanup_runtime
+        self.assertFalse(caught.exception.unknown)
+        self.assertEqual(caught.exception.fact.issue_family, 10)
+        self.assertIs(runtime._resources, f.resources)
+        self.assertIs(f.r._runtime_original, runtime)
+        self.assertFalse(f.resources._closed or runtime._closed)
+        self.assertFalse(any(x[0] == 'capture' for x in f.runtime_events))
+        runtime.close()
+        self.assertFalse(f.resources._closed)
+
+    def test_lost_pair_capture_reply_keeps_partial_slots_and_never_calls_direct_capture(self):
+        f = PairRuntimeFixture()
+        f.runtime_capture_fault = RuntimeError('lost pair capture response')
+        with self.assertRaises(_OriginalPackagedRuntimeError) as caught: f.capture()
+        runtime = caught.exception.cleanup_runtime
+        self.assertTrue(caught.exception.unknown)
+        self.assertIs(runtime._resources, f.resources)
+        self.assertIs(f.r._runtime_original, runtime)
+        self.assertIsNotNone(runtime._reply.value)
+        before = list(f.runtime_events)
+        with self.assertRaises(_OriginalPackagedRuntimeError): runtime.close()
+        with self.assertRaises(ValueError): f.capture()
+        self.assertEqual(f.runtime_events, before)
+        self.assertFalse(f.resources._closed)
+
+    def test_original_imported_unknown_stays_sticky_with_the_same_pair(self):
+        f = PairRuntimeFixture()
+        f.runtime_issue = 7
+        with self.assertRaises(_OriginalPackagedRuntimeError) as caught: f.capture()
+        runtime = caught.exception.cleanup_runtime
+        self.assertTrue(caught.exception.unknown)
+        self.assertEqual(caught.exception.fact.issue_family, 7)
+        self.assertIs(runtime._resources, f.resources)
+        before = list(f.runtime_events)
+        with self.assertRaises(_OriginalPackagedRuntimeError): runtime.current()
+        self.assertEqual(f.runtime_events, before)
+        self.assertFalse(f.resources._closed)
 
 
 if __name__ == '__main__':

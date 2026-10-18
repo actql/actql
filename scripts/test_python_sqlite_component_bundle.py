@@ -46,7 +46,7 @@ class SQLiteBundleTests(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name).resolve()
         self.library = binary(('@rpath/' + P.LIBRARY).encode(),
-                              (('@rpath/' + P.PROVIDER).encode(),), b'@loader_path')
+                              (('@loader_path/' + P.PROVIDER).encode(),))
         self.provider = binary(('@rpath/' + P.PROVIDER).encode())
         self.body = {'version': 'actql-python-sqlite-component-candidate/0.1',
             'source_sha': SOURCE, 'provider_source_sha': PROVIDER_SOURCE,
@@ -143,10 +143,20 @@ class SQLiteBundleTests(unittest.TestCase):
 
     def test_matching_hash_does_not_admit_development_rpath(self):
         wrong = binary(('@rpath/' + P.LIBRARY).encode(),
-                       (('@rpath/' + P.PROVIDER).encode(),), b'/private/development-provider')
+                       (('@loader_path/' + P.PROVIDER).encode(),), b'/private/development-provider')
         (self.root / P.LIBRARY).write_bytes(wrong)
         self.body['library'] = member(P.LIBRARY, wrong); self.persist()
         with self.assertRaisesRegex(ValueError, 'search path'): self.verify()
+
+    def test_matching_hash_does_not_admit_provider_search_or_extra_rpath(self):
+        for dependency, rpath in ((('@rpath/' + P.PROVIDER).encode(), b'@loader_path'),
+                                   (('@loader_path/' + P.PROVIDER).encode(), b'@loader_path')):
+            with self.subTest(dependency=dependency, rpath=rpath):
+                wrong = binary(('@rpath/' + P.LIBRARY).encode(), (dependency,), rpath)
+                (self.root / P.LIBRARY).write_bytes(wrong)
+                self.body['library'] = member(P.LIBRARY, wrong)
+                self.persist()
+                with self.assertRaises(ValueError): self.verify()
 
     def test_duplicate_manifest_field_refuses(self):
         path = self.root / 'sqlite-component.json'

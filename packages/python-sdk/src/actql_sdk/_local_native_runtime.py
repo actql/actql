@@ -14,6 +14,8 @@ from ._local_native_runtime_abi import bind
 from ._local_native_control_custody import _OriginalArenaFact
 from ._local_native_original_read import (
     _OriginalParentReadCustody, _RETIRED_PARENT_RUNTIME_DATA)
+from ._local_native_host_resources import (
+    _OriginalHostResourcesCustody, _resources_for_domain)
 
 
 class _OriginalPackagedRuntimeError(RuntimeError):
@@ -29,6 +31,7 @@ class _OriginalPackagedRuntimeFunctions:
         self.library = library
         calls = bind(library)
         self.capture = calls['capture_utf16_into']
+        self.capture_pair = calls['capture_host_resources_utf16_into']
         self.current, self.close = calls['current_into'], calls['close_into']
         self.originals = calls['originals_into']
         self.drop = calls['drop_reply']
@@ -51,7 +54,7 @@ def _exact_utf16(value: str, maximum: int, *, exact: int | None = None) -> Any:
 class _OriginalPackagedRuntimeCustody:
     """Physical output-slot responsibility on the same Native read, not a FSM."""
     __slots__ = ('_read', '_functions', '_host', '_original_read', '_runtime',
-                 '_reply', '_product_reply', '_unknown', '_unknown_carrier', '_closed')
+                 '_reply', '_product_reply', '_unknown', '_unknown_carrier', '_closed', '_resources')
     _read: _OriginalParentReadCustody
     _functions: _OriginalPackagedRuntimeFunctions
     _host: c_void_p
@@ -62,6 +65,7 @@ class _OriginalPackagedRuntimeCustody:
     _unknown: _OriginalPackagedRuntimeError | None
     _unknown_carrier: _OriginalPackagedRuntimeError
     _closed: bool
+    _resources: _OriginalHostResourcesCustody | None
 
     @classmethod
     def _capture_original(cls, read: _OriginalParentReadCustody,
@@ -82,12 +86,24 @@ class _OriginalPackagedRuntimeCustody:
             raise read._domain._unknown
         if read._closed or read._scope_open or read._runtime_original is not None:
             raise ValueError('Original packaged Runtime read is unavailable')
+        owner = read._domain._owner
+        binding = _resources_for_domain(read._domain)
+        resources = None if binding is None else binding[0]
+        if getattr(owner, '_host_resources_original', None) is not resources:
+            raise ValueError('Original packaged Runtime Host pair is unavailable')
+        if resources is not None:
+            if resources._unknown is not None:
+                raise resources._unknown
+            if (binding is None or binding[1] != 'read' or resources._read is not read
+                    or resources._closed or resources._phase is not None):
+                raise ValueError('Original packaged Runtime Host pair is unavailable')
         buffers = (_exact_utf16(root_path, 4096),
                    _exact_utf16(source_sha, 40, exact=40),
                    _exact_utf16(platform, 32),
                    _exact_utf16(manifest_sha256, 64, exact=64))
         original = cls.__new__(cls)
         original._read, original._functions = read, functions
+        original._resources = resources
         original._host, original._original_read = c_void_p(), c_void_p()
         original._runtime, original._reply = c_void_p(), c_void_p()
         original._product_reply = c_void_p()
@@ -96,7 +112,6 @@ class _OriginalPackagedRuntimeCustody:
         out, host_out = byref(original._reply), byref(original._host)
         read_out, runtime_out = byref(original._original_read), byref(original._runtime)
         known: _OriginalPackagedRuntimeError | None = None
-        owner = read._domain._owner
         # All allocations precede entry. A known local refusal does not create
         # or poison foreign responsibility and never clears somebody's busy.
         owner._enter()
@@ -108,11 +123,21 @@ class _OriginalPackagedRuntimeCustody:
                 raise read._unknown
             if read._domain._unknown is not None:
                 raise read._domain._unknown
+            if (getattr(owner, '_host_resources_original', None) is not resources
+                    or resources is not None and (resources._closed or resources._phase is not None)):
+                raise ValueError('Original packaged Runtime Host pair is unavailable')
+            if resources is not None and resources._unknown is not None:
+                raise resources._unknown
             read._runtime_original = original
             try:
                 a, b, c, d = buffers
-                original._status(functions.capture(read._host, read._original,
-                    a, len(a), b, len(b), c, len(c), d, len(d), diagnostic_ceiling, out))
+                if resources is None:
+                    original._status(functions.capture(read._host, read._original,
+                        a, len(a), b, len(b), c, len(c), d, len(d), diagnostic_ceiling, out))
+                else:
+                    original._status(functions.capture_pair(read._host, read._original,
+                        resources._original, a, len(a), b, len(b), c, len(c), d, len(d),
+                        diagnostic_ceiling, out))
                 original._status(functions.originals(original._reply,
                     host_out, read_out, runtime_out))
                 if (original._host.value != read._host.value
@@ -167,7 +192,7 @@ class _OriginalPackagedRuntimeCustody:
             raise self._mark_unknown()
         op, issue = self._functions.operation(self._reply), self._functions.issue(self._reply)
         if (type(op) is not int or op != operation
-                or type(issue) is not int or not 0 <= issue <= 9):
+                or type(issue) is not int or not 0 <= issue <= 10):
             raise self._mark_unknown()
         return _OriginalArenaFact(op, issue)
 
@@ -195,6 +220,12 @@ class _OriginalPackagedRuntimeCustody:
             raise self._read._unknown
         if self._read._domain._unknown is not None:
             raise self._read._domain._unknown
+        if self._resources is not None:
+            if self._resources._unknown is not None:
+                raise self._resources._unknown
+            if (self._resources._closed or self._resources._phase is not None
+                    or self._read._domain._owner._host_resources_original is not self._resources):
+                raise ValueError('Original packaged Runtime Host pair is unavailable')
         if (self._closed or self._read._closed or self._read._domain._closed
                 or self._runtime.value is None
                 or self._read._runtime_original is not self or self._read._scope_open

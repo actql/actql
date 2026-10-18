@@ -678,6 +678,18 @@ extern "C" fn register_original_packaged_runtime_roots(
   ],
   operation : FuncRef[(@runtime.NativeLocalPackagedRuntimeReply) -> Int],
   issue : FuncRef[(@runtime.NativeLocalPackagedRuntimeReply) -> Int],
+  capture_pair : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaOriginalRead,
+      @control.InstalledArenaLocalHostResources,
+      String,
+      String,
+      String,
+      String,
+      Int,
+    ) -> @runtime.NativeLocalPackagedRuntimeReply,
+  ],
 ) -> Unit = "actql_native_control_register_packaged_runtime_roots"
 
 ///|
@@ -1253,6 +1265,16 @@ fn main {
     fn(reply) { reply.original_runtime() },
     fn(reply) { reply.operation_tag() },
     fn(reply) { reply.issue_family() },
+    fn(host, read, resources, root, source, platform, manifest, ceiling) {
+      @runtime.capture_native_local_packaged_runtime_in_host_resources_reply(
+        Some((host, read, resources)),
+        root,
+        source,
+        platform,
+        manifest,
+        ceiling,
+      )
+    },
   )
   register_original_packaged_product_roots(
     fn(runtime, root, launcher_hash, platform_hash, ceiling) {
