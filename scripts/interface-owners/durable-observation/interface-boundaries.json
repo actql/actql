@@ -5089,8 +5089,6 @@
             "checkAuthenticationSelection/checkAuthenticationSelection",
             "closeHttpsCredentialBinding",
             "count/count",
-            "credentialBindingCurrent",
-            "credentialBindingCurrent/credentialBindingCurrent",
             "exactRequestTarget",
             "exchangeHttpsCredentialAuthentication",
             "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication",
@@ -5098,6 +5096,8 @@
             "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#3",
             "exchangeHttpsCredentialAuthentication/expires/expires",
             "fail/fail",
+            "credentialBindingCurrent",
+            "credentialBindingCurrent/credentialBindingCurrent",
             "openHttpsCredentialBinding",
             "openHttpsCredentialBinding/openHttpsCredentialBinding",
             "openHttpsCredentialBinding/original/original",
@@ -5114,26 +5114,23 @@
             "receive/receive/finish/finish",
             "receive/receive/finish/finish/finish",
             "receive/receive/receive",
+            "receive/receive/receive/receive",
             "receive/receive/receive#2",
             "receive/receive/receive#3",
-            "receive/receive/receive/receive",
             "receive/receive/release/release",
             "receive/receive/request/request",
             "receive/receive/request/request/request",
             "receive/receive/request/request/request#2",
             "receive/receive/request/request/request#3",
             "retireBinding",
-            "text/text",
-            "withHttpsCredentialRunResponseOriginal",
-            "withHttpsCredentialRunResponseOriginal/withHttpsCredentialRunResponseOriginal"
+            "text/text"
           ],
           "exports": [
             "callHttpsCredentialResource",
             "closeHttpsCredentialBinding",
             "exchangeHttpsCredentialAuthentication",
             "openHttpsCredentialBinding",
-            "prepareHttpsCredentialAuthenticationMaterial",
-            "withHttpsCredentialRunResponseOriginal"
+            "prepareHttpsCredentialAuthenticationMaterial"
           ],
           "attributes": {
             "responsibility": [
@@ -5198,10 +5195,6 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
-              },
-              {
-                "path": "adapters/site-node/https-credential-resource.mjs",
-                "anchor": "requestBodyText"
               }
             ],
             "identity": [
@@ -5474,79 +5467,16 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
-              },
-              {
-                "path": "adapters/site-node/https-credential-resource.test.mjs",
-                "anchor": "Run response original retains the exact immutable physical POST text without deriving it from length"
               }
             ]
           }
         },
         {
           "operations": [
-            "<module>",
-            "acquireBinding",
-            "acquireBinding/acquireBinding",
-            "acquireBinding/acquireBinding#2",
-            "authenticationCurrent",
-            "authenticationDependency",
-            "authenticationDependency/authenticationDependency",
-            "authenticationOutcomeFailure",
-            "authenticationTokenReader",
-            "authenticationTokenReader/authenticationTokenReader",
-            "authenticationTokenReader/authenticationTokenReader#2",
-            "authenticationTokenReader/init:read/init:read",
-            "authenticationTokenReader/init:read/init:read/init:read",
-            "callCredentialResource",
-            "callHttpsCredentialResource",
-            "checkAuthenticationSelection",
-            "checkAuthenticationSelection/checkAuthenticationSelection",
-            "closeHttpsCredentialBinding",
-            "count/count",
-            "credentialBindingCurrent",
-            "credentialBindingCurrent/credentialBindingCurrent",
-            "exactRequestTarget",
-            "exchangeHttpsCredentialAuthentication",
-            "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication",
-            "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#2",
-            "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#3",
-            "exchangeHttpsCredentialAuthentication/expires/expires",
-            "fail/fail",
-            "openHttpsCredentialBinding",
-            "openHttpsCredentialBinding/openHttpsCredentialBinding",
-            "openHttpsCredentialBinding/original/original",
-            "operationFor",
-            "ownAuthenticationRegistration",
-            "ownAuthenticationRegistration/ownAuthenticationRegistration",
-            "ownAuthenticationRegistration/ownAuthenticationRegistration#2",
-            "prepareHttpsCredentialAuthenticationMaterial",
-            "prepareHttpsCredentialAuthenticationMaterial/current/current",
-            "prepareHttpsCredentialAuthenticationMaterial/deadline/deadline",
-            "prepareHttpsCredentialAuthenticationMaterial/time/time",
-            "receive",
-            "receive/receive",
-            "receive/receive/finish/finish",
-            "receive/receive/finish/finish/finish",
-            "receive/receive/receive",
-            "receive/receive/receive#2",
-            "receive/receive/receive#3",
-            "receive/receive/receive/receive",
-            "receive/receive/release/release",
-            "receive/receive/request/request",
-            "receive/receive/request/request/request",
-            "receive/receive/request/request/request#2",
-            "receive/receive/request/request/request#3",
-            "retireBinding",
-            "text/text",
             "withHttpsCredentialRunResponseOriginal",
             "withHttpsCredentialRunResponseOriginal/withHttpsCredentialRunResponseOriginal"
           ],
           "exports": [
-            "callHttpsCredentialResource",
-            "closeHttpsCredentialBinding",
-            "exchangeHttpsCredentialAuthentication",
-            "openHttpsCredentialBinding",
-            "prepareHttpsCredentialAuthenticationMaterial",
             "withHttpsCredentialRunResponseOriginal"
           ],
           "attributes": {
