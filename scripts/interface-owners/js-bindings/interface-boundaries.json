@@ -89757,7 +89757,7 @@
     {
       "module": "packages/run-host-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "a048d0fbc283bc3996751401ce0bc4d4e839c5015912a7abd6b9d80baf3fbbec",
+      "sha256": "50d40f7c89f2bccad81193d3314777a11a573a42f24719c35629dfe5e772cb17",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -89779,6 +89779,7 @@
         "admitRunEvidenceValue",
         "admitSourceFreeRequestFields",
         "admitSourceFreeRunDefinition",
+        "admitSourceRequestFields",
         "admitTaskRun",
         "admitTaskRunDefinition",
         "beginResultMaterialHolds",
@@ -89858,6 +89859,8 @@
         "prepareRunPreStartFailure",
         "prepareRunStart",
         "prepareSourceFreeRequest",
+        "prepareSourceProgram",
+        "prepareSourceRequest",
         "prepareSubmissionEpoch",
         "prepareSubmittedIntent",
         "prepareTaskPhysicalStart",
@@ -89877,6 +89880,7 @@
         "requestFields",
         "requestRelation",
         "restoreEffectRunNormalization",
+        "restoreSourceProgram",
         "resultDefinitions",
         "resultMaterialHoldsFacts",
         "resultMaterialHoldsWire",
@@ -89896,6 +89900,9 @@
         "runCancellationIntentCid",
         "sealRunEvidenceValue",
         "sourceEvidenceFacts",
+        "sourceProgramMaterialInput",
+        "sourceProgramOriginals",
+        "sourceProgramSourceInput",
         "submissionEpochFacts",
         "submissionEpochValidity",
         "submissionRequestId",
@@ -89959,7 +89966,8 @@
             "definitionCid",
             "profiles",
             "original",
-            "expectedRequest"
+            "expectedRequest",
+            "sourcePrepared"
           ],
           "async": false
         },
@@ -90161,6 +90169,15 @@
             "compilation",
             "admission",
             "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitSourceRequestFields",
+          "parameters": [
+            "prepared",
+            "intent",
+            "fields"
           ],
           "async": false
         },
@@ -92043,6 +92060,25 @@
           "async": false
         },
         {
+          "name": "prepareSourceProgram",
+          "parameters": [
+            "intent",
+            "environment",
+            "publicationWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSourceRequest",
+          "parameters": [
+            "prepared",
+            "intent",
+            "authorityScopeCid",
+            "requestId"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareSubmissionEpoch",
           "parameters": [
             "scope"
@@ -92356,6 +92392,28 @@
           "async": false
         },
         {
+          "name": "restoreSourceProgram",
+          "parameters": [
+            "originals",
+            "environment"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreSourceProgram/restoreSourceProgram",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreSourceProgram/restoreSourceProgram#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "resultDefinitions",
           "parameters": [
             "prepared",
@@ -92608,6 +92666,49 @@
           "name": "sourceEvidenceFacts/sourceEvidenceFacts#2",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceProgramMaterialInput",
+          "parameters": [
+            "prepared",
+            "environmentWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceProgramOriginals",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceProgramOriginals/sourceProgramOriginals",
+          "parameters": [
+            "x"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceProgramSourceInput",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceProgramSourceInput/sourceProgramSourceInput",
+          "parameters": [
+            "x"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceProgramSourceInput/sourceProgramSourceInput#2",
+          "parameters": [
+            "x"
           ],
           "async": false
         },
@@ -113402,8 +113503,106 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "admitSourceRequestFields",
+            "prepareSourceProgram",
+            "prepareSourceRequest",
+            "restoreSourceProgram",
+            "restoreSourceProgram/restoreSourceProgram",
+            "restoreSourceProgram/restoreSourceProgram#2",
+            "sourceProgramMaterialInput",
+            "sourceProgramOriginals",
+            "sourceProgramOriginals/sourceProgramOriginals",
+            "sourceProgramSourceInput",
+            "sourceProgramSourceInput/sourceProgramSourceInput",
+            "sourceProgramSourceInput/sourceProgramSourceInput#2"
+          ],
+          "exports": [
+            "admitSourceRequestFields",
+            "prepareSourceProgram",
+            "prepareSourceRequest",
+            "restoreSourceProgram",
+            "sourceProgramMaterialInput",
+            "sourceProgramOriginals",
+            "sourceProgramSourceInput"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Original source preparation in the portable Run Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "export function prepareSourceProgram(intent, environment, publicationWire) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_source_preparation.mbt",
+                "anchor": "physical_equal(value.intent, intent)"
+              },
+              {
+                "path": "src/run_publication_host/client_source_preparation.mbt",
+                "anchor": "physical_equal(value.environment, environment)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/client_source_preparation.mbt",
+                "anchor": "pub struct ClientSourcePreparation {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "original.intent !== intent"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/client_effect_run_materials.mbt",
+                "anchor": "request is None || expected_request is None || request != expected_request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "alone does not supply this original binding, current authority or a cleanup ACK."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "is name-binding metadata, not acquisition, permission or physical capacity."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "structured preparation and material bytes remain unchanged."
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/run-host-core/source-preparation.test.mjs",
+                "anchor": "test('source Effect materials require the same source preparation and independently retained request'"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./dist/client_values_host_abi.js",
+        "./publication-action.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "packages/run-host-core/observation.mjs",

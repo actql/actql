@@ -44,7 +44,8 @@ pub fn client_effect_run_materials_request_for_dispatch(
     @publication.publication_contract_identity(materials.run_definition) ||
     @remote.dispatch_request_journal_key(dispatch)[0] !=
     client_request_authority_scope_cid(request) ||
-    client_request_input_cid(request) != source_free_caller_input_intent_cid() {
+    client_request_input_cid(request) !=
+    client_effect_original_input_intent_cid(materials.prepared) {
     return Err(IdentityMismatch)
   }
   match prepared_client_effect_request_scope(materials.prepared, request) {
@@ -70,7 +71,7 @@ pub fn issue_client_effect_run_materials(
     return Err(Normalization(MissingOriginalJournal))
   }
   let prepared = client_effect_compilation_owner(allowed.compilation)
-  if prepared.target_selections is Some(_) {
+  if prepared.target_selections is Some(_) && prepared.source_intent is None {
     return Err(TargetSelection(OriginalOwnerRequired))
   }
   match bind_client_effect_compiled_run(prepared, allowed, definition) {
@@ -88,6 +89,26 @@ pub fn issue_client_effect_run_materials(
     })
     is Ok(_) else {
     return Err(Input(MaterialsEnvironment))
+  }
+  if prepared.source_intent is Some(_) {
+    guard request is Some(value) &&
+      client_request_input_cid(value) ==
+      client_effect_original_input_intent_cid(prepared) else {
+      return Err(Request(IdentityMismatch))
+    }
+    let (original_program, original_parameters, _) = match
+      client_effect_original_input_wires(prepared) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if program != original_program || parameters_wire != original_parameters {
+      return Err(RunMismatch)
+    }
+    return issue_prepared_client_effect_run_materials(
+      allowed,
+      definition,
+      request~,
+    )
   }
   // Use the same bounded encoder and Parameter Values decoder as ordinary
   // Run materials. Neither operation adds a grant or refreshes the lifetime.
@@ -159,6 +180,7 @@ pub fn admit_client_effect_run_materials(
   effect_limits : ClientEffectComputationLimits,
   original_materials? : ClientEffectIssuedNormalizationMaterials? = None,
   expected_request? : ClientRequestIdentity? = None,
+  original_source? : ClientSourcePreparation? = None,
 ) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue] {
   let body = match
     read_client_run_materials_body(materials, expressions, operations) {
@@ -187,15 +209,38 @@ pub fn admit_client_effect_run_materials(
     Ok(value) => value
     Err(issue) => return Err(Program(issue))
   }
-  let prepared = match body.target_selections_wire {
+  let prepared = match original_source {
     None => prepared
-    Some(wire) => {
-      let selection = match
-        admit_client_effect_target_selections(prepared.candidate, wire) {
-        Ok(value) => value
-        Err(issue) => return Err(TargetSelection(issue))
+    Some(original) => {
+      guard original.preparation is Effect(source_prepared) &&
+        prepared_client_effect_identity(source_prepared) ==
+        prepared_client_effect_identity(prepared) &&
+        prepared_client_effect_computation_environment_cid(source_prepared) ==
+        prepared_client_effect_computation_environment_cid(prepared) &&
+        source_prepared.source_intent is Some(intent) &&
+        physical_equal(intent, original.intent) else {
+        return Err(Request(IdentityMismatch))
       }
-      { ..prepared, target_selections: Some(selection), }
+      source_prepared
+    }
+  }
+  let prepared = if original_source is Some(_) {
+    if prepared_client_effect_target_selections(prepared) !=
+      body.target_selections_wire {
+      return Err(TargetSelection(InvalidMaterials))
+    }
+    prepared
+  } else {
+    match body.target_selections_wire {
+      None => prepared
+      Some(wire) => {
+        let selection = match
+          admit_client_effect_target_selections(prepared.candidate, wire) {
+          Ok(value) => value
+          Err(issue) => return Err(TargetSelection(issue))
+        }
+        { ..prepared, target_selections: Some(selection), }
+      }
     }
   }
   let infer = match
@@ -315,11 +360,15 @@ pub fn admit_client_effect_run_materials(
         Err(issue) => return Err(Request(issue))
       }
       if client_request_input_cid(value) !=
-        source_free_caller_input_intent_cid() {
+        client_effect_original_input_intent_cid(prepared) {
         return Err(Request(IdentityMismatch))
       }
       Some(value)
     }
+  }
+  if original_source is Some(_) &&
+    (request is None || expected_request is None || request != expected_request) {
+    return Err(Request(IdentityMismatch))
   }
   // The original Run CID binds the compiler profile, not a logical caller
   // request. Wire-only restoration also needs the original request selected
@@ -332,7 +381,8 @@ pub fn admit_client_effect_run_materials(
   }
   if normalization_profile is Some(_) ||
     prepared.target_selections is Some(_) ||
-    infer is Some(_) {
+    infer is Some(_) ||
+    original_source is Some(_) {
     let canonical = match
       encode_prepared_client_effect_materials(
         allowed,
