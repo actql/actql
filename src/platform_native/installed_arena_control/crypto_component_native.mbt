@@ -28,7 +28,8 @@ fn InstalledArenaHost::original_crypto_component(
 ) -> Result[Unit, InstalledArenaCryptoIssue] {
   if !physical_equal(record.domain.host, self) ||
     !self.domains.any(domain => physical_equal(domain, record.domain)) ||
-    !(record.domain.crypto_component is Some(original) && physical_equal(original, record)) {
+    !(record.domain.crypto_component is Some(original) &&
+    physical_equal(original, record)) {
     return Err(Domain(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal)))
   }
   Ok(())
@@ -49,8 +50,10 @@ pub fn InstalledArenaHost::prepare_crypto_component(
     Err(issue) => return Err(Domain(issue))
     Ok(_) => ()
   }
-  if domain.crypto_component is Some(_) || domain.sqlite_library is Some(_) ||
-    domain.original_read is Some(_) || domain.live_channel is Some(_) {
+  if domain.crypto_component is Some(_) ||
+    domain.sqlite_library is Some(_) ||
+    domain.original_read is Some(_) ||
+    domain.live_channel is Some(_) {
     return Err(Domain(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed)))
   }
   let record : InstalledArenaCryptoComponent = {
@@ -66,9 +69,13 @@ pub fn InstalledArenaHost::prepare_crypto_component(
     Err(issue) => primary = Some(Domain(issue))
     Ok(_) => {
       record.scope_open = true
-      match @signature.load_current_crypto_component(path, heap_bytes, diagnostic_ceiling) {
+      match
+        @signature.load_current_crypto_component(
+          path, heap_bytes, diagnostic_ceiling,
+        ) {
         Err(issue) => primary = Some(Signature(issue))
-        Ok(@signature.ReadyCryptoComponent(component)) => record.component = Some(component)
+        Ok(@signature.ReadyCryptoComponent(component)) =>
+          record.component = Some(component)
         Ok(@signature.PendingCryptoComponent(component, issue)) => {
           record.component = Some(component)
           primary = Some(Signature(issue))
@@ -128,7 +135,9 @@ pub fn InstalledArenaHost::close_crypto_component(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if record.closed { return Ok(()) }
+  if record.closed {
+    return Ok(())
+  }
   record.failed = true
   if record.scope_open {
     match self.leave_domain_read(record.domain) {
@@ -145,15 +154,22 @@ pub fn InstalledArenaHost::close_crypto_component(
     Ok(_) => record.scope_open = true
   }
   let cleanup = component.close_checked()
-  if cleanup is Ok(_) { record.component = None }
+  if cleanup is Ok(_) {
+    record.component = None
+  }
   let leave = self.leave_domain_read(record.domain)
-  if leave is Ok(_) { record.scope_open = false }
+  if leave is Ok(_) {
+    record.scope_open = false
+  }
   match cleanup {
     Err(issue) => return Err(Signature(issue))
     Ok(_) => ()
   }
   match leave {
     Err(issue) => Err(Domain(issue))
-    Ok(_) => { record.closed = true; Ok(()) }
+    Ok(_) => {
+      record.closed = true
+      Ok(())
+    }
   }
 }

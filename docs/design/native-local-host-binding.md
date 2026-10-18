@@ -1316,6 +1316,24 @@ cannot revive it. The same pair retains the consuming view and never restores
 its spent available-read port. Scope leave does not retire managed aliases or
 acknowledge material, domain, Library or Host cleanup.
 
+Small managed Moon allocations may share pages inside that same original Read
+domain. The existing provider owns these pages; headers, alignment, splitting,
+fragmentation and serial metadata consume their original physical capacity.
+This path neither calls the Rust storage ABI nor supplies another reservation,
+pool or allocator fallback. File buffers and large managed allocations retain
+their original generic-extent route.
+
+A live-span observation of managed storage covers only one requested live slot,
+including an interior range within that slot. It cannot cover page metadata,
+an adjacent slot or an unused tail. Shared pages cannot be generically lent,
+protected, sealed or retired. Free classifies the original context and exact
+allocation after scope leave; a different current context does not acquire its
+custody. A page remains owned until its last managed allocation retires and the
+original physical page retirement succeeds. Failed retirement remains on the
+same context for its existing close path, independently of user, scope, domain,
+loan and Host acknowledgements. Serial exhaustion refuses allocation rather
+than wrapping or selecting another allocator.
+
 A retained Native filesystem Root can be checked against the caller's actual
 current original Read context without exporting that context or an address.
 The check rejects legacy Roots, retired descriptors and a different active
