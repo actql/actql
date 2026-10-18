@@ -10308,7 +10308,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/project-connection.mjs",
-      "sha256": "422ea0cd08a36990a233a553d4d8fc40b2b7cac384f1572a76eb1fef812e74a3",
+      "sha256": "3512374cbbb94ab95c3efbcb7e71bb55d8d6448fa1e63b89cf2c1e5db50a54c0",
       "exports": [
         "loadInstalledNotionProjectConnection"
       ],
