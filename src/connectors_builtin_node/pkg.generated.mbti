@@ -1967,6 +1967,12 @@ pub fn client_program_native_decision_request_matches(@model_execution.NativeDec
 
 pub fn client_program_native_decision_request_wires(@model_execution.NativeDecisionRequest) -> (String, String)?
 
+pub fn client_program_node_original_source_child_prepare(@physical_resources.OriginalNodeSourceReference) -> Result[@physical_resources.ImportedChildLedger, @physical_resources.ImportedChildLedgerIssue]
+
+pub fn client_program_node_original_source_child_report(@physical_resources.ImportedChildLedger) -> Result[Unit, @physical_resources.ImportedChildLedgerIssue]
+
+pub fn client_program_node_original_source_child_stop(@physical_resources.ImportedChildLedger) -> Result[Unit, @physical_resources.ImportedChildLedgerIssue]
+
 pub fn client_program_normalize_project_model_task(@run_publication_host.ClientProjectModelTaskSelection, @run_publication_host.ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration, @run_publication_host.ClientModelProviderDefaults, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@check_environment.NormalizedPublicModelTask, @check_environment.ModelTaskIssue]
 
 pub fn client_program_normalized_public_model_task_materials(@check_environment.NormalizedPublicModelTask) -> (String, String, String, String)

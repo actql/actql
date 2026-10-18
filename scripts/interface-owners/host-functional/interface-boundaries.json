@@ -59848,7 +59848,7 @@
     },
     {
       "module": "adapters/host-node/node-source-managed-installation.mjs",
-      "sha256": "9a52e69708e27980aa43667fd3602fc14f480ba097dac00d3a980683f66d9988",
+      "sha256": "e0e3d2a81c95a66372110929dbfd1653bfd25bbbc2c8fb3ad5cc6500bdbf5634",
       "exports": [
         "assertSourceManagedInstallationCurrent",
         "assertSourceManagedPreparationCurrent",
@@ -59975,6 +59975,14 @@
           "async": false
         },
         {
+          "name": "prepareSourceManagedInstallation/view/init:intentCid/init:intentCid",
+          "parameters": [
+            "receipt",
+            "originalFrozenBody"
+          ],
+          "async": false
+        },
+        {
           "name": "syncVoid",
           "parameters": [
             "state",
@@ -60021,6 +60029,7 @@
             "prepareSourceManagedInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
             "prepareSourceManagedInstallation/view/init:close/init:close",
             "prepareSourceManagedInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
+            "prepareSourceManagedInstallation/view/init:intentCid/init:intentCid",
             "syncVoid",
             "unavailable/unavailable"
           ],
@@ -60050,6 +60059,10 @@
               {
                 "path": "adapters/host-node/node-source-managed-installation.mjs",
                 "anchor": "export function assertSourceManagedPreparationCurrent(originalInstallation, sameOriginals) {"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "intentCid(receipt, originalFrozenBody) {"
               }
             ],
             "ownership": [
@@ -60070,6 +60083,10 @@
               {
                 "path": "adapters/host-node/node-source-managed-installation.mjs",
                 "anchor": "const originalOwner = ordinary ? require('./node-public-initial-control-bootstrap.cjs') :"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "const result = invoke(7, [state.installation, state.originals, receipt, originalFrozenBody]);"
               }
             ],
             "failure": [
@@ -60088,6 +60105,10 @@
               {
                 "path": "adapters/host-node/node-source-managed-installation.mjs",
                 "anchor": "// shared VM byte credit; failure observations retain their real lifetime."
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "// permission. A selected Source never falls back to a native hash task"
               }
             ],
             "extension": [
@@ -60108,6 +60129,14 @@
               {
                 "path": "adapters/host-node/node-source-managed-installation.test.mjs",
                 "anchor": "partial Source metadata current checks the captured nominal original before a view exists"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.test.mjs",
+                "anchor": "selected Source intent hash retains its receipt/body and checks original current after the Common callback"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.test.mjs",
+                "anchor": "selected Source rejects an unexpected hash protocol without native fallback or a replacement receipt"
               }
             ]
           }
