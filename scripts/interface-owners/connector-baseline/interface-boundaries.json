@@ -6627,7 +6627,7 @@
     {
       "module": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8425f97845fee44852d6ba8323ff06fe364b0e800ab24b2ff3ea89b690c3588f",
+      "sha256": "e8166cf2fdb068aac9884f71e3c3536a36e68c8fbb79ea14296689fb8c924776",
       "role": "physical-io",
       "owner": "Stable-node GraphQL Issue pagination; provider MoonBit fixes query, variables, projection and refusal",
       "exports": [
