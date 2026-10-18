@@ -186,7 +186,7 @@ fn decode(
             } else {
               ["enum"]
             }
-          "number" | "boolean" | "timestamp" | "date" | "json" => []
+          "number" | "boolean" | "timestamp" | "date" | "json" | "int64" => []
           "decimal" => ["precision", "scale"]
           "array" => ["items", "max_items"]
           "object" =>
@@ -220,6 +220,7 @@ fn decode(
               enumeration: read_text_enumeration(view, budget, depth),
             })
           "number" => Number
+          "int64" => Signed64
           "boolean" => Boolean
           "timestamp" => Timestamp
           "date" => Date

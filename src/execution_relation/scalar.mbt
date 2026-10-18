@@ -32,6 +32,7 @@ pub fn capture(value : @admitted.Value) -> Value {
     @admitted.Date(_)
     | @admitted.Timestamp(_)
     | @admitted.Decimal(_)
+    | @admitted.Signed64(_)
     | @admitted.Array(_)
     | @admitted.Object(_)
     | @admitted.JsonData(_)
@@ -248,6 +249,8 @@ pub fn unary(
 /// No decimal rounding or JSON stringification is a numeric equality law.
 fn compare(left : Value, right : Value) -> Result[Int, ScalarIssue] {
   match (left, right) {
+    (Captured(@admitted.Signed64(a)), Captured(@admitted.Signed64(b))) =>
+      Ok(if a < b { -1 } else if a > b { 1 } else { 0 })
     (Number(a), Number(b)) =>
       if a.is_nan() || b.is_nan() || a.is_inf() || b.is_inf() {
         Err(InvalidOperand)

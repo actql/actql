@@ -246,6 +246,7 @@ pub fn prepare_nest_value_envelope(
           Json | ResourceRef(..) | ContentRef(..) => return Err(ForeignOwner)
           Text(_)
           | Number
+          | Signed64
           | Boolean
           | Timestamp
           | Date

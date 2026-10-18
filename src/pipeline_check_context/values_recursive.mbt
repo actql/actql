@@ -108,6 +108,7 @@ pub fn check_values_recursive_resources(
             Object(fields) => pending.push(Fields(fields, 0, next))
             Text(_)
             | Number
+            | Signed64
             | Boolean
             | Timestamp
             | Date

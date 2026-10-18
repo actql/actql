@@ -55,6 +55,7 @@ export function executionContract(protocol) {
       string_extents: 'retained_unicode_scalars_and_UTF8_bytes',
       text_enumeration: 'exact_original_vector_membership_intersected_with_retained_extents_preserve_nullable_and_empty_duplicates_order_no_constraint_stripping_or_authority',
       decimal: 'canonical_fixed_scale_string_under_declared_precision_and_scale',
+      int64: 'canonical_signed_decimal_String_in_full_signed64_range_distinct_logical_type_no_JSON_Number_or_implicit_coercion',
       empty_rows: 'retain_declared_schema',
       row_order: 'retain_occurrence_order', row_multiplicity: 'retain_all_occurrences',
       object_key_order: 'canonical_utf16_order_not_row_order',

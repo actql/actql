@@ -551,6 +551,8 @@ fn charge_bound_literal(
       @value.Text(s) | @value.Date(s) | @value.Timestamp(s) =>
         charge_expression_text(b, source, s)
       @value.Decimal(d) => charge_expression_text(b, source, decimal_wire(d))
+      @value.Signed64(value) =>
+        charge_expression_text(b, source, value.to_string())
       @value.Array(items) => {
         let count = @value.element_count(items)
         if count > b.limits.max_literal_nodes - b.literal_nodes - todo.length() {

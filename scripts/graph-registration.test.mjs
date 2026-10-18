@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {gunzipSync} from 'node:zlib';
 import {checkRegistration, operation, pointer} from './graph-registration.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 
@@ -105,12 +106,34 @@ test('SourceView Graph fixture owns independent schema and the complete CID chai
 
 test('constructor pins a distinct complete execution contract and exact shared dependencies', () => {
   checkRegistration(aoa, law, protocol, registry);
-  assert.equal(cid(body), 'sha256:d567ede4e421b6aaa6df39bf9fe03dfaaff129fb85ab9489faa6ffb61a8fa282');
-  assert.equal(cid(registry), 'sha256:a39ed49bed5ddd2dd6442a1dd92493a89fd47d563d36d255023e80ac10270041');
+  const historical = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/pre-signed64-type-closure.json.gz')));
+  const prior = historical.records;
+  assert.equal(cid(prior['spec/contracts/actql-aoa.json'].execution_contracts[operation]),
+    'sha256:d567ede4e421b6aaa6df39bf9fe03dfaaff129fb85ab9489faa6ffb61a8fa282');
+  assert.equal(cid(prior['spec/dependencies/aoa-pipeline-registry.json']),
+    'sha256:e22e68346562f75943e37453469d40c378bfe6994b124977f73addc1c23e76b6');
+  assert.equal(historical.constructor_registry.source_revision,
+    'f9720668eaec295295935f1c3cdd075df7e58434');
+  assert.equal(cid(historical.constructor_registry.body),
+    'sha256:a39ed49bed5ddd2dd6442a1dd92493a89fd47d563d36d255023e80ac10270041');
+  assert.equal(historical.constructor_registry.cid, cid(historical.constructor_registry.body));
+  const current = read('portability/corpus/signed64-identities.json');
+  assert.deepEqual(body, current.graphExecution.body);
+  assert.equal(canonical(body), current.graphExecution.canonicalPreimage);
+  assert.equal(cid(body), current.graphExecution.cid);
+  assert.deepEqual(registry, current.selectedRegistry.body);
+  assert.equal(canonical(registry), current.selectedRegistry.canonicalPreimage);
+  assert.equal(cid(registry), current.selectedRegistry.cid);
   assert.equal(body.dependencies.graph_law.cid,
     'sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34');
-  assert.equal(body.dependencies.canonical_value_contract.cid,
+  assert.equal(cid(prior['spec/contracts/actql-protocol-schemas.json'].schemas.canonical_value_contract),
+    'sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c');
+  assert.equal(historical.constructor_value_grammar.source_revision,
+    historical.constructor_registry.source_revision);
+  assert.equal(cid(historical.constructor_value_grammar.body),
     'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947');
+  assert.equal(historical.constructor_value_grammar.cid, cid(historical.constructor_value_grammar.body));
+  assert.equal(body.dependencies.canonical_value_contract.cid, current.canonicalGrammar.cid);
   assert.equal(registry[operation].execution_contract.pointer, pointer);
   assert.equal(registry[operation].execution_contract.cid, cid(body));
 });

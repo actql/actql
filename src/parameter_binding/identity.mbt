@@ -64,6 +64,11 @@ fn emit_bound_value(
         @value.Null => @encode.null_value(output)
         @value.Boolean(b) => @encode.bool_value(output, b)
         @value.Number(n) => @encode.number_value(output, n)
+        @value.Signed64(n) => {
+          marker(output, "int64")
+          @encode.string_value(output, n.to_string())
+          end_marker(output)
+        }
         @value.Text(text) =>
           if parameter.rule is @contract.Duration {
             // Ready can only be constructed after this exact duration check.
