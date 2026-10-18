@@ -20,6 +20,13 @@ class ErrorFixture extends Error {
 }
 const unused = () => assert.fail('UnexpectedUnselectedRoute');
 
+test('ordinary public bootstrap dependency precedes SDK initialization', () => {
+  const imports = tree.body.filter(node => node.type === 'ImportDeclaration');
+  assert.equal(imports[0].source.value, './initial-control-public-dispatch.cjs');
+  const sdk = imports.findIndex(node => node.source.value === '@actql/sdk');
+  assert.ok(sdk > 0);
+});
+
 test('selected public connect forwards the exact raw input before any facade observation or copy', async () => {
   let observations = 0;
   const raw = new Proxy({}, {get() {observations++;}, ownKeys() {observations++;},
