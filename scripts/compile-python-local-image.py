@@ -693,6 +693,67 @@ class _PhysicalCoreInputs:
         return _runtime_original(original, self._runtime)
 
 
+    def bind_original_process(self, process: _OriginalInstalledProcessCustody) -> _OriginalInstalledProcessCustody:
+        """Retain preparation on the actual same Native process, never launch.
+
+        Its existing domain/channel/frame/current remains the only physical
+        authority. This consumes neither another domain nor another Ledger.
+        It supplies no missing pre-root funding and cannot authorize Config,
+        image capture or a scalar-open fallback.
+        """
+        self._require_original_process(process, bound=False)
+        original = self.require_current()
+        _verify_physical_process_provider(original, process)
+        # Retain the exact DATA before a current/projection reply can be lost.
+        # The same original process remains its pending/partial cleanup carrier.
+        process._preparation_original = self
+        self.require_bound_original_process(process)
+        return process
+
+    def _require_original_process(self, process: _OriginalInstalledProcessCustody, *, bound: bool) -> None:
+        if type(process) is not _OriginalInstalledProcessCustody:
+            raise ValueError('Select the actual original Native process')
+        if process._unknown is not None:
+            raise process._unknown
+        domain, owner = process._domain, process._owner
+        if domain._unknown is not None:
+            raise domain._unknown
+        if (self._original is not self or process._closed or domain._closed
+                or domain._installed_process_original is not process
+                or domain._owner is not owner or owner._closed or owner._busy
+                or process._functions.library is not domain._functions.library
+                or process._functions.library is not owner._functions.library
+                or domain._descriptor.closed or domain._descriptor.close_attempted
+                or process._host.value != domain._host.value
+                or process._native_domain.value != domain._domain.value
+                or any(slot.value is None for slot in (process._host, process._native_domain,
+                                                       process._process, process._channel, process._frame))
+                or process._reply.value is not None
+                or (process._preparation_original is not self if bound
+                    else process._preparation_original is not None)):
+            raise ValueError('Original physical preparation process is unavailable or already bound')
+
+    def require_bound_original_process(self, process: _OriginalInstalledProcessCustody) -> None:
+        self._require_original_process(process, bound=True)
+        original = self.require_current()
+        _verify_physical_process_provider(original, process)
+        process.current()
+        material = process._domain._project_original_material(
+            _OriginalDomainMaterialFunctions(process._functions.library))
+        if material.source != self._source:
+            raise ValueError('Original physical preparation domain source changed')
+        process.current()
+        self._require_original_process(process, bound=True)
+
+
+def _verify_physical_process_provider(original: dict[str, Any],
+                                      process: _OriginalInstalledProcessCustody) -> None:
+    provider = process._functions.library
+    if (not isinstance(provider, CDLL) or type(provider._name) is not str
+            or Path(provider._name) != original['provider_library']):
+        raise ValueError('Original physical process uses a different selected provider')
+
+
 def _runtime_original(original: dict[str, Any], prepared: _CompilerRuntime | None) -> dict[str, Any]:
     if (type(prepared) is not _CompilerRuntime or prepared.source_sha != original['source']
             or prepared.recipe != original['recipe']

@@ -143,6 +143,106 @@ class PhysicalCorePreparationTests(unittest.TestCase):
             prepared.require_current()
         self.assertEqual(self.staging.call_count, 1)
 
+    def process_fixture(self):
+        from test_local_native_domain_material import MaterialFixture
+        from test_local_native_process_custody import ProcessFixture
+        material = MaterialFixture()
+        material.source = self.case.head.encode('ascii')
+        process = ProcessFixture(original=material)
+        original = process.take()
+        return material, process, original
+
+    def test_bind_retains_inputs_on_same_native_process_without_launch_or_cleanup(self):
+        prepared = self.prepare()
+        material, fixture, original = self.process_fixture()
+        with patch.object(compiler, '_verify_physical_process_provider'):
+            result = prepared.bind_original_process(original)
+            self.assertIs(result, original)
+            self.assertIs(original._preparation_original, prepared)
+            self.assertIs(original._domain._installed_process_original, original)
+            self.assertEqual([e for e in fixture.events if e == ('operate', 2)], [('operate', 2)] * 2)
+            prepared.require_bound_original_process(original)
+        self.assertFalse(any(e[0] == 'child' or e == ('operate', 11) for e in fixture.events))
+        self.assertFalse(original._closed)
+        self.assertFalse(original._domain._descriptor.close_attempted)
+        original.close_unstarted()
+        self.assertIs(original._preparation_original, prepared)
+        self.assertIsNone(original._domain._installed_process_original)
+        with self.assertRaisesRegex(ValueError, 'process is unavailable'):
+            prepared.require_bound_original_process(original)
+
+    def test_lost_process_current_retains_same_inputs_and_original_unknown_without_replay(self):
+        from actql_sdk._local_native_process_custody import _OriginalInstalledProcessError
+        prepared = self.prepare()
+        material, fixture, original = self.process_fixture()
+        fixture.call_fault = OSError('Independent original current response loss')
+        with patch.object(compiler, '_verify_physical_process_provider'):
+            with self.assertRaises(_OriginalInstalledProcessError) as first:
+                prepared.bind_original_process(original)
+            before = list(fixture.events)
+            for operation in (lambda:prepared.bind_original_process(original),
+                              lambda:prepared.require_bound_original_process(original)):
+                with self.assertRaises(_OriginalInstalledProcessError) as again:
+                    operation()
+                self.assertIs(again.exception, first.exception)
+        self.assertEqual(fixture.events, before)
+        self.assertIs(original._preparation_original, prepared)
+        self.assertIs(original._domain._installed_process_original, original)
+        self.assertFalse(original._domain._descriptor.close_attempted)
+
+    def test_lost_domain_projection_keeps_original_pending_without_reacquire(self):
+        from actql_sdk._local_native_domain_custody import _OriginalDomainError
+        prepared = self.prepare()
+        material, fixture, original = self.process_fixture()
+        material.project_fault = OSError('Independent original material response loss')
+        with patch.object(compiler, '_verify_physical_process_provider'):
+            with self.assertRaises(_OriginalDomainError) as first:
+                prepared.bind_original_process(original)
+            before = list(material.events), list(fixture.events)
+            with self.assertRaises(_OriginalDomainError) as again:
+                prepared.require_bound_original_process(original)
+            self.assertIs(again.exception, first.exception)
+        self.assertEqual((material.events, fixture.events), before)
+        self.assertIs(original._preparation_original, prepared)
+        self.assertIs(original._domain._installed_process_original, original)
+
+    def test_duplicate_busy_foreign_and_retired_processes_do_not_rebind(self):
+        prepared = self.prepare()
+        material, fixture, original = self.process_fixture()
+        original._owner._busy = True
+        with self.assertRaises(ValueError):
+            prepared.bind_original_process(original)
+        self.assertIsNone(original._preparation_original)
+        self.assertTrue(original._owner._busy)
+        original._owner._busy = False
+        actual = original._domain._installed_process_original
+        original._domain._installed_process_original = object()
+        with self.assertRaises(ValueError):
+            prepared.bind_original_process(original)
+        self.assertIsNone(original._preparation_original)
+        original._domain._installed_process_original = actual
+        with patch.object(compiler, '_verify_physical_process_provider'):
+            prepared.bind_original_process(original)
+            before = list(fixture.events)
+            with self.assertRaises(ValueError):
+                prepared.bind_original_process(original)
+        self.assertEqual(fixture.events, before)
+        original.close_unstarted()
+        with self.assertRaises(ValueError):
+            prepared.require_bound_original_process(original)
+
+    def test_changed_domain_source_refuses_while_retaining_original_process_custody(self):
+        prepared = self.prepare()
+        material, fixture, original = self.process_fixture()
+        material.source = b'f' * 40
+        with patch.object(compiler, '_verify_physical_process_provider'):
+            with self.assertRaisesRegex(ValueError, 'domain source changed'):
+                prepared.bind_original_process(original)
+        self.assertIs(original._preparation_original, prepared)
+        self.assertIs(original._domain._installed_process_original, original)
+        self.assertFalse(original._closed)
+        self.assertFalse(any(e[0] == 'child' or e == ('operate', 11) for e in fixture.events))
+
     def test_original_preparation_cannot_be_constructed_copied_or_serialized(self):
         prepared = self.prepare()
         for operation in (lambda:compiler._PhysicalCoreInputs(), lambda:copy.copy(prepared),

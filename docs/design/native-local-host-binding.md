@@ -851,7 +851,11 @@ Engine recipe and private library DATA from actual parent/domain admission.
 The same closed image validator serves this preparation and the final component
 producer. Preparation never constructs final `LocalComponents` or supplies an
 `OriginalWorkerFunding` substitute. Compile-only evidence remains insufficient
-for the final physical verifier.
+for the final physical verifier. Preparation retains its original inputs on the
+existing installed process record before current/projection calls. Only that
+same registered process/domain/channel/frame can satisfy subsequent current
+checks; response loss retains the original pending carrier. This connection
+performs no spawn, stop or cleanup and does not turn current into a funding ACK.
 
 The physical caller must consume the independently admitted original Native
 parent/domain, child Ledger, control channel and holding before Config or any

@@ -56,7 +56,7 @@ class _OriginalInstalledProcessCustody:
     """Thin same-Owner opaque references, not another process cleanup machine."""
     __slots__ = ('_domain', '_owner', '_functions', '_host', '_native_domain',
                  '_process', '_channel', '_frame', '_reply', '_unknown',
-                 '_unknown_carrier', '_closed')
+                 '_unknown_carrier', '_closed', '_preparation_original')
 
     _domain: _OriginalDomainCustody
     _owner: _OriginalControlCustody
@@ -70,6 +70,7 @@ class _OriginalInstalledProcessCustody:
     _unknown: _OriginalInstalledProcessError | None
     _unknown_carrier: _OriginalInstalledProcessError
     _closed: bool
+    _preparation_original: object | None
 
     def __init__(self) -> None:
         raise TypeError('Original process requires trusted installed physical assembly')
@@ -91,6 +92,7 @@ class _OriginalInstalledProcessCustody:
         process._host, process._native_domain, process._process = c_void_p(), c_void_p(), c_void_p()
         process._channel, process._frame, process._reply = c_void_p(), c_void_p(), c_void_p()
         process._unknown, process._closed = None, False
+        process._preparation_original = None
         process._unknown_carrier = _OriginalInstalledProcessError(process, unknown=True)
         # Known local entry failures remain outside the uncertain foreign-call
         # catch. No Native responsibility exists or is changed by this refusal.
