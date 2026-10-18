@@ -1,6 +1,7 @@
 ///|
 priv struct Node {
   source : @decode.Cursor
+  parent : Int?
   tag : String
   body : @decode.Cursor
   children : Array[Int]
@@ -57,6 +58,7 @@ fn flatten(
     let id = nodes.length()
     let node : Node = {
       source: visit.source,
+      parent: visit.parent,
       tag,
       body,
       children: [],
