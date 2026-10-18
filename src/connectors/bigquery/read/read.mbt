@@ -141,7 +141,6 @@ fn valid_limits(limits : @catalog.QueryLimits, max_pages : Int) -> Bool {
   max_pages > 0 &&
   limits.max_rows >= 0 &&
   limits.max_total_rows >= 0L &&
-  limits.max_total_rows <= 2147483647L &&
   limits.max_value_nodes > 0 &&
   limits.max_value_text_bytes > 0 &&
   limits.max_job_bytes > 0 &&
@@ -196,7 +195,7 @@ pub fn start_accounted_read(
   limits : @catalog.QueryLimits,
   max_pages : Int,
 ) -> Result[Read, ReadStartFailure] {
-  if !valid_limits(limits, max_pages) {
+  if !valid_limits(limits, max_pages) || limits.max_total_rows > 2147483647L {
     return Err({ issue: InvalidLimits, cleanup: None, })
   }
   let run = match

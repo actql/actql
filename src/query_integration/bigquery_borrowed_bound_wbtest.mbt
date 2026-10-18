@@ -29,7 +29,11 @@ test "BigQuery borrowed Int64 metadata bound cannot reserve or widen the origina
   assert_true(
     @bigquery_read.capture_result_read(read) is Err(@bigquery_read.BorrowedRun),
   )
-  assert_true(@row_host.close_accounted_row_run(run) is Err(_))
+  assert_true(
+    @bigquery_read.retire_borrowed_read(read)
+    is Err(@bigquery_read.TransportUnsettled),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
   stopped.val = true
   @bigquery_read.retire_borrowed_read(read).unwrap()
   @row_host.finish_row_run(run).unwrap()
