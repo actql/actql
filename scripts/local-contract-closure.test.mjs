@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {gunzipSync} from 'node:zlib';
 import {readFileSync} from 'node:fs';
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
@@ -29,7 +30,7 @@ test('inherited Unicode data resolves the semantic and bound-law dependencies', 
     '4d4c03892dea9146d674b686e495df2d55a28d071ac474041d73518f887abddc');
   const changed = structuredClone(data);
   changed.ccc[0][1]++;
-  assert.notEqual(machineCid(changed), expected);
+  assert.notEqual(machineCid(changed), vectors.currentCid);
 });
 
 test('inherited text/time dependency edges resolve through explicit roles', () => {
@@ -67,7 +68,7 @@ test('the inherited text/time dependency preserves original ContentRef bytes bes
   assert.notEqual(machineCid({...textTimeBase, contract_cid: vectors.currentCid}), vectors.currentCid);
   const changed = structuredClone(textTimeBase);
   changed.semantics.regex_flags.push('i');
-  assert.notEqual(machineCid(changed), expected);
+  assert.notEqual(machineCid(changed), vectors.currentCid);
 });
 const schema = {
   type: 'object', properties: {
@@ -151,7 +152,8 @@ test('contract selection retains transitive dependencies and omits unrelated Cat
 // preimage. No historical file is rewritten and no current old-wire fallback
 // is admitted.
 test('the pre-ContentRef text/time body retains its distinct historical identity', () => {
-  const historical = structuredClone(textTimeBase);
+  const predecessor = JSON.parse(gunzipSync(readFileSync(new URL('./fixtures/pre-signed64-type-closure.json.gz', import.meta.url))));
+  const historical = structuredClone(predecessor.records['spec/dependencies/actql-text-time-base.json']);
   assert.equal(historical.barrier_schema.$defs.value_contract.oneOf[7]
     .properties.type.const, 'content_ref');
   historical.barrier_schema.$defs.value_contract.oneOf[7]

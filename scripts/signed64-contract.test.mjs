@@ -14,19 +14,27 @@ const protocol = read('spec/contracts/actql-protocol-schemas.json');
 const leaf = {type:'object', required:['type','nullable'], additionalProperties:false,
   properties:{type:{const:'int64'},nullable:{type:'boolean'}}};
 
-test('signed64 adds one type branch while every original checked and authored alternative stays exact', () => {
+test('signed64 preserves legacy alternatives and refreshes the two original row-kernel type copies', () => {
   let copies = 0;
-  const inspect = (current, previous) => {
+  const inspect = (current, previous, path) => {
     if (!current || typeof current !== 'object' || !previous || typeof previous !== 'object') return;
     if (previous.$defs?.value_contract) {
       const before = previous.$defs.value_contract.oneOf;
       const after = current.$defs.value_contract.oneOf;
-      assert.deepEqual(after, [...before, leaf]);
+      if (/\/row_kernel_evidence\/properties\/(contexts|shapes)\/items$/u.test(path)) {
+        const original = structuredClone(before);
+        const text = original.find(value => value.properties.type.const === 'string');
+        assert.equal(text.properties.enum, undefined, 'the previous row-kernel copy omitted its existing Text constraint');
+        const complete = prior['spec/contracts/actql-protocol-schemas.json'].schemas.canonical_value_contract.$defs.value_contract.oneOf;
+        text.properties.enum = complete.find(value => value.properties.type.const === 'string').properties.enum;
+        assert.deepEqual(original, complete, 'only the already-owned Text enum copy was stale');
+        assert.deepEqual(after, [...complete, leaf]);
+      } else assert.deepEqual(after, [...before, leaf], path);
       copies++;
     }
-    for (const [key, value] of Object.entries(previous)) inspect(current[key], value);
+    for (const [key, value] of Object.entries(previous)) inspect(current[key], value, path+'/'+key);
   };
-  for (const [path, previous] of Object.entries(prior)) inspect(read(path), previous);
+  for (const [path, previous] of Object.entries(prior)) inspect(read(path), previous, path);
   assert(copies >= 20, 'actual containing schema copies were inspected');
   const before = prior['spec/contracts/actql-protocol-schemas.json'];
   for (const name of ['author_value_contract', 'canonical_value_contract']) {
@@ -77,4 +85,57 @@ test('Parameter int64 keeps its own closed shape and root declaration metadata',
   }
   assert.deepEqual(parameterSchema().oneOf.find(value => value.properties.type.const === 'number').properties,
     {type:{const:'number'},nullable:{type:'boolean',default:false},integer:{type:'boolean'},minimum:{type:'number'},maximum:{type:'number'}});
+});
+
+test('query fixture migration changes only declared type-dependent owner and evidence edges', () => {
+  const previous = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/pre-signed64-query-identities.json.gz')));
+  const restore = (current, original, paths) => {
+    const value = structuredClone(current);
+    for (const path of paths) {
+      const keys = path.split('/');
+      let target = value, old = original;
+      for (const key of keys.slice(0, -1)) { target = target[key]; old = old[key]; }
+      target[keys.at(-1)] = structuredClone(old[keys.at(-1)]);
+    }
+    assert.deepEqual(value, original);
+  };
+  const oldOwner = previous['query-acquisition-owner'];
+  const owner = read('portability/corpus/query-acquisition-owner.json');
+  restore(owner, oldOwner, ['stage_semantics/expression_contract_cid',
+    'program_semantics/expression_contract_cid',
+    'program_semantics/program_template/stages/0/stage_semantics_cid',
+    'program_semantics_cid', 'program_definition/program_semantics_cid',
+    'program_definition_cid', 'owner/program_source_cid']);
+  const oldAcquisition = previous['query-acquisition-identities'];
+  const acquisition = read('portability/corpus/query-acquisition-identities.json');
+  const slots = [['owner/program_source_cid'],
+    ['owner/program_source_cid','requirement_cid','actual_access/scope_cid'],
+    ['owner/program_source_cid','requirement_cid','actual_access/scope_cid'], [],
+    ['requirement_cid'], ['requirement_cid'], ['expression_contract_cid'],
+    ['expression_contract_cid','program_template/stages/0/stage_semantics_cid'], ['program_semantics_cid']];
+  assert.equal(acquisition.length, slots.length);
+  for (const [i, vector] of acquisition.entries()) {
+    verifyIdentity(vector.body, vector.cid);
+    verifyIdentity(oldAcquisition[i].body, oldAcquisition[i].cid);
+    restore(vector.body, oldAcquisition[i].body, slots[i]);
+  }
+  for (const [i, vector] of read('portability/corpus/query-process-evidence.json').entries()) {
+    verifyIdentity(vector.body, vector.cid);
+    restore(vector.body, previous['query-process-evidence'][i].body,
+      ['requirement_cid','actual_access/scope_cid']);
+  }
+  const two = read('portability/corpus/query-two-receipt.json'), oldTwo = previous['query-two-receipt'];
+  restore(two.requirement.body, oldTwo.requirement.body, ['owner/program_source_cid']);
+  for (const [i, vector] of two.receipts.entries()) {
+    verifyIdentity(vector.body, vector.cid);
+    restore(vector.body, oldTwo.receipts[i].body, ['requirement_cid']);
+  }
+  for (const [i, vector] of two.records.entries()) {
+    verifyIdentity(vector.body, vector.cid);
+    restore(vector.body, oldTwo.records[i].body, ['requirement_cid','accesses']);
+  }
+  verifyIdentity(two.observation.body, two.observation.cid);
+  restore(two.observation.body, oldTwo.observation.body, ['requirement_cid',
+    'owner/program_source_cid','accesses','evidence_contract_cid',
+    'coverage/source_validation_evidence_cid','coverage/filter_evidence_cid','coverage/select_evidence_cid']);
 });
