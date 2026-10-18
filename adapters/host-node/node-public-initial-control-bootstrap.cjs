@@ -220,7 +220,7 @@ function prepareOriginalSourceChildPorts(original) {
   const envelope = state.sourceEnvelope, partition = envelope.occurrencePartitions[child.ordinal];
   const quotas = [BigInt(Math.floor(envelope.limits.sourceWork / envelope.limits.sourceOccurrences)),
     BigInt(partition.responses), BigInt(partition.responses), BigInt(partition.responseBackingBytes),
-    BigInt(partition.responseBackingBytes), 0n];
+    BigInt(partition.responseBackingBytes), BigInt(envelope.limits.decodedWireBytes)];
   const current = () => {
     if (child.stopped || child.entry.closing || child.entry.receipt?.finished) return 1;
     try {assertSourceRequest(child.entry, child.derived);return 0;}
@@ -233,11 +233,12 @@ function prepareOriginalSourceChildPorts(original) {
         child.stopped = true;
         return 0;
       }
+      if (operation === 1) return current();
       if (current() !== 0) return -42;
       if (operation === 0) {
         if (child.admitted) return -42;
         child.admitted = true;
-      } else if (operation !== 1) return -42;
+      } else return -42;
       return 0;
     },
     limit(ordinal) {return Number.isInteger(ordinal) && ordinal >= 0 && ordinal < quotas.length ? quotas[ordinal] : -42n;},
