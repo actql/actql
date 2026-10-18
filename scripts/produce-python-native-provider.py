@@ -37,6 +37,7 @@ FOREIGN_SOURCES = (
     ('platform_native/http_client/http_client_stub.c', 'http'),
     ('platform_native/signature/signature_stub.c', 'signature'),
     ('platform_native/sqlite/sqlite_stub.c', 'sqlite'),
+    ('platform_native/client_host/local_journal_shim.c', 'local-journal'),
     ('platform_native/publication_store/store_format_stub.c', 'publication-store'),
     ('platform_native/remote_journal/inspection_stub.c', 'journal'),
     ('connectors/duckdb/adapters/native/duckdb_stub.c', 'duckdb'),
