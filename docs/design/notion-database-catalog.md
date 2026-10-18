@@ -767,6 +767,42 @@ Unknown journals and keys. They do not establish a normal operational issuer,
 complete page inventory, numerical funding, installed publication or live
 Notion acceptance.
 
+### Completing an exact original page title
+
+The same Catalog property-item engine has a distinct private origin for an
+exact Page title. It scans every retained property occurrence under the
+original response, property-count, identity and work bounds. Exactly one
+actual `type: "title"` property selects its original id and value cursor;
+the display name and inline title fragment do not select or complete it.
+Missing, duplicate or malformed selections refuse. This branch does not
+invent a data-source Catalog, query response or query row for workspace,
+page or block parents.
+
+The original Page carries a private self seal. A title request retains that
+same Page, actual property id and original value cursor, and its subsequent
+requests retain the existing response chain. Equal bytes, copied records and
+separately admitted Pages are not interchangeable. Query-property requests
+and exact-page title requests remain distinct origins; neither can fill the
+other's checked row or completion receiver.
+
+Only a terminal chain concatenates its ordered, exact `plain_text` segments
+through the existing String ValueAdmission and bounded emitter. Repetitions
+and Unicode remain unchanged; an empty completed chain is an empty String.
+The existing page/item/byte/node/text/cursor/work bounds, repeated-cursor
+refusal and foreign-original checks apply without a budget reset. Existing
+query request and completed-value wire bytes are unchanged. No new schema,
+version or canonical identity domain is introduced.
+
+The private origin variant and cached request coordinates add layout and
+reference costs to the shared request record, including its legacy branch.
+Every Page observation also retains a seal cell and self reference. The
+original Page/raw/decode tree, title cursor, all response pages/items/cursor
+history, traversal vector, StringBuilder, source value, checked value and
+Encoder workspace may overlap. These costs belong to the same installation
+and acquisition inventory; bounds and terminal cursors are neither numerical
+funding nor physical cleanup acknowledgments. A physical caller still needs
+its original property-specific Site use, current checks and response custody.
+
 ## Checked rows from exact page originals
 
 An exact-page observation can enter the same complete checked row Owner used
