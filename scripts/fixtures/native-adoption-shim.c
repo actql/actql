@@ -16,7 +16,7 @@ typedef struct {
     int ack;
 } Binding;
 typedef struct { actql_adoption_binding *original; int op, issue; } Reply;
-static int live, prepared, operated, attached, allow_close, cases;
+static int live, prepared, operated, attached, journal_opened, allow_close, cases;
 static actql_control_host *expected_host;
 static actql_local_host_resources *expected_pair;
 static actql_parent_read *expected_read;
@@ -69,6 +69,7 @@ static actql_adoption_binding *prepare(actql_control_host *h, actql_local_host_r
 static actql_adoption_reply *operate(actql_adoption_binding *value, int32_t op) {
     Binding *b = (Binding *)value; operated++;
     if (op == 1 && !b->session) b->session = token(5);
+    if (op == 5) { assert(b->journal && attached == 1); journal_opened++; }
     if (op == 3 && allow_close) b->ack = 1;
     return reply(value, op, op == 3 && !b->ack ? 4 : 0);
 }
@@ -128,15 +129,19 @@ int main(void) {
     assert(actql_local_adoption_originals_into(b,&h,&p,&rd,&c,&s,&j)==0 && s && j);
     assert(actql_local_adoption_drop_originals(b,&h,&p,&rd,&c,&s,&j)==0);
     assert(actql_local_adoption_drop_reply(&r,b)==0); cases++;
+    assert(actql_local_adoption_operate_into(b,4,&r)==ACTQL_CONTROL_INVALID_SLOT && !r);
+    assert(actql_local_adoption_operate_into(b,5,&r)==0 && operation(r)==5 && !issue(r));
+    assert(journal_opened==1 && attached==1);
+    assert(actql_local_adoption_drop_reply(&r,b)==0); cases++;
     assert(actql_local_adoption_operate_into(b,3,&r)==0 && issue(r)==4);
     assert(actql_local_adoption_finish_closed_data(&b,&r)==ACTQL_CONTROL_INVALID_SLOT && b && r);
     assert(actql_local_adoption_drop_reply(&r,b)==0); cases++;
     allow_close=1; assert(actql_local_adoption_operate_into(b,3,&r)==0 && !issue(r));
     assert(actql_local_adoption_finish_closed_data(&b,&r)==0 && !b && !r);
-    assert(actql_local_adoption_finish_closed_data(&b,&r)==0 && operated==3); cases++;
+    assert(actql_local_adoption_finish_closed_data(&b,&r)==0 && operated==4); cases++;
     moonbit_decref(expected_host); moonbit_decref(expected_pair);
     moonbit_decref(expected_read); moonbit_decref(expected_crypto);
-    assert(live==0 && cases==12);
+    assert(live==0 && cases==13);
     printf("{\"executed\":%d,\"passed\":%d,\"managed_aliases_closed\":true,\"fixture_callbacks\":true,\"physical_session\":false}\n",cases,cases);
     return 0;
 }

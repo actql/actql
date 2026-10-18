@@ -95,7 +95,7 @@ fn NativeLocalAdoptionBinding::operate(
   self : NativeLocalAdoptionBinding,
   operation : Int,
 ) -> NativeLocalAdoptionBindingReply {
-  if operation != 1 && operation != 2 && operation != 3 {
+  if operation != 1 && operation != 2 && operation != 3 && operation != 5 {
     return self.reply(operation, Some(InvalidOperation))
   }
   let cleanup = operation == 3
@@ -115,6 +115,12 @@ fn NativeLocalAdoptionBinding::operate(
       } else {
         self.preparation_issue.map(issue => Preparation(issue))
       },
+    )
+  }
+  if operation == 5 && capture.original_journal() is None {
+    return self.reply(
+      operation,
+      Some(Capture(AdoptionJournal(JournalNotOpened))),
     )
   }
   if !cleanup {
@@ -138,14 +144,23 @@ fn NativeLocalAdoptionBinding::operate(
       Ok(_) => self.leave_pending = true
     }
   }
-  let original = match operation {
-    1 => capture.open()
-    2 => capture.check_current()
-    _ => capture.close()
-  }
-  let primary : NativeLocalAdoptionBindingIssue? = original
+  // Open only the child already retained by this capture. Its original open
+  // state prevents a second attempt after a refusal or a lost response.
+  let primary : NativeLocalAdoptionBindingIssue? = if operation == 5 {
+    capture
+    .original_journal()
+    .unwrap()
+    .open()
     .issue()
-    .map(issue => Capture(issue))
+    .map(issue => Capture(AdoptionJournal(issue)))
+  } else {
+    let original = match operation {
+      1 => capture.open()
+      2 => capture.check_current()
+      _ => capture.close()
+    }
+    original.issue().map(issue => Capture(issue))
+  }
   if direct_read {
     match self.host.leave_local_host_phase(self.pair) {
       Err(issue) => return self.reply(operation, Some(Leave(primary, issue)))

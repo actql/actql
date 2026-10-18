@@ -117,7 +117,9 @@ int actql_local_adoption_prepare_utf16_into(
 
 int actql_local_adoption_operate_into(actql_adoption_binding *original, int32_t operation,
                                      actql_adoption_reply **reply) {
-    if (!original || !reply || *reply || operation < 1 || operation > 3) return ACTQL_CONTROL_INVALID_SLOT;
+    if (!original || !reply || *reply ||
+        (operation != 1 && operation != 2 && operation != 3 && operation != 5))
+        return ACTQL_CONTROL_INVALID_SLOT;
     if (!entry_available()) return ACTQL_CONTROL_UNAVAILABLE;
     *reply = callbacks.operate(original, operation);
     return *reply ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
