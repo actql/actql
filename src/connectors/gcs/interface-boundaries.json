@@ -1346,7 +1346,7 @@
               },
               {
                 "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
-                "anchor": "original sealed request"
+                "anchor": "original body's bounded marker interpretation"
               },
               {
                 "path": "adapters/connectors/gcs/README.md",
@@ -1358,12 +1358,125 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "borrowOwnedGcsObjectDeleteTarget",
+            "borrowOwnedGcsObjectDeleteTarget/view/init:readFor/init:readFor",
+            "borrowOwnedGcsObjectDeleteTarget/view/init:retire/init:retire"
+          ],
+          "exports": [
+            "borrowOwnedGcsObjectDeleteTarget"
+          ],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "binding.kind != DeleteObject"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "candidate !== retainedRequest"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original DELETE target capture"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "original checked DELETE Header/Mapping"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "pub fn object_delete_effect_target_json"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "current.previewCurrent();"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "current = originalRequest(retainedRequest, retainedBinding);"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "The original child still owns raw"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Retiring the view drops only its request/binding aliases"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "fail('ForeignGcsObjectPreview')"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "return Err(InvalidBinding)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "return Err(CapacityExceeded)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "portable before-map/typed Json value"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Their byte limits are not a reservation or an ACK"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_delete_target_wbtest.mbt",
+                "anchor": "GCS DELETE target keeps NULL and empty"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-delete-target.test.mjs",
+                "anchor": "DELETE target does not escape after projection callback"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_delete_effect_target_json"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_delete_effect_target"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "export function borrowOwnedGcsObjectDeleteTarget"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "retainedRequest = retainedBinding = undefined"
+              }
+            ]
+          }
         }
       ],
       "exports": [
         "admitGcsObjectMetadata",
         "admitGcsObjectTargetObservation",
         "borrowOwnedGcsMetadataPatchTarget",
+        "borrowOwnedGcsObjectDeleteTarget",
         "createGcsMutationRequestChild",
         "gcsOwnedResult",
         "ownedGcsObjectRequestCid",
@@ -1436,6 +1549,27 @@
         },
         {
           "name": "borrowOwnedGcsMetadataPatchTarget/view/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "borrowOwnedGcsObjectDeleteTarget",
+          "parameters": [
+            "request",
+            "maxProjectionBytes",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "borrowOwnedGcsObjectDeleteTarget/view/init:readFor/init:readFor",
+          "parameters": [
+            "candidate"
+          ],
+          "async": false
+        },
+        {
+          "name": "borrowOwnedGcsObjectDeleteTarget/view/init:retire/init:retire",
           "parameters": [],
           "async": false
         },
@@ -1775,7 +1909,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "eab4fec6ff81c4ef46221a7b0eb83e833137d8676c2911c62af0a6244a69ba32"
+      "sha256": "01b82ccacd6dc6ea56a53c669ab839385eb6d33ad88baf9c13b4c98d96c54e80"
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
@@ -2655,11 +2789,15 @@
     },
     {
       "module": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
-      "sha256": "94eea7453526e358da28c2857c70a65b15d0e3c424436d467f9c89ace4b08d92",
+      "sha256": "e3dd388fab741d2c528ce26a42e2f14a1f3988e3df4546bd43859288b0be3493",
       "operations": [
         {
           "name": "classify_object_mutation_response",
           "declaration": "classify_object_mutation_response ( binding : ObjectMutationBinding , request : ObjectMutationRequest , status : Int , body : Bytes , ) - > Result [ ObjectMutationOutcome , ObjectRequestIssue ]"
+        },
+        {
+          "name": "mutation_body_marker",
+          "declaration": "mutation_body_marker ( binding : ObjectMutationBinding , body : String , ) - > String ?"
         },
         {
           "name": "mutation_request_marker",
@@ -2722,7 +2860,7 @@
             "ownership": [
               {
                 "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
-                "anchor": "original sealed request"
+                "anchor": "original body's bounded marker interpretation"
               },
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
@@ -2787,6 +2925,96 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-owned-object-request.test.mjs",
                 "anchor": "metadata direct response requires the original marker"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "mutation_body_marker"
+          ],
+          "exports": [],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "original.response_sha256 != response_sha256"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "request.cid != request_cid"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Retained mutation request material"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Authenticated capture/Store custody"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous DATA admission. It performs no read/send, awaits no operation and issues no live child current closure. The actual Host must separately authenticate saved custody and fence original/current installation before any dispatch."
+            },
+            "cancellation": {
+              "notApplicable": "No new physical operation, reservation or cleanup Owner is created. The original capture/Store/physical Owner retains borrowed bytes, pending duties and cancellation; returning or dropping this DATA is not ACK."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub(all) enum ObjectRequestIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "return Err(StaleObservation)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "response_bytes.length() > limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Retained bytes and header/intent/body Strings overlap"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery_wbtest.mbt",
+                "anchor": "GCS restore refuses same-field raw replacement"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "actual GCS recovery preserves independent request bytes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_restore_mutation_value"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "returned request belongs to this actual binding"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "live child"
               }
             ]
           }
@@ -3190,6 +3418,114 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "object_delete_effect_target_json"
+          ],
+          "exports": [],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "binding.kind != DeleteObject"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "candidate !== retainedRequest"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original DELETE target capture"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "original checked DELETE Header/Mapping"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "pub fn object_delete_effect_target_json"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "current.previewCurrent();"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "current = originalRequest(retainedRequest, retainedBinding);"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "The original child still owns raw"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Retiring the view drops only its request/binding aliases"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "fail('ForeignGcsObjectPreview')"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "return Err(InvalidBinding)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "return Err(CapacityExceeded)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "portable before-map/typed Json value"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Their byte limits are not a reservation or an ACK"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_delete_target_wbtest.mbt",
+                "anchor": "GCS DELETE target keeps NULL and empty"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-delete-target.test.mjs",
+                "anchor": "DELETE target does not escape after projection callback"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_delete_effect_target_json"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_delete_effect_target"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "export function borrowOwnedGcsObjectDeleteTarget"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "retainedRequest = retainedBinding = undefined"
+              }
+            ]
+          }
         }
       ],
       "operations": [
@@ -3200,6 +3536,10 @@
         {
           "name": "metadata_fields_json",
           "declaration": "metadata_fields_json ( fields : ObjectMetadataFields ) - > Json"
+        },
+        {
+          "name": "object_delete_effect_target_json",
+          "declaration": "object_delete_effect_target_json ( binding : ObjectMutationBinding , request : ObjectMutationRequest , max_bytes : Int , ) - > Result [ String , ObjectRequestIssue ]"
         },
         {
           "name": "object_metadata_logical_json",
@@ -3223,7 +3563,7 @@
         }
       ],
       "exports": [],
-      "sha256": "213080924b9715a91c9c764f0771eaca8df192b9b5bbb3e3e9714ffcb158cae9"
+      "sha256": "83d5fcdab1f2b85ff7e00b6dd3adfdf1f3fd02b6996332d75e4f71fd8e87ec36"
     },
     {
       "module": "src/connectors/gcs/catalog/object_request.mbt",
@@ -4006,7 +4346,7 @@
     {
       "module": "src/connectors/gcs/catalog/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "e1f3726dc19bc484d2ab54b2770d048574141df3b1c5885ec307aa79871e64c2",
+      "sha256": "b5242017e989150db84b9e52e825e2af76bfdcc144f86bc87a3884c07381993a",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [
@@ -4029,6 +4369,7 @@
         "pub fn object_compose_projection_json(ObjectComposeBinding, ObjectComposeRequest, Int) -> Result[String, ObjectUploadIssue]",
         "pub fn object_compose_response_matches(ObjectComposeBinding, ObjectComposeRequest, ObjectMetadata) -> Bool",
         "pub fn object_compose_response_projection_json(ObjectComposeBinding, ObjectComposeRequest, Int, Bytes, Int) -> Result[String, ObjectUploadIssue]",
+        "pub fn object_delete_effect_target_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]",
         "pub fn object_listing_prefix(String, Bytes, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
         "pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields",
         "pub fn object_metadata_logical_json(ObjectMetadata, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
@@ -4047,6 +4388,7 @@
         "pub fn object_mutation_changes_json(ObjectMutationBinding, ObjectMutationRequest) -> Result[String, ObjectRequestIssue]",
         "pub fn object_mutation_cid(ObjectMutationRequest) -> String",
         "pub fn object_mutation_kind(ObjectMutationBinding) -> ObjectMutationKind",
+        "pub fn object_mutation_mapping_json(ObjectMutationBinding, String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
         "pub fn object_mutation_metadata_max_bytes(ObjectMutationBinding) -> Int",
         "pub fn object_mutation_metadata_path(ObjectMutationBinding, String) -> Result[String, ObjectTargetReadIssue]",
         "pub fn object_mutation_method(ObjectMutationRequest) -> String",
@@ -4079,6 +4421,7 @@
         "pub fn recheck_object_compose(ObjectComposeBinding, ObjectComposeRequest, ObjectUploadObservation, Array[ObjectMetadata]) -> Result[Unit, ObjectUploadIssue]",
         "pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Result[Unit, ObjectRequestIssue]",
         "pub fn recheck_object_upload(ObjectUploadBinding, ObjectUploadRequest, ObjectUploadObservation) -> Result[Unit, ObjectUploadIssue]",
+        "pub fn restore_object_mutation_value_wire(ObjectMutationBinding, String, Int, Array[(String, String)], Bytes, String, Bytes, String, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
         "pub struct ObjectCollectionBinding {",
         "pub struct ObjectComposeBinding {",
         "pub struct ObjectComposeRequest {",
@@ -4168,6 +4511,10 @@
           "declaration": "pub fn object_compose_response_projection_json(ObjectComposeBinding, ObjectComposeRequest, Int, Bytes, Int) -> Result[String, ObjectUploadIssue]"
         },
         {
+          "name": "object_delete_effect_target_json",
+          "declaration": "pub fn object_delete_effect_target_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]"
+        },
+        {
           "name": "object_listing_prefix",
           "declaration": "pub fn object_listing_prefix(String, Bytes, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]"
         },
@@ -4238,6 +4585,10 @@
         {
           "name": "object_mutation_kind",
           "declaration": "pub fn object_mutation_kind(ObjectMutationBinding) -> ObjectMutationKind"
+        },
+        {
+          "name": "object_mutation_mapping_json",
+          "declaration": "pub fn object_mutation_mapping_json(ObjectMutationBinding, String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]"
         },
         {
           "name": "object_mutation_metadata_max_bytes",
@@ -4366,6 +4717,10 @@
         {
           "name": "recheck_object_upload",
           "declaration": "pub fn recheck_object_upload(ObjectUploadBinding, ObjectUploadRequest, ObjectUploadObservation) -> Result[Unit, ObjectUploadIssue]"
+        },
+        {
+          "name": "restore_object_mutation_value_wire",
+          "declaration": "pub fn restore_object_mutation_value_wire(ObjectMutationBinding, String, Int, Array[(String, String)], Bytes, String, Bytes, String, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]"
         }
       ],
       "contracts": [
@@ -5306,7 +5661,7 @@
               },
               {
                 "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
-                "anchor": "original sealed request"
+                "anchor": "original body's bounded marker interpretation"
               },
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
@@ -5319,6 +5674,307 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
                 "anchor": "const originals = new WeakMap()"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "object_mutation_mapping_json"
+          ],
+          "exports": [
+            "pub fn object_mutation_mapping_json(ObjectMutationBinding, String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]"
+          ],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "catalog.remove(\"catalog_cid\")"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "collection_cid(wire)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Mutation Mapping declarations"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "pub fn object_mutation_mapping_json"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "these checks do not authenticate an installed original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "selected is None"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "matches != 1"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous bounded DATA projection only; no asynchronous operation, Content loan, physical cleanup ACK or permission is issued. The existing Host/physical Owners retain pending duties and cancellation."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub(all) enum ObjectUploadDeclarationIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "return Err(InvalidDeclaration)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub(all) struct ObjectUploadDeclarationLimits"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Declaration parsing retains the original binding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping_wbtest.mbt",
+                "anchor": "GCS DELETE Mapping derives its own purpose"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/mutation_mapping_test.mbt",
+                "anchor": "GCS mutation Mapping reaches actual Common Catalog roles"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_mutation_mapping_json"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "Result[String, ObjectUploadDeclarationIssue]"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "binding : ObjectMutationBinding"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Common must independently admit that complete role graph"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "restore_object_mutation_value_wire"
+          ],
+          "exports": [
+            "pub fn restore_object_mutation_value_wire(ObjectMutationBinding, String, Int, Array[(String, String)], Bytes, String, Bytes, String, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]"
+          ],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "original.response_sha256 != response_sha256"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "request.cid != request_cid"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Retained mutation request material"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Authenticated capture/Store custody"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous DATA admission. It performs no read/send, awaits no operation and issues no live child current closure. The actual Host must separately authenticate saved custody and fence original/current installation before any dispatch."
+            },
+            "cancellation": {
+              "notApplicable": "No new physical operation, reservation or cleanup Owner is created. The original capture/Store/physical Owner retains borrowed bytes, pending duties and cancellation; returning or dropping this DATA is not ACK."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub(all) enum ObjectRequestIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "return Err(StaleObservation)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "response_bytes.length() > limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Retained bytes and header/intent/body Strings overlap"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery_wbtest.mbt",
+                "anchor": "GCS restore refuses same-field raw replacement"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "actual GCS recovery preserves independent request bytes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_restore_mutation_value"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "returned request belongs to this actual binding"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "live child"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "object_delete_effect_target_json"
+          ],
+          "exports": [
+            "pub fn object_delete_effect_target_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]"
+          ],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "binding.kind != DeleteObject"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "candidate !== retainedRequest"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original DELETE target capture"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "original checked DELETE Header/Mapping"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "pub fn object_delete_effect_target_json"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "current.previewCurrent();"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "current = originalRequest(retainedRequest, retainedBinding);"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "The original child still owns raw"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Retiring the view drops only its request/binding aliases"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "fail('ForeignGcsObjectPreview')"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "return Err(InvalidBinding)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "return Err(CapacityExceeded)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "portable before-map/typed Json value"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Their byte limits are not a reservation or an ACK"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_delete_target_wbtest.mbt",
+                "anchor": "GCS DELETE target keeps NULL and empty"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-delete-target.test.mjs",
+                "anchor": "DELETE target does not escape after projection callback"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_delete_effect_target_json"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_delete_effect_target"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "export function borrowOwnedGcsObjectDeleteTarget"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "retainedRequest = retainedBinding = undefined"
               }
             ]
           }
@@ -6074,7 +6730,205 @@
               },
               {
                 "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
-                "anchor": "original sealed request"
+                "anchor": "original body's bounded marker interpretation"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "gcs_object_restore_mutation_value"
+          ],
+          "exports": [],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "original.response_sha256 != response_sha256"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "request.cid != request_cid"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Retained mutation request material"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Authenticated capture/Store custody"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous DATA admission. It performs no read/send, awaits no operation and issues no live child current closure. The actual Host must separately authenticate saved custody and fence original/current installation before any dispatch."
+            },
+            "cancellation": {
+              "notApplicable": "No new physical operation, reservation or cleanup Owner is created. The original capture/Store/physical Owner retains borrowed bytes, pending duties and cancellation; returning or dropping this DATA is not ACK."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub(all) enum ObjectRequestIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "return Err(StaleObservation)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "response_bytes.length() > limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Retained bytes and header/intent/body Strings overlap"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery_wbtest.mbt",
+                "anchor": "GCS restore refuses same-field raw replacement"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "actual GCS recovery preserves independent request bytes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_restore_mutation_value"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "returned request belongs to this actual binding"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "live child"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "gcs_object_delete_effect_target"
+          ],
+          "exports": [],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "binding.kind != DeleteObject"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "candidate !== retainedRequest"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original DELETE target capture"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "original checked DELETE Header/Mapping"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "pub fn object_delete_effect_target_json"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "current.previewCurrent();"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "current = originalRequest(retainedRequest, retainedBinding);"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "The original child still owns raw"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Retiring the view drops only its request/binding aliases"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "fail('ForeignGcsObjectPreview')"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "return Err(InvalidBinding)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "return Err(CapacityExceeded)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "portable before-map/typed Json value"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Their byte limits are not a reservation or an ACK"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_delete_target_wbtest.mbt",
+                "anchor": "GCS DELETE target keeps NULL and empty"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-delete-target.test.mjs",
+                "anchor": "DELETE target does not escape after projection callback"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_delete_effect_target_json"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_delete_effect_target"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "export function borrowOwnedGcsObjectDeleteTarget"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "retainedRequest = retainedBinding = undefined"
               }
             ]
           }
@@ -6084,6 +6938,10 @@
         {
           "name": "gcs_object_check_patch_input",
           "declaration": "gcs_object_check_patch_input ( binding : @ catalog . ObjectMutationBinding , changes : Bytes , marker : String , effect_wire : Bool , ) - > Result [ Unit , GcsFailure ]"
+        },
+        {
+          "name": "gcs_object_delete_effect_target",
+          "declaration": "gcs_object_delete_effect_target ( binding : @ catalog . ObjectMutationBinding , request : @ catalog . ObjectMutationRequest , max_bytes : Int , ) - > Result [ String , GcsFailure ]"
         },
         {
           "name": "gcs_object_failure_code",
@@ -6174,12 +7032,16 @@
           "declaration": "gcs_object_response_projection ( binding : @ catalog . ObjectMutationBinding , request : @ catalog . ObjectMutationRequest , status : Int , body : Bytes , max_bytes : Int , ) - > Result [ String , GcsFailure ]"
         },
         {
+          "name": "gcs_object_restore_mutation_value",
+          "declaration": "gcs_object_restore_mutation_value ( binding : @ catalog . ObjectMutationBinding , name : String , status : Int , headers : Array [ ( String , String ) ] , response : Bytes , response_sha256 : String , changes : Bytes , body : String , request_cid : String , ) - > Result [ @ catalog . ObjectMutationRequest , GcsFailure ]"
+        },
+        {
           "name": "gcs_object_target_observation",
           "declaration": "gcs_object_target_observation ( binding : @ catalog . ObjectMutationBinding , name : String , status : Int , body : Bytes , headers : Array [ ( String , String ) ] , ) - > Result [ @ catalog . ObjectMetadata , GcsFailure ]"
         }
       ],
       "exports": [],
-      "sha256": "9dbbc0c7b2980abe770ec75361c312248f195ec531adc9e5bdd4fe801d1120b9"
+      "sha256": "50b061ce6f34bfd5336e0f6bc504d8953754659f25437302d84c20505a7ee3d2"
     },
     {
       "module": "src/connectors/gcs/host_node/original_reference.mbt",
@@ -7287,7 +8149,7 @@
               },
               {
                 "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
-                "anchor": "original sealed request"
+                "anchor": "original body's bounded marker interpretation"
               },
               {
                 "path": "src/connectors/gcs/catalog/object_compose.mbt",
@@ -7296,6 +8158,208 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
                 "anchor": "const originals = new WeakMap()"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "gcs_object_restore_mutation_value"
+          ],
+          "exports": [
+            "pub fn gcs_object_restore_mutation_value(@catalog.ObjectMutationBinding, String, Int, Array[(String, String)], Bytes, String, Bytes, String, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]"
+          ],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "original.response_sha256 != response_sha256"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "request.cid != request_cid"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Retained mutation request material"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Authenticated capture/Store custody"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous DATA admission. It performs no read/send, awaits no operation and issues no live child current closure. The actual Host must separately authenticate saved custody and fence original/current installation before any dispatch."
+            },
+            "cancellation": {
+              "notApplicable": "No new physical operation, reservation or cleanup Owner is created. The original capture/Store/physical Owner retains borrowed bytes, pending duties and cancellation; returning or dropping this DATA is not ACK."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub(all) enum ObjectRequestIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "return Err(StaleObservation)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "response_bytes.length() > limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Retained bytes and header/intent/body Strings overlap"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery_wbtest.mbt",
+                "anchor": "GCS restore refuses same-field raw replacement"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "actual GCS recovery preserves independent request bytes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_restore_mutation_value"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "returned request belongs to this actual binding"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "live child"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "gcs_object_delete_effect_target"
+          ],
+          "exports": [
+            "pub fn gcs_object_delete_effect_target(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]"
+          ],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "binding.kind != DeleteObject"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "candidate !== retainedRequest"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original DELETE target capture"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "original checked DELETE Header/Mapping"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "pub fn object_delete_effect_target_json"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "current.previewCurrent();"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "current = originalRequest(retainedRequest, retainedBinding);"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "The original child still owns raw"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Retiring the view drops only its request/binding aliases"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "fail('ForeignGcsObjectPreview')"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "return Err(InvalidBinding)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "return Err(CapacityExceeded)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "portable before-map/typed Json value"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Their byte limits are not a reservation or an ACK"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_delete_target_wbtest.mbt",
+                "anchor": "GCS DELETE target keeps NULL and empty"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-delete-target.test.mjs",
+                "anchor": "DELETE target does not escape after projection callback"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_delete_effect_target_json"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_delete_effect_target"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "export function borrowOwnedGcsObjectDeleteTarget"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "retainedRequest = retainedBinding = undefined"
               }
             ]
           }
@@ -7321,6 +8385,7 @@
         "pub fn gcs_content_metadata_failure_code(@catalog.ContentMetadataIssue) -> String",
         "pub fn gcs_content_metadata_json(Bytes, String, String, String, Int64, Int) -> Result[String, @catalog.ContentMetadataIssue]",
         "pub fn gcs_object_check_patch_input(@catalog.ObjectMutationBinding, Bytes, String, Bool) -> Result[Unit, GcsFailure]",
+        "pub fn gcs_object_delete_effect_target(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]",
         "pub fn gcs_object_failure_code(GcsFailure) -> String",
         "pub fn gcs_object_listing_prefix(String, Bytes, Int, Int, Int) -> Result[String, GcsFailure]",
         "pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]",
@@ -7343,6 +8408,7 @@
         "pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]",
         "pub fn gcs_object_response_matches(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, @catalog.ObjectMetadata) -> Bool",
         "pub fn gcs_object_response_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int, Bytes, Int) -> Result[String, GcsFailure]",
+        "pub fn gcs_object_restore_mutation_value(@catalog.ObjectMutationBinding, String, Int, Array[(String, String)], Bytes, String, Bytes, String, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
         "pub fn gcs_object_target_observation(@catalog.ObjectMutationBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectMetadata, GcsFailure]",
         "pub fn gcs_upload_binding(@catalog.ObjectCollectionBinding, String, Array[String], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectUploadBinding, @catalog.ObjectUploadIssue]",
         "pub fn gcs_upload_body(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest) -> Result[Bytes, @catalog.ObjectUploadIssue]",
@@ -7440,6 +8506,10 @@
           "declaration": "pub fn gcs_object_check_patch_input(@catalog.ObjectMutationBinding, Bytes, String, Bool) -> Result[Unit, GcsFailure]"
         },
         {
+          "name": "gcs_object_delete_effect_target",
+          "declaration": "pub fn gcs_object_delete_effect_target(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]"
+        },
+        {
           "name": "gcs_object_failure_code",
           "declaration": "pub fn gcs_object_failure_code(GcsFailure) -> String"
         },
@@ -7528,6 +8598,10 @@
           "declaration": "pub fn gcs_object_response_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int, Bytes, Int) -> Result[String, GcsFailure]"
         },
         {
+          "name": "gcs_object_restore_mutation_value",
+          "declaration": "pub fn gcs_object_restore_mutation_value(@catalog.ObjectMutationBinding, String, Int, Array[(String, String)], Bytes, String, Bytes, String, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]"
+        },
+        {
           "name": "gcs_object_target_observation",
           "declaration": "pub fn gcs_object_target_observation(@catalog.ObjectMutationBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectMetadata, GcsFailure]"
         },
@@ -7596,7 +8670,7 @@
           "declaration": "pub fn gcs_upload_target_observation(@catalog.ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]"
         }
       ],
-      "sha256": "42be9cf0677a3d118c73736e92051c68b8783d156cfcd48b2cb1bce103adedd6"
+      "sha256": "98a0099750b7889853299c88bd5a3643e6f5c496004e19a90f7413257b1e036a"
     },
     {
       "module": "src/connectors/gcs/host_node/upload.mbt",
@@ -9028,6 +10102,232 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+      "sha256": "f3c204cdc9f001095228b3f5c36eaa64e50fe53196719aa08f28268082aa67b2",
+      "exports": [],
+      "operations": [
+        {
+          "name": "mutation_mapping_catalog",
+          "declaration": "mutation_mapping_catalog ( binding : ObjectMutationBinding , declared_wire : String , connector_id : String , limits : ObjectUploadDeclarationLimits , ) - > Result [ ( String , String ) , ObjectUploadDeclarationIssue ]"
+        },
+        {
+          "name": "object_mutation_mapping_json",
+          "declaration": "object_mutation_mapping_json ( binding : ObjectMutationBinding , declared_wire : String , connector_id : String , limits : ObjectUploadDeclarationLimits , ) - > Result [ String , ObjectUploadDeclarationIssue ]"
+        }
+      ],
+      "role": "connector-semantics",
+      "owner": "Existing GCS mutation declaration semantics; Common retains complete Catalog/Mapping admission, installation originals and purpose-specific authorization",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "mutation_mapping_catalog",
+            "object_mutation_mapping_json"
+          ],
+          "exports": [],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "catalog.remove(\"catalog_cid\")"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "collection_cid(wire)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Mutation Mapping declarations"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "pub fn object_mutation_mapping_json"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "these checks do not authenticate an installed original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "selected is None"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "matches != 1"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous bounded DATA projection only; no asynchronous operation, Content loan, physical cleanup ACK or permission is issued. The existing Host/physical Owners retain pending duties and cancellation."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub(all) enum ObjectUploadDeclarationIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "return Err(InvalidDeclaration)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub(all) struct ObjectUploadDeclarationLimits"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Declaration parsing retains the original binding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping_wbtest.mbt",
+                "anchor": "GCS DELETE Mapping derives its own purpose"
+              },
+              {
+                "path": "src/connectors/gcs/contract_acceptance/mutation_mapping_test.mbt",
+                "anchor": "GCS mutation Mapping reaches actual Common Catalog roles"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn object_mutation_mapping_json"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "Result[String, ObjectUploadDeclarationIssue]"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "binding : ObjectMutationBinding"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Common must independently admit that complete role graph"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+      "role": "connector-semantics",
+      "owner": "Existing GCS retained request interpretation; original capture/Store, installation authority and physical custody stay with their current Owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "restore_object_mutation_value_wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "original.response_sha256 != response_sha256"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "request.cid != request_cid"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Retained mutation request material"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Authenticated capture/Store custody"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous DATA admission. It performs no read/send, awaits no operation and issues no live child current closure. The actual Host must separately authenticate saved custody and fence original/current installation before any dispatch."
+            },
+            "cancellation": {
+              "notApplicable": "No new physical operation, reservation or cleanup Owner is created. The original capture/Store/physical Owner retains borrowed bytes, pending duties and cancellation; returning or dropping this DATA is not ACK."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub(all) enum ObjectRequestIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "return Err(StaleObservation)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "response_bytes.length() > limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Retained bytes and header/intent/body Strings overlap"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery_wbtest.mbt",
+                "anchor": "GCS restore refuses same-field raw replacement"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "actual GCS recovery preserves independent request bytes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_restore_mutation_value"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "returned request belongs to this actual binding"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "live child"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "e3054734ee41e820cc55bc3c7b739d84920db5a2c1b7f43bada32bd0decefadc",
+      "operations": [
+        {
+          "name": "restore_object_mutation_value_wire",
+          "declaration": "restore_object_mutation_value_wire ( binding : ObjectMutationBinding , expected_name : String , response_status : Int , response_headers : Array [ ( String , String ) ] , response_bytes : Bytes , response_sha256 : String , changes : Bytes , body : String , request_cid : String , ) - > Result [ ObjectMutationRequest , ObjectRequestIssue ]"
+        }
+      ],
+      "exports": []
     }
   ]
 }
