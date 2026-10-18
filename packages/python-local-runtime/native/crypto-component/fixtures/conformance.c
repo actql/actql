@@ -86,7 +86,24 @@ int main(int argc, char **argv) {
         GET(key_free_fn, EVP_PKEY_free); GET(der_fn, i2d_PrivateKey); GET(der_fn, i2d_PUBKEY);
         EVP_PKEY_CTX *key_context = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, NULL); assert(key_context);
         assert(EVP_PKEY_keygen_init(key_context) == 1);
-        EVP_PKEY *key = NULL; assert(EVP_PKEY_keygen(key_context, &key) == 1 && key);
+        EVP_PKEY *key = NULL;
+        int generated = EVP_PKEY_keygen(key_context, &key);
+        if (generated != 1 || !key) {
+            uint64_t observed[12] = {0};
+            assert(actql_crypto_component_inventory(observed) == 0);
+            fprintf(stderr, "keygen=%d heap=%llu requested=%llu aligned=%llu blocks=%llu peak=%llu headers=%llu free=%llu failures=%llu\n",
+                generated, (unsigned long long)observed[0], (unsigned long long)observed[1],
+                (unsigned long long)observed[2], (unsigned long long)observed[3],
+                (unsigned long long)observed[4], (unsigned long long)observed[5],
+                (unsigned long long)observed[6], (unsigned long long)observed[7]);
+            typedef unsigned long (*error_fn)(void);
+            typedef void (*error_text_fn)(unsigned long, char *, size_t);
+            error_fn error = (error_fn)actql_crypto_component_symbol("ERR_get_error");
+            error_text_fn text = (error_text_fn)actql_crypto_component_symbol("ERR_error_string_n");
+            unsigned long code;
+            while ((code = error()) != 0) {char message[256]; text(code, message, sizeof message); fprintf(stderr, "%s\n", message);}
+        }
+        assert(generated == 1 && key);
         unsigned char private_der[48], public_der[44], *priv = private_der, *pub = public_der;
         assert(i2d_PrivateKey(key, &priv) == 48 && i2d_PUBKEY(key, &pub) == 44);
         memset(private_der, 0, sizeof private_der);
