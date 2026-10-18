@@ -4487,7 +4487,8 @@ fn wire_rule_426(value : Json) -> Bool {
     text == "json" ||
     text == "vector" ||
     text == "resource_ref" ||
-    text == "content_ref") {
+    text == "content_ref" ||
+    text == "int64") {
     return false
   }
   true
@@ -8809,7 +8810,7 @@ fn wire_rule_787(value : Json) -> Bool {
 fn wire_rule_788(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text ==
-    "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278") {
+    "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf") {
     return false
   }
   true
@@ -9163,7 +9164,7 @@ fn wire_rule_64(value : Json) -> Bool {
   if fields.get("reason_schema_cid") !=
     Some(
       Json::string(
-        "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278",
+        "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf",
       ),
     ) {
     return false
@@ -9171,7 +9172,7 @@ fn wire_rule_64(value : Json) -> Bool {
   if fields.get("outcome_schema_cid") !=
     Some(
       Json::string(
-        "sha256:f0f8c4e3b39072e4b5d091c2aceb9443c0f7f81a8bdfa8d583ba947112bdec47",
+        "sha256:ee1c0c7799d2dd30aa084ec5699078cf14ada0687ac6bb9e48e1f714789a8535",
       ),
     ) {
     return false

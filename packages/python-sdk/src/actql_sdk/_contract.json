@@ -9715,7 +9715,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               },
                               "actual_type": {
@@ -9732,7 +9733,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               }
                             }
@@ -9764,7 +9766,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               },
                               "admission": {
@@ -11600,7 +11603,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               },
                               "actual_type": {
@@ -11617,7 +11621,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               }
                             }
@@ -11649,7 +11654,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               },
                               "admission": {
@@ -13472,7 +13478,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278"
+              "const": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -13996,7 +14002,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               },
                               "actual_type": {
@@ -14013,7 +14020,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               }
                             }
@@ -14045,7 +14053,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               },
                               "admission": {
@@ -15881,7 +15890,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               },
                               "actual_type": {
@@ -15898,7 +15908,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               }
                             }
@@ -15930,7 +15941,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               },
                               "admission": {
@@ -17771,7 +17783,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278"
+              "const": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -17817,7 +17829,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278"
+              "const": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -19101,8 +19113,8 @@
     "locations_match_input",
     "fix_targets_match_exact_eof"
   ],
-  "check_reason_schema_cid": "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278",
-  "check_outcome_schema_cid": "sha256:f0f8c4e3b39072e4b5d091c2aceb9443c0f7f81a8bdfa8d583ba947112bdec47",
+  "check_reason_schema_cid": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf",
+  "check_outcome_schema_cid": "sha256:ee1c0c7799d2dd30aa084ec5699078cf14ada0687ac6bb9e48e1f714789a8535",
   "reasons": {
     "version": "actql-check-reason-catalog/0.1",
     "revision": "2026-10-16.1",
@@ -19312,7 +19324,8 @@
                     "json",
                     "vector",
                     "resource_ref",
-                    "content_ref"
+                    "content_ref",
+                    "int64"
                   ]
                 },
                 "actual_type": {
@@ -19329,7 +19342,8 @@
                     "json",
                     "vector",
                     "resource_ref",
-                    "content_ref"
+                    "content_ref",
+                    "int64"
                   ]
                 }
               }
@@ -19361,7 +19375,8 @@
                     "json",
                     "vector",
                     "resource_ref",
-                    "content_ref"
+                    "content_ref",
+                    "int64"
                   ]
                 },
                 "admission": {

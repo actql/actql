@@ -1701,11 +1701,11 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
 }> | Readonly<{
   parameter: string;
-  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref";
-  actual_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref";
+  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref" | "int64";
+  actual_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref" | "int64";
 }> | Readonly<{
   parameter: string;
-  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref";
+  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref" | "int64";
   admission?: Readonly<{
   contract_schema_cid: "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1";
   kind: "parameter_declaration";
@@ -1816,11 +1816,11 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
 }> | Readonly<{
   parameter: string;
-  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref";
-  actual_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref";
+  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref" | "int64";
+  actual_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref" | "int64";
 }> | Readonly<{
   parameter: string;
-  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref";
+  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref" | "int64";
   admission?: Readonly<{
   contract_schema_cid: "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1";
   kind: "parameter_declaration";
@@ -1904,7 +1904,7 @@ export type WireCheckOutcomeShape = Readonly<{
   verdict: "invalid" | "undetermined" | "verified";
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278";
+  reason_schema_cid: "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   outcome: "failed";
@@ -1988,11 +1988,11 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
 }> | Readonly<{
   parameter: string;
-  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref";
-  actual_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref";
+  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref" | "int64";
+  actual_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref" | "int64";
 }> | Readonly<{
   parameter: string;
-  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref";
+  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref" | "int64";
   admission?: Readonly<{
   contract_schema_cid: "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1";
   kind: "parameter_declaration";
@@ -2103,11 +2103,11 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
 }> | Readonly<{
   parameter: string;
-  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref";
-  actual_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref";
+  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref" | "int64";
+  actual_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref" | "int64";
 }> | Readonly<{
   parameter: string;
-  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref";
+  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "content_ref" | "int64";
   admission?: Readonly<{
   contract_schema_cid: "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1";
   kind: "parameter_declaration";
@@ -2195,7 +2195,7 @@ export type WireCheckOutcomeShape = Readonly<{
 }>;
   correlation_ref: string;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278";
+  reason_schema_cid: "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   correlation_ref: string;
@@ -2204,7 +2204,7 @@ export type WireCheckOutcomeShape = Readonly<{
   code: string;
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278";
+  reason_schema_cid: "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf";
   version: "actql-check-outcome/0.1";
 }>;
 export type WireCheckLocationShape = Readonly<{

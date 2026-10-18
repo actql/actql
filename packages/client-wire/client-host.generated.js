@@ -9408,7 +9408,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             },
                             "actual_type": {
@@ -9425,7 +9426,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             }
                           }
@@ -9457,7 +9459,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             },
                             "admission": {
@@ -11293,7 +11296,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             },
                             "actual_type": {
@@ -11310,7 +11314,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             }
                           }
@@ -11342,7 +11347,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             },
                             "admission": {
@@ -13165,7 +13171,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278"
+            "const": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -13689,7 +13695,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             },
                             "actual_type": {
@@ -13706,7 +13713,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             }
                           }
@@ -13738,7 +13746,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             },
                             "admission": {
@@ -15574,7 +15583,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             },
                             "actual_type": {
@@ -15591,7 +15601,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             }
                           }
@@ -15623,7 +15634,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             },
                             "admission": {
@@ -17464,7 +17476,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278"
+            "const": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -17510,7 +17522,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278"
+            "const": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -19229,8 +19241,8 @@ const optionalRequestFields = {
   }
 };
 
-export const checkReasonSchemaCid = "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278";
-export const checkOutcomeSchemaCid = "sha256:f0f8c4e3b39072e4b5d091c2aceb9443c0f7f81a8bdfa8d583ba947112bdec47";
+export const checkReasonSchemaCid = "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf";
+export const checkOutcomeSchemaCid = "sha256:ee1c0c7799d2dd30aa084ec5699078cf14ada0687ac6bb9e48e1f714789a8535";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function finiteWireNumber(value) {

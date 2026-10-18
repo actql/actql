@@ -145,3 +145,15 @@ test('query fixture migration changes only declared type-dependent owner and evi
     'owner/program_source_cid','accesses','evidence_contract_cid',
     'coverage/source_validation_evidence_cid','coverage/filter_evidence_cid','coverage/select_evidence_cid']);
 });
+
+
+test('Signed64 check facts extend exactly the existing expected and actual logical-type alternatives', () => {
+  const expected = structuredClone(prior['spec/contracts/actql-check-reason-catalog.json']);
+  const properties = expected.reason_schema.properties.facts.oneOf;
+  for (const value of [properties[1].properties.expected_type, properties[1].properties.actual_type,
+    properties[2].properties.expected_type]) {
+    assert(!value.enum.includes('int64'));
+    value.enum.push('int64');
+  }
+  assert.deepEqual(read('spec/contracts/actql-check-reason-catalog.json'), expected);
+});
