@@ -44,6 +44,6 @@ fn mock_churn_risk_inputs() -> Array[MockChurnRiskInput] {
           acquisition_wire: None,
         },
       ],
-    }
+    },
   ]
 }
