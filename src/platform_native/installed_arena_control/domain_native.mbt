@@ -241,6 +241,14 @@ pub fn InstalledArenaHost::close_domain_after_owner_ack(
   if record.closed {
     return Ok(())
   }
+  if self.local_host_resources is Some(resources) &&
+    !resources.closed &&
+    (
+      physical_equal(resources.read.domain, record) ||
+      physical_equal(resources.sqlite.domain, record)
+    ) {
+    return Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending))
+  }
   if record.process is Some(process) && !process.closed {
     return Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending))
   }
