@@ -53,6 +53,13 @@ actql_native_command_platform_current(void);
  * transferable capacity or a substitute for the complete selected envelope. */
 bool actql_native_command_platform_available(void);
 
+/* Same entry's bounded, immutable initial TMPDIR selection (including the
+ * existing /tmp default for absent/empty input). Borrowed for this original
+ * process lifetime; at most 4096 bytes plus NUL. Missing/foreign/non-current
+ * originals return NULL. Neither this text nor a match admits directory I/O. */
+const char *actql_native_command_platform_scratch_directory(
+  actql_native_command_platform_original *original);
+
 /* Before dlopen, including all module initializers. The same Runtime has
  * already observed and hashed this member through its retained Root/Reader.
  * The implementation checks that actual member again through its filesystem

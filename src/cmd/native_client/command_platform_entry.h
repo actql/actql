@@ -98,6 +98,12 @@ actql_native_command_platform_current(void) {
     entry->initial_envelope_admitted && !entry->closing ? entry : NULL;
 }
 
+const char *actql_native_command_platform_scratch_directory(
+    actql_native_command_platform_original *entry) {
+  return entry && entry == actql_native_command_platform_current()
+    ? actql_command_input_scratch : NULL;
+}
+
 static bool actql_command_hex(const char *text, size_t length) {
   if (!text) return false;
   for (size_t i = 0; i < length; ++i)

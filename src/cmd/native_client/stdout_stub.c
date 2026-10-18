@@ -147,6 +147,7 @@ static bool actql_command_input_attempted;
 static int actql_command_input_status = ACTQL_COMMAND_INPUT_INVALID;
 static const char *actql_command_input_source;
 static const char *actql_command_input_context;
+static char actql_command_input_scratch[ACTQL_COMMAND_SCRATCH_BYTES + 1];
 static actql_bootstrap_command_preparation_observation actql_command_input;
 // Partial initial-control inventory, not capacity or an allocation receipt.
 // These are the selected pinned mimalloc usable classes for the original raw argv,
@@ -215,6 +216,10 @@ int32_t actql_native_client_measure_prearguments(
       !actql_command_quote_arguments(*_NSGetArgc(),
           (const char *const *)*_NSGetArgv()))
     actql_command_input_status = ACTQL_COMMAND_INPUT_INVALID;
+  if (actql_command_input_status == ACTQL_COMMAND_INPUT_OK) {
+    actql_command_input_status = actql_bootstrap_capture_command_scratch(
+        getenv("TMPDIR"), actql_command_input_scratch);
+  }
   if (actql_command_input_status == ACTQL_COMMAND_INPUT_OK) {
     actql_command_input_source = source;
     actql_command_input_context = context;
