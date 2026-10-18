@@ -18,7 +18,7 @@ pub(all) enum SlackMessagePageIssue {
   InvalidSelection(String)
   InvalidCell(String)
   DuplicateMessage
-}
+} derive(Eq, Debug)
 
 ///|
 // One original bounded vendor page, not a complete history/thread selection,
