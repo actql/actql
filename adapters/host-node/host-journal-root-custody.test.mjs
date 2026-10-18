@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {compileFunction} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'acorn';
+import {DatabaseSync} from 'node:sqlite';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody}
   from './client-request-journal.mjs';
@@ -118,4 +119,75 @@ test('constructor cleanup is retained before fallible current and close reentry 
   permitted = true;
   assert.equal((await failure.cleanupHandle.retry()).pending, false);
   assert.equal(retries, 1); f.scratch.passed();
+});
+
+test('Root closes the same optional observation child without erasing its attempt history', async () => {
+  const f = await fixture();
+  const original = f.root.prepare(f.originals);
+  const journal = f.root.open(original, f.originals, f.directory, {});
+  journal.observationStorage();
+  journal.close();
+  assert.equal(observeOriginalClientRequestJournalCustody(journal).observationAttempted, true);
+  assert.equal((await f.root.close(original, f.originals)).pending, false);
+  f.scratch.passed();
+});
+
+test('secondary native close failure stays pending and retries the same captured receiver', async () => {
+  const originalClose = DatabaseSync.prototype.close;
+  let secondary, journal, permitted = false, calls = 0;
+  const f = await fixture();
+  const original = f.root.prepare(f.originals);
+  journal = f.root.open(original, f.originals, f.directory, {});
+  DatabaseSync.prototype.close = function () {
+    secondary ??= this;
+    assert.strictEqual(this, secondary);
+    calls++;
+    if (!permitted) throw new Error('OriginalSecondaryClosePending');
+    return Reflect.apply(originalClose, this, []);
+  };
+  try {
+    journal.observationStorage();
+    assert.equal((await f.root.close(original, f.originals)).pending, true);
+    assert.equal(observeOriginalClientRequestJournalCustody(journal).databaseClosed, true);
+    assert.equal(observeOriginalClientRequestJournalCustody(journal).observationDatabaseClosed, false);
+    assert.equal(secondary.isOpen, true);
+    DatabaseSync.prototype.close = () => { throw new Error('ReplacementMustNotRun'); };
+    assert.equal((await f.root.close(original, f.originals)).pending, true);
+    permitted = true;
+    assert.equal((await f.root.close(original, f.originals)).pending, false);
+    assert.equal(secondary.isOpen, false);
+    assert.equal(calls, 3);
+    assert.equal(observeOriginalClientRequestJournalCustody(journal).observationAttempted, true);
+  } finally {
+    permitted = true;
+    DatabaseSync.prototype.close = originalClose;
+    journal.close();
+  }
+  f.scratch.passed();
+});
+
+test('secondary open failure retains its original wrapper for close without opening a replacement', async () => {
+  const originalOpen = DatabaseSync.prototype.open;
+  const f = await fixture();
+  const original = f.root.prepare(f.originals);
+  const journal = f.root.open(original, f.originals, f.directory, {});
+  let secondary, opens = 0;
+  DatabaseSync.prototype.open = function () {
+    secondary = this; opens++;
+    Reflect.apply(originalOpen, this, []);
+    throw new Error('OriginalSecondaryOpenFailedAfterAcquisition');
+  };
+  try {
+    assert.throws(() => journal.observationStorage(), /OriginalSecondaryOpenFailedAfterAcquisition/);
+    assert.equal(secondary.isOpen, true);
+    assert.equal(observeOriginalClientRequestJournalCustody(journal).observationDatabaseClosed, false);
+    assert.equal((await f.root.close(original, f.originals)).pending, false);
+    assert.equal(secondary.isOpen, false);
+    assert.equal(opens, 1);
+    assert.equal(observeOriginalClientRequestJournalCustody(journal).observationAttempted, true);
+  } finally {
+    DatabaseSync.prototype.open = originalOpen;
+    journal.close();
+  }
+  f.scratch.passed();
 });

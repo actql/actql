@@ -112,10 +112,10 @@ function closeJournal(entry) {
         apply(entry.journalClose, entry.journal, []);
         const observation = apply(state.journal.observe, state.namespace, [entry.journal]);
         // The original nominal observer, never a public closed flag, owns
-        // primary native close. A separate observation connection is not
-        // certified by this existing primary-only observation.
+        // primary native close. The separate observation connection has its
+        // own original close observation, not its historical attempted flag.
         if (field(observation, 'databaseClosed') !== true ||
-            field(observation, 'observationAttempted') !== false) return journalStatus(entry);
+            field(observation, 'observationDatabaseClosed') !== true) return journalStatus(entry);
         entry.journal = entry.journalClose = undefined;
       }
       entry.closed = true;

@@ -2140,13 +2140,30 @@ export function openClientRequestJournal(directory, {
   let observationStorage;
   let observationDatabase;
   let observationStorageAttempted = false;
+  let observationDatabaseClosed = true;
+  let originalObservationClose, originalObservationIsOpen;
   let observationProjection;
-  const closeObservationStorage = () => {
-    if (observationStorage !== undefined) observationStorage.close();
-    else if (observationDatabase !== undefined) {
-      observationDatabase.close();
-      observationDatabase = undefined;
+  const captureObservationCleanup = () => {
+    originalObservationClose ??= observationDatabase.close;
+    originalObservationIsOpen ??= Object.getOwnPropertyDescriptor(
+      observationDatabase, 'isOpen')?.get;
+    if (typeof originalObservationClose !== 'function' ||
+        typeof originalObservationIsOpen !== 'function') {
+      throw new TypeError('ClientObservationConnectionCleanupUnavailable');
     }
+  };
+  const closeObservationStorage = () => {
+    if (observationDatabaseClosed) return;
+    captureObservationCleanup();
+    const opened = applyOriginal(originalObservationIsOpen, observationDatabase, []);
+    if (typeof opened !== 'boolean' || opened &&
+        (applyOriginal(originalObservationClose, observationDatabase, []) !== undefined ||
+         applyOriginal(originalObservationIsOpen, observationDatabase, []) !== false)) {
+      throw new TypeError('ClientObservationConnectionCleanupPending');
+    }
+    // This is the separate original connection's own close observation. Keep
+    // the historical attempted flag, and retain any escaped managed aliases.
+    observationDatabaseClosed = true;
   };
   const journal = Object.freeze({
     closeObservationStorage,
@@ -2159,14 +2176,19 @@ export function openClientRequestJournal(directory, {
       observationStorageAttempted = true;
       // Separate connection/transaction custody prevents an observation's
       // unknown COMMIT from poisoning the semantic journal connection.
-      observationDatabase = new DatabaseSync(path);
+      observationDatabase = new DatabaseSync(path, {open: false});
+      observationDatabaseClosed = false;
+      captureObservationCleanup();
+      const originalObservationOpen = observationDatabase.open;
+      if (typeof originalObservationOpen !== 'function' ||
+          applyOriginal(originalObservationOpen, observationDatabase, []) !== undefined ||
+          applyOriginal(originalObservationIsOpen, observationDatabase, []) !== true) {
+        throw new TypeError('ClientObservationConnectionOpenUnavailable');
+      }
       observationDatabase.exec('PRAGMA busy_timeout = 0');
       const storage = openClientObservationStorage(observationDatabase,
         createSqliteTransaction(observationDatabase, 'ClientObservation'));
-      let ended = false;
-      observationStorage = Object.freeze({...storage, close() {
-        if (!ended) { observationDatabase.close(); ended = true; }
-      }});
+      observationStorage = Object.freeze({...storage, close: closeObservationStorage});
       return observationStorage;
     },
     installObservationProjection(projection) {
@@ -3157,7 +3179,7 @@ export function openClientRequestJournal(directory, {
   });
   applyOriginal(originalJournalCustodySet, originalJournalCustodies, [journal, () =>
     Object.freeze({journalClosed: closed, databaseClosed,
-      observationAttempted: observationStorageAttempted})]);
+      observationAttempted: observationStorageAttempted, observationDatabaseClosed})]);
   return journal;
   } catch (error) {
     throwSqliteInitializationFailure(initializationCleanup, error, 'client-request-journal');

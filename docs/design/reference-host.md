@@ -887,10 +887,14 @@ selected facility coverage before acquisition.
 The physical request-Journal Owner also observes custody for its own actual
 factory results. This private nominal observation separates logical Journal
 closure from the confirmed native database close and records whether the
-separate observation connection was attempted. A copied Journal, a caller's
+separate observation connection was attempted and whether that same secondary
+connection's original close has completed. Its historical attempted flag is
+never reset by cleanup. A copied Journal, a caller's
 Boolean or a successful semantic transaction cannot provide this observation.
 It issues no capacity or authority and does not certify the optional observation
-connection from the primary connection's close.
+connection from the primary connection's close. The secondary wrapper and its
+close/native-open-state operations are retained before fallible open, so a
+partially opened secondary connection follows the same close-only duty.
 
 The selected Root captures the actual Journal constructor and nominal custody
 observer from its delivered Host namespace. It retains a returned Journal and
@@ -903,7 +907,8 @@ explicit original pending-false observation can retire that constructor duty.
 The complete separate Journal disposition must precede this preparation: the
 captured namespace operations and initial-control or Source recipe are not its
 issuer. Primary native close cannot settle a separately attempted observation
-connection or release process-lived module/native backing.
+connection; Root retirement additionally requires that child's own confirmed
+native close and never releases process-lived module/native backing.
 
 Selected cold inspection may additionally bound the SQLite schema table's
 declared row payload and traversal before native SQLite opens the isolated
