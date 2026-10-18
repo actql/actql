@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {mkdtempSync,mkdirSync,readFileSync,writeFileSync,rmSync} from 'node:fs';
+import {mkdtempSync,mkdirSync,readFileSync,writeFileSync,rmSync,cpSync,existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
 import {spawnSync} from 'node:child_process';
@@ -9,7 +9,7 @@ import test from 'node:test';
 // Real ordinary Node module loading, same-FD captured images and the private
 // installation Owner. The small Host below is explicit, not the full product
 // Host or a normal installed README success, business supplier or permission.
-function fixture(t,{inventory=true,changeImage=false,publicNode=false,source=false,managedRun=false,oversizeRun=false}={}) {
+function fixture(t,{inventory=true,changeImage=false,publicNode=false,actualFacade=false,source=false,managedRun=false,oversizeRun=false}={}) {
   const directory=mkdtempSync(join(tmpdir(),'actql-ordinary-control-'));
   t.after(()=>rmSync(directory,{recursive:true}));
   const root=join(directory,'node_modules/@actql/local-node');
@@ -59,13 +59,27 @@ function fixture(t,{inventory=true,changeImage=false,publicNode=false,source=fal
     const node=join(directory,'node_modules/@actql/node');
     const nodeSources=new Map([
       ['package.json',Buffer.from(JSON.stringify({name:'@actql/node',version:'1.0.0',type:'module',exports:'./index.mjs'}))],
-      ['index.mjs',sources.get('index.mjs')],
+      ['index.mjs',actualFacade?readFileSync(new URL('../../packages/node/index.mjs',import.meta.url)):sources.get('index.mjs')],
       ['initial-control-public-dispatch.cjs',readFileSync(new URL('../../packages/node/initial-control-public-dispatch.cjs',import.meta.url))]
     ]);
     for(const[path,bytes]of nodeSources){mkdirSync(dirname(join(node,path)),{recursive:true});writeFileSync(join(node,path),bytes);}
     selected.publicNode={name:'@actql/node',version:'1.0.0',dependencies:[{name:'@actql/local-node',local:true}],
       images:[...nodeSources].map(([path,bytes])=>({path,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')}))};
     selected.publicNodeCoverage='prepared';
+    if(actualFacade){
+      // Exact source-checkout facade/SDK/Wire product copies; no prepack,
+      // Common runtime, physical Host or operational supplier is issued.
+      for(const name of ['sdk','client-wire']){
+        const source=new URL('../../packages/'+name+'/',import.meta.url);
+        const target=join(directory,'node_modules/@actql',name);
+        mkdirSync(target,{recursive:true});
+        const manifest=JSON.parse(readFileSync(new URL('package.json',source),'utf8'));
+        for(const path of ['package.json',...manifest.files]){
+          const original=new URL(path,source);
+          if(existsSync(original))cpSync(original,join(target,path),{recursive:true});
+        }
+      }
+    }
   }
   sources.set('adapters/host-node/initial-control-package-original.cjs',Buffer.from(
     'module.exports=Object.freeze({imageInventory:'+(inventory?JSON.stringify(selected):'undefined')+'});'));
@@ -115,6 +129,23 @@ test('ordinary selected Local still captures loader custody before original inpu
     'const after=Object.getOwnPropertyDescriptor(Module,"registerHooks");'+
     'assert.notStrictEqual(after.value,before.value);assert.equal(after.writable,false);assert.equal(after.configurable,false);'+
     'assert.equal(client.input.profile,"mock");assert.equal((await client.scope.close()).pending,false);');
+  assert.equal(result.status,0,result.stderr);
+});
+
+test('actual public facade and SDK Remote dispatch do not acquire the Local loader',t=>{
+  const f=fixture(t,{publicNode:true,actualFacade:true,inventory:false});const result=f.run(
+    'import assert from"node:assert/strict";import Module from"node:module";'+
+    'const names=["registerHooks","register"],before=names.map(name=>Object.getOwnPropertyDescriptor(Module,name));'+
+    'const facade=await import("@actql/node"),sdk=await import("@actql/sdk");'+
+    'assert.strictEqual(facade.ClientError,sdk.ClientError);assert.strictEqual(facade.RequestHeld,sdk.RequestHeld);'+
+    'let calls=0;const originalFetch=globalThis.fetch;'+
+    'globalThis.fetch=async()=>{calls++;throw Error("ControlledTransportStop");};'+
+    'try{for(const mode of ["remote","local"])await assert.rejects(facade.connect({mode,endpoint:"https://host.example/",token:()=>"fixture-only"}),{code:"ClientTransportUnknown"});}'+
+    'finally{globalThis.fetch=originalFetch;}'+
+    'assert.equal(calls,2);'+
+    'for(let i=0;i<names.length;i++)assert.deepEqual(Object.getOwnPropertyDescriptor(Module,names[i]),before[i]);'+
+    'assert.equal(Module.createRequire(import.meta.url).cache['+
+    JSON.stringify(join(f.root,'adapters/host-node/node-public-initial-control-bootstrap.cjs'))+'],undefined);');
   assert.equal(result.status,0,result.stderr);
 });
 
