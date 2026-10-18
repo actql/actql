@@ -148,6 +148,8 @@ original nominal use. Legacy omission remains compatible, not evidence that a
 call checked current Host policy across the resolver await. HubSpot account
 observation selects its already captured original current callback here.
 
+### Original Run current fences
+
 A Run binding may explicitly capture `assertCurrent` as the original synchronous
 Host/Site fence. Selecting it also requires the original awaited
 `currentBeforeSend` observation. Both checks run before the nominal claim,

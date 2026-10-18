@@ -1,5 +1,5 @@
 {
-  "source": "651c5bf31cf31de449c8b69b46e6ed42d8b0dc76",
+  "source": "66e1fd343e9ac9e945f57be3064a4a8212cd1c6f",
   "qualification": "Existing functional Owner reference index; representation is independently checked. The original source/syntax-input metadata records the initial reference supply, not a new runtime qualification. Explicit bounded HTTP byte-body extensions retain the same existing owners; their source-qualified tests and simultaneous holding inventory are separate from reference coverage and normal funding.",
   "inputs": [
     {
@@ -4766,6 +4766,20 @@
           "async": false
         },
         {
+          "name": "credentialBindingCurrent",
+          "parameters": [
+            "binding",
+            "scope",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "credentialBindingCurrent/credentialBindingCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "exactRequestTarget",
           "parameters": [
             "path"
@@ -4828,20 +4842,6 @@
             "code",
             "cause"
           ],
-          "async": false
-        },
-        {
-          "name": "metadataCurrent",
-          "parameters": [
-            "binding",
-            "scope",
-            "signal"
-          ],
-          "async": false
-        },
-        {
-          "name": "metadataCurrent/metadataCurrent",
-          "parameters": [],
           "async": false
         },
         {
@@ -5096,8 +5096,8 @@
             "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#3",
             "exchangeHttpsCredentialAuthentication/expires/expires",
             "fail/fail",
-            "metadataCurrent",
-            "metadataCurrent/metadataCurrent",
+            "credentialBindingCurrent",
+            "credentialBindingCurrent/credentialBindingCurrent",
             "openHttpsCredentialBinding",
             "openHttpsCredentialBinding/openHttpsCredentialBinding",
             "openHttpsCredentialBinding/original/original",
@@ -5157,6 +5157,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response responsibility:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
               }
             ],
             "inputsOutputs": [
@@ -5187,6 +5191,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response inputs and outputs:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
               }
             ],
             "identity": [
@@ -5213,6 +5221,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response identity:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
               }
             ],
             "ownership": [
@@ -5239,6 +5251,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response ownership:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
               }
             ],
             "synchronization": [
@@ -5265,6 +5281,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response synchronization:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
               }
             ],
             "failure": [
@@ -5291,6 +5311,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response failure:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
               }
             ],
             "cancellation": [
@@ -5317,6 +5341,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response cancellation:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
               }
             ],
             "resources": [
@@ -5343,6 +5371,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response resources:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
               }
             ],
             "extension": [
@@ -5369,6 +5401,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response extension:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
               }
             ],
             "verification": [
@@ -5427,6 +5463,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response verification:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original Run current fences"
               }
             ]
           }
@@ -5503,7 +5543,7 @@
           }
         }
       ],
-      "sha256": "230290c4b259c3642b3b836360c895b73c3f7fca9acfd274e922925077ad515b",
+      "sha256": "a1cfadcf372fd17eedfa018456a3fd8593c9afebdb1ba23bdb4fb51409cae1d4",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",
