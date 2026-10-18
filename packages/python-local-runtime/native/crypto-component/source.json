@@ -34,8 +34,8 @@
       "sha256": "d25087145a1656ebe0be1a2b816d98a3df2925db71ca1799a92e4b8907245176"
     },
     "fixtures/library_conformance.c": {
-      "bytes": 8196,
-      "sha256": "c34b1bbb68a87dccbaa37606f74de1a394919fc08fbe6787619f5ccdd50d1440"
+      "bytes": 8653,
+      "sha256": "ed74244675ee3b049db01d73f27faa2cddbf7e67f2d41251dc1ce75cf8763af5"
     }
   },
   "isolation": [

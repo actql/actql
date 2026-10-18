@@ -71,6 +71,14 @@ int main(int argc, char **argv) {
     moonbit_bytes_t path = bytes(argv[1]);
     void *component = actql_native_crypto_component_load(path, (int32_t)strlen(argv[1]),
         !strcmp(argv[2], "partial") ? 4096 : (int64_t)(32 * page), 256);
+    if (!strcmp(argv[2], "duplicate")) {
+        assert(actql_native_crypto_component_ready(component));
+        void *refused = actql_native_crypto_component_load(path, (int32_t)strlen(argv[1]), (int64_t)(32 * page), 256);
+        assert(!actql_native_crypto_component_ready(refused));
+        assert(actql_native_crypto_component_close(refused) == 0);
+        assert(actql_native_crypto_component_ready(component));
+        moonbit_decref(refused);
+    }
     moonbit_decref(path);
     if (!strcmp(argv[2], "partial")) {
         assert(!actql_native_crypto_component_ready(component));
