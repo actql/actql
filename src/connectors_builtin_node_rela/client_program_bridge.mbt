@@ -8312,6 +8312,32 @@ pub fn client_program_row_source_begin(
 }
 
 ///|
+// Original installed Source bounds only; this cannot supply its phase,
+// physical child, current authority or cleanup acknowledgement.
+#export_name("clientProgramRowSourceBeginWithPageLimits")
+pub fn client_program_row_source_begin_with_page_limits(
+  run : @client_row_source_host.RowRun,
+  max_page_bytes : Int,
+  max_page_nodes : Int,
+  max_page_depth : Int,
+  max_page_rows : Int,
+  max_capture_rows : Int,
+  reference_issuer : @admitted.ReferenceIssuer?,
+) -> Result[Bool, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.begin_row_run_with_page_limits(
+    run,
+    {
+      max_bytes: max_page_bytes,
+      max_nodes: max_page_nodes,
+      max_depth: max_page_depth,
+      max_rows: max_page_rows,
+    },
+    max_capture_rows,
+    reference_issuer~,
+  ).map(_ => true)
+}
+
+///|
 // The Host chooses validation and current authority. The physical driver
 // cannot create this admission capability by returning a tagged JSON value.
 #export_name("clientProgramResourceReferenceIssuer")

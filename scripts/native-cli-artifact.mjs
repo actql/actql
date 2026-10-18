@@ -11,11 +11,12 @@ import {checkoutState} from './packed-client-packages.mjs';
 import {platformKey} from '../packages/native-cli/bin/actql.mjs';
 import {prepareNativeLocalRuntime} from './native-cli-local-runtime.mjs';
 import {assertScalarPairEvidenceFresh} from './native-local-scalar-pair-evidence.mjs';
+import {assertNativeLocalFreshRuntimeRecipe} from './native-cli-default-assets.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
-const run = (command, args) => execFileSync(command, args, {cwd: repository,
-  encoding: 'utf8', timeout: 300_000, maxBuffer: 8 * 1024 * 1024});
+const run = (command, args, {timeout = 300_000} = {}) => execFileSync(command, args, {cwd: repository,
+  encoding: 'utf8', timeout, maxBuffer: 8 * 1024 * 1024});
 
 export function inspectNativeAbi(binary, platform, execute = execFileSync) {
   const inspect = (tool, args) => execute(tool, args, {encoding: 'utf8', maxBuffer: 8 * 1024 * 1024});
@@ -52,19 +53,47 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
   if (localRuntime !== undefined) {
     assert.equal(localRuntime.sourceSha, source.revision, 'Local runtime must belong to this exact source');
     assert.equal(localRuntime.platform, platform, 'Local runtime must match the producer platform');
-    // Verify source-bound scalar witnesses before staging or physical build.
-    // This is neither runtime compatibility nor an adoption permission.
+    // Current fresh originals and the frozen historical proof have distinct
+    // subjects. Historical operational use is fenced by the Native Owner.
+    assertNativeLocalFreshRuntimeRecipe(localRuntime, source.revision, repository);
     assertScalarPairEvidenceFresh(repository);
     await mkdir(destination);
     localMetadata = await prepareNativeLocalRuntime(destination, localRuntime);
   }
   const buildArgs = ['build', ...(verbose ? ['--verbose'] : []),
     '--target', 'native', '--release', '-j', '1', 'src/cmd/native_client'];
+  let buildCommand = 'moon', selectedBuildArgs = buildArgs;
+  let built = join(repository, '_build/native/release/build/cmd/native_client/native_client.exe');
+  let c = join(repository, '_build/native/release/build/cmd/native_client/native_client.c');
+  let scopedReceipt;
+  if (localMetadata !== undefined) {
+    assert.equal(platform, 'darwin-arm64', 'Initial Local Crypto requires its selected physical provider');
+    assert(process.env.MOON_HOME, 'Set MOON_HOME to the selected pinned toolchain');
+    const sdk = await realpath(run('xcrun', ['--show-sdk-path']).trim());
+    const clang = run('xcrun', ['--find', 'clang']).trim();
+    buildCommand = run('python3', ['-c', 'import os,sys;print(os.path.realpath(sys.executable))']).trim();
+    selectedBuildArgs = [join(repository, 'scripts/produce-native-remote-scoped-runtime.py'),
+      '--source', source.revision, '--moon-home', await realpath(process.env.MOON_HOME),
+      '--clang', clang, '--sdk', sdk, '--destination', join(destination, 'native-producer'),
+      '--seconds', '900', '--entry', 'src/cmd/native_client'];
+    built = join(destination, 'native-producer/emission/native/release/build/cmd/native_client/native_client.exe');
+    c = join(destination, 'native-producer/emission/native/release/build/cmd/native_client/native_client.c');
+  }
   const startedAt = performance.now();
   if (verbose) console.log(JSON.stringify({phase: 'native-cli-build-start',
-    sourceSha: source.revision, command: ['moon', ...buildArgs], timeoutMs: 300_000}));
+    sourceSha: source.revision, command: [buildCommand, ...selectedBuildArgs], timeoutMs: localMetadata ? 930_000 : 300_000}));
   try {
-    const output = run('moon', buildArgs);
+    const output = run(buildCommand, selectedBuildArgs,
+      {timeout: localMetadata ? 930_000 : 300_000});
+    if (localMetadata !== undefined) {
+      scopedReceipt = JSON.parse(await readFile(join(destination, 'native-producer/build.json'), 'utf8'));
+      assert.equal(scopedReceipt.source, source.revision);
+      assert.equal(scopedReceipt.entry, 'src/cmd/native_client');
+      assert.equal(scopedReceipt.plan_only, false);
+      assert.equal(scopedReceipt.providers, 1);
+      assert.equal(scopedReceipt.moon_build_exit, 0);
+      assert.equal(scopedReceipt.executable.path, built);
+    }
     if (verbose) {
       process.stdout.write(output);
       console.log(JSON.stringify({phase: 'native-cli-build-exited', code: 0,
@@ -84,12 +113,14 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
     throw error;
   }
   assert.deepEqual(checkoutState(repository), source);
-  const built = join(repository, '_build/native/release/build/cmd/native_client/native_client.exe');
-  const c = join(repository, '_build/native/release/build/cmd/native_client/native_client.c');
   if (localMetadata === undefined) await mkdir(destination);
   const binary = join(destination, 'actql-native-client');
   await copyFile(built, binary); await chmod(binary, 0o755);
   const bytes = await readFile(binary);
+  if (scopedReceipt !== undefined) {
+    assert.equal(bytes.length, scopedReceipt.executable.bytes);
+    assert.equal(hash(bytes), scopedReceipt.executable.sha256);
+  }
   const notices = {};
   for (const [filename, coreFile] of [['MOONBIT-CORE-LICENSE', 'LICENSE'], ['MOONBIT-CORE-NOTICE', 'NOTICE']]) {
     const text = await readFile(join(repository, 'packages/local-node', filename));
@@ -120,7 +151,7 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
     generatedCSha256: hash(await readFile(c)), toolchainPinSha256: hash(await readFile(join(repository, 'toolchain.json'))), notices,
     toolchain: {moon, moonc, node: process.version, cc: run('cc', ['--version']).split('\n')[0]},
     abi: inspectNativeAbi(binary, platform), testedHost: {platform: process.platform, arch: process.arch, glibc: glibc ?? null, httpRuntime},
-    generation: ['moon', ...buildArgs], ...(localMetadata ? {localRuntime: localMetadata} : {})};
+    generation: [buildCommand, ...selectedBuildArgs], ...(localMetadata ? {localRuntime: localMetadata} : {})};
   await writeFile(join(destination, 'artifact.json'), `${JSON.stringify(record, null, 2)}\n`, {flag: 'wx'});
   return record;
 }

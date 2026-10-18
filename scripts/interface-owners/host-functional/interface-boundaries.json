@@ -16771,7 +16771,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -16878,7 +16878,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -24139,7 +24139,7 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "93e346ed59b136e324597d0a3c2e48ee86efbd7f5decdda1fd032b2a63c43bd5",
+      "sha256": "3440789d8e7de7e5aac99c1f49c8dfad892348a713fc6f1d6a52a19aae76c177",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -24242,6 +24242,47 @@
           "name": "createEmbeddedHostRegistry/init:connect/init:connect/init:retry/init:retry",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+          "parameters": [
+            "kind",
+            "input",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeSourceSnapshot/init:beforeSourceSnapshot/pending/pending",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:bindSourceRequest/init:bindSourceRequest",
+          "parameters": [
+            "receipt",
+            "body",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:bindSourceSnapshot/init:bindSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:finishSourceProducer/init:finishSourceProducer",
+          "parameters": [
+            "receipt",
+            "terminal"
+          ],
+          "async": false
         },
         {
           "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:perform/init:perform",
@@ -24433,7 +24474,12 @@
             "installedHostShutdown/shutdown/shutdown#7",
             "installedHostShutdown/shutdown/shutdown#8",
             "installedHostShutdown/shutdown/shutdown#9",
-            "installedHostShutdown/shutdown/shutdown#12"
+            "installedHostShutdown/shutdown/shutdown#12",
+            "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+            "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeSourceSnapshot/init:beforeSourceSnapshot/pending/pending",
+            "createEmbeddedHostRegistry/init:connect/init:connect/port/init:bindSourceRequest/init:bindSourceRequest",
+            "createEmbeddedHostRegistry/init:connect/init:connect/port/init:bindSourceSnapshot/init:bindSourceSnapshot",
+            "createEmbeddedHostRegistry/init:connect/init:connect/port/init:finishSourceProducer/init:finishSourceProducer"
           ],
           "exports": [
             "createEmbeddedHostRegistry",
@@ -24734,6 +24780,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "// This private installation bag holds backreferences, not canonical DATA."
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "const sourceProducers = new Map();"
               }
             ],
             "extension": [
@@ -24814,6 +24864,10 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.test.mjs",
                 "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-source-preparation.test.mjs",
+                "anchor": "a sibling last lease cannot release another lease original pending Source producer"
               }
             ]
           }
@@ -25048,6 +25102,7 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../../packages/sdk/host-port.mjs",
+        "../../packages/sdk/internal/private-source-preparation.mjs",
         "./installed-host-cleanup.mjs"
       ],
       "compilerFields": [],
@@ -51881,7 +51936,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "4cb525706536bcadc04c750dd2a7d49cc54201c8f588bfc5c63134f1a652d7ac",
+      "sha256": "d0e4c6ac10efab52bd66efdec2ab9769fc99dbe214dcdf84de8eb05b16907159",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -52043,6 +52098,7 @@
         "privateRunDefinition",
         "privateTaskCompilationWires",
         "projectCommittedResultRead",
+        "projectEffectSiteRun",
         "projectPublicationSnapshot",
         "projectSiteRun",
         "projectTaskSiteRun",
@@ -53163,6 +53219,19 @@
           "result": "Readonly<{\n    resultName: string;\n    resultArtifactCid: string;\n    resultDefinitionCid: string;\n    logicalResultCid: string;\n    resultSchemaCid: string;\n    orderingEvidenceCid: string;\n    effectiveRetentionPolicyCid: string;\n    durableResultBindingCid: string;\n    materialGenerationCid: string;\n    storeAuthorityCid: string;\n    codecContractCid: string;\n    resultFields: readonly string[];\n    rowCount: number;\n    byteCount: number;\n    physicalSha256: string;\n  }>"
         },
         {
+          "name": "projectEffectSiteRun",
+          "parameters": [
+            "allowed: AllowedEffectRun",
+            "definition: RunDefinition",
+            "authority: string",
+            "durableWires: readonly string[]",
+            "observedAt: string",
+            "cancellationRequested: boolean",
+            "savedClaims: readonly Readonly<{taskKey: string; dispatchCid: string | null;\n    dispatchReserved: boolean; physicalStartClaimed: boolean}>[]"
+          ],
+          "result": "Readonly<\n    Omit<ReturnType<typeof inspectEffectTaskProgress>, 'tasks'> & {\n      stateWire: string; publicationReady: false;\n      execution: 'unobserved' | 'running' | 'settled' | 'failed' | 'cancelled' | 'unknown';\n      tasks: readonly Readonly<ReturnType<typeof inspectTaskProgress>['tasks'][number] & {\n        nextWork: 'none' | 'cleanup' | 'publication' | 'reconcile' | 'cancel' | 'release'}>[];\n    }>"
+        },
+        {
           "name": "projectPublicationSnapshot",
           "parameters": [
             "record: PublicationContract | undefined",
@@ -53889,6 +53958,51 @@
         {
           "operations": [
             "<module>",
+            "ResultDeliveryControl/admit",
+            "ResultDeliveryControl/beginResultAccessProgress",
+            "ResultDeliveryControl/beginResultDelivery",
+            "ResultDeliveryControl/cancelDurableResultRowFrames",
+            "ResultDeliveryControl/deliveryFailureTerminalAction",
+            "ResultDeliveryControl/deliveryRecordRetryAction",
+            "ResultDeliveryControl/deliveryResultDefinitionCid",
+            "ResultDeliveryControl/deliverySuccessValid",
+            "ResultDeliveryControl/deliveryTransition",
+            "ResultDeliveryControl/describeCommittedResult",
+            "ResultDeliveryControl/existingDeliveryAttemptAction",
+            "ResultDeliveryControl/feedDurableResultRowFrames",
+            "ResultDeliveryControl/finishDurableResultRowFrames",
+            "ResultDeliveryControl/finishResultDelivery",
+            "ResultDeliveryControl/issueDeliveryAttempt",
+            "ResultDeliveryControl/issueDeliveryRecord",
+            "ResultDeliveryControl/issueManifestReadGrant",
+            "ResultDeliveryControl/issueResultDeliveryReceipt",
+            "ResultDeliveryControl/issueResultReadGrant",
+            "ResultDeliveryControl/manifestReadGrantAllowsBytes",
+            "ResultDeliveryControl/manifestReadGrantValidAt",
+            "ResultDeliveryControl/nextResultDeliveryRow",
+            "ResultDeliveryControl/prepareDeliveryGrantUsageClaim",
+            "ResultDeliveryControl/prepareDurableResultRowFrames",
+            "ResultDeliveryControl/prepareResultDeliverySerializer",
+            "ResultDeliveryControl/recordResultAccessGrant",
+            "ResultDeliveryControl/recordResultAccessInitialAvailability",
+            "ResultDeliveryControl/recordResultAccessReadAdmission",
+            "ResultDeliveryControl/recordResultAccessRequestAuthorization",
+            "ResultDeliveryControl/recordResultAccessResolution",
+            "ResultDeliveryControl/resultAccessProgressAction",
+            "ResultDeliveryControl/resultMetadataRetentionState",
+            "ResultDeliveryControl/resultReadAvailability",
+            "ResultDeliveryControl/resultReadDefinitionCid",
+            "ResultDeliveryControl/resultReadExtendedAvailability",
+            "ResultDeliveryControl/resultReadGrantAllowsBytes",
+            "ResultDeliveryControl/resultReadGrantValidAt",
+            "ResultDeliveryControl/resultReadRetentionPolicyCid",
+            "ResultDeliveryControl/resultRetentionClockContractCid",
+            "ResultDeliveryControl/trustedClockNotBefore",
+            "RetainedInputCurrent/<call>",
+            "RetainedInputPlanCurrent/<call>",
+            "RetainedInputPlanCurrent/<call>#2",
+            "RetainedInputPlanCurrent/<call>#3",
+            "RetainedInputPlanCurrent/<call>#4",
             "admitCapturedResultSnapshot",
             "admitCompletedSourceObservation",
             "admitEffectRunMaterials",
@@ -53912,10 +54026,10 @@
             "beginResultMaterialHolds",
             "captureOriginalRunPlan",
             "checkRunBinding",
-            "compiledPlanCid",
             "compileEffect",
             "compileTasks",
             "compileValues",
+            "compiledPlanCid",
             "describeCommittedResult",
             "effectExecutionShape",
             "effectResultDefinitions",
@@ -53942,10 +54056,10 @@
             "issueEffectRunMaterials",
             "issueEffectSourceDispatch",
             "issuePreparedEffectRunMaterials",
+            "issuePublicIndexEntry",
             "issuePublicationAttempt",
             "issuePublicationRecord",
             "issuePublicationRequest",
-            "issuePublicIndexEntry",
             "issueReadOnlyCapturedRun",
             "issueResultManifest",
             "issueResultOccurrenceEvidence",
@@ -53997,6 +54111,7 @@
             "privateRunDefinition",
             "privateTaskCompilationWires",
             "projectCommittedResultRead",
+            "projectEffectSiteRun",
             "projectPublicationSnapshot",
             "projectSiteRun",
             "projectTaskSiteRun",
@@ -54006,58 +54121,13 @@
             "requestRelation",
             "restoreEffectRunNormalization",
             "resultDefinitions",
-            "ResultDeliveryControl/admit",
-            "ResultDeliveryControl/beginResultAccessProgress",
-            "ResultDeliveryControl/beginResultDelivery",
-            "ResultDeliveryControl/cancelDurableResultRowFrames",
-            "ResultDeliveryControl/deliveryFailureTerminalAction",
-            "ResultDeliveryControl/deliveryRecordRetryAction",
-            "ResultDeliveryControl/deliveryResultDefinitionCid",
-            "ResultDeliveryControl/deliverySuccessValid",
-            "ResultDeliveryControl/deliveryTransition",
-            "ResultDeliveryControl/describeCommittedResult",
-            "ResultDeliveryControl/existingDeliveryAttemptAction",
-            "ResultDeliveryControl/feedDurableResultRowFrames",
-            "ResultDeliveryControl/finishDurableResultRowFrames",
-            "ResultDeliveryControl/finishResultDelivery",
-            "ResultDeliveryControl/issueDeliveryAttempt",
-            "ResultDeliveryControl/issueDeliveryRecord",
-            "ResultDeliveryControl/issueManifestReadGrant",
-            "ResultDeliveryControl/issueResultDeliveryReceipt",
-            "ResultDeliveryControl/issueResultReadGrant",
-            "ResultDeliveryControl/manifestReadGrantAllowsBytes",
-            "ResultDeliveryControl/manifestReadGrantValidAt",
-            "ResultDeliveryControl/nextResultDeliveryRow",
-            "ResultDeliveryControl/prepareDeliveryGrantUsageClaim",
-            "ResultDeliveryControl/prepareDurableResultRowFrames",
-            "ResultDeliveryControl/prepareResultDeliverySerializer",
-            "ResultDeliveryControl/recordResultAccessGrant",
-            "ResultDeliveryControl/recordResultAccessInitialAvailability",
-            "ResultDeliveryControl/recordResultAccessReadAdmission",
-            "ResultDeliveryControl/recordResultAccessRequestAuthorization",
-            "ResultDeliveryControl/recordResultAccessResolution",
-            "ResultDeliveryControl/resultAccessProgressAction",
-            "ResultDeliveryControl/resultMetadataRetentionState",
-            "ResultDeliveryControl/resultReadAvailability",
-            "ResultDeliveryControl/resultReadDefinitionCid",
-            "ResultDeliveryControl/resultReadExtendedAvailability",
-            "ResultDeliveryControl/resultReadGrantAllowsBytes",
-            "ResultDeliveryControl/resultReadGrantValidAt",
-            "ResultDeliveryControl/resultReadRetentionPolicyCid",
-            "ResultDeliveryControl/resultRetentionClockContractCid",
-            "ResultDeliveryControl/trustedClockNotBefore",
             "resultMaterialHoldsFacts",
             "resultMaterialHoldsWire",
             "resultReadAvailability",
             "resultSchema",
-            "RetainedInputCurrent/<call>",
             "retainedInputCurrentEnvelope",
             "retainedInputCurrentReplyFacts",
             "retainedInputIntentFacts",
-            "RetainedInputPlanCurrent/<call>",
-            "RetainedInputPlanCurrent/<call>#2",
-            "RetainedInputPlanCurrent/<call>#3",
-            "RetainedInputPlanCurrent/<call>#4",
             "retainedInputPlanEnvelope",
             "retainedInputPlanFacts",
             "retainedInputProducerAvailable",
@@ -54245,6 +54315,7 @@
             "privateRunDefinition",
             "privateTaskCompilationWires",
             "projectCommittedResultRead",
+            "projectEffectSiteRun",
             "projectPublicationSnapshot",
             "projectSiteRun",
             "projectTaskSiteRun",
@@ -54302,6 +54373,10 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "inputsOutputs": [
@@ -54316,6 +54391,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "identity": [
@@ -54330,6 +54409,10 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "ownership": [
@@ -54344,6 +54427,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "# Negotiated Interactive Run Control boundaries"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "synchronization": [
@@ -54358,6 +54445,10 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "failure": [
@@ -54372,6 +54463,10 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "cancellation": [
@@ -54386,6 +54481,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "resources": [
@@ -54400,6 +54499,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "# Negotiated Interactive Run Control boundaries"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "extension": [
@@ -54414,6 +54517,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "verification": [
@@ -54428,6 +54535,10 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ]
           }
@@ -58997,7 +59108,7 @@
     },
     {
       "module": "adapters/host-node/mock-churn-risk-catalogue.mjs",
-      "sha256": "51be22a425671db4db99446a1500aa6d45a9192e87dfb89e9eaf7d3b2610ebf4",
+      "sha256": "8c2ef14a08e20ab8ddd87f55fdafa58484ab5c72018c3b48ae3e9f48425d5ea0",
       "exports": [
         "mockChurnRiskCatalogue"
       ],
@@ -59355,6 +59466,10 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
+              },
+              {
+                "path": "scripts/mock-churn-risk-catalogue.test.mjs",
+                "anchor": "test('portable catalogue retains the complete previously authored Node DATA vector'"
               }
             ]
           }
@@ -60276,10 +60391,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 136,
-    "operations": 3304,
-    "exports": 882,
-    "explicitContractGroups": 163
+    "modules": 142,
+    "operations": 3418,
+    "exports": 902,
+    "explicitContractGroups": 169
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }

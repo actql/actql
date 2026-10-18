@@ -2610,7 +2610,10 @@ function admittedEffectTaskProgress(allowed, definition, authority, durableWires
 
 /** Computation/output facts only: this is not Effect or Run completion. */
 export function inspectEffectTaskProgress(allowed, definition, authority, durableWires) {
-  const value = admittedEffectTaskProgress(allowed, definition, authority, durableWires);
+  return effectTaskProgressSnapshot(admittedEffectTaskProgress(allowed, definition, authority, durableWires));
+}
+
+function effectTaskProgressSnapshot(value) {
   const scopes = owner.clientValuesHostEffectTaskProgressScopes(value);
   const next = owner.clientValuesHostEffectTaskProgressNext(value);
   return Object.freeze({
@@ -2622,6 +2625,60 @@ export function inspectEffectTaskProgress(allowed, definition, authority, durabl
       Object.freeze({ordinal: Number(row[0]), taskKey: row[1], execution: row[2],
         cleanup: row[3], revision: Number(row[4]), dispatchCid: row[5] || undefined,
         executionScope: Object.freeze(scopes[index])}))),
+  });
+}
+
+// Read each native Array element once. Caller-owned iteration, some and slice
+// methods are not the supplier of the captured durable/claim facts.
+function effectProjectionArray(value, maximum) {
+  if (!Array.isArray(value)) throw new TypeError('InvalidRunHostEffectRunProjection');
+  const length = value.length;
+  if (!Number.isSafeInteger(length) || length < 0 || length > maximum) {
+    throw new TypeError('InvalidRunHostEffectRunProjection');
+  }
+  const snapshot = [];
+  for (let index = 0; index < length; index++) snapshot.push(value[index]);
+  return snapshot;
+}
+
+/** Unpublished same-Run computation observation. Task cleanup and cancellation
+ * are not a whole Effect/producer/Transfer stop, publication or release ACK. */
+export function projectEffectSiteRun(allowed, definition, authority, durableWires,
+  observedAt, cancellationRequested, savedClaims) {
+  // The original checked graph bounds both complete claims and the at-most
+  // one durable Coordinator record for each task, before reading elements.
+  const original = admittedEffectTaskProgress(allowed, definition, authority, []);
+  const count = owner.clientValuesHostEffectTaskProgressFields(original).length;
+  const wires = effectProjectionArray(durableWires, count);
+  const claims = effectProjectionArray(savedClaims, count);
+  if (typeof observedAt !== 'string' || typeof cancellationRequested !== 'boolean') {
+    throw new TypeError('InvalidRunHostEffectRunProjection');
+  }
+  const keys = [], dispatches = [], reserved = [], physicallyClaimed = [];
+  for (let index = 0; index < claims.length; index++) {
+    const claim = claims[index];
+    if (!claim || typeof claim !== 'object') throw new TypeError('InvalidRunHostEffectRunProjection');
+    const key = claim.taskKey, dispatch = claim.dispatchCid;
+    const reservation = claim.dispatchReserved, physical = claim.physicalStartClaimed;
+    if (typeof key !== 'string' || (dispatch !== null && (typeof dispatch !== 'string' || dispatch.length === 0)) ||
+        typeof reservation !== 'boolean' || typeof physical !== 'boolean') {
+      throw new TypeError('InvalidRunHostEffectRunProjection');
+    }
+    keys.push(key); dispatches.push(dispatch === null ? '' : dispatch);
+    reserved.push(reservation); physicallyClaimed.push(physical);
+  }
+  const value = admittedEffectTaskProgress(allowed, definition, authority, wires);
+  const projected = checked(owner.clientValuesHostProjectEffectTaskRun(value,
+    observedAt, cancellationRequested, keys, dispatches, reserved, physicallyClaimed),
+  'RunHostEffectTaskRunProjectionRejected');
+  const fields = owner.clientValuesHostEffectTaskRunFields(projected);
+  const work = owner.clientValuesHostEffectTaskRunWork(projected);
+  if (fields[3] !== '0' || fields[4] !== '0') throw new Error('InvalidRunHostEffectRunProjection');
+  const progress = effectTaskProgressSnapshot(value), next = Number(fields[2]);
+  return Object.freeze({...progress, stateWire: fields[0], execution: fields[1],
+    nextTask: next < 0 ? undefined : next, publicationReady: false,
+    tasks: Object.freeze(progress.tasks.map((task, index) =>
+      Object.freeze({...task, nextWork: work[index]}))),
   });
 }
 

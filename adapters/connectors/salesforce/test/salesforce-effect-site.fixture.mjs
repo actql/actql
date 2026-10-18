@@ -155,6 +155,8 @@ export async function openSalesforceEffectSiteFixture(t, {
   // The validity of newly issued certificates.
   certificateDays = 1,
   openCredentialJournal,
+  runAcquisitionLimits,
+  resolveSecret = async () => 'test-only-secret',
   // Exact Account target response headers for conditional-read tests only.
   // No conditional behavior is added to the fixture's write implementation.
   accountTargetHeaders,
@@ -576,8 +578,9 @@ export async function openSalesforceEffectSiteFixture(t, {
       principalId: 'principal-a', root});
   const installed = await loadInstalledSalesforceSite(profilePath, {
     commonMoon, salesforceMoon, authorization: hostAuthorization,
-    runtimeBundleCid: cid('a'), resolveSecret: async () => 'test-only-secret',
-    now: () => 1_999_999_999_999, grantLifetimeMs: 1, openCredentialJournal});
+    runtimeBundleCid: cid('a'), resolveSecret,
+    now: () => 1_999_999_999_999, grantLifetimeMs: 1, openCredentialJournal,
+    runAcquisitionLimits});
   const journal = installed.credential.journal;
   t.after(async () => {
     installed.close();

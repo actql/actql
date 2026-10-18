@@ -65,6 +65,8 @@ pub fn begin_row_run_listing_page(RowRun, Bytes, Int64) -> Result[Unit, RowHostI
 
 pub fn begin_row_run_listing_request(RowRun, String?, Int64) -> Result[Unit, RowHostIssue]
 
+pub fn begin_row_run_with_page_limits(RowRun, RowPageLimits, Int, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]
+
 pub fn bind_row_run_response_borrow_cleanup(RowRunResponseBorrow, () -> Bool) -> Result[Unit, RowHostIssue]
 
 pub fn borrow_row_run_responses(RowRun, RowAcquisition) -> Result[RowRunResponseBorrow, RowHostIssue]
