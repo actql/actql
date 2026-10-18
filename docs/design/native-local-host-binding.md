@@ -1352,6 +1352,12 @@ Run, Effect, cancellation, submitted-intent and named-startup predicates and
 transaction order are shared with the ordinary Journal entrance. A failed
 exchange stops subsequent queries and retains its original scope failure;
 transaction uncertainty remains independently fenced.
+Physical transaction-fence observations and sticky fence writes also belong to
+that same SQLite scope. Reading the scalar while the Library's original SQL
+context is not current is conservatively fenced, rather than evidence that the
+Database has a usable transaction. The private audit routes these operations
+through the same Database and resumes Read before interpreting their result;
+it never caches a false fence, resets a fence, or substitutes another handle.
 
 The same inspection carrier retains any partial copy before a scope can fail.
 Its DB close and scratch cleanup have separate physical acknowledgements;
