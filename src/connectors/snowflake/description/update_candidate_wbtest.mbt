@@ -467,3 +467,87 @@ test "UPDATE bindings above nine retain exact ordinal placeholder correspondence
     "{\"1\":{\"type\":\"TEXT\",\"value\":\"k\"},\"2\":{\"type\":\"TEXT\",\"value\":\"a\"},\"3\":{\"type\":\"TEXT\",\"value\":\"b\"},\"4\":{\"type\":\"TEXT\",\"value\":\"c\"},\"5\":{\"type\":\"TEXT\",\"value\":\"k\"},\"6\":{\"type\":\"TEXT\",\"value\":\"k\"},\"7\":{\"type\":\"TEXT\",\"value\":\"k\"},\"8\":{\"type\":\"TEXT\",\"value\":\"a\"},\"9\":{\"type\":\"TEXT\",\"value\":\"b\"},\"10\":{\"type\":\"TEXT\",\"value\":\"c\"}}",
   )
 }
+
+///|
+test "UPDATE retains original checked values and detaches caller collections" {
+  let original = description()
+  let before = update_before(original)
+  let changes = [
+    (
+      "TREND",
+      write_value(original, 2, @admitted.text_value("up", 4096).unwrap()),
+    ),
+  ]
+  let candidate = prepare_update_candidate(
+    original,
+    "ACCOUNT_ID",
+    before[0].1,
+    before,
+    changes,
+    update_limits(),
+  ).unwrap()
+  let saved = update_candidate_statement(candidate)
+  changes.clear()
+  before.clear()
+  assert_eq(update_candidate_before_image(candidate).length(), 3)
+  let projected = update_candidate_assignments(candidate)
+  assert_eq(projected[0].0, "TREND")
+  assert_true(
+    physical_equal(
+      projected[0].1.contract,
+      description_column_contract(original, 2).unwrap(),
+    ),
+  )
+  projected.clear()
+  assert_eq(update_candidate_assignments(candidate).length(), 1)
+  assert_eq(update_candidate_key(candidate).0, "ACCOUNT_ID")
+  assert_eq(update_candidate_statement(candidate), saved)
+}
+
+///|
+test "UPDATE SQL NULL and typed JSON null remain different original values" {
+  let rows = [
+    metadata_row("K", 1, "TEXT"),
+    metadata_row("J", 2, "VARIANT", nullable=true),
+  ]
+  let original = project_table_description(
+    target(),
+    metadata_response(rows, total=2, partition_counts=[2]),
+    [],
+    limits(),
+  ).unwrap()
+  let key = write_value(original, 0, @admitted.text_value("key", 4096).unwrap())
+  let sql_null = write_value(original, 1, @admitted.null_value())
+  let json_null = write_value(
+    original,
+    1,
+    @admitted.recheck_json_payload_usage(@admitted.null_value(), {
+      max_nodes: 8,
+      max_depth: 4,
+      max_text_bytes: 4096,
+    }).unwrap().0.value,
+  )
+  let before = [("K", key), ("J", sql_null)]
+  let candidate = prepare_update_candidate(
+    original,
+    "K",
+    key,
+    before,
+    [("J", sql_null)],
+    update_limits(),
+  ).unwrap()
+  assert_true(
+    update_candidate_statement(candidate).contains("SET \"J\" = NULL"),
+  )
+  assert_true(
+    prepare_update_candidate(
+      original,
+      "K",
+      key,
+      before,
+      [("J", json_null)],
+      update_limits(),
+    )
+    is Err(UnsupportedWriteType("J", "VARIANT")),
+  )
+}

@@ -30,6 +30,9 @@ pub(all) enum UpdateCandidateIssue {
 /// prove provider concurrency and affected-item correspondence separately.
 pub struct UpdateCandidate {
   priv description : TableDescription
+  priv key : (String, @admitted.CheckedValue)
+  priv before_image : Array[(String, @admitted.CheckedValue)]
+  priv assignments : Array[(String, @admitted.CheckedValue)]
   priv statement : String
   priv bindings : String
 }
@@ -320,6 +323,9 @@ pub fn prepare_update_candidate(
     @encode.end_object(writer)
     Ok({
       description,
+      key: (key_name, key_value.1),
+      before_image: before.map(pair => (pair.0.name, pair.1)),
+      assignments: changes.map(pair => (pair.0.name, pair.1)),
       statement: budget.sql.to_string(),
       bindings: @encode.finish(writer),
     })
@@ -343,6 +349,29 @@ pub fn update_candidate_statement(value : UpdateCandidate) -> String {
 ///|
 pub fn update_candidate_bindings(value : UpdateCandidate) -> String {
   value.bindings
+}
+
+///|
+pub fn update_candidate_key(
+  value : UpdateCandidate,
+) -> (String, @admitted.CheckedValue) {
+  value.key
+}
+
+///|
+/// Detached collection of Common values for the original Mapping/Preview
+/// comparison. These values and the SQL never issue an approval or authority.
+pub fn update_candidate_before_image(
+  value : UpdateCandidate,
+) -> Array[(String, @admitted.CheckedValue)] {
+  value.before_image.copy()
+}
+
+///|
+pub fn update_candidate_assignments(
+  value : UpdateCandidate,
+) -> Array[(String, @admitted.CheckedValue)] {
+  value.assignments.copy()
 }
 
 ///|
