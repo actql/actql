@@ -733,6 +733,17 @@ overlap. Byte/node/depth/row/work bounds remain independent and are not funding.
 Failure aborts only the same attempt. Data-reference retirement, ticket
 consumption and successful row append are not physical cleanup acknowledgements.
 
+The standard RowRun page entry retains its 400,000-node and depth-32 defaults.
+An installed Source may narrow that page envelope on the same pending RowRun
+through `begin_row_run_with_page_limits`; it cannot widen those defaults or
+replace the original acquisition, schema, attempt or reference issuer. Invalid
+bounds abort only that attempt. The Host must bind the selected limits to its
+actual Source original. Explicit byte, node, depth, row and work limits remain
+DATA, independent of the Resource reservation and current read permission.
+A successful small document does not prove that the Source phase covers every
+combination of its permitted input bounds. Exhaustion still refuses without
+capture, replacement publication or a cleanup acknowledgement.
+
 ### Purpose-confined initial Local signing issuer
 
 The original explicit Local initialization/adoption may retain an internal
