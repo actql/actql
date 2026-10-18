@@ -12,7 +12,7 @@
     "content_evidence": "sha256:19cb6932ef23ba83de127214eb884249f127085ec48d1bbfa8945ec06e35d695",
     "text_time_expression": "sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd",
     "text_time_evaluation_envelope": "sha256:b518bf2533adce50cc86448a1cc63246c2cfc01f34fe1da5b8916152a4aa851f",
-    "text_time_evaluation_barrier": "sha256:1301db3309f03f796b8f34c24c37afb8181a76e2ba5ab098dfd9194a32e4ce7a",
+    "text_time_evaluation_barrier": "sha256:cab960023ffd6486161c4757a86bde76c93798504d92a47631c73d747f881cdf",
     "regex_replacement_ast": "sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed",
     "http_review_attestation": "sha256:78708b99a081b9916f63f36da8d740d4bd76e6b91c64cc834896be0361a12cae",
     "http_read_transport": "sha256:9d1b94d787b76a5e9ef6714bf9d44bc9c5edd42e3f9f60ffa106c9bc4ecb525c",
@@ -3365,6 +3365,22 @@
                 "media_type": {
                   "type": "string",
                   "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
                 }
               }
             }
@@ -6971,5 +6987,5 @@
       }
     }
   },
-  "registry_cid": "sha256:668c9f040af62d08854820c9d021cb6d66e98d525bd57dff78a8d2d8be1853ff"
+  "registry_cid": "sha256:b432e852de16d333629e235cc36d35844124182f7ed24582db2342cb0621706f"
 }

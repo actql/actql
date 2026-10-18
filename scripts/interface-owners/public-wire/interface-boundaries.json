@@ -7,7 +7,7 @@
     {
       "module": "packages/client-wire/client-host.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "26e21b160554e37ec9104bdca970fe89596482f8cbaa9c88f2eed92e198be585",
+      "sha256": "1e4669fd9cd8ce944fa71eac5f148f70aaf11474b0c701c1ec604bd1db753e16",
       "exports": [
         "checkOutcomeProtocol",
         "checkOutcomeSchemaCid",
@@ -519,12 +519,20 @@
               {
                 "path": "packages/client-wire/client-host.generated.js",
                 "anchor": "const schemas ="
+              },
+              {
+                "path": "docs/design/value-contracts.md",
+                "anchor": "## Distinct signed64 contracts"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| identity |"
+              },
+              {
+                "path": "docs/design/value-contracts.md",
+                "anchor": "## Distinct signed64 contracts"
               }
             ],
             "ownership": [
@@ -569,6 +577,10 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| extension |"
+              },
+              {
+                "path": "docs/design/value-contracts.md",
+                "anchor": "## Distinct signed64 contracts"
               }
             ],
             "verification": [
@@ -587,6 +599,10 @@
               {
                 "path": "scripts/public-wire-language-mutations.test.mjs",
                 "anchor": "mutations="
+              },
+              {
+                "path": "scripts/signed64-contract.test.mjs",
+                "anchor": "test('Signed64 check facts extend exactly"
               }
             ]
           }

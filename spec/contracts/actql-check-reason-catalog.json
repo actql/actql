@@ -207,7 +207,8 @@
                   "json",
                   "vector",
                   "resource_ref",
-                  "content_ref"
+                  "content_ref",
+                  "int64"
                 ]
               },
               "actual_type": {
@@ -224,7 +225,8 @@
                   "json",
                   "vector",
                   "resource_ref",
-                  "content_ref"
+                  "content_ref",
+                  "int64"
                 ]
               }
             }
@@ -256,7 +258,8 @@
                   "json",
                   "vector",
                   "resource_ref",
-                  "content_ref"
+                  "content_ref",
+                  "int64"
                 ]
               },
               "admission": {

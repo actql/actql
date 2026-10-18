@@ -20,7 +20,7 @@ fn issue_json(number : Int, extra : String) -> String {
   "\"," +
   "\"state\":\"open\",\"body\":null,\"user\":{\"login\":\"octo\"},\"comments\":2," +
   "\"created_at\":\"2026-10-01T00:00:00Z\",\"updated_at\":\"2026-10-02T00:00:00Z\"," +
-  "\"closed_at\":null,\"labels\":[]" +
+  "\"closed_at\":null,\"milestone\":null,\"labels\":[]" +
   extra +
   "}"
 }
@@ -333,6 +333,7 @@ test "issue pages exclude pull requests and keep null distinct from omission" {
     body: None,
     author: Some("octo"),
     comments: 2L,
+    milestone: None,
     created_at: "2026-10-01T00:00:00.000Z",
     updated_at: "2026-10-02T00:00:00.000Z",
     closed_at: None,

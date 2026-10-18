@@ -13,7 +13,7 @@ repairs it. Raw noncanonical strings and keys, non-finite numbers and negative
 zero are rejected, including inside `json`. Source spans remain original even
 when source parsing normalized the text before this call.
 
-The supported domains are string, number, boolean, decimal, date, timestamp,
+The supported domains are string, number, int64, boolean, decimal, date, timestamp,
 json, object, array and limited vector input validation. No implicit string/number
 conversion, rounding, default insertion or missing-field completion occurs.
 Every declared object field is required, even when nullable. Unknown fields fail;
@@ -42,6 +42,34 @@ coefficient `1990`; `0.001` at scale 3 yields `1`. Leading zeros in the integer
 part, leading plus, exponent notation, negative zero, wrong scale and excess
 precision fail. Precision 38 needs neither binary64 nor machine-integer narrowing.
 Arithmetic, numeric equality across scales and typed decimal identity are separate.
+
+### Exact signed64 leaves
+
+`Signed64(Int64)` is a separate immutable value arm, appended without reordering
+the existing arms. Admission uses only the original `int64` Contract. It checks
+the canonical signed decimal String and inclusive signed64 magnitude before
+negative accumulation, including the minimum value without taking an overflowing
+positive absolute value. Numbers, negative zero, plus signs, leading zeros,
+fractions, exponents and out-of-range neighbors refuse without conversion.
+
+The acquired String consumes the original admission text budget. The retained
+machine-integer payload is a fixed scalar leaf in runtime recheck, logical work
+and captured-value measurement; it is not retained Decimal coefficient or Text
+storage. Wire emission separately accounts for the complete quoted canonical
+String (at most twenty ASCII payload characters). This representation does not
+supply physical capacity or acknowledge any original input lifetime.
+
+Same-domain equality, key and author ordering compare the exact integer. Key
+tuples retain a separate signed64 atom, and fixed-width sign-bit-biased keys
+preserve signed order without binary64 conversion. Complete-value identity and
+Parameter binding retain their distinct `int64` tags. Row acquisition continues
+to require the preparation's exact original schema and contracts; an equal
+schema or another prepared owner cannot replace them on capture or reuse.
+
+This leaf adds no arithmetic or conversion overload. In particular, the existing
+`to_string` signature is unchanged: canonical wire serialization is not an
+author-language cast. Number, Decimal and Text domains and legacy preimages
+remain separate and unchanged.
 
 `emit_wire_value` projects an admitted value into a caller-owned `encode_core`
 writer. Text, measurement and hash sinks consume the same canonical JSON wire

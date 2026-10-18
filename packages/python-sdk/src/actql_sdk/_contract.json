@@ -9715,7 +9715,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               },
                               "actual_type": {
@@ -9732,7 +9733,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               }
                             }
@@ -9764,7 +9766,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               },
                               "admission": {
@@ -9779,7 +9782,7 @@
                                 "additionalProperties": false,
                                 "properties": {
                                   "contract_schema_cid": {
-                                    "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
+                                    "const": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
                                   },
                                   "kind": {
                                     "const": "parameter_declaration"
@@ -11600,7 +11603,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               },
                               "actual_type": {
@@ -11617,7 +11621,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               }
                             }
@@ -11649,7 +11654,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               },
                               "admission": {
@@ -11664,7 +11670,7 @@
                                 "additionalProperties": false,
                                 "properties": {
                                   "contract_schema_cid": {
-                                    "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
+                                    "const": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
                                   },
                                   "kind": {
                                     "const": "parameter_declaration"
@@ -13472,7 +13478,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e"
+              "const": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -13996,7 +14002,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               },
                               "actual_type": {
@@ -14013,7 +14020,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               }
                             }
@@ -14045,7 +14053,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               },
                               "admission": {
@@ -14060,7 +14069,7 @@
                                 "additionalProperties": false,
                                 "properties": {
                                   "contract_schema_cid": {
-                                    "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
+                                    "const": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
                                   },
                                   "kind": {
                                     "const": "parameter_declaration"
@@ -15881,7 +15890,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               },
                               "actual_type": {
@@ -15898,7 +15908,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               }
                             }
@@ -15930,7 +15941,8 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "content_ref"
+                                  "content_ref",
+                                  "int64"
                                 ]
                               },
                               "admission": {
@@ -15945,7 +15957,7 @@
                                 "additionalProperties": false,
                                 "properties": {
                                   "contract_schema_cid": {
-                                    "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
+                                    "const": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
                                   },
                                   "kind": {
                                     "const": "parameter_declaration"
@@ -17771,7 +17783,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e"
+              "const": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -17817,7 +17829,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e"
+              "const": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -18755,6 +18767,22 @@
               "minLength": 1
             }
           }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "nullable"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "int64"
+            },
+            "nullable": {
+              "type": "boolean"
+            }
+          }
         }
       ]
     },
@@ -19085,8 +19113,8 @@
     "locations_match_input",
     "fix_targets_match_exact_eof"
   ],
-  "check_reason_schema_cid": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e",
-  "check_outcome_schema_cid": "sha256:988a8893ede0e64a351f077f28c7b7c82a9b2988467b8eb8a02755ad3530ca7b",
+  "check_reason_schema_cid": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf",
+  "check_outcome_schema_cid": "sha256:ee1c0c7799d2dd30aa084ec5699078cf14ada0687ac6bb9e48e1f714789a8535",
   "reasons": {
     "version": "actql-check-reason-catalog/0.1",
     "revision": "2026-10-16.1",
@@ -19296,7 +19324,8 @@
                     "json",
                     "vector",
                     "resource_ref",
-                    "content_ref"
+                    "content_ref",
+                    "int64"
                   ]
                 },
                 "actual_type": {
@@ -19313,7 +19342,8 @@
                     "json",
                     "vector",
                     "resource_ref",
-                    "content_ref"
+                    "content_ref",
+                    "int64"
                   ]
                 }
               }
@@ -19345,7 +19375,8 @@
                     "json",
                     "vector",
                     "resource_ref",
-                    "content_ref"
+                    "content_ref",
+                    "int64"
                   ]
                 },
                 "admission": {

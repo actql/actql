@@ -1,4 +1,43 @@
 ///|
+// Validate canonical spelling and magnitude before exact negative accumulation.
+// The negative accumulator includes Int64::min_value without positive overflow.
+fn signed64(text : String) -> Int64? {
+  let size = text.length()
+  let negative = size > 0 && text[0] == '-'
+  let start = if negative { 1 } else { 0 }
+  let digits = size - start
+  if digits < 1 || digits > 19 {
+    return None
+  }
+  if text[start] == '0' && (negative || digits != 1) {
+    return None
+  }
+  let limit = if negative {
+    "9223372036854775808"
+  } else {
+    "9223372036854775807"
+  }
+  let mut order = 0
+  for index in start..<size {
+    let unit = text[index]
+    if unit < '0' || unit > '9' {
+      return None
+    }
+    if digits == 19 && order == 0 && unit != limit[index - start] {
+      order = if unit < limit[index - start] { -1 } else { 1 }
+    }
+  }
+  if order > 0 {
+    return None
+  }
+  let mut value = 0L
+  for index in start..<size {
+    value = value * 10L - (text[index].to_int() - '0'.to_int()).to_int64()
+  }
+  Some(if negative { value } else { -value })
+}
+
+///|
 // Parse only canonical fixed-scale wire text. No binary64 or bounded integer
 // accumulator is involved, including at precision 38.
 fn decimal(text : String, precision : Int, scale : Int) -> DecimalValue? {

@@ -20,6 +20,7 @@ fn supported_comparison(
 ) -> Bool {
   match left.shape {
     Number => right.shape is @contract.Number
+    Signed64 => right.shape is @contract.Signed64
     Boolean => right.shape is @contract.Boolean
     Text(_) => right.shape is @contract.Text(_)
     Date => right.shape is @contract.Date
