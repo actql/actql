@@ -884,6 +884,14 @@ allowances. Native single-row conversion, schema/connection/cache/transaction
 workspace and the optional observation connection still require their complete
 selected facility coverage before acquisition.
 
+The physical request-Journal Owner also observes custody for its own actual
+factory results. This private nominal observation separates logical Journal
+closure from the confirmed native database close and records whether the
+separate observation connection was attempted. A copied Journal, a caller's
+Boolean or a successful semantic transaction cannot provide this observation.
+It issues no capacity or authority and does not certify the optional observation
+connection from the primary connection's close.
+
 Installation-time Mock answer documents are bounded Host-preparation
 definitions, not Model execution capacity. The selected control recipe includes
 the additional original Task reread and answer document for each selected Task,

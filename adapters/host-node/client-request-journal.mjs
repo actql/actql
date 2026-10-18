@@ -36,6 +36,19 @@ const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
 const applyOriginal = Reflect.apply;
+const originalJournalCustodies = new WeakMap();
+const originalJournalCustodyGet = WeakMap.prototype.get;
+const originalJournalCustodySet = WeakMap.prototype.set;
+
+// Private physical-facility observation, not request/Run authority or a
+// capacity issuer. Only this module's actual constructor can install a member.
+// Logical close, native connection close and optional observation ownership
+// are distinct; a copied object cannot attest any of them.
+export function observeOriginalClientRequestJournalCustody(journal) {
+  const read = applyOriginal(originalJournalCustodyGet, originalJournalCustodies, [journal]);
+  if (read === undefined) fail('ForeignClientRequestJournalCustody');
+  return read();
+}
 
 function snapshotPrimarySqlLimits(value) {
   if (value === undefined) return undefined;
@@ -3134,6 +3147,9 @@ export function openClientRequestJournal(directory, {
       catch { /* The observation projection owns this separate connection. */ }
     },
   });
+  applyOriginal(originalJournalCustodySet, originalJournalCustodies, [journal, () =>
+    Object.freeze({journalClosed: closed, databaseClosed,
+      observationAttempted: observationStorageAttempted})]);
   return journal;
   } catch (error) {
     throwSqliteInitializationFailure(initializationCleanup, error, 'client-request-journal');
