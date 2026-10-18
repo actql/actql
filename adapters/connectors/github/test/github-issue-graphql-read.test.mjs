@@ -37,7 +37,7 @@ const row = number => ({number: String(number), node_id: `I_${number}`,
   url: `https://github.com/octo/hello/issues/${number}`, milestone: null, created_at: '2026-10-01T00:00:00.000Z',
   updated_at: '2026-10-02T00:00:00.000Z', closed_at: null});
 
-async function setup(t, state, {faults = []} = {}) {
+async function setup(t, state, {faults = [], beforeAuthorize} = {}) {
   const fixture = await openHttpsExchangeFixture(t, {faults,
     routes: [graphqlRoute(() => state)]});
   const root = await mkdtemp(join(tmpdir(), 'actql-github-graphql-'));
@@ -71,8 +71,10 @@ async function setup(t, state, {faults = []} = {}) {
       credential: {control, journal, resolveSecret: async () => 'token-a',
         ca: fixture.ca, now: () => 1_999_999_999_999},
       callResource: callHttpsCredentialResource,
-      authorizationFor: async index => ({grant, scope,
-        useId: `read-${id}-${index}`}),
+      authorizationFor: async index => {
+        await beforeAuthorize?.(index);
+        return {grant, scope, useId: `read-${id}-${index}`};
+      },
       limits: {maxPages: 5, maxRows: 100, maxBytes: 100_000,
         maxNodes: 10_000, maxDepth: 32, perPage: 100,
         maxRequestBytes: 16_384},
@@ -271,4 +273,92 @@ test('milestone titles survive authorized pages without an API selector', async 
     assert.doesNotMatch(request.query, /\$milestone|milestone\s*:/u);
     assert.equal(Object.hasOwn(request.variables, 'milestone'), false);
   }
+});
+
+test('all Issue columns and both child connections complete through separately authorized physical uses', async t => {
+  const state = world();
+  const assignees = Array.from({length: 101}, (_, index) => index === 100 ? 'user-0' : `user-${index}`);
+  const labels = Array.from({length: 101}, (_, index) => index === 100 ? ' é ' : `label-${index}`);
+  state.repositories.get('R_A').issues = [{number: 7, stateReason: 'NOT_PLANNED',
+    assignees, labels, url: 'https://github.com/octo/hello/issues/7'}];
+  const context = await setup(t, state);
+  const charged = [];
+  const observed = [];
+  let published = 0;
+  const result = await context.read({
+    chargePage: body => {
+      const original = Object.freeze({body}); charged.push(original); return original;
+    },
+    consumeObservation: original => {
+      assert.equal(charged.includes(original), true);
+      assert.notEqual(original, charged[0]); observed.push(original);
+    },
+    consumePage: (rows, page, {charge}) => {
+      assert.equal(charge, charged[0]); assert.equal(page, 1);
+      assert.deepEqual(rows[0].assignees, assignees);
+      assert.deepEqual(rows[0].labels, labels);
+      assert.equal(observed.length, 2); published++;
+    },
+  });
+  assert.equal(result.complete, true);
+  assert.equal(published, 1);
+  assert.equal(charged.length, 3);
+  assert.equal(context.fixture.seen().length, 3);
+  assert.deepEqual(result.rows, [{...row(7), state_reason: 'not_planned', assignees, labels}]);
+  const requests = context.fixture.seen().map(entry => JSON.parse(entry.body));
+  assert.deepEqual(requests.map(value => value.variables.id), ['R_A', 'R_A', 'R_A']);
+  assert.deepEqual(requests.slice(1).map(value => value.variables.number), [7, 7]);
+  assert.match(requests[1].query, /^query ActqlIssueAssignees\(/u);
+  assert.match(requests[2].query, /^query ActqlIssueLabels\(/u);
+  const records = context.journal.recover();
+  assert.equal(records.length, 3);
+  assert.deepEqual(records.map(value => value.useId), ['read-0-0', 'read-0-1', 'read-0-2']);
+});
+
+test('a child page cannot cross repository Issue update or cursor identity and no partial row is published', async t => {
+  for (const change of ['repository', 'issue', 'updated', 'count', 'cursor']) {
+    const state = world();
+    state.repositories.get('R_A').issues = [{number: 7,
+      labels: Array.from({length: 101}, (_, index) => `label-${index}`)}];
+    state.childAnswer = (_field, variables) => ({body: {data: {node: {
+      __typename: 'Repository', id: 'R_A', databaseId: change === 'repository' ? 424242 : 1296269,
+      nameWithOwner: 'octo/hello', issue: {
+        id: change === 'issue' ? 'I_foreign' : 'I_7', number: 7,
+        updatedAt: change === 'updated' ? '2026-10-03T00:00:00Z' : '2026-10-02T00:00:00Z',
+        labels: {totalCount: change === 'count' ? 102 : 101,
+          pageInfo: {hasNextPage: change === 'cursor',
+            endCursor: change === 'cursor' ? variables.after : null},
+          nodes: [{name: 'label-100'}]}}}}}});
+    const context = await setup(t, state);
+    let published = 0;
+    const failure = await stopOf(context.read({consumePage: () => { published++; }}));
+    assert.equal(failure.stopped, true, change);
+    assert.equal(published, 0, change);
+    assert.deepEqual(failure.acceptedPages, [], change);
+    assert.equal(context.fixture.seen().length, 2, change);
+  }
+});
+
+test('nested pages spend the existing request ceiling and current authorization is checked again before send', async t => {
+  const state = world();
+  state.repositories.get('R_A').issues = [{number: 7,
+    labels: Array.from({length: 101}, (_, index) => `label-${index}`)}];
+  const bounded = await setup(t, state);
+  const failure = await stopOf(bounded.read({limits: {maxPages: 1,
+    maxRows: 100, maxBytes: 100_000, maxNodes: 10_000, maxDepth: 32,
+    perPage: 100, maxRequestBytes: 16_384}}));
+  assert.equal(failure.code, 'GitHubReadPageLimit');
+  assert.deepEqual(failure.acceptedPages, []);
+  assert.equal(bounded.fixture.seen().length, 1);
+  const checks = [];
+  const revoked = await setup(t, state, {beforeAuthorize: index => {
+    checks.push(index);
+    if (index === 1) throw Object.assign(new Error('ExecutionAuthorizationDenied'),
+      {code: 'ExecutionAuthorizationDenied'});
+  }});
+  const denied = await stopOf(revoked.read());
+  assert.equal(denied.code, 'ExecutionAuthorizationDenied');
+  assert.deepEqual(checks, [0, 1]);
+  assert.equal(revoked.fixture.seen().length, 1);
+  assert.equal(revoked.journal.recover().length, 1);
 });
