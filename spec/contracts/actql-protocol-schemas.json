@@ -1,6 +1,6 @@
 {
   "version": "actql-protocol-schema-registry/0.1",
-  "registry_cid": "sha256:6a7f1cd273a2f0dd2c9986c8b5549ff1269697d045ad226e88ae714c4663a927",
+  "registry_cid": "sha256:c6be35229d5a85665f223ee9a2683c0f5e54c32b033bdee01a4a58779eec0daa",
   "schema_cids": {
     "model_task": "sha256:f0b78bb09840a99b56f6fe910be33b9f51dfcc6349834aa44bcc1b5de1e87a7f",
     "contract_ref": "sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94",
@@ -22,7 +22,8 @@
     "model_provider_defaults": "sha256:35258db20dca538d6889ac34789becea8c4a62858127848b1419d19a93b144e6",
     "notion_database_read_declaration": "sha256:39426e9830ffa735632156dcebdfd8d456c164f3087bd7e3697d0f41edc1bc55",
     "notion_database_read_snapshot": "sha256:06577e00887cc24dae6de8bc67156e9782b4c4516d01bf50c509060f78948cfc",
-    "notion_database_read_declarations": "sha256:1bae79fa45a3cd055d58f9f9860f90fe2c2d3839396b932e6d8e65ae22de3c83"
+    "notion_database_read_declarations": "sha256:1bae79fa45a3cd055d58f9f9860f90fe2c2d3839396b932e6d8e65ae22de3c83",
+    "notion_public_connection": "sha256:2bf010f67678837163c6954e842acfde3c3a2d30ea29be4eff43cc56b7c30cb8"
   },
   "schemas": {
     "model_task": {
@@ -15115,6 +15116,1072 @@
             }
           }
         ]
+      },
+      "$defs": {
+        "value_contract": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "precision",
+                "scale"
+              ],
+              "properties": {
+                "type": {
+                  "const": "decimal"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "precision": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 38
+                },
+                "scale": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 38
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 1
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 2
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 2
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 3
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 3
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 4
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 4
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 5
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 5
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 6
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 6
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 7
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 7
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 8
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 8
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 9
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 9
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 10
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 10
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 11
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 11
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 12
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 12
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 13
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 13
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 14
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 14
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 15
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 15
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 16
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 16
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 17
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 17
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 18
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 18
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 19
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 19
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 20
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 20
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 21
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 21
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 22
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 22
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 23
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 23
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 24
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 24
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 25
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 25
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 26
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 26
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 27
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 27
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 28
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 28
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 29
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 29
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 30
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 30
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 31
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 31
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 32
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 32
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 33
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 33
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 34
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 34
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 35
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 35
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 36
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 36
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 37
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 37
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 38
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 38
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "properties": {
+                "type": {
+                  "const": "string"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "min_length": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "max_codepoints": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "max_utf8_bytes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "enum": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "number",
+                    "boolean",
+                    "timestamp",
+                    "date",
+                    "json"
+                  ]
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "items"
+              ],
+              "properties": {
+                "type": {
+                  "const": "array"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "items": {
+                  "$ref": "#/$defs/value_contract"
+                },
+                "max_items": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "additional_properties",
+                "fields"
+              ],
+              "properties": {
+                "type": {
+                  "const": "object"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "additional_properties": {
+                  "const": false
+                },
+                "fields": {
+                  "type": "object",
+                  "propertyNames": {
+                    "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+                  },
+                  "additionalProperties": {
+                    "$ref": "#/$defs/value_contract"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "dimensions",
+                "element_type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "vector"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "dimensions": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "element_type": {
+                  "const": "f32"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "resource_kind"
+              ],
+              "properties": {
+                "type": {
+                  "const": "resource_ref"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "resource_kind": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "properties": {
+                "type": {
+                  "const": "content_ref"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "media_type": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "notion_public_connection": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "connector",
+        "credentials"
+      ],
+      "properties": {
+        "connector": {
+          "const": "notion"
+        },
+        "databases": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "unique": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "marker": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "data_source_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "read_contracts": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "additionalProperties": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 2,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "column",
+                          "projection",
+                          "contract"
+                        ],
+                        "properties": {
+                          "column": {
+                            "type": "string",
+                            "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+                          },
+                          "projection": {
+                            "enum": [
+                              "value",
+                              "start",
+                              "end"
+                            ]
+                          },
+                          "contract": {
+                            "$ref": "#/$defs/value_contract"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "credentials": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "integration_token"
+          ],
+          "properties": {
+            "integration_token": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "env"
+                  ],
+                  "properties": {
+                    "env": {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "^[^\\u0000]+$"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "path"
+                  ],
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "^[^\\u0000]+$"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
       },
       "$defs": {
         "value_contract": {
