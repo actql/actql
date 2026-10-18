@@ -116,7 +116,9 @@ def main() -> None:
 
     def counted_operate(h: object, p: object, op: int, out: object) -> int:
         calls.append(op)
-        return native_operate(h, p, op, out)
+        code: object = native_operate(h, p, op, out)
+        assert type(code) is int
+        return code
 
     pair_functions.operate = counted_operate
     acquisition, root = c.c_void_p(), c.c_void_p()
