@@ -6,7 +6,7 @@ test "exact UTC scalar and complete comparisons retain nanosecond order" {
   assert_eq(compare(a, b), Ok(-1))
   assert_eq(compare(b, a), Ok(1))
   assert_eq(compare(a, a), Ok(0))
-  assert_eq(compare_complete_value(a, b, { remaining: 100, max_frames: 10, }), Ok(-1))
+  assert_eq(compare_complete_value(a, b, { remaining: 100, max_frames: 10, }).unwrap(), -1)
   guard a is Captured(av) && b is Captured(bv) else { fail("admitted timestamps") }
   let control = { remaining: 100, max_frames: 10, }
   let workspace : RowWorkspace = { limit: 20, live: 0, peak: 0, }

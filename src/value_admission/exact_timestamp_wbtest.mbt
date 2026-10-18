@@ -46,6 +46,29 @@ test "exact UTC order agrees across typed bounded author and complete sort keys"
   assert_true(typed_key_order_text(a).unwrap() < typed_key_order_text(b).unwrap())
   let limits : Limits = { max_nodes: 2, max_depth: 1, max_text_bytes: 64, }
   assert_true(complete_order_key(a, limits).unwrap() < complete_order_key(b, limits).unwrap())
+  let expected = "[\"timestamp\",\"1970-01-01T00:00:00.123000000Z\"]"
+  assert_eq(complete_order_key(a, limits), Ok(expected))
+  for bytes in [expected.length(), expected.length() - 1] {
+    let cursor = start_complete_order(a, limits, max_output_bytes=Some(bytes)).unwrap()
+    let mut completed = false
+    let mut failed = false
+    for _ in 0..<100 {
+      if !completed && !failed {
+        match advance_complete_order(cursor, 1) {
+          OrderContinue(..) => ()
+          OrderComplete(text, bytes~, ..) => {
+            assert_eq(text, expected)
+            assert_eq(bytes, expected.length())
+            completed = true
+          }
+          OrderFailed(CompleteOrderLimit, ..) => failed = true
+          _ => fail("unexpected sort-token failure")
+        }
+      }
+    }
+    assert_eq(completed, bytes == expected.length())
+    assert_eq(failed, bytes < expected.length())
+  }
   for quantum in [1, 2, 7, 31] {
     let cursor = start_bounded_key_comparison(a, b).unwrap()
     let mut done = false
