@@ -32,6 +32,7 @@ import {selectAcquiredEffectSources} from './acquired-effect-sources.mjs';
 import {withLocalExecutionPauseHandler} from '../local-node/retained-store.mjs';
 import {acquiredEffectContinuation} from './acquired-effect-continuation.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
+import {sourcePreparationPort} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {BOUND_SOURCE_INVENTORY, BOUND_SOURCE_SUBMISSION,
   ordinarySourceDescriptors} from './ordinary-source-binding.mjs';
 import {capturedDuckDBConfiguration} from './captured-duckdb-source.mjs';
@@ -54,7 +55,8 @@ import {beginInitialControlInstallation, assertInitialControlInstallationCurrent
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 import {prepareInstalledProjectMock} from './installed-project-mock.mjs';
-import {prepareSourceManagedInstallation, assertSourceManagedPreparationCurrent}
+import {prepareSourceManagedInstallation, assertSourceManagedInstallationCurrent,
+  assertSourceManagedPreparationCurrent}
   from './node-source-managed-installation.mjs';
 import {installNodeInferRun} from './installed-infer-run.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
@@ -3347,9 +3349,12 @@ async function openInstalledHost(originalInstallation, preparation) {
     authenticate: () => principalId,
     ...hostOperations, maxRowBytes: 1024 * 1024,
   });
-  const port = observation === undefined ? ingress : Object.freeze({
-    perform: (operation, request, signal) => observation.run(operation,
-      undefined, () => ingress.perform(operation, request, signal)),
+  const sourcePreparation = preparation?.sourcePreparation();
+  const port = observation === undefined && sourcePreparation === undefined ? ingress : Object.freeze({
+    ...(sourcePreparation === undefined ? {} : {[sourcePreparationPort]: sourcePreparation}),
+    perform: (operation, request, signal) => observation === undefined
+      ? ingress.perform(operation, request, signal)
+      : observation.run(operation, undefined, () => ingress.perform(operation, request, signal)),
   });
   return Object.assign(host, {port, store, journal, hostOperations, checkpoints, diagnostic,
     observation, ownerViews,
@@ -3573,6 +3578,13 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     return observed;
   }});
   const preparation = Object.freeze({host, initialControl,
+    sourcePreparation() {
+      if (mockPreparation === undefined) return undefined;
+      // Missing or retired selected coverage cannot become an unselected SDK
+      // connection. Check the exact wrapper in its private original inventory.
+      assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      return sourceManaged;
+    },
     readEnvironmentSource() {
       return readInitialControlInstallationAsset(control, originals,
         'spec/local-check-environment.json');
