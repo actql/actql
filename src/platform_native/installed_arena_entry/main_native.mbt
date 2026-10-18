@@ -794,6 +794,7 @@ extern "C" fn register_original_process_roots(
 /// original arena acquisition, Root creation, Run admission or VM permission.
 fn main {
   @runtime.register_native_local_journal_capture_roots()
+  @runtime.register_native_local_adoption_binding_roots()
   register_original_local_host_resources_roots()
   register_original_sqlite_database_roots(
     fn(host, library, path, bound) {
