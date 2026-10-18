@@ -133,6 +133,9 @@ export function withSalesforceAccountTargetOriginal(observed, originals, consume
   if (original.failure !== undefined) throw original.failure;
   const check = () => {
     try {
+      if (accountTargetOriginals.get(observed) !== original) {
+        fail('SalesforceAccountTargetOriginalUnavailable');
+      }
       original.signal?.throwIfAborted();
       return withHttpsCredentialRunResponseOriginal(original.response,
         original.control, original.journal, credentialFacts => {

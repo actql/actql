@@ -201,3 +201,28 @@ test('Account target original refuses an earlier confirmed response substituted 
   assert.equal(f.setup.journal.inspect(first.useCid).outcome, 'succeeded');
   assert.equal(f.count(), 1);
 });
+
+test('Account target original refuses retirement during its finisher without changing physical outcome', async t => {
+  const f = await fixture(t);
+  const target = await f.read();
+  assert.throws(() => targets.withSalesforceAccountTargetOriginal(target, f.originals, () => {
+    targets.retireSalesforceAccountTargetOriginal(target);
+    return 'retired result';
+  }), {code: 'SalesforceAccountTargetOriginalUnavailable'});
+  assert.equal(f.setup.journal.inspect(target.useCid).outcome, 'succeeded');
+  assert.equal(f.count(), 1);
+});
+
+test('Account target original keeps cancellation after receive separate from the confirmed Journal outcome', async t => {
+  const f = await fixture(t);
+  const controller = new AbortController();
+  const target = await targets.observeSalesforceAccountConditionalTarget({...f.options(), signal: controller.signal});
+  const primary = new Error('OriginalAbortAfterReceive');
+  assert.throws(() => targets.withSalesforceAccountTargetOriginal(target, f.originals, () => {
+    controller.abort(primary);
+    return 'cancelled result';
+  }), cause => cause === primary);
+  assert.throws(() => targets.withSalesforceAccountTargetOriginal(target, f.originals, () => {}), cause => cause === primary);
+  assert.equal(f.setup.journal.inspect(target.useCid).outcome, 'succeeded');
+  assert.equal(f.count(), 1);
+});
