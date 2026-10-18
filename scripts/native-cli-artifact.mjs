@@ -11,6 +11,7 @@ import {checkoutState} from './packed-client-packages.mjs';
 import {platformKey} from '../packages/native-cli/bin/actql.mjs';
 import {prepareNativeLocalRuntime} from './native-cli-local-runtime.mjs';
 import {assertScalarPairEvidenceFresh} from './native-local-scalar-pair-evidence.mjs';
+import {assertNativeLocalFreshRuntimeRecipe} from './native-cli-default-assets.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -52,8 +53,9 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
   if (localRuntime !== undefined) {
     assert.equal(localRuntime.sourceSha, source.revision, 'Local runtime must belong to this exact source');
     assert.equal(localRuntime.platform, platform, 'Local runtime must match the producer platform');
-    // Verify source-bound scalar witnesses before staging or physical build.
-    // This is neither runtime compatibility nor an adoption permission.
+    // Current fresh originals and the frozen historical proof have distinct
+    // subjects. Historical operational use is fenced by the Native Owner.
+    assertNativeLocalFreshRuntimeRecipe(localRuntime, source.revision, repository);
     assertScalarPairEvidenceFresh(repository);
     await mkdir(destination);
     localMetadata = await prepareNativeLocalRuntime(destination, localRuntime);

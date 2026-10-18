@@ -127,7 +127,7 @@ const changedEdges = Object.freeze({
   'rows-to-graph': [['/dependencies/canonical_value_contract/cid', 'value-contract', '']],
 });
 
-export function loadScalarPairBodies(sourceRoot = repository) {
+function loadReviewedScalarPairBodies(sourceRoot, requireCurrentImplementation) {
   const read = path => readFileSync(resolve(sourceRoot, path));
   const manifest = read(fixtureDirectory + '/manifest.json');
   assert.equal(sha(manifest), '75bee505552e9e6958be5a20bac877b2d69664ba70aad7f7970bc506bfbc992b', 'Changed predecessor fixture metadata');
@@ -143,8 +143,10 @@ export function loadScalarPairBodies(sourceRoot = repository) {
     const oldBytes = gunzipSync(read(fixtureDirectory + '/' + row.fixture));
     assert.equal(oldBytes.length, row.bytes);
     assert.equal(sha(oldBytes), row.sha256);
-    const currentBytes = read(row.path);
-    assert(oldBytes.equals(currentBytes), 'Unknown scalar implementation change: ' + row.path);
+    if (requireCurrentImplementation) {
+      const currentBytes = read(row.path);
+      assert(oldBytes.equals(currentBytes), 'Unknown scalar implementation change: ' + row.path);
+    }
     implementations.push({path: row.path, sha256: row.sha256});
   }
   for (const row of index.records) {
@@ -164,6 +166,16 @@ function replaceExact(body, pointer, before, after) {
   let parent = body;
   for (const part of parts.slice(0, -1)) parent = parent[part];
   parent[parts.at(-1)] = after;
+}
+
+// Frozen proof integrity has a different subject from operational eligibility.
+// No caller can turn either metadata reader into an installed compatibility grant.
+export function loadHistoricalScalarPairBodies(sourceRoot = repository) {
+  return loadReviewedScalarPairBodies(sourceRoot, false);
+}
+
+export function loadScalarPairBodies(sourceRoot = repository) {
+  return loadReviewedScalarPairBodies(sourceRoot, true);
 }
 
 export function verifyScalarPairBodies({old, current}) {
@@ -230,7 +242,7 @@ export function scalarPairAudit(sourceRoot = repository) {
 }
 
 export function scalarPairEvidence(sourceRoot = repository) {
-  const bodies = loadScalarPairBodies(sourceRoot);
+  const bodies = loadHistoricalScalarPairBodies(sourceRoot);
   const records = verifyScalarPairBodies(bodies);
   const currentAssets = reviewedCurrentAssets(sourceRoot);
   const index = JSON.parse(readFileSync(resolve(sourceRoot, fixtureDirectory + '/manifest.json')));
@@ -397,6 +409,8 @@ export function scalarPairHistoricalFixture(sourceRoot = repository) {
     '\n///|\nfn historical_scalar_pair_test_saved_body() -> Bytes {\n  @utf8.encode(\n    ' + JSON.stringify(vector.body) + ',\n  )\n}\n';
 }
 
+// Integrity of the frozen descriptor/body proof, not permission to execute it.
+// loadScalarPairBodies retains the independent current-implementation refusal.
 export function assertScalarPairEvidenceFresh(sourceRoot = repository) {
   assert.equal(readFileSync(resolve(sourceRoot,
     'src/run_publication_host/client_native_local_scalar_pair_evidence.generated.mbt'), 'utf8'),
