@@ -88,8 +88,12 @@ value tree remains allocated, so avoiding a complete wire String does not imply
 constant total memory use. Decimal leaf formatting is bounded by precision 38.
 
 Dates and timestamps follow the [Language calendar rules](../spec/language.md#value-contracts):
-years 0000–9999, valid proleptic Gregorian dates, and UTC timestamps with exactly
-three fractional digits. Offset spellings, leap seconds and invalid dates fail.
+years 0000–9999, valid proleptic Gregorian dates, and exact UTC timestamps with
+three to nine canonical fractional digits. Millisecond-aligned values keep
+exactly their original three digits; only extra trailing fractional zeros are
+omitted. Offset spellings, redundant fractional zeros, leap seconds and invalid
+dates fail authored admission. Vendor normalization is a separate boundary that
+retains the original source.
 The optional text-time profile is not required for this validation.
 
 ## Vector and reference boundaries
@@ -189,3 +193,35 @@ Product tests cover all supported domains, numeric bit preservation, Unicode
 limits, calendar and decimal boundaries, source diagnostics, ownership, global
 budgets, wide objects and depth 10,000 on JS, Wasm and native. Document checks alone
 do not establish runtime or whole-Program conformance.
+
+
+## Exact Timestamp values and clock roles
+
+Timestamp extends the existing Value owner rather than introducing a Connector
+parser or a second temporal type owner. Whole epoch seconds and a bounded
+subsecond remainder can represent the admitted calendar range without an
+overflowing single Int64 epoch-nanosecond quantity or a binary64 approximation.
+Comparison, scalar and recursive ordering, keys and serialization consume the
+same original checked value. Variable-length fractional strings do not have
+chronological UTF-16 order. An internal padded order key is separate from Value
+wire and identity; old millisecond Value, Parameter and saved-input bytes stay
+unchanged. Structural sets and Graph consumers preserve their existing semantic
+order and emitted values, even when the private sort representation changes.
+
+Event clocks retain exact rational milliseconds and the authored payload. The
+ordinary fixed-unit `date_diff` result still truncates its quotient toward zero
+and cannot supply that extended carrier: minus one nanosecond precedes the epoch
+but has a zero ordinary millisecond difference. Exact window membership, negative
+floor/grid arithmetic, watermark equality, session gaps and join ties therefore
+belong to the existing clock consumers. Millisecond-only helpers refuse finer
+fractions instead of silently rounding them. A consumer without that connection
+is an implementation gap, not a restriction on the declared Timestamp domain.
+
+Trusted-now, Credential expiry, authorization deadlines, rollback detection and
+provenance retain their original millisecond contracts and operational issuers.
+Civil Time, timezone-free DateTime and retained numeric offsets are separate
+requirements; a finer UTC value does not supply their representations. Original
+source text, exact projections, comparison/key buffers, decoder/recheck frames,
+encoded output and escaped aliases can overlap within the same existing
+retention and work owners. Parsing limits or a padded key are not capacity,
+authority or physical retirement evidence.
