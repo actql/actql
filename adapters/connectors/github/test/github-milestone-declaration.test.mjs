@@ -15,8 +15,8 @@ test('the normal GitHub declaration admits a nullable milestone title', async ()
   assert.ok(declared.views[0].fields.includes('milestone'));
   const schemas = declared.contracts.map(JSON.parse)
     .filter(contract => contract.kind === 'carrier_schema');
-  assert.equal(schemas.length, 1);
-  assert.deepEqual(schemas[0].body.fields.milestone,
+  assert.equal(schemas.length, 2);
+  for (const schema of schemas) assert.deepEqual(schema.body.fields.milestone,
     {type: 'string', nullable: true});
   const restored = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
     'github-original', 'github', 'github/0.1', wire, declared.catalog_cid));
@@ -33,10 +33,29 @@ test('the ordinary Issue declaration keeps all fifteen exact contracts and its r
   assert.deepEqual([...declared.views[0].fields].sort(), ['number', 'node_id', 'title', 'state',
     'state_reason', 'body', 'author', 'assignees', 'labels', 'milestone', 'comments',
     'created_at', 'updated_at', 'closed_at', 'url'].sort());
-  const schema = declared.contracts.map(JSON.parse).find(value => value.kind === 'carrier_schema');
+  const schema = declared.contracts.map(JSON.parse).find(value => value.kind === 'carrier_schema' && !Object.hasOwn(value.body.fields, 'head'));
   for (const name of ['number', 'comments']) assert.deepEqual(schema.body.fields[name], {nullable: false, type: 'int64'});
   for (const name of ['assignees', 'labels']) assert.deepEqual(schema.body.fields[name],
     {nullable: false, type: 'array', items: {nullable: false, type: 'string'}});
   assert.deepEqual(schema.body.fields.state_reason, {nullable: true, type: 'string'});
   assert.deepEqual(schema.body.fields.url, {nullable: false, type: 'string'});
+});
+
+test('the PullRequest declaration keeps native read types and an inapplicable nullable reason', async () => {
+  const wire = await readFile(new URL('../../../../src/connectors/github/source-views.json', import.meta.url), 'utf8');
+  const original = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
+    'github-original', 'github', 'github/0.1', wire, undefined));
+  const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(original));
+  const view = declared.views.find(view => view.resource === 'pull_requests');
+  assert.ok(view);
+  const schema = declared.contracts.map(JSON.parse).find(value => value.kind === 'carrier_schema' && Object.hasOwn(value.body.fields, 'head'));
+  assert.deepEqual([...view.fields].sort(), ['number', 'node_id', 'title', 'state',
+    'state_reason', 'body', 'author', 'assignees', 'labels', 'milestone', 'comments',
+    'created_at', 'updated_at', 'closed_at', 'url', 'base', 'head', 'draft',
+    'mergeable', 'merged_at', 'merged_by', 'review_decision'].sort());
+  for (const name of ['base', 'head']) assert.deepEqual(schema.body.fields[name], {type: 'string', nullable: false});
+  assert.deepEqual(schema.body.fields.draft, {type: 'bool', nullable: false});
+  assert.deepEqual(schema.body.fields.mergeable, {type: 'bool', nullable: true});
+  assert.deepEqual(schema.body.fields.merged_at, {type: 'timestamp', nullable: true});
+  for (const name of ['merged_by', 'review_decision', 'state_reason']) assert.deepEqual(schema.body.fields[name], {type: 'string', nullable: true});
 });

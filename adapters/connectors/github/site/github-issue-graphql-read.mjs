@@ -59,14 +59,30 @@ function checkLimits(limits) {
 // current read decision; `chargePage(body)` charges each received body before
 // provider parsing or refusal. `consumePage(rows, page, {charge})` consumes
 // that exact admission ticket before the next request.
-export async function readGitHubIssuesByNode({moon, repository,
+export function readGitHubIssuesByNode(options) {
+  return readGitHubRowsByNode(options, false);
+}
+
+// Same physical acquisition and original-prefix Owner; only the typed vendor
+// codec family changes. This selects no new credential operation or grant.
+export function readGitHubPullRequestsByNode(options) {
+  return readGitHubRowsByNode(options, true);
+}
+
+async function readGitHubRowsByNode({moon, repository,
   filters = {state: 'all', labels: []}, credential, callResource,
-  authorizationFor, limits, chargePage, consumeObservation, consumePage, signal}) {
-  if (!moon || typeof moon.githubIssuesRequestJson !== 'function' ||
-      ['githubIssuePageReadBegin', 'githubIssuePageReadNextRequestJson',
-        'githubIssuePageReadAccept', 'githubIssuePageReadFinishJson',
-        'githubIssuePageReadClose', 'githubGraphqlReadIssueJson']
-        .some(name => typeof moon[name] !== 'function') ||
+  authorizationFor, limits, chargePage, consumeObservation, consumePage, signal}, pullRequests) {
+  const family = pullRequests ? 'PullRequest' : 'Issue';
+  const operations = moon && Object.freeze({
+    request: moon[pullRequests ? 'githubPullRequestsRequestJson' : 'githubIssuesRequestJson'],
+    begin: moon[`github${family}PageReadBegin`],
+    next: moon[`github${family}PageReadNextRequestJson`],
+    accept: moon[`github${family}PageReadAccept`],
+    finish: moon[`github${family}PageReadFinishJson`],
+    close: moon[`github${family}PageReadClose`],
+  });
+  if (!moon || Object.values(operations).some(value => typeof value !== 'function') ||
+      typeof moon.githubGraphqlReadIssueJson !== 'function' ||
       typeof authorizationFor !== 'function' || !credential ||
       typeof callResource !== 'function' ||
       (chargePage !== undefined && typeof chargePage !== 'function') ||
@@ -83,7 +99,7 @@ export async function readGitHubIssuesByNode({moon, repository,
   const grantIdentity = control.identity;
   const prefix = {responses: [], pages: [], credential: originalCredential,
     repository: Object.freeze({...repository}), limits: owned,
-    chargePage, consumeObservation, consumePage};
+    chargePage, consumeObservation, consumePage, operations, moon};
   let prefixFailure;
   const checkPrefix = () => {
     if (prefixFailure !== undefined) throw prefixFailure;
@@ -102,9 +118,10 @@ export async function readGitHubIssuesByNode({moon, repository,
   const inputLabels = filters.labels ?? [];
   const filterState = filters.state;
   const filterSince = filters.since;
-  if (!['open', 'closed', 'all'].includes(filterState) ||
+  const states = pullRequests ? ['open', 'closed', 'merged', 'all'] : ['open', 'closed', 'all'];
+  if (!states.includes(filterState) ||
       !nativeArrayIsArray(inputLabels) ||
-      (filterSince !== undefined && typeof filterSince !== 'string')) {
+      (filterSince !== undefined && (pullRequests || typeof filterSince !== 'string'))) {
     fail('InvalidGitHubReadFilters');
   }
   const labelCount = inputLabels.length;
@@ -210,22 +227,22 @@ export async function readGitHubIssuesByNode({moon, repository,
   try {
     while (pending) {
       signal?.throwIfAborted();
-      const request = JSON.parse(moon.githubIssuesRequestJson(repository.nodeId,
-        owned.perPage, after !== undefined, after ?? '', filters.state, labels,
-        filters.since !== undefined, filters.since ?? ''));
+      const arguments_ = [repository.nodeId, owned.perPage, after !== undefined,
+        after ?? '', filters.state, labels];
+      if (!pullRequests) arguments_.push(filters.since !== undefined, filters.since ?? '');
+      const request = JSON.parse(Reflect.apply(operations.request, moon, arguments_));
       if (request.refused) stopped('InvalidGitHubReadRequest',
         {refusal: request.refused});
       const {response, charge} = await exchange(request.body);
-      const original = decoded(moon.githubIssuePageReadBegin(response.body,
+      const original = decoded(Reflect.apply(operations.begin, moon, [response.body,
         owned.maxBytes, owned.maxNodes, owned.maxDepth, owned.perPage,
-        owned.maxPages - requests + 1, repository.nodeId, repository.databaseId, repository.nameWithOwner));
+        owned.maxPages - requests + 1, repository.nodeId, repository.databaseId, repository.nameWithOwner]));
       prefix.pages.push(original);
       let current;
       let rowCharge = charge;
       try {
         for (;;) {
-          const next = JSON.parse(decoded(moon.githubIssuePageReadNextRequestJson(
-            original, owned.perPage)));
+          const next = JSON.parse(decoded(Reflect.apply(operations.next, moon, [original, owned.perPage])));
           if (next.body === null) break;
           // An accounted child body has its own admission ticket. Never hide it
           // as another row page or accept it without the original observation port.
@@ -249,14 +266,14 @@ export async function readGitHubIssuesByNode({moon, repository,
           rowCharge = undefined;
           const child = await exchange(next.body);
           rowCharge = child.charge;
-          decoded(moon.githubIssuePageReadAccept(original, child.response.body));
+          decoded(Reflect.apply(operations.accept, moon, [original, child.response.body]));
         }
         checkPrefix();
-        current = JSON.parse(decoded(moon.githubIssuePageReadFinishJson(original)));
+        current = JSON.parse(decoded(Reflect.apply(operations.finish, moon, [original])));
       } finally {
         // Codec alias retirement does not acknowledge a transport, RowRun or
         // physical resource. Their original owners retain those duties.
-        moon.githubIssuePageReadClose(original);
+        Reflect.apply(operations.close, moon, [original]);
       }
       if (rows.length + current.rows.length > owned.maxRows) {
         stopped('GitHubReadRowLimit');

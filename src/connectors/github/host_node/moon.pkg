@@ -5,3 +5,7 @@ pkgtype(kind: "foreign_library")
 import {
   "actql/actql/connectors/github/catalog",
 }
+
+import {
+  "moonbitlang/core/encoding/utf8",
+} for "wbtest"
