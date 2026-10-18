@@ -52,7 +52,7 @@ typedef struct {
   void *dynamic_library;
   char *error;
   int32_t diagnostic_ceiling;
-  uint32_t active_hashes;
+  uint32_t pending_hashes;
   bool closing;
   bool close_unconfirmed;
   actql_bio_new_mem_buf_fn bio_new_mem_buf;
@@ -147,7 +147,8 @@ static void actql_native_signature_library_finalize(void *value) {
   actql_native_signature_library *library = value;
   // Finalization is best effort, never an application cleanup acknowledgement.
   // In particular it cannot retry an unconfirmed explicit dlclose.
-  if (library->dynamic_library != NULL && !library->close_unconfirmed) {
+  if (library->dynamic_library != NULL && !library->close_unconfirmed &&
+      library->pending_hashes == 0) {
     if (dlclose(library->dynamic_library) == 0) library->dynamic_library = NULL;
   }
   free(library->error);
@@ -164,7 +165,7 @@ int32_t actql_native_signature_library_close(
   library->closing = true;
   if (library->close_unconfirmed) return 3;
   if (library->dynamic_library == NULL) return 0;
-  if (library->active_hashes != 0) return 1;
+  if (library->pending_hashes != 0) return 1;
   dlerror();
   if (dlclose(library->dynamic_library) != 0) {
     const char *issue = dlerror();
@@ -276,18 +277,22 @@ typedef struct {
   bool closed;
 } actql_native_sha256;
 
-static void actql_native_sha256_retire_context(actql_native_sha256 *hash) {
+static void actql_native_sha256_retire_context(
+  actql_native_sha256 *hash, bool acknowledge
+) {
   if (hash->context != NULL) {
     hash->free_context(hash->context);
     hash->context = NULL;
-    hash->library->active_hashes -= 1;
+    if (acknowledge) hash->library->pending_hashes -= 1;
   }
   hash->closed = true;
 }
 
 static void actql_native_sha256_finalize(void *value) {
   actql_native_sha256 *hash = value;
-  actql_native_sha256_retire_context(hash);
+  // A lost managed receiver is not an explicit context ACK. Its physical
+  // best-effort free cannot let a retained parent Library infer release.
+  actql_native_sha256_retire_context(hash, false);
   if (hash->library != NULL) moonbit_decref(hash->library);
   hash->library = NULL;
 }
@@ -295,7 +300,7 @@ static void actql_native_sha256_finalize(void *value) {
 MOONBIT_FFI_EXPORT
 bool actql_native_signature_sha256_close(actql_native_sha256 *hash) {
   if (hash == NULL) return false;
-  actql_native_sha256_retire_context(hash);
+  actql_native_sha256_retire_context(hash, true);
   return true;
 }
 
@@ -308,15 +313,15 @@ void *actql_native_signature_sha256_new(
   );
   memset(hash, 0, sizeof(*hash));
   if (!actql_signature_library_available(library) ||
-      library->active_hashes == UINT32_MAX) return hash;
+      library->pending_hashes == UINT32_MAX) return hash;
   hash->library = library;
   moonbit_incref(library);
   hash->context = library->evp_md_ctx_new();
   hash->free_context = library->evp_md_ctx_free;
-  if (hash->context != NULL) library->active_hashes += 1;
+  if (hash->context != NULL) library->pending_hashes += 1;
   if (hash->context == NULL ||
       library->evp_digest_init_ex(hash->context, library->evp_sha256(), NULL) != 1) {
-    actql_native_sha256_retire_context(hash);
+    actql_native_sha256_retire_context(hash, true);
   }
   return hash;
 }
@@ -414,7 +419,7 @@ moonbit_bytes_t actql_native_signature_sha256_finish(
   unsigned char digest[32];
   unsigned int length = 0;
   int finished = hash->library->evp_digest_final_ex(hash->context, digest, &length);
-  actql_native_sha256_retire_context(hash);
+  actql_native_sha256_retire_context(hash, true);
   if (finished != 1 || length != sizeof(digest)) return result;
   result = moonbit_make_bytes_raw(32);
   memcpy(result, digest, 32);

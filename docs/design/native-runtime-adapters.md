@@ -438,5 +438,7 @@ after those physical contexts retire. Escaped inert managed references,
 application material and Host/domain retirement remain separate obligations.
 An unconfirmed dynamic close is sticky and cannot authorize an automatic retry,
 replacement load or release acknowledgement. Finalizers are best effort and do
-not supply either explicit acknowledgement. Existing loading selection,
+not supply either explicit acknowledgement. A lost unfinished context leaves
+its retained parent Library cleanup pending even if a finalizer frees native
+memory; only the original explicit context operation can acknowledge it. Existing loading selection,
 credential authority and numerical resource admission are unchanged.
