@@ -266,14 +266,18 @@ fn message_runtime_cell(
 fn ordinary_history_without_thread(row : @decode.ObjectView) -> Bool {
   // Only actual absent keys support the adopted non-thread projection. An
   // explicit count wins, including a positive count without thread metadata.
-  if @decode.field(row, "reply_count") is not Missing ||
-    @decode.field(row, "thread_ts") is not Missing ||
-    @decode.field(row, "subtype") is not Missing {
+  if !(@decode.field(row, "reply_count") is Missing) ||
+    !(@decode.field(row, "thread_ts") is Missing) ||
+    !(@decode.field(row, "subtype") is Missing) {
     return false
   }
-  guard @decode.lookup(row, "text") is Some(text) && @decode.text(text) is Ok(_) else { return false }
+  guard @decode.lookup(row, "text") is Some(text) && @decode.text(text) is Ok(_) else {
+    return false
+  }
   for name in ["event_ts", "message", "previous_message", "deleted_ts"] {
-    if @decode.field(row, name) is not Missing { return false }
+    if !(@decode.field(row, name) is Missing) {
+      return false
+    }
   }
   true
 }

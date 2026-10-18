@@ -111,8 +111,13 @@ pub fn slack_message_history_request_matches(
   history : SlackMessageHistory,
   request : SlackMessageHistoryRequest,
 ) -> Bool {
-  history.phase == Pending && physical_equal(history, request.history) &&
-    match history.pending { Some(original) => physical_equal(original, request); None => false }
+  if history.phase != Pending || !physical_equal(history, request.history) {
+    return false
+  }
+  match history.pending {
+    Some(original) => physical_equal(original, request)
+    None => false
+  }
 }
 
 ///|

@@ -46,18 +46,35 @@ test "Slack explicit reply counts win without inventing a thread contradiction" 
   for token in ["0", "2", "9223372036854775807", "null"] {
     let history = message_history()
     let request = begin_slack_message_history(history).unwrap()
-    let page = history_admit(history, request,
-      "[{\"type\":\"message\",\"ts\":\"1.000000\",\"text\":\"x\",\"reply_count\":" + token + "}]",
-      ",\"has_more\":false").unwrap()
+    let page = history_admit(
+      history,
+      request,
+      "[{\"type\":\"message\",\"ts\":\"1.000000\",\"text\":\"x\",\"reply_count\":" +
+      token +
+      "}]",
+      ",\"has_more\":false",
+    ).unwrap()
     let expected = if token == "null" { "null" } else { "\"" + token + "\"" }
-    assert_eq(message_wire(page, ["reply_count"]), "[{\"reply_count\":" + expected + "}]")
+    assert_eq(
+      message_wire(page, ["reply_count"]),
+      "[{\"reply_count\":" + expected + "}]",
+    )
   }
   for token in ["-1", "1.01", "9223372036854775808", "\"0\"", "false"] {
     let history = message_history()
     let request = begin_slack_message_history(history).unwrap()
-    assert_true(history_admit(history, request,
-      "[{\"type\":\"message\",\"ts\":\"1.000000\",\"text\":\"x\",\"reply_count\":" + token + "}]",
-      ",\"has_more\":false) is Err(_), msg=token)
+    assert_true(
+      history_admit(
+        history,
+        request,
+        "[{\"type\":\"message\",\"ts\":\"1.000000\",\"text\":\"x\",\"reply_count\":" +
+        token +
+        "}]",
+        ",\"has_more\":false",
+      )
+      is Err(_),
+      msg=token,
+    )
   }
 }
 
@@ -100,18 +117,33 @@ test "Slack history requests are nominal single-use and fail closed on malformed
   let request = begin_slack_message_history(history).unwrap()
   let copy = begin_slack_message_history(foreign).unwrap()
   assert_false(slack_message_history_request_matches(history, copy))
-  assert_true(admit_slack_message_history_page(history, copy, b"{}") is Err(ForeignHistoryRequest))
+  assert_true(
+    admit_slack_message_history_page(history, copy, b"{}")
+    is Err(ForeignHistoryRequest),
+  )
   assert_true(slack_message_history_request_matches(history, request))
-  assert_true(begin_slack_message_history(history) is Err(ForeignHistoryRequest))
-  assert_true(admit_slack_message_history_page(history, request, b"{") is Err(_))
+  assert_true(
+    begin_slack_message_history(history) is Err(ForeignHistoryRequest),
+  )
+  assert_true(
+    admit_slack_message_history_page(history, request, b"{") is Err(_),
+  )
   assert_false(slack_message_history_request_matches(history, request))
-  assert_true(admit_slack_message_history_page(history, request,
-    b"{\"ok\":true,\"has_more\":false,\"messages\":[]}") is Err(ForeignHistoryRequest))
+  assert_true(
+    admit_slack_message_history_page(
+      history, request, b"{\"ok\":true,\"has_more\":false,\"messages\":[]}",
+    )
+    is Err(ForeignHistoryRequest),
+  )
   let duplicate = message_history()
   let first = begin_slack_message_history(duplicate).unwrap()
-  assert_true(history_admit(duplicate, first,
-    "[{\"type\":\"message\",\"ts\":\"1.000000\",\"text\":\"x\",\"reply_count\":0,\"reply_count\":1}]",
-    ",\"has_more\":false) is Err(_))
+  assert_true(
+    history_admit(
+      duplicate, first, "[{\"type\":\"message\",\"ts\":\"1.000000\",\"text\":\"x\",\"reply_count\":0,\"reply_count\":1}]",
+      ",\"has_more\":false",
+    )
+    is Err(_),
+  )
 }
 
 ///|
