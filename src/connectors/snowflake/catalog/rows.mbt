@@ -74,7 +74,7 @@ fn project_cell(
         text[29] == 'Z' else {
         return Err(InvalidCell(column.name))
       }
-      for index in 20 + (scale..<29) {
+      for index in (20 + scale)..<29 {
         if text[index] != '0' {
           return Err(ValueBeyondScale(column.name))
         }

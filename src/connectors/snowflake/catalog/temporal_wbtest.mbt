@@ -164,7 +164,8 @@ test "civil and retained-offset timestamp types remain explicit unfinished carri
         test_body(columns, "[[\"1970-01-01T00:00:00.000000000Z\"]]"),
         test_limits(),
       )
-      is Err(UnsupportedColumn("UNFINISHED", kind)),
+      is Err(UnsupportedColumn("UNFINISHED", observed)) &&
+      observed == kind,
     )
   }
 }
