@@ -83,7 +83,7 @@ const selected = module.isPreloading === true &&
 // Requiring the actual generated Source here precedes entry imports; loading a
 // similarly shaped caller object later cannot replace this module original.
 const initialControlPackageOriginal = selected && eagerSdkStartup && publicPreload !== undefined
-  ? require('./initial-control-package-original.cjs') : undefined;
+  ? require('./initial-control-package-original.cjs').imageInventory : undefined;
 
 let startup;
 if (selected) {

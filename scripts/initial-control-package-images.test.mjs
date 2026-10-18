@@ -37,7 +37,7 @@ function fixture(t) {
   put('packages/local-node/_build/js/release/build/' + runtimePath,
     'export const common = "independent-runtime-fixture";\n');
   const inputs = {runtimeFiles: [runtimePath]};
-  const absent = Buffer.from("'use strict';\nmodule.exports = undefined;\n");
+  const absent = Buffer.from("'use strict';\nmodule.exports = Object.freeze({imageInventory:undefined});\n");
   const outputs = new Map([[initialControlPackageOriginal, absent],
     ['adapters/host-node/embedded-local.mjs', Buffer.from('export function originalHost() {}\n')],
     ['spec/selected.json', Buffer.from('{"original":"exact-data"}\n')]]);
@@ -46,7 +46,7 @@ function fixture(t) {
   const read = bytes => {
     const module = {exports: undefined};
     runInNewContext(bytes.toString('utf8'), {module});
-    return JSON.parse(JSON.stringify(module.exports));
+    return JSON.parse(JSON.stringify(module.exports.imageInventory));
   };
   return {root, destination, put, inputs, outputs, absent, options, render, read};
 }
@@ -159,4 +159,19 @@ test('an aliased runtime ancestor cannot be mistaken for a regular selected file
   renameSync(parent, renamed);
   symlinkSync(renamed, parent);
   assert.throws(f.render, /AliasedInitialControlRuntime/);
+});
+
+test('an escaped generated module reference cannot mutate any original image or dependency fact', t => {
+  const f = fixture(t), module = {exports: undefined};
+  runInNewContext(f.render().toString('utf8'), {module});
+  const original = module.exports.imageInventory;
+  const visit = value => {
+    if (value !== null && typeof value === 'object') {
+      assert.ok(Object.isFrozen(value));
+      for (const child of Object.values(value)) visit(child);
+    }
+  };
+  visit(module.exports);
+  assert.equal(Reflect.set(original.images[0], 'sha256', '0'.repeat(64)), false);
+  assert.equal(Reflect.set(original.packages[0].images[0], 'bytes', 0), false);
 });
