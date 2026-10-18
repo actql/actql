@@ -119,6 +119,11 @@ import {installRunStateAuthority, installRunStateService,
   inspectAuthorizedRunState} from '../host-common/run-state-access.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+export {
+  prepareLocalPublicationStoreOwnership as prepareOriginalHostPublicationOwnership,
+  assertOriginalPreparedLocalPublicationStoreOwnership as assertOriginalHostPublicationOwnershipCurrent,
+  closePreparedLocalPublicationStoreOwnership as closeOriginalHostPublicationOwnership,
+} from '../store-local/publication-store.mjs';
 import {prepareHostJournalInstallation} from './node-host-journal-installation.mjs';
 import * as publicationStoreModule from '../store-local/publication-store.mjs';
 import {createLocalRetainedStore} from '../store-local/files.mjs';
