@@ -45,7 +45,27 @@ fn bigquery_signed64_preparation() -> @bigquery_read.PreparedRead raise {
             LocalInput(_, _) => fail("BigQuery Signed64 Program LocalInput")
             Import(_, _) => fail("BigQuery Signed64 Program Import")
             Results(_, _) => fail("BigQuery Signed64 Program Results")
-            Order(_, _) => fail("BigQuery Signed64 Program Order")
+            Order(stage, PipelineOrder(issue)) =>
+              fail(
+                "BigQuery Signed64 order pipeline " +
+                stage.to_string() +
+                ": " +
+                @debug.to_string(issue.kind),
+              )
+            Order(stage, ProducerOrder(issue)) =>
+              fail(
+                "BigQuery Signed64 producer order " +
+                stage.to_string() +
+                ": " +
+                @debug.to_string(issue.issue.kind),
+              )
+            Order(stage, ResultOrder(issue)) =>
+              fail(
+                "BigQuery Signed64 result order " +
+                stage.to_string() +
+                ": " +
+                @debug.to_string(issue.kind),
+              )
             Ports(_, _) => fail("BigQuery Signed64 Program Ports")
             TableInputs(_, _) => fail("BigQuery Signed64 Program TableInputs")
             Wiring(_) => fail("BigQuery Signed64 Program Wiring")
