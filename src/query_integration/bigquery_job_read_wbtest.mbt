@@ -325,9 +325,7 @@ test "BigQuery malformed status and duplicate Job fields keep charged original w
     body in [
       @utf8.encode("{\"kind\":\"bigquery#job\"}"),
       @utf8.encode(
-        @utf8.decode(bigquery_job_status("DONE"))
-        .unwrap()
-        .replace(
+        @utf8.decode(bigquery_job_status("DONE")).replace(
           old="\"state\":\"DONE\"",
           new="\"state\":\"DONE\",\"state\":\"RUNNING\"",
         ),
