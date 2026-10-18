@@ -173,10 +173,11 @@ fn read_field(state : WatermarkState) -> Result[Unit, WatermarkIssue] {
 ///|
 fn classify_record(state : WatermarkState) -> Result[Bool, WatermarkIssue] {
   guard state.time is Some(time) &&
-    @value.event_time_milliseconds(time, state.timestamp) is Some(value) else {
+    event_window_coordinate(time, state.timestamp) is Some(value) &&
+    @grid.from_finite_number(state.watermark) is Some(threshold) else {
     return Err(InvalidTime(state.record))
   }
-  let late = value < state.watermark
+  let late = @grid.compare_coordinates(value, threshold) < 0
   if late && state.drops_late {
     state.fields = []
     state.time = None

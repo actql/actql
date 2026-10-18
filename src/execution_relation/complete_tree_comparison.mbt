@@ -1,6 +1,7 @@
 ///|
 priv enum CompleteTreeTextOrder {
   Utf16Order
+  TimestampOrder
   DecimalOrder(@admitted.DecimalValue, @admitted.DecimalValue)
 }
 
@@ -201,9 +202,10 @@ fn advance_complete_tree_comparison(
           VectorMembers(left, right, 0, count)
         }
         (@admitted.Text(left), @admitted.Text(right))
-        | (@admitted.Date(left), @admitted.Date(right))
-        | (@admitted.Timestamp(left), @admitted.Timestamp(right)) =>
+        | (@admitted.Date(left), @admitted.Date(right)) =>
           complete_tree_text_frame(left, right)
+        (@admitted.Timestamp(left), @admitted.Timestamp(right)) =>
+          complete_tree_text_frame(left, right, order=TimestampOrder)
         (@admitted.Decimal(left), @admitted.Decimal(right)) =>
           complete_tree_text_frame(
             left.coefficient,
@@ -339,6 +341,20 @@ fn advance_complete_tree_comparison(
       Ok(None)
     }
     TextUnits(left, right, text, order) => {
+      if text.phase == 3 && order is TimestampOrder {
+        // Both original strings have been charged. Advance virtual fractional
+        // zeros one unit at a time, retaining the original bounded cursor.
+        let index = text.offset
+        if index == 29 {
+          return Ok(complete_tree_result(cursor, 0))
+        }
+        let a = if index < left.length() - 1 { left[index] } else { '0' }
+        let b = if index < right.length() - 1 { right[index] } else { '0' }
+        text.offset += 1
+        return if a == b { Ok(None) } else {
+          Ok(complete_tree_result(cursor, if a < b { -1 } else { 1 }))
+        }
+      }
       if text.phase == 3 && order is DecimalOrder(a, b) {
         let (compared, next) = complete_tree_decimal_step(a, b, text.offset)
         text.offset = next
