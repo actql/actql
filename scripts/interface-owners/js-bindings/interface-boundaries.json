@@ -58550,7 +58550,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "ecb21f2140c92f97a11fda2f0bcfad4b82ad2b151bde27ec7ec230976faa2e6c",
+      "sha256": "700f14ef4a1489a6f4655277f3b261923c23dca88cc0a8f84c3e654327410a71",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -59182,6 +59182,11 @@
             "invalidCode"
           ],
           "async": true
+        },
+        {
+          "name": "loadRowSourceCredentialCustody/loadRowSourceCredentialCustody",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openRowSourceCredentialCustody",
@@ -61449,7 +61454,8 @@
         },
         {
           "operations": [
-            "loadRowSourceCredentialCustody"
+            "loadRowSourceCredentialCustody",
+            "loadRowSourceCredentialCustody/loadRowSourceCredentialCustody"
           ],
           "exports": [
             "loadRowSourceCredentialCustody"
