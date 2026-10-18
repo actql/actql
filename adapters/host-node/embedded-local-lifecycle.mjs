@@ -224,6 +224,10 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         if (opened.leases !== 0) { finished = true; return; }
         const host = await opened.host;
         await Promise.allSettled([...opened.handling.keys()]);
+        if ((opened.sourceProducerPending ?? 0) !== 0) {
+          throw Object.assign(new Error('InstalledSourceProducerCleanupPending'),
+            {code: 'InstalledSourceProducerCleanupPending'});
+        }
         try {
           await opened.shutdown.close();
           if (!opened.finalized) {
@@ -273,6 +277,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
           let settled;
           const pending = new Promise(resolve => {settled = resolve;});
           sourceProducers.set(receipt, {pending, settled});
+          opened.sourceProducerPending = (opened.sourceProducerPending ?? 0) + 1;
           handling.add(pending);
           opened.handling.set(pending, undefined);
           return receipt;
@@ -296,6 +301,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
             // cuts only producer aliases; it grants no physical cleanup ACK.
             const result = sourcePreparation.finishSourceProducer(receipt, terminal);
             sourceProducers.delete(receipt);
+            opened.sourceProducerPending--;
             return result;
           } finally {
             producer.settled();

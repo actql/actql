@@ -27,9 +27,10 @@ async function fixture(receiver, perform) {
   const host = {port, dispatchOwner: {drain() {}}, retireTerminalEffects() {},
     journal: {close() {}}, store: {close() {storeCloses++;}}};
   const registry = createEmbeddedHostRegistry((left, right) => left === right);
-  const client = await registry.connect('/original/source', 'same', async () => host,
+  const acquire = () => registry.connect('/original/source', 'same', async () => host,
     {mode: 'local', owner: 'local'});
-  return {client, port, get storeCloses() {return storeCloses;}, get sends() {return sends;}};
+  const client = await acquire();
+  return {client, acquire, port, get storeCloses() {return storeCloses;}, get sends() {return sends;}};
 }
 
 test('installed Host lease delivers the original synchronous Source refusal before option reads', async () => {
@@ -106,4 +107,26 @@ test('close racing the first producer retirement retains the same retry and neve
   assert.equal(finishes, 1); assert.equal(f.sends, 1); assert.equal(f.storeCloses, 0);
   await f.client.close();
   assert.equal(finishes, 2); assert.equal(f.sends, 1); assert.equal(f.storeCloses, 1);
+});
+
+test('a sibling last lease cannot release another lease original pending Source producer', async () => {
+  let finishes = 0, allowRetirement = false;
+  const receipt = {};
+  const f = await fixture({beforeSourceSnapshot() {return receipt;},
+    bindSourceSnapshot() {}, bindSourceRequest() {}, finishSourceProducer(original) {
+      assert.equal(original, receipt); finishes++;
+      if (!allowRetirement) throw new Error('OriginalProducerStillRetained');
+    }}, request => readySubmissionAttempt(request, admission));
+  const sibling = await f.acquire();
+  await assert.rejects(f.client.startSource('SELECT 1 AS n', {format: 'sql',
+    submissionRef: originalSubmission('sibling-source-custody')}), {code: 'ClientCleanupPending'});
+  await assert.rejects(f.client.close(), {code: 'ClientCleanupPending'});
+  // The first lease still holds its original cleanup even if its retry failed.
+  // Releasing a different lease cannot acknowledge those aliases.
+  await assert.rejects(sibling.close(), {code: 'ClientCleanupPending'});
+  assert.equal(f.storeCloses, 0); assert.equal(f.sends, 1); assert.equal(finishes, 2);
+  allowRetirement = true;
+  await f.client.close();
+  await sibling.close();
+  assert.equal(f.storeCloses, 1); assert.equal(f.sends, 1); assert.equal(finishes, 3);
 });
