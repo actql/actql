@@ -16771,7 +16771,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -16878,7 +16878,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -58847,6 +58847,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ],
             "inputsOutputs": [
@@ -58869,6 +58881,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ],
             "identity": [
@@ -58891,6 +58915,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ],
             "ownership": [
@@ -58913,6 +58949,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ],
             "synchronization": [
@@ -58935,6 +58983,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ],
             "failure": [
@@ -58957,6 +59017,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ],
             "cancellation": [
@@ -58979,6 +59051,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ],
             "resources": [
@@ -59001,6 +59085,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ],
             "extension": [
@@ -59023,6 +59119,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ],
             "verification": [
@@ -59045,6 +59153,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ]
           }
