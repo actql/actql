@@ -78,7 +78,9 @@ Unsupported value carriers remain named refusals in the existing catalog codec.
   typed refusal. Request material is not dispatch authority or a Source grant.
 - Identity: the same acquisition, RowRun, projection, original Job and preceding
   page token remain bound. Equal schema bytes do not replace the acquisition's
-  nominal Contract; runtime values are rechecked by its existing Owner.
+  nominal Contract; runtime values are rechecked by its existing Owner. The live
+  Job-to-RowRun observation compares both the original RowRun and acquisition
+  by identity; it cannot turn a matching body, Job ID or cold record into custody.
 - Ownership: owned reads retain their original reservation and failed-start
   cleanup carrier. Borrowed readers cannot finish, capture or close the Host's
   Run. Retirement requires the original physical observer and Common cleanup.

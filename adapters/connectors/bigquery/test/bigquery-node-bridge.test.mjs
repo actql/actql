@@ -122,3 +122,24 @@ test('normal compiled cold Job record refuses variants and cannot replace foreig
  assert.equal(f.row.usage()[3],0n);assert.equal(foreign.row.usage()[3],0n);
  f.row.assertNoCapture();foreign.row.assertNoCapture();
 });
+
+test('compiled Job correspondence refuses copied foreign Unknown and retired original frames', async t => {
+ const f=await original(t), foreign=await original(t);
+ const matches=(job,run,acquisition)=>moon.clientProgramBigQueryJobReadMatchesRowRun(job,run,acquisition);
+ const before=f.row.usage();
+ assert.equal(matches(f.session,f.row.run,f.row.acquisition),true);
+ assert.equal(matches(f.session,foreign.row.run,f.row.acquisition),false);
+ assert.equal(matches(f.session,f.row.run,foreign.row.acquisition),false);
+ assert.equal(matches(foreign.session,f.row.run,f.row.acquisition),false);
+ assert.equal(matches(f.session,{...f.row.run},f.row.acquisition),false);
+ assert.equal(matches(f.session,f.row.run,{...f.row.acquisition}),false);
+ assert.deepEqual(f.row.usage(),before);
+ const request=checked(moon.clientProgramBigQueryNextRequest(f.session));
+ checked(moon.clientProgramBigQueryAttemptRequest(f.session,request));
+ checked(moon.clientProgramBigQueryRecordResponseLoss(f.session,request));
+ assert.equal(matches(f.session,f.row.run,f.row.acquisition),false);
+ assert.equal(matches(foreign.session,foreign.row.run,foreign.row.acquisition),true);
+ checked(moon.clientProgramBigQueryRetireReadBorrow(foreign.read));
+ assert.equal(matches(foreign.session,foreign.row.run,foreign.row.acquisition),false);
+ f.row.assertNoCapture();foreign.row.assertNoCapture();
+});

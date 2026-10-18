@@ -6,7 +6,7 @@
       "responsibilityFacet": "primary",
       "role": "generated-binding",
       "owner": "Same-runtime BigQuery and Common wrappers; RelA source is the generated mirror of the same Owner",
-      "sha256": "051283ed08064f810df6ee448dd277675e618ccdebf209a44a7007db7a4efcea",
+      "sha256": "c3a40d0c0639bdd3b9382d9da1bfba3e772d107559e6b3444ee87d95d4ffe654",
       "exports": [],
       "operations": [
         {
@@ -72,6 +72,10 @@
         {
           "name": "client_program_bigquery_job_original_record_wire",
           "declaration": "client_program_bigquery_job_original_record_wire ( value : @ bigquery_read . JobOriginalRecord , ) - > String"
+        },
+        {
+          "name": "client_program_bigquery_job_read_matches_row_run",
+          "declaration": "client_program_bigquery_job_read_matches_row_run ( value : @ bigquery_read . JobRead , run : @ client_row_source_host . RowRun , acquisition : @ client_row_source_host . RowAcquisition , ) - > Bool"
         },
         {
           "name": "client_program_bigquery_job_record_limits",
@@ -150,6 +154,7 @@
             "client_program_bigquery_job_original_record_matches_request",
             "client_program_bigquery_job_original_record_material",
             "client_program_bigquery_job_original_record_wire",
+            "client_program_bigquery_job_read_matches_row_run",
             "client_program_bigquery_job_record_limits",
             "client_program_bigquery_job_remote_done",
             "client_program_bigquery_next_request",
@@ -236,7 +241,7 @@
       "responsibilityFacet": "primary",
       "role": "generated-binding",
       "owner": "Same-runtime BigQuery and Common wrappers; RelA source is the generated mirror of the same Owner",
-      "sha256": "8df6031674cce04ebe8d208b56d7698f7758c3f6febc38987c3349cf07c42bd7",
+      "sha256": "be443e873fd8e3ce5f4baf02cdfc1a238752c41ecd56f02936766b3941d5f57b",
       "exports": [],
       "operations": [
         {
@@ -302,6 +307,10 @@
         {
           "name": "client_program_bigquery_job_original_record_wire",
           "declaration": "client_program_bigquery_job_original_record_wire ( value : @ bigquery_read . JobOriginalRecord , ) - > String"
+        },
+        {
+          "name": "client_program_bigquery_job_read_matches_row_run",
+          "declaration": "client_program_bigquery_job_read_matches_row_run ( value : @ bigquery_read . JobRead , run : @ client_row_source_host . RowRun , acquisition : @ client_row_source_host . RowAcquisition , ) - > Bool"
         },
         {
           "name": "client_program_bigquery_job_record_limits",
@@ -380,6 +389,7 @@
             "client_program_bigquery_job_original_record_matches_request",
             "client_program_bigquery_job_original_record_material",
             "client_program_bigquery_job_original_record_wire",
+            "client_program_bigquery_job_read_matches_row_run",
             "client_program_bigquery_job_record_limits",
             "client_program_bigquery_job_remote_done",
             "client_program_bigquery_next_request",

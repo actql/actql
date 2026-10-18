@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "src/connectors/bigquery/read/job.mbt",
-      "sha256": "d6bf10aa5b5452d147c698059f6c1f2306bc301f496ceb9cf05502a37cddb029",
+      "sha256": "9b47af11d6042d73e15d20b821eefceac41e0824e9f604c83ae3bab3991d0f70",
       "exports": [],
       "operations": [
         {
@@ -45,6 +45,10 @@
         {
           "name": "job_read_complete",
           "declaration": "job_read_complete ( value : JobRead ) - > Bool"
+        },
+        {
+          "name": "job_read_matches_row_run",
+          "declaration": "job_read_matches_row_run ( value : JobRead , run : @ rows . RowRun , acquisition : @ rows . RowAcquisition , ) - > Bool"
         },
         {
           "name": "job_read_original",
@@ -104,6 +108,7 @@
             "job_live",
             "job_original_request",
             "job_read_complete",
+            "job_read_matches_row_run",
             "job_read_original",
             "job_read_remote_done",
             "job_request_body",
@@ -183,7 +188,7 @@
     },
     {
       "module": "src/connectors/bigquery/read/pkg.generated.mbti",
-      "sha256": "a868d384cc06962ceb8f8fd573cafd608152350cac34111b4a0b2b6216c50371",
+      "sha256": "a8dc7748c2cedf48c8328446f3de9c5b14e6713170083f1d10fdd927726b0bf7",
       "exports": [
         "pub fn accept_charged_job_response(JobRead, JobResponse, Bytes) -> Result[Unit, JobIssue]",
         "pub fn accept_job_response(JobRead, JobRequest, Int, Bytes, Bytes) -> Result[Unit, JobIssue]",
@@ -201,6 +206,7 @@
         "pub fn job_original_record_material(JobOriginalRecord) -> (String, String, String, String, String, String)",
         "pub fn job_original_record_wire(JobOriginalRecord) -> String",
         "pub fn job_read_complete(JobRead) -> Bool",
+        "pub fn job_read_matches_row_run(JobRead, @client_row_source_host.RowRun, @client_row_source_host.RowAcquisition) -> Bool",
         "pub fn job_read_original(JobRead) -> @catalog.QueryJob",
         "pub fn job_read_remote_done(JobRead) -> Bool",
         "pub fn job_request_body(JobRequest) -> String?",
@@ -294,6 +300,10 @@
         {
           "name": "job_read_complete",
           "declaration": "pub fn job_read_complete(JobRead) -> Bool"
+        },
+        {
+          "name": "job_read_matches_row_run",
+          "declaration": "pub fn job_read_matches_row_run(JobRead, @client_row_source_host.RowRun, @client_row_source_host.RowAcquisition) -> Bool"
         },
         {
           "name": "job_read_original",
@@ -403,6 +413,7 @@
             "job_original_record_material",
             "job_original_record_wire",
             "job_read_complete",
+            "job_read_matches_row_run",
             "job_read_original",
             "job_read_remote_done",
             "job_request_body",
@@ -442,6 +453,7 @@
             "pub fn job_original_record_material(JobOriginalRecord) -> (String, String, String, String, String, String)",
             "pub fn job_original_record_wire(JobOriginalRecord) -> String",
             "pub fn job_read_complete(JobRead) -> Bool",
+            "pub fn job_read_matches_row_run(JobRead, @client_row_source_host.RowRun, @client_row_source_host.RowAcquisition) -> Bool",
             "pub fn job_read_original(JobRead) -> @catalog.QueryJob",
             "pub fn job_read_remote_done(JobRead) -> Bool",
             "pub fn job_request_body(JobRequest) -> String?",
