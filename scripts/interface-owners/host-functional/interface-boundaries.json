@@ -32568,7 +32568,7 @@
     {
       "module": "adapters/host-node/installed-host-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "40098cdc4434eda5349b00555e915746f0c9702dff1bb50de7401f98d55730d8",
+      "sha256": "02e38722e20c1a96c202781c9936526d515b1dedea37aa21e5a0138291ea20bd",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -32692,6 +32692,11 @@
           "parameters": [
             "original"
           ],
+          "async": false
+        },
+        {
+          "name": "originalInitialControlClose/captureOriginalClose",
+          "parameters": [],
           "async": false
         },
         {
@@ -32992,6 +32997,10 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('original close receiver and callback survive pending retries without replacement'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('shutdown captures original control close before its first close request'"
               }
             ],
             "ownership": [
@@ -33048,6 +33057,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('failed child close retains initial control until the same child ACK'"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "// Retain a successfully observed callback before any child cleanup await."
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('shutdown captures original control close before a preceding child await'"
               }
             ],
             "failure": [
@@ -33078,6 +33095,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('initialization does not retire control while an independent Store close remains Unknown'"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "// A failed getter has not supplied a callback. Keep the holding in its"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "retains an unobserved throwing control getter for retry"
               }
             ],
             "cancellation": [
@@ -33174,6 +33199,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('existing installed Host shutdown retains and closes the same initial control'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('initialization captures original control close before a preceding child await'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('shutdown captures original control close before a preceding child await'"
               }
             ]
           }
@@ -33418,6 +33451,10 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('original close receiver and callback survive pending retries without replacement'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('shutdown captures original control close before its first close request'"
               }
             ],
             "ownership": [
@@ -33438,6 +33475,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('failed child close retains initial control until the same child ACK'"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "// Retain a successfully observed callback before any child cleanup await."
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('shutdown captures original control close before a preceding child await'"
               }
             ],
             "failure": [
@@ -33448,6 +33493,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('initialization does not retire control while an independent Store close remains Unknown'"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "// A failed getter has not supplied a callback. Keep the holding in its"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "retains an unobserved throwing control getter for retry"
               }
             ],
             "cancellation": [
@@ -33488,6 +33541,150 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('existing installed Host shutdown retains and closes the same initial control'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('initialization captures original control close before a preceding child await'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('shutdown captures original control close before a preceding child await'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "originalInitialControlClose/captureOriginalClose"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The existing installed Host shutdown retains the issuer's original initial"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "function originalInitialControlClose(original) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const observed = await Reflect.apply(close, original, []);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "const initialControl = host.initialControl;"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "close = original.close;"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('original close receiver and callback survive pending retries without replacement'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('shutdown captures original control close before its first close request'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "if (initialControl !== undefined) pending.add('initial-control');"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "and original retry carrier. A successful sibling close cannot release the"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "if ([...pending].every(name => name === 'initial-control')) {"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('failed child close retains initial control until the same child ACK'"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "// Retain a successfully observed callback before any child cleanup await."
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('shutdown captures original control close before a preceding child await'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "throw new TypeError('InstalledHostInitialControlCleanupPending');"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('initialization does not retire control while an independent Store close remains Unknown'"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "// A failed getter has not supplied a callback. Keep the holding in its"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "retains an unobserved throwing control getter for retry"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "await attempt('checkpoint-stop', () => checkpoints.stop());"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "await attempt('stop', stop);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "initial holding while another child remains uncertain."
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "// They do not issue a startup admission, physical lease or business capacity."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "cleanup consumers cannot issue an initial admission, establish its coverage,"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "...(initialControl === undefined ? [] : ['initialControl']),"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('control Promise completion and malformed observations cannot retire the holding'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('existing installed Host shutdown retains and closes the same initial control'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('initialization captures original control close before a preceding child await'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('shutdown captures original control close before a preceding child await'"
               }
             ]
           }
@@ -54451,9 +54648,9 @@
   ],
   "counts": {
     "modules": 127,
-    "operations": 3143,
+    "operations": 3144,
     "exports": 858,
-    "explicitContractGroups": 147
+    "explicitContractGroups": 148
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }
