@@ -83,7 +83,9 @@ pub fn mock_churn_risk_query_alias_at(
 }
 
 ///|
-pub fn mock_churn_risk_update_alias_count(value : MockChurnRiskCatalogue) -> Int {
+pub fn mock_churn_risk_update_alias_count(
+  value : MockChurnRiskCatalogue,
+) -> Int {
   value.update_aliases.length()
 }
 

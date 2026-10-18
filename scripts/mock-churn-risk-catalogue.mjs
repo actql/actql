@@ -56,15 +56,19 @@ export function renderMockChurnRiskCatalogue(originals) {
       revision: ${JSON.stringify(original.revision)},
       query_aliases: ${aliases(original.queryAliases)},
       update_aliases: ${aliases(original.updateAliases)},
-      views: [{
-        resource: ${JSON.stringify(view.resource)},
-        resource_kind: ${JSON.stringify(view.resource_kind)},
-        schema_wire: ${JSON.stringify(view.schema_wire)},
-        schema_cid: ${JSON.stringify(view.schema_cid)},
-        request_schema_wire: None,
-        facts_wire: Some(${JSON.stringify(view.facts_wire)}),
-        acquisition_wire: None,
-      }],
+      views: [
+        {
+          resource: ${JSON.stringify(view.resource)},
+          resource_kind: ${JSON.stringify(view.resource_kind)},
+          schema_wire: ${JSON.stringify(view.schema_wire)},
+          schema_cid: ${JSON.stringify(view.schema_cid)},
+          request_schema_wire: None,
+          facts_wire: Some(
+            ${JSON.stringify(view.facts_wire)},
+          ),
+          acquisition_wire: None,
+        },
+      ],
     }`;
   }).join(',\n');
   return new Map([

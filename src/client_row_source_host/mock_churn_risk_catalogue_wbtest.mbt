@@ -38,10 +38,12 @@ test "portable Mock catalogue does not reuse another factory original" {
   )
   let original = mock_churn_risk_update_alias_at(first, 0).unwrap().1
   let actual = prepare_churn_risk_mock_update_mapping(
-    original, mock_update_limits(),
+    original,
+    mock_update_limits(),
   ).unwrap()
   let retained = prepare_churn_risk_mock_update_mapping(
-    mock_update_declaration(), mock_update_limits(),
+    mock_update_declaration(),
+    mock_update_limits(),
   ).unwrap()
   assert_eq(actual.body, retained.body)
 }
@@ -50,15 +52,15 @@ test "portable Mock catalogue does not reuse another factory original" {
 test "portable Mock catalogue preserves declaration refusal under original limits" {
   let small = mock_update_limits()
   assert_eq(
-    prepare_mock_churn_risk_catalogue({ ..small, max_bytes: 1 }).is_err(),
+    prepare_mock_churn_risk_catalogue({ ..small, max_bytes: 1, }).is_err(),
     true,
   )
   assert_eq(
-    prepare_mock_churn_risk_catalogue({ ..small, max_nodes: 1 }).is_err(),
+    prepare_mock_churn_risk_catalogue({ ..small, max_nodes: 1, }).is_err(),
     true,
   )
   assert_eq(
-    prepare_mock_churn_risk_catalogue({ ..small, max_fields: 1 }).is_err(),
+    prepare_mock_churn_risk_catalogue({ ..small, max_fields: 1, }).is_err(),
     true,
   )
 }
