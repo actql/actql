@@ -268,3 +268,21 @@ void actql_native_client_keep_initial_command_control(const void *original) {
   const void *volatile observed = original;
   (void)observed;
 }
+
+// One selected HOME observation, not an environment traversal or authority.
+// The existing path predicate bounds decoded UTF16 to 4096 units. At most
+// three UTF8 bytes per such unit, plus one optional BOM, preserves that domain.
+// Scan before copying; malformed/oversized input cannot cause an unbounded
+// managed environment copy. The caller owns this fixed output workspace.
+int32_t actql_native_client_copy_bounded_home(moonbit_bytes_t bytes,
+                                             int32_t length) {
+  const int32_t maximum = 4096 * 3 + 3;
+  if (length != maximum) return -2;
+  const char *original = getenv("HOME");
+  if (original == NULL) return -1;
+  int32_t size = 0;
+  while (size <= maximum && original[size] != '\0') ++size;
+  if (size > maximum) return -2;
+  memcpy(bytes, original, (size_t)size);
+  return size;
+}

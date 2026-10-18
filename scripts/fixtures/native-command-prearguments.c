@@ -7,6 +7,7 @@
 #include <malloc/malloc.h>
 extern int32_t actql_native_client_measure_prearguments(int32_t,int32_t,int32_t,int32_t);
 extern int32_t actql_native_client_preargument_count(void);
+extern int32_t actql_native_client_copy_bounded_home(moonbit_bytes_t,int32_t);
 extern int64_t actql_native_client_preargument_class_bytes(int32_t);
 extern int32_t actql_native_client_preargument_storage_bytes(void);
 extern int32_t actql_native_client_preargument_context_bytes(void);
@@ -61,6 +62,22 @@ int main(int argc, char **argv) {
     assert(actql_native_client_preargument_context_bytes() == -1);
     assert(!actql_native_client_copy_preargument_source(source,40));
     assert(!actql_native_client_copy_preargument_context(context,1));
+  }
+  if (strncmp(name,"home-",5)==0) {
+    unsigned char home[4096*3+3]; memset(home,0x5a,sizeof(home));
+    assert(actql_native_client_copy_bounded_home(home,sizeof(home)-1)==-2);
+    assert(home[0]==0x5a);
+    int size=actql_native_client_copy_bounded_home(home,sizeof(home));
+    if (strcmp(name,"home-absent")==0) {
+      assert(size==-1 && home[0]==0x5a);
+    } else if (strcmp(name,"home-overlong")==0) {
+      assert(size==-2 && home[0]==0x5a);
+    } else {
+      const char *value=getenv("HOME"); assert(value!=NULL);
+      assert(size==(int)strlen(value)); assert(size<=(int)sizeof(home));
+      assert(memcmp(home,value,(size_t)size)==0);
+      if (strcmp(name,"home-unicode")==0) assert(size==1+4095*3);
+    }
   }
   // A second call never restarts a selected or refused observation.
   int64_t retained = actql_native_client_preargument_class_bytes(2);

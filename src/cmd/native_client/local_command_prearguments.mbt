@@ -122,3 +122,23 @@ fn command_preargument_classes() -> Result[
     argument_growth_bytes,
   })
 }
+
+///|
+#borrow(bytes)
+extern "C" fn command_bounded_home_ffi(bytes : Bytes, length : Int) -> Int = "actql_native_client_copy_bounded_home"
+
+///|
+// Same lossy OS-string conversion as the pinned env implementation, after the
+// raw bound. This path selection is metadata, never original Store authority.
+fn local_product_bounded_home() -> String? raise ClientStop {
+  let maximum = 4096 * 3 + 3
+  let bytes = Bytes::make(maximum, 0)
+  let length = command_bounded_home_ffi(bytes, maximum)
+  if length == -1 {
+    return None
+  }
+  if length < 0 || length > maximum {
+    stop("LocalProductHomeUnavailable")
+  }
+  Some(@utf8.decode_lossy(bytes[0:length]))
+}

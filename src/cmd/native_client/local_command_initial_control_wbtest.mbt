@@ -45,3 +45,46 @@ test "Initial command control rejects selected input without original raw observ
   assert_true(command_preparation_invocation.val is None)
   assert_true(initial_crypto_invocation.val is None)
 }
+
+///|
+test "Local original home selection skips acquisition for explicit state directory" {
+  let reads = Ref(0)
+  let location = local_product_location_with_home(Some("/original/state"), () => {
+    reads.val += 1
+    stop("must not acquire HOME")
+  })
+  assert_eq(reads.val, 0)
+  assert_eq(location.parent_path, "/original")
+  assert_eq(location.directory_name, "state")
+}
+
+///|
+test "Local original home selection reads once only for absent state directory" {
+  let reads = Ref(0)
+  let location = local_product_location_with_home(None, () => {
+    reads.val += 1
+    Some("/original/home")
+  })
+  assert_eq(reads.val, 1)
+  assert_eq(location.parent_path, "/original/home")
+  assert_eq(location.directory_name, ".actql-local")
+}
+
+///|
+test "Local original home selection preserves missing original refusal" {
+  let reads = Ref(0)
+  let issue = try {
+    ignore(
+      local_product_location_with_home(None, () => {
+        reads.val += 1
+        None
+      }),
+    )
+    "unexpected success"
+  } catch {
+    ClientStop(message) => message
+  }
+  assert_eq(reads.val, 1)
+  assert_eq(issue, "LocalProductHomeUnavailable")
+  assert_true(command_preparation_invocation.val is None)
+}

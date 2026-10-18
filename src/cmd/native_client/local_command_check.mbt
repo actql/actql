@@ -37,11 +37,10 @@ fn LocalCommandPreparationOriginal::execute_product_check(
   // while the Runtime performs its own original-current brackets.
   command_preparation_result(self.leave())
   let runtime = local_packaged_runtime_from_physical(physical)
-  let location = local_product_selected_location(
-    optional(matches, "state-dir"),
-    @env.get_env_var("HOME"),
-  )
   command_preparation_result(self.enter())
+  // Required HOME/path decoding and selection now allocate in the same
+  // consuming Read; an explicit directory never obtains the HOME workspace.
+  let location = local_product_original_location(optional(matches, "state-dir"))
   command_preparation_result(
     self.stage_product(location.parent_path, location.directory_name, None),
   )
