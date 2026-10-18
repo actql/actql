@@ -1113,7 +1113,13 @@ pub fn client_submitted_journal_append_rows(ClientSubmittedJournalAppend) -> (St
 
 pub fn client_submitted_name_authentication_input(ClientSubmittedNameBinding, Int) -> Result[String, ClientSubmittedNameIssue]
 
+pub fn client_submitted_name_binding_fields(ClientSubmittedNameBinding) -> (ClientSubmittedNameKey, String, String, String)
+
+pub fn client_submitted_name_index_input(ClientSubmittedNameKey) -> Result[String, ClientSubmittedNameIssue]
+
 pub fn client_submitted_name_key_fields(ClientSubmittedNameKey) -> (String, String, String)
+
+pub fn client_submitted_name_row_body(ClientSubmittedNameRow) -> Result[Bytes, ClientSubmittedNameIssue]
 
 pub fn client_submitted_run_admission_wire(ClientRequestIdentity, String, Int64) -> Result[String, ClientSubmittedRunRecordIssue]
 
@@ -1246,6 +1252,8 @@ pub fn decode_client_run_journal_row_with_local_policy(Bytes) -> Result[(ClientR
 pub fn decode_client_run_journal_row_with_observation_originals(Bytes) -> Result[(ClientRunJournalEncoding, String?, String?), ClientJournalDecodingIssue]
 
 pub fn decode_client_submitted_journal_row(Bytes) -> Result[ClientSubmittedJournalEncoding, ClientJournalDecodingIssue]
+
+pub fn decode_client_submitted_name_row(Bytes) -> Result[ClientSubmittedNameRow, ClientSubmittedNameIssue]
 
 pub fn emit_prepared_client_program_definition(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
 
@@ -3959,6 +3967,11 @@ pub struct ClientSubmittedNameKey {
   actor : String
   name : String
 } derive(Eq, @debug.Debug)
+
+pub(all) struct ClientSubmittedNameRow {
+  binding : ClientSubmittedNameBinding
+  authenticator : Bytes
+}
 
 pub(all) enum ClientSubmittedRunRecordIssue {
   Encoding

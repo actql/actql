@@ -27,6 +27,8 @@ pub(all) enum NativeClientRunJournalIssue {
   Start(@host.ClientRunStartIssue)
   Epoch(NativeClientEpochIssue)
   InvalidSubmission
+  SubmissionReferenceUsed
+  NamedSubmission(@host.ClientSubmittedNameIssue)
   SubmissionEpochRejected(@scope.SubmissionEpochValidity)
   UnsupportedPreparation
   MissingEffectMaterialOriginal
