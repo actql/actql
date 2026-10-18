@@ -35,3 +35,15 @@ test('actual Common refuses a changed mock schema under the retained original pi
       JSON.stringify({views: [altered]}), undefined)), {code: 'MoonBitHostFailure'});
   }
 });
+
+test('actual Common retains its registration identifier and revision-prefix rules', () => {
+  for (const entry of mockChurnRiskCatalogue) {
+    for (const [registration, revision] of [
+      ['mock.' + entry.connection, 'mock'], [entry.registration, 'foreign/0.1'],
+    ]) {
+      assert.throws(() => checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
+        entry.connectorId, registration, revision,
+        JSON.stringify({views: entry.views}), undefined)), {code: 'MoonBitHostFailure'});
+    }
+  }
+});

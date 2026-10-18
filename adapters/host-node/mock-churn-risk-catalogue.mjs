@@ -7,8 +7,8 @@ export const mockChurnRiskCatalogue = Object.freeze([
   Object.freeze({
     connection: 'salesforce',
     connectorId: 'salesforce',
-    registration: 'mock.salesforce',
-    revision: 'mock',
+    registration: 'mock_salesforce',
+    revision: 'mock_salesforce/0.1',
     queryAliases: Object.freeze([
       Object.freeze({name: 'salesforce.accounts', resource: 'Account'}),
     ]),
@@ -25,8 +25,8 @@ export const mockChurnRiskCatalogue = Object.freeze([
   Object.freeze({
     connection: 'snowflake',
     connectorId: 'snowflake',
-    registration: 'mock.snowflake',
-    revision: 'mock',
+    registration: 'mock_snowflake',
+    revision: 'mock_snowflake/0.1',
     queryAliases: Object.freeze([
       Object.freeze({name: 'snowflake.usage_30d', resource: 'usage_30d'}),
     ]),
