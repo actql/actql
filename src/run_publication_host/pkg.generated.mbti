@@ -81,6 +81,8 @@ pub fn admit_client_native_product_members(String, String, String, String) -> Re
 
 pub fn admit_client_project_configuration(String) -> Result[ClientProjectConfiguration, ClientProjectConfigurationIssue]
 
+pub fn admit_client_project_connections(String) -> Result[ClientProjectConnections, ClientProjectBindingsIssue]
+
 pub fn admit_client_project_model_registry(String) -> Result[ClientProjectModelRegistry, ClientProjectBindingsIssue]
 
 pub fn admit_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
@@ -3241,6 +3243,11 @@ pub fn ClientProjectConfiguration::state_directory(Self) -> String
 pub(all) enum ClientProjectConfigurationIssue {
   InvalidConfiguration
 } derive(Eq, @debug.Debug)
+
+type ClientProjectConnections
+pub fn ClientProjectConnections::at(Self, Int) -> (String, String, String)?
+pub fn ClientProjectConnections::count(Self) -> Int
+pub fn ClientProjectConnections::original_wire(Self) -> String
 
 type ClientProjectModelRegistry
 pub fn ClientProjectModelRegistry::original_wire(Self) -> String
