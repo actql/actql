@@ -1403,6 +1403,8 @@ pub fn client_program_row_source_begin_listing_page(@client_row_source_host.RowR
 
 pub fn client_program_row_source_begin_listing_request(@client_row_source_host.RowRun, String?, Int64) -> Result[Bool, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_begin_with_page_limits(@client_row_source_host.RowRun, Int, Int, Int, Int, Int, @value_admission.ReferenceIssuer?) -> Result[Bool, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_bind_response_cleanup(@client_row_source_host.RowRunResponseBorrow, () -> Bool) -> Result[Unit, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_borrow_responses(@client_row_source_host.RowRun, @client_row_source_host.RowAcquisition) -> Result[@client_row_source_host.RowRunResponseBorrow, @client_row_source_host.RowHostIssue]
