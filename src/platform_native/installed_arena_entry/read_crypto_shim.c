@@ -62,7 +62,7 @@ int actql_read_crypto_prepare_into(actql_control_host *host, actql_local_host_re
     if (!host || !pair || !read || !reply || *reply) return ACTQL_CONTROL_INVALID_SLOT;
     if (registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR
-    if (actql_bootstrap_control_scope_clear() != 0) return ACTQL_CONTROL_UNAVAILABLE;
+    if (actql_bootstrap_control_scope_clear() != 1) return ACTQL_CONTROL_UNAVAILABLE;
 #else
     return ACTQL_CONTROL_UNAVAILABLE;
 #endif
