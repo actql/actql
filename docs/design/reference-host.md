@@ -329,6 +329,28 @@ all stay in the same declared envelope. Managed alias retirement is not their
 physical cleanup ACK. This port does not itself supply the missing operational
 original or a public consumer's earlier intake coverage.
 
+The embedded consumer passes its raw options to this synchronous begin and,
+after initialization, reads only that original nominal input projection. It
+retains the packet in the same preparation record through Host adoption or
+failed initialization; it never rereads the caller as an input fallback. The
+private selected namespace exposes a pure bounded snapshot reader so the
+actual startup can capture its exact Source, rather than accept an application
+callback as the reader. This operation cannot issue the operational admission.
+
+The reader preserves own data fields, enumerability, array holes, primitive
+String code units and shared immutable DATA without clamping, normalization or
+unknown-field dropping. Existing Owners still validate field meaning. Finite
+properties, nodes, depth, individual and aggregate String code units, array
+lengths, original-reference occurrences and traversal work are separate input
+allowances, not backing-byte amounts or a numerical profile. Explicit traversal
+frames, own-key arrays, paths, original and copied records and rejection overlap
+remain in the supplier's complete simultaneous envelope. Proxy/accessor/cyclic
+DATA without supported acquisition coverage remains unavailable on this
+selected path, not an invalid general public option. Original Host handles,
+callbacks and non-DATA values retain exact identity for their existing Owners;
+neither copying classifications nor original-reference counts authenticate
+those Owners, closure backing, current authority or physical retirement.
+
 On adoption, the candidate and root lease use the same registry entry and
 actual returned Host. A foreign returned child enters its acquired shutdown
 custody before the pair refusal. Reusing an existing Host first retires only

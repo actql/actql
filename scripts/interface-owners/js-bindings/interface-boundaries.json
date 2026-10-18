@@ -36286,7 +36286,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "a88050965e5b12b7468d1a90fc43cb03af4908cf40a74a75dd972023864c63b4",
+      "sha256": "661dd52e502c823c9b73d7a4fb9456d9b89c0c6dfa6da0f44c3c60fa5307500b",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -36294,7 +36294,8 @@
         "connectEmbeddedLocal",
         "openInstalledRemoteHttpHost",
         "publishInstalledEffect",
-        "publishInstalledSource"
+        "publishInstalledSource",
+        "snapshotInitialControlHostInput"
       ],
       "operations": [
         {
@@ -38734,6 +38735,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The prepared embedded Host obtains its fixed check-environment source through"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The embedded consumer passes its raw options to this synchronous begin and,"
               }
             ],
             "inputsOutputs": [
@@ -38768,6 +38773,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const environmentSource = preparation === undefined ? await readFile(join(packageRoot,"
+              },
+              {
+                "path": "adapters/host-node/initial-control-host-input.mjs",
+                "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
               }
             ],
             "identity": [
@@ -38810,6 +38819,14 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "return readInitialControlInstallationAsset(control, originals,"
+              },
+              {
+                "path": "adapters/host-node/initial-control-host-input.mjs",
+                "anchor": "originals[originals.length] = freeze({path: freeze(path), original: value});"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "options = readInitialControlInstallationInput(control, originals);"
               }
             ],
             "ownership": [
@@ -38852,6 +38869,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "String remains in its selected module/preparation lifetime, including escaped"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "callbacks and non-DATA values retain exact identity for their existing Owners;"
               }
             ],
             "synchronization": [
@@ -38890,6 +38911,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
                 "anchor": "assertCurrent(scope, originals);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "control = await beginInitialControlInstallation(originals, options);"
               }
             ],
             "failure": [
@@ -38924,6 +38949,10 @@
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
                 "anchor": "test('prepared Host has no pathname fallback when its original asset is unavailable'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
               }
             ],
             "cancellation": [
@@ -38958,6 +38987,10 @@
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
                 "anchor": "test('closing during the original read refuses handoff without acknowledging the remaining duty'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('current refusal after initialization prevents the original packet from reaching Host copies'"
               }
             ],
             "resources": [
@@ -39000,6 +39033,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "aliases; this borrow is neither a new issuer nor a physical release acknowledgement."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "allowances, not backing-byte amounts or a numerical profile. Explicit traversal"
               }
             ],
             "extension": [
@@ -39034,6 +39071,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Independent Host entries without this preparation retain their own acquisition"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "selected path, not an invalid general public option. Original Host handles,"
               }
             ],
             "verification": [
@@ -39092,6 +39133,14 @@
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
                 "anchor": "test('foreign or copied scope and each changed original refuse before environment selection'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('Host passes raw input before awaiting and consumes only the same captured packet afterwards'"
               }
             ]
           }
@@ -41988,7 +42037,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "control = await beginInitialControlInstallation(originals);"
+                "anchor": "control = await beginInitialControlInstallation(originals, options);"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -42148,6 +42197,82 @@
               }
             ]
           }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "snapshotInitialControlHostInput"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The embedded consumer passes its raw options to this synchronous begin and,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.mjs",
+                "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.mjs",
+                "anchor": "originals[originals.length] = freeze({path: freeze(path), original: value});"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "options = readInitialControlInstallationInput(control, originals);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "callbacks and non-DATA values retain exact identity for their existing Owners;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "control = await beginInitialControlInstallation(originals, options);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('current refusal after initialization prevents the original packet from reaching Host copies'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "allowances, not backing-byte amounts or a numerical profile. Explicit traversal"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "selected path, not an invalid general public option. Original Host handles,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('Host passes raw input before awaiting and consumes only the same captured packet afterwards'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -42196,6 +42321,7 @@
         "./in-process-client.mjs",
         "./infer-evaluation-evidence.mjs",
         "./infer-trusted-runtime-view.mjs",
+        "./initial-control-host-input.mjs",
         "./installed-calendar.mjs",
         "./installed-check-environment.mjs",
         "./installed-connectors.mjs",
@@ -118839,6 +118965,161 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/host-node/initial-control-host-input.mjs",
+      "role": "physical-io",
+      "owner": "A — existing Host preparation input boundary",
+      "responsibilityFacet": "supplemental",
+      "contracts": [
+        {
+          "operations": [
+            "snapshotInitialControlHostInput",
+            "snapshotInitialControlHostInput/borrow",
+            "snapshotInitialControlHostInput/childPath",
+            "snapshotInitialControlHostInput/string",
+            "snapshotInitialControlHostInput/visit",
+            "snapshotInitialControlHostInput/work",
+            "unavailable/unavailable"
+          ],
+          "exports": [
+            "snapshotInitialControlHostInput"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The embedded consumer passes its raw options to this synchronous begin and,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.mjs",
+                "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.mjs",
+                "anchor": "originals[originals.length] = freeze({path: freeze(path), original: value});"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "options = readInitialControlInstallationInput(control, originals);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "callbacks and non-DATA values retain exact identity for their existing Owners;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "control = await beginInitialControlInstallation(originals, options);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('current refusal after initialization prevents the original packet from reaching Host copies'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "allowances, not backing-byte amounts or a numerical profile. Explicit traversal"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "selected path, not an invalid general public option. Original Host handles,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('Host passes raw input before awaiting and consumes only the same captured packet afterwards'"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "e713d863b7cd2741a09e3d25de6d460ac7da0cca6e8a010800a5fa42d1c8c8b1",
+      "exports": [
+        "snapshotInitialControlHostInput"
+      ],
+      "operations": [
+        {
+          "name": "snapshotInitialControlHostInput",
+          "parameters": [
+            "input",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotInitialControlHostInput/borrow",
+          "parameters": [
+            "value",
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotInitialControlHostInput/childPath",
+          "parameters": [
+            "path",
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotInitialControlHostInput/string",
+          "parameters": [
+            "text"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotInitialControlHostInput/visit",
+          "parameters": [
+            "value",
+            "path",
+            "depth"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotInitialControlHostInput/work",
+          "parameters": [
+            "amount"
+          ],
+          "async": false
+        },
+        {
+          "name": "unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ],
   "generated": [
