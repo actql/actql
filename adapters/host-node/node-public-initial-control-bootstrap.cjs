@@ -7,6 +7,7 @@
 const {createRequire} = require('node:module');
 const {join, dirname} = require('node:path');
 const {getHeapStatistics} = require('node:v8');
+const {isMainThread,threadId} = require('node:worker_threads');
 const {isProxy} = require('node:util').types;
 const processOriginal = require('node:process');
 const apply = Reflect.apply, descriptor = Object.getOwnPropertyDescriptor;
@@ -157,6 +158,7 @@ const table = Object.setPrototypeOf({
 module.exports = freeze(table);
 try {
   if (module.isPreloading !== false || processOriginal.execArgv.length !== 0 ||
+      isMainThread !== true || threadId !== 0 ||
       processOriginal.env.NODE_OPTIONS !== undefined || processOriginal.version !== 'v22.22.0' ||
       processOriginal.platform !== 'darwin' || processOriginal.arch !== 'arm64' ||
       processOriginal.versions.openssl !== '3.5.4' || delivery === undefined ||
