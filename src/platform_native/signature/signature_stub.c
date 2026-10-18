@@ -410,18 +410,17 @@ MOONBIT_FFI_EXPORT
 moonbit_bytes_t actql_native_signature_sha256_finish(
   actql_native_sha256 *hash
 ) {
-  moonbit_bytes_t result = moonbit_make_bytes_raw(0);
   if (hash == NULL || !actql_signature_library_available(hash->library) ||
       hash->context == NULL || hash->closed) {
-    return result;
+    return moonbit_make_bytes_raw(0);
   }
   hash->closed = true;
   unsigned char digest[32];
   unsigned int length = 0;
   int finished = hash->library->evp_digest_final_ex(hash->context, digest, &length);
   actql_native_sha256_retire_context(hash, true);
-  if (finished != 1 || length != sizeof(digest)) return result;
-  result = moonbit_make_bytes_raw(32);
+  if (finished != 1 || length != sizeof(digest)) return moonbit_make_bytes_raw(0);
+  moonbit_bytes_t result = moonbit_make_bytes_raw(32);
   memcpy(result, digest, 32);
   return result;
 }
