@@ -35,6 +35,7 @@ struct NativeLocalJournalCapture {
     NativeLocalInitialSigningMaterial,
     @host.ClientLocalSigningBootstrapPolicy,
   )?
+  mut read_operation_issue : NativeLocalAdoptionIssue?
   mut opening_database : @sqlite.Database?
   mut opening_inspection : @journal.CoordinatorInitializationCleanup?
   crypto : @crypto.Library
@@ -70,6 +71,7 @@ pub fn prepare_native_local_journal_capture(
     library: Some(library),
     original_resources: None,
     initial_signing: None,
+    read_operation_issue: None,
     opening_database: None,
     opening_inspection: None,
     crypto,

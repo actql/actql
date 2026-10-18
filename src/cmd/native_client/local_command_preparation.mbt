@@ -35,6 +35,8 @@ priv enum LocalCommandPreparationIssue {
   CommandReadCrypto(@initial_arena.InstalledArenaLocalHostCryptoIssue)
   CommandSignature(@local_crypto.NativeSignatureIssue)
   CommandJournal(@local_host.NativeLocalJournalCaptureIssue)
+  CommandAdoption(@local_host.NativeLocalAdoptionIssue)
+  CommandApplication(String)
   CommandFilesystem(@files.NativeBoundedTextIssue)
   CommandFilesystemCleanup(@local_filesystem.NativeFilesystemIssue)
 }
@@ -75,6 +77,8 @@ priv struct LocalCommandPreparationOriginal {
   mut outer_library : @local_crypto.Library?
   mut inner_library : @local_crypto.Library?
   mut journal : @local_host.NativeLocalJournalCapture?
+  mut journal_read_open : Bool
+  mut reply_outcome : Result[String, String]?
   mut read_failure : @files.NativeBoundedTextFailure?
   mut phase_open : Bool
   mut standalone_cleanup_open : Bool
@@ -125,6 +129,8 @@ fn prepare_local_command_preparation_original(
     outer_library: None,
     inner_library: None,
     journal: None,
+    journal_read_open: false,
+    reply_outcome: None,
     read_failure: None,
     phase_open: false,
     standalone_cleanup_open: false,
@@ -410,7 +416,10 @@ fn LocalCommandPreparationOriginal::library(
   self : LocalCommandPreparationOriginal,
   inner : Bool,
 ) -> Result[@local_crypto.Library, LocalCommandPreparationIssue] {
-  if !self.phase_open || self.closing || self.closed || self.primary is Some(_) {
+  if (!self.phase_open && !self.journal_read_open) ||
+    self.closing ||
+    self.closed ||
+    self.primary is Some(_) {
     return Err(CommandUnavailable)
   }
   let retained = if inner { self.inner_library } else { self.outer_library }
@@ -490,7 +499,10 @@ fn LocalCommandPreparationOriginal::text_file(
   name : String,
   maximum : Int64,
 ) -> Result[String, LocalCommandPreparationIssue] {
-  if !self.phase_open || self.closing || self.closed || self.primary is Some(_) {
+  if (!self.phase_open && !self.journal_read_open) ||
+    self.closing ||
+    self.closed ||
+    self.primary is Some(_) {
     return Err(CommandUnavailable)
   }
   match
@@ -534,16 +546,26 @@ fn LocalCommandPreparationOriginal::close_checked(
       )
       self.standalone_cleanup_open = false
     }
+    if self.journal_read_open {
+      return Err(CommandUnavailable)
+    }
     if self.journal is Some(journal) {
-      let reply = journal.close()
-      if reply.issue() is Some(issue) {
-        return Err(CommandJournal(issue))
-      }
+      command_preparation_value(
+        journal
+        .finish_pending_original_scope()
+        .map_err(issue => CommandAdoption(issue)),
+      )
     }
     if self.runtime is Some(runtime) {
       command_preparation_value(
         runtime.close().map_err(issue => CommandRuntime(issue)),
       )
+    }
+    if self.journal is Some(journal) {
+      let reply = journal.close()
+      if reply.issue() is Some(issue) {
+        return Err(CommandJournal(issue))
+      }
     }
     if self.host is Some(host) {
       // An incomplete physical domain acquisition can retain the original
@@ -601,6 +623,7 @@ fn LocalCommandPreparationOriginal::close_checked(
         // These closed records still retain Read-managed aliases. Keep them
         // through their real close and then retire our own last references.
         self.journal = None
+        self.reply_outcome = None
         self.runtime = None
         self.crypto_path = ""
         if self.component is Some(component) {
@@ -678,5 +701,47 @@ fn LocalCommandPreparationOriginal::close_checked(
     Ok(())
   } catch {
     LocalCommandPreparationStop(issue) => Err(issue)
+  }
+}
+
+///|
+// Publish the caller's original outcome before the Native Owner attempts its
+// scope leave. A failed exchange keeps both that outcome and the original
+// capture; neither presentation success nor an application error releases it.
+fn LocalCommandPreparationOriginal::read_command(
+  self : LocalCommandPreparationOriginal,
+  operation : (
+    @local_host.NativeLocalHostConnection,
+    @local_host.NativeLocalJournalCapture,
+  ) -> Result[String, String],
+) -> Result[String, LocalCommandPreparationIssue] {
+  if self.closing ||
+    self.closed ||
+    self.phase_open ||
+    self.journal_read_open ||
+    self.primary is Some(_) ||
+    self.reply_outcome is Some(_) {
+    return Err(CommandUnavailable)
+  }
+  guard self.journal is Some(journal) else { return Err(CommandUnavailable) }
+  let executed = journal.with_original_read(fn(host) {
+    self.journal_read_open = true
+    self.reply_outcome = Some(operation(host, journal))
+    self.journal_read_open = false
+  })
+  match executed {
+    Err(issue) => {
+      self.retain_primary(CommandAdoption(issue))
+      Err(CommandAdoption(issue))
+    }
+    Ok(_) =>
+      match self.reply_outcome {
+        Some(Ok(body)) => Ok(body)
+        Some(Err(message)) => {
+          self.retain_primary(CommandApplication(message))
+          Err(CommandApplication(message))
+        }
+        None => Err(CommandUnavailable)
+      }
   }
 }

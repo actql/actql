@@ -36,6 +36,7 @@ pub fn prepare_native_local_journal_capture_with_original_resources(
       interrupted: false,
     }),
     initial_signing: None,
+    read_operation_issue: None,
     opening_database: None,
     opening_inspection: None,
     crypto,
