@@ -10,9 +10,11 @@ const {realpathSync} = require('node:fs');
 const {pathToFileURL, fileURLToPath} = require('node:url');
 const nativeApply = Reflect.apply;
 const descriptor = Object.getOwnPropertyDescriptor, hasOwn = Object.hasOwn;
+const ownKeys = Reflect.ownKeys;
 const freeze = Object.freeze, defineProperty = Object.defineProperty;
 const NativeError = Error, NativeMap = Map, parse = JSON.parse;
 const nativeMapGet = Map.prototype.get, nativeMapSet = Map.prototype.set, nativeMapHas = Map.prototype.has;
+const nativeMapEach = Map.prototype.forEach;
 const isArray = Array.isArray, safeInteger = Number.isSafeInteger;
 const nativeStartsWith = String.prototype.startsWith, nativeEndsWith = String.prototype.endsWith;
 const preloading = descriptor(NodeModule.prototype, 'isPreloading')?.get;
@@ -43,7 +45,8 @@ function installInitialControlImageLoader(groups) {
   if (!isArray(groups) || groups.length === 0) fail('InvalidInitialControlLoaderImage');
   const images = new NativeMap(), prefixes = [];
   const initialCache = new NativeMap(), delivered = new NativeMap();
-  let invalidated = false;
+  const loadedModules = [];
+  let invalidated = false, loadedCaptured = false;
   for (let index = 0; index < groups.length; index++) {
     const group = groups[index], root = realpathSync(own(group, 'root'));
     const originals = own(group, 'images');
@@ -99,6 +102,76 @@ function installInitialControlImageLoader(groups) {
         descriptor(NodeModule, '_cache')?.value !== stockCache ||
         descriptor(NodeModule, 'registerHooks')?.value !== registerHooksFence ||
         descriptor(NodeModule, 'register')?.value !== registerFence) fail('InitialControlImageLoaderChanged');
+    for (let index = 0; index < loadedModules.length; index++) {
+      const held = loadedModules[index], property = descriptor(stockCache, held.filename);
+      let same = held.module === undefined ? property === undefined :
+        property !== undefined && hasOwn(property, 'value') && property.value === held.module &&
+        descriptor(held.module, 'filename')?.value === held.filename &&
+        descriptor(held.module, 'exports')?.value === held.exports &&
+        (descriptor(held.module, 'loaded')?.value === true ||
+          held.loading && nativeApply(preloading, module, []) === true);
+      if (same && held.properties !== undefined) {
+        const names = ownKeys(held.exports);
+        same = names.length === held.properties.length;
+        for (let item = 0; same && item < names.length; item++) {
+          const original = held.properties[item], current = descriptor(held.exports, names[item]);
+          same = names[item] === original.name && current !== undefined &&
+            current.enumerable === original.enumerable && current.configurable === original.configurable &&
+            hasOwn(current, 'value') === original.data &&
+            (original.data ? current.value === original.value && current.writable === original.writable :
+              current.get === original.get && current.set === original.set);
+        }
+      }
+      if (!same) { invalidated = true; fail('InitialControlImageLoaderChanged'); }
+    }
+  }
+  function captureLoadedModules() {
+    // Only the original preload can finish this handoff, immediately after its
+    // synchronous original namespace initialization and BEFORE entry. A late
+    // snapshot cannot authenticate exports that entry may already have changed.
+    if (nativeApply(preloading, module, []) !== true) fail('InitialControlImageLoaderUnavailable');
+    assertCurrent();
+    if (loadedCaptured) return;
+    nativeApply(nativeMapEach, images, [original => {
+      if (original.format !== 'commonjs' && original.format !== 'json') return;
+      const filename = fileURLToPath(original.url), property = descriptor(stockCache, filename);
+      if (property === undefined) {
+        loadedModules[loadedModules.length] = {filename, module: undefined};
+        return;
+      }
+      if (!hasOwn(property, 'value') || !nativeApply(nativeMapHas, delivered, [original.url]) &&
+          (!nativeApply(nativeMapHas, initialCache, [original.url]) ||
+            nativeApply(nativeMapGet, initialCache, [original.url]) !== property.value)) {
+        invalidated = true; fail('InitialControlImageLoaderChanged');
+      }
+      const current = property.value, filenameProperty = descriptor(current, 'filename');
+      const exportsProperty = descriptor(current, 'exports'), loadedProperty = descriptor(current, 'loaded');
+      if (filenameProperty?.value !== filename || exportsProperty === undefined ||
+          !hasOwn(exportsProperty, 'value') || typeof loadedProperty?.value !== 'boolean') {
+        invalidated = true; fail('InitialControlImageLoaderChanged');
+      }
+      const exported = exportsProperty.value;
+      let properties;
+      if (exported !== null && (typeof exported === 'object' || typeof exported === 'function')) {
+        const names = ownKeys(exported); properties = [];
+        for (let index = 0; index < names.length; index++) {
+          const name = names[index], value = descriptor(exported, name);
+          if (value === undefined) { invalidated = true; fail('InitialControlImageLoaderChanged'); }
+          // Copy descriptors without invoking exported getters. Nested exported
+          // referents still need their selected library/consumer correspondence;
+          // this shallow original is not a universal export-graph certificate.
+          properties[properties.length] = {name, data: hasOwn(value, 'value'),
+            value: value.value, writable: value.writable, get: value.get, set: value.set,
+            enumerable: value.enumerable, configurable: value.configurable};
+        }
+      }
+      // Preexisting bootstrap records have their separate original Source duty.
+      // Capturing their identity here never proves their already-executed body.
+      loadedModules[loadedModules.length] = {filename, module: current, exports: exported,
+        loading: loadedProperty.value === false, properties};
+    }]);
+    loadedCaptured = true;
+    assertCurrent();
   }
   function covered(url) {
     if (typeof url !== 'string') return false;
@@ -166,7 +239,7 @@ function installInitialControlImageLoader(groups) {
   // Actual loader registration, held Sources and native module registry remain
   // process/module-lifetime duties. A Host close cannot deregister them, infer
   // source/backing collection or acknowledge a different physical allocation.
-  return freeze({assertCurrent});
+  return freeze({assertCurrent, captureLoadedModules});
 }
 
 module.exports = {installInitialControlImageLoader};

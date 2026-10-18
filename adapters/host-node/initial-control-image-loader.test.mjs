@@ -129,7 +129,7 @@ test('later hook registration and deregistration cannot restore the selected ori
 test('the loader helper issues no operational admission or Host scope', t => {
   const f = fixture(t), result = f.run([
     "import assert from 'node:assert/strict';",
-    "assert.deepEqual(Object.keys(originalImageLoader),['assertCurrent']);",
+    "assert.deepEqual(Object.keys(originalImageLoader),['assertCurrent','captureLoadedModules']);",
     'assert.equal(originalImageLoader.begin,undefined);',
     'assert.equal(originalImageLoader.retainPreparation,undefined);',
     'assert.ok(Object.isFrozen(originalImageLoader));',
@@ -160,4 +160,95 @@ test('a stock load replacement cannot retain the selected loader currentness', t
     'assert.throws(()=>originalImageLoader.assertCurrent(),{code:"InitialControlImageLoaderChanged"});',
   ].join('\n'));
   assert.equal(result.status, 0, result.stderr);
+});
+
+function eagerCommon(t, body, source = 'module.exports={value:"original-loaded"};') {
+  const f = fixture(t, {'original.cjs': source});
+  return f.run(body, [
+    'globalThis.originalLoaded=require(require("node:path").join(root,"original.cjs"));',
+    'originalImageLoader.captureLoadedModules();',
+  ].join('\n'));
+}
+
+test('post-load capture binds the actual cache module and exports before entry', t => {
+  const result = eagerCommon(t, [
+    'import assert from "node:assert/strict";',
+    'import {createRequire} from "node:module";',
+    'const require=createRequire(import.meta.url), name=require.resolve("./images/original.cjs");',
+    'const record=require.cache[name], original=record.exports;',
+    'originalImageLoader.assertCurrent();',
+    'assert.equal(original,originalLoaded);',
+    'record.exports={value:"entry-replacement"};',
+    'assert.throws(()=>originalImageLoader.assertCurrent(),{code:"InitialControlImageLoaderChanged"});',
+    'record.exports=original;',
+    'assert.throws(()=>originalImageLoader.assertCurrent(),{code:"InitialControlImageLoaderChanged"});',
+  ].join('\n'));
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('equal exported references cannot substitute a foreign cache Module record', t => {
+  const result = eagerCommon(t, [
+    'import assert from "node:assert/strict";',
+    'import {createRequire} from "node:module";',
+    'const require=createRequire(import.meta.url), Module=require("node:module");',
+    'const name=require.resolve("./images/original.cjs"), old=require.cache[name];',
+    'const foreign=new Module(name); foreign.filename=name; foreign.loaded=true; foreign.exports=old.exports;',
+    'require.cache[name]=foreign;',
+    'assert.throws(()=>originalImageLoader.assertCurrent(),{code:"InitialControlImageLoaderChanged"});',
+  ].join('\n'));
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('export descriptor replacement refuses without invoking the replacement getter', t => {
+  const result = eagerCommon(t, [
+    'import assert from "node:assert/strict";',
+    'let calls=0;',
+    'Object.defineProperty(originalLoaded,"value",{get(){calls++;return "entry-replacement";}});',
+    'assert.throws(()=>originalImageLoader.assertCurrent(),{code:"InitialControlImageLoaderChanged"});',
+    'assert.equal(calls,0);',
+  ].join('\n'));
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('original exported getters are captured and checked as descriptors without invocation', t => {
+  const result = eagerCommon(t, [
+    'import assert from "node:assert/strict";',
+    'originalImageLoader.assertCurrent(); originalImageLoader.assertCurrent();',
+    'assert.equal(globalThis.originalGetterCalls,0);',
+  ].join('\n'), 'globalThis.originalGetterCalls=0;module.exports={get value(){originalGetterCalls++;return "original";}};');
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('application-time post-load capture cannot resnapshot changed originals', t => {
+  const result = eagerCommon(t, [
+    'import assert from "node:assert/strict";',
+    'assert.throws(()=>originalImageLoader.captureLoadedModules(),{code:"InitialControlImageLoaderUnavailable"});',
+    'originalImageLoader.assertCurrent();',
+    'originalLoaded.value="entry-replacement";',
+    'assert.throws(()=>originalImageLoader.captureLoadedModules(),{code:"InitialControlImageLoaderUnavailable"});',
+    'assert.throws(()=>originalImageLoader.assertCurrent(),{code:"InitialControlImageLoaderChanged"});',
+  ].join('\n'));
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('a captured but unevaluated CJS image does not gain post-entry module provenance', t => {
+  const f = fixture(t, {'original.cjs': 'module.exports={value:"not-initialized"};'});
+  const result = f.run([
+    'import assert from "node:assert/strict";',
+    'await assert.rejects(import("./images/original.cjs"),{code:"InitialControlImageLoaderChanged"});',
+  ].join('\n'), 'originalImageLoader.captureLoadedModules();');
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('post-load capture cannot adopt a cache preseed without original Source handoff', t => {
+  const f = fixture(t, {'original.cjs': 'module.exports={value:"original-cache"};'});
+  const result = f.run('throw new Error("MustNotReachEntry");', [
+    'const Module=require("node:module"), filename=require("node:path").join(root,"original.cjs");',
+    'const fake=new Module(filename);fake.filename=filename;fake.loaded=true;fake.exports={value:"fake"};',
+    'Module._cache[filename]=fake;',
+    'originalImageLoader.captureLoadedModules();',
+  ].join('\n'));
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /InitialControlImageLoaderChanged/);
+  assert.doesNotMatch(result.stderr, /MustNotReachEntry/);
 });
