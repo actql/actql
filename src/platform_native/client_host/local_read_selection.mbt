@@ -8,11 +8,20 @@ struct NativeLocalReadSelection {
   result_names : Array[String]
   formats : Array[String]
   purpose : String
+  sink : NativeLocalReadSink
   data_policy_cids : Array[String]
   max_bytes : Int
   max_uses : Int
   expiry : NativeLocalReadExpiry
 }
+
+///|
+/// An original destination choice only. Material still requires the actual
+/// same-Host receiver and funded workspace before any read or allocation.
+pub(all) enum NativeLocalReadSink {
+  Stdout
+  Material
+} derive(Eq, Debug)
 
 ///|
 priv enum NativeLocalReadExpiry {
@@ -192,8 +201,10 @@ pub fn admit_native_local_read_selection(
     let enabled = read_policy_decoded(
       @decode.boolean(read_policy_field(fields, "enabled")),
     )
-    if read_policy_text(fields, "sink", 16) != "stdout" {
-      return Err(UnsupportedSink)
+    let sink = match read_policy_text(fields, "sink", 16) {
+      "stdout" => Stdout
+      "material" => Material
+      _ => return Err(UnsupportedSink)
     }
     let formats = read_policy_list(fields, "formats", 3, 8)
     for format in formats {
@@ -245,6 +256,7 @@ pub fn admit_native_local_read_selection(
       result_names: read_policy_list(fields, "result_names", 16, 128),
       formats,
       purpose: read_policy_text(fields, "purpose", 256),
+      sink,
       data_policy_cids,
       max_bytes: read_policy_quantity(fields, "max_bytes", 536870912L),
       max_uses: read_policy_quantity(fields, "max_uses", 1024L),
@@ -253,6 +265,14 @@ pub fn admit_native_local_read_selection(
   } catch {
     LocalReadPolicyStop(issue) => Err(issue)
   }
+}
+
+///|
+/// Read-only destination DATA, never a receiver, read permit or workspace loan.
+pub fn NativeLocalReadSelection::sink(
+  self : NativeLocalReadSelection,
+) -> NativeLocalReadSink {
+  self.sink
 }
 
 ///|
