@@ -322,15 +322,12 @@ test('public Effect submit rejects an unsupported checked acquisition shape befo
     const submissions = installNodeClientSubmission({journal, moon,
       authorizedScope, prepareSubmit: services.prepareSubmit,
       submit: services.submit, lookupRequest});
-    const submissionFailures = [];
     const server = createServer(createClientHttpHandler({...services, lookupRequest,
       negotiate: async facts => ({...services.negotiate(facts),
         submissionEpoch: await submissions.issueEpoch(facts)}),
-      submitIntent: async (...args) => {
-        try { return await Reflect.apply(submissions.submitIntent, submissions, args); }
-        catch (cause) { submissionFailures.push({code: cause.code, message: cause.message,
-          stack: cause.stack}); throw cause; }
-      },
+      // Public submit-intent carries the existing attempt envelope; the
+      // lower-level submitIntent outcome is not an HTTP attempt response.
+      submitIntent: submissions.submitAttempt,
       lookupSubmission: submissions.lookupSubmission}));
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     try {
@@ -343,7 +340,6 @@ test('public Effect submit rejects an unsupported checked acquisition shape befo
         error => {
           assert.equal(error.code, 'SubmissionPreparationFailed', JSON.stringify({
             outcome: getSubmissionOutcome(error), cause: error.cause?.message,
-            submissionFailures,
           }));
           assert.deepEqual(getSubmissionOutcome(error).problem,
             {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
