@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "moonbit_runtime.h"
+#include "../../src/platform_native/host_bootstrap/command_platform.h"
+extern void actql_native_client_capture_command_entry(void);
 extern size_t mi_good_size(size_t);
 extern size_t mi_usable_size(const void *);
 extern int32_t actql_native_client_measure_prearguments(int32_t,int32_t,int32_t,int32_t);
@@ -26,6 +28,8 @@ int main(int argc, char **argv) {
     strcmp(name,"invalid-bound") == 0 ? 0 : 256,4096,65536,
     strcmp(name,"context-limit") == 0 ? 1 : 8192);
   assert(status == expected);
+  actql_native_client_capture_command_entry();
+  assert(actql_native_command_platform_current() == NULL);
   unsigned char source[40] = {0}, context[128] = {0};
   if (status == 0) {
     int storage = 0;

@@ -4,9 +4,7 @@
 /* The selected executable retains this entry and its spent load records for
  * the original process lifetime. No component, member getter or caller DATA
  * can construct or replenish an entry. */
-#define ACTQL_NATIVE_COMMAND_OPTIONAL_MEMBER_BRIDGE
 #include "../../platform_native/host_bootstrap/command_platform.h"
-#undef ACTQL_NATIVE_COMMAND_OPTIONAL_MEMBER_BRIDGE
 #include <stdatomic.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -14,8 +12,9 @@
 #include <mach-o/dyld.h>
 #endif
 
-/* A CLI diagnostic may not contain the selected filesystem bridge. Absence is
- * a refusal before dlopen, never a path-only or stock-library fallback. */
+/* The selected executable links the existing filesystem Owner bridge. A
+ * standalone control-only fixture supplies explicit unavailable callbacks;
+ * production has no alternate member factory or path-only fallback. */
 struct actql_native_command_platform_load {
   actql_native_command_platform_original *entry;
   actql_native_observed_component_member *member;
@@ -82,16 +81,6 @@ actql_native_command_platform_current(void) {
     entry->initial_envelope_admitted && !entry->closing ? entry : NULL;
 }
 
-static bool actql_command_member_bridge(void) {
-  return actql_native_observed_component_member_current &&
-    actql_native_observed_component_member_kind &&
-    actql_native_observed_component_member_runtime &&
-    actql_native_observed_component_member_path &&
-    actql_native_observed_component_member_source &&
-    actql_native_observed_component_member_sha256 &&
-    actql_native_observed_component_member_manifest_sha256;
-}
-
 static bool actql_command_hex(const char *text, size_t length) {
   if (!text) return false;
   for (size_t i = 0; i < length; ++i)
@@ -106,8 +95,7 @@ actql_native_command_platform_load *actql_native_command_platform_begin_load(
     actql_native_observed_component_member *member) {
   if (!entry || entry != actql_native_command_platform_current() || !member ||
       kind < ACTQL_NATIVE_COMMAND_SQLITE_COMPONENT ||
-      kind > ACTQL_NATIVE_COMMAND_CRYPTO_COMPONENT ||
-      !actql_command_member_bridge()) return NULL;
+      kind > ACTQL_NATIVE_COMMAND_CRYPTO_COMPONENT) return NULL;
   actql_native_command_platform_load *load = &entry->loads[kind - 1];
   if (load->attempted ||
       actql_native_observed_component_member_kind(member) != kind ||

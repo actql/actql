@@ -17,6 +17,7 @@ before(() => {
     const args = ['-std=c11', '-O0', '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC', '-I'+resolve(process.env.MOON_HOME, 'include'),
       join(root, 'src/cmd/native_client/stdout_stub.c'),
       join(root, 'scripts/fixtures/native-command-prearguments.c'),
+      join(root, 'scripts/fixtures/native-command-member-unavailable.c'),
       resolve(process.env.MOON_HOME, 'lib/runtime/runtime.c'),
       resolve(process.env.MOON_HOME, 'lib/runtime/backtrace.c'),
       resolve(process.env.MOON_HOME, 'lib/libmoonbitrun.o'), '-o', executable];

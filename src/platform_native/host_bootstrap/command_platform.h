@@ -13,19 +13,6 @@ typedef struct actql_native_command_platform_load
 typedef struct actql_native_observed_component_member
   actql_native_observed_component_member;
 
-/* Only the executable entry may omit this bridge (and then refuse loads).
- * Put the attribute on the first declaration; a later redeclaration must not
- * accidentally leave strong undefined imports in the unselected CLI stub. */
-#if defined(ACTQL_NATIVE_COMMAND_OPTIONAL_MEMBER_BRIDGE)
-#if defined(__APPLE__)
-#define ACTQL_NATIVE_COMMAND_MEMBER_IMPORT __attribute__((weak_import))
-#else
-#define ACTQL_NATIVE_COMMAND_MEMBER_IMPORT __attribute__((weak))
-#endif
-#else
-#define ACTQL_NATIVE_COMMAND_MEMBER_IMPORT
-#endif
-
 enum actql_native_command_component_kind {
   ACTQL_NATIVE_COMMAND_SQLITE_COMPONENT = 1,
   ACTQL_NATIVE_COMMAND_CRYPTO_COMPONENT = 2
@@ -37,22 +24,21 @@ enum actql_native_command_component_kind {
  * association is nominal, retained by the caller; it is never a serialized
  * identity. current includes the original Root/stat/namespace/Read checks. */
 int actql_native_observed_component_member_current(
-  actql_native_observed_component_member *member) ACTQL_NATIVE_COMMAND_MEMBER_IMPORT;
+  actql_native_observed_component_member *member);
 enum actql_native_command_component_kind
 actql_native_observed_component_member_kind(
-  actql_native_observed_component_member *member) ACTQL_NATIVE_COMMAND_MEMBER_IMPORT;
+  actql_native_observed_component_member *member);
 const void *actql_native_observed_component_member_runtime(
-  actql_native_observed_component_member *member) ACTQL_NATIVE_COMMAND_MEMBER_IMPORT;
+  actql_native_observed_component_member *member);
 const char *actql_native_observed_component_member_path(
-  actql_native_observed_component_member *member) ACTQL_NATIVE_COMMAND_MEMBER_IMPORT;
+  actql_native_observed_component_member *member);
 const char *actql_native_observed_component_member_source(
-  actql_native_observed_component_member *member) ACTQL_NATIVE_COMMAND_MEMBER_IMPORT;
+  actql_native_observed_component_member *member);
 const char *actql_native_observed_component_member_sha256(
-  actql_native_observed_component_member *member) ACTQL_NATIVE_COMMAND_MEMBER_IMPORT;
+  actql_native_observed_component_member *member);
 const char *actql_native_observed_component_member_manifest_sha256(
-  actql_native_observed_component_member *member) ACTQL_NATIVE_COMMAND_MEMBER_IMPORT;
+  actql_native_observed_component_member *member);
 
-#undef ACTQL_NATIVE_COMMAND_MEMBER_IMPORT
 
 /* Borrow the selected entry's existing original. Missing selection, incomplete
  * envelope, retirement, fork inheritance or a foreign thread returns NULL.
