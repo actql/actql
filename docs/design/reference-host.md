@@ -921,8 +921,10 @@ A refusal after acquisition cannot discard the owner or start another Journal.
 The Root forwards that same nominal prepared original once through its captured
 private adapter and Host receiver to the existing Store factory's prepared
 argument. It does not reconstruct ownership from paths or tokens, issue another
-owner, or supply Store/key/payload authority. The ordinary unselected Store path
-retains its existing independent acquisition. Fresh-prefix handling remains
+owner, or supply Store/key/payload authority. Ordinary unselected writable Hosts
+also acquire this existing Store exclusion before opening their same-root
+Journal, then pass that exact original to Store adoption. Moving this custody
+does not select an operational resource recipe for those callers. Fresh-prefix handling remains
 limited to the same prepared original; global unknown-format refusal remains.
 
 Journal and Store cleanup attempts remain independent. Store payload cleanup
@@ -933,6 +935,17 @@ the existing Store owner to release its token. Captured dependency observations
 must explicitly return an own-data pending-false result; replacement callbacks,
 exceptions or ambiguous observations cannot settle it. Cleanup retries retain
 the same owner and cannot disturb a successor after its original staged release.
+
+A failed Store constructor can retain a cleanup child whose ownership release
+depends on the acquired Journal. For that same pre-service constructor failure,
+Host initialization drains the original Journal independently of the dependent
+child. It does not wait for that child before attempting Journal close, release
+the exclusion early, or reopen initialization. Other initialization cleanup
+ordering remains unchanged. Host Journal close remains retryable until both
+primary and optional secondary native connections have acknowledged close.
+An optional database-extent selection is applied and checked separately on each
+connection; one Pager's limit does not constrain another Pager or fund native
+heap, WAL, external writers or retained output.
 
 Selected cold inspection may additionally bound the SQLite schema table's
 declared row payload and traversal before native SQLite opens the isolated

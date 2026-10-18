@@ -118,7 +118,9 @@ import {installNodeResultAccessService,
 import {installRunStateAuthority, installRunStateService,
   inspectAuthorizedRunState} from '../host-common/run-state-access.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import {openLocalPublicationStore, prepareLocalPublicationStoreOwnership,
+  assertOriginalPreparedLocalPublicationStoreOwnership,
+  closePreparedLocalPublicationStoreOwnership} from '../store-local/publication-store.mjs';
 export {
   prepareLocalPublicationStoreOwnership as prepareOriginalHostPublicationOwnership,
   assertOriginalPreparedLocalPublicationStoreOwnership as assertOriginalHostPublicationOwnershipCurrent,
@@ -827,6 +829,92 @@ async function openInstalledHost(originalInstallation, preparation) {
   const storeAuthorityCid = cid({version: 'actql-local-store-owner/0.1',
     root, principalId});
   let journal;
+  let originalJournalClose, publicationOwnership;
+  let unselectedJournalAttempted = false, unselectedJournalFailure;
+  const publicationDirectory = join(root, 'publication');
+  function hostJournalExclusion() {
+    if (journal !== undefined) {
+      const current = observeOriginalClientRequestJournalCustody(journal);
+      return Object.freeze({pending: current.databaseClosed !== true ||
+        current.observationDatabaseClosed !== true});
+    }
+    if (!unselectedJournalAttempted) return Object.freeze({pending: false});
+    if (unselectedJournalFailure === undefined) return Object.freeze({pending: true});
+    const failure = unselectedJournalFailure;
+    try {
+      if (!failure.observed) {
+        failure.cleanup = failure.cause?.cleanupHandle;
+        failure.pending = failure.cause?.cleanupPending === true;
+        failure.observed = true;
+      }
+      if (failure.cleanup === undefined) return Object.freeze({pending: failure.pending});
+      if (!failure.statusObserved) {
+        failure.status = failure.cleanup.status;
+        failure.statusObserved = true;
+      }
+      if (typeof failure.status !== 'function') return Object.freeze({pending: true});
+      const current = Reflect.apply(failure.status, failure.cleanup, []);
+      const pending = current !== null && typeof current === 'object'
+        ? Object.getOwnPropertyDescriptor(current, 'pending') : undefined;
+      return Object.freeze({pending: pending === undefined || !Object.hasOwn(pending, 'value') ||
+        pending.value !== false});
+    } catch {
+      // This same constructor still owns the unobserved cleanup. Never
+      // release its exclusion from an unavailable getter or public flag.
+      return Object.freeze({pending: true});
+    }
+  }
+  function closeHostRequestJournal() {
+    if (journal === undefined) return;
+    originalJournalClose ??= journal.close;
+    if (typeof originalJournalClose !== 'function') {
+      throw clientOperationError('InstalledHostJournalCleanupPending');
+    }
+    Reflect.apply(originalJournalClose, journal, []);
+    // Public Journal.close may acknowledge the primary while its optional
+    // observation close is still pending. Keep this Host phase retryable
+    // until both SAME native originals have actually closed.
+    if (hostJournalExclusion().pending) {
+      throw clientOperationError('InstalledHostJournalCleanupPending');
+    }
+  }
+  async function closeHostPublicationOwnership() {
+    if (publicationOwnership === undefined) return;
+    const current = await closePreparedLocalPublicationStoreOwnership(publicationOwnership);
+    const pending = current !== null && typeof current === 'object'
+      ? Object.getOwnPropertyDescriptor(current, 'pending') : undefined;
+    if (pending === undefined || !Object.hasOwn(pending, 'value') || pending.value !== false) {
+      throw clientOperationError('InstalledHostPublicationOwnershipCleanupPending');
+    }
+    publicationOwnership = undefined;
+    unselectedJournalFailure = undefined;
+  }
+  async function openHostRequestJournal(journalOptions) {
+    if (preparation === undefined) {
+      // Every same-root writable Host route acquires the existing Store
+      // exclusion before touching the Journal, not merely when Store opens.
+      // This moves ordinary custody; it supplies no selected resource credit.
+      const original = await prepareLocalPublicationStoreOwnership(publicationDirectory,
+        undefined, Object.freeze({status: hostJournalExclusion}));
+      publicationOwnership = original;
+      assertOriginalPreparedLocalPublicationStoreOwnership(original, publicationDirectory);
+      unselectedJournalAttempted = true;
+    }
+    try {
+      journal = preparation === undefined
+        ? openClientRequestJournal(journalDirectory, journalOptions)
+        : await preparation.openRequestJournal(journalDirectory, journalOptions);
+      // Retain the acquired Journal before this fallible callback capture.
+      originalJournalClose = journal.close;
+      return journal;
+    } catch (cause) {
+      if (preparation === undefined && journal === undefined) {
+        unselectedJournalFailure = {cause, observed: false, statusObserved: false};
+        hostJournalExclusion();
+      }
+      throw cause;
+    }
+  }
   let effectEvidenceKey;
   let checkpoints;
   let modelController;
@@ -835,7 +923,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   let observation;
   let localSnapshotConfiguration;
   let ownerViews;
-  let activationFlight, activationFailure;
+  let activationFlight, activationFailure, publicationOpeningFailure;
   try {
     const delivery = createDiagnosticObserver(authorization?.observe);
     diagnostic = Object.assign((event, detail) => {
@@ -895,9 +983,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     // Only the same selected writable facility may instantiate its Journal.
     // Unselected Hosts retain the existing constructor. A directory or option
     // object cannot select a native constructor or issue resource admission.
-    journal = preparation === undefined
-      ? openClientRequestJournal(journalDirectory, journalOptions)
-      : await preparation.openRequestJournal(journalDirectory, journalOptions);
+    journal = await openHostRequestJournal(journalOptions);
     observation = installHostObservation(observationConnection, {journal,
       runId: ref => {
         const retained = journal.lookupRunDefinition(ref, moon, control);
@@ -953,6 +1039,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
     }
     if (modelRuntimeView !== undefined) assertNewModelRuntime();
+    try {
     store = await openLocalPublicationStore({
       directory: join(root, 'publication'), storeAuthorityCid,
       capacityBytes: 512 * 1024 * 1024,
@@ -960,7 +1047,16 @@ async function openInstalledHost(originalInstallation, preparation) {
       maxObjects: 10000, maxContractNodes: 10000,
       maxContractDepth: 64,
       privateEvidenceKey: effectInstallation?.privateEvidenceKey ?? effectEvidenceKey?.key,
-    }, control, undefined, undefined, preparation?.publicationOwnership());
+    }, control, undefined, undefined, preparation === undefined
+      ? publicationOwnership : preparation.publicationOwnership());
+    } catch (cause) {
+      // This same Store opener may retain a child whose release depends on
+      // the already acquired Journal. Its initializer has not started any
+      // dispatch/checkpoint service; preserve that original provenance so
+      // cleanup can drain Journal independently, without releasing the token.
+      publicationOpeningFailure = {cause};
+      throw cause;
+    }
     if (modelRuntimeView !== undefined) {
       // The real factory's result, not a lookup/configuration reconstruction.
       // Keep the static module and this Store through failed/pending cleanup.
@@ -3535,6 +3631,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       : observation.run(operation, undefined, () => ingress.perform(operation, request, signal)),
   });
   return Object.assign(host, {port, store, journal, hostOperations, checkpoints, diagnostic,
+    closeRequestJournal: closeHostRequestJournal,
+    ...(preparation === undefined ? {closePublicationOwnership: closeHostPublicationOwnership} : {}),
     observation, ownerViews,
     ...(preparation === undefined ? {} : {initialControl: preparation.initialControl}),
     dispatchOwner, inspectAcquisition, sourceProfile, installedEffect,
@@ -3544,8 +3642,11 @@ async function openInstalledHost(originalInstallation, preparation) {
     diagnostic?.close();
     effectEvidenceKey?.key.fill(0);
     throw await retainInstalledHostInitializationFailure(cause,
-      {journal, store, checkpoints, dispatchOwner,
-        sourceProfile, installedEffect, observation, ownerViews});
+      {journal, closeJournal: closeHostRequestJournal, store, checkpoints, dispatchOwner,
+        sourceProfile, installedEffect, observation, ownerViews,
+        closeInitializationJournal: publicationOpeningFailure !== undefined && publicationOpeningFailure.cause === cause
+          ? closeHostRequestJournal : undefined,
+        publicationOwnership: preparation === undefined ? {close: closeHostPublicationOwnership} : undefined});
   }
     };
     const activate = () => {
@@ -3603,6 +3704,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       },
     });
     return Object.assign(host, {port:bootstrapPort,journal,sourceProfile,installedEffect,
+      closeRequestJournal: closeHostRequestJournal,
       diagnostic,observation,initialControl:preparation.initialControl,
       stopModelRuntime() { modelRuntimeClosing = true; },retireModelRuntime,
       async prepareShutdown() {
@@ -3651,7 +3753,9 @@ async function openInstalledHost(originalInstallation, preparation) {
     diagnostic?.close();
     effectEvidenceKey?.key.fill(0);
     throw await retainInstalledHostInitializationFailure(cause,
-      {journal,store,checkpoints,dispatchOwner,sourceProfile,installedEffect,observation,ownerViews});
+      {journal, closeJournal: closeHostRequestJournal, store, checkpoints, dispatchOwner,
+        sourceProfile, installedEffect, observation, ownerViews,
+        publicationOwnership: preparation === undefined ? {close: closeHostPublicationOwnership} : undefined});
   }
   } catch (cause) {
     modelRuntimeClosing = true;

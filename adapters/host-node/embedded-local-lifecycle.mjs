@@ -12,6 +12,8 @@ export function installedHostShutdown(host) {
   const initialControl = host.initialControl;
   const prepareShutdown = host.prepareShutdown;
   const closePublicationStore = host.closePublicationStore;
+  const closeRequestJournal = host.closeRequestJournal;
+  const closePublicationOwnership = host.closePublicationOwnership;
   const shutdown = createInstalledHostShutdown({
     stop: prepareShutdown === undefined ? () => {
       host.stopModelRuntime?.();
@@ -29,11 +31,14 @@ export function installedHostShutdown(host) {
     retire: () => prepareShutdown === undefined
       ? host.retireTerminalEffects() : host.retireTerminalEffects?.(),
     checkpoint: () => host.checkpoints?.close(),
-    journal: () => host.journal.close(),
+    journal: closeRequestJournal === undefined ? () => host.journal.close() :
+      () => Reflect.apply(closeRequestJournal, host, []),
     source: () => host.sourceProfile?.close(),
     effect: () => host.installedEffect?.close(),
     store: closePublicationStore === undefined ? () => host.store.close() :
       () => Reflect.apply(closePublicationStore,host,[]),
+    ...(closePublicationOwnership === undefined ? {} : {publicationOwnership:
+      () => Reflect.apply(closePublicationOwnership, host, [])}),
     ...(host.diagnostic === undefined ? {} :
       {diagnostic: () => host.diagnostic.close()}),
     ...(host.observation === undefined ? {} :

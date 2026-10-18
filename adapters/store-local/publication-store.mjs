@@ -820,7 +820,12 @@ export async function prepareLocalPublicationStoreOwnership(directory, bounds, d
   }
   const dependencyStatus = dependencyProperty?.value;
   const root = resolve(directory);
-  const bootstrap = storeBootstrapAcquisition(bounds, 4096);
+  // Ordinary installed Hosts move this same exclusion before their Journal
+  // without selecting a resource recipe or changing their existing intake.
+  // Selected operational callers still supply their explicit finite bounds.
+  const bootstrap = bounds === undefined ? Object.freeze({
+    readDirectory: readdir, readMetadata: path => readBounded(path, 4096),
+  }) : storeBootstrapAcquisition(bounds, 4096);
   let names;
   try {
     const state = await lstat(root);

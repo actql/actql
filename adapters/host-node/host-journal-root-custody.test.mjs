@@ -83,10 +83,10 @@ assert.equal(storeAssignments.length, 1);
 const actualHostStore = compileFunction(`return (async()=>{let store;
   ${hostSource.slice(storeAssignments[0].start, storeAssignments[0].end)};return store;})();`,
 ['root', 'storeAuthorityCid', 'localOutputLimits', 'effectInstallation', 'effectEvidenceKey',
-  'control', 'preparation', 'openLocalPublicationStore', 'join']);
-const hostStore = (f, preparation) => actualHostStore(f.scratch.path, 'sha256:' + 'a'.repeat(64),
+  'control', 'preparation', 'openLocalPublicationStore', 'join', 'publicationOwnership']);
+const hostStore = (f, preparation, ownership) => actualHostStore(f.scratch.path, 'sha256:' + 'a'.repeat(64),
   {maxWireBytes: 4096}, undefined, undefined, createPublicationContractControlFixture(),
-  preparation, openLocalPublicationStore, join);
+  preparation, openLocalPublicationStore, join, ownership);
 function connectedHostPreparation(f) {
   const prepare = adapter(name => {
     assert.equal(name, './node-public-initial-control-bootstrap.cjs');
@@ -166,10 +166,12 @@ test('actual captured Root adapter and Host Store call adopt the same ownership 
   f.scratch.passed();
 });
 
-test('actual unselected Host Store call retains ordinary ownership without a prepared original', async () => {
+test('actual unselected Host Store call adopts its same earlier ordinary ownership', async () => {
   const f = await fixture();
-  const store = await hostStore(f, undefined);
+  const ownership = await prepareLocalPublicationStoreOwnership(join(f.scratch.path, 'publication'));
+  const store = await hostStore(f, undefined, ownership);
   assert.equal(await store.close(), true);
+  assert.equal((await closePreparedLocalPublicationStoreOwnership(ownership)).pending, false);
   f.scratch.passed();
 });
 
