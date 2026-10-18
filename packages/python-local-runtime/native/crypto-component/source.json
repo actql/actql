@@ -18,8 +18,8 @@
   },
   "local": {
     "component.c": {
-      "bytes": 12898,
-      "sha256": "5b5089cf5ed1bfca6e8ece679e7fa89bb40f0113868ba776399ecb812bdb5900"
+      "bytes": 13212,
+      "sha256": "5024c4f25f7c77f06f6d4d1a3aa499321cbd833914ede120809dbad3c61b2013"
     },
     "component.h": {
       "bytes": 1564,
@@ -30,8 +30,8 @@
       "sha256": "b9f30cf5ef0cfcd3fc60d7ce9bd7fe65ba8de925629a730df7b3ad2ae364f40a"
     },
     "fixtures/conformance.c": {
-      "bytes": 8659,
-      "sha256": "4c6ba82d6df0bba3cc435801adbfe8756266f7e26bba904a38916ee8de9e2c87"
+      "bytes": 10986,
+      "sha256": "40855500283eecb839276b7242c1647a1da516ccbdf31980874ea7ba81433961"
     }
   },
   "isolation": [

@@ -40,19 +40,24 @@ int main(int argc, char **argv) {
     CRYPTO_free_fn before_free, after_free;
     system_memory(&before_malloc, &before_realloc, &before_free);
     const unsigned char recipe[32] = {17};
-    actql_owned_capacity *lease = NULL; actql_read_context *context = NULL;
+    actql_owned_capacity *lease = NULL; actql_read_context *context = NULL, *foreign = NULL;
     size_t page = (size_t)sysconf(_SC_PAGESIZE);
     assert(actql_native_owned_acquire(64 * page, 1, recipe, &lease) == 0);
     assert(actql_native_owned_transfer(lease, 1, recipe) == 0);
     assert(actql_native_owned_enter(lease) == 0);
     assert(actql_read_context_create(lease, &context) == 0);
     assert(actql_read_context_retain(context) == 0);
+    if (!strcmp(name, "foreign-original")) {
+        assert(actql_read_context_create(lease, &foreign) == 0);
+        assert(actql_read_context_retain(foreign) == 0);
+    }
     assert(actql_read_context_enter(context) == 0);
     if (!strcmp(name, "missing-current")) {
         assert(actql_read_context_leave(context) == 0);
         assert(actql_crypto_component_bind(context, 32 * page) == ACTQL_CRYPTO_COMPONENT_INVALID);
         assert(actql_read_context_enter(context) == 0);
     }
+    if (foreign) assert(actql_crypto_component_bind(foreign, 32 * page) == ACTQL_CRYPTO_COMPONENT_INVALID);
     int bound = actql_crypto_component_bind(context,
         !strcmp(name, "initialization-exhaustion") ? 4096 : 32 * page);
     if (!strcmp(name, "initialization-exhaustion")) {
@@ -65,7 +70,17 @@ int main(int argc, char **argv) {
         assert(actql_crypto_component_inventory(baseline) == 0);
         assert(baseline[0] == 32 * page && baseline[3] > 0);
         assert(baseline[2] + baseline[5] + baseline[6] == baseline[0]);
+        if (foreign) {
+            assert(actql_crypto_component_enter(foreign) == ACTQL_CRYPTO_COMPONENT_INVALID);
+            assert(actql_read_context_leave(context) == 0);
+            assert(actql_read_context_enter(foreign) == 0);
+            assert(actql_crypto_component_enter(foreign) == ACTQL_CRYPTO_COMPONENT_INVALID);
+            assert(actql_crypto_component_close() == ACTQL_CRYPTO_COMPONENT_INVALID);
+            assert(actql_read_context_leave(foreign) == 0);
+            assert(actql_read_context_enter(context) == 0);
+        }
         assert(actql_crypto_component_enter(context) == 0);
+        assert(actql_crypto_component_enter(context) == ACTQL_CRYPTO_COMPONENT_BUSY);
         assert(actql_crypto_component_borrow_library() == 0);
         assert(actql_crypto_component_close() == ACTQL_CRYPTO_COMPONENT_BUSY);
         assert(actql_crypto_component_symbol("malloc") == NULL);
@@ -117,6 +132,27 @@ int main(int argc, char **argv) {
         memset(private_der, 0, sizeof private_der);
         assert(actql_crypto_component_inventory(held) == 0 && held[3] > baseline[3]);
         EVP_PKEY_free(key); EVP_PKEY_CTX_free(key_context);
+        if (!strcmp(name, "heap-exhaustion-realloc")) {
+            typedef const BIO_METHOD *(*bio_method_fn)(void);
+            typedef BIO *(*bio_new_fn)(const BIO_METHOD *);
+            typedef int (*bio_write_fn)(BIO *, const void *, int);
+            typedef int (*bio_free_fn)(BIO *);
+            GET(bio_method_fn, BIO_s_mem); GET(bio_new_fn, BIO_new);
+            GET(bio_write_fn, BIO_write); GET(bio_free_fn, BIO_free);
+            BIO *bio = BIO_new(BIO_s_mem()); assert(bio);
+            char bytes[32] = {17};
+            assert(BIO_write(bio, bytes, sizeof bytes) == sizeof bytes);
+            /* A request larger than the entire extent must fail without
+             * losing the original BIO buffer or acquiring another extent. */
+            char large[524288] = {0};
+            assert(BIO_write(bio, large, sizeof large) <= 0);
+            uint64_t bounded[12] = {0};
+            assert(actql_crypto_component_inventory(bounded) == 0);
+            assert(bounded[0] == baseline[0] && bounded[7] > baseline[7]);
+            assert(bounded[2] + bounded[5] + bounded[6] == bounded[0]);
+            assert(BIO_write(bio, bytes, sizeof bytes) == sizeof bytes);
+            assert(BIO_free(bio) == 1);
+        }
         assert(actql_crypto_component_leave(context) == 0);
         assert(actql_crypto_component_release_library() == 0);
         int close_status = actql_crypto_component_close();
@@ -137,6 +173,10 @@ int main(int argc, char **argv) {
     assert(actql_native_owned_leave(lease) == 0);
     assert(actql_read_context_release_after_owner_ack(context) == 0);
     assert(actql_read_context_try_close(&context) == 0 && !context);
+    if (foreign) {
+        assert(actql_read_context_release_after_owner_ack(foreign) == 0);
+        assert(actql_read_context_try_close(&foreign) == 0 && !foreign);
+    }
     assert(actql_native_owned_try_close(&lease) == 0 && !lease);
     assert(dlclose(system) == 0);
     printf("{\"case\":\"%s\",\"pass\":true,\"private_host_pages\":64,\"normal_funding\":false}\n", name);

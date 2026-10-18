@@ -208,7 +208,11 @@ void *actql_crypto_component_symbol(const char *name) {
     SYMBOL(ERR_error_string_n); SYMBOL(EVP_PKEY_CTX_new_id); SYMBOL(EVP_PKEY_CTX_free);
     SYMBOL(EVP_PKEY_keygen_init); SYMBOL(EVP_PKEY_keygen); SYMBOL(i2d_PrivateKey);
     SYMBOL(i2d_PUBKEY); SYMBOL(PEM_write_bio_PrivateKey); SYMBOL(PEM_write_bio_PUBKEY);
-    SYMBOL(BIO_s_mem); SYMBOL(BIO_new); SYMBOL(BIO_ctrl); SYMBOL(BIO_read);
+    SYMBOL(BIO_s_mem); SYMBOL(BIO_new); SYMBOL(BIO_ctrl); SYMBOL(BIO_read); SYMBOL(BIO_write);
+    SYMBOL(EVP_CIPHER_CTX_new); SYMBOL(EVP_CIPHER_CTX_free); SYMBOL(EVP_CIPHER_CTX_ctrl);
+    SYMBOL(EVP_aes_256_gcm); SYMBOL(EVP_EncryptInit_ex); SYMBOL(EVP_EncryptUpdate);
+    SYMBOL(EVP_EncryptFinal_ex); SYMBOL(EVP_DecryptInit_ex); SYMBOL(EVP_DecryptUpdate);
+    SYMBOL(EVP_DecryptFinal_ex);
 #undef SYMBOL
     return NULL;
 }
