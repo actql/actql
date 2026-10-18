@@ -176,24 +176,30 @@ test "Journal rolls back the Run CAS and prior locator after checkpoint index co
   let occupied = database
     .read("client_checkpoint_id_index", collision_key)
     .unwrap()
+  let mut observed_cas = false
+  let mut observed_locator_removal = false
+  let mut observed_collision = false
   assert_true(
     journal.transaction(() => {
       let result = journal.save({
         ..waiting,
         checkpoint: Some({ ..checkpoint, artifact: replacement, }),
       })
-      assert_true(result is Err(CustodyLost))
+      observed_collision = result is Err(CustodyLost)
       let changed = database.read("client_runs", run_key).unwrap()
-      assert_eq(changed.revision, original_run.revision + 1L)
-      assert_true(changed.body != original_run.body)
-      assert_true(
-        database.read("client_checkpoint_id_index", original_key)
-        is Err(@sqlite.NotFound),
-      )
+      observed_cas = changed.revision == original_run.revision + 1L &&
+        changed.body != original_run.body
+      observed_locator_removal = database.read(
+          "client_checkpoint_id_index", original_key,
+        )
+        is Err(@sqlite.NotFound)
       result.map(_ => ())
     })
     is Err(CustodyLost),
   )
+  assert_true(observed_collision)
+  assert_true(observed_cas)
+  assert_true(observed_locator_removal)
   let retained_run = database.read("client_runs", run_key).unwrap()
   let retained_locator = database
     .read("client_checkpoint_id_index", original_key)
