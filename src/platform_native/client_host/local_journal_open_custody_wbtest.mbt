@@ -292,7 +292,8 @@ test "custodied original Reader Unknown prevents database open and keeps the act
   assert_true(failed.database is None)
   for _ in 0..<2 {
     assert_true(
-      failed.retry_cleanup() is Err(Filesystem(@filesystem.Cleanup(_))),
+      failed.retry_cleanup() is Err(Filesystem(@filesystem.Read(message))) &&
+      message == "reader retirement observation unavailable",
     )
     assert_false(session.close())
     assert_true(
