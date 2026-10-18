@@ -8,6 +8,7 @@ const {Readable} = require('node:stream');
 const {createRequire} = require('node:module');
 const {dirname, join} = require('node:path');
 const originalProcess = require('node:process');
+const {createInitialControlInstallationOwner} = require('./initial-control-installation-owner.cjs');
 // Selected runtime implementation duty: ONLY the V8 internal backing of these
 // two identity indices stays with this actual startup/module and escaped-handle
 // lifetime. It is not fixed SDK storage or a numerical lease. Entry records,
@@ -77,6 +78,12 @@ const selected = module.isPreloading === true &&
   originalProcess.version === 'v22.22.0' &&
   originalProcess.platform === 'darwin' && originalProcess.arch === 'arm64' &&
   originalProcess.versions.openssl === '3.5.4';
+
+// Source-only and incomplete distributions have no prepared image original.
+// Requiring the actual generated Source here precedes entry imports; loading a
+// similarly shaped caller object later cannot replace this module original.
+const initialControlPackageOriginal = selected && eagerSdkStartup && publicPreload !== undefined
+  ? require('./initial-control-package-original.cjs').imageInventory : undefined;
 
 let startup;
 if (selected) {
@@ -282,7 +289,20 @@ function checkSdkModules(view, originals, modules) {
   sdkOriginals(modules, retained);
 }
 
+// The startup association above is not a complete initial-control envelope.
+// Keep this private Owner unavailable until its actual selected image recipe,
+// original module/library domains and bounded preparation coverage are supplied
+// before entry. Neither caller methods nor the old eight-reference view can
+// install an operational original in this closure.
+const initialControl = createInitialControlInstallationOwner(undefined);
+
 module.exports = Object.freeze({
+  beginInitialControlInstallation(originals) {
+    return initialControl.begin(originals);
+  },
+  assertInitialControlInstallationCurrent(scope, sameOriginals) {
+    return initialControl.assertCurrent(scope, sameOriginals);
+  },
   associateHost(view, originals) {
     // Missing early startup is None, not native/module coverage or success.
     if (startup === undefined) return undefined;
