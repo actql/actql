@@ -59,6 +59,18 @@ class NativeShimBindingTests(unittest.TestCase):
             ['reply', 'host', 'domain', 'process', 'channel', 'frame'])
         self.assertNotIn('actql_process_close_fd', SIGNATURES)
 
+    def test_host_pair_keeps_both_host_roles_originals_and_int64_capacity(self):
+        from actql_sdk._local_native_shim_abi import PARAMETERS, SIGNATURES
+        self.assertEqual([name for name, _ in PARAMETERS['actql_host_resources_originals_into']],
+            ['reply', 'host', 'sqlite_host', 'read', 'sqlite', 'original'])
+        self.assertEqual([name for name, _ in PARAMETERS['actql_host_resources_finish_closed_data']],
+            ['host', 'sqlite_host', 'read', 'sqlite', 'original', 'reply'])
+        arguments, result = SIGNATURES['actql_host_resources_capacity_scalar']
+        self.assertEqual([value.__name__ for value in arguments], ['c_void_p', 'c_int'])
+        self.assertEqual(result.__name__, 'c_long')
+        self.assertEqual([name for name, _ in PARAMETERS['actql_host_resources_operate_into']],
+            ['host', 'original', 'operation', 'reply'])
+
     def test_unknown_symbol_cannot_bind_or_call_owner(self):
         from actql_sdk._local_native_shim_abi import bind
         class Library:
