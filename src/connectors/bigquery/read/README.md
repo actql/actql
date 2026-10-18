@@ -30,3 +30,36 @@ provider cost limits, transport custody and current authorization remain with
 the selected Host/Site. Common capture tests and explicit stop-observer doubles
 are distinct from physical HTTPS, installed Source or live-service acceptance.
 Unsupported value carriers remain named refusals in the existing catalog codec.
+
+## Interface responsibilities
+
+- Responsibility: BigQuery page adaptation uses the existing checked Common
+  acquisition, value-admission and capture Owners.
+- Inputs and outputs: original description/declaration/requirement, Job routing
+  DATA, bounded bodies and explicit limits produce counts, original capture or
+  typed refusal. This interface creates no HTTP request or Source grant.
+- Identity: the same acquisition, RowRun, projection, original Job and preceding
+  page token remain bound. Equal schema bytes do not replace the acquisition's
+  nominal Contract; runtime values are rechecked by its existing Owner.
+- Ownership: owned reads retain their original reservation and failed-start
+  cleanup carrier. Borrowed readers cannot finish, capture or close the Host's
+  Run. Retirement requires the original physical observer and Common cleanup.
+- Synchronization: ordered synchronous admission consumes one original page
+  charge; a second or foreign borrow refuses. Completion describes admitted
+  pages, not remote Job or transport termination.
+- Failure: schema/cursor/count/contract/transfer failures close admission without
+  exposing a partial Source. Failed cleanup retains the same original Job and
+  reservation; it cannot create another attempt or imply a successful resend.
+- Cancellation: interruption prevents further admission; provider cancellation,
+  physical stop and business outcomes remain distinct observations.
+- Resources: the original Ledger reserves transfer, retention and execution.
+  Explicit page/body/node/text/row bounds apply; logical limits do not fund an
+  unrelated process, VM or provider domain.
+- Extension: Job creation, authentication, current authorization, billing limits
+  and physical transport remain with the existing Host/Site. Unsupported value
+  carriers are refused rather than disguised as strings, JSON or rounded floats.
+- Verification: independent QueryIntegration cases exercise the real Common
+  checked Source, exact decimal and SQL null capture, complete multi-page reads,
+  malformed/foreign/cursor/total/transfer refusals, original Contract rebinding,
+  empty results, borrowed custody and uncertain cleanup. Stop-observer doubles
+  do not establish physical HTTPS, installed Source or live-service acceptance.
