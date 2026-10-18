@@ -1461,3 +1461,21 @@ frame is stopped, so the original scope remains available for component cleanup.
 Library, component, Read-context, domain, loan and Host acknowledgements remain
 separate. Neither successful preparation nor leaving a serial HostRead phase
 acknowledges component retirement or authorizes a SQLite phase to borrow it.
+
+The Local Host pair prepares its component registration in the already covered
+outer control lifetime, after the original Read claim and before the first Read
+entry. The physical predicate refuses any entered Read or owned scope; this
+preparation neither switches contexts nor creates a control allocation supplier.
+The active Read entrance consumes only that same registered slot, once. This
+keeps the original nominal/copy/foreign and closed-cleanup identity checks intact.
+
+Allocating this registration inside Read while retaining it from the outer
+domain would make parent Read retirement depend on freeing its own registration.
+An early detachment cannot replace the original nominal identity with a copied
+closed flag. The outer control placement therefore preserves the general
+registration order: component, Library and own-scope cleanup must complete, then
+Read, domain and parent acknowledgements retire separately. The original domain
+keeps the spent registration until its final acknowledgement, preventing another
+load. A closed physical component carrier or other managed value allocated inside
+Read still keeps that actual context busy while any external alias survives;
+releasing it only permits another same-original cleanup attempt, never new work.
