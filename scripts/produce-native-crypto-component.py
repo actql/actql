@@ -63,7 +63,7 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
     inputs[str(license_path)] = original(license_path)
     if inputs[str(license_path)]['sha256'] != recipe['license_sha256']:
         raise ValueError('Selected OpenSSL license mismatch')
-    inputs[str(clang)] = original(clang, 256 * 1024 * 1024)
+    inputs[str(clang)] = original(clang, 512 * 1024 * 1024)
     output.mkdir(parents=True, exist_ok=False)
     exports = output / 'component.exports'
     exports.write_text(''.join('_' + name + '\n' for name in EXPORTS))
@@ -99,7 +99,7 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
     if not all('_' + name in undefined.split() for name in required):
         raise ValueError('Original process provider import missing')
     for name, expected in inputs.items():
-        if original(Path(name), 256 * 1024 * 1024) != expected:
+        if original(Path(name), 512 * 1024 * 1024) != expected:
             raise ValueError('Crypto build input changed')
     (output / 'OPENSSL-LICENSE.txt').write_bytes(license_path.read_bytes())
     (output / 'CRYPTO-NOTICE').write_bytes((SOURCE / 'NOTICE').read_bytes())
