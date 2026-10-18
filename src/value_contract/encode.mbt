@@ -162,6 +162,7 @@ fn type_name(shape : Shape) -> String {
     Vector(..) => "vector"
     ResourceRef(..) => "resource_ref"
     ContentRef(..) => "content_ref"
+    Signed64 => "int64"
   }
 }
 

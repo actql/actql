@@ -10,6 +10,7 @@ priv enum KeyAtom {
   KeyTimestamp(String)
   KeyDecimal(String, Int)
   KeyReference(String)
+  KeySigned64(Int64)
 } derive(Eq, Hash)
 
 ///|
@@ -208,6 +209,7 @@ fn input_key_admitted_atom(
     @admitted.Date(s) => Ok(KeyDate(s))
     @admitted.Timestamp(s) => Ok(KeyTimestamp(s))
     @admitted.Decimal(d) => Ok(KeyDecimal(d.coefficient, d.scale))
+    @admitted.Signed64(value) => Ok(KeySigned64(value))
     @admitted.Reference(reference) =>
       if @admitted.reference_available(reference) {
         Ok(KeyReference(@admitted.reference_identity_cid(reference)))
@@ -229,7 +231,7 @@ fn input_key_atom_text(atom : KeyAtom) -> String? {
     | KeyTimestamp(text)
     | KeyDecimal(text, _)
     | KeyReference(text) => Some(text)
-    KeyNumber(_) | KeyBoolean(_) => None
+    KeyNumber(_) | KeyBoolean(_) | KeySigned64(_) => None
   }
 }
 

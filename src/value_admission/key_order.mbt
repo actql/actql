@@ -63,6 +63,8 @@ fn compare_nonnull_order_values(
   match (left.value, right.value, left.contract.shape, right.contract.shape) {
     (Number(a), Number(b), @contract.Number, @contract.Number) =>
       Ok(if a < b { -1 } else if a > b { 1 } else { 0 })
+    (Signed64(a), Signed64(b), @contract.Signed64, @contract.Signed64) =>
+      Ok(if a < b { -1 } else if a > b { 1 } else { 0 })
     (Boolean(a), Boolean(b), @contract.Boolean, @contract.Boolean) =>
       Ok(if a == b { 0 } else if a { 1 } else { -1 })
     (Text(a), Text(b), @contract.Text(_), @contract.Text(_))
@@ -167,6 +169,7 @@ fn same_author_order_domain(
 ) -> Bool {
   match (left, right) {
     (@contract.Number, @contract.Number)
+    | (@contract.Signed64, @contract.Signed64)
     | (@contract.Boolean, @contract.Boolean)
     | (@contract.Text(_), @contract.Text(_))
     | (@contract.Date, @contract.Date)

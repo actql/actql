@@ -209,5 +209,5 @@ pub fn query_acquisition_requirement_at(
 
 ///|
 pub fn query_acquisition_contract_cid() -> String {
-  "sha256:37a581bc6b76d61d50527d58777343b655479356c6017ac41ff24ddaf5676bd2"
+  "sha256:ad68f7ceafeed528a29c05e726db799d0031ef46152c0385f64468d38094c606"
 }

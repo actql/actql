@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
+import {gunzipSync} from 'node:zlib';
+import {verifyIdentity} from './check-canonical-json.mjs';
 import { generateIdentityTests, projectedBody, project, identityDefinitions, valuesSchema, checkIdentitySchema } from './parameter-identity.mjs';
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
@@ -78,4 +80,45 @@ test('identity schema checker rejects representation drift and stale artifact pi
     const r = read('spec/contracts/actql-protocol-schemas.json');
     change(r); assert.throws(() => checkIdentitySchema(r));
   }
+});
+
+
+test('independent signed64 identity projection preserves exact range and adjacent binary64 integers', () => {
+  const type = {type: 'int64'};
+  const identities = read('portability/corpus/signed64-identities.json').parameterIdentities;
+  for (const vector of identities) {
+    assert.deepEqual(projectedBody({n: type}, {n: vector.integer}), vector.body);
+    verifyIdentity(vector.body, vector.cid, vector.canonicalPreimage);
+  }
+  assert.equal(new Set(identities.map(value => value.cid)).size, 5);
+  for (const value of ['-9223372036854775808', '0', '9223372036854775807', '9007199254740992', '9007199254740993']) {
+    assert.deepEqual(project(type, value), {$actql_value: ['int64', value]});
+    assert.notDeepEqual(project(type, value), project({type: 'string'}, value));
+  }
+  assert.notDeepEqual(project(type, '9007199254740992'), project(type, '9007199254740993'));
+  for (const value of [0, 9007199254740992, '-0', '+1', '00', '01', '-01', '1e3', '1.0', ' 1', '1\n', '9223372036854775808', '-9223372036854775809']) {
+    assert.throws(() => project(type, value));
+  }
+  const ordinary = { $actql_value: ['int64', '1'] };
+  const escaped = project({type: 'object', fields: {$actql_value: {type: 'array', items: {type: 'string'}}}}, ordinary);
+  assert.deepEqual(escaped, {$actql_value: ['object', [['$actql_value', ['int64', '1']]]]});
+  assert.notDeepEqual(escaped, project(type, '1'));
+});
+
+test('signed64 identity adds one closed tag without changing legacy alternatives', () => {
+  const prior = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/pre-signed64-type-closure.json.gz'))).records;
+  const old = prior['spec/contracts/actql-protocol-schemas.json'].artifact_schemas.parameter_values.$defs;
+  const current = identityDefinitions();
+  const branches = current.projected_value.oneOf;
+  assert.deepEqual(branches.slice(0, -1), old.projected_value.oneOf);
+  const tag = branches.at(-1);
+  assert.equal(tag.properties.$actql_value.prefixItems[0].const, 'int64');
+  assert.equal(tag.additionalProperties, false);
+  assert.equal(tag.properties.$actql_value.items, false);
+  const value = tag.properties.$actql_value.prefixItems[1];
+  assert.equal(value.type, 'string');
+  assert.equal(value.maxLength, 20);
+  const pattern = new RegExp(value.pattern, 'u');
+  for (const valid of ['0', '-1', '9007199254740993']) assert(pattern.test(valid));
+  for (const invalid of ['-0', '+1', '01', '1\n', '1\r', '1\u2028']) assert(!pattern.test(invalid));
 });

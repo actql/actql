@@ -360,6 +360,8 @@ fn emit_frames(
           @value.Text(s) | @value.Date(s) | @value.Timestamp(s) =>
             @encode.string_value(output, s)
           @value.Decimal(d) => @encode.string_value(output, decimal_wire(d))
+          @value.Signed64(value) =>
+            @encode.string_value(output, value.to_string())
           @value.Array(items) => {
             @encode.begin_array(output)
             pending.push(Values(items, 0))
