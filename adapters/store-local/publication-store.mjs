@@ -5097,7 +5097,8 @@ export async function openLocalPublicationStore(
       'model_slot_capture', 'model_invocation_evidence', 'model_call_attempt', 'model_attempt_accounting',
       'model_attempt_outcome', 'model_dispatch_authority', 'model_attachment_admission',
       'observation_set', 'run_invocation', 'source_evidence',
-      'content_input_artifact', 'content_evidence', 'content_generation'].includes(binding.name) ||
+      'content_input_artifact', 'content_evidence', 'content_generation',
+      'installation_publication'].includes(binding.name) ||
         typeof binding.wire !== 'string') {
       fail('InvalidPublicationPrivateEvidence');
     }

@@ -177,3 +177,43 @@ temporary cleanup, promise completion and reference retirement are not GC or a
 physical-byte acknowledgement. This correspondence supplies neither a Content
 read grant nor a consumer-phase capacity/allocation, physical loan or dispatch
 permission. Those must still come from their existing original suppliers.
+
+## Saved installation-publication physical custody
+
+The existing private publication holding admits the exact additional purpose
+`installation_publication`. It uses the unchanged `publication-private`
+namespace, physical holding format and AEAD preimage, with the actual selected
+Store's private evidence key. It is not Run `source_evidence`. Similar names,
+prefixes and arbitrary confirmation kinds remain refused.
+
+The Host/Source publication Owner must issue the semantic binding and holding
+identity from its admitted original publication and observations. The physical
+binding remains `{name, semanticCid, holdingCid, wire}`; accepting that shape is
+not semantic admission of a caller-authored body. A path, private mode, digest,
+historical UUID or process-local object pair cannot supply authenticated
+original-acquisition custody. No signing, Credential or Run-journal key is
+borrowed for this purpose.
+
+Cold physical reading requires the actual Store key, authority and selected
+holding. Authentication finishes before bytes escape. The consuming publication
+Owner must independently admit the exact body, original generation and actual
+new installation correspondence before reconstructing new local Catalog
+originals. It must then confirm the exact admitted binding and same holding's
+directory durability. This is not pointer equality with an old process, provider
+rediscovery or permission to publish replacement observations. Replaying the
+same selected durable original is distinct from a new publication.
+
+Commit, confirmation and close uncertainty retain the existing holding owner
+and its original prepared handles. Retry reconciles that record, not another
+metadata acquisition or a replacement preparation. Store authentication proves
+custody of the encrypted body, not the truth of arbitrary metadata or a grant
+for current acquisition, Credential use, egress, Content, Model or Effects.
+
+Before use, the existing installation phase must cover the key copy, encoded
+body and AAD, native crypto context, nonce/tag/ciphertext and Base64 envelope,
+prepared writer and FD duties, holding record/index, live binding aliases and
+overlapping cold ciphertext/plaintext/decoded inventories. Same-Store reuse,
+wire ceilings, successful authentication and reference retirement provide no
+capacity or cleanup credit. Without the actual semantic, storage and lifetime
+suppliers the installed path remains unavailable; this physical port does not
+invent them.
