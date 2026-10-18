@@ -3799,14 +3799,17 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "accd94117639b8575f8229725afe4bf0abc664e53964362045ffbe3aba0b4b48",
+      "sha256": "0a64ad26172dbd58853edcd657b6f5cd2997bcf60851c24994e9bbc767e23624",
       "exports": [
         "assertInitialControlHostPreparation",
+        "assertSourceManagedHostPreparation",
         "connectEmbeddedLocal",
         "connectInitialControlHostPreparation",
         "openInstalledRemoteHttpHost",
         "publishInstalledEffect",
         "publishInstalledSource",
+        "readInitialControlHostInput",
+        "readSourceManagedOriginalInput",
         "snapshotInitialControlHostInput"
       ],
       "operations": [
@@ -3814,6 +3817,14 @@
           "name": "assertInitialControlHostPreparation",
           "parameters": [
             "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertSourceManagedHostPreparation",
+          "parameters": [
+            "originals",
+            "originalOwnedRequest"
           ],
           "async": false
         },
@@ -6694,10 +6705,12 @@
             "connectEmbeddedLocal/preparation/init:retainReferenceRetirement/init:retainReferenceRetirement",
             "connectEmbeddedLocal/releaseUnadopted",
             "connectEmbeddedLocal/retirePreparationReferences",
-            "openInstalledHost/retireModelPreparationReferences"
+            "openInstalledHost/retireModelPreparationReferences",
+            "assertSourceManagedHostPreparation"
           ],
           "exports": [
-            "assertInitialControlHostPreparation"
+            "assertInitialControlHostPreparation",
+            "assertSourceManagedHostPreparation"
           ],
           "attributes": {
             "responsibility": [
@@ -6877,7 +6890,9 @@
         {
           "operations": [],
           "exports": [
-            "snapshotInitialControlHostInput"
+            "snapshotInitialControlHostInput",
+            "readInitialControlHostInput",
+            "readSourceManagedOriginalInput"
           ],
           "attributes": {
             "responsibility": [
@@ -7023,7 +7038,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
-                "anchor": "test('the selected Host consumer forwards only omitted open input without a raw observation'"
+                "anchor": "test('the selected Host consumer forwards admitted connect and omitted open without a raw observation'"
               }
             ]
           }
@@ -7178,6 +7193,7 @@
         "./ordinary-source-binding.mjs",
         "./result-access.mjs",
         "./source-alias-publication.mjs",
+        "./source-managed-original-input.mjs",
         "./update-target-original-shape.mjs",
         "node:crypto",
         "node:fs/promises",

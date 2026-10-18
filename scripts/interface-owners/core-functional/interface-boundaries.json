@@ -20637,6 +20637,599 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/client_local_host/installed_source_read.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "237752ea79637fd640c8025cdc36ba60dd5217b80a65c3c8dad39c53ee0c4bf4",
+      "exports": [],
+      "operations": [
+        {
+          "name": "attach_installed_source_read_acquisition",
+          "declaration": "attach_installed_source_read_acquisition ( value : ClientInstalledSourceRead , declaration : @ row_source_host . RowDeclaration , requirement : @ planning . QueryRequirement , acquisition : @ row_source_host . RowAcquisition , stage : Int , source_index : Int , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "begin_installed_source_read",
+          "declaration": "begin_installed_source_read ( child : @ resources . ImportedChildLedger , ) - > Result [ ClientInstalledSourceRead , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "bind_installed_source_read_effect_program",
+          "declaration": "bind_installed_source_read_effect_program ( value : ClientInstalledSourceRead , prepared : @ publication_host . PreparedClientEffectComputation , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "bind_installed_source_read_owner",
+          "declaration": "bind_installed_source_read_owner ( value : ClientInstalledSourceRead , owner : ClientLocalSequenceOwner , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "bind_installed_source_read_program",
+          "declaration": "bind_installed_source_read_program ( value : ClientInstalledSourceRead , prepared : @ publication_host . PreparedClientProgram , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "check_installed_source_read_current",
+          "declaration": "check_installed_source_read_current ( value : ClientInstalledSourceRead , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "claim_installed_source_read_start",
+          "declaration": "claim_installed_source_read_start ( value : ClientInstalledSourceRead , acquisition : @ row_source_host . RowAcquisition , ) - > Result [ @ resources . Ledger , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "require_installed_source_read_current",
+          "declaration": "require_installed_source_read_current ( value : ClientInstalledSourceRead , ) - > Result [ @ resources . Ledger , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "require_installed_source_read_original",
+          "declaration": "require_installed_source_read_original ( value : ClientInstalledSourceRead , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "retain_installed_source_read_run",
+          "declaration": "retain_installed_source_read_run ( value : ClientInstalledSourceRead , result : Result [ @ row_source_host . RowRun , @ row_source_host . RowHostIssue ] , ) - > Result [ @ row_source_host . RowRun , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "retire_installed_source_read",
+          "declaration": "retire_installed_source_read ( value : ClientInstalledSourceRead , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "start_installed_source_read_listing_rows",
+          "declaration": "start_installed_source_read_listing_rows ( value : ClientInstalledSourceRead , acquisition : @ row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ row_source_host . RowRun , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "start_installed_source_read_provider_rows",
+          "declaration": "start_installed_source_read_provider_rows ( value : ClientInstalledSourceRead , acquisition : @ row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ row_source_host . RowRun , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "start_installed_source_read_rows",
+          "declaration": "start_installed_source_read_rows ( value : ClientInstalledSourceRead , acquisition : @ row_source_host . RowAcquisition , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ row_source_host . RowRun , ClientInstalledSourceReadIssue ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common Source acquisition, original Resource child and retained Run preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "attach_installed_source_read_acquisition",
+            "begin_installed_source_read",
+            "bind_installed_source_read_effect_program",
+            "bind_installed_source_read_owner",
+            "bind_installed_source_read_program",
+            "check_installed_source_read_current",
+            "claim_installed_source_read_start",
+            "require_installed_source_read_current",
+            "require_installed_source_read_original",
+            "retain_installed_source_read_run",
+            "retire_installed_source_read",
+            "start_installed_source_read_listing_rows",
+            "start_installed_source_read_provider_rows",
+            "start_installed_source_read_rows"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// Consumer of an already issued original Resource child, never a capacity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub fn attach_installed_source_read_acquisition("
+              },
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub fn begin_installed_source_read("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "guard value.original is Some(original) && physical_equal(original, value) else {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// consumer. A failed start/take keeps the original child with its issuer."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "match @resources.check_imported_original_child_ledger(child, ledger) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub(all) enum ClientInstalledSourceReadIssue {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// the child for reporting and its distinct physical ACK; do not stop it here."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "@resources.take_imported_original_child_ledger(child)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source, Compute, Model, Effect, transport and Result"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_source_read_wbtest.mbt",
+                "anchor": "test \"Source read requirement keeps the same checked Program and occurrence\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_installed_source_read_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "0a7dba0a7c58bcd70a8374cd10c9670e2104fdfaacd7cb2c76782eb45ec6f5c0",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_installed_source_read_attach_acquisition",
+          "declaration": "client_program_installed_source_read_attach_acquisition ( value : @ client_local_host . ClientInstalledSourceRead , declaration : @ client_row_source_host . RowDeclaration , requirement : @ planning . QueryRequirement , acquisition : @ client_row_source_host . RowAcquisition , stage : Int , source_index : Int , ) - > Result [ Unit , @ client_local_host . ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "client_program_installed_source_read_begin",
+          "declaration": "client_program_installed_source_read_begin ( child : @ resources . ImportedChildLedger , ) - > Result [ @ client_local_host . ClientInstalledSourceRead , @ client_local_host . ClientInstalledSourceReadIssue , ]"
+        },
+        {
+          "name": "client_program_installed_source_read_bind_effect_program",
+          "declaration": "client_program_installed_source_read_bind_effect_program ( value : @ client_local_host . ClientInstalledSourceRead , prepared : @ publication_host . PreparedClientEffectComputation , ) - > Result [ Unit , @ client_local_host . ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "client_program_installed_source_read_bind_program",
+          "declaration": "client_program_installed_source_read_bind_program ( value : @ client_local_host . ClientInstalledSourceRead , prepared : @ publication_host . PreparedClientProgram , ) - > Result [ Unit , @ client_local_host . ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "client_program_installed_source_read_check_current",
+          "declaration": "client_program_installed_source_read_check_current ( value : @ client_local_host . ClientInstalledSourceRead , ) - > Result [ Unit , @ client_local_host . ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "client_program_installed_source_read_retire",
+          "declaration": "client_program_installed_source_read_retire ( value : @ client_local_host . ClientInstalledSourceRead , ) - > Result [ Unit , @ client_local_host . ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "client_program_installed_source_read_start_listing_rows",
+          "declaration": "client_program_installed_source_read_start_listing_rows ( value : @ client_local_host . ClientInstalledSourceRead , acquisition : @ client_row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , nonce : String , original_stop : ( @ client_row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ client_row_source_host . RowRun , @ client_local_host . ClientInstalledSourceReadIssue , ]"
+        },
+        {
+          "name": "client_program_installed_source_read_start_provider_rows",
+          "declaration": "client_program_installed_source_read_start_provider_rows ( value : @ client_local_host . ClientInstalledSourceRead , acquisition : @ client_row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , nonce : String , original_stop : ( @ client_row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ client_row_source_host . RowRun , @ client_local_host . ClientInstalledSourceReadIssue , ]"
+        },
+        {
+          "name": "client_program_installed_source_read_start_rows",
+          "declaration": "client_program_installed_source_read_start_rows ( value : @ client_local_host . ClientInstalledSourceRead , acquisition : @ client_row_source_host . RowAcquisition , nonce : String , original_stop : ( @ client_row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ client_row_source_host . RowRun , @ client_local_host . ClientInstalledSourceReadIssue , ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common Source acquisition, original Resource child and retained Run preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_installed_source_read_attach_acquisition",
+            "client_program_installed_source_read_begin",
+            "client_program_installed_source_read_bind_effect_program",
+            "client_program_installed_source_read_bind_program",
+            "client_program_installed_source_read_check_current",
+            "client_program_installed_source_read_retire",
+            "client_program_installed_source_read_start_listing_rows",
+            "client_program_installed_source_read_start_provider_rows",
+            "client_program_installed_source_read_start_rows"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// Consumer of an already issued original Resource child, never a capacity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub fn attach_installed_source_read_acquisition("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_read_bridge.mbt",
+                "anchor": "pub fn client_program_installed_source_read_begin("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "guard value.original is Some(original) && physical_equal(original, value) else {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// consumer. A failed start/take keeps the original child with its issuer."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "match @resources.check_imported_original_child_ledger(child, ledger) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub(all) enum ClientInstalledSourceReadIssue {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// the child for reporting and its distinct physical ACK; do not stop it here."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "@resources.take_imported_original_child_ledger(child)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source, Compute, Model, Effect, transport and Result"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_source_read_wbtest.mbt",
+                "anchor": "test \"Source read requirement keeps the same checked Program and occurrence\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/physical_resources/imported_child_ledger.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "c047cf42144cc712e368dec3341ba0a44eb88e7e9afbcab9672f25117c4d5173",
+      "exports": [],
+      "operations": [
+        {
+          "name": "check_imported_child_admission",
+          "declaration": "check_imported_child_admission ( ledger : Ledger ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "check_imported_child_ledger",
+          "declaration": "check_imported_child_ledger ( ledger : Ledger ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "check_imported_original_child_ledger",
+          "declaration": "check_imported_original_child_ledger ( value : ImportedChildLedger , ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "imported_child_fixed_capacity",
+          "declaration": "imported_child_fixed_capacity ( ledger : Ledger , reservation : Reservation , ) - > Bool"
+        },
+        {
+          "name": "imported_child_original",
+          "declaration": "imported_child_original ( value : ImportedChildLedger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "imported_child_seed_capacity",
+          "declaration": "imported_child_seed_capacity ( ledger : Ledger , serial : Int , bytes : Int64 , ) - > SharedCapacity"
+        },
+        {
+          "name": "imported_child_status",
+          "declaration": "imported_child_status ( code : Int ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "prepare_imported_child_ledger",
+          "declaration": "prepare_imported_child_ledger ( nonce : Int64 , ) - > Result [ ImportedChildLedger , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "prepare_imported_child_port",
+          "declaration": "prepare_imported_child_port ( nonce : Int64 , admit : ( Int64 ) - > Int , current : ( Int64 ) - > Int , limit : ( Int64 , Int ) - > Int64 , capacity : ( Int64 , Int ) - > Int64 , report : ( Int64 , LedgerUsage ) - > Int , stop : ( Int64 ) - > Int , fixed_capacities ? : Bool"
+        },
+        {
+          "name": "report_imported_child_ledger",
+          "declaration": "report_imported_child_ledger ( value : ImportedChildLedger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "require_imported_child_vm_capacity",
+          "declaration": "require_imported_child_vm_capacity ( value : ImportedChildLedger , ledger : Ledger , capacity : SharedCapacity , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "start_imported_child_ledger",
+          "declaration": "start_imported_child_ledger ( value : ImportedChildLedger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "stop_imported_child_ledger",
+          "declaration": "stop_imported_child_ledger ( value : ImportedChildLedger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "take_imported_child_ledger",
+          "declaration": "take_imported_child_ledger ( value : ImportedChildLedger , ) - > Result [ ( Ledger , SharedCapacity , SharedCapacity ) , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "take_imported_original_child_ledger",
+          "declaration": "take_imported_original_child_ledger ( value : ImportedChildLedger , ) - > Result [ Ledger , ImportedChildLedgerIssue ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common Source acquisition, original Resource child and retained Run preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "check_imported_child_admission",
+            "check_imported_child_ledger",
+            "check_imported_original_child_ledger",
+            "imported_child_fixed_capacity",
+            "imported_child_original",
+            "imported_child_seed_capacity",
+            "imported_child_status",
+            "prepare_imported_child_ledger",
+            "prepare_imported_child_port",
+            "report_imported_child_ledger",
+            "require_imported_child_vm_capacity",
+            "start_imported_child_ledger",
+            "stop_imported_child_ledger",
+            "take_imported_child_ledger",
+            "take_imported_original_child_ledger"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// Consumer of an already issued original Resource child, never a capacity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub fn attach_installed_source_read_acquisition("
+              },
+              {
+                "path": "src/physical_resources/imported_child_ledger.mbt",
+                "anchor": "pub fn check_imported_original_child_ledger("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "guard value.original is Some(original) && physical_equal(original, value) else {"
+              },
+              {
+                "path": "src/physical_resources/imported_child_ledger.mbt",
+                "anchor": "physical_equal(original, ledger) &&"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// consumer. A failed start/take keeps the original child with its issuer."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "match @resources.check_imported_original_child_ledger(child, ledger) {"
+              },
+              {
+                "path": "src/physical_resources/imported_child_ledger.mbt",
+                "anchor": "if value.taken || value.origin.stopping {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub(all) enum ClientInstalledSourceReadIssue {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/physical_resources/imported_child_ledger.mbt",
+                "anchor": "pub fn stop_imported_child_ledger("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "@resources.take_imported_original_child_ledger(child)"
+              },
+              {
+                "path": "src/physical_resources/imported_child_ledger.mbt",
+                "anchor": "pub fn check_imported_original_child_ledger("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source, Compute, Model, Effect, transport and Result"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/imported_original_correspondence_wbtest.mbt",
+                "anchor": "test \"original imported child check is read-only and refuses copied or fresh views\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_acquisition.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "72fa28cf0d267d7843d0df108f92715881b19965fd9eeb5d1306879ac134ea13",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_captured_task_tuple_matches",
+          "declaration": "client_captured_task_tuple_matches ( value : PreparedClientProgram , source : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , requirement : @ planning . QueryRequirement , task : Int , ) - > Bool"
+        },
+        {
+          "name": "client_query_requirement_matches_effect_program",
+          "declaration": "client_query_requirement_matches_effect_program ( prepared : PreparedClientEffectComputation , stage : Int , source_index : Int , requirement : @ planning . QueryRequirement , ) - > Bool"
+        },
+        {
+          "name": "client_query_requirement_matches_program",
+          "declaration": "client_query_requirement_matches_program ( prepared : PreparedClientProgram , stage : Int , source_index : Int , requirement : @ planning . QueryRequirement , ) - > Bool"
+        },
+        {
+          "name": "prepare_client_effect_query_acquisition",
+          "declaration": "prepare_client_effect_query_acquisition ( prepared : PreparedClientEffectComputation , stage : Int , source_index : Int , ) - > Result [ @ acquisition . QueryAcquisition , ClientAcquisitionIssue ]"
+        },
+        {
+          "name": "prepare_client_effect_query_requirement",
+          "declaration": "prepare_client_effect_query_requirement ( prepared : PreparedClientEffectComputation , generated : @ execution . GeneratedSequence , stage : Int , source_index : Int , guards : @ planning . QueryLogicalGuards , limits : @ planning . QueryMaterialLimits , ) - > Result [ @ planning . QueryRequirement , ClientQueryRequirementIssue ]"
+        },
+        {
+          "name": "prepare_client_query_acquisition",
+          "declaration": "prepare_client_query_acquisition ( prepared : PreparedClientProgram , stage : Int , source_index : Int , ) - > Result [ @ acquisition . QueryAcquisition , ClientAcquisitionIssue ]"
+        },
+        {
+          "name": "prepare_client_query_requirement",
+          "declaration": "prepare_client_query_requirement ( prepared : PreparedClientProgram , generated : @ execution . GeneratedSequence , stage : Int , source_index : Int , guards : @ planning . QueryLogicalGuards , limits : @ planning . QueryMaterialLimits , ) - > Result [ @ planning . QueryRequirement , ClientQueryRequirementIssue ]"
+        },
+        {
+          "name": "prepared_client_acquisition_count",
+          "declaration": "prepared_client_acquisition_count ( value : PreparedClientProgram ) - > Int"
+        },
+        {
+          "name": "prepared_client_captured_task_source_matches",
+          "declaration": "prepared_client_captured_task_source_matches ( value : PreparedClientProgram , source : @ query . CapturedInputSource , task : Int , ) - > Bool"
+        },
+        {
+          "name": "prepared_client_publication_data_policy_cid",
+          "declaration": "prepared_client_publication_data_policy_cid ( value : PreparedClientProgram , ) - > String ?"
+        },
+        {
+          "name": "prepared_client_source_evidence_facts",
+          "declaration": "prepared_client_source_evidence_facts ( value : PreparedClientProgram , stage : Int , source_index : Int , ) - > @ planning . QuerySourceEvidenceFacts ?"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common Source acquisition, original Resource child and retained Run preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_captured_task_tuple_matches",
+            "client_query_requirement_matches_effect_program",
+            "client_query_requirement_matches_program",
+            "prepare_client_effect_query_acquisition",
+            "prepare_client_effect_query_requirement",
+            "prepare_client_query_acquisition",
+            "prepare_client_query_requirement",
+            "prepared_client_acquisition_count",
+            "prepared_client_captured_task_source_matches",
+            "prepared_client_publication_data_policy_cid",
+            "prepared_client_source_evidence_facts"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// Consumer of an already issued original Resource child, never a capacity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub fn attach_installed_source_read_acquisition("
+              },
+              {
+                "path": "src/run_publication_host/client_acquisition.mbt",
+                "anchor": "pub fn client_query_requirement_matches_program("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "guard value.original is Some(original) && physical_equal(original, value) else {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// consumer. A failed start/take keeps the original child with its issuer."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "match @resources.check_imported_original_child_ledger(child, ledger) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub(all) enum ClientInstalledSourceReadIssue {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// the child for reporting and its distinct physical ACK; do not stop it here."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "@resources.take_imported_original_child_ledger(child)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source, Compute, Model, Effect, transport and Result"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_source_read_wbtest.mbt",
+                "anchor": "test \"Source read requirement keeps the same checked Program and occurrence\""
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
