@@ -152,9 +152,10 @@ export async function deleteFixture(t, {effect = 'allow', faults = []} = {}) {
     consumeObservation: charge => {state.consumed++; row.consume(charge);}, callResource: site.callResource};
   const send = async (overrides = {}) => {
     assert.equal(state.active, false); state.active = true;
-    try {return await sendRawKintoneDelete({...options, ...overrides});} finally {state.active = false;}
+    try {const {send = sendRawKintoneDelete, ...selected} = overrides;
+      return await send({...options, ...selected});} finally {state.active = false;}
   };
-  return {root, tls, state, site, binding, row, options, common, request, send, writeAccount,
+  return {root, tls, state, site, binding, row, options, common, catalog, request, send, writeAccount,
     closeRoot: () => {state.closing = true; return row.close();},
     journal: site.credential.journal, authorizationFor};
 }
