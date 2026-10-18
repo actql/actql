@@ -131,6 +131,17 @@ const clientOperationError = (code, cause) => Object.assign(
   new Error(code, cause === undefined ? undefined : {cause}), {code});
 const profiles = createEmbeddedHostRegistry(sameEmbeddedInstallation);
 
+// Only the actual selected startup may retain this original module operation.
+// It checks the existing registry's original candidate/Host, not a caller
+// callback, DATA/CID, eight-reference view or capacity/authority declaration.
+export function assertInitialControlHostPreparation(originals) {
+  if (originals?.supplier !== connectEmbeddedLocal ||
+      originals?.moduleLifetime !== import.meta) {
+    throw clientOperationError('InstalledHostPreparationChanged');
+  }
+  profiles.assertPreparation(originals.host, originals.installation, originals.generation);
+}
+
 const bytesCid = bytes => `sha256:${createHash('sha256')
   .update(bytes).digest('hex')}`;
 const publicKeyCid = value => bytesCid(createPublicKey(value).export({
