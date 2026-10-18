@@ -2,40 +2,40 @@
 
 ///|
 test "program definition: 0 false p" {
-  assert_program_definition(0, false, "p", "sha256:96a173054ef3743b995ac8744b66df425252883ee3a91e178e2a36c0260992c2", "{\"id\":\"p\",\"program_semantics_cid\":\"sha256:96a173054ef3743b995ac8744b66df425252883ee3a91e178e2a36c0260992c2\",\"version\":\"actql-program-definition/0.1\"}", "sha256:771f903737fb2b8a9c16e78069cd15a5d1793a7b08fc50f385d0c85cb3dd1b3d")
+  assert_program_definition(0, false, "p", "sha256:703b547387ec72b013e3d860900dbb9615872bfe43ab812351b9c338bf6d7c8f", "{\"id\":\"p\",\"program_semantics_cid\":\"sha256:703b547387ec72b013e3d860900dbb9615872bfe43ab812351b9c338bf6d7c8f\",\"version\":\"actql-program-definition/0.1\"}", "sha256:e9821f1dc206f5f1ec480304babbc3b93ca5a207f45d4ee7c1f7a93183a92343")
 }
 
 ///|
 test "program definition: 0 false another-program" {
-  assert_program_definition(0, false, "another-program", "sha256:96a173054ef3743b995ac8744b66df425252883ee3a91e178e2a36c0260992c2", "{\"id\":\"another-program\",\"program_semantics_cid\":\"sha256:96a173054ef3743b995ac8744b66df425252883ee3a91e178e2a36c0260992c2\",\"version\":\"actql-program-definition/0.1\"}", "sha256:b61485001297a6b93fd6f9b30edc437678cabb46a864dc85e84d62f1d0c70aca")
+  assert_program_definition(0, false, "another-program", "sha256:703b547387ec72b013e3d860900dbb9615872bfe43ab812351b9c338bf6d7c8f", "{\"id\":\"another-program\",\"program_semantics_cid\":\"sha256:703b547387ec72b013e3d860900dbb9615872bfe43ab812351b9c338bf6d7c8f\",\"version\":\"actql-program-definition/0.1\"}", "sha256:4d16d755b858b2534a7b0db1a1eab28fdcae48c0bce40b9cddfb0846e98a733d")
 }
 
 ///|
 test "program definition: 0 true p" {
-  assert_program_definition(0, true, "p", "sha256:30e980eddf93966907089909f78e80b9a693c555caf32eac945ade4b63f0c10f", "{\"id\":\"p\",\"program_semantics_cid\":\"sha256:30e980eddf93966907089909f78e80b9a693c555caf32eac945ade4b63f0c10f\",\"version\":\"actql-program-definition/0.1\"}", "sha256:76bb29c5d895ccbe6745916f5c1eb489b8f4a93badee49917d7724d6edcb1903")
+  assert_program_definition(0, true, "p", "sha256:6f3e7c4922d846f1ab90733f999981e8eaa044c95add81625156bc4e1e8a8457", "{\"id\":\"p\",\"program_semantics_cid\":\"sha256:6f3e7c4922d846f1ab90733f999981e8eaa044c95add81625156bc4e1e8a8457\",\"version\":\"actql-program-definition/0.1\"}", "sha256:cd386b7857019f30ca70a9da873f83b5dd84b7d887c960b19617951dd485013d")
 }
 
 ///|
 test "program definition: 0 true another-program" {
-  assert_program_definition(0, true, "another-program", "sha256:30e980eddf93966907089909f78e80b9a693c555caf32eac945ade4b63f0c10f", "{\"id\":\"another-program\",\"program_semantics_cid\":\"sha256:30e980eddf93966907089909f78e80b9a693c555caf32eac945ade4b63f0c10f\",\"version\":\"actql-program-definition/0.1\"}", "sha256:bfd5d92ebb7d8db9fdd2588233706bfc59a41ac9e53e65c68f60f181319525ff")
+  assert_program_definition(0, true, "another-program", "sha256:6f3e7c4922d846f1ab90733f999981e8eaa044c95add81625156bc4e1e8a8457", "{\"id\":\"another-program\",\"program_semantics_cid\":\"sha256:6f3e7c4922d846f1ab90733f999981e8eaa044c95add81625156bc4e1e8a8457\",\"version\":\"actql-program-definition/0.1\"}", "sha256:f509fb79d3cfb3f29d457b259d7a092f076b7bd15dcd1e3535517040bafe4f7f")
 }
 
 ///|
 test "program definition: 1 false p" {
-  assert_program_definition(1, false, "p", "sha256:01a2bc44df62c9bfa60c9c366be87f5d5f91b866692c877f57a3186de9df6b8a", "{\"id\":\"p\",\"program_semantics_cid\":\"sha256:01a2bc44df62c9bfa60c9c366be87f5d5f91b866692c877f57a3186de9df6b8a\",\"version\":\"actql-program-definition/0.1\"}", "sha256:e41804cdba30721588be832ddc4da6e6079c91a1e8ea1f52a3597ce31690ad6a")
+  assert_program_definition(1, false, "p", "sha256:5ae8269f8773976d4120b1a0f03656215b7628079d02dc43f21a026cbc9f124f", "{\"id\":\"p\",\"program_semantics_cid\":\"sha256:5ae8269f8773976d4120b1a0f03656215b7628079d02dc43f21a026cbc9f124f\",\"version\":\"actql-program-definition/0.1\"}", "sha256:1ec277d8a0562204e3c54f9c23c3befc67a9e10a5c9c951e960ac46f68dfeb6b")
 }
 
 ///|
 test "program definition: 1 false another-program" {
-  assert_program_definition(1, false, "another-program", "sha256:01a2bc44df62c9bfa60c9c366be87f5d5f91b866692c877f57a3186de9df6b8a", "{\"id\":\"another-program\",\"program_semantics_cid\":\"sha256:01a2bc44df62c9bfa60c9c366be87f5d5f91b866692c877f57a3186de9df6b8a\",\"version\":\"actql-program-definition/0.1\"}", "sha256:3be092d54e15e78005dfb81566aa5c1650c03349807ecf7d06d3b1d8e824661c")
+  assert_program_definition(1, false, "another-program", "sha256:5ae8269f8773976d4120b1a0f03656215b7628079d02dc43f21a026cbc9f124f", "{\"id\":\"another-program\",\"program_semantics_cid\":\"sha256:5ae8269f8773976d4120b1a0f03656215b7628079d02dc43f21a026cbc9f124f\",\"version\":\"actql-program-definition/0.1\"}", "sha256:d707b36ce7db3b5f35f7a0cd3fda4e27e509594567d0d68bb368976277e3a19b")
 }
 
 ///|
 test "program definition: 2 false p" {
-  assert_program_definition(2, false, "p", "sha256:280be87b1eb1d13390f3cd2535e9fdfb87004e09e939742f42c5d340886d33d3", "{\"id\":\"p\",\"program_semantics_cid\":\"sha256:280be87b1eb1d13390f3cd2535e9fdfb87004e09e939742f42c5d340886d33d3\",\"version\":\"actql-program-definition/0.1\"}", "sha256:270e4e916281163c482c44337571175aa3e97fd5f5d11c5c84954233d877e9ce")
+  assert_program_definition(2, false, "p", "sha256:26adb23f19d751d74b09e0e849b2d8ad544985d81f5e37810a25e85b88fe5324", "{\"id\":\"p\",\"program_semantics_cid\":\"sha256:26adb23f19d751d74b09e0e849b2d8ad544985d81f5e37810a25e85b88fe5324\",\"version\":\"actql-program-definition/0.1\"}", "sha256:a67e6143de5c3ceb9a02c51e6db6a1f4583f12435e6ff08cca2064b4a5b9e966")
 }
 
 ///|
 test "program definition: 2 false another-program" {
-  assert_program_definition(2, false, "another-program", "sha256:280be87b1eb1d13390f3cd2535e9fdfb87004e09e939742f42c5d340886d33d3", "{\"id\":\"another-program\",\"program_semantics_cid\":\"sha256:280be87b1eb1d13390f3cd2535e9fdfb87004e09e939742f42c5d340886d33d3\",\"version\":\"actql-program-definition/0.1\"}", "sha256:f50f23895f2e10114ef4a7bfc14956c076a0f31cf076009f65dc4c05aba3b68f")
+  assert_program_definition(2, false, "another-program", "sha256:26adb23f19d751d74b09e0e849b2d8ad544985d81f5e37810a25e85b88fe5324", "{\"id\":\"another-program\",\"program_semantics_cid\":\"sha256:26adb23f19d751d74b09e0e849b2d8ad544985d81f5e37810a25e85b88fe5324\",\"version\":\"actql-program-definition/0.1\"}", "sha256:33f10481835ea58276be749a9896b398dc100fbe7546d20a3f3005dbceee1b34")
 }

@@ -103,6 +103,113 @@ class CompilerProcessTests(unittest.TestCase):
         self.assertFalse(self.parent._closed)
         self.assertIs(caught.exception.cleanup_process, self.parent.domain._installed_process_original)
 
+    def failed_response(self):
+        selected, writer = self.io()
+        selected.return_value = ([], [], [])
+        selected.side_effect = None
+        with self.assertRaises(transport.CompilerChildProcessError) as caught:
+            self.invoke()
+        self.assertIsInstance(caught.exception.primary_error, TimeoutError)
+        return caught.exception, writer
+
+    def test_explicit_stop_cleanup_preserves_primary_and_never_relaunches_or_closes_caller_fd(self):
+        failure, writer = self.failed_response()
+        primary = failure.primary_error
+        self.assertNotIn(('operate', 12), self.native.events)
+        self.assertTrue(transport.finish_original_compiler_after_stop_request(failure, timeout=1))
+        self.assertIs(failure.primary_error, primary)
+        self.assertEqual(writer.call_count, 1)
+        self.assertEqual(self.native.events.count(('operate', 11)), 1)
+        for operation in (12, 4, 5, 6, 8):
+            self.assertEqual(self.native.events.count(('operate', operation)), 1)
+        self.assertTrue(self.parent._closed)
+        self.assertFalse(self.parent.descriptor.close_attempted)
+        self.assertTrue(self.parent.runtime._initialized)
+        before = list(self.native.events)
+        self.assertFalse(transport.finish_original_compiler_after_stop_request(failure, timeout=1))
+        self.assertEqual(self.native.events, before)
+
+    def test_false_stop_request_still_needs_original_typed_stop_and_region_cleanup(self):
+        failure, _ = self.failed_response()
+        self.native.stop_request_status = 0
+        self.assertFalse(transport.finish_original_compiler_after_stop_request(failure, timeout=1))
+        self.assertIn(('operate', 6), self.native.events)
+        self.assertIn(('operate', 8), self.native.events)
+        self.assertTrue(self.parent._closed)
+        self.assertFalse(self.parent.descriptor.close_attempted)
+
+    def test_lost_stop_request_keeps_same_failure_unknown_and_does_not_resend(self):
+        failure, _ = self.failed_response()
+        self.native.call_fault = OSError('Independent stop request reply loss')
+        with self.assertRaises(transport.CompilerChildProcessError) as caught:
+            transport.finish_original_compiler_after_stop_request(failure, timeout=1)
+        self.assertIs(caught.exception, failure)
+        self.assertIsNotNone(failure.cleanup_error)
+        self.assertIsInstance(failure.primary_error, TimeoutError)
+        before = list(self.native.events)
+        with self.assertRaises(transport.CompilerChildProcessError):
+            transport.finish_original_compiler_after_stop_request(failure, timeout=1)
+        self.assertEqual(self.native.events, before)
+        self.assertFalse(self.parent._closed)
+        self.assertIs(self.parent.domain._installed_process_original, failure.cleanup_process)
+        self.assertNotIn(('operate', 8), before)
+
+    def test_request_success_without_typed_stop_keeps_original_region_and_primary(self):
+        failure, _ = self.failed_response()
+        failure.cleanup_process._functions.facts = Function(
+            lambda r, h, d, p, values: values.__setitem__(slice(None), (21, 22, 23, 1)) or 0)
+        with patch.object(transport.time, 'monotonic', side_effect=[0, 2]):
+            with self.assertRaises(transport.CompilerChildProcessError) as caught:
+                transport.finish_original_compiler_after_stop_request(failure, timeout=1)
+        self.assertIs(caught.exception, failure)
+        self.assertIsInstance(failure.cleanup_error, TimeoutError)
+        self.assertFalse(self.parent._closed)
+        self.assertNotIn(('operate', 8), self.native.events)
+        self.assertFalse(self.parent.descriptor.close_attempted)
+
+    def test_lost_retirement_with_empty_slots_cannot_be_retried_as_released(self):
+        failure, _ = self.failed_response()
+        self.native.finish_fault = OSError('Independent original retirement reply loss')
+        with self.assertRaises(transport.CompilerChildProcessError):
+            transport.finish_original_compiler_after_stop_request(failure, timeout=1)
+        process = failure.cleanup_process
+        self.assertTrue(all(slot.value is None for slot in process._slots()))
+        self.assertFalse(process._closed)
+        self.assertIsNotNone(process._unknown)
+        before = list(self.native.events)
+        with self.assertRaises(transport.CompilerChildProcessError):
+            transport.finish_original_compiler_after_stop_request(failure, timeout=1)
+        self.assertEqual(self.native.events, before)
+        self.assertFalse(self.parent._closed)
+        self.assertFalse(self.parent.descriptor.close_attempted)
+
+    def test_parent_only_partial_cleanup_does_not_repeat_original_child_stop_or_retirement(self):
+        failure, _ = self.failed_response()
+        with patch.object(self.parent, 'close_unstarted', side_effect=ValueError('known caller refusal')):
+            with self.assertRaises(transport.CompilerChildProcessError):
+                transport.finish_original_compiler_after_stop_request(failure, timeout=1)
+        self.assertTrue(failure.cleanup_process._closed)
+        self.assertFalse(self.parent._closed)
+        before = list(self.native.events)
+        self.assertFalse(transport.finish_original_compiler_after_stop_request(failure, timeout=1))
+        self.assertTrue(self.parent._closed)
+        self.assertEqual(self.native.events, before)
+        self.assertFalse(self.parent.descriptor.close_attempted)
+
+    def test_foreign_failure_process_and_invalid_cleanup_budget_refuse_before_native(self):
+        failure, _ = self.failed_response()
+        before = list(self.native.events)
+        for value in (True, 0, float('nan'), float('inf')):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                transport.finish_original_compiler_after_stop_request(failure, timeout=value)
+        original = failure.cleanup_process
+        failure.cleanup_process = object()
+        with self.assertRaises(ValueError):
+            transport.finish_original_compiler_after_stop_request(failure, timeout=1)
+        failure.cleanup_process = original
+        self.assertEqual(self.native.events, before)
+        self.assertFalse(self.parent._closed)
+
     def test_eof_without_typed_stop_cannot_retire_region(self):
         self.io()
         self.parent.library.actql_process_copy_facts = Function(

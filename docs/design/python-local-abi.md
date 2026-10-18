@@ -2212,6 +2212,18 @@ runtime compatibility, ordinary funding or installed product acceptance.
 
 ## Original Native process transport
 
+The same installed process can relay a stop request to its original captured
+Holder child. That operation returns only whether the existing termination
+request was confirmed relayed. A false or lost response is not stop, and a true
+response is not transport return, process retirement, region/FD cleanup or an
+external operation outcome. The private reply keeps request observation separate
+from the typed stop observation, under their respective exact operation tags.
+Foreign, unstarted and retired carriers cannot select a replacement child.
+The caller separately returns its original transport borrow, observes the same
+Owner's typed stop and obtains the physical retirement acknowledgements. Logical
+Host closing must not erase that original cleanup responsibility. A lost foreign
+call retains the same sticky Unknown and cannot automatically resend the request.
+
 The private installed assembly retains the existing Native process Holder,
 region and imported child frame in their original Host/domain before physical
 preparation. Python transports the same opaque references through persistent
@@ -2342,6 +2354,18 @@ partial response, failed spawn or uncertain cleanup retains the same parent
 and process carrier; transport never substitutes PID absence, relaunches the
 compiler, closes borrowed pipe FDs directly or manufactures a cleanup result.
 
+After a failed invocation the maintainer caller may explicitly request cleanup
+through that same registered process and parent. This is a separate bounded
+cleanup window, not another compilation attempt. The existing Native child
+receives at most one stop request per invocation of this cleanup routine;
+request delivery alone cannot return backing. Only the same typed stop and
+region/parent retirement chain precedes the original descriptor's one-shot
+close. A lost stop/close response retains the original error and all partial
+carriers. If process retirement completed but parent cleanup did not, the caller
+continues that parent's cleanup without signaling or retiring the child again.
+The primary compilation failure remains failed even after successful cleanup:
+partial bytes/images are not accepted, and the final physical gate is unchanged.
+
 The ordinary image producer can prepare that C executable independently of
 executing it. This preparation uses the same exact original module receipt,
 private two-library staging, binding/license/target checks and Engine Owner
@@ -2392,3 +2416,39 @@ retained/execution limits to the existing process Owner. The projection is
 not cached as authority. Source/recipe disagreement refuses before registering
 a process. The old explicit-size conformance declaration remains distinct and
 unchanged; neither selection substitutes for a normal product supplier.
+
+
+The ordinary maintainer `--compile` entry uses the original Native parent and
+process path; it does not acquire an unbound holding or import Wasmtime into
+the Python driver. It prepares the selected executable through the same
+source/module/Engine/actual-link-input verifier, then creates one private
+backing and passes that same original descriptor through the existing domain
+and process Owners before the child can allocate Config or Engine resources.
+The existing child helper retains one-shot start/IPC and typed stop/region
+retirement. A closed compiler report is a compilation observation only: it
+cannot acknowledge those operations or turn `RuntimeRetained` into an
+allocation-level close. Parent descriptor close remains separate and sticky.
+
+Image metadata is emitted only after both the original physical process path
+and the source/module/library/program fences have completed. The returned
+private result retains the parent control-runtime aliases for its process
+lifetime; no Engine drop or parent arena close retires them. Failed or partial
+acquisition, transport, descriptor close or final verification carries those
+same originals and partial response without retry or fallback. The final
+runtime producer still requires its stronger actual physical/workspace/Result
+receipt for this exact module/source, not this compile-only receipt.
+
+
+The source-bound maintainer selection keeps the existing 1-GiB compiler extent
+and generation 1. It binds the selected original module, unchanged Engine body,
+thread-custody Runtime and first-domain provider bytes. Its private parent has
+finite work/attempt/holding/transfer ceilings 20/8/4/30; the single compiler
+child uses 2/1/1/3. These bound this one compiler preparation, not business Run
+permissions or a numerical product profile. Retained capacity is zero, the
+original physical capacity funds the parent execution dimension, and the
+Native first-domain operation derives the actual remaining payload after its
+own control storage. No child byte ratio, second extent or implicit growth is
+selected. The separate trusted control envelope remains explicit; this does
+not assert that all Python/loader/OS allocations are paid from the arena.
+The final producer and ordinary Local factory keep their existing physical
+and normal-supplier refusals until those independent owners are complete.
