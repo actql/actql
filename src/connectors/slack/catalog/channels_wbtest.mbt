@@ -143,6 +143,20 @@ test "Slack channel whole page refuses malformed unselected fields and duplicate
     ] {
     assert_true(channel_project(raw) is Err(_))
   }
+  for flag in ["is_im", "is_mpim"] {
+    for value in ["true", "null", "0", "\"false\""] {
+      assert_true(
+        channel_project(
+          "{\"ok\":true,\"channels\":[{\"id\":\"D1\",\"" +
+          flag +
+          "\":" +
+          value +
+          "}]}",
+        )
+        is Err(InvalidCell(flag)),
+      )
+    }
+  }
 }
 
 ///|

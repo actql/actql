@@ -186,6 +186,15 @@ pub fn project_slack_channel_list(
       is Ok(row) else {
       return Err(InvalidResponse)
     }
+    // The request selects public/private channels, not IM or multi-party IM.
+    // Reject an observed foreign/malformed discriminant rather than guessing
+    // from an identifier prefix or manufacturing a channel row.
+    for flag in ["is_im", "is_mpim"] {
+      if @decode.lookup(row, flag) is Some(value) &&
+        @decode.boolean(value) != Ok(false) {
+        return Err(InvalidCell(flag))
+      }
+    }
     let values = []
     for name in slack_channel_list_column_names() {
       // All columns are checked even when the eventual projection omits them.
