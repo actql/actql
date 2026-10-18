@@ -805,7 +805,6 @@ async function openInstalledHost(originalInstallation, preparation) {
     ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
     await mkdir(journalDirectory, {recursive: true, mode: 0o700});
     const snapshotDirectory = join(root, 'carrier-snapshots');
-    await mkdir(snapshotDirectory, {recursive:true,mode:0o700});
     // Installed physical wiring, never Program settings. Allocation occurs
     // only after the common driver has reserved work/capacity and captured
     // the snapshot cleanup owner. Graph row Relations use the same Store for
@@ -821,12 +820,19 @@ async function openInstalledHost(originalInstallation, preparation) {
           typeof snapshotFactory !== 'function')) {
       throw new TypeError('InvalidLocalSnapshotStoreFactory');
     }
-    localSnapshotConfiguration = installStore((key, bytes, frame, signal) =>
-      snapshotFactory === undefined
+    localSnapshotConfiguration = installStore(async (key, bytes, frame, signal) => {
+      // The existing driver invokes this physical factory only after its
+      // original attempt reserves the snapshot. Merely connecting/checking
+      // needs no snapshot directory or lease. Keep the same parent and factory.
+      signal?.throwIfAborted();
+      await mkdir(snapshotDirectory, {recursive: true, mode: 0o700});
+      signal?.throwIfAborted();
+      return snapshotFactory === undefined
         ? createLocalRetainedStore({parentDirectory:snapshotDirectory,
           capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1})
         : snapshotFactory(Object.freeze({key,bytes,frame,
-          parentDirectory:snapshotDirectory,signal})),
+          parentDirectory:snapshotDirectory,signal}));
+    },
     authorization?.faultInjection);
     journal = openClientRequestJournal(journalDirectory, {
       updateOriginalControl: createUpdateTargetOriginalShapeControl(moon),
