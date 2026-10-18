@@ -17,6 +17,8 @@ import {canonicalJson} from './local-account-config.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {BOUND_SOURCE_INVENTORY, validBoundSourceOccurrence} from './ordinary-source-binding.mjs';
 import {valuesExecutionContextCid} from './local-values-capacity.mjs';
+import {sourceOperationTable, inspectClientSourceOperationStorage,
+  clientSourceOperationStorage, snapshotClientSourceOperationLimits} from './client-source-operation.mjs';
 import {sameSubmissionRef, validSubmissionRef, validSubmissionName, validSubmissionOutcome, validStoredSubmissionOutcome} from '../../packages/client-wire/index.mjs';
 
 const cid = value => typeof value === 'string' &&
@@ -771,6 +773,7 @@ function inspectJournalSnapshot(directory, databasePath, markerPath) {
     inspectIntentRetirementStorage(database, retirementEnabled);
     inspectRestartStorage(database, restartEnabled);
     inspectNameStorage(database, nameEnabled);
+    inspectClientSourceOperationStorage(database);
   }, {code: 'UnknownClientRequestJournalFormat',
     validateSource: () => readFileSync(markerPath).equals(journalMarker) &&
       (!enabled || readFileSync(featurePath).equals(cancellationMarker)) &&
@@ -822,6 +825,7 @@ export function openClientRequestJournal(directory, {
   submissionEpochTtlMs = maxEpochTtlMs,
   submissionEpochNow = Date.now,
   updateOriginalControl,
+  sourceOperationLimits,
 } = {}) {
   if (!pathText(directory) || !Number.isSafeInteger(maxRecords) ||
       maxRecords < 1 || !Number.isSafeInteger(maxRunDefinitionWireBytes) ||
@@ -830,6 +834,7 @@ export function openClientRequestJournal(directory, {
       submissionEpochTtlMs > maxEpochTtlMs || typeof submissionEpochNow !== 'function') {
     fail('InvalidClientRequestJournalConfiguration');
   }
+  sourceOperationLimits = snapshotClientSourceOperationLimits(sourceOperationLimits);
   const current = admitJournalDirectory(directory);
   mkdirSync(directory, {recursive: true, mode: 0o700});
   const root = realpathSync(directory);
@@ -1023,6 +1028,14 @@ export function openClientRequestJournal(directory, {
       finally {closeSync(marker);}
       syncDirectory(root);
     }
+    // This optional original-operation storage belongs to this same Journal.
+    // Legacy absence grants no new dispatch: live scope issuance additionally
+    // requires the existing confirmed first physical-start transaction.
+    inspectClientSourceOperationStorage(database);
+    if (sourceOperationLimits !== undefined && database.prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'client_source_operation_originals'").get() === undefined) {
+      transaction.run(() => database.exec(sourceOperationTable));
+    }
   // Statement preparation is part of initialization: no journal owner has
   // been returned yet. Keep it under the same single cleanup boundary.
   const ensureOpen = () => {
@@ -1137,6 +1150,9 @@ export function openClientRequestJournal(directory, {
   const selectRef = database.prepare(`SELECT ${selectColumns} FROM client_requests
     WHERE namespace_id = ? AND authority_scope_cid = ? AND
       run_definition_cid = ?`);
+  const sourceOperations = clientSourceOperationStorage(database, {ensureOpen,
+    transact, limits: sourceOperationLimits,
+    readRun: ref => selectRef.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid)});
   const readRunDefinitionRow = (ref, requestControl) => {
     ensureOpen();
     if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) ||
@@ -2368,7 +2384,8 @@ export function openClientRequestJournal(directory, {
     // The exact durable claim precedes the call that can start physical
     // Compute. A missing claim is safe to resume; a claim or legacy unknown
     // is never evidence that Compute did not run.
-    reservePhysicalStart(identity, {namespaceId, ref, currentAuthorization},
+    reservePhysicalStart(identity, {namespaceId, ref, currentAuthorization,
+      captureSourceOperation},
       requestControl, publicationControl) {
       ensureOpen();
       if (!text(namespaceId) || !text(ref?.namespaceId) ||
@@ -2379,7 +2396,28 @@ export function openClientRequestJournal(directory, {
         fail('InvalidClientRunPhysicalStart');
       }
       const fields = checkedIdentity(identity, requestControl);
-      return transact('physical_start', 'ClientRunPhysicalStartUnknown',
+      let sourceOriginal, captureOriginal, captureReceiver;
+      if (captureSourceOperation !== undefined) {
+        if (sourceOperations === undefined) fail('ClientSourceOperationUnavailable');
+        const {program, compiled, capture} = captureSourceOperation;
+        if (typeof capture !== 'function' ||
+            typeof requestControl.clientProgramMatchesRequestIdentity !== 'function' ||
+            requestControl.clientProgramMatchesRequestIdentity(program, identity) !== true) {
+          fail('ForeignClientSourceOperation');
+        }
+        const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
+        if (row === undefined) fail('ForeignClientSourceOperation');
+        const definition = retainedRunDefinition(row, publicationControl, maxRunDefinitionWireBytes);
+        publicationControl.checkClientCompiledRunOwner(compiled, program);
+        publicationControl.checkClientCompiledRunDefinition(compiled, definition);
+        sourceOriginal = Object.freeze({ref: Object.freeze({...ref}), program, compiled,
+          definition, identity, requestControl, publicationControl,
+          requestId: fields.requestId, requestScopeCid: fields.logicalRequestScopeCid,
+          intentCid: fields.intentFingerprintCid});
+        captureOriginal = capture;
+        captureReceiver = captureSourceOperation;
+      }
+      const started = transact('physical_start', 'ClientRunPhysicalStartUnknown',
         error => typeof error?.code === 'string' &&
           (error.code.startsWith('ClientRun') ||
             error.code.startsWith('ClientRequest')), () => {
@@ -2413,7 +2451,20 @@ export function openClientRequestJournal(directory, {
         }
         return true;
       });
+      // No lookup/recovery API exposes this issuer. In particular a lost COMMIT
+      // response throws before a scope can reach physical Source dispatch.
+      if (started && sourceOriginal !== undefined) {
+        Reflect.apply(captureOriginal, captureReceiver, [sourceOperations.issue(sourceOriginal)]);
+      }
+      return started;
     },
+    lookupOriginalSourceOperation(ref, occurrence) {
+      if (sourceOperations === undefined) fail('ClientSourceOperationUnavailable');
+      return sourceOperations.lookup(ref, occurrence);
+    },
+    // Readiness only: the original physical-start transaction still issues
+    // each live scope. This value cannot bind a Run or enable a POST.
+    sourceOperationConfigured: sourceOperations !== undefined,
     // Persist the common cancellation decision under the physical-start lock.
     // The Host observes publication separately; a racing commit can still win.
     requestCancellation(ref, {currentAuthorization, publicationCommitted},
