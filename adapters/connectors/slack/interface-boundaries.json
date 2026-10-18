@@ -1784,13 +1784,15 @@
     },
     {
       "module": "adapters/connectors/slack/site/message-history-read.mjs",
-      "sha256": "0761aedce1cf820e2e7d692ca245ce0aa74b650d763fbed30712b0b79468d197",
+      "sha256": "b36121505f760bd77631b8f33bf898bb5dd9a029d86a9c3a1d325606a08ec314",
       "exports": [
         "SLACK_MESSAGE_HISTORY_OPERATION",
         "SLACK_MESSAGE_REPLIES_OPERATION",
         "SLACK_WORKSPACE_IDENTITY_OPERATION",
         "SlackMessageHistoryReadFailure",
+        "SlackMessageProjectionFailure",
         "SlackMessageRepliesReadFailure",
+        "coalesceSlackMessageReaders",
         "createSlackMessageHistoryReader",
         "createSlackMessageRepliesReader"
       ],
@@ -1825,6 +1827,28 @@
             "name"
           ],
           "async": false
+        },
+        {
+          "name": "coalesceSlackMessageReaders",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "coalesceSlackMessageReaders/coalesceSlackMessageReaders",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "coalesceSlackMessageReaders/current/current",
+          "parameters": [
+            "callbacks",
+            "operation"
+          ],
+          "async": true
         },
         {
           "name": "createSlackMessageHistoryReader",
@@ -1868,6 +1892,13 @@
           "name": "createSlackMessageHistoryReader/handle/init:read/init:read/result/result#4",
           "parameters": [
             "exchange"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageHistoryReader/handle/init:read/init:read/result/result#5",
+          "parameters": [
+            "control"
           ],
           "async": false
         },
@@ -1930,7 +1961,8 @@
             "received",
             "retainPage",
             "retainIdentity",
-            "retainExchange"
+            "retainExchange",
+            "retainControl"
           ],
           "async": true
         },
@@ -2103,6 +2135,37 @@
           "async": false
         },
         {
+          "name": "projectionArray",
+          "parameters": [
+            "value",
+            "maximum"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectionRecord",
+          "parameters": [
+            "value",
+            "required",
+            "optional"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectionRecord/projectionRecord",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectionRecord/projectionRecord#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "retainOutcome",
           "parameters": [
             "value",
@@ -2115,6 +2178,13 @@
           "parameters": [
             "cause",
             "observations"
+          ],
+          "async": false
+        },
+        {
+          "name": "SlackMessageProjectionFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause"
           ],
           "async": false
         },
@@ -2147,6 +2217,9 @@
             "captureProvider/captureProvider",
             "captureProvider/captureProvider/captureProvider",
             "captureProvider/captureProvider#2",
+            "coalesceSlackMessageReaders",
+            "coalesceSlackMessageReaders/coalesceSlackMessageReaders",
+            "coalesceSlackMessageReaders/current/current",
             "createSlackMessageHistoryReader",
             "createSlackMessageHistoryReader/handle/init:observe/init:observe",
             "createSlackMessageHistoryReader/handle/init:read/init:read",
@@ -2154,6 +2227,7 @@
             "createSlackMessageHistoryReader/handle/init:read/init:read/result/result#2",
             "createSlackMessageHistoryReader/handle/init:read/init:read/result/result#3",
             "createSlackMessageHistoryReader/handle/init:read/init:read/result/result#4",
+            "createSlackMessageHistoryReader/handle/init:read/init:read/result/result#5",
             "createSlackMessageHistoryReader/handle/init:requestStop/init:requestStop",
             "createSlackMessageRepliesReader",
             "createSlackMessageRepliesReader/handle/init:observe/init:observe",
@@ -2183,8 +2257,13 @@
             "prepareReplyRead/prepareReplyRead",
             "prepareReplyRead/prepareReplyRead#2",
             "prepareReplyRead/prepareReplyRead#3",
+            "projectionArray",
+            "projectionRecord",
+            "projectionRecord/projectionRecord",
+            "projectionRecord/projectionRecord#2",
             "retainOutcome",
             "SlackMessageHistoryReadFailure/constructor:constructor/constructor:constructor",
+            "SlackMessageProjectionFailure/constructor:constructor/constructor:constructor",
             "SlackMessageRepliesReadFailure/constructor:constructor/constructor:constructor"
           ],
           "exports": [
@@ -2192,7 +2271,9 @@
             "SLACK_MESSAGE_REPLIES_OPERATION",
             "SLACK_WORKSPACE_IDENTITY_OPERATION",
             "SlackMessageHistoryReadFailure",
+            "SlackMessageProjectionFailure",
             "SlackMessageRepliesReadFailure",
+            "coalesceSlackMessageReaders",
             "createSlackMessageHistoryReader",
             "createSlackMessageRepliesReader"
           ],
@@ -2205,6 +2286,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Original message reply pages"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original message projection receiver"
               }
             ],
             "inputsOutputs": [
@@ -2227,6 +2312,14 @@
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
                 "anchor": "async function executeReplyRead("
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "export async function coalesceSlackMessageReaders(options)"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "const projectionLimitFields=['maxRows','maxOccurrences','maxWork','maxComparisonNodes'"
               }
             ],
             "identity": [
@@ -2249,6 +2342,10 @@
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
                 "anchor": "context.scope.operation!==SLACK_MESSAGE_REPLIES_OPERATION"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "reply.prepared.source!==source || reply.phase!=='succeeded' || reply.control===undefined"
               }
             ],
             "ownership": [
@@ -2267,6 +2364,18 @@
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
                 "anchor": "const outcomes = new WeakMap();"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "const state={historyReader:original.historyReader,handles,source,states,controls,signal,names,bound,"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "retainControl(history);"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "await callbacks.current(operation);"
               }
             ],
             "synchronization": [
@@ -2293,6 +2402,10 @@
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
                 "anchor": "await context.callbacks.consumePage(rows,Object.freeze({charge}));"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "await current(source.prepared.context.callbacks,SLACK_MESSAGE_HISTORY_OPERATION);"
               }
             ],
             "failure": [
@@ -2307,6 +2420,10 @@
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
                 "anchor": "throw new SlackMessageRepliesReadFailure(cause,observations);"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "const failure=new SlackMessageProjectionFailure(cause);"
               }
             ],
             "cancellation": [
@@ -2321,6 +2438,10 @@
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
                 "anchor": "const signals=[stop.signal,original.source.prepared.signal];"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "const signal=AbortSignal.any(signals);"
               }
             ],
             "resources": [
@@ -2335,6 +2456,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "Both controls retain full exchange records, including pending requests,"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "The receiver additionally retains the source/reply handles and states, copied"
               }
             ],
             "extension": [
@@ -2349,6 +2474,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "Combining reply output with already captured history rows requires the original"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "Projection performs no additional request, secret resolution, grant claim or"
               }
             ],
             "verification": [
@@ -2411,6 +2540,46 @@
               {
                 "path": "adapters/connectors/slack/test/message-replies-read.test.mjs",
                 "anchor": "test('Slack replies cannot select an unconsumed page or a failed history original'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-projection-read.test.mjs",
+                "anchor": "test('Slack projection uses original completed history replies and retains first checked output'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-projection-read.test.mjs",
+                "anchor": "test('Slack projection actual prefix refuses null and changed established fields without another send'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-projection-read.test.mjs",
+                "anchor": "test('Slack projection retains original nested reaction absence and refuses explicit null contradiction'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-projection-read.test.mjs",
+                "anchor": "test('Slack projection refuses actual child incorporation beside derived history zero'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-projection-read.test.mjs",
+                "anchor": "test('Slack projection rejects foreign copied pending and failed reader originals before Common work'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-projection-read.test.mjs",
+                "anchor": "test('Slack projection current refusal and stop after await prevent any new Common projection'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-projection-read.test.mjs",
+                "anchor": "test('Slack projection captures provider receivers and selection bounds before awaited current'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-projection-read.test.mjs",
+                "anchor": "test('Slack projection bounded work output and own-data configuration remain fail closed'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-projection-read.test.mjs",
+                "anchor": "test('Slack projection missing partial private bridge group refuses before dependent IO'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-projection-read.test.mjs",
+                "anchor": "test('Slack projection preserves the original current callback receiver across completed reader reuse'"
               }
             ]
           }
