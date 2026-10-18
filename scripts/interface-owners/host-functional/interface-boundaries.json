@@ -28116,7 +28116,7 @@
               },
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "const startup = require('./infer-trusted-node-preload.cjs');"
+                "anchor": "const startup = ordinary ? require('./node-public-initial-control-bootstrap.cjs') :"
               },
               {
                 "path": "adapters/host-node/initial-control-static-assets.test.mjs",
@@ -28893,7 +28893,7 @@
               },
               {
                 "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
-                "anchor": "const startup = require('./infer-trusted-node-preload.cjs');"
+                "anchor": "const startup = ordinary ? require('./node-public-initial-control-bootstrap.cjs') :"
               }
             ],
             "ownership": [
@@ -42961,7 +42961,7 @@
               },
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "const startup = require('./infer-trusted-node-preload.cjs');"
+                "anchor": "const startup = ordinary ? require('./node-public-initial-control-bootstrap.cjs') :"
               },
               {
                 "path": "adapters/host-node/initial-control-static-assets.test.mjs",
