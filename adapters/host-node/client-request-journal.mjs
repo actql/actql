@@ -253,6 +253,24 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent) {
   }), retireClosedNativeAliases() { statements.length = cursors.length = 0; }});
 }
 
+function boundJournalDatabaseExtent(database, maxDatabaseBytes) {
+  if (maxDatabaseBytes === undefined) return;
+  const page = database.prepare('PRAGMA page_size').get().page_size;
+  if (!Number.isSafeInteger(page) || page < 512 || page > 65536 ||
+      (page & (page - 1)) !== 0) {
+    fail('ClientRequestJournalDatabaseUnavailable');
+  }
+  const pages = Math.floor(maxDatabaseBytes / page);
+  if (pages < 1 || pages > 4294967294) fail('ClientRequestJournalDatabaseUnavailable');
+  const observed = database.prepare(`PRAGMA max_page_count = ${pages}`).get().max_page_count;
+  if (!Number.isSafeInteger(observed) || observed < 1 || observed > pages) {
+    fail('ClientRequestJournalDatabaseUnavailable');
+  }
+  // Each actual connection owns a separate Pager limit, including the
+  // optional observation connection to the same file. This is not native
+  // heap/WAL backing, a bound on another writer, or a physical reservation.
+}
+
 // This is an inspection-work ceiling, not a stored-request limit, format
 // rule, physical capacity supplier or permission. Never materialize a complete
 // unbounded listing before checking it. Preserve the exact full-name snapshot
@@ -1264,22 +1282,7 @@ export function openClientRequestJournal(directory, {
         applyOriginal(originalDatabaseIsOpen, connection, []) !== true) {
       throw new TypeError('ClientRequestJournalConnectionOpenUnavailable');
     }
-    if (maxDatabaseBytes !== undefined) {
-      const page = database.prepare('PRAGMA page_size').get().page_size;
-      if (!Number.isSafeInteger(page) || page < 512 || page > 65536 ||
-          (page & (page - 1)) !== 0) {
-        fail('ClientRequestJournalDatabaseUnavailable');
-      }
-      const pages = Math.floor(maxDatabaseBytes / page);
-      if (pages < 1 || pages > 4294967294) fail('ClientRequestJournalDatabaseUnavailable');
-      const observed = database.prepare(`PRAGMA max_page_count = ${pages}`).get().max_page_count;
-      if (!Number.isSafeInteger(observed) || observed < 1 || observed > pages) {
-        fail('ClientRequestJournalDatabaseUnavailable');
-      }
-      // This bounds this connection's main DB growth, not native heap, WAL,
-      // another writer or a physical reservation. Their original facilities
-      // and simultaneous holdings remain separate obligations.
-    }
+    boundJournalDatabaseExtent(database, maxDatabaseBytes);
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
     database.exec(`
@@ -2240,6 +2243,10 @@ export function openClientRequestJournal(directory, {
         throw new TypeError('ClientObservationConnectionOpenUnavailable');
       }
       const selectedObservation = observationSql?.database ?? observationDatabase;
+      // The primary connection's Pager setting cannot constrain this new
+      // original connection. Select the same finite extent before its first
+      // schema/control write, retaining its existing separate close duty.
+      boundJournalDatabaseExtent(selectedObservation, maxDatabaseBytes);
       selectedObservation.exec('PRAGMA busy_timeout = 0');
       const storage = openClientObservationStorage(selectedObservation,
         createSqliteTransaction(selectedObservation, 'ClientObservation'));
