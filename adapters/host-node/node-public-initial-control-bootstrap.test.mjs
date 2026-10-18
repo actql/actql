@@ -149,6 +149,22 @@ test('actual public facade and SDK Remote dispatch do not acquire the Local load
   assert.equal(result.status,0,result.stderr);
 });
 
+test('ordinary selected bootstrap failure cannot reexecute a discarded partial module',t=>{
+  for(const publicNode of [false,true]){
+    const f=fixture(t,{publicNode});
+    // Explicit throwing module fixture models Node dropping a failed require
+    // from its cache. It is not an operational admission or cleanup ACK.
+    writeFileSync(join(f.root,'adapters/host-node/node-public-initial-control-bootstrap.cjs'),
+      'globalThis.bootstrapAttempts++;throw globalThis.bootstrapFailure;');
+    const result=f.run('import assert from"node:assert/strict";'+
+      'globalThis.bootstrapAttempts=0;globalThis.bootstrapFailure=Object.freeze({original:"failed-module"});'+
+      'const{connect}=await import('+JSON.stringify(publicNode?'@actql/node':'@actql/local-node')+');'+
+      'for(let i=0;i<2;i++)assert.throws(()=>connect({mode:"local"}),error=>error===globalThis.bootstrapFailure);'+
+      'assert.equal(globalThis.bootstrapAttempts,1);assert.equal(connect({mode:"remote"}),undefined);');
+    assert.equal(result.status,0,result.stderr);
+  }
+});
+
 test('ordinary import acquires its installed prefix before original bounded input and never refills a generation',t=>{
   const f=fixture(t);const result=f.run(
     'import assert from"node:assert/strict";import{connect}from"@actql/local-node";'+

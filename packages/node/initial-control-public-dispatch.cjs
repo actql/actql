@@ -11,7 +11,7 @@ const isProxy = require('node:util').types.isProxy, own = Object.hasOwn;
 const preloading = descriptor(NodeModule.prototype, 'isPreloading')?.get;
 const args = originalProcess.execArgv;
 const offset = args.length === 3 && args[0] === '--no-lazy' ? 1 : 0;
-let selectedInitialControlHostPreparation, ordinaryReceiver, ordinaryConnect;
+let selectedInitialControlHostPreparation, ordinaryReceiver, ordinaryConnect, ordinaryFailure;
 const ordinary = args.length === 0 && originalProcess.env.NODE_OPTIONS === undefined;
 function forwardOrdinary(kind,raw) {
   // Selection is the same fixed own-DATA entrance as the Local prefix. No
@@ -22,11 +22,17 @@ function forwardOrdinary(kind,raw) {
     if (mode === undefined || !own(mode,'value') || mode.value !== 'local' ||
         endpoint !== undefined && own(endpoint,'value') && endpoint.value !== undefined) return undefined;
   } else if (kind !== 'open') return undefined;
+  if (ordinaryFailure !== undefined) throw ordinaryFailure.cause;
   if (ordinaryConnect === undefined) {
     // Resolve only the actual installed Local package after Local selection.
     let receiver;
     try { receiver = require('@actql/local-node/_internal/initial-control-public-dispatch'); }
-    catch(cause) { if (cause.code !== 'MODULE_NOT_FOUND') throw cause; }
+    catch(cause) {
+      if (cause.code !== 'MODULE_NOT_FOUND') {
+        ordinaryFailure = Object.freeze({cause});
+        throw cause;
+      }
+    }
     const connect = receiver === undefined ? undefined : descriptor(receiver,'selectedInitialControlHostPreparation');
     if (connect === undefined || !own(connect,'value') || typeof connect.value !== 'function') return undefined;
     ordinaryReceiver = receiver;

@@ -11,7 +11,7 @@ const isProxy = require('node:util').types.isProxy, own = Object.hasOwn;
 const preloading = descriptor(NodeModule.prototype, 'isPreloading')?.get;
 const args = originalProcess.execArgv;
 const offset = args.length === 3 && args[0] === '--no-lazy' ? 1 : 0;
-let selectedInitialControlHostPreparation, ordinaryReceiver, ordinaryConnect;
+let selectedInitialControlHostPreparation, ordinaryReceiver, ordinaryConnect, ordinaryFailure;
 const ordinary = args.length === 0 && originalProcess.env.NODE_OPTIONS === undefined;
 function forwardOrdinary(kind,raw) {
   // Fixed own-DATA selection only, not packet admission or a caller copy.
@@ -22,15 +22,23 @@ function forwardOrdinary(kind,raw) {
     if (mode === undefined || !own(mode,'value') || mode.value !== 'local' ||
         endpoint !== undefined && own(endpoint,'value') && endpoint.value !== undefined) return undefined;
   } else if (kind !== 'open') return undefined;
+  if (ordinaryFailure !== undefined) throw ordinaryFailure.cause;
   if (ordinaryConnect === undefined) {
-    const receiver = require('./adapters/host-node/node-public-initial-control-bootstrap.cjs');
-    const connect = descriptor(receiver,'selectedInitialControlHostPreparation');
-    if (connect === undefined || !own(connect,'value') || typeof connect.value !== 'function') {
-      throw Object.assign(new Error('NodeInitialControlAdmissionUnavailable'),
-        {code:'NodeInitialControlAdmissionUnavailable'});
+    try {
+      const receiver = require('./adapters/host-node/node-public-initial-control-bootstrap.cjs');
+      const connect = descriptor(receiver,'selectedInitialControlHostPreparation');
+      if (connect === undefined || !own(connect,'value') || typeof connect.value !== 'function') {
+        throw Object.assign(new Error('NodeInitialControlAdmissionUnavailable'),
+          {code:'NodeInitialControlAdmissionUnavailable'});
+      }
+      ordinaryReceiver = receiver;
+      ordinaryConnect = connect.value;
+    } catch(cause) {
+      // A failed module can disappear from Node's cache. Retain its original
+      // failure instead of reexecuting a partial bootstrap on the next call.
+      ordinaryFailure = Object.freeze({cause});
+      throw cause;
     }
-    ordinaryReceiver = receiver;
-    ordinaryConnect = connect.value;
   }
   return apply(ordinaryConnect,ordinaryReceiver,[kind,raw]);
 }
