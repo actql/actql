@@ -54,6 +54,45 @@ int main(int argc, char **argv) {
   assert(fd >= 0 && write(fd, "original", 8) == 8 && close(fd) == 0);
   moonbit_bytes_t path = moonbit_make_bytes_raw((int32_t)strlen(source));
   memcpy(path, source, strlen(source));
+  if (strcmp(argv[1], "command-original-unavailable") == 0 ||
+      strcmp(argv[1], "selected-scratch-oversized") == 0) {
+    char oversized[4098];
+    memset(oversized, 'x', sizeof(oversized) - 1);
+    oversized[sizeof(oversized) - 1] = 0;
+    actql_journal_inspection *refused =
+      strcmp(argv[1], "command-original-unavailable") == 0
+      ? actql_journal_inspection_open_command_bounded(
+          path, (int32_t)strlen(source), 1024)
+      : inspection_open_bounded_original(
+          path, (int32_t)strlen(source), 1024, oversized, 1);
+    assert(!refused->ready && refused->source == NULL &&
+      refused->directory == NULL && refused->copy == NULL);
+    assert(refused->descriptors[0] == -1 && refused->descriptors[1] == -1 &&
+      refused->output_descriptor == -1);
+    assert(strstr(refused->error, "original command inspection scratch unavailable"));
+    assert(inspection_close(refused));
+    moonbit_decref(refused);
+    goto finish;
+  }
+  if (strcmp(argv[1], "selected-scratch-original") == 0) {
+    /* Exercise the selected copy implementation with an explicit original
+     * input. This is not an admitted bootstrap or an ordinary command. */
+    char *original_scratch = strdup(getenv("TMPDIR"));
+    assert(original_scratch != NULL);
+    assert(setenv("TMPDIR", "/not-the-original-command-scratch", 1) == 0);
+    actql_journal_inspection *selected = inspection_open_bounded_original(
+      path, (int32_t)strlen(source), 1024, original_scratch, 1);
+    assert(selected->ready && !selected->absent);
+    assert(strncmp(selected->directory, original_scratch,
+      strlen(original_scratch)) == 0);
+    assert(actql_journal_inspection_prepare_private_index(selected));
+    assert(actql_journal_inspection_validate(selected));
+    assert(inspection_close(selected));
+    moonbit_decref(selected);
+    assert(setenv("TMPDIR", original_scratch, 1) == 0);
+    free(original_scratch);
+    goto finish;
+  }
   int output_unknown = strcmp(argv[1], "output-close-unknown") == 0;
   fail_close = output_unknown;
   actql_journal_inspection *owner = inspection_open_bounded(
@@ -171,9 +210,12 @@ int main(int argc, char **argv) {
   }
 done:
   assert(access(source, F_OK) == 0);
+  free(index);
+finish:
+  assert(access(source, F_OK) == 0);
   printf("{\"case\":\"%s\",\"passed\":true,\"sqliteExecuted\":false,"
          "\"kernelFaultObserved\":false}\n", argv[1]);
-  free(index);
   free(source);
+  moonbit_decref(path);
   return 0;
 }

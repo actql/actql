@@ -14,6 +14,7 @@
 
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR
 #include "scoped_read.h"
+#include "../host_bootstrap/command_platform.h"
 #define malloc actql_native_file_scoped_allocate
 #define free actql_native_file_scoped_free
 static char *inspection_scoped_strdup(const char *text) {
@@ -277,8 +278,9 @@ static void inspection_finalize(void *value) {
   free(owner->copy);
 }
 
-static void *inspection_open_bounded(
-    moonbit_bytes_t path, int32_t length, int64_t max_snapshot_bytes) {
+static void *inspection_open_bounded_original(
+    moonbit_bytes_t path, int32_t length, int64_t max_snapshot_bytes,
+    const char *selected_scratch, int command_selected) {
   actql_journal_inspection *owner = moonbit_make_external_object(
     inspection_finalize, sizeof(actql_journal_inspection));
   memset(owner, 0, sizeof(*owner));
@@ -288,6 +290,16 @@ static void *inspection_open_bounded(
   if (max_snapshot_bytes < 0 || length <= 0 ||
       memchr(path, 0, (size_t)length) != NULL) {
     inspection_error(owner, "invalid inspection path");
+    return owner;
+  }
+  /* The command entry captured this original before the first covered
+   * acquisition. Never re-read the environment after admission. Refusal here
+   * precedes even opening the source; this same receiver still owns cleanup.
+   * The generic Coordinator route retains its existing selection below. */
+  if (command_selected &&
+      (selected_scratch == NULL || selected_scratch[0] == 0 ||
+       strnlen(selected_scratch, 4097) > 4096)) {
+    inspection_error(owner, "original command inspection scratch unavailable");
     return owner;
   }
   owner->source = malloc((size_t)length + 1);
@@ -338,8 +350,11 @@ static void *inspection_open_bounded(
     }
     snapshot_bytes += owner->identities[index].st_size;
   }
-  const char *temporary = getenv("TMPDIR");
-  if (temporary == NULL || temporary[0] == 0) temporary = "/tmp";
+  const char *temporary = selected_scratch;
+  if (!command_selected) {
+    temporary = getenv("TMPDIR");
+    if (temporary == NULL || temporary[0] == 0) temporary = "/tmp";
+  }
   char *parent = strdup(owner->source);
   char *slash = parent == NULL ? NULL : strrchr(parent, '/');
   if (parent != NULL) {
@@ -420,6 +435,26 @@ static void *inspection_open_bounded(
   }
   owner->ready = 1;
   return owner;
+}
+
+static void *inspection_open_bounded(
+    moonbit_bytes_t path, int32_t length, int64_t max_snapshot_bytes) {
+  return inspection_open_bounded_original(
+    path, length, max_snapshot_bytes, NULL, 0);
+}
+
+/* Only the selected command route requires the actual entry original. The
+ * borrowed scratch is input correspondence, never Read capacity or permission.
+ * Missing coverage does not fall back to TMPDIR or another directory. */
+void *actql_journal_inspection_open_command_bounded(
+    moonbit_bytes_t path, int32_t length, int64_t max_snapshot_bytes) {
+  const char *scratch = NULL;
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+  scratch = actql_native_command_platform_scratch_directory(
+    actql_native_command_platform_current());
+#endif
+  return inspection_open_bounded_original(
+    path, length, max_snapshot_bytes, scratch, 1);
 }
 
 // Keep existing Coordinator admission behavior; new Local callers explicitly

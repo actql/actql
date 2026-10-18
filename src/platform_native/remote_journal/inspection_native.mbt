@@ -35,6 +35,14 @@ extern "C" fn inspection_open_bounded(
 ) -> JournalInspection = "actql_journal_inspection_open_bounded"
 
 ///|
+#borrow(path)
+extern "C" fn inspection_open_command_bounded(
+  path : Bytes,
+  length : Int,
+  max_snapshot_bytes : Int64,
+) -> JournalInspection = "actql_journal_inspection_open_command_bounded"
+
+///|
 #borrow(owner)
 extern "C" fn inspection_limit_exceeded(owner : JournalInspection) -> Bool = "actql_journal_inspection_limit_exceeded"
 
@@ -144,7 +152,7 @@ pub fn prepare_sqlite_journal_source_inspection(
     return Err(Physical(@sqlite.InvalidLimit))
   }
   let bytes = @utf8.encode(path)
-  let inspection = inspection_open_bounded(
+  let inspection = inspection_open_command_bounded(
     bytes,
     bytes.length(),
     max_snapshot_bytes,

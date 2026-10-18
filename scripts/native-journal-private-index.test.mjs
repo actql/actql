@@ -27,7 +27,8 @@ before(() => {
 });
 for (const name of ['generic', 'selected', 'stat-failure', 'close-unknown', 'replacement', 'collision',
   'unobserved-identity-replacement', 'stat-unavailable', 'output-close-unknown',
-  'source-close-unknown']) {
+  'source-close-unknown', 'command-original-unavailable', 'selected-scratch-oversized',
+  'selected-scratch-original']) {
   test(`private Journal inspection index custody ${name}`, () => {
     const result = spawnSync(executable, [name, join(scratch, name)], {
       cwd: root, encoding: 'utf8', timeout: 10_000,
