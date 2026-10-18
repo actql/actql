@@ -105,6 +105,7 @@ async function executeRead(prepared,received){
         return Object.freeze({valueWire,completedPage:page,pages:index+1,observations:Object.freeze(observations.slice())});
       }
       await context.callbacks.consumeObservation(charge);
+      await verify();
       if(index+1===bounds.maxPages)fail('NotionPropertyPageLimit');
       request=checked(call('notionNextPropertyRequest',page));
     }
