@@ -24,8 +24,25 @@ enum {
     ACTQL_COMMAND_INPUT_TOTAL_BYTES = 4,
     ACTQL_COMMAND_INPUT_NOT_SELECTED = 5,
     ACTQL_COMMAND_INPUT_SOURCE = 6,
-    ACTQL_COMMAND_INPUT_CONTEXT = 7
+    ACTQL_COMMAND_INPUT_CONTEXT = 7,
+    ACTQL_COMMAND_INPUT_SCRATCH = 8
 };
+
+/* Match the existing selected native path bound. Keep one immutable original
+ * text copy in initial control before any Read/inspection allocation. This is
+ * input DATA only, not a directory observation, resource or authorization. */
+#define ACTQL_COMMAND_SCRATCH_BYTES 4096
+static int actql_bootstrap_capture_command_scratch(
+    const char *original, char out[ACTQL_COMMAND_SCRATCH_BYTES + 1]) {
+    if (original == NULL || original[0] == '\0') original = "/tmp";
+    size_t length = 0;
+    while (length <= ACTQL_COMMAND_SCRATCH_BYTES && original[length] != '\0')
+        ++length;
+    if (length > ACTQL_COMMAND_SCRATCH_BYTES)
+        return ACTQL_COMMAND_INPUT_SCRATCH;
+    for (size_t index = 0; index <= length; ++index) out[index] = original[index];
+    return ACTQL_COMMAND_INPUT_OK;
+}
 
 static int actql_bootstrap_measure_command_input(
     int argc, const char *const *argv,

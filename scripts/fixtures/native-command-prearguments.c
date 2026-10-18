@@ -6,6 +6,7 @@
 #include <string.h>
 #include "moonbit_runtime.h"
 #include "../../src/platform_native/host_bootstrap/command_platform.h"
+#include "../../src/platform_native/host_bootstrap/command_input.h"
 extern void actql_native_client_capture_command_entry(void);
 extern size_t mi_good_size(size_t);
 extern size_t mi_usable_size(const void *);
@@ -23,11 +24,26 @@ int main(int argc, char **argv) {
   int expected = strcmp(name,"absent") == 0 ? 5 :
     strcmp(name,"missing-source") == 0 ? 6 :
     strcmp(name,"context-limit") == 0 ? 7 :
+    strcmp(name,"scratch-overlong") == 0 ? 8 :
     strcmp(name,"invalid-bound") == 0 ? 1 : 0;
   int status = actql_native_client_measure_prearguments(
     strcmp(name,"invalid-bound") == 0 ? 0 : 256,4096,65536,
     strcmp(name,"context-limit") == 0 ? 1 : 8192);
   assert(status == expected);
+  if (strncmp(name,"scratch-",8)==0) {
+    char scratch[ACTQL_COMMAND_SCRATCH_BYTES + 1];
+    memset(scratch, 0x5a, sizeof(scratch));
+    assert(actql_bootstrap_capture_command_scratch(getenv("TMPDIR"), scratch) == expected);
+    if (expected == 0) {
+      const char *input = getenv("TMPDIR");
+      const char *selected = input && input[0] ? input : "/tmp";
+      assert(strcmp(scratch, selected) == 0);
+      if (strcmp(name,"scratch-exact")==0) assert(strlen(scratch)==4096);
+    } else {
+      assert(scratch[0] == 0x5a);
+      assert(setenv("TMPDIR", "/shorter-replacement", 1) == 0);
+    }
+  }
   actql_native_client_capture_command_entry();
   assert(actql_native_command_platform_current() == NULL);
   unsigned char source[40] = {0}, context[128] = {0};

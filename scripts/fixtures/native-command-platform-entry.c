@@ -10,6 +10,8 @@ static void *foreign_thread(void *raw) {
   actql_native_command_platform_load *load = raw;
   assert(actql_native_command_platform_current() == NULL);
   assert(!actql_native_command_platform_available());
+  assert(actql_native_command_platform_scratch_directory(
+    &actql_command_entry) == NULL);
   assert(!actql_native_command_platform_load_current(load));
   assert(!actql_native_command_platform_module_released(load, (void *)1));
   return NULL;
@@ -21,6 +23,8 @@ int main(int argc, char **argv) {
   assert(actql_command_entry.process == getpid());
   assert(pthread_equal(actql_command_entry.thread, pthread_self()));
   assert(actql_native_command_platform_current() == NULL);
+  assert(actql_native_command_platform_scratch_directory(
+    &actql_command_entry) == NULL);
   assert(actql_native_client_measure_prearguments(256,4096,65536,8192) == 0);
   actql_native_client_capture_command_entry();
   assert(atomic_load(&actql_command_entry_state) == 2);
@@ -41,6 +45,13 @@ int main(int argc, char **argv) {
     actql_native_command_platform_current();
   assert(entry == &actql_command_entry);
   assert(actql_native_command_platform_available());
+  assert(actql_native_command_platform_scratch_directory((void *)1) == NULL);
+  const char *scratch = actql_native_command_platform_scratch_directory(entry);
+  assert(scratch && strcmp(scratch, getenv("TMPDIR")) == 0);
+  /* Later environment replacement cannot change the selected original. */
+  assert(setenv("TMPDIR", "/different-current-environment", 1) == 0);
+  assert(actql_native_command_platform_scratch_directory(entry) == scratch);
+  assert(strcmp(scratch, "/different-current-environment") != 0);
   int finalized = 0;
   actql_native_observed_component_member *member = fixture_member(1,0,&finalized);
   assert(!actql_native_command_platform_begin_load(
