@@ -85,6 +85,22 @@ fn scoped_read_refusal(
 }
 
 ///|
+/// Check this same acquired Root against the caller's current original Read.
+/// An unselected legacy Root is deliberately not a match, even inside a funded
+/// scope. This observes physical binding only; it issues no capacity, Root,
+/// permission, installation adoption or cleanup acknowledgement.
+pub fn Root::require_current_original_read(
+  self : Root,
+) -> Result[Unit, NativeFilesystemIssue] {
+  if !root_is_scoped_ffi(self) ||
+    !root_ready_ffi(self) ||
+    !root_read_available_ffi(self) {
+    return Err(Read("Root is not bound to the current original read"))
+  }
+  Ok(())
+}
+
+///|
 /// The caller must enter its original Native Domain before this whole managed
 /// call, and revalidate Core/current permission independently. This entrance
 /// never creates a read context or adopts a profile. Stock/missing scope refuses

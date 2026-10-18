@@ -303,6 +303,9 @@ module.exports = {
   assertInitialControlInstallationCurrent(scope, sameOriginals) {
     return initialControl.assertCurrent(scope, sameOriginals);
   },
+  readInitialControlInstallationAsset(scope, sameOriginals, path) {
+    return initialControl.readAsset(scope, sameOriginals, path);
+  },
   associateHost(view, originals) {
     // Missing early startup is None, not native/module coverage or success.
     if (startup === undefined) return undefined;
