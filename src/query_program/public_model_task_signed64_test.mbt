@@ -401,7 +401,7 @@ test "public Signed64 INFER refuses Number Decimal and Text inputs without promo
     }
     assert_eq(
       refusal,
-      @pipeline.Infer(@evidence.Expression(@typing.TypeMismatch("int64"))),
+      @pipeline.Infer(@evidence.InputTypeMismatch("active_users")),
       msg=kind,
     )
   }
