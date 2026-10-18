@@ -1726,8 +1726,11 @@ exactly; only Relation sides use rows-to-Vectors conversion. KEEP uses ordinary
 row bridges and does not replace either Vectors identity. Composite Vectors use
 the common ordered identity components when constructing named output keys.
 
-Relation conversion currently supports singleton keys. Composite Relation keys
-remain an UnsupportedNearest gap in the scalar-id Program bridge. Ordinary
+Explicit Relation KEY tuples retain all ordered components through the same
+`to_vectors` Bridge as typed Vectors. The scalar and singleton-list Bridge forms
+retain the existing scalar parameter spelling; wider tuples use the closed
+ordered field-list alternative. The frontend constructs no combined scalar ID,
+string encoding, CID or uniqueness witness. Ordinary
 Relation Pipe operations retain their scopes, predicates and limits
 before a typed candidate; the same admitted candidate metadata reaches the
 existing Relation lowerer. Typed set heads use the common script dispatcher
@@ -1735,9 +1738,10 @@ with the existing outer set owner, and row bridges are retained only for the act
 or candidate body demand. JOIN continuations bind their candidate through the same
 WITH input owner and pass its admitted Carrier to the existing Pipe compiler;
 qualified query roles continue to resolve through the actual JOIN row scope.
-Composite Relation conversion remains an implementation gap, not a permanent
-language restriction. Parser/lowering and checked output contracts do not
-establish installed Host execution or successful publication.
+Implicit Relation key completion remains limited to the existing sole eligible
+String-key rule. Explicit composite conversion does not widen that inference.
+Parser/lowering and checked output contracts do not establish installed Host
+execution, capacity or successful publication.
 
 ## WITH producers and pure Graph construction
 

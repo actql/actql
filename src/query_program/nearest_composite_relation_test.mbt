@@ -64,3 +64,26 @@ test "explicit composite Relation NEAREST keeps complete ordered query and candi
     NeedsInputs(_) => fail("Closed original Values inputs")
   }
 }
+
+///|
+test "explicit composite to_vectors calls retain their ordered roles through short NEAREST" {
+  let text = "WITH qv AS (FROM queries |> to_vectors(id: [request_id, tenant], vector: embedding)), cv AS (FROM candidates |> to_vectors(id: [item_id, tenant], vector: embedding)) FROM qv |> NEAREST cv AS c K 2 AS hit |> SELECT hit"
+  let program = with_demand_program(
+    with_carrier_program(text, composite_nearest_context()),
+  )
+  let wire = semantic(program)
+  assert_true(wire.contains("\"id\":[\"request_id\",\"tenant\"]"))
+  assert_true(wire.contains("\"id\":[\"item_id\",\"tenant\"]"))
+  assert_true(wire.contains("\"metric\":\"cosine\""))
+  match
+    @check.check_parsed(
+      program,
+      check_environment(veca=true),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    Rejected(error) => raise @check.diagnostic_cause(error)
+    NeedsInputs(_) => fail("Original closed Values inputs")
+  }
+}

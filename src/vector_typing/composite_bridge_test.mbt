@@ -125,3 +125,33 @@ test "composite vector bridge rejects empty malformed repeated and component ide
     issue.kind is InvalidRole(UnknownRole(Qualified(Right, "missing"))),
   )
 }
+
+///|
+test "composite bridge charges the complete original role vector before admission" {
+  let source = cursor(
+    "{\"id\":[\"right.serial\",\"left.tenant\"],\"vector\":\"right.embedding\"}",
+  )
+  let rows = composite_bridge_rows()
+  let checked = @vector_typing.check(ToVectors, source, rows, None, limits()).unwrap()
+  let used = @vector_typing.usage(checked)
+  let exact : @vector_typing.Limits = {
+    ..limits(),
+    max_work: used.work,
+    max_nodes: used.nodes,
+    max_text_bytes: used.text_bytes,
+  }
+  assert_true(
+    @vector_typing.check(ToVectors, source, rows, None, exact) is Ok(_),
+  )
+  for
+    cap in [
+      { ..exact, max_work: exact.max_work - 1, },
+      { ..exact, max_nodes: exact.max_nodes - 1, },
+      { ..exact, max_text_bytes: exact.max_text_bytes - 1, },
+    ] {
+    assert_true(
+      @vector_typing.check(ToVectors, source, rows, None, cap)
+      is Err({ kind: BudgetExceeded, .. }),
+    )
+  }
+}

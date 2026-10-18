@@ -7376,14 +7376,20 @@ independent fixed vectors must be pinned before an executable profile claim.
 
 <!-- requirement-block: vector-bridges.explicit-roles -->
 `to_vectors` MUST have a closed body containing `id` and `vector` field
-references on its Relation input. The distinct selected roles require a complete
-non-null KeyComparable identity contract and a non-null fixed-dimension vector
-contract respectively. Other payload contracts and field-set knowledge remain
+references on its Relation input. The `id` is one field reference or a nonempty
+ordered array of distinct field references. Every identity component requires
+a complete non-null KeyComparable contract; `vector` requires a non-null
+fixed-dimension vector contract and cannot also be an identity component.
+The array order is the semantic tuple order, not field-set or spelling order.
+A singleton array lowers to the original scalar Bridge parameter spelling. Other payload contracts and field-set knowledge remain
 unchanged; no complete payload schema is required. The bridge retains authored
 field names and semantic identity values without inserting physical `id` or
 `vector` aliases, stringifying identities or replacing them with CIDs. Actual
 identity uniqueness and finite component admission are separate validation
-obligations. A backend unable to preserve the selected identity domain rejects
+obligations. Uniqueness compares every original typed component; equal values
+in one component alone neither collide nor prove uniqueness. Every supplied
+role occurrence, its text and retained reference consume the existing bounded
+work and retention accounting, including rejected duplicates. A backend unable to preserve the selected identity domain rejects
 lowering explicitly rather than changing that domain.
 
 ```yaml
