@@ -169,3 +169,41 @@ test('foreign returned Host stays in acquired shutdown custody on pair refusal',
   assert.equal(failure.cleanupHandle.status().pending, false);
   assert.equal(closes, 1, 'confirmed siblings are not closed twice');
 });
+
+test('refused opening retains the same root until its original control completes', async () => {
+  const f = fixture();
+  let pending = true, closes = 0;
+  const original = Object.freeze(new Error('OriginalCurrentRefused'));
+  const control = {close() {closes++; return {pending};}};
+  const failure = await f.registry.connect('/prepared/root', 'same', async () => {throw original;},
+    options, f.host, undefined, control).catch(error => error);
+  assert.equal(failure.primaryFailure, original);
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  assert.deepEqual(f.calls, []);
+  await assert.rejects(f.registry.connect('/prepared/root', 'same', async () => {
+    assert.fail('Do not replace the original pending control');
+  }, options), error => error === failure);
+  pending = false; await failure.cleanupHandle.retry();
+  assert.equal(failure.cleanupHandle.status().pending, false);
+  assert.equal(closes, 2);
+  assert.throws(() => f.registry.assertPreparation(f.host, f.installation, f.host),
+    {code: 'InstalledHostPreparationChanged'});
+});
+
+test('opening child cannot replace the captured original preparation close callback', async () => {
+  const f = fixture(), entered = deferred(), released = deferred();
+  let pending = true, originals = 0, replacements = 0;
+  const control = {close() {assert.equal(this, control); originals++; return {pending};}};
+  const opening = f.registry.connect('/prepared/root', 'same', async () => {
+    entered.resolve(); await released.promise; throw new Error('OriginalOpeningRefused');
+  }, options, f.host, undefined, control);
+  await entered.promise;
+  control.close = () => {replacements++; return {pending: false};};
+  released.resolve();
+  const failure = await opening.catch(error => error);
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  assert.equal(originals, 1); assert.equal(replacements, 0);
+  pending = false; await failure.cleanupHandle.retry();
+  assert.equal(failure.cleanupHandle.status().pending, false);
+  assert.equal(originals, 2); assert.equal(replacements, 0);
+});

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {createInstalledHostShutdown, retainInstalledHostInitializationFailure}
+import {createInstalledHostShutdown, retainInstalledHostInitializationFailure,
+  originalInitialControlClose}
   from './installed-host-cleanup.mjs';
 import {installedHostShutdown} from './embedded-local-lifecycle.mjs';
 
@@ -14,6 +15,14 @@ function shutdown(initialControl, overrides = {}) {
   return {calls, owner: createInstalledHostShutdown({...actions,
     ...overrides, initialControl})};
 }
+
+test('shared original control capture returns the actual observation without authoring another ACK', async () => {
+  const observed = Object.freeze({pending: false});
+  const control = {close() {assert.equal(this, control); return observed;}};
+  const close = originalInitialControlClose(control);
+  control.close = () => {assert.fail('Do not replace the captured original');};
+  assert.equal(await close(), observed);
+});
 
 test('initial control holding follows every child and precedes final reference retirement', async () => {
   let f;
