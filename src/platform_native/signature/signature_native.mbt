@@ -38,6 +38,43 @@ extern "C" fn library_ready_ffi(library : Library) -> Bool = "actql_native_signa
 
 ///|
 #borrow(library)
+extern "C" fn library_close_ffi(library : Library) -> Int = "actql_native_signature_library_close"
+
+///|
+#borrow(hash)
+extern "C" fn sha256_close_ffi(hash : Sha256Hasher) -> Bool = "actql_native_signature_sha256_close"
+
+///|
+/// Cleanup only on this original Library. A live SHA-256 context keeps its
+/// original dynamic handle pending. Unconfirmed physical close stays sticky;
+/// calling this again never loads a replacement or repeats that close.
+/// This ACK does not retire caller aliases, Host loans or numerical funding.
+pub fn Library::close_checked(
+  self : Library,
+) -> Result[Unit, NativeSignatureIssue] {
+  match library_close_ffi(self) {
+    0 => Ok(())
+    1 => Err(CleanupPending)
+    3 => Err(CloseUnconfirmed(library_message(self)))
+    _ => Err(InvalidInput)
+  }
+}
+
+///|
+/// Retire this original EVP context, including after Library cleanup starts.
+/// Finishing a digest also retires it. GC or a lost return is not this ACK.
+pub fn Sha256Hasher::close_checked(
+  self : Sha256Hasher,
+) -> Result[Unit, NativeSignatureIssue] {
+  if sha256_close_ffi(self) {
+    Ok(())
+  } else {
+    Err(InvalidInput)
+  }
+}
+
+///|
+#borrow(library)
 extern "C" fn library_diagnostic_ceiling_ffi(library : Library) -> Int = "actql_native_signature_library_diagnostic_ceiling"
 
 ///|

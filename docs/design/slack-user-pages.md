@@ -188,3 +188,36 @@ bounds are not a Resource supplier. Missing normal reader capacity refuses;
 transport closure, Journal success and GC never establish raw retirement or
 return the original reservation. Cleanup remains unconfirmed until its actual
 owner can prove those duties complete.
+
+## Original Command request encoding
+
+The same Slack Catalog encodes the closed post, reply, reaction and archive
+inputs from an original CheckedValue. Its private request retains that original
+value and contract; an equal rechecked value is not the retained input. Every
+declared field and supplied value is checked before emission. Text constraints,
+including enumeration and extents, remain with the original contract. There is
+no JSON-to-CheckedValue adapter, implicit optional field or scalar coercion.
+
+Message `ts` and `thread_ts` are exact String identities. They never pass through
+binary64, a Host Date, or the derived Timestamp domain. The bounded writer
+preserves Unicode and mrkdwn text without normalization. The post/reply text
+limit follows Slack's documented 40,000-character truncation boundary: the
+codec refuses a larger scalar sequence rather than changing approved text or
+creating an implicit upload. Writer and input-recheck bounds remain separate
+from that vendor write-request bound.
+
+Post and reply require an explicit item marker, emitted as metadata with
+`event_type: actql_effect` and `event_payload.effect_item_id`. Reaction and
+archive requests forbid that marker because Slack does not return equivalent
+reconciliation evidence for them. The marker String is DATA: only the existing
+Effect/Preview owner can bind it to the original item. A request codec or
+matching text cannot create that identity, a current target, approval, a
+Credential use, an authenticated outcome or permission to resend.
+
+The retained request, original checked object and child contracts, channel and
+marker Strings, recheck frames, encoded document and escaped body can coexist.
+Their bounds do not fund these holdings. Existing installed Effect, Site,
+Journal and Resource owners retain currentness, exact request binding, claim,
+Unknown resolution, response evidence and physical cleanup responsibilities.
+A successful codec does not supply those originals or close the public Command
+execution and recovery boundary.
