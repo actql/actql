@@ -29,9 +29,9 @@ static const char *actql_command_census_name(
   return name;
 }
 
-/* Only the public bounded kernel attribute interface is used. Unsupported
- * filesystems refuse, including union stacks whose duplicate-hiding semantics
- * would require an unbounded read/sort. No alternate libc route is selected. */
+/* This finite Darwin command selection supports APFS without union stacking.
+ * Only the public bounded kernel attribute interface is used; other selected
+ * filesystems refuse before acquisition. No alternate libc route is selected. */
 static int32_t actql_command_directory_census_bounded(
     actql_native_filesystem_root *root, moonbit_bytes_t frame,
     int32_t length, int32_t count) {
@@ -48,7 +48,8 @@ static int32_t actql_command_directory_census_bounded(
       "inspect selected directory census failed");
     return -1;
   }
-  if (filesystem.f_flags & MNT_UNION) {
+  if ((filesystem.f_flags & MNT_UNION) ||
+      memcmp(filesystem.f_fstypename, "apfs", sizeof("apfs")) != 0) {
     actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
       "selected directory census filesystem unavailable");
     return -1;

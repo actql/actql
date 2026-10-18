@@ -16,12 +16,16 @@
 #include "owned_capacity.h"
 #include "scoped_read.h"
 
-static bool union_selection, malformed, unsupported;
+static bool union_selection, other_filesystem, malformed, unsupported;
 static unsigned bulk_calls;
 static void (*during_bulk)(void);
 static int observe_fstatfs(int fd, struct statfs *value) {
   int result = fstatfs(fd, value);
   if (result == 0 && union_selection) value->f_flags |= MNT_UNION;
+  if (result == 0 && other_filesystem) {
+    memset(value->f_fstypename, 0, sizeof(value->f_fstypename));
+    memcpy(value->f_fstypename, "unselected", sizeof("unselected"));
+  }
   return result;
 }
 static int observe_bulk(int fd, void *attributes, void *buffer,
@@ -64,6 +68,7 @@ int main(int argc, char **argv) {
   assert(mkdir(child, 0700) == 0);
   if (!strcmp(mode, "extra")) file_at(directory, "extra");
   union_selection = !strcmp(mode, "union");
+  other_filesystem = !strcmp(mode, "filesystem");
   malformed = !strcmp(mode, "malformed");
   unsupported = !strcmp(mode, "unsupported");
   actql_owned_capacity *lease = NULL;
@@ -95,7 +100,8 @@ int main(int argc, char **argv) {
   } else {
     result = actql_command_directory_census_bounded(
       root, frame, sizeof(expected) - 1, 2);
-    if (union_selection) assert(result == -1 && bulk_calls == 0);
+    if (union_selection || other_filesystem)
+      assert(result == -1 && bulk_calls == 0);
     else if (malformed || unsupported) assert(result == -1 && bulk_calls == 1);
     else if (!strcmp(mode, "extra")) assert(result == 1 && bulk_calls == 1);
     else if (!strcmp(mode, "close-unknown")) {

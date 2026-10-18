@@ -1593,11 +1593,11 @@ alias does not replenish the once-counted process/thread-lived initial terms,
 acknowledge every image/TLS retirement, or release the parent Read or backing.
 
 The command Runtime retains its stronger filesystem selection through current
-checks. Its selected Darwin census uses `getattrlistbulk` with one fixed
+checks. Its selected Darwin/APFS census uses `getattrlistbulk` with one fixed
 65536-byte buffer and the existing bounded expected-name bitmap, both allocated
 through the original Read. It does not construct a libc DIR or request its
 union-directory prefetch and sort. The same original directory is checked for
-union selection before enumeration; that unsupported selection and an
+APFS and absence of union stacking before enumeration; other selections and an
 unsupported bulk operation refuse without switching to the generic census.
 Existing generic census callers keep their original behavior. Exact names,
 no-follow file kinds and before/after directory identity remain mandatory.
