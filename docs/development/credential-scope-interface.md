@@ -148,6 +148,26 @@ original nominal use. Legacy omission remains compatible, not evidence that a
 call checked current Host policy across the resolver await. HubSpot account
 observation selects its already captured original current callback here.
 
+A Run binding may explicitly capture `assertCurrent` as the original synchronous
+Host/Site fence. Selecting it also requires the original awaited
+`currentBeforeSend` observation. Both checks run before the nominal claim,
+after the resolver await before physical send, and after the response await
+before disclosure; the original Journal authorizes the same use again at the
+final boundary. The synchronous callback receives no arguments or receiver,
+and must return `undefined`. A Promise or boolean is not a current certificate.
+Omitting this fence retains the existing caller behavior, rather than supplying
+current-Host evidence implicitly.
+
+During a final awaited observation the same binding retains its original bounded
+response. Refusal keeps that response with the original binding until confirmed
+retirement; it is not returned to a Connector. An unconfirmed outcome remains
+with the original Journal and binding, blocks another claim or send, and is not
+committed again by the error path. Physical binding retirement does not resolve
+an Unknown Journal use, authenticate a saved publication, reclaim escaped
+response aliases or supply a resource profile. The callback closure, response
+alias, retained error and original control/Journal/material overlap remain in
+the acquisition's retention inventory until their actual owners retire them.
+
 The real Owner cases in `https-credential-resource.test.mjs` cover separately
 counted identity/page operations, rotation before a page and across resolver or
 response awaits, revocation/expiry despite equal material, every generated scope
