@@ -129,6 +129,18 @@ test('one candidate cannot issue a second installed Provider or move to another 
   assert.equal(f.counts().invokes, 0);
 });
 
+test('candidate rejects another installation current original before its first adoption', async t => {
+  const f = await fixture(t);
+  const entry = f.defaults.bindRegistration({providerId, bindingOriginals: f.defaults.bindingOriginals,
+    validatePrompt: () => true, invoke() { assert.fail('No Model call'); }});
+  const foreignCurrent = () => f.check();
+  assert.throws(() => installModelProviders(moon, () => [entry], foreignCurrent, foreignCurrent),
+    {code: 'InstalledModelDefaultsForeignOriginal'});
+  // A refused foreign original cannot spend the intended installation's DATA.
+  const view = await f.prepare();
+  assert.equal(view.bindInstalledProviders(f.register()).originalsForRuntime(moon).length, 1);
+});
+
 test('candidate preparation retains its original snapshot and single-attempt reader bounds', async t => {
   const f = await fixture(t);
   const small = {...readerLimits, maxWork: 1}; let failure;
