@@ -28415,7 +28415,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-image-loader.cjs",
-      "sha256": "a8c936e06ad9b8deb5fb3c1a1e38d66f4ee43f5d6fc29a47b6c4905e2d672aeb",
+      "sha256": "33798df367d13a6d90dbcdf177af1dec2afc0903f85b36a627309cdb141d7ca1",
       "exports": [
         "commonjs:installInitialControlImageLoader"
       ],
@@ -28445,7 +28445,8 @@
         {
           "name": "fail/fail",
           "parameters": [
-            "code"
+            "code",
+            "image"
           ],
           "async": false
         },
@@ -28477,6 +28478,13 @@
           "name": "installInitialControlImageLoader/covered",
           "parameters": [
             "url"
+          ],
+          "async": false
+        },
+        {
+          "name": "installInitialControlImageLoader/jsonInteropRecord",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -28561,6 +28569,7 @@
             "installInitialControlImageLoader/captureLoadedModules",
             "installInitialControlImageLoader/captureLoadedModules/captureLoadedModules",
             "installInitialControlImageLoader/covered",
+            "installInitialControlImageLoader/jsonInteropRecord",
             "installInitialControlImageLoader/load",
             "installInitialControlImageLoader/registerFence",
             "installInitialControlImageLoader/registerHooksFence",
@@ -28591,6 +28600,10 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.cjs",
                 "anchor": "function sealJsonOriginal(original, exported)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "function jsonInteropRecord(value)"
               }
             ],
             "identity": [
@@ -28609,6 +28622,10 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.cjs",
                 "anchor": "const expected = parse(nativeApply(nativeCharCodeAt, source, [0]) === 0xfeff"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "const jsonInterop = original.format === 'json'"
               }
             ],
             "ownership": [
@@ -28679,6 +28696,14 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.cjs",
                 "anchor": "// WeakSet and node array overlap the original Module/tree/Source; none is"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "// cache shape. Its retained String alias follows the original error duty."
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "loading: loadedProperty.value === false, jsonInterop, properties"
               }
             ],
             "extension": [
@@ -28739,6 +28764,18 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.test.mjs",
                 "anchor": "JSON metadata sealing is not a proof or freeze of arbitrary nested CJS library state"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "original ESM JSON interop cache records retain the same Source tree and exact record before entry"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "original ESM JSON interop refuses an equal cache preseed without Source delivery"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "original ESM JSON interop never licenses an abbreviated CommonJS cache record"
               }
             ]
           }
