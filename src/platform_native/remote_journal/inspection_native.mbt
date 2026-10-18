@@ -6,7 +6,11 @@ priv type JournalInspection
 /// journal is never opened normally while this responsibility is pending.
 struct CoordinatorInitializationCleanup {
   inspection : JournalInspection
+  path : Result[String, NativeRemoteJournalIssue]
+  max_record_bytes : Int64
   mut database : @sqlite.Database?
+  mut open_attempted : Bool
+  mut closing : Bool
   mut pending : Bool
 }
 
@@ -65,14 +69,110 @@ fn inspection_issue(owner : JournalInspection) -> NativeRemoteJournalIssue {
 }
 
 ///|
-/// Retries only physical close and deletion of the private inspection copy.
-/// It never retries format admission, opens the source, or executes a Run.
-pub fn CoordinatorInitializationCleanup::retry(
+// Capture the exact snapshot before exposing any operation that can fail. Path
+// decoding belongs to snapshot preparation, separately from opening SQLite.
+fn capture_sqlite_inspection(
+  inspection : JournalInspection,
+  max_record_bytes : Int64,
+) -> CoordinatorInitializationCleanup {
+  let path = if max_record_bytes < 0L {
+    Err(Physical(@sqlite.InvalidLimit))
+  } else if !inspection_ready(inspection) {
+    Err(inspection_issue(inspection))
+  } else {
+    @utf8.decode(inspection_path(inspection)).map_err(_ =>
+      Physical(@sqlite.Physical("invalid inspection path")),
+    )
+  }
+  {
+    inspection,
+    path,
+    max_record_bytes,
+    database: None,
+    open_attempted: false,
+    closing: false,
+    pending: true,
+  }
+}
+
+///|
+/// Capture the existing bounded read-only inspection and its cleanup duty.
+/// Retain the returned owner before attempting a different resource phase.
+/// Except for invalid limits rejected before capture, physical preparation
+/// errors remain in this same owner and are returned by `open_database`.
+/// This is neither source admission nor a normal writer or resource grant.
+pub fn prepare_sqlite_source_inspection(
+  path : String,
+  max_record_bytes : Int64,
+  max_snapshot_bytes : Int64,
+) -> Result[CoordinatorInitializationCleanup, NativeRemoteJournalIssue] {
+  if max_record_bytes < 0L || max_snapshot_bytes < 0L {
+    return Err(Physical(@sqlite.InvalidLimit))
+  }
+  let bytes = @utf8.encode(path)
+  Ok(
+    capture_sqlite_inspection(
+      inspection_open_bounded(bytes, bytes.length(), max_snapshot_bytes),
+      max_record_bytes,
+    ),
+  )
+}
+
+///|
+/// Open this captured copy at most once. The same owner retains the actual DB
+/// before checking its inspection status. `None` is physical source absence,
+/// never permission to initialize. Retaining a DB alias does not retire it.
+pub fn CoordinatorInitializationCleanup::open_database(
+  self : CoordinatorInitializationCleanup,
+  library : @sqlite.Library,
+) -> Result[@sqlite.Database?, NativeRemoteJournalIssue] {
+  if self.closing || !self.pending {
+    return Err(Closed)
+  }
+  if self.open_attempted {
+    return Err(StateCollision)
+  }
+  self.open_attempted = true
+  let path = match self.path {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !path.is_empty() {
+    let database = library.open_inspection_database(path, self.max_record_bytes)
+    self.database = Some(database)
+    match database.inspection_status() {
+      Ok(_) => ()
+      Err(issue) => return Err(Physical(issue))
+    }
+  }
+  Ok(self.database)
+}
+
+///|
+/// Check the captured source generation after the caller's read-only audit.
+/// This does not admit the row contents or authorize a later normal writer.
+pub fn CoordinatorInitializationCleanup::validate_source(
   self : CoordinatorInitializationCleanup,
 ) -> Result[Unit, NativeRemoteJournalIssue] {
-  if !self.pending {
-    return Ok(())
+  if self.closing || !self.pending {
+    return Err(Closed)
   }
+  if !self.open_attempted {
+    return Err(StateCollision)
+  }
+  if !inspection_validate(self.inspection) {
+    return Err(inspection_issue(self.inspection))
+  }
+  Ok(())
+}
+
+///|
+/// Cleanup-only SQLite phase. A failed physical close retains the same DB;
+/// no later open or source validation can resume the abandoned admission.
+pub fn CoordinatorInitializationCleanup::close_database(
+  self : CoordinatorInitializationCleanup,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  self.closing = true
   match self.database {
     Some(database) =>
       match database.close_checked() {
@@ -80,6 +180,22 @@ pub fn CoordinatorInitializationCleanup::retry(
         Err(issue) => return Err(Physical(issue))
       }
     None => ()
+  }
+  Ok(())
+}
+
+///|
+/// Cleanup-only snapshot phase. It cannot delete the copy before the actual
+/// DB close acknowledges. Only the original snapshot deletion ACK clears the
+/// remaining duty. A failed deletion retries this same snapshot, never capture.
+pub fn CoordinatorInitializationCleanup::close_snapshot(
+  self : CoordinatorInitializationCleanup,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  if !self.pending {
+    return Ok(())
+  }
+  if !self.closing || self.database is Some(_) {
+    return Err(CleanupPending)
   }
   if !inspection_close(self.inspection) {
     return Err(inspection_issue(self.inspection))
@@ -89,13 +205,26 @@ pub fn CoordinatorInitializationCleanup::retry(
 }
 
 ///|
+/// Retries only physical DB close and deletion of this private inspection copy.
+/// A phased caller can consume their separate ACKs with `close_database` then
+/// `close_snapshot`. Neither route retries admission or opens the source.
+pub fn CoordinatorInitializationCleanup::retry(
+  self : CoordinatorInitializationCleanup,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  match self.close_database() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  self.close_snapshot()
+}
+
+///|
 fn inspect_coordinator_copy(
   library : @sqlite.Library,
-  max_record_bytes : Int64,
   cleanup : CoordinatorInitializationCleanup,
   control : @remote.CoordinatorDispatchJournal,
 ) -> Result[Unit, NativeRemoteJournalIssue] {
-  inspect_sqlite_copy(library, max_record_bytes, cleanup, database => {
+  inspect_sqlite_copy(library, cleanup, database => {
     guard database is Some(database) else { return Ok(()) }
     inspect_coordinator_rows(database, control)
   })
@@ -146,32 +275,18 @@ fn inspect_coordinator_rows(
 ///|
 fn[T] inspect_sqlite_copy(
   library : @sqlite.Library,
-  max_record_bytes : Int64,
   cleanup : CoordinatorInitializationCleanup,
   inspect : (@sqlite.Database?) -> Result[T, NativeRemoteJournalIssue],
 ) -> Result[T, NativeRemoteJournalIssue] {
-  if max_record_bytes < 0L {
-    return Err(Physical(@sqlite.InvalidLimit))
+  let database = match cleanup.open_database(library) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  if !inspection_ready(cleanup.inspection) {
-    return Err(inspection_issue(cleanup.inspection))
+  let admission = inspect(database)
+  match cleanup.validate_source() {
+    Err(issue) => Err(issue)
+    Ok(_) => admission
   }
-  let path = @utf8.decode(inspection_path(cleanup.inspection)) catch {
-    _ => return Err(Physical(@sqlite.Physical("invalid inspection path")))
-  }
-  if !path.is_empty() {
-    let database = library.open_inspection_database(path, max_record_bytes)
-    cleanup.database = Some(database)
-    match database.inspection_status() {
-      Ok(_) => ()
-      Err(issue) => return Err(Physical(issue))
-    }
-  }
-  let admission = inspect(cleanup.database)
-  if !inspection_validate(cleanup.inspection) {
-    return Err(inspection_issue(cleanup.inspection))
-  }
-  admission
 }
 
 ///|
@@ -190,23 +305,12 @@ pub fn[T] inspect_sqlite_source(
   max_snapshot_bytes : Int64,
   inspect : (@sqlite.Database?) -> Result[T, NativeRemoteJournalIssue],
 ) -> Result[T, NativeRemoteJournalIssue] {
-  // Reject invalid limits before allocating an inspection copy.
-  if max_record_bytes < 0L || max_snapshot_bytes < 0L {
-    return Err(Physical(@sqlite.InvalidLimit))
+  let cleanup = match
+    prepare_sqlite_source_inspection(path, max_record_bytes, max_snapshot_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  let bytes = @utf8.encode(path)
-  let cleanup : CoordinatorInitializationCleanup = {
-    inspection: inspection_open_bounded(
-      bytes,
-      bytes.length(),
-      max_snapshot_bytes,
-    ),
-    database: None,
-    pending: true,
-  }
-  let admission = inspect_sqlite_copy(
-    library, max_record_bytes, cleanup, inspect,
-  )
+  let admission = inspect_sqlite_copy(library, cleanup, inspect)
   finish_coordinator_inspection(cleanup, admission)
 }
 
@@ -218,14 +322,11 @@ fn inspect_coordinator_source(
   control : @remote.CoordinatorDispatchJournal,
 ) -> Result[Unit, NativeRemoteJournalIssue] {
   let bytes = @utf8.encode(path)
-  let cleanup : CoordinatorInitializationCleanup = {
-    inspection: inspection_open(bytes, bytes.length()),
-    database: None,
-    pending: true,
-  }
-  let admission = inspect_coordinator_copy(
-    library, max_record_bytes, cleanup, control,
+  let cleanup = capture_sqlite_inspection(
+    inspection_open(bytes, bytes.length()),
+    max_record_bytes,
   )
+  let admission = inspect_coordinator_copy(library, cleanup, control)
   finish_coordinator_inspection(cleanup, admission)
 }
 
