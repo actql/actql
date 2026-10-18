@@ -2399,8 +2399,10 @@ export function openClientRequestJournal(directory, {
       let sourceOriginal, captureOriginal, captureReceiver;
       if (captureSourceOperation !== undefined) {
         if (sourceOperations === undefined) fail('ClientSourceOperationUnavailable');
-        const {program, compiled, capture} = captureSourceOperation;
+        const {program, compiled, capture, store} = captureSourceOperation;
+        const checkStore = store?.privateEvidenceWireLimit;
         if (typeof capture !== 'function' ||
+            typeof checkStore !== 'function' ||
             typeof requestControl.clientProgramMatchesRequestIdentity !== 'function' ||
             requestControl.clientProgramMatchesRequestIdentity(program, identity) !== true) {
           fail('ForeignClientSourceOperation');
@@ -2410,8 +2412,12 @@ export function openClientRequestJournal(directory, {
         const definition = retainedRunDefinition(row, publicationControl, maxRunDefinitionWireBytes);
         publicationControl.checkClientCompiledRunOwner(compiled, program);
         publicationControl.checkClientCompiledRunDefinition(compiled, definition);
+        // Existing same-Store active guard only; its numeric result is neither
+        // the Source operation's capacity nor a private-evidence permission.
+        Reflect.apply(checkStore, store, []);
         sourceOriginal = Object.freeze({ref: Object.freeze({...ref}), program, compiled,
           definition, identity, requestControl, publicationControl,
+          journal, store, checkStore,
           requestId: fields.requestId, requestScopeCid: fields.logicalRequestScopeCid,
           intentCid: fields.intentFingerprintCid});
         captureOriginal = capture;

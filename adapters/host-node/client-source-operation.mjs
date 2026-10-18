@@ -62,6 +62,7 @@ export function clientSourceOperationStorage(database, {ensureOpen, transact,
     ref.runDefinitionCid, occurrence.stage, occurrence.input, occurrence.task];
   const currentRun = original => {
     ensureOpen();
+    Reflect.apply(original.checkStore, original.store, []);
     original.publicationControl.checkClientCompiledRunOwner(original.compiled, original.program);
     original.publicationControl.checkClientCompiledRunDefinition(original.compiled, original.definition);
     if (original.requestControl.clientProgramMatchesRequestIdentity(original.program,
@@ -128,9 +129,10 @@ export function clientSourceOperationStorage(database, {ensureOpen, transact,
   });
 }
 
-export function bindClientSourceOperation(scope, program, preparedSource, occurrence) {
+export function bindClientSourceOperation(scope, journal, store, program, preparedSource, occurrence) {
   const original = runs.get(scope);
-  if (original === undefined || original.original.program !== program || !coordinate(occurrence)) {
+  if (original === undefined || original.original.journal !== journal ||
+      original.original.store !== store || original.original.program !== program || !coordinate(occurrence)) {
     fail('ForeignClientSourceOperation');
   }
   original.current();

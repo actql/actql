@@ -152,7 +152,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         reportAcquisitionFailure: acquisition.retain,
         ...(entry.sourceOperationScope === undefined ? {} : {
           originalOperationScope: bindClientSourceOperation(entry.sourceOperationScope,
-            preparedProgram, preparedSource, {stage: 0, input: 0, task: 0}),
+            journal, store, preparedProgram, preparedSource, {stage: 0, input: 0, task: 0}),
         })});
       returned = true;
     } catch (error) {
@@ -662,7 +662,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         currentAuthorization: hostConnection({principalId: actual,
           connection, ref: accepted.ref}),
         ...(acquiring && journal.sourceOperationConfigured === true ? {
-          captureSourceOperation: {program: preparedProgram, compiled: held.plan.compiled,
+          captureSourceOperation: {program: preparedProgram, compiled: held.plan.compiled, store,
             capture(scope) {entry.sourceOperationScope = scope;}},
         } : {}),
       }, moon, control)) {
@@ -722,7 +722,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
               reportAcquisitionFailure: acquisition.retain,
               ...(entry.sourceOperationScope === undefined ? {} : {
                 originalOperationScope: bindClientSourceOperation(entry.sourceOperationScope,
-                  preparedProgram, preparedSource, source.occurrence),
+                  journal, store, preparedProgram, preparedSource, source.occurrence),
               })});
             returned = true;
           } catch (error) {

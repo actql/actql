@@ -31,8 +31,13 @@ function fixture(t, limits = {maxRecords: 8, maxWireBytes: 4096}) {
   const accepted = journal.acceptDefinition(request, options, control, publication);
   journal.reserveDispatch(request, {namespaceId: options.namespaceId, currentAuthorization: true}, control, publication);
   const ref = accepted.ref;
-  let scope;
-  const capture = {program, compiled, capture(value) {assert.equal(this, capture); scope = value;}};
+  let scope, storeClosed = false;
+  const store = Object.freeze({privateEvidenceWireLimit() {
+    assert.equal(this, store);
+    if (storeClosed) throw Object.assign(new Error('PublicationStoreClosed'), {code: 'PublicationStoreClosed'});
+    return 4096;
+  }});
+  const capture = {program, compiled, store, capture(value) {assert.equal(this, capture); scope = value;}};
   const start = (selection = capture) => journal.reservePhysicalStart(request,
     {namespaceId: options.namespaceId, ref, currentAuthorization: true,
       captureSourceOperation: selection}, control, publication);
@@ -47,11 +52,12 @@ function fixture(t, limits = {maxRecords: 8, maxWireBytes: 4096}) {
     clientProgramBigQueryJobOriginalRecordWire: value => {assert.equal(value, record); return wire;}});
   const occurrence = {stage: 0, input: 0, task: 0};
   const original = Object.freeze({jobRead, request: firstRequest, record, wire, frame});
-  return {directory, ref, program, compiled, prepared, control, publication, frame, moon, occurrence, original,
+  return {directory, ref, program, compiled, prepared, control, publication, frame, moon, occurrence, original, store,
     get journal() {return journal;}, get scope() {return scope;}, start,
-    source(value = occurrence, selected = prepared) {return bindClientSourceOperation(scope, program, selected, value);},
+    source(value = occurrence, selected = prepared) {return bindClientSourceOperation(scope, journal, store, program, selected, value);},
     port(value) {return bindClientSourceOperationRowRun(value, moon, program, prepared, frame);},
     reopen() {journal.close(); journal = openClientRequestJournal(directory, {sourceOperationLimits: limits});},
+    closeStore() {storeClosed = true;},
     mutate(sql) {const db = new DatabaseSync(join(directory, 'client-requests.sqlite3')); try {db.exec(sql);} finally {db.close();}}};
 }
 
@@ -72,15 +78,17 @@ test('confirmed same-Journal physical claim issues one original scope and commit
   f.reopen();
   assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, f.occurrence).originalWire, f.original.wire);
   let captured = 0;
-  assert.equal(f.start({program: f.program, compiled: f.compiled, capture() {captured++;}}), false);
+  assert.equal(f.start({program: f.program, compiled: f.compiled, store: f.store, capture() {captured++;}}), false);
   assert.equal(captured, 0);
   assert.throws(() => f.port(source), {code: 'ClientRequestJournalClosed'});
 });
 
 test('copied scope and different original Program or prepared Source cannot bind a RowRun', t => {
   const f = fixture(t); f.start();
-  assert.throws(() => bindClientSourceOperation({...f.scope}, f.program, f.prepared, f.occurrence), {code: 'ForeignClientSourceOperation'});
-  assert.throws(() => bindClientSourceOperation(f.scope, {}, f.prepared, f.occurrence), {code: 'ForeignClientSourceOperation'});
+  assert.throws(() => bindClientSourceOperation({...f.scope}, f.journal, f.store, f.program, f.prepared, f.occurrence), {code: 'ForeignClientSourceOperation'});
+  assert.throws(() => bindClientSourceOperation(f.scope, f.journal, f.store, {}, f.prepared, f.occurrence), {code: 'ForeignClientSourceOperation'});
+  assert.throws(() => bindClientSourceOperation(f.scope, {}, f.store, f.program, f.prepared, f.occurrence), {code: 'ForeignClientSourceOperation'});
+  assert.throws(() => bindClientSourceOperation(f.scope, f.journal, {}, f.program, f.prepared, f.occurrence), {code: 'ForeignClientSourceOperation'});
   const source = f.source();
   assert.throws(() => bindClientSourceOperationRowRun(source, f.moon, f.program, {...f.prepared}, f.frame), {code: 'ForeignClientSourceOperation'});
   assert.throws(() => f.source(f.occurrence, {}), {code: 'ForeignClientSourceOperation'});
@@ -141,6 +149,12 @@ test('current cancellation after scope issue refuses before recording or physica
   const f = fixture(t); f.start(); const port = f.port(f.source());
   f.mutate('UPDATE client_requests SET cancellation_requested = 1');
   assert.throws(() => port(f.original, () => assert.fail('No physical send')), {code: 'ClientSourceOperationOriginalChanged'});
+  assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, f.occurrence), undefined);
+});
+
+test('the same original Store retirement refuses before original-record CAS or send', t => {
+  const f = fixture(t); f.start(); const port = f.port(f.source()); f.closeStore();
+  assert.throws(() => port(f.original, () => assert.fail('No physical send')), {code: 'PublicationStoreClosed'});
   assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, f.occurrence), undefined);
 });
 
