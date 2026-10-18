@@ -5,6 +5,11 @@ through Common's existing acquisition and carrier-schema issuer. It reserves no
 independent quota and creates no new Run. The selected projection and original
 Job routing DATA remain attached to the same accounted RowRun.
 
+The catalog codec retains the metadata Contract on its CheckedValues. Before
+Common capture, the existing value-admission Owner rechecks each immutable value
+against the same acquisition's original Contract, within the caller's aggregate
+node/text bounds. Equal metadata/schema bytes do not replace nominal identity.
+
 Each received envelope is charged before parsing or cursor validation. Page
 admission requires the original Job identity, exact projected contracts and the
 preceding opaque page token. Total rows must stay consistent across pages; the

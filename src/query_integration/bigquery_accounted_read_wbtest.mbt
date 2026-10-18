@@ -358,9 +358,12 @@ fn bigquery_assert_retired(
 fn[T] bigquery_expect(value : Result[T, @bigquery_read.ReadIssue]) -> T raise {
   match value {
     Ok(value) => value
-    Err(@bigquery_read.Page(issue)) => fail("BigQuery page: " + @debug.to_string(issue))
-    Err(@bigquery_read.Host(@row_host.Source(issue))) => fail("BigQuery Source: " + @debug.to_string(issue))
-    Err(@bigquery_read.Host(@row_host.Physical(issue))) => fail("BigQuery physical: " + @debug.to_string(issue))
+    Err(@bigquery_read.Page(issue)) =>
+      fail("BigQuery page: " + @debug.to_string(issue))
+    Err(@bigquery_read.Host(@row_host.Source(issue))) =>
+      fail("BigQuery Source: " + @debug.to_string(issue))
+    Err(@bigquery_read.Host(@row_host.Physical(issue))) =>
+      fail("BigQuery physical: " + @debug.to_string(issue))
     Err(@bigquery_read.Host(_)) => fail("BigQuery other Host refusal")
     Err(_) => fail("BigQuery unexpected read refusal")
   }
@@ -375,7 +378,10 @@ test "BigQuery original accounted pages preserve decimal38 and SQL null through 
     "bq-two-pages",
     (first.length() + second.length()).to_int64(),
   )
-  assert_eq(bigquery_expect(@bigquery_read.accept_query_page(read, None, first)), 1)
+  assert_eq(
+    bigquery_expect(@bigquery_read.accept_query_page(read, None, first)),
+    1,
+  )
   assert_true(@bigquery_read.capture_result_read(read) is Err(_))
   assert_eq(
     @bigquery_read.accept_query_page(read, Some("next/opaque+token"), second).unwrap(),
@@ -482,7 +488,10 @@ test "BigQuery does not infer complete result from an absent token or exhaust it
     "bq-incomplete",
     incomplete.length().to_int64(),
   )
-  assert_eq(@bigquery_read.accept_query_page(short, None, incomplete).unwrap(), 1)
+  assert_eq(
+    @bigquery_read.accept_query_page(short, None, incomplete).unwrap(),
+    1,
+  )
   assert_true(
     @bigquery_read.finish_result_read(short) is Err(@bigquery_read.Incomplete),
   )
@@ -638,4 +647,47 @@ test "BigQuery invalid logical bounds refuse before original reservation" {
     @bigquery_read.read_start_failure_cleanup(failure) is None,
   )
   assert_eq(@resources.ledger_usage(ledger), before)
+}
+
+///|
+test "BigQuery metadata CheckedValues cannot substitute the original acquisition Contract" {
+  let prepared = bigquery_read_preparation().unwrap()
+  let projection = @bigquery_read.prepared_read_projection(prepared)
+  let job = bigquery_job()
+  let body = bigquery_body(bigquery_rows())
+  let page = @bigquery_catalog.project_query_page(
+    projection,
+    job,
+    body,
+    bigquery_read_limits(),
+  ).unwrap()
+  let cell = @bigquery_catalog.query_page_cell(page, 0, 0).unwrap()
+  let acquisition = @bigquery_read.prepared_read_acquisition(prepared)
+  let original_contract = @row_host.row_acquisition_column_contract(
+    acquisition, 0,
+  ).unwrap()
+  assert_false(physical_equal(cell.contract, original_contract))
+  let ledger = bigquery_read_ledger(prepared, body.length().to_int64())
+  guard @bigquery_read.start_accounted_read(
+      prepared,
+      job,
+      "bq-original-contract",
+      _ => true,
+      ledger,
+      body.length().to_int64(),
+      4096L,
+      bigquery_read_limits(),
+      4,
+    )
+    is Ok(read) else {
+    fail("original contract fixture start refused")
+  }
+  assert_eq(
+    bigquery_expect(@bigquery_read.accept_query_page(read, None, body)),
+    2,
+  )
+  assert_true(@bigquery_read.result_read_complete(read))
+  @bigquery_read.finish_result_read(read).unwrap()
+  assert_true(@bigquery_read.capture_result_read(read) is Ok(_))
+  bigquery_assert_retired(read, ledger)
 }

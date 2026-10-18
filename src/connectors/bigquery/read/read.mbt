@@ -5,6 +5,7 @@ pub(all) enum ReadIssue {
   Catalog(@catalog.DescriptionIssue)
   Host(@rows.RowHostIssue)
   Page(@catalog.QueryIssue)
+  SchemaMismatch(String)
   WrongPage
   InconsistentTotal
   Incomplete
@@ -362,6 +363,8 @@ pub fn accept_query_page(
     return fail_read(read, InconsistentTotal)
   }
   let values = []
+  let mut nodes = read.limits.max_value_nodes
+  let mut text_bytes = read.limits.max_value_text_bytes
   let columns = @catalog.read_projection_fields(read.prepared.projection)
   for row in 0..<count {
     let cells = []
@@ -369,7 +372,25 @@ pub fn accept_query_page(
       guard @catalog.query_page_cell(page, row, column) is Some(value) else {
         return fail_read(read, Incomplete)
       }
-      cells.push(value)
+      // Catalog values remain bound to the original metadata Contract. The
+      // checked Common acquisition has its own original Contract identity;
+      // equal schema bytes never substitute that identity at capture.
+      guard @rows.row_acquisition_column_contract(
+          read.prepared.acquisition,
+          column,
+        )
+        is Some(contract) &&
+        @admitted.recheck_runtime_value_usage(value.value, contract, {
+          max_nodes: nodes,
+          max_text_bytes: text_bytes,
+          max_depth: read.limits.description.max_depth,
+        })
+        is Some((checked, used_nodes, used_text)) else {
+        return fail_read(read, SchemaMismatch(columns[column]))
+      }
+      nodes -= used_nodes
+      text_bytes -= used_text
+      cells.push(checked)
     }
     values.push(cells)
   }
