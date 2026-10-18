@@ -90,11 +90,16 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         view === null || typeof view !== 'object') preparationChanged();
     entry.mockPreparation = view;
   },
-  mockPreparation(host, installation, generation) {
+  mockPreparation(host, installation, generation, allowMissing = false) {
     const entry = preparationFor(host, installation, generation);
     if (entry.closing || entry.failure !== undefined ||
-        entry.mockPreparation === undefined) preparationChanged();
+        entry.mockPreparation === undefined && !allowMissing) preparationChanged();
     return entry.mockPreparation;
+  },
+  retainedMockPreparation(host, installation, generation) {
+    // Cleanup may outlive new-operation currentness. Keep the exact registry
+    // pair while closing; this projection cannot admit another preparation.
+    return preparationFor(host, installation, generation).mockPreparation;
   },
   // Identity-only projection from this registry's actual pending calls. The
   // Source operational supplier covers the additional request reference and

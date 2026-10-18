@@ -8,9 +8,11 @@ test('Mock preparation lookup is bound to one original Host/installation/generat
   registry.registerPreparation(host, installation, host);
   registry.retainMockPreparation(host, installation, host, view);
   assert.equal(registry.mockPreparation(host, installation, host), view);
+  assert.equal(registry.retainedMockPreparation(host, installation, host), view);
   for (const pair of [[{}, installation, host], [host, {...installation}, host],
     [host, installation, {}]]) {
     assert.throws(() => registry.mockPreparation(...pair), {code: 'InstalledHostPreparationChanged'});
+    assert.throws(() => registry.retainedMockPreparation(...pair), {code: 'InstalledHostPreparationChanged'});
   }
   assert.throws(() => registry.retainMockPreparation(host, installation, host, view),
     {code: 'InstalledHostPreparationChanged'});

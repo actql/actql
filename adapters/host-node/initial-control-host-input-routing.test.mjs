@@ -170,14 +170,16 @@ test('failed original initialization retains the open path aliases until its ori
   const record = {openStateDirectory: '/original/.actql',
     openPathFailure: {cause: Object.freeze(new Error('OriginalPathRefused'))}};
   let closed = false, retries = 0, retirements = 0;
-  const originalInstallation = {}, host = {}, profiles = {retirePreparation(h, i, generation) {
+  const originalInstallation = {}, host = {}, profiles = {retainedMockPreparation(h, i, generation) {
+    assert.equal(h, host); assert.equal(i, originalInstallation); assert.equal(generation, host);
+  }, retirePreparation(h, i, generation) {
     assert.equal(h, host); assert.equal(i, originalInstallation); assert.equal(generation, host);
     retirements++;
   }};
   const retireReferences = compileFunction(
     'let referencesRetired=false,referenceRetirement,mockPreparation,projectProfile,project,moon,duty;' +
     source.slice(retire.start, retire.end) + '\nreturn retirePreparationReferences;',
-    ['record', 'originalInstallation']) (record, originalInstallation);
+    ['record', 'originalInstallation', 'profiles', 'host']) (record, originalInstallation, profiles, host);
   const caughtFailure = compileFunction('return async function(cause){' +
     'const adopted=false,observedClose=undefined,control=undefined;' +
     source.slice(caught.start + 1, caught.end - 1) + '\n};',
