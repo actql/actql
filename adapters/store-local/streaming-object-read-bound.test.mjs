@@ -25,6 +25,9 @@ const state = changes => ({
 });
 function fixture(source = current, options = {}) {
   let reads = 0, hashed = 0, closes = 0, retiredStreams = 0, createdStreams = 0;
+  const chunks = (options.chunks ?? ['ab', 'cd']).map(chunk => Buffer.from(chunk));
+  const destinations = [];
+  let selected = 0, offset = 0;
   const handle = {
     async stat() { return reads === 0 ? state(options.before) : state(options.after); },
     createReadStream() {
@@ -38,13 +41,27 @@ function fixture(source = current, options = {}) {
         } finally { retiredStreams++; }
       })();
     },
+    async read(buffer, start, length, position) {
+      reads++;
+      destinations.push({buffer, start, length, position});
+      if (options.readCount !== undefined) return {bytesRead: options.readCount};
+      while (selected < chunks.length && offset === chunks[selected].byteLength) {
+        selected++;
+        offset = 0;
+      }
+      if (selected === chunks.length) return {bytesRead: 0};
+      const count = Math.min(length, chunks[selected].byteLength - offset);
+      chunks[selected].copy(buffer, start, offset, offset + count);
+      offset += count;
+      return {bytesRead: count};
+    },
     async close() {
       closes++;
       if (options.closeFailure) throw options.closeFailure;
     },
   };
   const verify = runInNewContext(`(() => {${functionBody(source)} return verifyObject;})()`, {
-    constants, quantity, fail,
+    Buffer, constants, quantity, fail,
     active() {}, activeSemanticReaders: new Set(),
     configuration: {maxObjectBytes: options.maximum ?? 4},
     objectPath: () => 'original-object',
@@ -59,21 +76,26 @@ function fixture(source = current, options = {}) {
     },
     cidHex: () => createHash('sha256').update(options.expected ?? 'abcd').digest('hex'),
   });
-  return {verify, counts: () => ({
+  return {verify, destinations, counts: () => ({
     reads, hashed, closes, retiredStreams, createdStreams,
   })};
 }
 const corrupt = error => error?.code === 'PublicationObjectCorrupt';
 const invalid = error => error?.code === 'InvalidPublicationStoreObject';
 
-test('object verifier hashes exact declared bytes and retires its original stream',
+test('object verifier hashes exact declared bytes using one original read backing',
   async () => {
     const f = fixture();
     const result = await f.verify('original');
     assert.equal(result.bytes, 4);
     assert.deepEqual(f.counts(), {
-      reads: 2, hashed: 4, closes: 1, retiredStreams: 1, createdStreams: 1,
+      reads: 3, hashed: 4, closes: 1, retiredStreams: 0, createdStreams: 0,
     });
+    assert.equal(f.destinations.length, 3);
+    assert(f.destinations.every(read => read.buffer === f.destinations[0].buffer));
+    assert.equal(f.destinations[0].buffer.buffer.byteLength, 5);
+    assert.deepEqual(f.destinations.map(read => [read.start, read.length, read.position]),
+      [[0, 5, 0], [0, 3, 2], [0, 1, 4]]);
   });
 
 test('fixed verifier baseline hashes growing input; new guard stops before overflow hash',
@@ -93,11 +115,11 @@ test('fixed verifier baseline hashes growing input; new guard stops before overf
     const current = fixture(undefined, {chunks: ['abc', 'def', 'ghi']});
     await assert.rejects(current.verify('original'), corrupt);
     assert.deepEqual(current.counts(), {
-      reads: 2, hashed: 3, closes: 1, retiredStreams: 1, createdStreams: 1,
+      reads: 2, hashed: 3, closes: 1, retiredStreams: 0, createdStreams: 0,
     });
   });
 
-test('changed FD identity or size rejects before allocating a read stream',
+test('changed FD identity or size rejects before acquiring payload bytes',
   async () => {
     for (const before of [
       {isFile: () => false}, {ino: 99}, {size: 5}, {mtimeMs: 99},
@@ -135,18 +157,25 @@ test('original close failure propagates and is not verifier completion',
     assert.equal(f.counts().closes, 1);
   });
 
-// Use the actual filesystem and FileHandle/ReadStream. Only the mutation
+// Use the actual filesystem and FileHandle. Only the mutation
 // timing is controlled; these cases do not fabricate Store or Run authority.
-async function physicalVerifier(t, change) {
+async function physicalVerifier(t, change, {original = 'abcd', maxRead = Infinity,
+  closeOutcomes = []} = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-bounded-object-race-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
   const path = join(directory, 'original-object');
-  await writeFile(path, 'abcd');
-  let handle, hashed = 0;
-  t.after(async () => { if (handle !== undefined && handle.fd !== -1) await handle.close(); });
+  await writeFile(path, original);
+  const maximum = Buffer.byteLength(original);
+  let handle, hashed = 0, reads = 0, streams = 0, closes = 0;
+  const destinations = [], readerDuties = new Set();
+  const closeFailure = new Error('OriginalVerifierClosePending');
+  t.after(async () => {
+    closeOutcomes.length = 0;
+    if (handle !== undefined && handle.fd !== -1) await handle.close();
+  });
   const verify = runInNewContext(`(() => {${functionBody(current)} return verifyObject;})()`, {
-    constants, quantity, fail, configuration: {maxObjectBytes: 4},
-    active() {}, activeSemanticReaders: new Set(),
+    Buffer, constants, quantity, fail, configuration: {maxObjectBytes: maximum},
+    active() {}, activeSemanticReaders: readerDuties,
     objectPath: () => path, lstat,
     async open(value, flags) {
       if (change === 'fifo') {
@@ -154,6 +183,22 @@ async function physicalVerifier(t, change) {
         execFileSync('mkfifo', [path]);
       }
       handle = await open(value, flags);
+      const read = handle.read, stream = handle.createReadStream, close = handle.close;
+      handle.read = function(buffer, start, length, position) {
+        reads++;
+        destinations.push({buffer, start, length, position});
+        return Reflect.apply(read, this, [buffer, start, Math.min(length, maxRead), position]);
+      };
+      handle.createReadStream = function(...args) {
+        streams++;
+        return Reflect.apply(stream, this, args);
+      };
+      handle.close = function(...args) {
+        const outcome = closeOutcomes[closes++];
+        if (outcome === 'false') return Promise.resolve(false);
+        if (outcome === 'reject') return Promise.reject(closeFailure);
+        return Reflect.apply(close, this, args);
+      };
       if (change === 'growth') {
         const originalStat = handle.stat.bind(handle);
         let first = true;
@@ -175,9 +220,11 @@ async function physicalVerifier(t, change) {
         digest: encoding => hash.digest(encoding),
       };
     },
-    cidHex: () => createHash('sha256').update('abcd').digest('hex'),
+    cidHex: () => createHash('sha256').update(original).digest('hex'),
   });
-  return {verify, hashed: () => hashed, fd: () => handle?.fd};
+  return {verify, closeFailure, destinations, readerDuties,
+    hashed: () => hashed, fd: () => handle?.fd,
+    counts: () => ({reads, streams, closes})};
 }
 
 test('real growing object rejects before hashing and closes its actual FileHandle',
@@ -196,14 +243,14 @@ test('raced-in FIFO refuses without blocking open or returning verified bytes',
     assert.equal(f.fd(), -1);
   });
 
-// Observe acquisition, not just returned chunk length: the selected Node
-// stream can allocate its default backing and then copy a smaller result.
+// Observe acquisition, not just returned byte length: the original verifier
+// must keep one dedicated backing including its separate growth probe.
 async function originalReadAllocations(action) {
   const original = Buffer.allocUnsafeSlow;
   const sizes = [];
   Buffer.allocUnsafeSlow = function(length) {
     const result = Reflect.apply(original, Buffer, [length]);
-    if (new Error().stack.includes('internal/fs/streams')) sizes.push(length);
+    if (new Error().stack.includes('verifyObject')) sizes.push(length);
     return result;
   };
   try { await action(); }
@@ -219,8 +266,7 @@ test('small actual verifier bounds acquisition including its one-byte overflow p
     });
     t.diagnostic(JSON.stringify({originalBytes: 4, readAllocations: sizes,
       normalNumericProfile: null, publicE2E: 0}));
-    assert.ok(sizes.length > 0);
-    assert.ok(sizes.every(size => size <= 5));
+    assert.deepEqual(sizes, [5]);
     assert.equal(f.hashed(), 4);
     assert.equal(f.fd(), -1);
   });
@@ -233,8 +279,57 @@ test('growing actual verifier bounds the sentinel without hashing overflow bytes
     });
     t.diagnostic(JSON.stringify({originalBytes: 4, readAllocations: sizes,
       normalNumericProfile: null, publicE2E: 0}));
-    assert.ok(sizes.length > 0);
-    assert.ok(sizes.every(size => size <= 5));
+    assert.deepEqual(sizes, [5]);
     assert.equal(f.hashed(), 0, 'the original growth law is unchanged');
     assert.equal(f.fd(), -1);
   });
+
+test('actual multi-piece short reads reuse one verifier backing and keep the original overflow probe', async t => {
+  const original = Buffer.alloc(65549);
+  for (let index = 0; index < original.byteLength; index++) original[index] = index % 251;
+  const f = await physicalVerifier(t, 'unchanged', {original, maxRead: 997});
+  const sizes = await originalReadAllocations(async () => {
+    assert.equal((await f.verify('original')).bytes, original.byteLength);
+  });
+  assert.deepEqual(sizes, [65536]);
+  assert(f.destinations.every(read => read.buffer === f.destinations[0].buffer));
+  assert.equal(f.destinations[0].buffer.buffer.byteLength, 65536);
+  assert.equal(f.destinations.at(-1).position, original.byteLength);
+  assert.equal(f.destinations.at(-1).length, 1);
+  assert.equal(f.counts().streams, 0);
+  assert.equal(f.hashed(), original.byteLength);
+  assert.equal(f.fd(), -1);
+  assert.equal(f.readerDuties.size, 0);
+});
+
+for (const outcome of ['false', 'reject']) {
+  test(`actual verifier ${outcome}-close retains its same FD and close-only retry`, async t => {
+    const f = await physicalVerifier(t, 'unchanged',
+      {maxRead: 1, closeOutcomes: [outcome, outcome]});
+    let failure;
+    await assert.rejects(f.verify('original'), error => {
+      failure = error;
+      return outcome === 'false' ? error.code === 'PublicationStoreCleanupPending' : error === f.closeFailure;
+    });
+    assert.equal(f.hashed(), 4);
+    assert.equal(f.counts().reads, 5);
+    assert(f.fd() >= 0);
+    assert.equal(f.readerDuties.size, 1);
+    const cleanup = failure.cleanupHandle, counts = f.counts();
+    assert.equal(cleanup.status().pending, true);
+    const pending = cleanup.retry();
+    assert.strictEqual(cleanup.retry(), pending);
+    await assert.rejects(pending, error =>
+      outcome === 'false' ? error.code === 'PublicationStoreCleanupPending' : error === f.closeFailure);
+    assert.deepEqual(f.counts(), {...counts, closes: 2});
+    assert.equal(cleanup.status().pending, true);
+    assert(f.fd() >= 0);
+    await cleanup.retry();
+    assert.equal(cleanup.status().pending, false);
+    assert.equal(f.fd(), -1);
+    assert.equal(f.readerDuties.size, 0);
+    assert.deepEqual(f.counts(), {...counts, closes: 3});
+    await cleanup.retry();
+    assert.deepEqual(f.counts(), {...counts, closes: 3});
+  });
+}
