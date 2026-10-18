@@ -34,6 +34,43 @@ pub struct SlackMessagePage {
   history_limited : Bool
   priv rows : Array[Array[@admitted.CheckedValue]]
   priv history_request : SlackMessageHistoryRequest?
+  priv facts : Array[SlackMessageFacts]
+}
+
+///|
+// Presence belongs to the original parsed occurrence, not its nullable output.
+// Reaction users may themselves be omitted inside a present reaction array.
+priv struct SlackMessageFacts {
+  established : Array[Bool]
+  reaction_users : Array[Bool]
+}
+
+///|
+fn message_facts(
+  row : @decode.ObjectView,
+  original_history : SlackMessageHistoryRequest?,
+) -> SlackMessageFacts {
+  let established = slack_message_column_names().map(name => {
+    match name {
+      "id" | "channel" | "ts" | "posted_at" => true
+      "reply_count" =>
+        !(@decode.field(row, name) is Missing) ||
+        (original_history is Some(_) && ordinary_history_without_thread(row))
+      _ => !(@decode.field(row, name) is Missing)
+    }
+  })
+  let reaction_users = []
+  if @decode.field(row, "reactions") is Present(reactions) &&
+    @decode.array_length(reactions) is Some(count) {
+    for index in 0..<count {
+      // Called only after the same occurrence's complete value admission.
+      let item = @decode.open_object(
+        @decode.element_at(reactions, index).unwrap(),
+      ).unwrap()
+      reaction_users.push(!(@decode.field(item, "users") is Missing))
+    }
+  }
+  { established, reaction_users, }
 }
 
 ///|
@@ -419,6 +456,7 @@ fn project_message_page(
     (name, message_field_contract(name))
   })
   let rows = []
+  let facts = []
   let ids : Map[String, Bool] = Map([])
   let mut nodes = limits.max_value_nodes
   let mut text_bytes = limits.max_value_text_bytes
@@ -487,6 +525,7 @@ fn project_message_page(
     }
     ids[id] = true
     rows.push(values)
+    facts.push(message_facts(row, original_history))
   }
   Ok({
     response_sha256: @sha.hex(bytes),
@@ -495,6 +534,7 @@ fn project_message_page(
     history_limited,
     rows,
     history_request: original_history,
+    facts,
   })
 }
 

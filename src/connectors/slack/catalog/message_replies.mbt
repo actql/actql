@@ -18,6 +18,7 @@ pub struct SlackMessageReplies {
   priv channel : String
   priv target_ts : String
   priv limits : SlackMessageRepliesLimits
+  priv mut completed : Bool
   priv mut phase : SlackMessageHistoryPhase
   priv mut pending : SlackMessageRepliesRequest?
   priv pages : Array[SlackMessageRepliesPage]
@@ -92,6 +93,7 @@ pub fn prepare_slack_message_replies(
     channel: source.history.channel,
     target_ts,
     limits,
+    completed: false,
     phase: Ready,
     pending: None,
     pages: [],
@@ -336,6 +338,7 @@ pub fn next_slack_message_replies_request(
     if !replies.parent_seen || !replies.source_seen {
       return Err(InconsistentThread)
     }
+    replies.completed = true
     replies.phase = Complete
     return Ok(None)
   }
