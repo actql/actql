@@ -614,8 +614,13 @@ test "BigQuery installed response borrow cannot replace Host finish capture or u
   )
   @row_host.finish_row_run(run).unwrap()
   assert_true(@row_host.capture_row_run(run) is Err(_))
+  let before_cleanup = @resources.ledger_usage(ledger)
+  // No captured allocation was issued: uncertainty retains the original
+  // reservation rather than fabricating a held-output allocation.
+  assert_true(before_cleanup.reserved_retention_bytes > 0L)
+  assert_true(before_cleanup.reserved_execution_bytes > 0L)
   assert_true(@row_host.close_accounted_row_run(run) is Err(_))
-  assert_true(@resources.ledger_usage(ledger).held_bytes > 0L)
+  assert_eq(@resources.ledger_usage(ledger), before_cleanup)
   assert_true(@bigquery_read.result_read_job(read) is Some(_))
   stopped.val = true
   @row_host.close_accounted_row_run(run).unwrap()
