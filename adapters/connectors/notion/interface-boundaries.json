@@ -1303,6 +1303,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original installation metadata consumption"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "A discovery reader may retain the original Host publication request"
               }
             ],
             "inputsOutputs": [
@@ -1329,6 +1333,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original installation metadata consumption"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Only the same reader's successful, exact returned result may issue one opaque"
               }
             ],
             "identity": [
@@ -1355,6 +1363,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original installation metadata consumption"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "all six existing generated request fields must match"
               }
             ],
             "ownership": [
@@ -1373,6 +1385,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original installation metadata consumption"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The capture's private getter returns provenance DATA even after retirement"
               }
             ],
             "synchronization": [
@@ -1391,6 +1407,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original installation metadata consumption"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "existing Host request assertion runs before and after awaited current checks"
               }
             ],
             "failure": [
@@ -1413,6 +1433,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original installation metadata consumption"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Copied results, another reader, a missing original request, wrong scope and a"
               }
             ],
             "cancellation": [
@@ -1431,6 +1455,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original installation metadata consumption"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Failure keeps its original"
               }
             ],
             "resources": [
@@ -1453,6 +1481,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original installation metadata consumption"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Each reader now retains its successful result alias, capture phase/failure and"
               }
             ],
             "extension": [
@@ -1471,6 +1503,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original installation metadata consumption"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Neither publication retirement nor copied wire can reconstruct this live token."
               }
             ],
             "verification": [
@@ -1513,6 +1549,14 @@
               {
                 "path": "adapters/connectors/notion/test/installation-metadata-discovery.test.mjs",
                 "anchor": "test('actual Notion pre-schema discovery consumes one original Host metadata Subject without a fake Program Run'"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-publication-capture.test.mjs",
+                "anchor": "live publication capture retains actual Host request Catalog snapshot"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-publication-capture.test.mjs",
+                "anchor": "capture binds retained Catalog bytes to the response"
               }
             ]
           }
@@ -1532,10 +1576,7 @@
             "ownPublication/ownPublication",
             "ownPublication/ports/ports",
             "sameRequestData",
-            "sameRequestData/sameRequestData",
-            "prepare",
-            "discover/request/request",
-            "discover/verify/verify"
+            "sameRequestData/sameRequestData"
           ],
           "exports": [
             "captureNotionDatabaseDiscoveryPublication",
