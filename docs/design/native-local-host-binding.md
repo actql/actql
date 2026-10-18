@@ -1153,8 +1153,8 @@ identity. This does not issue permission or select a normal numerical profile.
 Claiming transitions the existing Resource claim into its consuming phase. The
 old available-pair port consequently becomes unavailable and is not reinterpreted
 as another usable read. Consumer currentness uses the existing Resource
-consumer snapshot/token/phase checks and the same physical domain. Physical
-entry consumes the existing start transition once; a failed entry does not reset
+consumer snapshot/token/phase checks and the same physical domain. The first
+physical entry consumes the existing start transition once; a failed entry does not reset
 it or make another claim eligible. Leaving acknowledges only the original
 physical scope, including during cleanup, rather than final material retirement.
 
