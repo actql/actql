@@ -1,6 +1,6 @@
+import initialControlPublicDispatch from './initial-control-public-dispatch.cjs';
 import {resolve} from 'node:path';
 import {connect as connectHost, ClientError} from '@actql/sdk';
-import initialControlPublicDispatch from './initial-control-public-dispatch.cjs';
 
 // Capture the actual early private consumer once, not a later cache export or
 // a caller option. Its presence selects an entrance, never an admission. The
