@@ -8425,7 +8425,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d93de7869b5250b37f8beb0705dcb32d15091a9c6b06dbfc3474d26d131ca1dd",
+      "sha256": "511e47c4cce1b286d916ac64a7f385fba2fc94d2e386d685425bbe8f318e211d",
       "role": "connector-semantics",
       "owner": "Exact installed Salesforce org/Site binding with existing account gate, credential journal and release custody",
       "exports": [
@@ -8434,8 +8434,10 @@
         "installSalesforceAuthorization",
         "installedSalesforceSiteBinding",
         "loadInstalledSalesforceSite",
+        "observeInstalledSalesforcePublicationCurrent",
         "releaseSalesforceSite",
-        "retainSalesforceSiteCleanup"
+        "retainSalesforceSiteCleanup",
+        "withInstalledSalesforceDeclarationOriginals"
       ],
       "operations": [
         {
@@ -8574,6 +8576,7 @@
             "connectorId",
             "resources",
             "signal",
+            "retainPublicationOriginals",
             "maxEvidenceBytes",
             "limits"
           ],
@@ -8629,12 +8632,18 @@
             "maxRetainedBytes",
             "limits",
             "approval",
-            "signal"
+            "signal",
+            "retainPublicationOriginals"
           ],
           "async": true
         },
         {
           "name": "loadInstalledSalesforceSite/describeNamed/describeNamed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/describeNamed/result/result",
           "parameters": [
             "name"
           ],
@@ -8647,6 +8656,28 @@
             "connectorId",
             "resources",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/init:observe/init:observe",
+          "parameters": [
+            "declared"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals",
+          "parameters": [
+            "declared",
+            "consume"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals/init:withOriginals",
+          "parameters": [
+            "facts"
           ],
           "async": false
         },
@@ -8670,9 +8701,9 @@
           "async": false
         },
         {
-          "name": "loadInstalledSalesforceSite/loadInstalledSalesforceSite#2",
+          "name": "loadInstalledSalesforceSite/originalDeclaration/originalDeclaration",
           "parameters": [
-            "declaration"
+            "declared"
           ],
           "async": false
         },
@@ -8772,9 +8803,24 @@
           "async": false
         },
         {
+          "name": "loadInstalledSalesforceSite/site/site",
+          "parameters": [
+            "declaration"
+          ],
+          "async": false
+        },
+        {
           "name": "loadInstalledSalesforceSite/siteBinding/siteBinding",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "observeInstalledSalesforcePublicationCurrent",
+          "parameters": [
+            "site",
+            "declared"
+          ],
+          "async": true
         },
         {
           "name": "releaseSalesforceSite",
@@ -8832,6 +8878,15 @@
             "key"
           ],
           "async": false
+        },
+        {
+          "name": "withInstalledSalesforceDeclarationOriginals",
+          "parameters": [
+            "site",
+            "declared",
+            "consume"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -8863,7 +8918,6 @@
             "loadInstalledSalesforceSite/generate/generate",
             "loadInstalledSalesforceSite/issueGrant",
             "loadInstalledSalesforceSite/loadInstalledSalesforceSite",
-            "loadInstalledSalesforceSite/loadInstalledSalesforceSite#2",
             "loadInstalledSalesforceSite/peek",
             "loadInstalledSalesforceSite/peek/describe/describe",
             "loadInstalledSalesforceSite/peek/result/result",
@@ -8904,6 +8958,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication responsibility:"
               }
             ],
             "inputsOutputs": [
@@ -8914,6 +8972,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication inputs and outputs:"
               }
             ],
             "identity": [
@@ -8928,6 +8990,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "openRowSourceCredentialCustody"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication identity:"
               }
             ],
             "ownership": [
@@ -8942,6 +9008,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "openRowSourceCredentialCustody"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication ownership:"
               }
             ],
             "synchronization": [
@@ -8956,6 +9026,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "openRowSourceCredentialCustody"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication synchronization:"
               }
             ],
             "failure": [
@@ -8970,12 +9044,20 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "openRowSourceCredentialCustody"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication failure:"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "signal"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication cancellation:"
               }
             ],
             "resources": [
@@ -8986,6 +9068,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "## Installed Row Site physical custody"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication resources:"
               }
             ],
             "extension": [
@@ -9000,6 +9086,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication extension:"
               }
             ],
             "verification": [
@@ -9022,6 +9112,92 @@
               {
                 "path": "adapters/connectors/salesforce/test/installed-salesforce-site.test.mjs",
                 "anchor": "shared credential custody preserves every original Salesforce scope member"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "loadInstalledSalesforceSite/describeNamed/result/result",
+            "loadInstalledSalesforceSite/init:observe/init:observe",
+            "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals",
+            "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals/init:withOriginals",
+            "loadInstalledSalesforceSite/originalDeclaration/originalDeclaration",
+            "loadInstalledSalesforceSite/site/site",
+            "observeInstalledSalesforcePublicationCurrent",
+            "withInstalledSalesforceDeclarationOriginals"
+          ],
+          "exports": [
+            "observeInstalledSalesforcePublicationCurrent",
+            "withInstalledSalesforceDeclarationOriginals"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication verification:"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/publication-originals.test.mjs",
+                "anchor": "actual Salesforce publication retains its same Describe response claim and original declaration"
               }
             ]
           }
@@ -9455,18 +9631,20 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9fc0fb589969ea837ce3220585d8f94a2935d32dbf8f39b0d7280f4de2b18041",
+      "sha256": "f5841347349bdba10bd3761d906a7030e59ec15e78424571cb3a4bfe77e47a5f",
       "role": "connector-semantics",
       "owner": "Atomic installed declaration generation and retained historical describe bytes, not current authorization",
       "exports": [
         "SALESFORCE_PUBLICATION_VERSION",
         "describeSalesforceGeneration",
         "loadSalesforceGeneration",
+        "observeSalesforcePublicationOriginals",
         "publishSalesforceGeneration",
         "readPublicationFile",
         "replacePublicationFile",
         "restoreSalesforceGeneration",
-        "salesforceCheckEnvironment"
+        "salesforceCheckEnvironment",
+        "withSalesforcePublicationOriginals"
       ],
       "operations": [
         {
@@ -9504,7 +9682,8 @@
             "site",
             "connectorId",
             "resources",
-            "signal"
+            "signal",
+            "retainPublicationOriginals"
           ],
           "async": true
         },
@@ -9533,6 +9712,24 @@
             "resources"
           ],
           "async": true
+        },
+        {
+          "name": "observeSalesforcePublicationOriginals",
+          "parameters": [
+            "site",
+            "declared",
+            "generationText"
+          ],
+          "async": true
+        },
+        {
+          "name": "originalGeneration",
+          "parameters": [
+            "site",
+            "declared",
+            "generationText"
+          ],
+          "async": false
         },
         {
           "name": "publishSalesforceGeneration",
@@ -9601,6 +9798,23 @@
             "value"
           ],
           "async": false
+        },
+        {
+          "name": "withSalesforcePublicationOriginals",
+          "parameters": [
+            "site",
+            "declared",
+            "generationText",
+            "consume"
+          ],
+          "async": false
+        },
+        {
+          "name": "withSalesforcePublicationOriginals/withSalesforcePublicationOriginals",
+          "parameters": [
+            "facts"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -9639,54 +9853,90 @@
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
                 "anchor": "A restored generation is not current authority"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication responsibility:"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
                 "anchor": "publishSalesforceGeneration"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication inputs and outputs:"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
                 "anchor": "generationCid: bytesCid(body)"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication identity:"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
                 "anchor": "replacePublicationFile"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication ownership:"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
                 "anchor": "await rename"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication synchronization:"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
                 "anchor": "SalesforcePublicationMissing"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication failure:"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
                 "anchor": "signal"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication cancellation:"
               }
             ],
             "resources": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
                 "anchor": "maxGenerationBytes"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication resources:"
               }
             ],
             "extension": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
                 "anchor": "SALESFORCE_PUBLICATION_VERSION"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication extension:"
               }
             ],
             "verification": [
@@ -9697,11 +9947,103 @@
               {
                 "path": "adapters/host-node/connector-configuration-bounds.test.mjs",
                 "anchor": "Salesforce publication keeps exact UTF8"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "observeSalesforcePublicationOriginals",
+            "originalGeneration",
+            "withSalesforcePublicationOriginals",
+            "withSalesforcePublicationOriginals/withSalesforcePublicationOriginals"
+          ],
+          "exports": [
+            "observeSalesforcePublicationOriginals",
+            "withSalesforcePublicationOriginals"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication verification:"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/publication-originals.test.mjs",
+                "anchor": "actual Salesforce publication retains its same Describe response claim and original declaration"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-node/local-account-config.mjs",
+        "../../../host-node/source-profile-json.mjs",
+        "./installed-salesforce-site.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mjs",
@@ -11299,13 +11641,14 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bebd191efc1ddd69eef7fac04215400abc32db63244bb07d5ef600ea437e7775",
+      "sha256": "73cfc7d5e09dd814cc6b746e28d7f3d49ee9ca82d2bcc2fe69f823b845aa643e",
       "role": "physical-io",
       "owner": "Named describe exchange and historical evidence reprojection; MoonBit keeps incomplete Catalog semantics and original scope",
       "exports": [
         "NAMED_EVIDENCE_VERSION",
         "describeSalesforceResources",
-        "recoverNamedSalesforceObservation"
+        "recoverNamedSalesforceObservation",
+        "withSalesforceNamedDescribeOriginals"
       ],
       "operations": [
         {
@@ -11329,6 +11672,7 @@
             "credential",
             "requestedLimits",
             "retainEvidence",
+            "retainPublicationOriginals",
             "maxRetainedBytes",
             "callResource",
             "signal"
@@ -11343,23 +11687,23 @@
           "async": false
         },
         {
-          "name": "describeSalesforceResources/describeSalesforceResources#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "describeSalesforceResources/describeSalesforceResources#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "describeSalesforceResources/outcomes/outcomes",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "describeSalesforceResources/result/result",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "describeSalesforceResources/result/result#2",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -11399,6 +11743,37 @@
             "value"
           ],
           "async": false
+        },
+        {
+          "name": "withSalesforceNamedDescribeOriginals",
+          "parameters": [
+            "result",
+            "credential",
+            "consume"
+          ],
+          "async": false
+        },
+        {
+          "name": "withSalesforceNamedDescribeOriginals/operations/operations",
+          "parameters": [
+            "name",
+            "response",
+            "path",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "withSalesforceNamedDescribeOriginals/operations/operations/operations",
+          "parameters": [
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "withSalesforceNamedDescribeOriginals/withSalesforceNamedDescribeOriginals",
+          "parameters": [],
+          "async": false
         }
       ],
       "contracts": [
@@ -11408,8 +11783,6 @@
             "count/count",
             "describeSalesforceResources",
             "describeSalesforceResources/describeSalesforceResources",
-            "describeSalesforceResources/describeSalesforceResources#2",
-            "describeSalesforceResources/describeSalesforceResources#3",
             "describeSalesforceResources/outcomes/outcomes",
             "fail/fail",
             "recoverNamedSalesforceObservation",
@@ -11427,65 +11800,192 @@
               {
                 "path": "src/connectors/salesforce/catalog/observation_recovery.mbt",
                 "anchor": "recover_named_catalog_observation"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication responsibility:"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
                 "anchor": "describeSalesforceResources"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication inputs and outputs:"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
                 "anchor": "expectedObservationCid"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication identity:"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
                 "anchor": "describeBodyBase64"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication ownership:"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
                 "anchor": "authorizationForDescribe"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication synchronization:"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
                 "anchor": "ForeignSalesforceNamedEvidence"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication failure:"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
                 "anchor": "salesforceCatalogCancel"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication cancellation:"
               }
             ],
             "resources": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
                 "anchor": "maxRetainedBytes"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication resources:"
               }
             ],
             "extension": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
                 "anchor": "NAMED_EVIDENCE_VERSION"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication extension:"
               }
             ],
             "verification": [
               {
                 "path": "adapters/connectors/salesforce/test/installed-salesforce-site.test.mjs",
                 "anchor": "installed Salesforce peek describes only its Resource in a larger org"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "describeSalesforceResources/result/result",
+            "describeSalesforceResources/result/result#2",
+            "withSalesforceNamedDescribeOriginals",
+            "withSalesforceNamedDescribeOriginals/operations/operations",
+            "withSalesforceNamedDescribeOriginals/operations/operations/operations",
+            "withSalesforceNamedDescribeOriginals/withSalesforceNamedDescribeOriginals"
+          ],
+          "exports": [
+            "withSalesforceNamedDescribeOriginals"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Live publication verification:"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/publication-originals.test.mjs",
+                "anchor": "actual Salesforce publication retains its same Describe response claim and original declaration"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "./salesforce-credential-binding.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-single-write.mjs",
