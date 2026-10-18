@@ -16771,7 +16771,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -16878,7 +16878,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -28256,7 +28256,7 @@
               },
               {
                 "path": "adapters/host-node/infer-trusted-node-preload.cjs",
-                "anchor": "let preparationOriginals, preparationInput, preparationClosed = false;"
+                "anchor": "let preparationOriginals, preparationInput, preparationIntake, preparationClosed = false;"
               }
             ],
             "ownership": [
@@ -28574,7 +28574,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "preload refuses unsupported raw input before its Host consumer"
+                "anchor": "preload bounds original Mock input before its explicit Host fixture"
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
@@ -30216,7 +30216,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "preload refuses unsupported raw input before its Host consumer"
+                "anchor": "preload bounds original Mock input before its explicit Host fixture"
               }
             ]
           }
