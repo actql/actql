@@ -230,8 +230,14 @@ scope is not physical Content upload, cold recovery or public Provider acceptanc
 
 ## Owned guarded request preparation
 
-An installed UPDATE/upsert driver may use the existing `prepareRequestChild`
-port when its exact conditional request depends on an authorized target read.
+Every installed Effect kind may use the existing `prepareRequestChild` port.
+CREATE uses the existing unindexed context, with no target-read grant or new
+currentness assertion. Command keeps its existing unindexed context and optional
+indexed read supplier. A supplied child is never silently replaced by the pure
+request fallback.
+
+For guarded UPDATE/upsert/DELETE, the exact conditional request may depend on
+an authorized target read.
 The Host first obtains each member's original target-read decision, then passes
 the row index and a zero-argument read-grant supplier closed over that exact
 member, Run/dispatch and row. No write authorization is substituted for the
