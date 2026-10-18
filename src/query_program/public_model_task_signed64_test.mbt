@@ -301,7 +301,7 @@ test "SQL and AQL Signed64 public INFER use the same checked computation" {
   let context = public_signed64_hero_context(environment)
   let sql = "SELECT a.id AS id, a.description AS notes, u.active_users, u.trend FROM salesforce.accounts AS a JOIN snowflake.usage_30d AS u ON a.id=u.account_id |> INFER `model-task:churn-risk.v1` INPUT (notes, active_users, trend) AS risk |> SELECT id, risk.value.level AS level"
   let aql = "FROM salesforce.accounts AS a |> JOIN snowflake.usage_30d AS u ON a.id=u.account_id |> SELECT a.id AS id, a.description AS notes, u.active_users, u.trend |> INFER `model-task:churn-risk.v1` INPUT (notes, active_users, trend) AS risk |> SELECT id, risk.value.level AS level"
-  let prepare = fn(source) {
+  let prepare = fn(source) raise {
     match
       compile(
         @query.parse_query(source, syntax_limits()).unwrap(),
