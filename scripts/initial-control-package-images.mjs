@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 import {existsSync, lstatSync, readFileSync, readdirSync, realpathSync} from 'node:fs';
 import {dirname, isAbsolute, join} from 'node:path';
 import {createRequire} from 'node:module';
+import {admitCohort, releasePackageMetadata} from './package-release.mjs';
 
 export const initialControlPackageOriginal = 'adapters/host-node/initial-control-package-original.cjs';
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -9,6 +10,21 @@ const concrete = path => typeof path === 'string' && !isAbsolute(path) &&
   !path.split('/').some(part => part === '..' || part === '.' || part === '') && !path.includes('\\');
 const fail = name => { throw new Error(name); };
 const fact = (path, bytes) => ({path, bytes: bytes.length, sha256: digest(bytes)});
+// Bind the existing publication transform BEFORE packing, never normalize an
+// installed manifest or infer a release version from it at startup. Every
+// runtime and non-manifest Source retains its one exact byte/hash identity.
+function manifestFact(path, bytes, cohort) {
+  const result = fact(path, bytes);
+  if (path !== 'package.json' || cohort === undefined) return result;
+  const original = JSON.parse(bytes), name = original.name?.replace(/^@actql\//u, '');
+  if (original.name !== '@actql/' + name || !cohort.packages.includes(name)) return result;
+  const released = Buffer.from(JSON.stringify(releasePackageMetadata(original, name, cohort), null, 2) + '\n');
+  result.npmRelease = {version: cohort.packageVersion, bytes: released.length, sha256: digest(released)};
+  return result;
+}
+const releaseVersion = (manifest, cohort) => cohort !== undefined &&
+  cohort.packages.some(name => manifest.name === '@actql/' + name)
+  ? {releaseVersion: cohort.packageVersion} : {};
 // Generated nested DATA has no callable factory. Freeze each literal before
 // entry so an escaped module-cache reference cannot rewrite the selected facts.
 function frozenLiteral(value) {
@@ -29,7 +45,7 @@ function regularFile(root, path, code) {
   return readFileSync(join(root, path));
 }
 
-function publicCodeFiles(root, manifest) {
+function publicCodeFiles(root, manifest, cohort) {
   const files = new Map();
   function walk(path) {
     if (!concrete(path)) fail('InvalidInitialControlPackagePath');
@@ -55,7 +71,7 @@ function publicCodeFiles(root, manifest) {
   }
   files.set('package.json', readFileSync(join(root, 'package.json')));
   return [...files].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
-    .map(([path, bytes]) => fact(path, bytes));
+    .map(([path, bytes]) => manifestFact(path, bytes, cohort));
 }
 
 function packageRoot(name, from) {
@@ -87,7 +103,7 @@ function packageRoot(name, from) {
 // Use the installed package's declared dependency graph, not a parallel list of
 // Connector modules. Paths in the recipe are package-relative; build locations
 // and operational receipts never enter the published image inventory.
-function dependencyImages(root, destination, localManifest) {
+function dependencyImages(root, destination, localManifest, cohort) {
   const packages = [], roots = new Map();
   function rollback(before) {
     packages.length = before;
@@ -105,7 +121,8 @@ function dependencyImages(root, destination, localManifest) {
     if (roots.has(directory)) return roots.get(directory);
     const index = packages.length;
     roots.set(directory, index);
-    const item = {name, version: manifest.version, images: publicCodeFiles(directory, manifest), dependencies: []};
+    const item = {name, version: manifest.version, ...releaseVersion(manifest, cohort),
+      images: publicCodeFiles(directory, manifest, cohort), dependencies: []};
     packages.push(item);
     const dependencies = {...manifest.dependencies, ...manifest.peerDependencies};
     for (const dependency of Object.keys(dependencies).sort()) {
@@ -164,8 +181,8 @@ function dependencyImages(root, destination, localManifest) {
       if (!dependencies.some(value => value.name === '@actql/local-node')) {
         fail('MissingInitialControlLocalDependency');
       }
-      publicNode = {name: manifest.name, version: manifest.version,
-        images: publicCodeFiles(node, manifest), dependencies};
+      publicNode = {name: manifest.name, version: manifest.version, ...releaseVersion(manifest, cohort),
+        images: publicCodeFiles(node, manifest, cohort), dependencies};
       publicNodeCoverage = 'prepared';
     } catch (error) {
       if (!error.message.startsWith('UnpreparedInitialControlDependency:')) throw error;
@@ -197,6 +214,8 @@ export function renderInitialControlPackageOriginal({root, destination, inputs, 
   if (!existsSync(manifestPath)) return absent;
   const manifestBytes = regularFile(destination, 'package.json', 'AliasedInitialControlManifest');
   const manifest = JSON.parse(manifestBytes);
+  const cohortPath = join(root, 'release/client-cohort.json');
+  const cohort = existsSync(cohortPath) ? admitCohort(JSON.parse(readFileSync(cohortPath, 'utf8'))) : undefined;
   images.set('package.json', manifestBytes);
   function exported(value) {
     if (typeof value === 'string') {
@@ -218,16 +237,18 @@ export function renderInitialControlPackageOriginal({root, destination, inputs, 
       exported('./' + path);
     }
   }
-  const dependencies = dependencyImages(root, destination, manifest);
+  const dependencies = dependencyImages(root, destination, manifest, cohort);
   const facts = [...images].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
     .map(([path, bytes]) => {
       if (!concrete(path)) fail('InvalidInitialControlImage');
-      return fact(path, bytes);
+      return manifestFact(path, bytes, cohort);
     });
   const recipe = {engine: {node: process.versions.node, v8: process.versions.v8,
     openssl: process.versions.openssl, platform: process.platform, arch: process.arch, eager: true,
     libraries: {...process.versions}},
   images: facts, packages: dependencies.packages, dependencies: dependencies.bindings,
+  localVersion: manifest.version,
+  ...(releaseVersion(manifest, cohort).releaseVersion === undefined ? {} : {localReleaseVersion: cohort.packageVersion}),
   optionalSdk: dependencies.optionalSdk ?? null, optionalSdkCoverage: dependencies.optionalSdkCoverage,
   publicNode: dependencies.publicNode ?? null, publicNodeCoverage: dependencies.publicNodeCoverage,
   sourceBytes: facts.reduce((sum, value) => sum + value.bytes, 0),

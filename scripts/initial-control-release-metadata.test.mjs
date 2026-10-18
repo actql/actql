@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {execFileSync, spawnSync} from 'node:child_process';
-import {mkdir, readFile, writeFile} from 'node:fs/promises';
+import {mkdir, readFile, rename, writeFile} from 'node:fs/promises';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {runInNewContext} from 'node:vm';
@@ -101,7 +101,7 @@ async function recipeFixture() {
     inputs: {runtimeFiles: ['common/common.js']}, outputs});
   const context = {module: {exports: undefined}}; runInNewContext(rendered.toString(), context);
   const inventory = JSON.parse(JSON.stringify(context.module.exports.imageInventory));
-  return {scratch, base, local, manifests, inventory, runtime};
+  return {scratch, base, local, manifests, inventory, runtime, rendered};
 }
 
 test('the generator binds the one owned release cohort without altering any other image fact', async () => {
@@ -113,5 +113,54 @@ test('the generator binds the one owned release cohort without altering any othe
   assert.equal(f.inventory.publicNode.releaseVersion, cohort.packageVersion);
   for (const p of f.inventory.packages) assert.equal(p.releaseVersion, cohort.packageVersion);
   assert.equal(f.inventory.images.find(v => v.path.endsWith('common.js')).sha256, hash(f.runtime));
+  f.scratch.passed();
+});
+
+test('a normal staged cohort captures exact release images and refuses mixed or changed metadata before entry', async () => {
+  const f = await recipeFixture();
+  await writeFile(join(f.local, initialControlPackageOriginal), f.rendered);
+  const development = join(f.base, 'development'), staged = join(f.base, 'staged'), app = join(f.base, 'app');
+  await mkdir(development); await mkdir(staged); await mkdir(join(app, 'node_modules/@actql'), {recursive: true});
+  const originals = new Map(), released = new Map();
+  for (const name of cohort.packages) {
+    const directory = join(f.base, 'packages', name);
+    originals.set(name, await readFile(join(directory, 'package.json')));
+    execFileSync('npm', ['pack', '--json', '--pack-destination', development,
+      '--cache', join(f.base, 'cache')], {cwd: directory, stdio: 'pipe'});
+    const publication = await stagePackage({archive: join(development, `actql-${name}-0.0.0-development.tgz`),
+      destination: staged, name, cohort, license: join(root, 'LICENSE')});
+    const extracted = await unpack(join(staged, publication.file), join(f.base, 'extracted-' + name));
+    const target = join(app, 'node_modules/@actql', name);
+    await rename(extracted, target);
+    released.set(name, await readFile(join(target, 'package.json')));
+  }
+  const local = join(app, 'node_modules/@actql/local-node');
+  assert.deepEqual(await readFile(join(local, '_build/js/release/build/common/common.js')), f.runtime);
+  const entry = join(app, 'entry.mjs'), preload = join(app, 'preload.cjs');
+  const custody = fileURLToPath(new URL('../adapters/host-node/initial-control-package-custody.cjs', import.meta.url));
+  await writeFile(preload, [
+    'const {captureInitialControlPackageCustody}=require(' + JSON.stringify(custody) + ');',
+    'const inventory=require(' + JSON.stringify(join(local, initialControlPackageOriginal)) + ').imageInventory;',
+    'globalThis.originalCustody=captureInitialControlPackageCustody(inventory,' + JSON.stringify(local) + ',' +
+      JSON.stringify(entry) + ',' + JSON.stringify(join(app, 'node_modules/@actql/node/selected-infer-startup.cjs')) + ');',
+    'globalThis.originalNamespace=originalCustody.initializeHostNamespace();',
+  ].join('\n'));
+  const run = body => {
+    return writeFile(entry, body).then(() => spawnSync(process.execPath, ['--require', preload, entry],
+      {cwd: app, env: {PATH: process.env.PATH}, encoding: 'utf8', timeout: 30000}));
+  };
+  const positive = await run('import assert from"node:assert/strict";assert.equal(typeof originalNamespace.assertInitialControlHostPreparation,"function");originalCustody.assertCurrent();console.log("coherent-release-images");');
+  assert.equal(positive.error, undefined); assert.equal(positive.status, 0, positive.stderr);
+  assert.equal(positive.stdout.trim(), 'coherent-release-images');
+  const sdk = join(app, 'node_modules/@actql/sdk/package.json');
+  await writeFile(sdk, originals.get('sdk'));
+  const mixed = await run('throw new Error("EntryMustNotRun");');
+  assert.notEqual(mixed.status, 0); assert.match(mixed.stderr, /InitialControlPackageImageChanged/);
+  assert.doesNotMatch(mixed.stderr, /EntryMustNotRun/);
+  const foreign = {...JSON.parse(released.get('sdk')), version: '0.0.2'};
+  await writeFile(sdk, wire(foreign));
+  const changed = await run('throw new Error("EntryMustNotRun");');
+  assert.notEqual(changed.status, 0); assert.match(changed.stderr, /InitialControlImageChanged/);
+  assert.doesNotMatch(changed.stderr, /EntryMustNotRun/);
   f.scratch.passed();
 });
