@@ -88,6 +88,18 @@ pub fn notion_property_request_json(@catalog.NotionPropertyItemRequest, Int, Int
 
 pub fn notion_property_request_matches_binding(@catalog.NotionPropertyItemRequest, @catalog.NotionDataSourceReadContracts, Int) -> Bool
 
+pub fn notion_public_connection_credential_kind(@catalog.NotionPublicConnection) -> Result[String, @catalog.NotionReadContractIssue]
+
+pub fn notion_public_connection_credential_reference(@catalog.NotionPublicConnection) -> Result[String, @catalog.NotionReadContractIssue]
+
+pub fn notion_public_connection_databases(@catalog.NotionPublicConnection) -> Result[@catalog.NotionDatabaseReadDeclarations, @catalog.NotionReadContractIssue]
+
+pub fn notion_public_connection_has_databases(@catalog.NotionPublicConnection) -> Result[Bool, @catalog.NotionReadContractIssue]
+
+pub fn notion_public_connection_original_json(@catalog.NotionPublicConnection, Int) -> Result[String, @catalog.NotionReadContractIssue]
+
+pub fn notion_public_connection_source_cid(@catalog.NotionPublicConnection) -> Result[String, @catalog.NotionReadContractIssue]
+
 pub fn notion_query_page_matches_source(@catalog.OriginalNotionQueryPage, @catalog.NotionDataSourceCatalog) -> Bool
 
 pub fn notion_query_page_metadata_json(@catalog.OriginalNotionQueryPage, Int, Int, Int) -> Result[String, @catalog.NotionQueryIssue]
@@ -109,6 +121,8 @@ pub fn notion_read_database_id(@catalog.NotionDatabaseReadDeclaration) -> String
 pub fn notion_read_database_read_snapshot(Bytes, String, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDatabaseReadSnapshot, @catalog.NotionReadSnapshotIssue]
 
 pub fn notion_read_page_rows_json(@catalog.NotionDataSourceReadContracts, @catalog.OriginalNotionQueryPage, Array[@catalog.NotionReadRow], Int, Int, Int, Int, Int, Int, Int) -> Result[String, @catalog.NotionReadRowIssue]
+
+pub fn notion_read_public_connection(Bytes, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionPublicConnection, @catalog.NotionReadContractIssue]
 
 pub fn notion_read_row_json(@catalog.NotionReadRow, Int, Int, Int) -> Result[String, @catalog.NotionReadRowIssue]
 
