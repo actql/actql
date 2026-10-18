@@ -6,6 +6,24 @@ let command_preparation_invocation : Ref[LocalCommandPreparationOriginal?] = Ref
 )
 
 ///|
+// Retire only through the same original's child-first cleanup. On failure the
+// caller retains that exact invocation, including its primary and every pending
+// receiver; process termination or an output write is not its acknowledgement.
+fn local_finish_command_preparation() -> Bool {
+  match command_preparation_invocation.val {
+    None => true
+    Some(original) =>
+      match original.close_checked() {
+        Err(_) => false
+        Ok(_) => {
+          command_preparation_invocation.val = None
+          true
+        }
+      }
+  }
+}
+
+///|
 fn[T] command_preparation_result(
   result : Result[T, LocalCommandPreparationIssue],
 ) -> T raise ClientStop {
