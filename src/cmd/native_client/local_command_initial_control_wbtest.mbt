@@ -142,3 +142,19 @@ test "Initial command control does not redispatch consumed Matches after failure
   assert_true(command_preparation_invocation.val is None)
   command_initial_control_keep_alive(control)
 }
+
+///|
+test "Initial command control preserves exact application text copy" {
+  let original = String::from_array([
+    'e',
+    (0xD800).unsafe_to_char(),
+    '\u{0000}',
+    (0xDC00).unsafe_to_char(),
+    '\r',
+    '\n',
+  ])
+  let copied = command_control_copy_text(original)
+  assert_eq(copied.length(), original.length())
+  assert_eq(copied.code_units().to_array(), original.code_units().to_array())
+  assert_eq(command_control_copy_text(""), "")
+}
