@@ -55,7 +55,9 @@ async function setup(t, {routes = [], faults = []} = {}) {
   });
   t.after(async () => {
     journal.close();
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      t.diagnostic(`Retained GitHub REST read credential fixture: ${root}`);
+    } else await rm(root, {recursive: true, force: true});
   });
   const scope = Object.freeze({
     issuerAuthority: 'authority-a', principal: 'principal-a',
