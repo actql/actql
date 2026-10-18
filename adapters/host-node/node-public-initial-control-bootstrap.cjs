@@ -32,11 +32,31 @@ const inputLimits = freeze({maxProperties:40,maxNodes:40,maxDepth:4,
 // (Node's standard lazy Buffer binding is an accessor). They stay original
 // observations, not evidence that arbitrary prior application code was covered.
 const prefixIntrinsics = [];
+const intrinsicSource = Function.prototype.toString;
 for (const [receiver,names] of [[Object,['getOwnPropertyDescriptor','hasOwn','freeze','create']],
   [Reflect,['apply','ownKeys']],[Array,['isArray']],[globalThis,['Object','Reflect','Array','Promise','Buffer']]]) {
   for (const name of names) prefixIntrinsics.push(freeze({receiver,name,property:descriptor(receiver,name)}));
 }
 freeze(prefixIntrinsics);
+function assertSupportedIntrinsics() {
+  if (isProxy(intrinsicSource) || apply(intrinsicSource,intrinsicSource,[]) !==
+      'function toString() { [native code] }') unavailable();
+  for (const held of prefixIntrinsics) {
+    const value=held.property?.value;
+    if (typeof value !== 'function') continue;
+    if (isProxy(value) || apply(intrinsicSource,value,[]) !==
+        `function ${held.name}() { [native code] }`) unavailable();
+  }
+  // This exact Node 22.22 global lazy accessor is implementation input, not a
+  // caller getter protocol. Refuse substitutions before invoking it, then
+  // require its original value to be the selected node:buffer constructor.
+  const buffer=descriptor(globalThis,'Buffer');
+  if (typeof buffer?.get !== 'function' || typeof buffer?.set !== 'function' ||
+      isProxy(buffer.get) || isProxy(buffer.set) ||
+      apply(intrinsicSource,buffer.get,[]) !== 'get() {\n      return _Buffer;\n    }' ||
+      apply(intrinsicSource,buffer.set,[]) !== 'set(value) {\n      _Buffer = value;\n    }' ||
+      apply(buffer.get,globalThis,[]) !== require('node:buffer').Buffer) unavailable();
+}
 function assertIntrinsicsCurrent() {
   for (const held of prefixIntrinsics) {
     const current=descriptor(held.receiver,held.name), original=held.property;
@@ -142,6 +162,7 @@ try {
       processOriginal.versions.openssl !== '3.5.4' || delivery === undefined ||
       delivery.filename !== join(dirname(delivery.filename),'initial-control-public-dispatch.cjs') ||
       require.cache[delivery.filename] !== delivery) unavailable();
+  assertSupportedIntrinsics();
   // The actual prefix owns its fixed initialization and ordinary compiler
   // disposition before loading the generated inventory or covered images.
   const declaration = declareOrdinaryInitialControlPhaseEnvelope(getHeapStatistics().heap_size_limit);
