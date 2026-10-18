@@ -5420,7 +5420,7 @@
     {
       "module": "packages/explorer/gateway.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "21d2b23267de4af410847c041a1550a5db5b3f195b363b7978f0ed098e3bb801",
+      "sha256": "6066f874738f0f684d965ece0d7b1eabf8f5987d56d232d4e5bdc1c17a5eb447",
       "exports": [
         "createExplorerGateway",
         "gatewayLimits",
@@ -5496,6 +5496,11 @@
           "async": true
         },
         {
+          "name": "createExplorerGateway/createExplorerGateway/settled/settled",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createExplorerGateway/createExplorerGateway/ticket/init:assertCurrent/init:assertCurrent",
           "parameters": [],
           "async": false
@@ -5531,6 +5536,11 @@
         },
         {
           "name": "createExplorerGateway/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createExplorerGateway/init:close/init:close/init:close",
           "parameters": [],
           "async": false
         },
@@ -5640,13 +5650,34 @@
         {
           "name": "startExplorerGateway/init:close/init:close/init:close",
           "parameters": [
+            "results"
+          ],
+          "async": false
+        },
+        {
+          "name": "startExplorerGateway/init:close/init:close/init:close/failed/failed",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "startExplorerGateway/init:close/init:close/init:close/init:close",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "startExplorerGateway/init:close/init:close/socket/socket",
+          "parameters": [
             "resolve",
             "reject"
           ],
           "async": false
         },
         {
-          "name": "startExplorerGateway/init:close/init:close/init:close/init:close",
+          "name": "startExplorerGateway/init:close/init:close/socket/socket/socket",
           "parameters": [
             "error"
           ],
@@ -5709,12 +5740,14 @@
             "createExplorerGateway/createExplorerGateway/matches/matches",
             "createExplorerGateway/createExplorerGateway/matches/matches#2",
             "createExplorerGateway/createExplorerGateway/read/read",
+            "createExplorerGateway/createExplorerGateway/settled/settled",
             "createExplorerGateway/createExplorerGateway/ticket/init:assertCurrent/init:assertCurrent",
             "createExplorerGateway/createExplorerGateway#2",
             "createExplorerGateway/createExplorerGateway#3",
             "createExplorerGateway/createExplorerGateway#4",
             "createExplorerGateway/createExplorerGateway#5",
             "createExplorerGateway/init:close/init:close",
+            "createExplorerGateway/init:close/init:close/init:close",
             "createExplorerGateway/init:invalidateScope/init:invalidateScope",
             "createExplorerGateway/init:issueBootstrap/init:issueBootstrap",
             "createExplorerGateway/invalidate/invalidate",
@@ -5732,7 +5765,10 @@
             "startExplorerGateway",
             "startExplorerGateway/init:close/init:close",
             "startExplorerGateway/init:close/init:close/init:close",
+            "startExplorerGateway/init:close/init:close/init:close/failed/failed",
             "startExplorerGateway/init:close/init:close/init:close/init:close",
+            "startExplorerGateway/init:close/init:close/socket/socket",
+            "startExplorerGateway/init:close/init:close/socket/socket/socket",
             "startExplorerGateway/server/server",
             "startExplorerGateway/startExplorerGateway",
             "startExplorerGateway/startExplorerGateway#2",
@@ -5778,6 +5814,10 @@
               {
                 "path": "packages/explorer/gateway.mjs",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
+              },
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "close fences new requests immediately"
               }
             ],
             "synchronization": [
@@ -5788,6 +5828,10 @@
               {
                 "path": "packages/explorer/gateway.mjs",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
+              },
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "close fences new requests immediately"
               }
             ],
             "failure": [
@@ -5808,6 +5852,10 @@
               {
                 "path": "packages/explorer/gateway.mjs",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
+              },
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "close fences new requests immediately"
               }
             ],
             "resources": [
@@ -5818,6 +5866,10 @@
               {
                 "path": "packages/explorer/gateway.mjs",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
+              },
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "close fences new requests immediately"
               }
             ],
             "extension": [
@@ -5834,6 +5886,10 @@
               {
                 "path": "packages/explorer/gateway.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "packages/explorer/gateway-close.test.mjs",
+                "anchor": "Closing presentation must not acknowledge an outstanding SDK call"
               }
             ]
           }
