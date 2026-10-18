@@ -100,8 +100,12 @@ Requests are bounded to 65,536 bytes, depth 64 and 10,000 JSON nodes. Projection
 bounds retain tighter caller limits through the shared read model. Replies are
 bounded to 262,144 bytes, with at most four outstanding SDK reads. The 15-second
 presentation deadline does not cancel a Run, retry the request or free a still
-pending SDK slot. Slots remain held until the read actually settles. Closing
-the server closes its own HTTP connections, not the borrowed SDK Client.
+pending SDK slot. Slots remain held until the read actually settles. Gateway
+close fences new requests immediately and waits for the original outstanding
+SDK calls, including calls whose presentation deadline has expired. The owning
+Local launcher closes its Client only after that settlement. Closing the server
+closes its own HTTP connections, not the borrowed SDK Client. Invocation
+settlement does not replace the Client's separate physical cleanup ACKs.
 
 Only admitted built assets are served: at most 32 assets and 2 MiB in total.
 The launcher reads its own package-relative frozen inventory, checks every
