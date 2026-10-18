@@ -46,7 +46,7 @@ test('installed Slack actual text Source retains one original reader capture and
     const exported=checked(f.common.clientProgramExportSourceCapture(opened.capture.source(),opened.requirement,'installed-slack-label-test'));
     assert.deepEqual(f.common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse),[
       {id:'U1',name:'one'},{id:'U2',name:'two'}]);
-    assert.equal(f.state.requests.length,3);assert.equal(f.state.resolutions,1);
+    assert.equal(f.state.requests.length,3);assert.equal(f.state.resolutions,3);
     assert.deepEqual(f.state.requests.map(r=>r.method),['POST','GET','GET']);
     assert.equal(f.state.requests[0].path,'/api/auth.test');
     assert.equal(f.state.requests[1].path,'/api/users.list?limit=10');
@@ -136,8 +136,18 @@ test('installed Slack profile rejects accessor and inherited originals without i
 test('installed Slack original workspace observation refuses foreign workspace before users request',async t=>{
   const f=await installedSlackFixture(t),source=await f.load(),preparation=await f.prepare(source);
   f.state.identity={...f.state.identity,team_id:'T-foreign'};let recovery;
-  await assert.rejects(source.openCapture(preparation),error=>{recovery=error.recovery;return error.cause?.cause?.code==='ForeignSlackWorkspace'||error.recovery!==undefined;});
+  await assert.rejects(source.openCapture(preparation),error=>{recovery=error.recovery;let cause=error;while(cause&&cause.code!=='ForeignSlackWorkspace')cause=cause.cause;return cause?.code==='ForeignSlackWorkspace';});
   await f.retain(recovery,preparation.ledger);
   assert.equal(f.state.requests.length,1);assert.equal(f.state.requests[0].path,'/api/auth.test');
+  assert.equal(recovery.cleanupPending(),true);
+});
+
+
+test('installed Slack stop during original resolver refuses the first physical send and preserves recovery',async t=>{
+  const f=await installedSlackFixture(t),source=await f.load(),preparation=await f.prepare(source),stop=new AbortController();
+  f.state.resolved=()=>stop.abort(new Error('OriginalSlackStop'));let recovery;
+  await assert.rejects(source.openCapture({...preparation,signal:stop.signal}),error=>{recovery=error.recovery;return recovery!==undefined;});
+  await f.retain(recovery,preparation.ledger);
+  assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,1);
   assert.equal(recovery.cleanupPending(),true);
 });
