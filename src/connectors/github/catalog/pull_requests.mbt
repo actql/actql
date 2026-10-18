@@ -221,7 +221,7 @@ fn graphql_nullable_actor(
 }
 
 ///|
-pub fn graphql_pull_request_fields(
+fn graphql_pull_request_fields(
   object : @decode.ObjectView,
 ) -> Result[PullRequestNativeFields, IssuePageIssue] {
   let base = match graphql_text(object, "baseRefName") {
