@@ -739,8 +739,12 @@ pub fn accept_row_run_page(
 }
 
 ///|
-/// Admit the projected JSON rows of one previously charged provider body.
-/// Consume its exact-run ticket without charging the projected bytes again.
+/// Admit completed projected JSON rows with this attempt's final response ticket.
+/// A dependent multi-response reader must consume earlier tickets as observations
+/// before the next exchange, while its original owner retains and validates the
+/// complete request/response/row prefix. The ticket supplies accounting only,
+/// never that correspondence, current authority or physical retirement.
+/// Consume it once without charging projected output as another network body.
 pub fn accept_charged_row_run_page(
   run : RowRun,
   charge : RowPageCharge,
@@ -1159,8 +1163,10 @@ pub fn accept_row_run_values(
 }
 
 ///|
-/// Admit the typed values of one previously charged provider body. Ownership
-/// and single consumption are checked before retaining any value.
+/// Admit completed typed values with this attempt's final response ticket.
+/// Earlier dependent responses follow the same original-prefix observation law
+/// as JSON pages; a ticket alone proves neither that prefix nor permission.
+/// Ownership and single consumption are checked before retaining any value.
 pub fn accept_charged_row_run_values(
   run : RowRun,
   charge : RowPageCharge,

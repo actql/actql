@@ -604,7 +604,8 @@ function operationFor(operations, scope, maxRequestBytes) {
 
 function receive({hostname, port, path, method, body, bodyMediaType, requestBytes, secret,
   authenticationForm = false,
-  headers, ca, cert, key, signal, maxResponseBytes, binding}) {
+  headers, ca, cert, key, signal, maxResponseBytes, binding,
+  retainRunResponseOriginal = false}) {
   return new Promise((resolve, reject) => {
     let settled = false;
     let socket;
@@ -629,6 +630,27 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
       socket?.destroy();
       release();
     };
+    const physicalHeaders = Object.freeze({
+      accept: 'application/json',
+      ...Object.fromEntries(headers),
+      ...(authenticationForm ? {} : binding?.secretPresentation === 'kintone-api-token'
+        ? {'x-cybozu-api-token': secret}
+        : {authorization: `Bearer ${secret}`}),
+      ...(body === undefined ? {} : {
+        'content-type': bodyMediaType,
+        'content-length': requestBytes,
+      }),
+    });
+    // Only these non-secret primitive values describe the original physical
+    // representation. Never expose the credential-bearing header dictionary.
+    const requestRepresentation = !retainRunResponseOriginal ? undefined :
+      Object.freeze({
+        accept: typeof physicalHeaders.accept === 'string' ? physicalHeaders.accept : undefined,
+        acceptEncoding: typeof physicalHeaders['accept-encoding'] === 'string'
+          ? physicalHeaders['accept-encoding'] : undefined,
+        ifMatch: typeof physicalHeaders['if-match'] === 'string'
+          ? physicalHeaders['if-match'] : undefined,
+      });
     const request = httpsRequest({
       protocol: 'https:',
       ...(binding ? {agent: false} : {}),
@@ -641,17 +663,7 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
       key,
       // A provider may replace `accept`; the credential and body framing
       // headers are this adapter's own.
-      headers: Object.freeze({
-        accept: 'application/json',
-        ...Object.fromEntries(headers),
-        ...(authenticationForm ? {} : binding?.secretPresentation === 'kintone-api-token'
-          ? {'x-cybozu-api-token': secret}
-          : {authorization: `Bearer ${secret}`}),
-        ...(body === undefined ? {} : {
-          'content-type': bodyMediaType,
-          'content-length': requestBytes,
-        }),
-      }),
+      headers: physicalHeaders,
       signal,
     }, response => {
       const chunks = [];
@@ -672,6 +684,7 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
         statusCode: response.statusCode,
         headers: response.headers,
         body: Buffer.concat(chunks, received),
+        requestRepresentation,
       })));
     });
     if (binding) {
@@ -843,6 +856,7 @@ async function callCredentialResource({
       signal,
       maxResponseBytes,
       binding,
+      retainRunResponseOriginal,
     });
     // A response awaiting its original current check remains in this binding's
     // custody. A refusal or unconfirmed outcome cannot publish it or discard it
@@ -900,6 +914,11 @@ async function callCredentialResource({
       failure: undefined, facts: Object.freeze({grant: claimed.grant,
         use: claimed.use, scope, response: result, method: operation.method,
         path: operation.path, requestBodyBytes: operation.requestBytes,
+        // Retain only the actual immutable text sent by this original operation.
+        // This private historical projection is not a request reconstructed from
+        // a byte count, CID or provider result; binary bodies remain unprojected.
+        requestBodyText: typeof operation.body === 'string' ? operation.body : undefined,
+        requestRepresentation: response.requestRepresentation,
         responseSha256: createHash('sha256').update(response.body).digest('hex')})};
     runResponseOriginals.set(result, retained);
     finishing = true;

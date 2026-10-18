@@ -1,0 +1,207 @@
+{
+  "qualification": "Existing-owner source references; not authority, durable Journal admission, normal funding or installed acceptance",
+  "declarations": [
+    {
+      "module": "adapters/connectors/bigquery/site/bigquery-sql-read.mjs",
+      "sha256": "a46c18b81cf049e2deca5cafa5413484e46c2264cec237c43084bbddd411b7b5",
+      "exports": [
+        "BIGQUERY_SQL_READ_OPERATION",
+        "readBigQuerySqlApi"
+      ],
+      "operations": [
+        {
+          "name": "authorizeRead",
+          "parameters": [
+            "value",
+            "frame",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "count/count",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "decodeResponse",
+          "parameters": [
+            "response",
+            "limit"
+          ],
+          "async": false
+        },
+        {
+          "name": "decodeResponse/encoding/encoding",
+          "parameters": [
+            "pair"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "queryLimits",
+          "parameters": [
+            "moon",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "readBigQuerySqlApi",
+          "parameters": [
+            "moon",
+            "prepared",
+            "rowRun",
+            "job",
+            "limits",
+            "authorizationFor",
+            "credential",
+            "verifyRead",
+            "withOriginalJob",
+            "signal",
+            "callResource"
+          ],
+          "async": true
+        },
+        {
+          "name": "readBigQuerySqlApi/readBigQuerySqlApi",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBigQuerySqlApi/readBigQuerySqlApi/readBigQuerySqlApi",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBigQuerySqlApi/readBigQuerySqlApi#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBigQuerySqlApi/send/send",
+          "parameters": [
+            "request"
+          ],
+          "async": true
+        },
+        {
+          "name": "sha/sha",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/acquisition-outcome.mjs",
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "node:crypto",
+        "node:timers/promises",
+        "node:zlib"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Common BigQuery RowRun/Job borrower, Host original-operation custody and Credential HTTPS binding",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "authorizeRead",
+            "count/count",
+            "decodeResponse",
+            "decodeResponse/encoding/encoding",
+            "fail/fail",
+            "queryLimits",
+            "readBigQuerySqlApi",
+            "readBigQuerySqlApi/readBigQuerySqlApi",
+            "readBigQuerySqlApi/readBigQuerySqlApi/readBigQuerySqlApi",
+            "readBigQuerySqlApi/readBigQuerySqlApi#2",
+            "readBigQuerySqlApi/send/send",
+            "sha/sha"
+          ],
+          "exports": [
+            "BIGQUERY_SQL_READ_OPERATION",
+            "readBigQuerySqlApi"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

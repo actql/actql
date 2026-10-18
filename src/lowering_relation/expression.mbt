@@ -960,22 +960,11 @@ fn lower_typed_expression_measured(
                 typed, list_index, parameters, budget, depth,
               ),
             )
-          } else {
+          } else if @decode.is_null(body) {
             charge_literal(budget, body)
-            if @decode.is_null(body) {
-              TypedNull
-            } else {
-              let value = match
-                @value.admit(contract, body, {
-                  max_nodes: limits.max_literal_nodes,
-                  max_depth: limits.max_depth,
-                  max_text_bytes: limits.max_literal_text_bytes,
-                }) {
-                Ok(value) => value
-                Err(issue) => expression_fail(cursor, LiteralAdmission(issue))
-              }
-              Literal(value)
-            }
+            TypedNull
+          } else {
+            Literal(lower_comparison_literal(contract, body, budget))
           }
         "$param" => {
           let name = @decode.text(body).unwrap()
@@ -1175,6 +1164,41 @@ fn lower_typed_expression_measured(
 }
 
 ///|
+// Consume only the checked comparison annotation. This is not schema-directed
+// Number admission to int64 and does not reinterpret the source Number token.
+fn lower_comparison_literal(
+  contract : @contract.Contract,
+  body : @decode.Cursor,
+  budget : ExpressionBudget,
+) -> @value.CheckedValue raise ExpressionStop {
+  let limits = budget.limits
+  if contract.shape is @contract.Signed64 &&
+    @decode.view(body) is NumberValue(number) &&
+    @value.signed64_comparison_literal_value(number) is Some(value) {
+    charge_bound_literal(budget, body, value)
+    guard @value.recheck_runtime_value(value, contract, {
+        max_nodes: limits.max_literal_nodes,
+        max_depth: limits.max_depth,
+        max_text_bytes: limits.max_literal_text_bytes,
+      })
+      is Some(checked) else {
+      expression_fail(body, MissingTypeAnnotation)
+    }
+    return checked
+  }
+  charge_literal(budget, body)
+  match
+    @value.admit(contract, body, {
+      max_nodes: limits.max_literal_nodes,
+      max_depth: limits.max_depth,
+      max_text_bytes: limits.max_literal_text_bytes,
+    }) {
+    Ok(value) => value
+    Err(issue) => expression_fail(body, LiteralAdmission(issue))
+  }
+}
+
+///|
 /// Bind only the checker's immediate membership elements. A parameter hole is
 /// not generic JSON substitution, and the emitted RHS remains one typed literal.
 fn lower_membership_literal(
@@ -1213,18 +1237,7 @@ fn lower_membership_literal(
         charge_bound_literal(budget, child.source, value.value)
         value.value
       }
-      "literal" => {
-        charge_literal(budget, body)
-        match
-          @value.admit(child.contract, body, {
-            max_nodes: limits.max_literal_nodes,
-            max_depth: limits.max_depth,
-            max_text_bytes: limits.max_literal_text_bytes,
-          }) {
-          Ok(value) => value.value
-          Err(issue) => expression_fail(child.source, LiteralAdmission(issue))
-        }
-      }
+      "literal" => lower_comparison_literal(child.contract, body, budget).value
       other => expression_fail(child.source, ExpressionNotImplemented(other))
     }
     values.push(value)

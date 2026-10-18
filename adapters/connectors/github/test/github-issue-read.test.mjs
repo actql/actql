@@ -34,11 +34,13 @@ const since = '2026-10-01T00:00:00Z';
 const issue = (number, extra = {}) => ({number, node_id: `I_${number}`,
   title: `Issue ${number}`, state: 'open', body: null,
   user: {login: 'octo'}, comments: 0, created_at: '2026-10-02T00:00:00Z',
-  updated_at: '2026-10-03T00:00:00Z', closed_at: null, milestone: null, labels: [], ...extra});
+  updated_at: '2026-10-03T00:00:00Z', closed_at: null, milestone: null, state_reason: null, assignees: [],
+  html_url: `https://github.com/octo/hello/issues/${number}`, labels: [], ...extra});
 // GitHub's whole-second timestamps, in the ActQL spelling of the same instant.
-const row = number => ({number, node_id: `I_${number}`,
+const row = number => ({number: String(number), node_id: `I_${number}`,
   title: `Issue ${number}`, state: 'open', body: null, author: 'octo',
-  comments: 0, created_at: '2026-10-02T00:00:00.000Z',
+  comments: '0', state_reason: null, assignees: [], labels: [],
+  url: `https://github.com/octo/hello/issues/${number}`, created_at: '2026-10-02T00:00:00.000Z',
   updated_at: '2026-10-03T00:00:00.000Z', closed_at: null, milestone: null});
 const pull = number => issue(number,
   {pull_request: {url: `https://api.example/pulls/${number}`}});
@@ -53,7 +55,9 @@ async function setup(t, {routes = [], faults = []} = {}) {
   });
   t.after(async () => {
     journal.close();
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      t.diagnostic(`Retained GitHub REST read credential fixture: ${root}`);
+    } else await rm(root, {recursive: true, force: true});
   });
   const scope = Object.freeze({
     issuerAuthority: 'authority-a', principal: 'principal-a',
@@ -272,7 +276,7 @@ test('a non-ASCII label filter continues on page two with the same value',
       {query: {labels: label}}));
     const result = await context.read({filters: [['labels', label]]});
     assert.equal(result.complete, true);
-    assert.deepEqual(result.rows.map(entry => entry.number), [1, 2, 3]);
+    assert.deepEqual(result.rows.map(entry => entry.number), ['1', '2', '3']);
     const seen = context.fixture.seen();
     assert.equal(seen.length, 2);
     // Both requests carry exactly the same label value, UTF-8 percent-encoded

@@ -221,3 +221,70 @@ Journal and Resource owners retain currentness, exact request binding, claim,
 Unknown resolution, response evidence and physical cleanup responsibilities.
 A successful codec does not supply those originals or close the public Command
 execution and recovery boundary.
+
+## Original messages history projection
+
+The messages Catalog retains exact `channel:ts` identity and the independent
+original `ts` and `thread_ts` Strings. `posted_at` is the same instant in the
+existing exact UTC Timestamp domain; physical epoch text is parsed with integer
+seconds and nanoseconds, never a Host Date or binary64 conversion.
+
+A pending history request belongs to one original history control. Its admitted
+page retains that nominal occurrence and consumes the pending request before
+response parsing. Cursor and exact time pagination preserve separate vendor
+signals, reject repeated/non-progressing continuations, and leave inaccessible
+history unavailable. Protocol termination is not proof of full Source coverage,
+current authorization, physical cleanup or capacity. Replies require their own
+original operation, grants, pagination and observation lifetime; a recent
+history window cannot prove coverage of replies to older parents.
+
+The adopted missing-count projection applies only to complete ordinary records
+with both count and thread keys absent. Generic page DATA has no such original
+history occurrence and retains unknown count. Explicit zero, positive count and
+null preserve their meanings, including a positive count without thread
+metadata. Event, partial or retained-thread ambiguity never becomes zero.
+The known ordinary `bot_message` subtype is eligible under those same original
+history and absence conditions; its subtype alone is not a partial/thread hint.
+Unknown subtypes, event envelopes and changed/deleted/replied/broadcast cases do
+not gain this inference. A bot message with retained thread hints stays unknown.
+Other retained thread hints, such as `reply_users`, `latest_reply`, `root` or
+`parent_user_id`, keep a missing count unknown even when the two primary keys
+are absent; their contents are not evidence of an ordinary non-thread record.
+Reactions and files keep their independent nullable/retained value rules.
+
+The public `thread_ts IS NULL AND reply_count = 0` predicate uses the common
+comparison-context rule: its existing Number zero is losslessly admitted under
+the original `int64` column contract. The column is never promoted to Number,
+and a different frontend or cold read cannot reinterpret a lost raw integer.
+Original checked input, bounded RowRun capture and the same expression owner
+retain this correspondence; none issues a physical Source or Resource grant.
+
+
+## Original history transport
+
+The private history reader projects each HTTP channel/cursor/time argument from
+its original Common pending request. The captured provider callbacks retain
+their original receiver; provider replacement after a token await cannot change
+the protocol. The column list captures each original indexed value once and
+validates that owned snapshot. Index getters keep their ordinary responsibility;
+caller Array methods, iterators and species cannot replace the retained fields.
+Account and currentness are checked around every await, including
+identity observation and row consumption, before any next Common request is
+constructed. The same retained credential binding observes `auth.test` with a
+separate workspace-identity use; the history operation keeps its own grant/use.
+
+Each raw response is retained and charged before decoding. Identity consumes
+its non-row ticket before history starts. Each history page passes its exact
+ticket to the original RowRun consumer before a dependent request can be made;
+its last ticket is accounting, not evidence for an unrelated response prefix.
+Unknown transport outcomes remain with the original journal use, with no retry
+or replacement token. A terminal Catalog control does not prove complete
+thread acquisition, current physical Source publication, cleanup or funding.
+
+The live reader retains its method/callback receivers, workspace/channel/column
+Strings, immutable limits and authorization, Common history/request/page values,
+response envelopes and bodies, output wire and parsed rows, charge tokens,
+observations and failed-result aliases, cancellation signal and in-flight
+Promises together. Common closing and a closed transport do not acknowledge
+retirement of escaped aliases or return a ReaderLoan. The actual Host supplier
+must cover that simultaneous graph before this private reader is admitted.

@@ -10,7 +10,7 @@
     {
       "module": "adapters/host-common/acquisition-outcome.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e601426d57c9c17ec49d3dce2a605a50a8fc21aca628e28d8f0a65fe89f7e624",
+      "sha256": "96c9265d3ea813002f7179b42a4a5fd95c7572203e49299dc1934f49be587179",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [

@@ -15,8 +15,12 @@ pub(all) struct IssueRow {
   node_id : String
   title : String
   state : String
+  state_reason : String?
   body : String?
   author : String?
+  assignees : Array[String]
+  labels : Array[String]
+  url : String
   comments : Int64
   milestone : String?
   created_at : String
@@ -71,16 +75,43 @@ fn required_text(
 }
 
 ///|
+fn original_integer(
+  body : Bytes,
+  cursor : @decode.Cursor,
+  max_bytes : Int,
+) -> Int64? {
+  guard @decode.view(cursor) is @decode.NumberValue(_) else { return None }
+  let span = @decode.cursor_span(cursor)
+  guard span.start_byte >= 0 &&
+    span.end_byte > span.start_byte &&
+    span.end_byte <= body.length() else {
+    return None
+  }
+  let raw = @utf8.decode(body[span.start_byte:span.end_byte]) catch {
+    _ => return None
+  }
+  guard @admitted.normalize_decimal_text(raw, 19, 0, max_bytes) is Ok(text) else {
+    return None
+  }
+  match @scalar.read_decimal_int64(text) {
+    Ok(value) => Some(value)
+    Err(_) => None
+  }
+}
+
+///|
 fn required_integer(
   object : @decode.ObjectView,
   name : String,
+  body : Bytes,
+  max_bytes : Int,
 ) -> Result[Int64, IssuePageIssue] {
   match required_field(object, name) {
     Err(issue) => Err(issue)
     Ok(value) =>
-      match @decode.safe_integer(value) {
-        Ok(number) => Ok(number)
-        Err(_) => Err(InvalidField(name))
+      match original_integer(body, value, max_bytes) {
+        Some(number) => Ok(number)
+        None => Err(InvalidField(name))
       }
   }
 }
@@ -148,7 +179,39 @@ fn milestone_title(
 }
 
 ///|
-fn issue_row(object : @decode.ObjectView) -> Result[IssueRow, IssuePageIssue] {
+// The provider's array order and exact text are data. Missing/null/partial
+// objects are refused; no lookup, deduplication or text normalization occurs.
+fn object_text_array(
+  object : @decode.ObjectView,
+  name : String,
+  field : String,
+) -> Result[Array[String], IssuePageIssue] {
+  let cursor = match required_field(object, name) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard @decode.elements(cursor) is Ok(items) else {
+    return Err(InvalidField(name))
+  }
+  let values = []
+  for item in items {
+    guard @decode.open_object(item) is Ok(entry) else {
+      return Err(InvalidField(name))
+    }
+    match required_text(entry, field) {
+      Ok(value) => values.push(value)
+      Err(issue) => return Err(issue)
+    }
+  }
+  Ok(values)
+}
+
+///|
+fn issue_row(
+  object : @decode.ObjectView,
+  original : Bytes,
+  max_bytes : Int,
+) -> Result[IssueRow, IssuePageIssue] {
   let state = match required_text(object, "state") {
     Ok(state) => state
     Err(issue) => return Err(issue)
@@ -156,7 +219,26 @@ fn issue_row(object : @decode.ObjectView) -> Result[IssueRow, IssuePageIssue] {
   if state != "open" && state != "closed" {
     return Err(InvalidField("state"))
   }
-  let number = match required_integer(object, "number") {
+  let number = match required_integer(object, "number", original, max_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if number < 1L {
+    return Err(InvalidField("number"))
+  }
+  let state_reason = match nullable_text(object, "state_reason") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let assignees = match object_text_array(object, "assignees", "login") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let labels = match object_text_array(object, "labels", "name") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let url = match required_text(object, "html_url") {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -180,9 +262,13 @@ fn issue_row(object : @decode.ObjectView) -> Result[IssueRow, IssuePageIssue] {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let comments = match required_integer(object, "comments") {
+  let comments = match
+    required_integer(object, "comments", original, max_bytes) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  if comments < 0L {
+    return Err(InvalidField("comments"))
   }
   let created_at = match required_timestamp(object, "created_at") {
     Ok(value) => value
@@ -201,6 +287,10 @@ fn issue_row(object : @decode.ObjectView) -> Result[IssueRow, IssuePageIssue] {
     node_id,
     title,
     state,
+    state_reason,
+    assignees,
+    labels,
+    url,
     body,
     author,
     comments,
@@ -306,7 +396,7 @@ pub fn project_issue_page(
     }
     match @decode.field(object, "pull_request") {
       Missing =>
-        match issue_row(object) {
+        match issue_row(object, body, limits.max_bytes) {
           Ok(row) => rows.push(row)
           Err(issue) => return Err(issue)
         }

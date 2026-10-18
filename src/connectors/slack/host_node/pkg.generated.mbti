@@ -6,6 +6,10 @@ import {
 }
 
 // Values
+pub fn slack_admit_message_history_page(@catalog.SlackMessageHistory, @catalog.SlackMessageHistoryRequest, Bytes) -> Result[@catalog.SlackMessagePage, @catalog.SlackMessagePageIssue]
+
+pub fn slack_begin_message_history(@catalog.SlackMessageHistory) -> Result[@catalog.SlackMessageHistoryRequest, @catalog.SlackMessagePageIssue]
+
 pub fn slack_channel_list_column_names() -> Array[String]
 
 pub fn slack_channel_list_ids(@catalog.SlackChannelListPage) -> Array[String]
@@ -17,6 +21,28 @@ pub fn slack_channel_list_relation_facts_wire() -> String
 pub fn slack_channel_list_rows_wire(@catalog.SlackChannelListPage, Array[String], Int, Int, Int) -> Result[String, @catalog.SlackChannelListIssue]
 
 pub fn slack_channel_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.SlackChannelListIssue]
+
+pub fn slack_close_message_history(@catalog.SlackMessageHistory) -> Unit
+
+pub fn slack_finish_message_history(@catalog.SlackMessageHistory, @catalog.SlackMessagePage) -> Result[Unit, @catalog.SlackMessagePageIssue]
+
+pub fn slack_message_column_names() -> Array[String]
+
+pub fn slack_message_history_page_has_next(@catalog.SlackMessagePage) -> Bool
+
+pub fn slack_message_history_request_json(@catalog.SlackMessageHistoryRequest) -> String
+
+pub fn slack_message_history_request_matches(@catalog.SlackMessageHistory, @catalog.SlackMessageHistoryRequest) -> Bool
+
+pub fn slack_message_page_row_count(@catalog.SlackMessagePage) -> Int
+
+pub fn slack_message_page_rows_wire(@catalog.SlackMessagePage, Array[String], Int, Int, Int) -> Result[String, @catalog.SlackMessagePageIssue]
+
+pub fn slack_message_schema_wire(Int, Int, Int) -> Result[String, @catalog.SlackMessagePageIssue]
+
+pub fn slack_next_message_history_request(@catalog.SlackMessageHistory, @catalog.SlackMessagePage) -> Result[@catalog.SlackMessageHistoryRequest, @catalog.SlackMessagePageIssue]
+
+pub fn slack_prepare_message_history(String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SlackMessageHistory, @catalog.SlackMessagePageIssue]
 
 pub fn slack_project_channel_list(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SlackChannelListPage, @catalog.SlackChannelListIssue]
 

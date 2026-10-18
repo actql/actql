@@ -9,7 +9,7 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 test('the normal GitHub declaration admits a nullable milestone title', async () => {
   const wire = await readFile(new URL('../../../../src/connectors/github/source-views.json',
     import.meta.url), 'utf8');
-  const original = checked(moon.clientProgramRowSourceRestoreDeclaration(
+  const original = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
     'github-original', 'github', 'github/0.1', wire, undefined));
   const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(original));
   assert.ok(declared.views[0].fields.includes('milestone'));
@@ -18,8 +18,25 @@ test('the normal GitHub declaration admits a nullable milestone title', async ()
   assert.equal(schemas.length, 1);
   assert.deepEqual(schemas[0].body.fields.milestone,
     {type: 'string', nullable: true});
-  const restored = checked(moon.clientProgramRowSourceRestoreDeclaration(
+  const restored = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
     'github-original', 'github', 'github/0.1', wire, declared.catalog_cid));
   assert.equal(moon.clientProgramRowSourceDeclarationJson(restored),
     moon.clientProgramRowSourceDeclarationJson(original));
+});
+
+
+test('the ordinary Issue declaration keeps all fifteen exact contracts and its repository-scoped key', async () => {
+  const wire = await readFile(new URL('../../../../src/connectors/github/source-views.json', import.meta.url), 'utf8');
+  const original = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
+    'github-original', 'github', 'github/0.1', wire, undefined));
+  const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(original));
+  assert.deepEqual([...declared.views[0].fields].sort(), ['number', 'node_id', 'title', 'state',
+    'state_reason', 'body', 'author', 'assignees', 'labels', 'milestone', 'comments',
+    'created_at', 'updated_at', 'closed_at', 'url'].sort());
+  const schema = declared.contracts.map(JSON.parse).find(value => value.kind === 'carrier_schema');
+  for (const name of ['number', 'comments']) assert.deepEqual(schema.body.fields[name], {nullable: false, type: 'int64'});
+  for (const name of ['assignees', 'labels']) assert.deepEqual(schema.body.fields[name],
+    {nullable: false, type: 'array', items: {nullable: false, type: 'string'}});
+  assert.deepEqual(schema.body.fields.state_reason, {nullable: true, type: 'string'});
+  assert.deepEqual(schema.body.fields.url, {nullable: false, type: 'string'});
 });
