@@ -873,7 +873,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       const original = originalDeclaration(declared);
       if (original.pending || !original.observed) fail('SalesforcePublicationCurrentUnobserved');
       if (typeof consume !== 'function') fail('InvalidSalesforcePublicationConsumer');
-      return withSalesforceNamedDescribeOriginals(original.catalog, credential,
+      const value = withSalesforceNamedDescribeOriginals(original.catalog, credential,
         facts => {
           original.assertCurrent();
           return consume(Object.freeze({site, declared,
@@ -881,6 +881,8 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
             control: credential.control, journal: credential.journal,
             ...facts}));
         });
+      original.assertCurrent();
+      return value;
     },
   }));
   return site;

@@ -176,3 +176,24 @@ test('an actual rejected Describe cannot issue live publication originals from t
   assert.throws(() => originals(f.site, f.declared, '{}', () => {}),
     {code: 'SalesforcePublicationOriginalUnavailable'});
 });
+
+
+test('a synchronous finisher cannot return through a reentrantly closed original Account or Site', async t => {
+  for (const close of [site => site.authorization.close(), site => site.close()]) {
+    const f = await fixture(t), x = await f.describe();
+    await observe(f.site, x.declared, x.body); const before = f.seen.length;
+    let entered = false, useCid;
+    assert.throws(() => originals(f.site, x.declared, x.body, facts => {
+      entered = true; useCid = facts.operations[0].response.useCid;
+      close(f.site);
+      return 'must not be disclosed';
+    }));
+    assert.equal(entered, true);
+    assert.equal(f.seen.length, before);
+    if (!f.site.cleanupPending()) {
+      // A closed Journal has already acknowledged its own original duty;
+      // no probe reopens it merely to inspect the completed physical use.
+      assert.equal(typeof useCid, 'string');
+    }
+  }
+});

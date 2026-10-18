@@ -232,7 +232,8 @@ text and restored Catalogs cannot enter this live-only receiver.
   plaintext file or proof of a cold acquisition, Host request or Store holding.
 - Live publication synchronization: a bounded observation of the original Site
   profile precedes the synchronous receiver. The original Account decisions,
-  Site-open fence and signal are checked after that await and before receiving.
+  Site-open fence and signal are checked after that await, before receiving and
+  after the synchronous finisher returns.
   A pending observation cannot admit a second observation or a premature read.
   An observed profile change or read failure permanently refuses that original.
 - Live publication failure: copied or foreign Sites and declarations, modified
