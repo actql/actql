@@ -4,6 +4,7 @@
 #include "moonbit.h"
 
 #include <dlfcn.h>
+#include "../filesystem/observed_component_member.h"
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -54,6 +55,8 @@ typedef int (*actql_heap_wal_fn)(void *);
 
 typedef struct {
   void *dynamic_library;
+  actql_native_command_platform_load *command_load;
+  actql_native_observed_component_member *command_member;
   char *error;
   int32_t diagnostic_ceiling;
   bool selected_component, closing, selected_ready, selected_context_user;
@@ -159,7 +162,11 @@ static bool actql_library_current(actql_native_sqlite_library *library) {
 static bool actql_library_available(actql_native_sqlite_library *library) {
   return library != NULL && library->dynamic_library != NULL &&
     !library->closing && (!library->selected_component || library->selected_ready) &&
-    actql_library_current(library);
+    actql_library_current(library)
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+    && (!library->command_load || actql_native_command_platform_load_current(library->command_load))
+#endif
+    ;
 }
 static bool actql_database_library_available(actql_native_sqlite_library *library) {
   return library == NULL || !library->selected_component || actql_library_available(library);

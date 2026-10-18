@@ -77,6 +77,7 @@ priv struct LocalCommandPreparationOriginal {
   mut pair : @initial_arena.InstalledArenaLocalHostResources?
   mut runtime : @local_host.NativeLocalPackagedRuntime?
   mut crypto_path : String
+  mut crypto_member : @local_filesystem.NativeObservedComponentMember?
   mut component : @initial_arena.InstalledArenaCryptoComponent?
   mut outer_library : @local_crypto.Library?
   mut inner_library : @local_crypto.Library?
@@ -142,6 +143,7 @@ fn prepare_local_command_preparation_original(
     pair: None,
     runtime: None,
     crypto_path: "",
+    crypto_member: None,
     component: None,
     outer_library: None,
     inner_library: None,
@@ -380,7 +382,11 @@ fn LocalCommandPreparationOriginal::acquire_runtime(
     let (sqlite_path, crypto_path) = command_preparation_value(
       runtime.library_paths().map_err(issue => CommandRuntime(issue)),
     )
+    let (sqlite_member, crypto_member) = command_preparation_value(
+      runtime.command_library_members().map_err(issue => CommandRuntime(issue)),
+    )
     self.crypto_path = crypto_path
+    self.crypto_member = Some(crypto_member)
     let acquired = command_preparation_value(
       host
       .prepare_sqlite_library(
@@ -388,6 +394,7 @@ fn LocalCommandPreparationOriginal::acquire_runtime(
         sqlite_path,
         profile.sqlite_heap_bytes,
         profile.diagnostic_ceiling,
+        command_member=Some(sqlite_member),
       )
       .map_err(issue => CommandSqlite(issue)),
     )
@@ -509,6 +516,9 @@ fn LocalCommandPreparationOriginal::library(
       // Read only the already captured path. Runtime current owns its own phase
       // and must have been checked before entry; nested Runtime calls refuse.
       let path = self.crypto_path
+      guard self.crypto_member is Some(crypto_member) else {
+        return Err(CommandUnavailable)
+      }
       let acquired = command_preparation_value(
         host
         .prepare_local_host_read_crypto(
@@ -517,6 +527,7 @@ fn LocalCommandPreparationOriginal::library(
           path,
           self.profile.crypto_heap_bytes,
           self.profile.diagnostic_ceiling,
+          command_member=Some(crypto_member),
         )
         .map_err(issue => CommandReadCrypto(issue)),
       )
@@ -728,6 +739,7 @@ fn LocalCommandPreparationOriginal::close_checked(
         self.reply_outcome = None
         self.runtime = None
         self.crypto_path = ""
+        self.crypto_member = None
         if self.component is Some(component) {
           command_preparation_value(
             host

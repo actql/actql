@@ -14,6 +14,7 @@ pub fn load_current_crypto_component(
   _path : String,
   _heap_bytes : Int64,
   _diagnostic_ceiling : Int,
+  command_member? : @filesystem.NativeObservedComponentMember? = None,
 ) -> Result[NativeCryptoComponentAcquisition, NativeSignatureIssue] {
   Err(UnsupportedTarget)
 }

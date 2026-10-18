@@ -61,12 +61,13 @@ fn InstalledArenaHost::load_crypto_component_original(
   path : String,
   heap_bytes : Int64,
   diagnostic_ceiling : Int,
+  command_member? : @filesystem.NativeObservedComponentMember? = None,
 ) -> InstalledArenaCryptoIssue? {
   record.attempted = true
   let mut primary : InstalledArenaCryptoIssue? = None
   match
     @signature.load_current_crypto_component(
-      path, heap_bytes, diagnostic_ceiling,
+      path, heap_bytes, diagnostic_ceiling, command_member~,
     ) {
     Err(issue) => primary = Some(Signature(issue))
     Ok(@signature.ReadyCryptoComponent(component)) =>

@@ -44,11 +44,23 @@ int32_t actql_native_sqlite_library_close_checked(actql_native_sqlite_library *l
     /* A consumed/unconfirmed loader reference is never passed to dlclose again.
      * Keep the same Library/context and original module-close Unknown. */
     library->module_close_result = -1;
-    if (dlclose(library->dynamic_library) != 0) return 0;
+    void *module = library->dynamic_library;
+    if (dlclose(module) != 0) return 0;
     library->dynamic_library = NULL;
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+    if (library->command_load &&
+        !actql_native_command_platform_module_released(library->command_load, module)) return 0;
+#endif
     library->module_close_result = 1;
   }
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR
+  if (library->command_load && library->module_close_result == 0) {
+    if (!actql_native_command_platform_module_released(library->command_load, NULL)) return 0;
+    library->module_close_result = 1;
+  }
+  if (library->command_member) {
+    moonbit_decref(library->command_member); library->command_member = NULL;
+  }
   if (library->selected_context_user) {
     if (actql_read_context_release_after_owner_ack(library->selected_context) != 0)
       return 0;
@@ -84,11 +96,12 @@ static bool actql_component_api_original(const actql_sqlite_component_api *api,
 }
 #endif
 
-void *actql_native_sqlite_load_current_component(
-  moonbit_bytes_t path, int32_t length, int32_t diagnostic_ceiling, int64_t heap_bytes
+static void *actql_native_sqlite_load_component_original(
+  moonbit_bytes_t path, int32_t length, int32_t diagnostic_ceiling, int64_t heap_bytes,
+  actql_native_observed_component_member *member
 ) {
 #ifndef ACTQL_SCOPED_READ_ALLOCATOR
-  (void)path; (void)length; (void)diagnostic_ceiling; (void)heap_bytes;
+  (void)path; (void)length; (void)diagnostic_ceiling; (void)heap_bytes; (void)member;
   return NULL; /* No stock fallback or pre-adoption instance. */
 #else
   actql_read_context *context = actql_bootstrap_current_read_context();
@@ -105,8 +118,19 @@ void *actql_native_sqlite_load_current_component(
   library->selected_process = getpid();
   char *text = actql_copy_text_for(library, path, length);
   if (text == NULL) return library;
+  if (member) {
+    const char *expected = actql_native_observed_component_member_path(member);
+    if (!expected || strcmp(expected, text)) { actql_adapter_free(library, text); return library; }
+    library->command_member = member; moonbit_incref(member);
+    library->command_load = actql_native_command_platform_begin_load(
+      actql_native_command_platform_current(), ACTQL_NATIVE_COMMAND_SQLITE_COMPONENT, member);
+    if (!library->command_load) { actql_adapter_free(library, text); return library; }
+  }
   library->dynamic_library = dlopen(text, RTLD_NOW | RTLD_LOCAL);
   actql_adapter_free(library, text);
+  if (library->command_load &&
+      !actql_native_command_platform_observe_load(library->command_load, library->dynamic_library))
+    return library;
   if (library->dynamic_library == NULL) {
     actql_replace_error_for(library, &library->error, diagnostic_ceiling, dlerror());
     return library;
@@ -126,6 +150,9 @@ void *actql_native_sqlite_load_current_component(
       !actql_component_origin((void *)library->component_release_api, origin.dli_fbase) ||
       !actql_component_origin((void *)source_id, origin.dli_fbase) ||
       !actql_component_origin((void *)borrow_api, origin.dli_fbase)) return library;
+  if (member &&
+      (!actql_native_observed_component_member_image(member, origin.dli_fname) ||
+       !actql_native_command_platform_load_current(library->command_load))) return library;
   if (strcmp(source_id(), ACTQL_SQLITE_COMPONENT_SOURCE_ID) != 0) return library;
   int status = bind(context, (size_t)heap_bytes);
   if (status == ACTQL_SQLITE_COMPONENT_INVALID || status == ACTQL_SQLITE_COMPONENT_BUSY)
@@ -158,4 +185,15 @@ void *actql_native_sqlite_load_current_component(
   library->selected_ready = true;
   return library;
 #endif
+}
+
+void *actql_native_sqlite_load_current_component(
+  moonbit_bytes_t path, int32_t length, int32_t ceiling, int64_t heap_bytes) {
+  return actql_native_sqlite_load_component_original(path, length, ceiling, heap_bytes, NULL);
+}
+void *actql_native_sqlite_load_command_component(
+  moonbit_bytes_t path, int32_t length, int32_t ceiling, int64_t heap_bytes,
+  actql_native_observed_component_member *member) {
+  if (!member) return NULL;
+  return actql_native_sqlite_load_component_original(path, length, ceiling, heap_bytes, member);
 }
