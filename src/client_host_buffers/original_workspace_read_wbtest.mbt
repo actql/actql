@@ -83,10 +83,11 @@ test "original preparation keeps its captured Loan current after leaving read ph
   assert_true(original_workspace_preparation_current(preparation))
   assert_eq(@resources.ledger_usage(ledger), before)
   assert_eq(close_workspace(loan), Err(CleanupPending))
-  // The same reservation is still present. Consumer currentness alone cannot
-  // observe a physical Loan's closing flag while its cleanup is pending.
+  // OwnedCapacity close also marks its recorded reservation cleanup-pending.
+  // The original descriptor already fences this transition, even while the
+  // bytes remain held. Do not invent a currentness hole or reopen read phase.
   assert_true(
-    @resources.funded_read_consumer_available(
+    !@resources.funded_read_consumer_available(
       preparation.consumer,
       origin,
       7L,
