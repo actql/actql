@@ -381,3 +381,28 @@ originals. Page, occurrence, row, node, text and work limits bound computation;
 they do not provide resource reservations. Escaped rows and wire strings retain
 their own lifetimes after protocol close and are not reclaimed by a physical
 response or Store acknowledgement.
+
+### Original message projection receiver
+
+The Node receiver obtains the completed history control only from its original
+history reader state and each reply control only from a completed reply reader
+bound to that same state. The three Catalog callbacks are captured once with
+the original provider receiver, before the history acquisition awaits. Partial
+callback groups refuse admission. Caller arrays and bounds are copied once;
+copied reader handles, matching response JSON and foreign history selections
+cannot choose the retained controls.
+
+Before Common coalescence, the receiver checks the existing history and reply
+current callbacks and checks their combined stop signal after every await.
+Projection performs no additional request, secret resolution, grant claim or
+response charge. Its returned JSON is DATA; the original Common projection and
+all raw, typed, request, ticket and outcome prefixes stay in private custody.
+An escaped success or failure retains that graph, not a physical cleanup claim.
+
+The receiver additionally retains the source/reply handles and states, copied
+control and column arrays, captured callbacks, bounded limit record and combined
+signal. The Common projection, bounded canonical wire and parsed output overlap
+those retained originals. Caller-visible output does not issue a Source capture
+or prove complete thread coverage. Connecting the existing actual RowRun and
+normal resource supplier remains a separate responsibility; a final ticket is
+accounting rather than evidence for an otherwise missing original prefix.
