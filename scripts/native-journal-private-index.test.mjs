@@ -25,7 +25,8 @@ before(() => {
     executableSha256: createHash('sha256').update(readFileSync(executable)).digest('hex'),
     qualification: 'Actual private inspection custody with controlled syscall faults; no SQLite execution'}));
 });
-for (const name of ['generic', 'selected', 'stat-failure', 'close-unknown', 'replacement', 'collision']) {
+for (const name of ['generic', 'selected', 'stat-failure', 'close-unknown', 'replacement', 'collision',
+  'unobserved-identity-replacement']) {
   test(`private Journal inspection index custody ${name}`, () => {
     const result = spawnSync(executable, [name, join(scratch, name)], {
       cwd: root, encoding: 'utf8', timeout: 10_000,

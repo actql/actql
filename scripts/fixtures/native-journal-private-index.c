@@ -65,7 +65,8 @@ int main(int argc, char **argv) {
       fd = open(index, O_WRONLY | O_CREAT | O_EXCL, 0600);
       assert(fd >= 0 && write(fd, "foreign", 7) == 7 && close(fd) == 0);
     }
-    fail_stat = strcmp(argv[1], "stat-failure") == 0;
+    fail_stat = strcmp(argv[1], "stat-failure") == 0 ||
+      strcmp(argv[1], "unobserved-identity-replacement") == 0;
     fail_close = strcmp(argv[1], "close-unknown") == 0;
     int ready = actql_journal_inspection_prepare_private_index(owner);
     assert(close_count == before + (strcmp(argv[1], "collision") != 0));
@@ -84,6 +85,18 @@ int main(int argc, char **argv) {
       assert(close_count == before + 1 && fcntl(reused, F_GETFD) >= 0);
       assert(access(index, F_OK) == 0);
       assert(close(reused) == 0);
+    } else if (strcmp(argv[1], "unobserved-identity-replacement") == 0) {
+      assert(!ready && !owner->private_index_identity_observed);
+      assert(owner->private_index_descriptor == -1);
+      char *held = inspection_suffix(index, ".held");
+      assert(rename(index, held) == 0);
+      fd = open(index, O_WRONLY | O_CREAT | O_EXCL, 0600);
+      assert(fd >= 0 && write(fd, "foreign", 7) == 7 && close(fd) == 0);
+      assert(!inspection_close(owner));
+      struct stat current;
+      assert(lstat(index, &current) == 0 && current.st_size == 7);
+      assert(access(held, F_OK) == 0);
+      free(held);
     } else if (strcmp(argv[1], "stat-failure") == 0) {
       assert(!ready && !owner->private_index_close_unknown);
       assert(owner->private_index_descriptor == -1);
