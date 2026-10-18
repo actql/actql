@@ -45391,14 +45391,15 @@
     {
       "module": "adapters/host-node/source-profile-json.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0804e50aeb152062327965b1702a6c70828bd9066dd2709f40b213ad1f20ffd0",
+      "sha256": "d535d573119979dae5b1432c6b4d67d69a30f4a7ff959bd4fb7aec71b25673be",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
         "installedRuntimeBundleCid",
         "readBoundedConfigurationText",
         "readBoundedConfigurationUtf8",
-        "readSourceProfileJson"
+        "readSourceProfileJson",
+        "withOriginalFile"
       ],
       "operations": [
         {
@@ -45791,7 +45792,8 @@
             "withOriginalFile/captureClose/captureClose"
           ],
           "exports": [
-            "installedRuntimeBundleCid"
+            "installedRuntimeBundleCid",
+            "withOriginalFile"
           ],
           "attributes": {
             "responsibility": [
@@ -45876,6 +45878,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "close. It captures the original close function and receiver before beginning"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "External physical children are a distinct part of that phase"
               }
             ],
             "extension": [
@@ -45908,6 +45914,10 @@
               {
                 "path": "adapters/host-node/source-profile-close-original.test.mjs",
                 "anchor": "unobserved close getter failure retains the FD without beginning intake and retries observation once"
+              },
+              {
+                "path": "adapters/host-node/host-root-format.test.mjs",
+                "anchor": "a pending real Dir close refuses admission and retries only its captured original receiver"
               }
             ]
           }
