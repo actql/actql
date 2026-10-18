@@ -26,7 +26,11 @@ export async function messageProjectionFixture(t,{moon=provider,before={},after=
   const consume=(target,rows,{charge})=>{
     assert.equal(charge,pending);target.push(...rows);pending=undefined;
   };
-  const current=async operation=>{await f.current(operation);await mode.current?.(operation);};
+  async function current(operation) {
+    mode.originalCurrentReceiver??=this;
+    if(mode.checkCurrentReceiver)assert.equal(this,mode.originalCurrentReceiver);
+    await f.current(operation);await mode.current?.(operation);
+  }
   const history=f.create({moon,current,chargeResponse,
     consumeObservation:charge=>{assert.equal(charge,pending);pending=undefined;},
     consumePage:(rows,metadata)=>{tokens.push(metadata.originalPage);consume(historyRows,rows,metadata);}});

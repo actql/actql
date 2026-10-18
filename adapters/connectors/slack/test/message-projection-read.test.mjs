@@ -116,3 +116,12 @@ test('Slack projection missing partial private bridge group refuses before depen
   Object.assign(inherited,{replyReaders:[f.replies],names:['id'],limits:messageProjectionLimits});
   await assert.rejects(coalesceSlackMessageReaders(inherited),{code:'InvalidSlackMessageProjection'});
 });
+
+
+test('Slack projection preserves the original current callback receiver across completed reader reuse',async t=>{
+  const f=await messageProjectionFixture(t);
+  assert.ok(f.mode.originalCurrentReceiver);
+  f.mode.checkCurrentReceiver=true;
+  assert.equal((await f.project()).rowCount,2);
+  assert.equal(f.state.requests.length,3);f.assertNoPending();
+});
