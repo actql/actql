@@ -65,8 +65,9 @@ function snapshotPrimarySqlLimits(value) {
 // heap/cache/WAL, or the separate observation connection, and issues no capacity.
 function boundedPrimarySql(connection, limits) {
   const prepare = connection.prepare, exec = connection.exec;
+  const buffer = Buffer, byteLength = buffer.byteLength;
   const isTransaction = Object.getOwnPropertyDescriptor(connection, 'isTransaction')?.get;
-  if (typeof prepare !== 'function' || typeof exec !== 'function' ||
+  if (typeof prepare !== 'function' || typeof exec !== 'function' || typeof byteLength !== 'function' ||
       typeof isTransaction !== 'function') fail('ClientRequestJournalSqlUnavailable');
   let calls = 0, prepared = 0, bytes = 0;
   const consume = (sql, isPrepare) => {
@@ -74,8 +75,9 @@ function boundedPrimarySql(connection, limits) {
         calls >= limits.maxCalls || isPrepare && prepared >= limits.maxPreparedStatements) {
       fail('ClientRequestJournalSqlUnavailable');
     }
-    const size = Buffer.byteLength(sql, 'utf8');
-    if (size > limits.maxSqlBytes || size > limits.maxTotalSqlBytes - bytes) {
+    const size = applyOriginal(byteLength, buffer, [sql, 'utf8']);
+    if (!Number.isSafeInteger(size) || size < sql.length ||
+        size > limits.maxSqlBytes || size > limits.maxTotalSqlBytes - bytes) {
       fail('ClientRequestJournalSqlUnavailable');
     }
     calls++; bytes += size;

@@ -23,15 +23,18 @@ async function fixture() {
 function observe(action) {
   const open = DatabaseSync.prototype.open, exec = DatabaseSync.prototype.exec;
   const prepare = DatabaseSync.prototype.prepare;
-  const state = {database: undefined, calls: 0, prepared: 0};
+  const byteLength = Buffer.byteLength;
+  const state = {database: undefined, calls: 0, prepared: 0, bytes: 0};
   DatabaseSync.prototype.open = function() {
     state.database = this; return Reflect.apply(open, this, []);
   };
   DatabaseSync.prototype.exec = function(sql) {
-    state.calls++; return Reflect.apply(exec, this, [sql]);
+    state.calls++; state.bytes += Reflect.apply(byteLength, Buffer, [sql, 'utf8']);
+    return Reflect.apply(exec, this, [sql]);
   };
   DatabaseSync.prototype.prepare = function(sql) {
     state.calls++; state.prepared++;
+    state.bytes += Reflect.apply(byteLength, Buffer, [sql, 'utf8']);
     if (state.failPrepare !== undefined) throw state.failPrepare;
     return Reflect.apply(prepare, this, [sql]);
   };
@@ -61,6 +64,33 @@ test('primary SQL call and byte ceilings refuse before the next native compilati
   }
   scratch.passed();
 });
+
+for (const [label, replacement] of [['zero', () => 0], ['NaN', () => NaN]]) {
+test(`later byteLength replacement (${label}) cannot bypass the primary aggregate SQL ceiling`, async () => {
+  const {scratch, directory} = await fixture();
+    observe(state => {
+      const journal = openClientRequestJournal(directory,
+        {primarySqlLimits: {...defaults, maxCalls: 10000,
+          maxPreparedStatements: 10000, maxTotalSqlBytes: 65536}});
+      const byteLength = Buffer.byteLength;
+      let failure, nativeCalls;
+      try {
+        Buffer.byteLength = replacement;
+        for (let index = 0; index < 1000; index++) {
+          try { journal.lookupReconciliationState(ref); }
+          catch (cause) { failure = cause; break; }
+        }
+        nativeCalls = state.calls;
+        try { journal.lookupReconciliationState(ref); } catch { /* Same refusal. */ }
+      } finally { Buffer.byteLength = byteLength; journal.close(); }
+      assert.equal(failure?.code, 'ClientRequestJournalSqlUnavailable');
+      assert.equal(state.calls, nativeCalls);
+      assert.ok(state.bytes <= 65536);
+      assert.equal(state.database.isOpen, false);
+    });
+  scratch.passed();
+});
+}
 
 test('repeated actual Journal prepares consume one lifetime allowance without GC refunds', async () => {
   const {scratch, directory} = await fixture();
