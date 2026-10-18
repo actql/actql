@@ -6,7 +6,7 @@ let command_preparation_invocation : Ref[LocalCommandPreparationOriginal?] = Ref
 )
 
 ///|
-fn command_preparation_result[T](
+fn[T] command_preparation_result(
   result : Result[T, LocalCommandPreparationIssue],
 ) -> T raise ClientStop {
   match result {
