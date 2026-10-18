@@ -16771,7 +16771,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -16878,7 +16878,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -58807,7 +58807,7 @@
     },
     {
       "module": "adapters/host-node/mock-churn-risk-catalogue.mjs",
-      "sha256": "51be22a425671db4db99446a1500aa6d45a9192e87dfb89e9eaf7d3b2610ebf4",
+      "sha256": "8c2ef14a08e20ab8ddd87f55fdafa58484ab5c72018c3b48ae3e9f48425d5ea0",
       "exports": [
         "mockChurnRiskCatalogue"
       ],
@@ -59165,6 +59165,10 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
+              },
+              {
+                "path": "scripts/mock-churn-risk-catalogue.test.mjs",
+                "anchor": "test('portable catalogue retains the complete previously authored Node DATA vector'"
               }
             ]
           }
