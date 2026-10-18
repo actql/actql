@@ -60,6 +60,38 @@ for (const rejects of [false, true]) {
   });
 }
 
+test('a reentrant close from the original SDK callback retains that same invocation', async () => {
+  const original = deferred(), entered = deferred();
+  const origin = 'http://127.0.0.1:43210';
+  let closing, settled = false;
+  const gateway = createExplorerGateway({origin, client: {
+    attach() {assert.fail('No Run operation');},
+    checkpoints() {
+      closing = gateway.close();
+      Promise.resolve(closing).then(() => {settled = true;});
+      entered.resolve();
+      return original.promise;
+    },
+  }});
+  const headers = await session(gateway, origin);
+  const response = gateway.fetch(new Request(`${origin}/api/read/checkpoints`, {
+    method: 'POST', headers, body: '{}',
+  }));
+  try {
+    await entered.promise;
+    await nextTurn();
+    assert.equal(settled, false, 'The original call must be retained before invoking its SDK callback');
+    original.resolve({items: []});
+    await closing;
+    assert.notEqual((await response).status, 200);
+    assert.equal(settled, true);
+  } finally {
+    original.resolve({items: []});
+    await response;
+    await gateway.close();
+  }
+});
+
 test('a presentation timeout leaves the same SDK call pending until close observes its settlement', async t => {
   t.mock.timers.enable({apis: ['setTimeout']});
   const original = deferred(), entered = deferred();
