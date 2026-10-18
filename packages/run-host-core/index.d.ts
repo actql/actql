@@ -539,14 +539,16 @@ export function privateRunDefinition(definition: RunDefinition): Readonly<{
   wire: string;
   cid: string;
 }>;
-/** Project the owner's unpublished Run state from retained physical facts. */
+/** Project an unpublished candidate from retained physical facts. The Host must
+ * complete its state observation using the original Run row and confirmed CAS. */
 export function issueUnpublishedRunStateWire(prepared: PreparedProgram,
   compilation: ValuesCompilation | TaskCompilation, admission: RunAdmission,
   definition: RunDefinition, observedAt: string,
   observation: Readonly<{dispatchReserved: boolean;
     preDispatchFailureConfirmed: boolean; cancelledBeforeStart?: boolean;
     executionUnknown?: boolean}>): string;
-/** Project a committed Run with current physical availability observations. */
+/** Project an unpublished candidate for a committed Run with current availability.
+ * The Host completes its state observation through the same original Run row. */
 export function issueSucceededRunStateWire(prepared: PreparedProgram,
   compilation: ValuesCompilation | TaskCompilation, admission: RunAdmission,
   definition: RunDefinition, observedAt: string,
@@ -1056,7 +1058,9 @@ export function prepareTaskPhysicalStart(prepared: PreparedProgram,
     definitionCid: string; reserved: boolean; unstarted: boolean;
     authorized: boolean; cancelled: boolean; failed: boolean}>): boolean;
 
-/** Authenticated storage is supplied by the Host; this grants no execution. */
+/** Project an unpublished candidate from the admitted original Site record.
+ * Its outer revision belongs to the Coordinator observation, not public Run state.
+ * Authenticated storage and the final same-Run observation/CAS belong to the Host. */
 export function projectSiteRun(prepared: PreparedProgram,
   compilation: ValuesCompilation | TaskCompilation, admission: RunAdmission,
   definition: RunDefinition, authority: string, durableWire: string,
