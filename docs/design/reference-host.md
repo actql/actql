@@ -863,3 +863,34 @@ does not bound native heap, aggregate WAL growth, other connections or shared
 library state; those remain separate terms in the selected facility's complete
 simultaneous disposition. Unsupported originals are refused without reclassifying
 valid input as a language error, and no cleanup observation supplies authority.
+
+The selected request-Journal connection also has finite lifetime compilation
+and execution support conditions. Original SQL preparation, execution, UTF8
+measurement and statement methods are captured with their receivers. Native
+failures and refused attempts do not refill those counters. Positional scalar
+operand count and extent are checked before native binding. These conditions
+are not a heap reservation or permission and leave unselected callers unchanged.
+
+Selected metadata reads use the original SQLite iterator instead of native
+`All()`'s complete result vector. They retain at most the supported row count
+and one lookahead row. Statements and unresolved cursors remain under the same
+actual connection; a failed cursor close prevents new SQL and cannot retire
+its original. Only the database's confirmed close can finalize that remaining
+native custody. Isolated cold inspection applies the same conditions and keeps
+its native statements alongside the original copy/FD cleanup carrier. The
+read-only inspection connection and subsequent writable connection are separate
+sequential originals, not a refill of one live connection or two whole-process
+allowances. Native single-row conversion, schema/connection/cache/transaction
+workspace and the optional observation connection still require their complete
+selected facility coverage before acquisition.
+
+Installation-time Mock answer documents are bounded Host-preparation
+definitions, not Model execution capacity. The selected control recipe includes
+the additional original Task reread and answer document for each selected Task,
+their UTF8/read/parse/checked-value/normalization work and retained definition,
+typed Provider, clock and callback aliases. These extra originals are declared
+before the selected images and acquisition; they do not reuse the earlier Task
+wire allowance. The same Host/runtime/current predicate and original preparation
+lifetime apply through partial failure and escaped aliases. Creating a typed
+mock Provider does not fund its requests, Entry, quantity, output, invocation or
+transport; those remain separately admitted Model duties.

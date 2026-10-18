@@ -59,18 +59,48 @@ function snapshotPrimarySqlLimits(value) {
   return Object.freeze(limits);
 }
 
+function snapshotPrimaryExecutionLimits(value) {
+  if (value === undefined) return undefined;
+  const names = ['maxStatementCalls', 'maxParameters', 'maxParameterBytes', 'maxResultRows'];
+  if (value === null || typeof value !== 'object' || utilTypes.isProxy(value)) {
+    fail('InvalidClientRequestJournalConfiguration');
+  }
+  const keys = Reflect.ownKeys(value);
+  if (keys.length !== names.length || keys.some(key => !names.includes(key))) {
+    fail('InvalidClientRequestJournalConfiguration');
+  }
+  const limits = {};
+  for (const name of names) {
+    const field = Object.getOwnPropertyDescriptor(value, name);
+    if (!field || !Object.hasOwn(field, 'value') ||
+        !Number.isSafeInteger(field.value) || field.value < 1) {
+      fail('InvalidClientRequestJournalConfiguration');
+    }
+    limits[name] = field.value;
+  }
+  if (!Number.isSafeInteger(limits.maxStatementCalls * limits.maxParameterBytes)) {
+    fail('InvalidClientRequestJournalConfiguration');
+  }
+  return Object.freeze(limits);
+}
+
 // Bound compilation attempts and account every prepared wrapper as retained
 // until this primary connection's real lifetime ends. Native failure and GC do
 // not refund an attempt. This is not a bound on bind values, result rows, native
 // heap/cache/WAL, or the separate observation connection, and issues no capacity.
-function boundedPrimarySql(connection, limits) {
+// A selected execution boundary additionally limits scalar bind extent and
+// calls, and replaces metadata All() with a bounded original native cursor.
+function boundedPrimarySql(connection, limits, executionLimits) {
   const prepare = connection.prepare, exec = connection.exec;
   const buffer = Buffer, byteLength = buffer.byteLength;
   const isTransaction = Object.getOwnPropertyDescriptor(connection, 'isTransaction')?.get;
   if (typeof prepare !== 'function' || typeof exec !== 'function' || typeof byteLength !== 'function' ||
       typeof isTransaction !== 'function') fail('ClientRequestJournalSqlUnavailable');
   let calls = 0, prepared = 0, bytes = 0;
+  let statementCalls = 0;
+  const statements = [], cursors = [];
   const consume = (sql, isPrepare) => {
+    if (cursors.length !== 0) fail('ClientRequestJournalSqlCleanupPending');
     if (typeof sql !== 'string' || sql.length > limits.maxSqlBytes ||
         calls >= limits.maxCalls || isPrepare && prepared >= limits.maxPreparedStatements) {
       fail('ClientRequestJournalSqlUnavailable');
@@ -83,11 +113,98 @@ function boundedPrimarySql(connection, limits) {
     calls++; bytes += size;
     if (isPrepare) prepared++;
   };
-  return Object.freeze({
-    prepare(sql) { consume(sql, true); return applyOriginal(prepare, connection, [sql]); },
+  const operands = values => {
+    if (cursors.length !== 0) fail('ClientRequestJournalSqlCleanupPending');
+    if (statementCalls >= executionLimits.maxStatementCalls) {
+      fail('ClientRequestJournalSqlUnavailable');
+    }
+    // Attempts, including refused operands and native failures, never refill.
+    statementCalls++;
+    if (values.length > executionLimits.maxParameters) fail('ClientRequestJournalSqlUnavailable');
+    let total = 0;
+    for (const value of values) {
+      let size;
+      if (value === null) size = 0;
+      else if (typeof value === 'number' || typeof value === 'bigint') size = 8;
+      else if (typeof value === 'string') {
+        if (value.length > executionLimits.maxParameterBytes - total) {
+          fail('ClientRequestJournalSqlUnavailable');
+        }
+        size = applyOriginal(byteLength, buffer, [value, 'utf8']);
+        if (!Number.isSafeInteger(size) || size < value.length) {
+          fail('ClientRequestJournalSqlUnavailable');
+        }
+      } else {
+        // These fixed Journal statements bind positional scalar originals.
+        // Named-object/Blob intake needs its own supported original boundary;
+        // it is not inspected, cloned or silently coerced here.
+        fail('ClientRequestJournalSqlUnavailable');
+      }
+      if (size > executionLimits.maxParameterBytes - total) {
+        fail('ClientRequestJournalSqlUnavailable');
+      }
+      total += size;
+    }
+  };
+  const wrap = statement => {
+    if (executionLimits === undefined) return statement;
+    // Keep native statements in this original connection's custody until its
+    // real close. Losing a local wrapper or GC supplies no earlier ACK.
+    statements.push(statement);
+    const get = statement.get, run = statement.run, iterate = statement.iterate;
+    if ([get, run, iterate].some(method => typeof method !== 'function')) {
+      fail('ClientRequestJournalSqlUnavailable');
+    }
+    return Object.freeze({
+      get(...values) { operands(values); return applyOriginal(get, statement, values); },
+      run(...values) { operands(values); return applyOriginal(run, statement, values); },
+      all(...values) {
+        operands(values);
+        const iterator = applyOriginal(iterate, statement, values);
+        const cursor = {iterator, next: undefined, end: undefined};
+        cursors.push(cursor);
+        let failed = false, primary;
+        const rows = [];
+        try {
+          cursor.next = iterator.next;
+          cursor.end = iterator.return;
+          if (typeof cursor.next !== 'function' || typeof cursor.end !== 'function') {
+            fail('ClientRequestJournalSqlUnavailable');
+          }
+          for (;;) {
+            const row = applyOriginal(cursor.next, iterator, []);
+            if (row.done === true) break;
+            // One original lookahead row proves overflow. Do not materialize
+            // native All()'s complete vector before checking the row ceiling.
+            if (rows.length === executionLimits.maxResultRows) {
+              fail('ClientRequestJournalSqlUnavailable');
+            }
+            rows.push(row.value);
+          }
+        } catch (cause) { failed = true; primary = cause; }
+        try {
+          if (typeof cursor.end !== 'function' ||
+              applyOriginal(cursor.end, iterator, [])?.done !== true) {
+            fail('ClientRequestJournalSqlCleanupPending');
+          }
+          cursors.pop();
+        } catch (cause) {
+          // Preserve the original iterator under the connection Owner. No new
+          // statement can run while it is unresolved; the original database
+          // close must finalize it before these retained aliases can retire.
+          fail('ClientRequestJournalSqlCleanupPending', failed ?
+            Object.freeze({primary, closeFailure: cause}) : cause);
+        }
+        if (failed) throw primary;
+        return rows;
+      },
+    });
+  };
+  return Object.freeze({database: Object.freeze({
+    prepare(sql) { consume(sql, true); return wrap(applyOriginal(prepare, connection, [sql])); },
     exec(sql) { consume(sql, false); return applyOriginal(exec, connection, [sql]); },
     get isTransaction() { return applyOriginal(isTransaction, connection, []); },
-  });
+  }), retireClosedNativeAliases() { statements.length = cursors.length = 0; }});
 }
 
 // This is an inspection-work ceiling, not a stored-request limit, format
@@ -846,7 +963,8 @@ function inspectCancellationStorage(database, enabled) {
 
 // A read-only SQLite connection can still create -shm beside a WAL database.
 // Inspect a private copy and refuse a source that changes during inspection.
-function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries, maxInspectionBytes) {
+function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries, maxInspectionBytes,
+  primarySqlLimits, primaryExecutionLimits) {
   const entries = journalDirectoryEntries(directory, maxInspectionEntries);
   const featurePath = join(directory, cancellationMarkerName);
   const enabled = entries.includes(cancellationMarkerName);
@@ -882,7 +1000,16 @@ function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspecti
   const nameEnabled = entries.includes(nameMarkerName);
   if (nameEnabled && (!intentEnabled || !lstatSync(namePath).isFile() ||
       !journalMarkerMatches(namePath, nameMarker))) fail('UnknownClientRequestJournalFormat');
-  inspectSqliteSnapshot(databasePath, database => {
+  let inspectionSql;
+  try {
+  inspectSqliteSnapshot(databasePath, originalDatabase => {
+    // The isolated primary-Journal inspection precedes the writable original.
+    // Apply the same selected support conditions to its owned metadata reads;
+    // no native All() vector may precede the bounded cursor path.
+    if (primaryExecutionLimits !== undefined) {
+      inspectionSql = boundedPrimarySql(originalDatabase, primarySqlLimits, primaryExecutionLimits);
+    }
+    const database = inspectionSql?.database ?? originalDatabase;
     const fields = database.prepare('PRAGMA table_info(client_requests)')
       .all().map(field => field.name).sort();
     if (JSON.stringify(fields) !== JSON.stringify(journalColumns)) {
@@ -907,9 +1034,42 @@ function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspecti
       (!restartEnabled || journalMarkerMatches(restartPath, restartMarker)) &&
       (!nameEnabled || journalMarkerMatches(namePath, nameMarker)) &&
       JSON.stringify(journalDirectoryEntries(directory, maxInspectionEntries)) === JSON.stringify(entries)});
+  } catch (error) {
+    if (inspectionSql !== undefined) {
+      const handleField = error !== null && typeof error === 'object'
+        ? Object.getOwnPropertyDescriptor(error, 'cleanupHandle') : undefined;
+      const handle = handleField !== undefined && Object.hasOwn(handleField, 'value')
+        ? handleField.value : undefined;
+      if (handle === undefined) {
+        // inspectSqliteSnapshot forwards a primary error without a carrier
+        // only after its actual database/FD/copy cleanup has completed.
+        inspectionSql.retireClosedNativeAliases();
+      } else {
+        const status = Object.getOwnPropertyDescriptor(handle, 'status')?.value;
+        const retry = Object.getOwnPropertyDescriptor(handle, 'retry')?.value;
+        const observe = value => {
+          const pending = value !== null && typeof value === 'object'
+            ? Object.getOwnPropertyDescriptor(value, 'pending') : undefined;
+          if (pending !== undefined && Object.hasOwn(pending, 'value') && pending.value === false) {
+            inspectionSql.retireClosedNativeAliases();
+          }
+          return value;
+        };
+        // Retain this same selected statement/cursor custody beside the
+        // original copy/FD cleanup. No replacement close or synthetic ACK.
+        error.cleanupHandle = Object.freeze({
+          status: () => observe(applyOriginal(status, handle, [])),
+          retry: () => observe(applyOriginal(retry, handle, [])),
+        });
+      }
+    }
+    throw error;
+  }
+  inspectionSql?.retireClosedNativeAliases();
 }
 
-function admitJournalDirectory(directory, maxInspectionEntries, maxInspectionBytes) {
+function admitJournalDirectory(directory, maxInspectionEntries, maxInspectionBytes,
+  primarySqlLimits, primaryExecutionLimits) {
   if (!existsSync(directory)) return false;
   const state = lstatSync(directory);
   if (!state.isDirectory() || state.isSymbolicLink()) {
@@ -933,10 +1093,13 @@ function admitJournalDirectory(directory, maxInspectionEntries, maxInspectionByt
     fail('UnknownClientRequestJournalFormat');
   }
   try {
-    inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries, maxInspectionBytes);
+    inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries, maxInspectionBytes,
+      primarySqlLimits, primaryExecutionLimits);
   } catch (cause) {
     if (cause?.cleanupPending) throw cause;
     if (cause?.code === 'ClientRequestJournalInspectionUnavailable') throw cause;
+    if (cause?.code === 'ClientRequestJournalSqlUnavailable' ||
+        cause?.code === 'ClientRequestJournalSqlCleanupPending') throw cause;
     if (cause?.code === 'UnknownClientRequestJournalFormat') throw cause;
     fail('UnknownClientRequestJournalFormat', cause);
   }
@@ -949,6 +1112,7 @@ export function openClientRequestJournal(directory, {
   maxInspectionBytes = 64 * 1024 * 1024,
   maxDatabaseBytes,
   primarySqlLimits,
+  primaryExecutionLimits,
   maxRunDefinitionWireBytes = 65_536,
   submissionEpochTtlMs = maxEpochTtlMs,
   submissionEpochNow = Date.now,
@@ -968,12 +1132,18 @@ export function openClientRequestJournal(directory, {
   }
   sourceOperationLimits = snapshotClientSourceOperationLimits(sourceOperationLimits);
   primarySqlLimits = snapshotPrimarySqlLimits(primarySqlLimits);
+  primaryExecutionLimits = snapshotPrimaryExecutionLimits(primaryExecutionLimits);
+  if (primaryExecutionLimits !== undefined &&
+      (primarySqlLimits === undefined || maxDatabaseBytes === undefined)) {
+    fail('InvalidClientRequestJournalConfiguration');
+  }
   // An optional selected-facility support bound is not a format rule or a
   // capacity issuer. Refuse original DB/WAL extent before its copy/SQLite
   // inspection, not after materializing rows. Unselected callers are unchanged.
   const inspectionBytes = maxDatabaseBytes === undefined ? maxInspectionBytes :
     Math.min(maxInspectionBytes, maxDatabaseBytes);
-  const current = admitJournalDirectory(directory, maxInspectionEntries, inspectionBytes);
+  const current = admitJournalDirectory(directory, maxInspectionEntries, inspectionBytes,
+    primarySqlLimits, primaryExecutionLimits);
   mkdirSync(directory, {recursive: true, mode: 0o700});
   const root = realpathSync(directory);
   const path = join(root, 'client-requests.sqlite3');
@@ -988,6 +1158,7 @@ export function openClientRequestJournal(directory, {
     enableForeignKeyConstraints: true,
   });
   let database = connection;
+  let selectedSql;
   let originalDatabaseClose, originalDatabaseIsOpen;
   const captureDatabaseCleanup = () => {
     originalDatabaseClose ??= connection.close;
@@ -1008,13 +1179,17 @@ export function openClientRequestJournal(directory, {
         applyOriginal(originalDatabaseIsOpen, connection, []) !== false)) {
       throw new TypeError('ClientRequestJournalConnectionCleanupPending');
     }
+    selectedSql?.retireClosedNativeAliases();
   }};
   let transaction;
   let closed = false;
   let databaseClosed = false;
   try {
     captureDatabaseCleanup();
-    if (primarySqlLimits !== undefined) database = boundedPrimarySql(connection, primarySqlLimits);
+    if (primarySqlLimits !== undefined) {
+      selectedSql = boundedPrimarySql(connection, primarySqlLimits, primaryExecutionLimits);
+      database = selectedSql.database;
+    }
     transaction = createSqliteTransaction(database, 'ClientRequestJournal');
     const originalOpen = connection.open;
     if (typeof originalOpen !== 'function' ||
