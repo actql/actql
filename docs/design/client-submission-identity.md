@@ -143,6 +143,18 @@ array. Normal resolution uses the exact indexed key and singleton control, not
 a scan of historical Programs or a process-local name cache. These controls are
 not a claim of whole Host heap funding or unlimited permanent name capacity.
 
+The Native adapter uses the original generic SQLite record table for this
+extension. Its issued control is updated by the existing Journal CAS, while
+exact insert/delete triggers maintain retained cardinality in that same
+transaction. Trusted fresh initialization creates the extension; restore only
+checks it. Startup verifies the original trigger definitions, closed controls,
+indexed census and authenticated name rows. Ordinary name resolution reads the
+exact name key and the original controls, without repeating the name-wide audit.
+These predicates do not discharge the inherited Run/Policy/Effect custody
+validation at the outer transaction boundary. That independent dependency must
+also close before the public ordinary path is described as historical-scan-free;
+its checks cannot be skipped or cached as proof for the name index.
+
 The closed `submit-named-intent` packet carries the exact `requestName`, ordinary
 submitted intent and intent CID, operation attempt, and a newly retained candidate
 submission reference. The candidate is used only when this same Journal confirms

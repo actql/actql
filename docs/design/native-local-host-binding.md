@@ -805,6 +805,31 @@ this implementation authorization. Hosted CI remains stopped. Focused local
 checks cover changed boundaries; heavy cross-target/proof/package campaigns
 remain with the integration verification owner.
 
+## Material delivery and final display
+
+The Native read selection distinguishes the literal `stdout` and `material`
+destinations. Parsing a material choice supplies only original configuration
+DATA. It cannot issue a receiver, read permission or physical capacity. A
+stdout binding and its original preimages never certify internal transfer.
+Their existing bytes and CIDs remain unchanged.
+
+Material acquisition requires the existing trusted installation's actual
+same-Host Store, original read and workspace loan before protected read or
+allocation. Bind that receiver to the original Run, Result, schema, ordering
+and material generation under current data and egress policy. Intake bounds,
+format choices, copied identities and a previous Allow are not substitutes.
+Until this joined supplier exists, material remains explicitly unavailable;
+there is no heap-backed or stdout-permission fallback.
+
+A confirmed material transfer records only the original receiver's actual
+acknowledgement. It does not certify table display. Final table stdout needs
+its own original disclosure selection, current authorization and real
+write/flush facts. A file destination separately needs the actual Writer.
+Keep the session, input, decoder, checked values, escaped aliases and output
+workspace through their respective acknowledgements. Failed or unknown read,
+transfer, display or close retains the same original responsibility; it never
+allocates another attempt or reconstructs a live loan from saved DATA.
+
 ## Finite original Run read roles
 
 The explicit finite read alternative selects `run_policy_profile_cid`, `run_file`,
@@ -1115,3 +1140,35 @@ not replace it. Descriptor retirement does not acknowledge escaped Readers,
 Session/provider aliases or the caller's original Domain/read/workspace loan.
 This holder supplies no physical scope, permission, transport binding or funded
 normal installation profile.
+
+## Consuming an original Native read
+
+The installed Arena Owner can claim an already prepared domain read once as an
+`InstalledArenaOriginalReadConsumer`. It validates the original Host, registered
+read, retained/execution envelope and original claim before allocating the
+consuming view. The view retains that same read and WorkspaceLoan; an equal
+descriptor, copied view or foreign Host cannot substitute for their nominal
+identity. This does not issue permission or select a normal numerical profile.
+
+Claiming transitions the existing Resource claim into its consuming phase. The
+old available-pair port consequently becomes unavailable and is not reinterpreted
+as another usable read. Consumer currentness uses the existing Resource
+consumer snapshot/token/phase checks and the same physical domain. Physical
+entry consumes the existing start transition once; a failed entry does not reset
+it or make another claim eligible. Leaving acknowledges only the original
+physical scope, including during cleanup, rather than final material retirement.
+
+The read retains its consumer through the existing close sequence: stop, actual
+C context and escaped-alias retirement, WorkspaceLoan close, original claim
+settlement, pair retirement and final context acknowledgement. Pending cleanup
+keeps that same carrier and loan. This is the existing read's cleanup authority,
+not a second controller or a raw Ledger export.
+
+A downstream material receiver must separately bind the actual Host/Store,
+original Result/schema/ordering/generation, current read policy and its complete
+simultaneous envelope before protected read or allocation. Package Root/Reader
+capacity, intake bounds and successful metadata comparison cannot supply this
+capacity. Retiring one managed alias does not establish that all row, schema,
+renderer or final Writer aliases have retired. Material transfer and final stdout
+write/flush require their own original receipts; without the actual supplier and
+complete profile the material path remains unavailable.

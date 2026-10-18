@@ -221,7 +221,7 @@ fn local_project_read(
 
 ///|
 fn local_project_execution_operation(operation : String) -> Bool {
-  ["check", "explain", "run", "aql", "start", "new-submission"].contains(
+  ["check", "explain", "run", "sql", "aql", "start", "new-submission"].contains(
     operation,
   )
 }
@@ -341,6 +341,7 @@ fn local_project_apply_selection(
 fn execute_native_project_selection(
   matches : @argparse.Matches,
 ) -> Result[String, @files.NativeBoundedTextFailure] raise ClientStop {
+  normalize_native_query_arguments(matches)
   normalize_native_program_arguments(matches)
   normalize_native_status_arguments(matches)
   let selected = match local_project_read(matches) {
