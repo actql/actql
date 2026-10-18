@@ -348,8 +348,9 @@ test "issue pages exclude pull requests and keep null distinct from omission" {
     Ok({ rows: [], excluded_pull_requests: 0, provider_items: 0, }),
   )
   // Omitting a nullable field is not the same as null.
-  let omitted = "[{\"number\":1,\"node_id\":\"I\",\"title\":\"t\",\"state\":\"open\",\"user\":null," +
-    "\"comments\":0,\"created_at\":\"a\",\"updated_at\":\"b\",\"closed_at\":null}]"
+  let omitted = "[" +
+    issue_json(1, "").replace(old="\"body\":null,", new="") +
+    "]"
   assert_eq(
     project_issue_page(@utf8.encode(omitted), limits()),
     Err(MissingRequiredField("body")),
