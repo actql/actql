@@ -27267,7 +27267,7 @@
     {
       "module": "adapters/host-node/infer-trusted-node-preload.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "e20bd98024a3b96e9d4092c734540c057fe13af2bf37bdc030d2c788998e21c0",
+      "sha256": "f446e173107efc1d255f0d5e41d0470c6aa4571c0b1021585b53ed0a88b228c9",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -27557,6 +27557,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "asynchronous begin snapshots five originals before initialization"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "const startup = require('./infer-trusted-node-preload.cjs');"
               }
             ],
             "ownership": [
@@ -27609,6 +27613,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "one original namespace flight can serve different generations"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "// The actual CJS startup may synchronously capture this ESM namespace before"
               }
             ],
             "failure": [
@@ -27739,6 +27747,14 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "anchor": "eager original namespace captures the actual startup forwarders"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "anchor": "eager consumer retains captured forwarders rather than a later cache export replacement"
               }
             ]
           }
@@ -27765,7 +27781,7 @@
     {
       "module": "adapters/host-node/infer-trusted-runtime-view.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a917e2b4d6f7e10fdbd39e333d48c8589307a45a06e2986cb5bf8becececd429",
+      "sha256": "d19af97f78d5a6e9c504701a788cb5b9fbe35fd4c14fee7e4911726706cef212",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -28110,6 +28126,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
+                "anchor": "const startup = require('./infer-trusted-node-preload.cjs');"
               }
             ],
             "ownership": [
@@ -28138,6 +28158,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
+                "anchor": "// Retain the same published CJS receiver while its original preload captures"
               }
             ],
             "failure": [
@@ -28204,12 +28228,306 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "anchor": "eager original namespace captures the actual startup forwarders"
               }
             ]
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "./infer-trusted-node-preload.cjs",
+        "node:module"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/initial-control-image-loader.cjs",
+      "sha256": "5ebcf3a1eb08bde36a8401ebfad3544820edc22b0274ec8f0fb1d4bd86189d5e",
+      "exports": [
+        "commonjs:installInitialControlImageLoader"
+      ],
+      "operations": [
+        {
+          "name": "concrete/concrete",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "concrete/concrete/concrete",
+          "parameters": [
+            "part"
+          ],
+          "async": false
+        },
+        {
+          "name": "ends/ends",
+          "parameters": [
+            "value",
+            "suffix"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "installInitialControlImageLoader",
+          "parameters": [
+            "groups"
+          ],
+          "async": false
+        },
+        {
+          "name": "installInitialControlImageLoader/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installInitialControlImageLoader/captureLoadedModules",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installInitialControlImageLoader/captureLoadedModules/captureLoadedModules",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "installInitialControlImageLoader/covered",
+          "parameters": [
+            "url"
+          ],
+          "async": false
+        },
+        {
+          "name": "installInitialControlImageLoader/load",
+          "parameters": [
+            "url",
+            "context",
+            "nextLoad"
+          ],
+          "async": false
+        },
+        {
+          "name": "installInitialControlImageLoader/registerFence",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "installInitialControlImageLoader/registerHooksFence",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "installInitialControlImageLoader/resolve",
+          "parameters": [
+            "specifier",
+            "context",
+            "nextResolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "starts/starts",
+          "parameters": [
+            "value",
+            "prefix"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:fs",
+        "node:module",
+        "node:path",
+        "node:url"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing private Host/Resource selected Source image custody; internal loader component, not an operational supplier",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "concrete/concrete",
+            "concrete/concrete/concrete",
+            "ends/ends",
+            "fail/fail",
+            "installInitialControlImageLoader",
+            "installInitialControlImageLoader/assertCurrent",
+            "installInitialControlImageLoader/captureLoadedModules",
+            "installInitialControlImageLoader/captureLoadedModules/captureLoadedModules",
+            "installInitialControlImageLoader/covered",
+            "installInitialControlImageLoader/load",
+            "installInitialControlImageLoader/registerFence",
+            "installInitialControlImageLoader/registerHooksFence",
+            "installInitialControlImageLoader/resolve",
+            "own/own",
+            "starts/starts"
+          ],
+          "exports": [
+            "commonjs:installInitialControlImageLoader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "// Private loader custody, not an operational admission."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "function installInitialControlImageLoader(groups)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "function captureLoadedModules()"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "const preloading = descriptor(NodeModule.prototype,"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "const stockLoad = NodeModule._load, stockCache = NodeModule._cache;"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "const loadedModules = [];"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "// Actual loader registration, held Sources and native module registry remain"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "function registerHooksFence(...args)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "registration through the published fence stays invalidated after deregistration"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "// Only the original preload can finish this handoff, immediately after its"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "a caller cache preseed cannot replace"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "function assertCurrent()"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "a captured but unevaluated CJS image does not gain post-entry module provenance"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "even after deregistration. This observation does not cover an original native"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "const images = new NativeMap(), prefixes = [];"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "cache-shaped object alone does not authenticate those originals."
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "// this shallow original is not a universal export-graph certificate."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "// This is only a Source-handoff marker, not module/exports authentication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "actual ESM compilation uses captured Source"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "actual CommonJS compilation and original manifest type"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "a stock load replacement cannot retain"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "the loader helper issues no operational admission"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "post-load capture binds the actual cache module and exports before entry"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "an original undefined export cannot be replaced by an unobserved cache getter"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "application-time post-load capture cannot resnapshot changed originals"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "a retained pre-fence registration function is outside the property fence observation"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Explicit disposable Node preload/image controls prove only the selected Source-loading and refusal component. Actual complete image graph/cache/resolver/assets/runtime original pairing, operational issuer and normal same-Host admission remain separate."
     },
     {
       "module": "adapters/host-node/initial-control-image-source.cjs",
@@ -40899,7 +41217,7 @@
     },
     {
       "module": "adapters/host-node/node-initial-control-installation.mjs",
-      "sha256": "04dde649e234a55b184d603612b32eb467561066fe62d7647395b6c556ecd160",
+      "sha256": "434e63afa7800485c28d31f36c4c9528e258aab9c14c3c028cfac0cf07824048",
       "exports": [
         "assertInitialControlInstallationCurrent",
         "beginInitialControlInstallation"
@@ -40922,7 +41240,8 @@
         }
       ],
       "imports": [
-        "./infer-trusted-node-preload.cjs"
+        "./infer-trusted-node-preload.cjs",
+        "node:module"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -40989,6 +41308,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "asynchronous begin snapshots five originals before initialization"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "const startup = require('./infer-trusted-node-preload.cjs');"
               }
             ],
             "ownership": [
@@ -41029,6 +41352,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "one original namespace flight can serve different generations"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "// The actual CJS startup may synchronously capture this ESM namespace before"
               }
             ],
             "failure": [
@@ -41135,6 +41462,14 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "anchor": "eager original namespace captures the actual startup forwarders"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "anchor": "eager consumer retains captured forwarders rather than a later cache export replacement"
               }
             ]
           }
