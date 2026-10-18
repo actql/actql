@@ -5986,7 +5986,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a565181cb1ec181524f0968b8c17106632632b223b7fd90bd48da253f2253d5e",
+      "sha256": "e7204de10bf9d434bdfc7dcfb33a4d8fa2b3a8203af7bf637ec61a12d4beba3c",
       "role": "connector-semantics",
       "owner": "Published stable repository identity and installed Issue Source; Host RowSource owns capture and disclosure",
       "exports": [
@@ -6067,6 +6067,7 @@
             "resource",
             "authorizationFor",
             "chargePage",
+            "consumeObservation",
             "consumePage",
             "signal"
           ],
@@ -6296,7 +6297,22 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/local-account-config.mjs",
+        "../../../host-node/source-profile-json.mjs",
+        "../site/github-issue-graphql-read.mjs",
+        "../site/github-issue-read.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/github/site/github-comment-create.mjs",
@@ -6595,7 +6611,7 @@
     {
       "module": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5028d3f73b955d9b21e4016c483f37a5a12255c0cce794ae014543d15d6ec806",
+      "sha256": "70c655bca2417240c58c1bb0a681c832863d57ff0ebe888a2bd4c72fd416cf34",
       "role": "physical-io",
       "owner": "Stable-node GraphQL Issue pagination; provider MoonBit fixes query, variables, projection and refusal",
       "exports": [
@@ -6658,13 +6674,35 @@
             "authorizationFor",
             "limits",
             "chargePage",
+            "consumeObservation",
             "consumePage",
             "signal"
           ],
           "async": true
         },
         {
+          "name": "readGitHubIssuesByNode/decoded/decoded",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readGitHubIssuesByNode/exchange/exchange",
+          "parameters": [
+            "body"
+          ],
+          "async": true
+        },
+        {
           "name": "readGitHubIssuesByNode/readGitHubIssuesByNode",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readGitHubIssuesByNode/readGitHubIssuesByNode#2",
           "parameters": [
             "label"
           ],
@@ -6690,7 +6728,10 @@
             "pairs/pairs/pairs",
             "pairs/pairs/pairs#2",
             "readGitHubIssuesByNode",
+            "readGitHubIssuesByNode/decoded/decoded",
+            "readGitHubIssuesByNode/exchange/exchange",
             "readGitHubIssuesByNode/readGitHubIssuesByNode",
+            "readGitHubIssuesByNode/readGitHubIssuesByNode#2",
             "readGitHubIssuesByNode/stopped/stopped"
           ],
           "exports": [
@@ -6701,20 +6742,24 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "src/connectors/github/catalog/graphql.mbt",
-                "anchor": "project_issues_response"
+                "path": "src/connectors/github/catalog/issue_fields.mbt",
+                "anchor": "begin_issue_page_read"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
-                "anchor": "readGitHubIssuesByNode"
+                "anchor": "consumeObservation"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
-                "anchor": "repository"
+                "path": "src/connectors/github/catalog/issue_fields.mbt",
+                "anchor": "repository.database_id"
+              },
+              {
+                "path": "src/connectors/github/catalog/issue_fields.mbt",
+                "anchor": "row.node_id"
               }
             ],
             "ownership": [
@@ -6744,7 +6789,11 @@
             "resources": [
               {
                 "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
-                "anchor": "checkLimits"
+                "anchor": "requests >= owned.maxPages"
+              },
+              {
+                "path": "src/connectors/github/catalog/issue_fields.mbt",
+                "anchor": "read.pages >= read.max_pages"
               }
             ],
             "extension": [
@@ -6757,11 +6806,21 @@
               {
                 "path": "adapters/connectors/github/test/github-issue-graphql-read.test.mjs",
                 "anchor": "a same-name repository B never changes the requested node"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-issue-graphql-read.test.mjs",
+                "anchor": "all Issue columns and both child connections complete through separately authorized physical uses"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/github/site/github-issue-read.mjs",
