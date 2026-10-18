@@ -44,3 +44,17 @@ pub fn NativeFileObservation::check_reader(
 ) -> Result[Unit, NativeFilesystemIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+type NativeObservedComponentMember
+
+///|
+pub fn NativeFileObservation::command_component_member(
+  _self : NativeFileObservation,
+  _kind : Int,
+  _source : String,
+  _manifest : String,
+  _digest : String,
+) -> Result[NativeObservedComponentMember, NativeFilesystemIssue] {
+  Err(UnsupportedTarget)
+}

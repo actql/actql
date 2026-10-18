@@ -2803,3 +2803,5 @@ MOONBIT_FFI_EXPORT int32_t actql_native_filesystem_scoped_open_current_private_r
 }
 
 #include "filesystem_scoped_acquisition.inc"
+
+#include "observed_component_member.inc"

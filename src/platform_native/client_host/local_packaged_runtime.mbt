@@ -17,6 +17,8 @@ struct NativeLocalPackagedRuntime {
   mut read_scope_entered : Bool
   mut sqlite : String
   mut crypto : String
+  mut command_sqlite_member : @filesystem.NativeObservedComponentMember?
+  mut command_crypto_member : @filesystem.NativeObservedComponentMember?
   mut ready : Bool
   mut closed : Bool
 }
@@ -168,6 +170,8 @@ fn local_runtime_empty(
     read_scope_entered: false,
     sqlite: "",
     crypto: "",
+    command_sqlite_member: None,
+    command_crypto_member: None,
     ready: false,
     closed: false,
   }
@@ -460,6 +464,22 @@ fn local_runtime_capture(
       if collect {
         bodies[entry.role] = body
       }
+      if runtime.original_read is Some(_) &&
+        (entry.role == "sqlite" || entry.role == "crypto") {
+        let observation = runtime.witnesses[runtime.witnesses.length() - 1]
+        let component = observation.command_component_member(
+          if entry.role == "sqlite" { 1 } else { 2 },
+          source_sha, manifest_sha256, entry.sha256,
+        ).map_err(issue => Physical(issue)) |> local_runtime_result
+        if !local_runtime_bind_command_member(runtime, component) {
+          local_runtime_stop(Changed)
+        }
+        if entry.role == "sqlite" {
+          runtime.command_sqlite_member = Some(component)
+        } else {
+          runtime.command_crypto_member = Some(component)
+        }
+      }
       if entry.role == "sqlite" {
         runtime.sqlite = root_path + "/" + entry.path
       }
@@ -741,4 +761,31 @@ fn NativeLocalPackagedRuntime::local_runtime_close_originals(
   self.sqlite = ""
   self.crypto = ""
   Ok(())
+}
+
+///|
+#borrow(runtime, component)
+extern "C" fn local_runtime_bind_command_member(
+  runtime : NativeLocalPackagedRuntime,
+  component : @filesystem.NativeObservedComponentMember,
+) -> Bool = "actql_native_client_bind_component_runtime"
+
+///|
+/// The exact two already hashed members of this same retained Runtime. These
+/// observations cannot issue initial control coverage or permit a load without
+/// the original trusted command bootstrap. Retain this Runtime through all
+/// component users; normal close/current rules remain unchanged.
+pub fn NativeLocalPackagedRuntime::command_library_members(
+  self : NativeLocalPackagedRuntime,
+) -> Result[
+  (@filesystem.NativeObservedComponentMember, @filesystem.NativeObservedComponentMember),
+  NativeLocalPackagedRuntimeIssue,
+] {
+  match self.check_current() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard self.command_sqlite_member is Some(sqlite) &&
+    self.command_crypto_member is Some(crypto) else { return Err(Changed) }
+  Ok((sqlite, crypto))
 }
