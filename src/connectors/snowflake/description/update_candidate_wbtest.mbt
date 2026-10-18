@@ -658,3 +658,52 @@ test "UPDATE native Object and Array cannot coerce a JSON scalar or JSON null" {
     )
   }
 }
+
+///|
+test "UPDATE finite FLOAT values use REAL bindings without Boolean or decimal coercion" {
+  let rows = [metadata_row("K", 1, "TEXT"), metadata_row("F", 2, "FLOAT")]
+  let original = project_table_description(
+    target(),
+    metadata_response(rows, total=2, partition_counts=[2]),
+    [],
+    limits(),
+  ).unwrap()
+  let key = write_value(original, 0, @admitted.text_value("key", 4096).unwrap())
+  let finite = write_value(original, 1, @admitted.number_value(1.25).unwrap())
+  let candidate = prepare_update_candidate(
+    original,
+    "K",
+    key,
+    [("K", key), ("F", finite)],
+    [("F", finite)],
+    update_limits(),
+  ).unwrap()
+  assert_true(
+    update_candidate_bindings(candidate).contains(
+      "\"type\":\"REAL\",\"value\":\"1.25\"",
+    ),
+  )
+  assert_false(update_candidate_statement(candidate).contains("TO_DECIMAL"))
+  assert_true(
+    @admitted.checked_number_value(
+      -0.0,
+      description_column_contract(original, 1).unwrap(),
+    )
+    is None,
+  )
+  let boolean = @admitted.checked_boolean_value(
+    true,
+    @contract.primitive(@contract.BooleanType, nullable=false),
+  ).unwrap()
+  assert_true(
+    prepare_update_candidate(
+      original,
+      "K",
+      key,
+      [("K", key), ("F", finite)],
+      [("F", boolean)],
+      update_limits(),
+    )
+    is Err(InvalidValue("F")),
+  )
+}
