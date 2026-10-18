@@ -393,8 +393,8 @@ export interface RowEffectDriver<Request extends object, Current = unknown,
     current: Current | undefined}>): Readonly<{request: Request; requestCid: string}>;
   /** Synchronous, I/O-free factory retained by the existing capture owner.
    * Guarded UPDATE/upsert/DELETE receives the exact row and a zero-argument read
-   * supplier. The existing Command context has no row index/current fence
-   * and may omit its indexed read supplier. No grant is created by the type. */
+   * supplier. CREATE and Command use the existing unindexed context without a
+   * row index/current fence; CREATE has no target-read supplier. No grant is created by the type. */
   prepareRequestChild?(options: Readonly<{member: RowEffectMember<Kind>;
     value: RowEffectValue<Kind>; selector?: ConnectorJsonValue;
     current: Current | undefined; signal?: AbortSignal;
