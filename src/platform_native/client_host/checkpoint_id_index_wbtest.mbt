@@ -147,3 +147,73 @@ test "checkpoint locator collision refuses without replacing the original bindin
   assert_eq(after.revision, before.revision)
   database.close_checked().unwrap()
 }
+
+///|
+test "Journal rolls back the Run CAS and prior locator after checkpoint index collision" {
+  let database = epoch_test_database("checkpoint-id-cas-rollback")
+  let (journal, request, waiting) = checkpoint_test_waiting(database, [])
+  let scope = @host.client_request_authority_scope_cid(request)
+  let run_key = @host.client_request_scope_cid(request)
+  let original_key = checkpoint_id_index_key(
+    scope, "client-original-checkpoint",
+  )
+  let collision_key = checkpoint_id_index_key(scope, "occupied-checkpoint")
+  let original_run = database.read("client_runs", run_key).unwrap()
+  let original_locator = database
+    .read("client_checkpoint_id_index", original_key)
+    .unwrap()
+  let checkpoint = waiting.checkpoint.unwrap()
+  let replacement = @checkpoint.seal_checkpoint(
+    { ..checkpoint.artifact.checkpoint, checkpoint_id: "occupied-checkpoint", },
+    native_checkpoint_limits(),
+  ).unwrap()
+  // An existing locator forces the index failure after the Run compare-exchange
+  // and removal of the prior locator, inside the actual Journal transaction.
+  database
+  .insert("client_checkpoint_id_index", collision_key, original_locator.body)
+  .unwrap()
+  |> ignore
+  let occupied = database
+    .read("client_checkpoint_id_index", collision_key)
+    .unwrap()
+  assert_true(
+    journal.transaction(() => {
+      let result = journal.save({
+        ..waiting,
+        checkpoint: Some({ ..checkpoint, artifact: replacement, }),
+      })
+      assert_true(result is Err(CustodyLost))
+      let changed = database.read("client_runs", run_key).unwrap()
+      assert_eq(changed.revision, original_run.revision + 1L)
+      assert_true(changed.body != original_run.body)
+      assert_true(
+        database.read("client_checkpoint_id_index", original_key)
+        is Err(@sqlite.NotFound),
+      )
+      result.map(_ => ())
+    })
+    is Err(CustodyLost),
+  )
+  let retained_run = database.read("client_runs", run_key).unwrap()
+  let retained_locator = database
+    .read("client_checkpoint_id_index", original_key)
+    .unwrap()
+  let retained_collision = database
+    .read("client_checkpoint_id_index", collision_key)
+    .unwrap()
+  assert_eq(retained_run.revision, original_run.revision)
+  assert_eq(retained_run.body, original_run.body)
+  assert_eq(retained_locator.revision, original_locator.revision)
+  assert_eq(retained_locator.body, original_locator.body)
+  assert_eq(retained_collision.revision, occupied.revision)
+  assert_eq(retained_collision.body, occupied.body)
+  assert_true(
+    journal.transaction(() => {
+      journal.checkpoint_request_by_id_locked(
+        scope, "client-original-checkpoint",
+      )
+    })
+    is Ok(Some(_)),
+  )
+  database.close_checked().unwrap()
+}
