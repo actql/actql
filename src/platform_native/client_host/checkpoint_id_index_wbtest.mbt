@@ -8,23 +8,23 @@ test "checkpoint ID lookup uses one exact same-transaction original Run locator"
     journal.transaction(() => journal.checkpoint_request_by_id_locked(scope, id))
     is Ok(Some(_)),
   )
-  assert_eq(
+  assert_true(
     journal.transaction(() => {
       journal.checkpoint_request_by_id_locked(scope, "checkpoint-run")
-    }),
-    Ok(None),
+    })
+    is Ok(None),
   )
-  assert_eq(
+  assert_true(
     journal.transaction(() => {
       journal.checkpoint_request_by_id_locked(scope, "unknown")
-    }),
-    Ok(None),
+    })
+    is Ok(None),
   )
-  assert_eq(
+  assert_true(
     journal.transaction(() => {
       journal.checkpoint_request_by_id_locked("sha256:" + "f".repeat(64), id)
-    }),
-    Ok(None),
+    })
+    is Ok(None),
   )
   let row = database
     .read("client_checkpoint_id_index", checkpoint_id_index_key(scope, id))
@@ -66,13 +66,13 @@ test "checkpoint locator survives reopen and missing legacy index never backfill
   database
   .remove_exact("client_checkpoint_id_index", key, row.revision, row.body)
   .unwrap()
-  assert_eq(
+  assert_true(
     journal.transaction(() => {
       journal.checkpoint_request_by_id_locked(
         scope, "client-original-checkpoint",
       )
-    }),
-    Ok(None),
+    })
+    is Ok(None),
   )
   journal
   .transaction(() => {
@@ -105,11 +105,11 @@ test "checkpoint locator copied to another exact ID cannot select that Run" {
   )
   .unwrap()
   |> ignore
-  assert_eq(
+  assert_true(
     journal.transaction(() => {
       journal.checkpoint_request_by_id_locked(scope, "another-checkpoint")
-    }),
-    Err(CustodyLost),
+    })
+    is Err(CustodyLost),
   )
   assert_true(
     journal.transaction(() => {
@@ -133,14 +133,14 @@ test "checkpoint locator collision refuses without replacing the original bindin
   assert_eq(scope, @host.client_request_authority_scope_cid(other))
   let key = checkpoint_id_index_key(scope, "client-original-checkpoint")
   let before = database.read("client_checkpoint_id_index", key).unwrap()
-  assert_eq(
+  assert_true(
     journal.transaction(() => {
       journal.save_checkpoint_id_index({ ..waiting, checkpoint: None, }, {
         ..waiting,
         request: other,
       })
-    }),
-    Err(CustodyLost),
+    })
+    is Err(CustodyLost),
   )
   let after = database.read("client_checkpoint_id_index", key).unwrap()
   assert_eq(after.body, before.body)

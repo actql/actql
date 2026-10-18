@@ -920,7 +920,6 @@ fn command() -> @argparse.Command {
           @argparse.PositionArg(
             "checkpoint-id",
             num_args=@argparse.ValueRange::single(),
-            required=true,
           ),
         ],
         options=[@argparse.OptionArg("signer")],
@@ -931,7 +930,6 @@ fn command() -> @argparse.Command {
           @argparse.PositionArg(
             "checkpoint-id",
             num_args=@argparse.ValueRange::single(),
-            required=true,
           ),
         ],
         options=[@argparse.OptionArg("signer")],
