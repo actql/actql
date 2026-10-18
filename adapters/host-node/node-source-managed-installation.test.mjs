@@ -4,6 +4,7 @@ import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {createRequire} from 'node:module';
+import {spawnSync} from 'node:child_process';
 import * as actual from './node-source-managed-installation.mjs';
 
 test('the actual absent Source issuer refuses without observing caller originals', async () => {
@@ -14,17 +15,23 @@ test('the actual absent Source issuer refuses without observing caller originals
     {code: 'SourceManagedPreparationUnavailable'});
   assert.throws(() => actual.assertSourceManagedInstallationCurrent(raw, raw),
     {code: 'SourceManagedPreparationUnavailable'});
+  assert.throws(() => actual.assertSourceManagedPreparationCurrent(raw, raw),
+    {code: 'SourceManagedPreparationUnavailable'});
   assert.equal(reads, 0);
 });
 
 // Execute the exact consumer Source with an explicitly substituted CJS
 // receiver. These test-only ports prove forwarding/custody, not a selected
 // startup, Resource issuer, original Source capacity or real Host positive.
-async function fixture(t) {
+async function fixture(t, {ordinaryAbsent = false} = {}) {
   const root = fileURLToPath(new URL('../../', import.meta.url));
   await mkdir(join(root, '_build'), {recursive:true});
   const scratch = {path: await mkdtemp(join(root, '_build/source-forward-controls-'))};
-  await writeFile(join(scratch.path, 'infer-trusted-node-preload.cjs'), 'module.exports={};\n');
+  await writeFile(join(scratch.path, 'infer-trusted-node-preload.cjs'), ordinaryAbsent
+    ? "module.exports={prepareSourceManagedInstallation(){throw new Error('MustNotBorrowPreloadReceiver');}};\n"
+    : 'module.exports={};\n');
+  await writeFile(join(scratch.path, 'node-public-initial-control-bootstrap.cjs'), ordinaryAbsent
+    ? 'module.exports={};\n' : "module.exports=require('./infer-trusted-node-preload.cjs');\n");
   const owner = createRequire(import.meta.url)(join(scratch.path, 'infer-trusted-node-preload.cjs'));
   const originals = Object.freeze({}), installation = Object.freeze({}), receipt = Object.freeze({});
   const s = {current: true, close: {pending: false}, closes: 0, calls: [], returnReceipt: receipt,
@@ -48,8 +55,37 @@ async function fixture(t) {
   const consumer = await import(pathToFileURL(join(scratch.path, 'consumer.mjs')));
   // Keep these tiny explicit-port fixtures; no automatic test-failure cleanup
   // can be mistaken for an original Source/physical acknowledgement.
-  return {s, consumer, owner, originals, installation, receipt};
+  return {s, consumer, owner, originals, installation, receipt, path: scratch.path};
 }
+
+test('ordinary Source absence cannot borrow the explicit preload receiver or observe caller originals', async t => {
+  const f = await fixture(t, {ordinaryAbsent: true});
+  // Node's test child has test-runner execArgv. Exercise the actual ordinary
+  // selector in a fresh plain child, not by changing its production predicate.
+  const entry = join(f.path, 'ordinary-absence.mjs');
+  await writeFile(entry, "import assert from'node:assert/strict';import{prepareSourceManagedInstallation}from'./consumer.mjs';" +
+    "assert.deepEqual(process.execArgv,[]);let observed=0;const raw=new Proxy({},{get(){observed++;},ownKeys(){observed++;},getOwnPropertyDescriptor(){observed++;}});" +
+    "await assert.rejects(prepareSourceManagedInstallation(raw),{code:'SourceManagedPreparationUnavailable'});assert.equal(observed,0);");
+  const result = spawnSync(process.execPath, [entry], {encoding: 'utf8', timeout: 10000});
+  assert.equal(result.error, undefined);
+  assert.equal(result.signal, null);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('partial Source metadata current checks the captured nominal original before a view exists', async t => {
+  const f = await fixture(t);
+  assert.equal(f.consumer.assertSourceManagedPreparationCurrent(f.installation, f.originals), undefined);
+  f.owner.assertSourceManagedInstallationCurrent = () => {throw new Error('ReplacementMustNotRun');};
+  assert.equal(f.consumer.assertSourceManagedPreparationCurrent(f.installation, f.originals), undefined);
+  assert.throws(() => f.consumer.assertSourceManagedPreparationCurrent({...f.installation}, f.originals));
+  assert.throws(() => f.consumer.assertSourceManagedPreparationCurrent(f.installation, {...f.originals}));
+  assert.equal(f.s.closes, 0);
+  assert.equal(f.s.calls.length, 0);
+  f.s.current = false;
+  f.s.cause = Object.freeze(new Error('OriginalPreparationRetired'));
+  assert.throws(() => f.consumer.assertSourceManagedPreparationCurrent(f.installation, f.originals),
+    cause => cause === f.s.cause);
+});
 
 test('four producer calls synchronously forward exact originals to the captured receiver', async t => {
   const f = await fixture(t), view = await f.consumer.prepareSourceManagedInstallation(f.originals);

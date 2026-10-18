@@ -24139,7 +24139,7 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e37bf02ffea6fc161f4b267456840bd4221f9641fc461158e28dbd0f268c05ec",
+      "sha256": "93e346ed59b136e324597d0a3c2e48ee86efbd7f5decdda1fd032b2a63c43bd5",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -24173,6 +24173,16 @@
             "host",
             "installation",
             "generation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:assertSourceRequest/init:assertSourceRequest",
+          "parameters": [
+            "host",
+            "installation",
+            "generation",
+            "request"
           ],
           "async": false
         },
@@ -24927,7 +24937,8 @@
             "createEmbeddedHostRegistry/init:registerPreparation/init:registerPreparation",
             "createEmbeddedHostRegistry/init:retirePreparation/init:retirePreparation",
             "createEmbeddedHostRegistry/preparationChanged/preparationChanged",
-            "createEmbeddedHostRegistry/preparationFor"
+            "createEmbeddedHostRegistry/preparationFor",
+            "createEmbeddedHostRegistry/init:assertSourceRequest/init:assertSourceRequest"
           ],
           "exports": [],
           "attributes": {
@@ -27820,7 +27831,7 @@
     {
       "module": "adapters/host-node/infer-trusted-node-preload.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "67819bf36bee0406dd35b01b8b34626c22742d164e5b4150794908c0bf46c782",
+      "sha256": "bad0aba6974c3bcd7767961886742d1b667974886d13cca48542b63fe04f7e95",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -28098,21 +28109,21 @@
             "init:readInitialControlInstallationAsset/init:readInitialControlInstallationAsset",
             "init:readInitialControlInstallationInput/init:readInitialControlInstallationInput",
             "init:retire/init:retire",
-            "moduleNamespace",
-            "originals/originals",
-            "publicPreloadOriginals",
-            "sdkOriginals",
-            "sdkOriginals/sdkOriginals",
-            "sdkUnavailable",
-            "sdkValue",
-            "unavailable/unavailable",
             "inputUnavailable/inputUnavailable",
+            "moduleNamespace",
             "operational/init:assertCurrent/init:assertCurrent",
             "operational/init:close/init:close",
             "operational/init:prepare/init:prepare",
             "operational/init:readAsset/init:readAsset",
             "operational/init:readInput/init:readInput",
-            "samePreparation/samePreparation"
+            "originals/originals",
+            "publicPreloadOriginals",
+            "samePreparation/samePreparation",
+            "sdkOriginals",
+            "sdkOriginals/sdkOriginals",
+            "sdkUnavailable",
+            "sdkValue",
+            "unavailable/unavailable"
           ],
           "exports": [
             "commonjs:assertInitialControlInstallationCurrent",
@@ -28149,6 +28160,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "inputsOutputs": [
@@ -28224,7 +28239,7 @@
               },
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "const startup = require('./infer-trusted-node-preload.cjs');"
+                "anchor": "const startup = ordinary ? require('./node-public-initial-control-bootstrap.cjs') :"
               },
               {
                 "path": "adapters/host-node/initial-control-static-assets.test.mjs",
@@ -28256,7 +28271,11 @@
               },
               {
                 "path": "adapters/host-node/infer-trusted-node-preload.cjs",
-                "anchor": "let preparationOriginals, preparationInput, preparationClosed = false;"
+                "anchor": "let preparationOriginals, preparationInput, preparationIntake, preparationClosed = false;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "ownership": [
@@ -28483,6 +28502,10 @@
               {
                 "path": "adapters/host-node/infer-trusted-node-preload.cjs",
                 "anchor": "// Native runtime/library identities stay with this SAME actual process/module"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "extension": [
@@ -28513,6 +28536,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "verification": [
@@ -28574,7 +28601,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "preload refuses unsupported raw input before its Host consumer"
+                "anchor": "preload bounds original Mock input before its explicit Host fixture"
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
@@ -28607,6 +28634,10 @@
               {
                 "path": "adapters/host-node/initial-control-finite-host.test.mjs",
                 "anchor": "partial initialization retains the actual marker FD until its same close-only duty acknowledges"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               }
             ]
           }
@@ -28618,6 +28649,7 @@
         "./initial-control-package-custody.cjs",
         "./initial-control-package-original.cjs",
         "./initial-control-phase-envelope.cjs",
+        "./source-managed-phase-envelope.cjs",
         "node:buffer",
         "node:http",
         "node:https",
@@ -29102,9 +29134,10 @@
     },
     {
       "module": "adapters/host-node/initial-control-image-loader.cjs",
-      "sha256": "33798df367d13a6d90dbcdf177af1dec2afc0903f85b36a627309cdb141d7ca1",
+      "sha256": "f8d6b5cfc792febb09a5f020f906f063da31f94d0f52c8efcd96a48c59128b94",
       "exports": [
-        "commonjs:installInitialControlImageLoader"
+        "commonjs:installInitialControlImageLoader",
+        "commonjs:installOrdinaryInitialControlImageLoader"
       ],
       "operations": [
         {
@@ -29138,45 +29171,46 @@
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader",
+          "name": "installImageLoader",
           "parameters": [
-            "groups"
+            "groups",
+            "ordinary"
           ],
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/assertCurrent",
+          "name": "installImageLoader/assertCurrent",
           "parameters": [],
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/captureLoadedModules",
+          "name": "installImageLoader/captureLoadedModules",
           "parameters": [],
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/captureLoadedModules/captureLoadedModules",
+          "name": "installImageLoader/captureLoadedModules/captureLoadedModules",
           "parameters": [
             "original"
           ],
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/covered",
+          "name": "installImageLoader/covered",
           "parameters": [
             "url"
           ],
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/jsonInteropRecord",
+          "name": "installImageLoader/jsonInteropRecord",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/load",
+          "name": "installImageLoader/load",
           "parameters": [
             "url",
             "context",
@@ -29185,21 +29219,21 @@
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/registerFence",
+          "name": "installImageLoader/registerFence",
           "parameters": [
             "args"
           ],
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/registerHooksFence",
+          "name": "installImageLoader/registerHooksFence",
           "parameters": [
             "args"
           ],
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/resolve",
+          "name": "installImageLoader/resolve",
           "parameters": [
             "specifier",
             "context",
@@ -29208,10 +29242,24 @@
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/sealJsonOriginal",
+          "name": "installImageLoader/sealJsonOriginal",
           "parameters": [
             "original",
             "exported"
+          ],
+          "async": false
+        },
+        {
+          "name": "installInitialControlImageLoader",
+          "parameters": [
+            "groups"
+          ],
+          "async": false
+        },
+        {
+          "name": "installOrdinaryInitialControlImageLoader",
+          "parameters": [
+            "groups"
           ],
           "async": false
         },
@@ -29251,28 +29299,35 @@
             "concrete/concrete/concrete",
             "ends/ends",
             "fail/fail",
+            "installImageLoader",
+            "installImageLoader/assertCurrent",
+            "installImageLoader/captureLoadedModules",
+            "installImageLoader/captureLoadedModules/captureLoadedModules",
+            "installImageLoader/covered",
+            "installImageLoader/jsonInteropRecord",
+            "installImageLoader/load",
+            "installImageLoader/registerFence",
+            "installImageLoader/registerHooksFence",
+            "installImageLoader/resolve",
+            "installImageLoader/sealJsonOriginal",
             "installInitialControlImageLoader",
-            "installInitialControlImageLoader/assertCurrent",
-            "installInitialControlImageLoader/captureLoadedModules",
-            "installInitialControlImageLoader/captureLoadedModules/captureLoadedModules",
-            "installInitialControlImageLoader/covered",
-            "installInitialControlImageLoader/jsonInteropRecord",
-            "installInitialControlImageLoader/load",
-            "installInitialControlImageLoader/registerFence",
-            "installInitialControlImageLoader/registerHooksFence",
-            "installInitialControlImageLoader/resolve",
-            "installInitialControlImageLoader/sealJsonOriginal",
+            "installOrdinaryInitialControlImageLoader",
             "own/own",
             "starts/starts"
           ],
           "exports": [
-            "commonjs:installInitialControlImageLoader"
+            "commonjs:installInitialControlImageLoader",
+            "commonjs:installOrdinaryInitialControlImageLoader"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "adapters/host-node/initial-control-image-loader.cjs",
                 "anchor": "// Private loader custody, not an operational admission."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "inputsOutputs": [
@@ -29313,6 +29368,10 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.cjs",
                 "anchor": "const jsonInterop = original.format === 'json'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "ownership": [
@@ -29391,6 +29450,10 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.cjs",
                 "anchor": "loading: loadedProperty.value === false, jsonInterop, properties"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "extension": [
@@ -29401,6 +29464,10 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.cjs",
                 "anchor": "// This is only a Source-handoff marker, not module/exports authentication"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "verification": [
@@ -29463,6 +29530,10 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.test.mjs",
                 "anchor": "original ESM JSON interop never licenses an abbreviated CommonJS cache record"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               }
             ]
           }
@@ -30216,7 +30287,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "preload refuses unsupported raw input before its Host consumer"
+                "anchor": "preload bounds original Mock input before its explicit Host fixture"
               }
             ]
           }
@@ -30226,9 +30297,10 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "b7cb63f6bb3d5208bcb3278b4a382f85a15b9e87ca6989b68a28015c460ddd27",
+      "sha256": "2914cdb608ee2bf4a72e770f8e5b76e481585c2775b8c6f8e5c73042cfa3f0fe",
       "exports": [
-        "commonjs:captureInitialControlPackageCustody"
+        "commonjs:captureInitialControlPackageCustody",
+        "commonjs:captureOrdinaryInitialControlPackageCustody"
       ],
       "operations": [
         {
@@ -30242,12 +30314,33 @@
           "async": false
         },
         {
-          "name": "captureInitialControlPackageCustody/assertCurrent",
+          "name": "captureOrdinaryInitialControlPackageCustody",
+          "parameters": [
+            "inventory",
+            "localRoot",
+            "consumerEntry",
+            "publicDeliveryEntry"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody",
+          "parameters": [
+            "inventory",
+            "localRoot",
+            "consumerEntry",
+            "publicPreloadEntry",
+            "ordinary"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/assertCurrent",
           "parameters": [],
           "async": false
         },
         {
-          "name": "captureInitialControlPackageCustody/captureDependency",
+          "name": "capturePackageCustody/captureDependency",
           "parameters": [
             "binding",
             "from"
@@ -30255,7 +30348,7 @@
           "async": false
         },
         {
-          "name": "captureInitialControlPackageCustody/captureGroup",
+          "name": "capturePackageCustody/captureGroup",
           "parameters": [
             "directory",
             "facts",
@@ -30267,19 +30360,19 @@
           "async": false
         },
         {
-          "name": "captureInitialControlPackageCustody/initializeHostNamespace",
+          "name": "capturePackageCustody/initializeHostNamespace",
           "parameters": [],
           "async": false
         },
         {
-          "name": "captureInitialControlPackageCustody/markUnselected",
+          "name": "capturePackageCustody/markUnselected",
           "parameters": [
             "binding"
           ],
           "async": false
         },
         {
-          "name": "captureInitialControlPackageCustody/publicDependency",
+          "name": "capturePackageCustody/publicDependency",
           "parameters": [
             "binding",
             "from"
@@ -30287,14 +30380,14 @@
           "async": false
         },
         {
-          "name": "captureInitialControlPackageCustody/readAsset",
+          "name": "capturePackageCustody/readAsset",
           "parameters": [
             "path"
           ],
           "async": false
         },
         {
-          "name": "captureInitialControlPackageCustody/resolvePackage",
+          "name": "capturePackageCustody/resolvePackage",
           "parameters": [
             "name",
             "from"
@@ -30356,14 +30449,16 @@
           "operations": [
             "<module>",
             "captureInitialControlPackageCustody",
-            "captureInitialControlPackageCustody/assertCurrent",
-            "captureInitialControlPackageCustody/captureDependency",
-            "captureInitialControlPackageCustody/captureGroup",
-            "captureInitialControlPackageCustody/initializeHostNamespace",
-            "captureInitialControlPackageCustody/markUnselected",
-            "captureInitialControlPackageCustody/publicDependency",
-            "captureInitialControlPackageCustody/readAsset",
-            "captureInitialControlPackageCustody/resolvePackage",
+            "captureOrdinaryInitialControlPackageCustody",
+            "capturePackageCustody",
+            "capturePackageCustody/assertCurrent",
+            "capturePackageCustody/captureDependency",
+            "capturePackageCustody/captureGroup",
+            "capturePackageCustody/initializeHostNamespace",
+            "capturePackageCustody/markUnselected",
+            "capturePackageCustody/publicDependency",
+            "capturePackageCustody/readAsset",
+            "capturePackageCustody/resolvePackage",
             "concrete/concrete",
             "concrete/concrete/concrete",
             "fail/fail",
@@ -30371,13 +30466,18 @@
             "own/own"
           ],
           "exports": [
-            "commonjs:captureInitialControlPackageCustody"
+            "commonjs:captureInitialControlPackageCustody",
+            "commonjs:captureOrdinaryInitialControlPackageCustody"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "adapters/host-node/initial-control-package-custody.cjs",
                 "anchor": "// Private installed-image custody, not an operational issuer."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "inputsOutputs": [
@@ -30406,6 +30506,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The owned release-cohort transformation may change only the packaged manifest"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "ownership": [
@@ -30460,6 +30564,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "the two bound manifest extents once before capture. Admitting this representation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "extension": [
@@ -30470,6 +30578,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "or the presence of that operation alone does not enable dispatch, and only the"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "verification": [
@@ -30504,6 +30616,10 @@
               {
                 "path": "scripts/initial-control-release-metadata.test.mjs",
                 "anchor": "a normal staged cohort captures exact release images and refuses mixed or changed metadata before entry"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               }
             ]
           }
@@ -30664,14 +30780,23 @@
     },
     {
       "module": "adapters/host-node/initial-control-phase-envelope.cjs",
-      "sha256": "d7a9161ece3649b8fbbf743ac26a40a8c3ed0fc25980539b273dc9ee43093c30",
+      "sha256": "809b938ed4f4f4b14469e561c3c8382f83bb58d38291c8043a1556cb008309d0",
       "exports": [
         "commonjs:declareInitialControlPhaseEnvelope",
-        "commonjs:inspectInitialControlPhaseEnvelope"
+        "commonjs:declareOrdinaryInitialControlPhaseEnvelope",
+        "commonjs:inspectInitialControlPhaseEnvelope",
+        "commonjs:inspectOrdinaryInitialControlPhaseEnvelope"
       ],
       "operations": [
         {
           "name": "declareInitialControlPhaseEnvelope",
+          "parameters": [
+            "heapCeilingBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "declareOrdinaryInitialControlPhaseEnvelope",
           "parameters": [
             "heapCeilingBytes"
           ],
@@ -30687,14 +30812,33 @@
           "async": false
         },
         {
-          "name": "inspectInitialControlPhaseEnvelope/dependencies",
+          "name": "inspectOrdinaryInitialControlPhaseEnvelope",
+          "parameters": [
+            "inventory",
+            "declaration",
+            "runtimeOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectPhaseEnvelope",
+          "parameters": [
+            "inventory",
+            "declaration",
+            "runtimeOriginal",
+            "ordinary"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectPhaseEnvelope/dependencies",
           "parameters": [
             "values"
           ],
           "async": false
         },
         {
-          "name": "inspectInitialControlPhaseEnvelope/images",
+          "name": "inspectPhaseEnvelope/images",
           "parameters": [
             "values"
           ],
@@ -30725,15 +30869,20 @@
           "operations": [
             "<module>",
             "declareInitialControlPhaseEnvelope",
+            "declareOrdinaryInitialControlPhaseEnvelope",
             "inspectInitialControlPhaseEnvelope",
-            "inspectInitialControlPhaseEnvelope/dependencies",
-            "inspectInitialControlPhaseEnvelope/images",
+            "inspectOrdinaryInitialControlPhaseEnvelope",
+            "inspectPhaseEnvelope",
+            "inspectPhaseEnvelope/dependencies",
+            "inspectPhaseEnvelope/images",
             "own/own",
             "unavailable/unavailable"
           ],
           "exports": [
             "commonjs:declareInitialControlPhaseEnvelope",
-            "commonjs:inspectInitialControlPhaseEnvelope"
+            "commonjs:declareOrdinaryInitialControlPhaseEnvelope",
+            "commonjs:inspectInitialControlPhaseEnvelope",
+            "commonjs:inspectOrdinaryInitialControlPhaseEnvelope"
           ],
           "attributes": {
             "responsibility": [
@@ -30744,6 +30893,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "inputsOutputs": [
@@ -30768,6 +30921,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The owned release-cohort transformation may change only the packaged manifest"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "ownership": [
@@ -30826,6 +30983,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "the two bound manifest extents once before capture. Admitting this representation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "extension": [
@@ -30836,6 +30997,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "verification": [
@@ -30854,6 +31019,10 @@
               {
                 "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
                 "anchor": "an invalid original extent refuses before numeric conversion of manifest alternatives"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               }
             ]
           }
@@ -42780,7 +42949,7 @@
     },
     {
       "module": "adapters/host-node/node-initial-control-installation.mjs",
-      "sha256": "3bda387f398a5ae063947dbc5c122a32b5b93c0f29b7e858119b8f78818665a2",
+      "sha256": "e0b1d10eb45c59fa912329baba74d7c0ab4f6e6450214decf5e53ba32292ca14",
       "exports": [
         "assertInitialControlInstallationCurrent",
         "beginInitialControlInstallation",
@@ -42824,6 +42993,7 @@
       ],
       "imports": [
         "./infer-trusted-node-preload.cjs",
+        "./node-public-initial-control-bootstrap.cjs",
         "node:module"
       ],
       "compilerFields": [],
@@ -42855,6 +43025,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
                 "anchor": "// Internal state machine, not an operational issuer."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "inputsOutputs": [
@@ -42910,7 +43084,7 @@
               },
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "const startup = require('./infer-trusted-node-preload.cjs');"
+                "anchor": "const startup = ordinary ? require('./node-public-initial-control-bootstrap.cjs') :"
               },
               {
                 "path": "adapters/host-node/initial-control-static-assets.test.mjs",
@@ -42919,6 +43093,10 @@
               {
                 "path": "adapters/host-node/initial-control-preparation-input.test.mjs",
                 "anchor": "input projection binds its nominal Scope, five originals and original receiver"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "ownership": [
@@ -43061,6 +43239,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "overlap, captured reader and receiver, scope alias and partial-failure holdings"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "extension": [
@@ -43083,6 +43265,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The selected startup may support an original producer-controlled preparation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "verification": [
@@ -43137,6 +43323,10 @@
               {
                 "path": "adapters/host-node/initial-control-preparation-input.test.mjs",
                 "anchor": "snapshot handoff refuses malformed or asynchronous results without observing them"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               }
             ]
           }
@@ -59170,6 +59360,877 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+      "sha256": "23c299463713c138dc0e3b1201e1ea074dea9395f5d4ac5e54ba09f60f2c4354",
+      "exports": [
+        "commonjs:assertInitialControlInstallationCurrent",
+        "commonjs:beginInitialControlInstallation",
+        "commonjs:readInitialControlInstallationAsset",
+        "commonjs:readInitialControlInstallationInput",
+        "commonjs:selectedInitialControlHostPreparation"
+      ],
+      "operations": [
+        {
+          "name": "<anonymous>",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertIntrinsicsCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "assertPrefixCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "assertSamePreparation",
+          "parameters": [
+            "held"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertSupportedIntrinsics",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectInitialControlHostPreparation",
+          "parameters": [
+            "kind",
+            "raw"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "field/field",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "inputUnavailable/inputUnavailable",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "operational/init:close/init:close",
+          "parameters": [
+            "held"
+          ],
+          "async": false
+        },
+        {
+          "name": "operational/init:prepare/init:prepare",
+          "parameters": [
+            "held",
+            "raw"
+          ],
+          "async": false
+        },
+        {
+          "name": "operational/init:readAsset/init:readAsset",
+          "parameters": [
+            "held",
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "operational/init:readInput/init:readInput",
+          "parameters": [
+            "held"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameOriginals",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:assertInitialControlInstallationCurrent/init:assertInitialControlInstallationCurrent",
+          "parameters": [
+            "scope",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:beginInitialControlInstallation/init:beginInitialControlInstallation",
+          "parameters": [
+            "originals",
+            "raw"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:readInitialControlInstallationAsset/init:readInitialControlInstallationAsset",
+          "parameters": [
+            "scope",
+            "originals",
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:readInitialControlInstallationInput/init:readInitialControlInstallationInput",
+          "parameters": [
+            "scope",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./initial-control-installation-owner.cjs",
+        "./initial-control-package-custody.cjs",
+        "./initial-control-package-original.cjs",
+        "./initial-control-phase-envelope.cjs",
+        "node:buffer",
+        "node:module",
+        "node:path",
+        "node:process",
+        "node:util",
+        "node:v8",
+        "node:worker_threads"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "owner": "Existing private Host/Resource initial-control installation and original preparation custody",
+      "role": "physical-io",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "<anonymous>",
+            "assertIntrinsicsCurrent",
+            "assertPrefixCurrent",
+            "assertSamePreparation",
+            "assertSupportedIntrinsics",
+            "connectInitialControlHostPreparation",
+            "fail/fail",
+            "field/field",
+            "inputUnavailable/inputUnavailable",
+            "operational/init:close/init:close",
+            "operational/init:prepare/init:prepare",
+            "operational/init:readAsset/init:readAsset",
+            "operational/init:readInput/init:readInput",
+            "sameOriginals",
+            "table/init:assertInitialControlInstallationCurrent/init:assertInitialControlInstallationCurrent",
+            "table/init:beginInitialControlInstallation/init:beginInitialControlInstallation",
+            "table/init:readInitialControlInstallationAsset/init:readInitialControlInstallationAsset",
+            "table/init:readInitialControlInstallationInput/init:readInitialControlInstallationInput",
+            "unavailable/unavailable"
+          ],
+          "exports": [
+            "commonjs:assertInitialControlInstallationCurrent",
+            "commonjs:beginInitialControlInstallation",
+            "commonjs:readInitialControlInstallationAsset",
+            "commonjs:readInitialControlInstallationInput",
+            "commonjs:selectedInitialControlHostPreparation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "// Actual installed public-package prefix."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function connectInitialControlHostPreparation(kind,raw)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function sameOriginals(left,right)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Scope closure acknowledges"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "// FIRST enumeration."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "firstFailure = freeze({cause});"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "// prefix. Never clear/reissue merely because a Promise rejected."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "anchor": "function declareOrdinaryInitialControlPhaseEnvelope(heapCeilingBytes)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "still require their separate original suppliers."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "ordinary connected Local HTTP selection stays unselected without traversing Host fields"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original Host/Resource responsibility references; neither syntax coverage nor a helper call supplies operational business capacity or installed acceptance."
+    },
+    {
+      "module": "adapters/host-node/node-source-managed-installation.mjs",
+      "sha256": "db9e1f39a1f167be021b62decb25274c024598d5ed87235b9b89b1ddca74e185",
+      "exports": [
+        "assertSourceManagedInstallationCurrent",
+        "prepareSourceManagedInstallation"
+      ],
+      "operations": [
+        {
+          "name": "assertSourceManagedInstallationCurrent",
+          "parameters": [
+            "view",
+            "sameOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "callbacks/callbacks",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "close",
+          "parameters": [
+            "state"
+          ],
+          "async": true
+        },
+        {
+          "name": "close/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "current",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "invoke",
+          "parameters": [
+            "index",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "original",
+          "parameters": [
+            "view",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSourceManagedInstallation",
+          "parameters": [
+            "originals"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareSourceManagedInstallation/prepareSourceManagedInstallation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSourceManagedInstallation/prepareSourceManagedInstallation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSourceManagedInstallation/view/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSourceManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+          "parameters": [
+            "kind",
+            "input",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSourceManagedInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
+          "parameters": [
+            "receipt",
+            "body",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSourceManagedInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSourceManagedInstallation/view/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSourceManagedInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
+          "parameters": [
+            "receipt",
+            "terminal"
+          ],
+          "async": false
+        },
+        {
+          "name": "syncVoid",
+          "parameters": [
+            "state",
+            "index",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:module",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "owner": "Existing Host/Resource Source installation and original acquisition custody",
+      "role": "physical-io",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "assertSourceManagedInstallationCurrent",
+            "callbacks/callbacks",
+            "close",
+            "close/flight/flight",
+            "current",
+            "invoke",
+            "original",
+            "prepareSourceManagedInstallation",
+            "prepareSourceManagedInstallation/prepareSourceManagedInstallation",
+            "prepareSourceManagedInstallation/prepareSourceManagedInstallation#2",
+            "prepareSourceManagedInstallation/view/init:assertCurrent/init:assertCurrent",
+            "prepareSourceManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+            "prepareSourceManagedInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
+            "prepareSourceManagedInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
+            "prepareSourceManagedInstallation/view/init:close/init:close",
+            "prepareSourceManagedInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
+            "syncVoid",
+            "unavailable/unavailable"
+          ],
+          "exports": [
+            "assertSourceManagedInstallationCurrent",
+            "prepareSourceManagedInstallation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "// Fixed private startup receiver only."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "export async function prepareSourceManagedInstallation(originals)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "if (state === undefined || state.closed || state.originals !== originals) unavailable();"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "// Forward the SAME original close, retaining partial custody on refusal;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "function syncVoid(state, index, args)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "carrier.code = 'SourceManagedInstallationCleanupPending';"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "// Producer retirement may follow lost currentness."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "// shared VM byte credit; failure observations retain their real lifetime."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "// scalar quota or initial-control scope cannot create a Source installation."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.test.mjs",
+                "anchor": "the actual absent Source issuer refuses without observing caller originals"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original Host/Resource responsibility references; neither syntax coverage nor a helper call supplies operational business capacity or installed acceptance."
+    },
+    {
+      "module": "adapters/host-node/source-managed-phase-envelope.cjs",
+      "sha256": "f1381411882c7c9d05eb445162ac95d7d61a904fd913b4f61ac9c26d4aeb88c1",
+      "exports": [
+        "commonjs:declareSourceManagedPhaseEnvelope"
+      ],
+      "operations": [
+        {
+          "name": "declareSourceManagedPhaseEnvelope",
+          "parameters": [
+            "controlDeclaration"
+          ],
+          "async": false
+        },
+        {
+          "name": "declareSourceManagedPhaseEnvelope/declareSourceManagedPhaseEnvelope",
+          "parameters": [
+            "ordinal"
+          ],
+          "async": false
+        },
+        {
+          "name": "unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "owner": "Existing Resource and Host Source phase accounting; DATA is not an operational admission",
+      "role": "physical-io",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "declareSourceManagedPhaseEnvelope",
+            "declareSourceManagedPhaseEnvelope/declareSourceManagedPhaseEnvelope",
+            "unavailable/unavailable"
+          ],
+          "exports": [
+            "commonjs:declareSourceManagedPhaseEnvelope"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "// Selected Source recipe DATA, not a startup/Source issuer or an external"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "function declareSourceManagedPhaseEnvelope(controlDeclaration)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "return freeze({limits,inputLimits,controlDeclaration,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "lifetime:'same-original-process-and-escaped-Source-lifetime'"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "// and adopts this additional scope before any SDK snapshot/preparation."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "const unavailable = () => {throw Object.assign(new NativeError('SourceManagedEnvelopeUnavailable'),"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "replenishedOnSourceClose:false"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "const simultaneousBytes = controlDeclaration.bytes + externalBytes;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "// must cover these BEFORE use; this calculation supplies no Buffer/FD/TLS."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.test.mjs",
+                "anchor": "control and Source share one managed/native domain while external overlaps are additive"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original Host/Resource responsibility references; neither syntax coverage nor a helper call supplies operational business capacity or installed acceptance."
+    },
+    {
+      "module": "adapters/host-node/source-response-backing.cjs",
+      "sha256": "6c561b34797537877339d95697fe8c9bf3211aa6df071f8393a2c58093bfcb66",
+      "exports": [
+        "commonjs:createSourceResponseBackingOwner"
+      ],
+      "operations": [
+        {
+          "name": "callback",
+          "parameters": [
+            "receiver",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner",
+          "parameters": [
+            "ports"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/acquire",
+          "parameters": [
+            "pool",
+            "scope",
+            "readOriginal",
+            "maxBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/acquire/cleanupHandle/cleanupHandle",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/acquire/cleanupHandle/cleanupHandle#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/allocate",
+          "parameters": [
+            "scope",
+            "bytes",
+            "maxLoans"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/close",
+          "parameters": [
+            "pool",
+            "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/loanFor",
+          "parameters": [
+            "loan"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/poolFor",
+          "parameters": [
+            "pool",
+            "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/poolStatus",
+          "parameters": [
+            "pool",
+            "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/poolStatus/poolStatus",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/releaseAliases",
+          "parameters": [
+            "loan",
+            "scope",
+            "readOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/remember",
+          "parameters": [
+            "state",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/requireCurrent/requireCurrent",
+          "parameters": [
+            "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/settle",
+          "parameters": [
+            "loan"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/start",
+          "parameters": [
+            "loan",
+            "scope",
+            "readOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/start/init:finish/init:finish",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/start/init:stop/init:stop",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/start/init:write/init:write",
+          "parameters": [
+            "chunk"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSourceResponseBackingOwner/status",
+          "parameters": [
+            "loan"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:buffer",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "owner": "Existing Resource and Source receive physical-byte holding and original borrow custody",
+      "role": "physical-io",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "callback",
+            "createSourceResponseBackingOwner",
+            "createSourceResponseBackingOwner/acquire",
+            "createSourceResponseBackingOwner/acquire/cleanupHandle/cleanupHandle",
+            "createSourceResponseBackingOwner/acquire/cleanupHandle/cleanupHandle#2",
+            "createSourceResponseBackingOwner/allocate",
+            "createSourceResponseBackingOwner/close",
+            "createSourceResponseBackingOwner/loanFor",
+            "createSourceResponseBackingOwner/poolFor",
+            "createSourceResponseBackingOwner/poolStatus",
+            "createSourceResponseBackingOwner/poolStatus/poolStatus",
+            "createSourceResponseBackingOwner/releaseAliases",
+            "createSourceResponseBackingOwner/remember",
+            "createSourceResponseBackingOwner/requireCurrent/requireCurrent",
+            "createSourceResponseBackingOwner/settle",
+            "createSourceResponseBackingOwner/start",
+            "createSourceResponseBackingOwner/start/init:finish/init:finish",
+            "createSourceResponseBackingOwner/start/init:stop/init:stop",
+            "createSourceResponseBackingOwner/start/init:write/init:write",
+            "createSourceResponseBackingOwner/status",
+            "fail"
+          ],
+          "exports": [
+            "commonjs:createSourceResponseBackingOwner"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/source-response-backing.cjs",
+                "anchor": "// Physical byte storage only. This helper does not authenticate a startup,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-response-backing.cjs",
+                "anchor": "function createSourceResponseBackingOwner(ports)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/source-response-backing.cjs",
+                "anchor": "if (state === undefined || state.scope !== scope) fail('ForeignSourceResponseBacking');"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-response-backing.cjs",
+                "anchor": "// Strong original records deliberately survive alias-cut and child return."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-response-backing.cjs",
+                "anchor": "function start(loan, scope, readOriginal)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-response-backing.cjs",
+                "anchor": "carrier.code = 'SourceResponseBackingCleanupPending';"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/source-response-backing.cjs",
+                "anchor": "// It is not a socket/FD/native ACK and releases no physical byte credit."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-response-backing.cjs",
+                "anchor": "// gets a separate actual ArrayBuffer: exposing Buffer.buffer must not expose"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/source-response-backing.cjs",
+                "anchor": "// create Source capacity, admit managed decode or authorize HTTP."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/source-response-backing.test.mjs",
+                "anchor": "partial current refusal retains the acquired original borrow in the same cleanup carrier"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original Host/Resource responsibility references; neither syntax coverage nor a helper call supplies operational business capacity or installed acceptance."
     }
   ],
   "generated": [],

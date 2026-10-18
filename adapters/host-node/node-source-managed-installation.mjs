@@ -1,9 +1,14 @@
 import {createRequire} from 'node:module';
 import {types} from 'node:util';
 
-// The preload may synchronously initialize this ESM namespace. Its already
-// published CJS receiver avoids a static CJS/ESM initialization cycle.
-const originalOwner = createRequire(import.meta.url)('./infer-trusted-node-preload.cjs');
+// The actual ordinary prefix or the unchanged preload initializes this ESM
+// namespace. Capture that SAME published receiver before application entry;
+// never discover a later callback table or use one entrance's original to
+// rescue another entrance. Selection alone supplies no Source admission.
+const require = createRequire(import.meta.url);
+const ordinary = process.execArgv.length === 0 && process.env.NODE_OPTIONS === undefined;
+const originalOwner = ordinary ? require('./node-public-initial-control-bootstrap.cjs') :
+  require('./infer-trusted-node-preload.cjs');
 
 // Fixed private startup receiver only. A shape, callback supplied by a Client,
 // scalar quota or initial-control scope cannot create a Source installation.
@@ -64,6 +69,15 @@ function syncVoid(state, index, args) {
       {code: 'SourceManagedSynchronousProtocolChanged'});
     throw state.failure;
   }
+}
+
+// The selected Root may retain a partial original while its fixed Host
+// metadata operation is still running. Check that SAME nominal original in
+// the captured Owner before/after each metadata await, without constructing a
+// view early, issuing a child or treating a callback/Boolean as admission.
+// Its constructor keeps partial cleanup if this observation refuses.
+export function assertSourceManagedPreparationCurrent(originalInstallation, sameOriginals) {
+  if (invoke(1, [originalInstallation, sameOriginals]) !== undefined) unavailable();
 }
 
 export async function prepareSourceManagedInstallation(originals) {
