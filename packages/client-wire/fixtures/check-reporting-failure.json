@@ -1,7 +1,7 @@
 {
   "version": "actql-check-outcome/0.1",
-  "reason_schema_cid": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742",
-  "outcome_schema_cid": "sha256:b82a51998a31b6b6cb469fa366a497cea1b48a8b92ac73a5046dffb622b8bdce",
+  "reason_schema_cid": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf",
+  "outcome_schema_cid": "sha256:ee1c0c7799d2dd30aa084ec5699078cf14ada0687ac6bb9e48e1f714789a8535",
   "outcome": "failed",
   "correlation_ref": "corr:independent-reporting-failure",
   "problem": {
