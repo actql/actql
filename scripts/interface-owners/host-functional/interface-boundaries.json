@@ -27267,7 +27267,7 @@
     {
       "module": "adapters/host-node/infer-trusted-node-preload.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "e20bd98024a3b96e9d4092c734540c057fe13af2bf37bdc030d2c788998e21c0",
+      "sha256": "f446e173107efc1d255f0d5e41d0470c6aa4571c0b1021585b53ed0a88b228c9",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -27557,6 +27557,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "asynchronous begin snapshots five originals before initialization"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "const startup = require('./infer-trusted-node-preload.cjs');"
               }
             ],
             "ownership": [
@@ -27609,6 +27613,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "one original namespace flight can serve different generations"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "// The actual CJS startup may synchronously capture this ESM namespace before"
               }
             ],
             "failure": [
@@ -27739,6 +27747,14 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "anchor": "eager original namespace captures the actual startup forwarders"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "anchor": "eager consumer retains captured forwarders rather than a later cache export replacement"
               }
             ]
           }
@@ -41133,7 +41149,7 @@
     },
     {
       "module": "adapters/host-node/node-initial-control-installation.mjs",
-      "sha256": "04dde649e234a55b184d603612b32eb467561066fe62d7647395b6c556ecd160",
+      "sha256": "434e63afa7800485c28d31f36c4c9528e258aab9c14c3c028cfac0cf07824048",
       "exports": [
         "assertInitialControlInstallationCurrent",
         "beginInitialControlInstallation"
@@ -41156,7 +41172,8 @@
         }
       ],
       "imports": [
-        "./infer-trusted-node-preload.cjs"
+        "./infer-trusted-node-preload.cjs",
+        "node:module"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -41223,6 +41240,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "asynchronous begin snapshots five originals before initialization"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "const startup = require('./infer-trusted-node-preload.cjs');"
               }
             ],
             "ownership": [
@@ -41263,6 +41284,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "one original namespace flight can serve different generations"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "// The actual CJS startup may synchronously capture this ESM namespace before"
               }
             ],
             "failure": [
@@ -41369,6 +41394,14 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "anchor": "eager original namespace captures the actual startup forwarders"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "anchor": "eager consumer retains captured forwarders rather than a later cache export replacement"
               }
             ]
           }

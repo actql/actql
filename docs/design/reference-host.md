@@ -153,6 +153,18 @@ and module lifetime, and rechecks closing after the original current callback.
 Copying a scope's methods or constructing another internal state-machine
 instance cannot add membership to the selected preload's instance.
 
+An eager original Host namespace may capture the startup's already-published
+immutable CJS forwarders through the same synchronous private receiver. This
+avoids a static CJS/ESM require cycle without deferring authentication to entry
+code or accepting a later cache-export replacement. It neither creates an
+operational original nor covers earlier module loading by itself.
+
+The original Host candidate, empty installation, five-reference snapshot,
+existing registry entry and cleanup scaffolding precede begin under the actual
+bootstrap lifetime. They are not retrospectively charged to the installation
+scope. Project/configuration/Profile/Task body intake and Provider preparation
+remain after begin and the fixed nominal current check.
+
 A preparation record is retained before fallible work. Repeating retention of
 that same record returns its original duty and may attach its original cleanup
 handle once; it cannot replace a pending handle. Managed-reference release is
