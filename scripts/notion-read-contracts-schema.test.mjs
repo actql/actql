@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {checkNotionReadDeclarationSchema,notionReadDeclarationSchema,notionReadDeclarationsSchema} from './notion-read-contracts-schema.mjs';
+import {checkNotionReadDeclarationSchema,notionReadDeclarationSchema,notionReadDeclarationsSchema,notionPublicConnectionSchema} from './notion-read-contracts-schema.mjs';
 import {project,structuralValidatorSource} from './generate-client-publication-wire.mjs';
 import {verifyIdentity} from './check-canonical-json.mjs';
 import {createHash} from 'node:crypto';
@@ -10,6 +10,53 @@ const protocol=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.js
 const declaration={id:'db',data_source_id:'source',read_contracts:{'n%3Ax':[
   {column:'amount',projection:'value',contract:{type:'decimal',nullable:false,precision:20,scale:2}},
 ]}};
+
+test('public Notion connection is closed and keeps credential references separate from admitted databases',async()=>{
+  const {$defs,...schema}=notionPublicConnectionSchema(protocol);
+  const source='const schemas='+JSON.stringify({connection:project(schema),value_contract:project($defs.value_contract)})+';\n'+
+    structuralValidatorSource({extended:true})+'export const check=value=>valid(value,schemas.connection);';
+  const reader=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+  const vectors=JSON.parse(readFileSync('spec/contracts/fixtures/notion-public-connection-vectors.json','utf8')).vectors;
+  for(const vector of vectors)assert.equal(reader.check(JSON.parse(vector.source)),true);
+  const original={connector:'notion',databases:{tasks:declaration},credentials:{integration_token:{env:'NOTION_TOKEN'}}};
+  for(const value of [{...original,connector:'Notion'},{...original,extra:true},{...original,databases:null},
+    {...original,credentials:{}},{...original,credentials:{integration_token:'inline-secret'}},
+    {...original,credentials:{integration_token:{env:'N',path:'key'}}},
+    {...original,credentials:{integration_token:{env:''}}},
+    {...original,credentials:{integration_token:{env:'N\u0000X'}}},
+    {...original,credentials:{integration_token:{env:'N'},other:{env:'OTHER'}}},
+    {...original,databases:{tasks:'db',unused:{id:'db2',marker:null}}}]){
+    assert.equal(reader.check(value),false);
+  }
+  for(const mutate of [p=>p.schemas.notion_public_connection.additionalProperties=true,
+    p=>p.schemas.notion_public_connection.properties.credentials.required=[],
+    p=>p.schemas.notion_public_connection.properties.credentials.properties.integration_token.oneOf.pop(),
+    p=>p.schema_cids.notion_public_connection='sha256:'+'0'.repeat(64)]){
+    const changed=structuredClone(protocol);mutate(changed);assert.throws(()=>checkNotionReadDeclarationSchema(changed));
+  }
+});
+
+test('independent public connection SOURCE vectors preserve reference spelling and nested declaration spans',()=>{
+  const vectors=JSON.parse(readFileSync('spec/contracts/fixtures/notion-public-connection-vectors.json','utf8')).vectors;
+  const hash=text=>'sha256:'+createHash('sha256').update(text,'utf8').digest('hex');
+  for(const vector of vectors){
+    assert.equal(hash(vector.source),vector.sourceCid);
+    const connection=JSON.parse(vector.source);
+    assert.equal(connection.credentials.integration_token[vector.credentialKind],vector.credentialReference);
+    assert.equal(Object.hasOwn(connection,'databases'),vector.databases!==null);
+    if(vector.databases!==null){
+      assert.equal(hash(vector.databases.source),vector.databases.sourceCid);
+      assert.deepEqual(JSON.parse(vector.databases.source),connection.databases);
+      assert(vector.source.includes(vector.databases.source));
+      for(const entry of vector.databases.entries){
+        assert.equal(hash(entry.source),entry.sourceCid);
+        assert.deepEqual(JSON.parse(entry.source),connection.databases[entry.alias]);
+        assert(vector.databases.source.includes(entry.source));
+      }
+    }
+    assert.notEqual(hash(vector.source+' '),vector.sourceCid);
+  }
+});
 
 test('public database map reuses complete declaration grammar and rejects an invalid unused alias',async()=>{
   const schema=notionReadDeclarationsSchema(protocol);

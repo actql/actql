@@ -1094,6 +1094,23 @@ error and custody; all reader observations retain cleanupConfirmed false.
 
 ## Public database alias originals
 
+The public connection reader admits the documented `connector`, `databases`
+and `credentials.integration_token` fields in Common. Environment and file
+references are exclusive, nonempty exact text; they never trigger secret or
+filesystem I/O during admission. The original connection, optional map and
+per-database value spans have distinct SOURCE identities. Absent and explicit
+empty maps remain distinct and neither supplies complete workspace membership.
+The existing admitted source cursor feeds the same alias-map algorithm, with
+one remaining work and checked-Contract budget rather than another JSON parser
+or a per-member reset. Installed Site/current/issuer/custody remain separate.
+
+The connection retains its owned raw input, self-reference, reference-kind/text
+and optional original map. The source tree and cursors can retain the full input
+while the exact map-span copy, per-value copies, aliases, checked Contracts and
+hash workspace overlap. Bounded original-wire getters allocate a returned
+String with caller lifetime. Neither managed reference retirement nor these
+intake/work bounds prove physical cleanup or a numerical reservation.
+
 The existing Catalog owner admits the public `databases` object once and retains
 its ordered exact Unicode aliases and the original value span for each existing
 database declaration. The single-declaration algorithm is shared, with one
