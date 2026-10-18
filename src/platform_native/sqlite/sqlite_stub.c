@@ -395,7 +395,11 @@ static void *actql_open_inspection_database(
     return database;
   }
   int flags = SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX;
-  if (journal_copy) flags |= SQLITE_OPEN_URI | SQLITE_OPEN_NOFOLLOW;
+  /* The pinned unix VFS opens DB/WAL/SHM with O_NOFOLLOW. Unlike the generic
+   * inspection route, SQLITE_OPEN_NOFOLLOW additionally rejects ancestor
+   * aliases such as the platform temporary directory; do not impose that
+   * unrelated restriction on the same original isolated copy. */
+  if (journal_copy) flags |= SQLITE_OPEN_URI;
   int code = library->open_v2(text, &database->database, flags, NULL);
   actql_adapter_free(library, text);
   if (code != SQLITE_OK) {
