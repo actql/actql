@@ -103,6 +103,33 @@ int main(int argc,char **argv) {
     REQUIRE(actql_sqlite_originals_into(sr,&srh,&srd,&sql)==0 && srh==h && srd==sd && sql);
     REQUIRE(actql_sqlite_drop_reply(&sr,h,sd,sql)==0);
     step("original imported Read and first-init private SQLite retain the same provider and distinct domains");
+    /* A typed foreign-target refusal retains the true input roles but no pair.
+     * Its data retirement cannot close either independently owned original. */
+    source=text(argv[1],&n);
+    actql_control_host *foreign=NULL,*foreign_alias=NULL;
+    REQUIRE(actql_control_prepare_utf16_into(source,n,recipe,32,1,total,20,8,4,30,0,total,65536,&cr)==0);
+    free(source);REQUIRE(actql_control_issue_family(cr)==0);
+    REQUIRE(actql_control_originals_into(cr,&foreign,&foreign_alias)==0 && foreign==foreign_alias);
+    REQUIRE(actql_control_drop_reply(&cr,foreign)==0);
+    actql_local_host_resources_reply *refused=NULL;
+    actql_control_host *refused_host=NULL,*refused_sqlite_host=NULL;
+    actql_parent_read *refused_read=NULL;actql_sqlite_original *refused_sqlite=NULL;
+    actql_local_host_resources *absent_pair=NULL;
+    REQUIRE(actql_host_resources_bind_into(foreign,read,sql,&refused)==0);
+    REQUIRE(actql_host_resources_issue_origin(refused)==2 && actql_host_resources_issue_family(refused)==2);
+    REQUIRE(actql_host_resources_originals_into(refused,&refused_host,&refused_sqlite_host,
+        &refused_read,&refused_sqlite,&absent_pair)==0);
+    REQUIRE(refused_host==h && refused_sqlite_host==h && refused_read==read && refused_sqlite==sql && !absent_pair);
+    actql_control_host *wrong_role=foreign;
+    REQUIRE(actql_host_resources_finish_refused_bind_data(&wrong_role,&refused_sqlite_host,
+        &refused_read,&refused_sqlite,&absent_pair,&refused)==ACTQL_CONTROL_INVALID_SLOT);
+    REQUIRE(wrong_role==foreign && refused && refused_read==read && refused_sqlite==sql);
+    REQUIRE(actql_host_resources_finish_refused_bind_data(&refused_host,&refused_sqlite_host,
+        &refused_read,&refused_sqlite,&absent_pair,&refused)==0);
+    REQUIRE(!refused_host && !refused_sqlite_host && !refused_read && !refused_sqlite && !absent_pair && !refused);
+    moonbit_decref(foreign_alias);
+    REQUIRE(actql_control_try_close_and_drop(&foreign,&cr)==0 && !foreign && !cr);
+    step("refused bind data retirement preserves original inputs and rejects foreign role substitution");
     actql_local_host_resources_reply *pair_reply=NULL;actql_control_host *ph=NULL,*psh=NULL;
     actql_parent_read *pair_read=NULL;actql_sqlite_original *pair_sql=NULL;actql_local_host_resources *pair=NULL;
     REQUIRE(actql_host_resources_bind_into(h,read,sql,&pair_reply)==0);
