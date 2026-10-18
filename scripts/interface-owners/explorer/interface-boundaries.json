@@ -5221,7 +5221,7 @@
     {
       "module": "packages/explorer/gateway.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "cbfa74c33715ccdbe2294a26bad3cb5fca60ebd5795c6bece1a928ba8c0235ea",
+      "sha256": "44730cbf9dcdb2ecf9c2e56c1547bc9f6da55a922083074465489cbac782033d",
       "exports": [
         "ExplorerAsset",
         "ExplorerBootstrap",
@@ -5242,12 +5242,12 @@
           "parameters": [
             "options: ExplorerGatewayOptions & {origin: string}"
           ],
-          "result": "Readonly<{\n  fetch(request: Request): Response | Promise<Response>;\n  issueBootstrap(): ExplorerBootstrap; invalidateScope(): void; close(): void;\n}>"
+          "result": "Readonly<{\n  fetch(request: Request): Response | Promise<Response>;\n  issueBootstrap(): ExplorerBootstrap; invalidateScope(): void; close(): Promise<void>;\n}>"
         },
         {
           "name": "createExplorerGateway/close",
           "parameters": [],
-          "result": "void"
+          "result": "Promise<void>"
         },
         {
           "name": "createExplorerGateway/fetch",
