@@ -18,7 +18,7 @@ test('current literal identities change only the reviewed expression dependency 
   const current = currentEffectLiteralKeyVectors(original);
   assert.deepEqual(original, saved, 'historical envelopes and CIDs are not rewritten');
   assert.equal(current[0].expected_definition_cid,
-    'sha256:6c634c8ab36d9f66d8ad8c5e1fe2bd8b42a02e2948e8eca9ae50c5deeb0d7022');
+    'sha256:f409712b9a5e01f2c11bb14bd785fa41fd2e42cbcd46d41650c2cf29d4760f34');
   for (const [i, vector] of current.entries()) {
     assert.deepEqual(vector.payload, original.cases[i].payload);
     assert.deepEqual(vector.stage_envelope.local_body, original.cases[i].stage_envelope.local_body);
@@ -94,11 +94,19 @@ test('current literal references reject the pre-ContentRef text/time dependency'
 // never these authored literal bytes. The prior reviewed body remains a
 // historical preimage and cannot authorize current fixture references.
 test('current literal references reject the preceding grammar while retaining its preimages', () => {
-  const expression = JSON.parse(readFileSync(new URL(
-    '../spec/contracts/actql-expressions.json', import.meta.url), 'utf8'));
   const sha = value => 'sha256:' + createHash('sha256')
     .update(exactDataJson(value)).digest('hex');
-  const previous = {...expression,
+  const retained = JSON.parse(readFileSync(new URL(
+    '../portability/corpus/historical/pre-current-effect-literal-expression.json',
+    import.meta.url), 'utf8'));
+  assert.equal(retained.expression_contract_cid,
+    'sha256:e7645d18471d4436b7542302adce28303a8a634ce29e9f5fd849f5cee8d1159e');
+  assert.equal(sha(retained.body), retained.expression_contract_cid);
+  assert.throws(() => currentEffectLiteralKeyVectors(readCorpus(), retained.body),
+    /review the current expression dependency/);
+  // Reconstruct that historical grammar predecessor from its complete original
+  // body, never by deleting only a pin from a newer expression contract.
+  const previous = {...retained.body,
     grammar_sha256: '02ac66c34edc5114f0b919e8c5a9e7b147f2154268e29b8e3b9b1ba1b8ed6222'};
   const previousCID = 'sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289';
   assert.equal(sha(previous), previousCID);
