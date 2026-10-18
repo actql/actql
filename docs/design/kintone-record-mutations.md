@@ -622,3 +622,53 @@ retains a nominal self-reference so a copy of its private fields is refused.
   alongside original-form/mapping refusal, real Account denial, credential
   rotation, response loss/no-resend and retained response/current tests. These
   are source-qualified components, not pristine installed or live acceptance.
+
+### Original CREATE response and Preview correspondence
+
+The Catalog projects one original native CREATE acknowledgement to the existing
+Common row-outcome shape. API ID and revision remain exact strings, including
+wide integers and leading zeroes. The Host projection retains the same original
+Mapping, request and admitted Preview, checks the ordered row's intended values,
+and delegates row-outcome validation to the existing Common Preview Owner. The
+ordered row index is resolved to that same Preview's underlying change index;
+neither index nor equal payload bytes can substitute a foreign Preview.
+
+- CREATE outcome responsibility: the existing Catalog owns native response
+  DATA and the existing Common Preview Owner checks its row-outcome shape. The
+  Effect Owner still owns original physical response custody and application.
+- CREATE outcome inputs and outputs: one original single-record request and
+  complete typed acknowledgement, original Mapping, admitted Preview and exact
+  member/ordered-row indices produce bounded outcome DATA, row CID and the
+  original response digest. Existing raw batch support is unchanged.
+- CREATE outcome identity: private constructor self-references reject copied
+  CREATE requests and acknowledgements at this consuming boundary. Mapping,
+  Form, request, acknowledgement and Preview retain their original association.
+  Intended values use the existing checked-value equality with exact field codes,
+  omission, Array order and duplicates; object field order is immaterial.
+- CREATE outcome ownership: the caller's existing capture retains the original
+  Form, Mapping, request, acknowledgement and Preview until its own cleanup. No
+  saved-response receipt, claim, terminal transition or cleanup Owner is issued.
+- CREATE outcome synchronization: synchronous correspondence is not a current
+  grant. Original Site/Account/credential generation, approved claim, actual
+  response-to-dispatch binding and final current fences remain mandatory.
+- CREATE outcome failure: foreign or copied originals, changed intended values,
+  non-CREATE members, wrong row indices, non-success/malformed replies and
+  exhausted limits return no usable outcome. A missing runtime port refuses;
+  response loss cannot produce an acknowledgement or trigger a retry.
+- CREATE outcome cancellation: projection adds no send, await, close or release
+  acknowledgement. Original transport Unknown, cancellation and pending cleanup
+  remain with the original acquisition and Effect Owner.
+- CREATE outcome resources: bounded comparison temporarily reparses the intended
+  row with the existing Source/Decode/checked-value Owners. Its tree, cursor,
+  temporary request/document and equality frames overlap the original request,
+  checked cells, response digest and encoded outcome. The wrapper's bounded
+  decoded JSON overlaps the native document and retained original aliases.
+  Positive byte/node/depth/work limits are not whole-phase numerical funding.
+- CREATE outcome extension: Node and generated RelA forward the same native
+  opaque inputs. This private connection does not supply sealed approval,
+  physical request correlation, saved response holding, recovery, installed
+  CREATE support, unsupported carriers or a normal numerical profile.
+- CREATE outcome verification: Catalog/Host counters and matching actual Common
+  Node consumers check exact native strings/digest, copied/foreign originals,
+  row/value correspondence, malformed replies and finite refusal. Explicit
+  Preview DATA fixtures confer no Run authority or physical Provider success.
