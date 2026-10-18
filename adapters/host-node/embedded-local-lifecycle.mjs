@@ -1,7 +1,8 @@
 // The existing installed Host owns execution and durable data. This registry
 // only leases its in-process connection and retains its physical close retry.
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
-import {createInstalledHostShutdown} from './installed-host-cleanup.mjs';
+import {createInstalledHostShutdown, retainInstalledHostRuntimeFailure}
+  from './installed-host-cleanup.mjs';
 
 export function installedHostShutdown(host) {
   const retireRuntime = host.retireModelRuntime;
@@ -126,7 +127,12 @@ export function createEmbeddedHostRegistry(sameInstallation) {
           throw failure;
         }
         return host;
-      }).catch(error => {
+      }).catch(cause => {
+        // A prepared generation also owns its original registry references.
+        // Keep their retirement behind the SAME initializer's captured child
+        // status/retry, rather than waiting for an unrelated later connect.
+        const error = prepared === undefined ? cause :
+          retainInstalledHostRuntimeFailure(cause, () => forget(root, opened));
         opened.failure = error;
         opened.initializationPending = error?.cleanupPending === true;
         const handle = error?.cleanupHandle;
