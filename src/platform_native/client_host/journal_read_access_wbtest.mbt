@@ -7,6 +7,14 @@ fn journal_test_read_access(
 ) -> NativeClientJournalReadAccess {
   {
     database,
+    fenced: () => {
+      calls.push("fenced")
+      database.transaction_fenced()
+    },
+    fence: () => {
+      calls.push("fence")
+      database.fence_transactions()
+    },
     read: (table_name, key) => {
       calls.push("read:" + table_name + ":" + key)
       database.read(table_name, key)
@@ -172,7 +180,8 @@ test "original named startup routes its transaction census and HMAC through the 
     reads=Some(reads),
   )
   .unwrap()
-  assert_eq(calls[0], "begin")
+  assert_eq(calls[0], "fenced")
+  assert_eq(calls[1], "begin")
   assert_eq(calls[calls.length() - 1], "commit")
   assert_true(calls.any(value => value == "schema"))
   assert_true(calls.any(value => value == "census"))
@@ -234,4 +243,97 @@ test "phased inspection refusal retains its same pending copy and lock through c
   let lock = borrowed.acquire_lock_with_custody("local-adoption.lock").unwrap()
   lock.close_checked().unwrap()
   borrowed.close().unwrap()
+}
+
+///|
+test "original journal open observes the same routed physical fence before custody" {
+  let database = epoch_test_database("journal-routed-fence-open")
+  let crypto = epoch_test_crypto()
+  initialize_native_client_epoch_authority(database, crypto).unwrap()
+  initialize_native_client_run_journal(database).unwrap()
+  let calls : Array[String] = []
+  let reads = journal_test_read_access(database, calls)
+  open_native_client_epoch_authority_with_reads(
+    database,
+    crypto,
+    100.0,
+    reads=Some(reads),
+  ).unwrap()
+  |> ignore
+  assert_eq(calls[0], "fenced")
+  calls.clear()
+  open_native_client_run_journal_with_reads(database, 8, reads=Some(reads)).unwrap()
+  |> ignore
+  assert_eq(calls[0], "fenced")
+  database.fence_transactions()
+  calls.clear()
+  assert_true(
+    open_native_client_epoch_authority_with_reads(
+      database,
+      crypto,
+      100.0,
+      reads=Some(reads),
+    )
+    is Err(Fenced),
+  )
+  assert_eq(calls, ["fenced"])
+  calls.clear()
+  assert_true(
+    open_native_client_run_journal_with_reads(database, 8, reads=Some(reads))
+    is Err(Fenced),
+  )
+  assert_eq(calls, ["fenced"])
+  database.close_checked().unwrap()
+  crypto.close_checked().unwrap()
+}
+
+///|
+test "routed transaction uncertainty fences the same physical DB without resetting it" {
+  for reply_lost in [false, true] {
+    let database = epoch_test_database(
+      "journal-routed-fence-commit-" + reply_lost.to_string(),
+    )
+    initialize_native_client_run_journal(database).unwrap()
+    let journal = open_native_client_run_journal(database, 8).unwrap()
+    let calls : Array[String] = []
+    let reads = journal_test_read_access(database, calls)
+    if reply_lost {
+      client_test_fail_commit_reply(database, 1)
+    } else {
+      client_test_fail_commit(database, 1)
+    }
+    assert_true(
+      journal.transaction_with_reads(() => Ok(()), reads=Some(reads))
+      is Err(TransactionUnknown),
+    )
+    assert_eq(calls[0], "fenced")
+    assert_eq(calls[calls.length() - 1], "fence")
+    assert_true(database.transaction_fenced())
+    calls.clear()
+    assert_true(
+      open_native_client_run_journal_with_reads(database, 8, reads=Some(reads))
+      is Err(Fenced),
+    )
+    assert_eq(calls, ["fenced"])
+    if !reply_lost {
+      database.rollback().unwrap()
+    }
+    assert_true(database.transaction_fenced())
+    database.close_checked().unwrap()
+  }
+}
+
+///|
+test "routed fence rejects foreign physical DB before either scalar callback" {
+  let database = epoch_test_database("journal-routed-fence-owner")
+  let foreign = epoch_test_database("journal-routed-fence-foreign")
+  let calls : Array[String] = []
+  let reads = journal_test_read_access(database, calls)
+  assert_true(client_journal_transaction_fenced(foreign, Some(reads)))
+  fence_client_journal_transactions(foreign, Some(reads))
+  assert_eq(calls, [])
+  assert_true(!database.transaction_fenced())
+  assert_true(!foreign.transaction_fenced())
+  database.close_checked().unwrap()
+  foreign.close_checked().unwrap()
 }

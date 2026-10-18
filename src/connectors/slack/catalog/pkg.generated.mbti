@@ -19,6 +19,8 @@ pub fn close_slack_message_history(SlackMessageHistory) -> Unit
 
 pub fn close_slack_message_replies(SlackMessageReplies) -> Unit
 
+pub fn coalesce_slack_message_originals(SlackMessageHistory, Array[SlackMessageReplies], SlackMessageProjectionLimits) -> Result[SlackMessageProjection, SlackMessagePageIssue]
+
 pub fn next_slack_message_history_request(SlackMessageHistory, SlackMessagePage) -> Result[SlackMessageHistoryRequest?, SlackMessagePageIssue]
 
 pub fn next_slack_message_replies_request(SlackMessageReplies, SlackMessageRepliesPage) -> Result[SlackMessageRepliesRequest?, SlackMessagePageIssue]
@@ -78,6 +80,10 @@ pub fn slack_message_page_ids(SlackMessagePage) -> Array[String]
 pub fn slack_message_page_row_count(SlackMessagePage) -> Int
 
 pub fn slack_message_page_rows_wire(SlackMessagePage, Array[String], Int, Int, Int) -> Result[String, SlackMessagePageIssue]
+
+pub fn slack_message_projection_row_count(SlackMessageProjection) -> Int
+
+pub fn slack_message_projection_rows_wire(SlackMessageProjection, Array[String], Int, Int, Int) -> Result[String, SlackMessagePageIssue]
 
 pub fn slack_message_replies_matches_original(SlackMessageReplies, SlackMessagePage, Int) -> Bool
 
@@ -214,6 +220,17 @@ pub(all) struct SlackMessagePageLimits {
   max_cursor_bytes : Int
   max_value_nodes : Int
   max_value_text_bytes : Int
+}
+
+pub struct SlackMessageProjection {
+  // private fields
+}
+
+pub(all) struct SlackMessageProjectionLimits {
+  max_rows : Int
+  max_occurrences : Int
+  max_work : Int
+  comparison : @value_admission.Limits
 }
 
 pub struct SlackMessageReplies {

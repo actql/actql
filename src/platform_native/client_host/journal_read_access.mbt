@@ -4,6 +4,8 @@
 // capacity, new transaction or original row. Legacy callers keep direct reads.
 priv struct NativeClientJournalReadAccess {
   database : @sqlite.Database
+  fenced : () -> Bool
+  fence : () -> Unit
   schema : () -> Int
   census : () -> Int64
   transaction : (NativeClientJournalTransactionOperation) -> Result[
@@ -113,6 +115,36 @@ fn client_journal_transaction_operation(
         JournalBegin => database.begin_immediate()
         JournalCommit => database.commit()
         JournalRollback => database.rollback()
+      }
+  }
+}
+
+///|
+// This scalar observes the same physical Database under its actual SQL scope.
+// An unavailable or foreign original stays fenced; it is never cached as proof.
+fn client_journal_transaction_fenced(
+  database : @sqlite.Database,
+  reads : NativeClientJournalReadAccess?,
+) -> Bool {
+  match reads {
+    None => database.transaction_fenced()
+    Some(original) =>
+      !physical_equal(database, original.database) || (original.fenced)()
+  }
+}
+
+///|
+// Keep the original sticky fence on a failed transaction. The routing layer
+// retains a failed scope transition separately; it cannot ACK physical fencing.
+fn fence_client_journal_transactions(
+  database : @sqlite.Database,
+  reads : NativeClientJournalReadAccess?,
+) -> Unit {
+  match reads {
+    None => database.fence_transactions()
+    Some(original) =>
+      if physical_equal(database, original.database) {
+        (original.fence)()
       }
   }
 }

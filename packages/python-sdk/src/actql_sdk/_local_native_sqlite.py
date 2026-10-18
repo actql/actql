@@ -225,4 +225,9 @@ class _OriginalSqliteCustody:
             from ._local_native_sqlite_database import _RETIRED_DATABASE_DATA
             if self._database_original is not _RETIRED_DATABASE_DATA:
                 raise ValueError('Original Native SQLite Database cleanup remains pending')
+        from ._local_native_host_resources import _resources_for_domain
+        from ._local_native_adoption import _require_adoption_retired
+        pair = _resources_for_domain(self._domain)
+        if pair is not None:
+            _require_adoption_retired(pair[0]._read)
         self._call(3)

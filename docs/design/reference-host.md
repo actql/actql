@@ -109,6 +109,29 @@ dispatch and uses a Host-provided durable compare-and-swap callback. The
 callback is an implementation port for the [Collection protocol](../spec/protocols/collection.md),
 not a requirement to implement a general Run Graph scheduler.
 
+An installed provider operation may additionally retain its exact first
+request in the existing Run request Journal. Its live operation scope is
+issued only after the same Run's first physical-start CAS returns confirmed
+success. The original checked compilation, Program, Run Definition, request,
+Journal and Store receiver remain one pair; neither a lookup result nor a
+restored physical-start record can issue another scope. The existing Store's
+active guard checks lifetime only, not capacity or permission.
+
+Each checked Source occurrence retains one original preparation and RowRun
+binding under that scope. The BigQuery adapter must prove its live JobRead
+belongs to that same RowRun/acquisition through the existing Common Read
+Owner, and its first request/record/wire must match that original. The Journal
+commits the exact record under the original Run and task occurrence before
+entering the existing driver's one-shot send callback. Current Source,
+Account, Credential and physical resource checks remain separate.
+
+A prior record or a lost COMMIT reply never authorizes another POST. Cold
+lookup yields unresolved original DATA only; it does not reconstruct a live
+Job, Source, Run, permission or reservation. Missing storage bounds or Common
+original bindings remain unavailable. Original Strings, row bindings, SQLite
+statement/WAL work and pending failures overlap their existing owner lifetimes;
+record persistence, return and garbage collection are not cleanup ACKs.
+
 This editorial split does not relax the existing transaction requirements.
 Replacing them with storage-independent transition guarantees requires a
 separately reviewed semantic change and failure/concurrency evidence.

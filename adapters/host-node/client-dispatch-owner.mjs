@@ -12,6 +12,7 @@ import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {installTaskObservation} from '../host-common/task-observation.mjs';
+import {bindClientSourceOperation} from './client-source-operation.mjs';
 
 // Terminal observation only, never a send or cancellation permission. The
 // physical owner calls this after confirmed stop and temporary reclamation;
@@ -148,7 +149,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         registry, values, fragment, ordered, sourceAccess,
         signal: entry.abort.signal, preparedSource,
         retainedRelationOutput, ledger,
-        reportAcquisitionFailure: acquisition.retain});
+        reportAcquisitionFailure: acquisition.retain,
+        ...(entry.sourceOperationScope === undefined ? {} : {
+          originalOperationScope: bindClientSourceOperation(entry.sourceOperationScope,
+            journal, store, preparedProgram, preparedSource, {stage: 0, input: 0, task: 0}),
+        })});
       returned = true;
     } catch (error) {
       const ended = acquisition.outcome(error);
@@ -656,6 +661,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         namespaceId, ref: accepted.ref,
         currentAuthorization: hostConnection({principalId: actual,
           connection, ref: accepted.ref}),
+        ...(acquiring && journal.sourceOperationConfigured === true ? {
+          captureSourceOperation: {program: preparedProgram, compiled: held.plan.compiled, store,
+            capture(scope) {entry.sourceOperationScope = scope;}},
+        } : {}),
       }, moon, control)) {
         await settleCleanup(entry);
         return;
@@ -710,7 +719,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
             captured = await source.adapter.open({preparedProgram, registry, values,
               fragment, ordered, sourceAccess: access, signal: entry.abort.signal,
               preparedSource, occurrence: source.occurrence, ledger,
-              reportAcquisitionFailure: acquisition.retain});
+              reportAcquisitionFailure: acquisition.retain,
+              ...(entry.sourceOperationScope === undefined ? {} : {
+                originalOperationScope: bindClientSourceOperation(entry.sourceOperationScope,
+                  journal, store, preparedProgram, preparedSource, source.occurrence),
+              })});
             returned = true;
           } catch (error) {
             const ended = acquisition.outcome(error);
