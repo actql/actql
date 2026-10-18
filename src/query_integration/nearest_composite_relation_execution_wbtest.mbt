@@ -9,7 +9,7 @@ fn composite_nearest_relation(rows : String) -> @lower.BoundPrepared {
         "\"embedding\":{\"type\":\"vector\",\"dimensions\":2," +
         "\"nullable\":false}},\"rows\":" +
         rows +
-        "}}]",
+        "},\"as\":\"rows\"}]",
       ),
       [],
       None,
