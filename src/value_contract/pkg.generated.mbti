@@ -189,6 +189,7 @@ pub(all) enum Primitive {
   DateType
   TimestampType
   JsonType
+  Signed64Type
 } derive(Eq, @debug.Debug)
 
 pub enum Shape {
@@ -204,6 +205,7 @@ pub enum Shape {
   Vector(dimensions~ : Double)
   ResourceRef(resource_kind~ : String)
   ContentRef(media_type~ : String?)
+  Signed64
 }
 
 type TextEnumeration derive(Eq, @debug.Debug)
