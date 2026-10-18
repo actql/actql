@@ -50,7 +50,7 @@ function eagerOriginalNamespace(t, body) {
   const root = mkdtempSync(join(tmpdir(), 'actql-initial-control-namespace-'));
   t.after(() => rmSync(root, {recursive: true}));
   for (const name of ['node-initial-control-installation.mjs',
-    'initial-control-installation-owner.cjs']) {
+    'initial-control-installation-owner.cjs', 'infer-trusted-runtime-view.mjs']) {
     writeFileSync(join(root, name), readFileSync(new URL(name, import.meta.url)));
   }
   writeFileSync(join(root, 'infer-trusted-node-preload.cjs'),
@@ -58,7 +58,8 @@ function eagerOriginalNamespace(t, body) {
     '\nglobalThis.originalHostNamespace = require("./host.mjs");\n');
   writeFileSync(join(root, 'host.mjs'),
     'export {beginInitialControlInstallation, assertInitialControlInstallationCurrent}' +
-    ' from "./node-initial-control-installation.mjs";\n');
+    ' from "./node-initial-control-installation.mjs";\n' +
+    'export * from "./infer-trusted-runtime-view.mjs";\n');
   // The intermediary deliberately does not match the selected public recipe.
   // Therefore the copied original startup must remain operationally absent.
   writeFileSync(join(root, 'preload.cjs'),
