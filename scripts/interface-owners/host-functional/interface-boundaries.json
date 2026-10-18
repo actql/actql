@@ -27267,7 +27267,7 @@
     {
       "module": "adapters/host-node/infer-trusted-node-preload.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "47aecd5a3fac079bb57989f24e7b9f21aebf709429c30618723bde7580f79c4b",
+      "sha256": "bf02a9992e3cd5f1abcfae8536060c023becca81d700adf1c1ef508cfbedc25d",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -27628,6 +27628,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Its generated facts identify its original public entry and dependencies, with"
+              },
+              {
+                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "anchor": "[string.prototype, 'trimEnd'],"
               }
             ],
             "ownership": [
@@ -27818,6 +27822,14 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The extra Source Strings, manifests, dependency paths, image/namespace records,"
+              },
+              {
+                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "anchor": "// callback. The pair, descriptor and returned String overlap remain in"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The selected preparation path also retains the native `String.prototype.trimEnd`"
               }
             ],
             "extension": [
@@ -27922,6 +27934,14 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
                 "anchor": "a public Node dependency cannot substitute a distinct Local installation"
+              },
+              {
+                "path": "adapters/host-node/infer-trusted-node-startup.test.mjs",
+                "anchor": "selected environment normalizer retains the original trailing-whitespace primitive"
+              },
+              {
+                "path": "adapters/host-node/infer-trusted-node-startup.test.mjs",
+                "anchor": "ordinary embedded import preserves application environment normalizer selection"
               }
             ]
           }
