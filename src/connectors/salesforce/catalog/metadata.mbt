@@ -51,6 +51,9 @@ pub struct ResourceMetadata {
   updateable : Bool
   fields : Array[FieldMetadata]
   response_sha256 : String
+  // Only an actual provider Boolean proves this operation. Missing or
+  // malformed metadata remains unproved without changing independent reads.
+  deletable : Bool?
 }
 
 ///|
@@ -307,6 +310,14 @@ pub fn project_describe(
     updateable,
     fields,
     response_sha256: @sha.hex(bytes),
+    deletable: match @decode.lookup(object, "deletable") {
+      Some(value) =>
+        match @decode.boolean(value) {
+          Ok(flag) => Some(flag)
+          Err(_) => None
+        }
+      None => None
+    },
   })
 }
 
