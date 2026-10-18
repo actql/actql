@@ -6,6 +6,13 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+#if defined(__APPLE__)
+#include <crt_externs.h>
+#endif
+
+#include "../../platform_native/host_bootstrap/command_input.h"
 #include <sys/time.h>
 #include <time.h>
 
@@ -128,4 +135,73 @@ const char *actql_native_client_selected_source(void) {
 #else
   return NULL;
 #endif
+}
+
+// The OS argv and launcher marker stay in their original process lifetime.
+// This private observation performs no managed copy or physical acquisition.
+// Once selected or refused it cannot restart against changed process inputs.
+static bool actql_command_input_attempted;
+static int actql_command_input_status = ACTQL_COMMAND_INPUT_INVALID;
+static const char *actql_command_input_source;
+static const char *actql_command_input_context;
+static actql_bootstrap_command_preparation_observation actql_command_input;
+
+int32_t actql_native_client_measure_prearguments(
+    int32_t maximum_arguments, int32_t maximum_argument_bytes,
+    int32_t maximum_storage_bytes, int32_t maximum_context_bytes) {
+  if (actql_command_input_attempted) return actql_command_input_status;
+  actql_command_input_attempted = true;
+  const char *context = getenv("ACTQL_NATIVE_LOCAL_RUNTIME");
+  if (context == NULL) {
+    actql_command_input_status = ACTQL_COMMAND_INPUT_NOT_SELECTED;
+    return actql_command_input_status;
+  }
+  if (maximum_arguments <= 0 || maximum_argument_bytes <= 0 ||
+      maximum_storage_bytes <= 0 || maximum_context_bytes <= 0)
+    return actql_command_input_status;
+#if defined(__APPLE__)
+  const char *source = actql_native_client_selected_source();
+  actql_command_input_status = actql_bootstrap_measure_command_preparation(
+      source, context, *_NSGetArgc(), (const char *const *)*_NSGetArgv(),
+      (size_t)maximum_arguments, (size_t)maximum_argument_bytes,
+      (size_t)maximum_storage_bytes, (size_t)maximum_context_bytes,
+      &actql_command_input);
+  if (actql_command_input_status == ACTQL_COMMAND_INPUT_OK) {
+    actql_command_input_source = source;
+    actql_command_input_context = context;
+  }
+#endif
+  return actql_command_input_status;
+}
+
+int32_t actql_native_client_preargument_count(void) {
+  return actql_command_input_status == ACTQL_COMMAND_INPUT_OK
+      ? (int32_t)actql_command_input.input.arguments : -1;
+}
+int32_t actql_native_client_preargument_storage_bytes(void) {
+  return actql_command_input_status == ACTQL_COMMAND_INPUT_OK
+      ? (int32_t)actql_command_input.input.storage_bytes : -1;
+}
+int32_t actql_native_client_preargument_context_bytes(void) {
+  return actql_command_input_status == ACTQL_COMMAND_INPUT_OK
+      ? (int32_t)actql_command_input.context_bytes : -1;
+}
+
+// The 40-byte compiler literal is part of the declared initial control graph.
+// Context copying belongs only inside the same original Read after acquisition;
+// neither copied value is installation/current/admission authority.
+int32_t actql_native_client_copy_preargument_source(
+    moonbit_bytes_t bytes, int32_t length) {
+  if (actql_command_input_status != ACTQL_COMMAND_INPUT_OK || length != 40 ||
+      actql_command_input_source == NULL) return 0;
+  memcpy(bytes, actql_command_input_source, 40);
+  return 1;
+}
+int32_t actql_native_client_copy_preargument_context(
+    moonbit_bytes_t bytes, int32_t length) {
+  if (actql_command_input_status != ACTQL_COMMAND_INPUT_OK || length <= 0 ||
+      (size_t)length != actql_command_input.context_bytes ||
+      actql_command_input_context == NULL) return 0;
+  memcpy(bytes, actql_command_input_context, (size_t)length);
+  return 1;
 }
