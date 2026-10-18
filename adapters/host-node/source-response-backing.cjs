@@ -107,7 +107,8 @@ function createSourceResponseBackingOwner(ports) {
       const borrowed = apply(borrow, ports,
         [scope, parent.original, readOriginal, state.offset, maxBytes]);
       state.borrowObservation = borrowed;
-      if (borrowed === undefined || isPromise(borrowed)) {
+      if (borrowed === null || (typeof borrowed !== 'object' && typeof borrowed !== 'function') ||
+          isPromise(borrowed)) {
         fail('SourceResponseBackingUnavailable');
       }
       state.borrowed = borrowed;

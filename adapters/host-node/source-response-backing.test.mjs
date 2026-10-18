@@ -9,12 +9,17 @@ function fixture() {
   const state = {current: true, returns: 0, acknowledged: true, windows: []};
   const ports = {
     assertSourceCurrent(value) { assert.equal(this, ports); assert.equal(value, scope);
-      if (!state.current) throw new Error('OriginalSourceClosing'); },
+      state.currentChecks = (state.currentChecks ?? 0) + 1;
+      if (!state.current || state.currentChecks === state.failOnCheck) {
+        if (state.currentFailurePresent) throw state.currentFailure;
+        throw new Error('OriginalSourceClosing');
+      } },
     reserveResponseStorage(value, bytes) { assert.equal(this, ports); assert.equal(value, scope);
       assert.equal(bytes, 16); return original; },
     borrowResponseStorage(value, parent, read, offset, bytes) { assert.equal(this, ports);
       assert.equal(value, scope); assert.equal(parent, original); state.windows.push([offset, bytes]);
       state.afterBorrow?.();
+      if (state.borrowReplyPresent) return state.borrowReply;
       return Object.freeze({read}); },
     returnResponseBorrow(value, parent, read, borrowed) { assert.equal(this, ports);
       assert.equal(value, scope); assert.equal(parent, original); assert.equal(borrowed.read, read);
@@ -147,4 +152,45 @@ test('partial current refusal retains the acquired original borrow in the same c
   assert.equal(failure.cleanupHandle.retry().pending, false);
   assert.equal(f.state.returns, 2);
   assert.equal(f.owner.poolStatus(f.pool, f.scope).allocated, 4);
+});
+
+test('partial refusal after actual allocation keeps its backing and immutable original cause', () => {
+  const f = fixture(), original = Object.freeze(new Error('OriginalAfterAllocation'));
+  f.state.failOnCheck = f.state.currentChecks + 3;
+  f.state.currentFailurePresent = true; f.state.currentFailure = original;
+  let failure;
+  try { f.owner.acquire(f.pool, f.scope, {}, 4); assert.fail('acquire must refuse'); }
+  catch (cause) { failure = cause; }
+  assert.equal(failure.cause, original);
+  assert.equal(f.owner.poolStatus(f.pool, f.scope).backingRetained, true);
+  assert.equal(failure.cleanupHandle.retry().pending, false);
+  assert.equal(f.state.returns, 1);
+  assert.equal(f.owner.poolStatus(f.pool, f.scope).backingRetained, true);
+  assert.equal(f.owner.poolStatus(f.pool, f.scope).parentBytesReleased, false);
+});
+
+test('missing or asynchronous borrow replies retain Unknown without inventing a return token', () => {
+  for (const result of [undefined, null, 1, true, Promise.resolve({})]) {
+    const f = fixture(); f.state.borrowReplyPresent = true; f.state.borrowReply = result;
+    let failure;
+    try { f.owner.acquire(f.pool, f.scope, {}, 4); assert.fail('acquire must refuse'); }
+    catch (cause) { failure = cause; }
+    assert.equal(failure.code, 'SourceResponseBackingCleanupPending');
+    assert.equal(failure.cleanupHandle.status().pending, true);
+    assert.equal(failure.cleanupHandle.retry().pending, true);
+    assert.equal(f.state.returns, 0);
+    assert.equal(f.owner.poolStatus(f.pool, f.scope).allocated, 4);
+    assert.equal(f.owner.poolStatus(f.pool, f.scope).backingRetained, false);
+  }
+});
+
+test('an undefined thrown cause remains the exact failed original while its known borrow cleans up', () => {
+  const f = fixture(); f.state.currentFailurePresent = true; f.state.currentFailure = undefined;
+  f.state.afterBorrow = () => {f.state.current = false;};
+  let failure;
+  try { f.owner.acquire(f.pool, f.scope, {}, 4); assert.fail('acquire must refuse'); }
+  catch (cause) { failure = cause; }
+  assert.equal(Object.hasOwn(failure, 'cause'), true); assert.equal(failure.cause, undefined);
+  assert.equal(failure.cleanupHandle.retry().pending, false);
+  assert.equal(f.state.returns, 1);
 });
