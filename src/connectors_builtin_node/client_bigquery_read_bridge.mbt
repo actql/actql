@@ -304,3 +304,59 @@ pub fn client_program_bigquery_bind_read_transport(
 ) -> Result[Unit, @bigquery_read.ReadIssue] {
   @bigquery_read.bind_borrowed_read_transport(value, observe_stop)
 }
+
+///|
+#export_name("clientProgramBigQueryJobRecordLimits")
+pub fn client_program_bigquery_job_record_limits(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_job_bytes : Int,
+  max_material_bytes : Int,
+) -> @bigquery_read.JobRecordLimits {
+  { max_bytes, max_nodes, max_depth, max_job_bytes, max_material_bytes, }
+}
+
+///|
+#export_name("clientProgramBigQueryJobOriginalRecord")
+pub fn client_program_bigquery_job_original_record(
+  value : @bigquery_read.JobRead,
+  limits : @bigquery_read.JobRecordLimits,
+) -> Result[@bigquery_read.JobOriginalRecord, @bigquery_read.JobRecordIssue] {
+  @bigquery_read.job_original_record(value, limits)
+}
+
+///|
+#export_name("clientProgramBigQueryJobOriginalRecordWire")
+pub fn client_program_bigquery_job_original_record_wire(
+  value : @bigquery_read.JobOriginalRecord,
+) -> String {
+  @bigquery_read.job_original_record_wire(value)
+}
+
+///|
+#export_name("clientProgramBigQueryReadJobOriginalRecord")
+pub fn client_program_bigquery_read_job_original_record(
+  bytes : Bytes,
+  limits : @bigquery_read.JobRecordLimits,
+) -> Result[@bigquery_read.JobOriginalRecord, @bigquery_read.JobRecordIssue] {
+  @bigquery_read.read_job_original_record(bytes, limits)
+}
+
+///|
+#export_name("clientProgramBigQueryJobOriginalRecordMaterial")
+pub fn client_program_bigquery_job_original_record_material(
+  value : @bigquery_read.JobOriginalRecord,
+) -> (String, String, String, String, String, String) {
+  @bigquery_read.job_original_record_material(value)
+}
+
+///|
+#export_name("clientProgramBigQueryJobOriginalRecordMatchesRequest")
+pub fn client_program_bigquery_job_original_record_matches_request(
+  value : @bigquery_read.JobRead,
+  request : @bigquery_read.JobRequest,
+  record : @bigquery_read.JobOriginalRecord,
+) -> Bool {
+  @bigquery_read.job_original_record_matches_request(value, request, record)
+}
