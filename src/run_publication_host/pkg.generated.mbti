@@ -915,6 +915,10 @@ pub fn client_remote_effect_task_progress_scopes(ClientRemoteEffectTaskProgress)
 
 pub fn client_remote_effect_task_progress_task_cleanup_complete(ClientRemoteEffectTaskProgress) -> Bool
 
+pub fn client_remote_effect_task_run_projection_fields(ClientRemoteEffectTaskRunProjection) -> Array[String]
+
+pub fn client_remote_effect_task_run_projection_work(ClientRemoteEffectTaskRunProjection) -> Array[String]
+
 pub fn client_remote_task_progress_cleanup_complete(ClientRemoteTaskProgress) -> Bool
 
 pub fn client_remote_task_progress_execution_complete(ClientRemoteTaskProgress) -> Bool
@@ -1826,6 +1830,8 @@ pub fn prepared_client_uses_graph_carrier(PreparedClientProgram) -> Bool
 pub fn prepared_client_values_max_rows(PreparedClientProgram) -> Int
 
 pub fn prepared_client_values_sequence_limits(PreparedClientProgram) -> @lowering_relation.SequenceLimits
+
+pub fn project_client_remote_effect_task_run(ClientRemoteEffectTaskProgress, String, Bool, Array[ClientRemoteEffectTaskRunClaim]) -> Result[ClientRemoteEffectTaskRunProjection, ClientRemoteTaskRunProjectionIssue]
 
 pub fn project_client_remote_task_run(ClientRemoteTaskProgress, String, Bool, Array[String]) -> Result[ClientRemoteTaskRunProjection, ClientRemoteTaskRunProjectionIssue]
 
@@ -3396,6 +3402,18 @@ pub(all) enum ClientRemoteEffectTaskProgressIssue {
   Binding(ClientEffectCompiledRunIssue)
   UnsupportedGraph
   Observation(ClientRemoteTaskProgressIssue)
+}
+
+pub(all) struct ClientRemoteEffectTaskRunClaim {
+  task_key : String
+  dispatch_cid : String?
+  dispatch_reserved : Bool
+  physical_start_claimed : Bool
+}
+
+pub struct ClientRemoteEffectTaskRunProjection {
+  original : ClientRemoteEffectTaskProgress
+  projection : ClientRemoteTaskRunProjection
 }
 
 pub struct ClientRemoteTaskProgress {
