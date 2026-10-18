@@ -119,3 +119,38 @@ before normal reservations can be released. Legacy canonical-RowRun component
 reservations do not fund this complete graph or prove its retirement. Missing
 normal supply or original installed correspondence remains unavailable; this
 module does not substitute constants, a new ledger or a cleanup assertion.
+
+
+## Installed users Source
+
+The connector-owned Host declaration selects the existing users Catalog and
+private installed Source adapter. It does not replace the public Connector
+configuration reader or add another schema evaluator. The selected workspace
+bytes, Account configuration, Site generation, runtime and selected TLS
+certificate are part of the original physical binding. Closed profile and Site
+readers snapshot own data properties without invoking accessors; Unicode is
+neither normalized nor used to infer a workspace identifier.
+
+The adapter borrows the original acquisition, RowRun and declared reader
+capacity after Common begins the same session. Its synchronous factory performs
+no I/O. It captures each provider, Site and Host callback with its original
+receiver, then admits one read only. Before network work it rechecks the
+original current Account decision. The same Site issues a separate workspace
+identity grant for the original invocation; the users grant is never retargeted.
+The exact identity response consumes its original observation charge, while
+each data page consumes its own ticket in that same RowRun. The aggregate raw
+byte ceiling must fit the generic Source's declared finite transfer budget;
+this consistency check does not issue a capacity reservation or permission.
+
+The wrapper retains the actual reader before method capture or awaits, along
+with its original binding, separate grants, read/stop Promises, provider and
+callback receivers, signal graph and error/result aliases. The configuration,
+workspace and TLS original bytes, decoded declaration, request/target wires,
+canonical binding hash workspace and those reader holdings overlap. A current
+failure or stop closes the transport without preparing another reader or
+replaying a request. Escaped observations still keep cleanup unconfirmed, and
+the existing recovery Owner retains the same Run and reservation on failure.
+Site close, Promise settlement and weak-reference collection do not retire
+those aliases. Missing original reader capacity remains unavailable at the
+normal Host entrance; neither profile bounds nor startup-only capacity fills
+that independent supplier responsibility.

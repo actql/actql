@@ -3,6 +3,7 @@ import test from 'node:test';
 import {readFile,writeFile} from 'node:fs/promises';
 import {createPublicKey} from 'node:crypto';
 import {checkInstalledSlackSourceProfile,installedSlackSourceIdentityParts} from '../host/installed-slack-source.mjs';
+import {createSlackUserSourceReaderFactory} from '../host/user-source-reader.mjs';
 import {installedSlackFixture} from './installed-slack.fixture.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {loadInstalledSource} from '../../../host-node/installed-source.mjs';
@@ -21,7 +22,8 @@ test('installed Slack closed original profile rejects undeclared resources autho
   assert(Object.isFrozen(p)&&Object.isFrozen(p.limits));
   for(const profile of [{...f.profile,workspaceId:''},{...f.profile,resources:['messages']},
     {...f.profile,readerCapacity:{retained:1,execution:1}},
-    {...f.profile,limits:{...f.profile.limits,maxRows:0}},{...f.profile,limits:{maxRows:2}},
+    {...f.profile,limits:{...f.profile.limits,maxRows:0}},
+    {...f.profile,limits:{...f.profile.limits,maxTotalResponseBytes:65536}},{...f.profile,limits:{maxRows:2}},
     {...f.profile,siteProfilePath:'relative.json'}])assert.throws(()=>checkInstalledSlackSourceProfile(profile));
   assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
 });
@@ -45,7 +47,8 @@ test('installed Slack actual text Source retains one original reader capture and
     await f.retain(opened,preparation.ledger);
     const exported=checked(f.common.clientProgramExportSourceCapture(opened.capture.source(),opened.requirement,'installed-slack-label-test'));
     assert.deepEqual(f.common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse),[
-      {id:'U1',name:'one'},{id:'U2',name:'two'}]);
+      {id:'U1',name:'one',deleted:null,display_name:null,email:null,is_bot:null,real_name:null,tz:null},
+      {id:'U2',name:'two',deleted:null,display_name:null,email:null,is_bot:null,real_name:null,tz:null}]);
     assert.equal(f.state.requests.length,3);assert.equal(f.state.resolutions,3);
     assert.deepEqual(f.state.requests.map(r=>r.method),['POST','GET','GET']);
     assert.equal(f.state.requests[0].path,'/api/auth.test');
@@ -150,4 +153,25 @@ test('installed Slack stop during original resolver refuses the first physical s
   await f.retain(recovery,preparation.ledger);
   assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,1);
   assert.equal(recovery.cleanupPending(),true);
+});
+
+
+test('installed Slack adapter snapshots original callbacks and rejects copied receivers and reprepare',async t=>{
+  const f=await installedSlackFixture(t);let originalCalls=0,replacementCalls=0;
+  const site={credential:f.options.credential,issueReadGrant(){assert.fail('current refusal precedes grant issuance');}};
+  const factory=createSlackUserSourceReaderFactory({provider:f.options.providerMoon,site,
+    capacity:f.capacity,workspaceId:f.profile.workspaceId,limits:f.profile.limits,maxSecretBytes:128});
+  // Actual provider ports, explicit sequencing-only acquisition and callbacks.
+  const acquisition={},options={resource:'users',operation:'slack:users:list',columns:['id'],signal:undefined,
+    rowRun:{acquisition,run:{},requestId:'original',runInvocationCid:f.scope.runInvocationCid,dispatchRequestCid:f.scope.dispatchRequestCid},
+    verifyRead(){assert.equal(this,options);originalCalls++;throw Object.assign(new Error('OriginalCurrentRefusal'),{code:'OriginalCurrentRefusal'});},
+    authorizationFor(){assert.fail('no authorization after refused current');},chargePage(){},consumeObservation(){},consumePage(){}};
+  const reader=factory.prepare(options);options.verifyRead=()=>{replacementCalls++;};
+  await assert.rejects(reader.read.call({...reader}),{code:'ForeignInstalledSlackReader'});
+  await assert.rejects(reader.read(),{code:'OriginalCurrentRefusal'});
+  await assert.rejects(reader.read(),{code:'InstalledSlackReaderAlreadyStarted'});
+  assert.throws(()=>factory.prepare(options),{code:'InstalledSlackReaderAlreadyPrepared'});
+  assert.throws(()=>factory.prepare.call({...factory},options),{code:'ForeignInstalledSlackReaderFactory'});
+  assert.equal(reader.observe().cleanupConfirmed,false);
+  assert.equal(originalCalls,1);assert.equal(replacementCalls,0);assert.equal(f.state.requests.length,0);
 });
