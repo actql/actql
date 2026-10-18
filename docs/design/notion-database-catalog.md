@@ -953,6 +953,37 @@ preparation phase must fund their full overlap before I/O and retain it until
 physical custody is confirmed. Post-response charging is not that supplier;
 missing installation-phase originals remain Unavailable before ordinary I/O.
 
+### Multiple original database aliases
+
+The same Relation projection can compose an ordered, bounded inventory of
+`(resource, original snapshot)` pairs into one existing `RowRelationViewSpec`.
+Every member must retain the full system binding and pass the same original
+snapshot check as the single-view projection. Distinct aliases may use the same
+snapshot; copied records and property-only snapshots remain invalid. Exact
+Unicode alias Strings are preserved without normalization. Duplicate aliases
+are rejected before any schema output. An empty inventory emits the existing
+empty view specification; this does not prove an empty or complete installation
+inventory or any metadata observation.
+
+The caller supplies both a maximum view count and alias-work budget. Every
+occurrence costs its UTF-16 length plus one, and every comparison against an
+earlier alias costs both lengths plus one, including duplicates and rejected
+members. Work is checked before subtraction. This budget covers only alias
+inventory and exact comparisons; checked Contract/schema emission, UTF-8/hash
+work and encoding keep their existing independent bounds. One bounded outer
+writer holds ordered views, while each field-map writer, String, hash backing
+and original Contract graph can overlap with that output and the whole input
+pair array. Failure cancels the incomplete outer writer; it does not retire any
+input original or return physical holdings. Generic declaration admission then
+retains its own workspace and originals alongside the specification.
+
+The typed Node projection forwards the pair inventory to this same Common
+owner. It adds no JavaScript schema constructor, canonical preimage, key or
+acquisition evidence, authority, authenticated cold custody or currentness.
+The single-view API and its canonical body remain unchanged. Installation
+publication must still bind this DATA to independently admitted acquisition and
+saved custody before a physical installation or Run may use it.
+
 ### Ordinary database RowRun caller
 
 The trusted installed database reader factory adapts the existing ordinary
