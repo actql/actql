@@ -259,7 +259,7 @@ async function installationFor(t, {changeRequestValue, payloadContract, beforePa
           requestCid,
           async send({request}) {
             assert.ok(Buffer.byteLength(request.wire, 'utf8') <= transportLimit);
-            assert.equal(request.target, recordId);
+            assert.equal(request.target, kind === 'create' ? undefined : recordId);
             sends.push(request.wire);
             before = structuredClone(request.value);
             const body = Buffer.from(dataJson({record_id: recordId,
