@@ -3486,7 +3486,8 @@ export async function connectEmbeddedLocal(options) {
   moon = await import(runtimeUrl.href);
   assertInitialControlInstallationCurrent(control, originals);
   record.runtime = moon;
-  project = await loadInstalledProjectConfiguration(moon, {directory: projectDirectory});
+  project = await loadInstalledProjectConfiguration(moon, {directory: projectDirectory,
+    initialControl: control, initialControlOriginals: originals});
   assertInitialControlInstallationCurrent(control, originals);
   record.project = project;
   projectProfile = selectInstalledProjectProfile(moon, project, requestedProfile, 65536);
