@@ -377,6 +377,18 @@ class _OriginalDomainCustody:
         The cleanup flag chooses an existing Owner operation, never an ACK,
         authority, bypass of current for new reads or a replacement context.
         """
+        from ._local_native_host_resources import _resources_for_domain
+        joined = _resources_for_domain(self)
+        if joined is not None:
+            if (type(functions) is not _OriginalDomainReadFunctions
+                    or functions.library is not self._functions.library):
+                raise ValueError('Foreign original Host read functions')
+            if not (cleanup and joined[0]._refused_bind_data_retired()):
+                with joined[0].scope(joined[1], cleanup=cleanup):
+                    yield
+                return
+            # No pair was issued. Only this same original domain's cleanup
+            # port remains usable, never its ordinary new-work scope.
         self._call(12 if cleanup else 10, functions)
         try:
             yield

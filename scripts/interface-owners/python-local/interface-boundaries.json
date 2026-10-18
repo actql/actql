@@ -53,7 +53,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py",
-      "sha256": "3cec2499f43654e2c431f15b10015299015b8bd7d2e22082e628e1ddb3daea3e",
+      "sha256": "e8c35677d724fae14032bf6300dd52c0de0e61d942b305099b76b9f7f8cc9862",
       "generator": {
         "path": "scripts/generate-local-native-shim-bindings.py",
         "anchor": "def render("
@@ -26623,76 +26623,75 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
-          "async": false,
           "name": "_OriginalArenaFact",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalControlCustody",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalControlCustody/__copy__",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalControlCustody/__deepcopy__",
           "parameters": [
             "self",
             "memo"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalControlCustody/__reduce__",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalControlCustody/_drop",
           "parameters": [
             "self",
             "slot"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalControlCustody/_empty_original",
           "parameters": [
             "cls",
             "functions"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalControlCustody/_enter",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalControlCustody/_fact",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalControlCustody/_mark_unknown",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalControlCustody/_prepare_original",
           "parameters": [
             "cls",
@@ -26708,74 +26707,75 @@
             "retained",
             "execution",
             "envelope"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalControlCustody/_take_original_reply",
           "parameters": [
             "cls",
             "functions",
             "owning_reply"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalControlCustody/acquire_fd",
           "parameters": [
             "self",
             "descriptor"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalControlCustody/close",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalControlCustody/current",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalControlError",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalControlError/__init__",
           "parameters": [
             "self",
             "host",
             "unknown",
             "fact"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalControlFunctions",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalControlFunctions/__init__",
           "parameters": [
             "self",
             "library"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_new_control_slots",
-          "parameters": []
+          "parameters": [],
+          "async": false
         }
       ],
-      "sha256": "b08a091fed400d839ad42ada92b6b054cbb42c5600b0c8d8772a814f1a47ab91",
+      "sha256": "9e140b34327ea6b7bd297e1bcd58d6aacb4fc76716d95e0d68843a86eae0b5d6",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -28562,6 +28562,7 @@
       "imports": [
         "._local_native_backing_custody",
         "._local_native_control_custody",
+        "._local_native_host_resources",
         "._local_native_original_read",
         "._local_native_shim_abi",
         "._local_native_sqlite",
@@ -28578,77 +28579,77 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
-          "async": false,
           "name": "_OriginalDomainCustody",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainCustody/__copy__",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainCustody/__deepcopy__",
           "parameters": [
             "self",
             "memo"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainCustody/__reduce__",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainCustody/_call",
           "parameters": [
             "self",
             "expected",
             "read"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainCustody/_close_read_context",
           "parameters": [
             "self",
             "functions"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainCustody/_drop",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainCustody/_fact",
           "parameters": [
             "self",
             "expected"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainCustody/_mark_unknown",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainCustody/_physical_scope",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
           "async": false,
@@ -28703,133 +28704,133 @@
           ]
         },
         {
-          "async": false,
           "name": "_OriginalDomainCustody/_prepare_read_context",
           "parameters": [
             "self",
             "functions"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainCustody/_project_original_material",
           "parameters": [
             "self",
             "functions"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainCustody/_read_scope",
           "parameters": [
             "self",
             "functions",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainCustody/_require_read_current",
           "parameters": [
             "self",
             "functions"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainCustody/_status",
           "parameters": [
             "self",
             "code"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainCustody/close_after_stop",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainCustody/current",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainCustody/transfer",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainError",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainError/__init__",
           "parameters": [
             "self",
             "domain",
             "unknown",
             "fact"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainFunctions",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainFunctions/__init__",
           "parameters": [
             "self",
             "library"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainMaterial",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainMaterialFunctions",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainMaterialFunctions/__init__",
           "parameters": [
             "self",
             "library"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainReadFunctions",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalDomainReadFunctions/__init__",
           "parameters": [
             "self",
             "library"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_new_domain_slots",
-          "parameters": []
+          "parameters": [],
+          "async": false
         }
       ],
-      "sha256": "db564195e46ed240532205e4e1906be73607cd780e0810fe0b571fb4ea637912",
+      "sha256": "4b022edb0d32a72d689ca931e580b974fea3a44b2cd8679ad158f113ea7cd9b8",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -34122,6 +34123,7 @@
       "imports": [
         "._local_native_control_custody",
         "._local_native_domain_custody",
+        "._local_native_host_resources",
         "._local_native_shim_abi",
         "__future__",
         "collections.abc",
@@ -34133,79 +34135,78 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
-          "async": false,
           "name": "_OriginalParentReadCustody",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalParentReadCustody/__copy__",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalParentReadCustody/__deepcopy__",
           "parameters": [
             "self",
             "memo"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalParentReadCustody/__reduce__",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalParentReadCustody/_call",
           "parameters": [
             "self",
             "operation"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalParentReadCustody/_drop",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalParentReadCustody/_fact",
           "parameters": [
             "self",
             "expected"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalParentReadCustody/_finish_data_ack",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalParentReadCustody/_mark_unknown",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalParentReadCustody/_owner_issue",
           "parameters": [
             "self",
             "fact"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalParentReadCustody/_prepare_original",
           "parameters": [
             "cls",
@@ -34216,75 +34217,76 @@
             "workspace_execution",
             "read_retained",
             "read_execution"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalParentReadCustody/_status",
           "parameters": [
             "self",
             "code"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalParentReadCustody/close",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalParentReadCustody/current",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalParentReadCustody/leave_scope",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalParentReadCustody/scope",
           "parameters": [
             "self",
             "cleanup"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalParentReadError",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalParentReadError/__init__",
           "parameters": [
             "self",
             "original",
             "unknown",
             "fact"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalParentReadFunctions",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalParentReadFunctions/__init__",
           "parameters": [
             "self",
             "library"
-          ]
+          ],
+          "async": false
         }
       ],
-      "sha256": "2222299aa17f9151133238421300e49dadd608074f241f5bae5b6e5c864900c0",
+      "sha256": "342f06059b4bc5ba94585eaaa33fc0f0f979d47c390402d1b5dd3012b29d2c61",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -36509,24 +36511,24 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
-          "async": false,
           "name": "bind",
           "parameters": [
             "library",
             "symbol"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "bind_group",
           "parameters": [
             "library",
             "prefix",
             "names"
-          ]
+          ],
+          "async": false
         }
       ],
-      "sha256": "3cec2499f43654e2c431f15b10015299015b8bd7d2e22082e628e1ddb3daea3e",
+      "sha256": "e8c35677d724fae14032bf6300dd52c0de0e61d942b305099b76b9f7f8cc9862",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -39475,6 +39477,7 @@
       "imports": [
         "._local_native_control_custody",
         "._local_native_domain_custody",
+        "._local_native_host_resources",
         "._local_native_shim_abi",
         "._local_native_sqlite_database",
         "__future__",
@@ -39611,7 +39614,7 @@
           ]
         }
       ],
-      "sha256": "1d1f03d933768ebccaa57ecad03a738fb6837154723c03d976931831c3129a78",
+      "sha256": "7998838b71885a7394235068a60c3941194533541d23776d1ff739f94a747b61",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -62198,6 +62201,381 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
                 "anchor": "\"\"\"Native executor-slot physical primitives for an originally funded worker."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/python-sdk/src/actql_sdk/_local_native_host_resources.py",
+      "exports": [
+        "Any",
+        "Iterator",
+        "Literal",
+        "NoReturn",
+        "annotations",
+        "bind_native",
+        "byref",
+        "c_void_p",
+        "contextmanager",
+        "dataclass"
+      ],
+      "operations": [
+        {
+          "name": "_OriginalHostResourcesCustody",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesCustody/__copy__",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesCustody/__deepcopy__",
+          "parameters": [
+            "self",
+            "memo"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesCustody/__reduce__",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesCustody/_ack_data_retired",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesCustody/_bind_original",
+          "parameters": [
+            "cls",
+            "read",
+            "sqlite",
+            "functions"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesCustody/_call",
+          "parameters": [
+            "self",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesCustody/_drop",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesCustody/_fact",
+          "parameters": [
+            "self",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesCustody/_issue",
+          "parameters": [
+            "self",
+            "fact"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesCustody/_mark_unknown",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesCustody/_refused_bind_data_retired",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesCustody/_slots",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesCustody/_status",
+          "parameters": [
+            "self",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesCustody/close",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesCustody/current",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesCustody/leave_scope",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesCustody/scope",
+          "parameters": [
+            "self",
+            "phase",
+            "cleanup"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesError",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesError/__init__",
+          "parameters": [
+            "self",
+            "original",
+            "unknown",
+            "fact"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesFact",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesFunctions",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "_OriginalHostResourcesFunctions/__init__",
+          "parameters": [
+            "self",
+            "library"
+          ],
+          "async": false
+        },
+        {
+          "name": "_resources_for_domain",
+          "parameters": [
+            "domain"
+          ],
+          "async": false
+        },
+        {
+          "name": "_retire_host_resources_registration",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "._local_native_control_custody",
+        "._local_native_domain_custody",
+        "._local_native_original_read",
+        "._local_native_shim_abi",
+        "._local_native_sqlite",
+        "._local_native_sqlite_database",
+        "__future__",
+        "collections.abc",
+        "contextlib",
+        "ctypes",
+        "dataclasses",
+        "typing"
+      ],
+      "sha256": "8361b6d85b264e1e83692876c079088ecb9373c463d17c7d2cf11c4d02200d21",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "E / Python original Host transport; existing Native Host, Resource and Library Owners retain admission, current and physical retirement",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "_OriginalHostResourcesCustody",
+            "_OriginalHostResourcesCustody/__copy__",
+            "_OriginalHostResourcesCustody/__deepcopy__",
+            "_OriginalHostResourcesCustody/__reduce__",
+            "_OriginalHostResourcesCustody/_ack_data_retired",
+            "_OriginalHostResourcesCustody/_bind_original",
+            "_OriginalHostResourcesCustody/_call",
+            "_OriginalHostResourcesCustody/_drop",
+            "_OriginalHostResourcesCustody/_fact",
+            "_OriginalHostResourcesCustody/_issue",
+            "_OriginalHostResourcesCustody/_mark_unknown",
+            "_OriginalHostResourcesCustody/_refused_bind_data_retired",
+            "_OriginalHostResourcesCustody/_slots",
+            "_OriginalHostResourcesCustody/_status",
+            "_OriginalHostResourcesCustody/close",
+            "_OriginalHostResourcesCustody/current",
+            "_OriginalHostResourcesCustody/leave_scope",
+            "_OriginalHostResourcesCustody/scope",
+            "_OriginalHostResourcesError",
+            "_OriginalHostResourcesError/__init__",
+            "_OriginalHostResourcesFact",
+            "_OriginalHostResourcesFunctions",
+            "_OriginalHostResourcesFunctions/__init__",
+            "_resources_for_domain",
+            "_retire_host_resources_registration"
+          ],
+          "exports": [
+            "Any",
+            "Iterator",
+            "Literal",
+            "NoReturn",
+            "annotations",
+            "bind_native",
+            "byref",
+            "c_void_p",
+            "contextmanager",
+            "dataclass"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_host_resources.py",
+                "anchor": "class _OriginalHostResourcesCustody:"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/local_host_resources_native.mbt",
+                "anchor": "pub fn InstalledArenaHost::bind_local_host_resources("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_host_resources.py",
+                "anchor": "def _slots("
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/local_host_resources_shim.c",
+                "anchor": "int actql_host_resources_originals_into("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_host_resources.py",
+                "anchor": "or read._domain._owner is not sqlite._domain._owner"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/local_host_resources_shim.c",
+                "anchor": "static int same_originals("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_host_resources.py",
+                "anchor": "owner._host_resources_original = original"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_host_resources.py",
+                "anchor": "def _ack_data_retired("
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/local_host_resources_shim.c",
+                "anchor": "int actql_host_resources_finish_refused_bind_data("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_host_resources.py",
+                "anchor": "owner._enter()"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_host_resources.py",
+                "anchor": "def scope("
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/local_host_resources_native.mbt",
+                "anchor": "pub fn InstalledArenaHost::enter_local_host_phase("
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_host_resources.py",
+                "anchor": "def _mark_unknown("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_host_resources.py",
+                "anchor": "if fact.issue_origin == 2 and fact.issue_family == 9:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_host_resources.py",
+                "anchor": "def test_lost_data_finish_ack_keeps_unknown_and_never_repeats_close("
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This private holder does not cancel a Run, stop a child or acknowledge an external operation. It forwards only original Native phase/current/retirement calls and never treats cancellation intent as a cleanup acknowledgment."
+            },
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_host_resources.py",
+                "anchor": "from ._local_native_control_custody import _OriginalControlCustody"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/local_host_resources_native.mbt",
+                "anchor": "pub fn InstalledArenaHost::borrow_local_host_read("
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/local_host_resources_native.mbt",
+                "anchor": "pub fn InstalledArenaHost::borrow_local_host_sqlite("
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_host_resources.py",
+                "anchor": "bind_native(library, 'actql_host_resources_bind_into')"
+              },
+              {
+                "path": "scripts/generate-local-native-shim-bindings.py",
+                "anchor": "SHIMS ="
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_native_host_resources.py",
+                "anchor": "def test_originals_one_binding_phase_and_parent_data_are_retained("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_host_resources.py",
+                "anchor": "def test_pending_or_unknown_child_blocks_parent_before_native_close("
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/local_host_resources_conformance.c",
+                "anchor": "refused bind data retirement preserves original inputs"
               }
             ]
           }

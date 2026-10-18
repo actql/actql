@@ -155,3 +155,25 @@ int actql_host_resources_finish_closed_data(actql_control_host **host,
     actql_control_host *h = *host; *host = NULL; moonbit_decref(h);
     return ACTQL_CONTROL_OK;
 }
+
+int actql_host_resources_finish_refused_bind_data(actql_control_host **host,
+    actql_control_host **sqlite_host, actql_parent_read **read,
+    actql_sqlite_original **sqlite, actql_local_host_resources **original,
+    actql_local_host_resources_reply **reply) {
+    const void *slots[] = {host, sqlite_host, read, sqlite, original, reply};
+    if (!distinct_slots(slots, 6)) return ACTQL_CONTROL_INVALID_SLOT;
+    if (!*host && !*sqlite_host && !*read && !*sqlite && !*original && !*reply)
+        return ACTQL_CONTROL_OK;
+    if (registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    if (!*host || !*sqlite_host || !*read || !*sqlite || *original || !*reply ||
+        callbacks.operation(*reply) != 1 || callbacks.origin(*reply) == 0 ||
+        callbacks.family(*reply) == 0 ||
+        !same_originals(*reply, *host, *sqlite_host, *read, *sqlite, NULL))
+        return ACTQL_CONTROL_INVALID_SLOT;
+    actql_local_host_resources_reply *v = *reply; *reply = NULL; moonbit_decref(v);
+    actql_sqlite_original *q = *sqlite; *sqlite = NULL; moonbit_decref(q);
+    actql_parent_read *r = *read; *read = NULL; moonbit_decref(r);
+    actql_control_host *s = *sqlite_host; *sqlite_host = NULL; moonbit_decref(s);
+    actql_control_host *h = *host; *host = NULL; moonbit_decref(h);
+    return ACTQL_CONTROL_OK;
+}
