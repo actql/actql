@@ -152,7 +152,7 @@ def main() -> None:
         rejected = c.c_void_p()
         byte = (c.c_ubyte * 1)(0)
         assert crypto._functions.hmac(crypto._host, crypto._pair, crypto._read,
-            crypto._component, crypto._library, byte, 1, byte, 1, c.byref(rejected)) == 2
+            crypto._component, crypto._library, byte, 1, byte, 1, c.byref(rejected)) == -1
         assert rejected.value is None and not crypto._closed
         step('stopped original Read keeps normal hash dispatch refused inside cleanup')
         crypto.close()
