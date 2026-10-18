@@ -35,7 +35,12 @@ response is charged before decoding, including malformed or refused responses.
 
 The existing RowRun permits one pending response charge. Before receiving a
 continuation, the preceding actual charge is consumed as an observation while
-the codec retains its incomplete row graph. Exactly the final actual response
+the codec retains its incomplete row graph. The private read also retains every
+exact Credential-issued response and its original request, grant, use, scope,
+control and Journal. The Credential Owner rechecks its own response membership
+and bytes before and after awaited accounting consumers and before final return.
+A copied response, another read's use, changed prefix bytes or an observed
+failure followed by restored bytes cannot supply that original prefix. Exactly the final actual response
 ticket accompanies the complete logical page, following the existing dependent
 row-read rule. Canonical output is never fabricated as received transfer bytes,
 and incomplete rows are never delivered. A lost reply retains its original

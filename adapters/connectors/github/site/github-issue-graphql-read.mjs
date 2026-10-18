@@ -12,7 +12,9 @@
 // read with its accepted pages and the unfetched cursor kept. Raw header
 // values are not retained. Nothing is retried.
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {invokeScopedCredentialOperation} from
+import {withHttpsCredentialRunResponseOriginal} from
+  '../../../site-node/https-credential-resource.mjs';
+import {invokeScopedCredentialOperation, invocationBindingsMatch} from
   '../../../host-common/owned-invocation-context.mjs';
 
 export const GITHUB_GRAPHQL_READ_OPERATION = 'github:graphql:read';
@@ -21,6 +23,10 @@ export const GITHUB_GRAPHQL_PATH = '/graphql';
 const fail = (code, details = {}) => {
   throw Object.assign(new Error(code), {code, ...details});
 };
+// Escaped results and failures retain this read's bounded original prefix.
+// Ticket consumption and codec retirement do not release these aliases or ACK
+// the Credential/RowRun owners. No public field exposes or manufactures them.
+const retainedReads = new WeakMap();
 const count = value => Number.isSafeInteger(value) && value > 0;
 const pairs = headers => [headers.map(entry => entry[0]),
   headers.map(entry => entry[1])];
@@ -68,7 +74,30 @@ export async function readGitHubIssuesByNode({moon, repository,
     fail('InvalidGitHubRead');
   }
   const owned = checkLimits(limits);
-  const labels = filters.labels ?? [];
+  const originalCredential = Object.freeze({...credential, retainRunResponseOriginal: true});
+  const {control, journal} = originalCredential;
+  const useProjection = control.useProjection;
+  const grantIdentity = control.identity;
+  const prefix = {responses: [], pages: [], credential: originalCredential,
+    repository: Object.freeze({...repository}), limits: owned,
+    chargePage, consumeObservation, consumePage};
+  let prefixFailure;
+  const checkPrefix = () => {
+    if (prefixFailure !== undefined) throw prefixFailure;
+    try {
+      signal?.throwIfAborted();
+      for (const entry of prefix.responses) {
+        withHttpsCredentialRunResponseOriginal(entry.response, control, journal, facts => {
+          if (facts !== entry.facts) fail('GitHubResponseOriginalChanged');
+        });
+      }
+    } catch (cause) {
+      prefixFailure = cause; retainedReads.set(cause, prefix); throw cause;
+    }
+  };
+  repository = prefix.repository;
+  const labels = Object.freeze([...(filters.labels ?? [])]);
+  filters = Object.freeze({...filters, labels});
   if (!['open', 'closed', 'all'].includes(filters.state) ||
       !Array.isArray(labels) ||
       labels.some(label => typeof label !== 'string') ||
@@ -85,10 +114,13 @@ export async function readGitHubIssuesByNode({moon, repository,
   let pending = true;
   let requests = 0;
   let lastBasis;
-  const stopped = (code, details) => fail(code, {stopped: true,
-    acceptedPages: Object.freeze([...accepted]),
-    unfetched: pending ? Object.freeze({after, page}) : undefined,
-    ...details});
+  const stopped = (code, details) => {
+    const error = Object.assign(new Error(code), {code, stopped: true,
+      acceptedPages: Object.freeze([...accepted]),
+      unfetched: pending ? Object.freeze({after, page}) : undefined, ...details});
+    retainedReads.set(error, prefix);
+    throw error;
+  };
   const decoded = value => {
     try { return checked(value); }
     catch (cause) {
@@ -106,17 +138,41 @@ export async function readGitHubIssuesByNode({moon, repository,
     let response;
     let charge;
     try {
+      checkPrefix();
       const authorization = await authorizationFor(requests);
+      checkPrefix();
       signal?.throwIfAborted();
+      const expectedUseId = authorization.useId;
+      const expectedGrantCid = Reflect.apply(grantIdentity, control, [authorization.grant]);
       requests += 1;
       response = await invokeScopedCredentialOperation({
-        authorization, credential, callResource,
+        authorization, credential: originalCredential, callResource,
         operation: GITHUB_GRAPHQL_READ_OPERATION, method: 'POST',
         path: GITHUB_GRAPHQL_PATH, headers, body,
         responseHeaders, maxRequestBytes: owned.maxRequestBytes,
         maxResponseBytes: owned.maxBytes, signal,
       });
+      const entry = {response, body, facts: undefined};
+      prefix.responses.push(entry);
+      const facts = withHttpsCredentialRunResponseOriginal(response, control, journal, value => {
+        const use = Reflect.apply(useProjection, control, [value.use]);
+        if (value.response !== response || value.method !== 'POST' ||
+            value.path !== GITHUB_GRAPHQL_PATH ||
+            !Buffer.from(value.requestBodyBytes).equals(Buffer.from(body, 'utf8')) ||
+            use[0] !== response.useCid || use[1] !== expectedGrantCid ||
+            use[2] !== expectedUseId ||
+            prefix.responses.slice(0, -1).some(previous => previous.response === response) ||
+            (prefix.responses.length > 1 && !invocationBindingsMatch(
+              value.scope, prefix.responses[0].facts.scope, control))) {
+          fail('GitHubResponseOriginalChanged');
+        }
+        return value;
+      });
+      entry.facts = facts;
+      Object.freeze(entry);
+      checkPrefix();
       charge = await chargePage?.(response.body);
+      checkPrefix();
     } catch (cause) {
       stopped(cause?.code ?? 'GitHubReadInterrupted', {cause});
     }
@@ -132,78 +188,97 @@ export async function readGitHubIssuesByNode({moon, repository,
     }
     return {response, charge};
   };
-  while (pending) {
-    signal?.throwIfAborted();
-    const request = JSON.parse(moon.githubIssuesRequestJson(repository.nodeId,
-      owned.perPage, after !== undefined, after ?? '', filters.state, labels,
-      filters.since !== undefined, filters.since ?? ''));
-    if (request.refused) stopped('InvalidGitHubReadRequest',
-      {refusal: request.refused});
-    const {response, charge} = await exchange(request.body);
-    const original = decoded(moon.githubIssuePageReadBegin(response.body,
-      owned.maxBytes, owned.maxNodes, owned.maxDepth, owned.perPage,
-      owned.maxPages - requests + 1, repository.nodeId, repository.databaseId, repository.nameWithOwner));
-    let current;
-    let rowCharge = charge;
-    try {
-      for (;;) {
-        const next = JSON.parse(decoded(moon.githubIssuePageReadNextRequestJson(
-          original, owned.perPage)));
-        if (next.body === null) break;
-        // An accounted child body has its own admission ticket. Never hide it
-        // as another row page or accept it without the original observation port.
-        if (chargePage !== undefined && consumeObservation === undefined) {
-          stopped('GitHubObservationNotAdmitted');
-        }
-        // The original RowRun allows one unconsumed physical-response ticket.
-        // Consume each prefix as an observation before the next receive, while
-        // the opaque decoder retains its original incomplete row graph. Exactly
-        // the last actual ticket accompanies the completed logical page.
-        if (consumeObservation !== undefined) {
-          try { await consumeObservation(rowCharge); }
-          catch (cause) {
-            stopped(cause?.code ?? 'GitHubObservationNotAdmitted', {cause});
+  try {
+    while (pending) {
+      signal?.throwIfAborted();
+      const request = JSON.parse(moon.githubIssuesRequestJson(repository.nodeId,
+        owned.perPage, after !== undefined, after ?? '', filters.state, labels,
+        filters.since !== undefined, filters.since ?? ''));
+      if (request.refused) stopped('InvalidGitHubReadRequest',
+        {refusal: request.refused});
+      const {response, charge} = await exchange(request.body);
+      const original = decoded(moon.githubIssuePageReadBegin(response.body,
+        owned.maxBytes, owned.maxNodes, owned.maxDepth, owned.perPage,
+        owned.maxPages - requests + 1, repository.nodeId, repository.databaseId, repository.nameWithOwner));
+      prefix.pages.push(original);
+      let current;
+      let rowCharge = charge;
+      try {
+        for (;;) {
+          const next = JSON.parse(decoded(moon.githubIssuePageReadNextRequestJson(
+            original, owned.perPage)));
+          if (next.body === null) break;
+          // An accounted child body has its own admission ticket. Never hide it
+          // as another row page or accept it without the original observation port.
+          if (chargePage !== undefined && consumeObservation === undefined) {
+            stopped('GitHubObservationNotAdmitted');
           }
+          // The original RowRun allows one unconsumed physical-response ticket.
+          // Consume each prefix as an observation before the next receive, while
+          // the opaque decoder retains its original incomplete row graph. Exactly
+          // the last actual ticket accompanies the completed logical page.
+          if (consumeObservation !== undefined) {
+            try {
+              checkPrefix();
+              await consumeObservation(rowCharge);
+              checkPrefix();
+            }
+            catch (cause) {
+              stopped(cause?.code ?? 'GitHubObservationNotAdmitted', {cause});
+            }
+          }
+          rowCharge = undefined;
+          const child = await exchange(next.body);
+          rowCharge = child.charge;
+          decoded(moon.githubIssuePageReadAccept(original, child.response.body));
         }
-        rowCharge = undefined;
-        const child = await exchange(next.body);
-        rowCharge = child.charge;
-        decoded(moon.githubIssuePageReadAccept(original, child.response.body));
+        checkPrefix();
+        current = JSON.parse(decoded(moon.githubIssuePageReadFinishJson(original)));
+      } finally {
+        // Codec alias retirement does not acknowledge a transport, RowRun or
+        // physical resource. Their original owners retain those duties.
+        moon.githubIssuePageReadClose(original);
       }
-      current = JSON.parse(decoded(moon.githubIssuePageReadFinishJson(original)));
-    } finally {
-      // Codec alias retirement does not acknowledge a transport, RowRun or
-      // physical resource. Their original owners retain those duties.
-      moon.githubIssuePageReadClose(original);
-    }
-    if (rows.length + current.rows.length > owned.maxRows) {
-      stopped('GitHubReadRowLimit');
-    }
-    if (consumePage !== undefined) {
-      try { await consumePage(current.rows, page, Object.freeze({charge: rowCharge})); }
-      catch (cause) {
-        stopped(cause?.code ?? 'GitHubPageNotAdmitted', {cause});
+      if (rows.length + current.rows.length > owned.maxRows) {
+        stopped('GitHubReadRowLimit');
       }
+      if (consumePage !== undefined) {
+        try {
+          checkPrefix();
+          await consumePage(current.rows, page, Object.freeze({charge: rowCharge}));
+          checkPrefix();
+        }
+        catch (cause) {
+          stopped(cause?.code ?? 'GitHubPageNotAdmitted', {cause});
+        }
+      }
+      rows.push(...current.rows);
+      accepted.push(Object.freeze({page, useCid: response.useCid,
+        rows: current.rows.length}));
+      if (!current.hasNextPage) {
+        pending = false;
+        break;
+      }
+      // A cursor seen before (including the one just sent) never advances the
+      // read: the provider would return a page already accepted.
+      if (current.endCursor === after || cursors.has(current.endCursor)) {
+        stopped('GitHubCursorCycle');
+      }
+      cursors.add(current.endCursor);
+      after = current.endCursor;
+      page += 1;
+      // An accepted page with no remaining quota is kept; the read stops
+      // before the next request instead of spending one it cannot make.
+      if (lastBasis.remaining === 0) stopped('GitHubRateLimited', {basis: lastBasis});
     }
-    rows.push(...current.rows);
-    accepted.push(Object.freeze({page, useCid: response.useCid,
-      rows: current.rows.length}));
-    if (!current.hasNextPage) {
-      pending = false;
-      break;
-    }
-    // A cursor seen before (including the one just sent) never advances the
-    // read: the provider would return a page already accepted.
-    if (current.endCursor === after || cursors.has(current.endCursor)) {
-      stopped('GitHubCursorCycle');
-    }
-    cursors.add(current.endCursor);
-    after = current.endCursor;
-    page += 1;
-    // An accepted page with no remaining quota is kept; the read stops
-    // before the next request instead of spending one it cannot make.
-    if (lastBasis.remaining === 0) stopped('GitHubRateLimited', {basis: lastBasis});
+    try { checkPrefix(); }
+    catch (cause) { stopped(cause.code ?? 'GitHubReadInterrupted', {cause}); }
+    const result = Object.freeze({rows: Object.freeze(rows),
+      pages: Object.freeze(accepted), complete: true});
+    retainedReads.set(result, prefix);
+    return result;
+  } catch (cause) {
+    retainedReads.set(cause, prefix);
+    throw cause;
   }
-  return Object.freeze({rows: Object.freeze(rows),
-    pages: Object.freeze(accepted), complete: true});
 }

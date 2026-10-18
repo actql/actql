@@ -17,7 +17,7 @@ import {openHttpsExchangeFixture} from
   '../../../site-node/https-exchange-fixture.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
-import {callHttpsCredentialResource, openHttpsCredentialBinding, closeHttpsCredentialBinding} from
+import {callHttpsCredentialResource, openHttpsCredentialBinding, closeHttpsCredentialBinding, withHttpsCredentialRunResponseOriginal} from
   '../../../site-node/https-credential-resource.mjs';
 import {openSqliteCredentialJournal} from
   '../../../site-node/sqlite-credential-journal.mjs';
@@ -97,7 +97,7 @@ async function setup(t, state, {faults = [], beforeAuthorize, accounted = false}
         consumeObservation: rowRun.observe, consumePage: rowRun.page}),
       ...overrides});
   };
-  return {fixture, journal, read, rowRun};
+  return {fixture, journal, read, rowRun, credential};
 }
 
 const world = (extra = {}) => ({
@@ -412,8 +412,9 @@ async function accountedIssueRows(verifyTransport) {
   checked(commonMoon.clientProgramRowSourceBegin(run, 100000, 5, 100, undefined));
   let charges = 0;
   let observations = 0;
+  let receivedBytes = 0;
   return {
-    charge: body => { charges++; return checked(commonMoon.clientProgramRowSourceChargePage(run, body)); },
+    charge: body => { charges++; receivedBytes += body.byteLength; return checked(commonMoon.clientProgramRowSourceChargePage(run, body)); },
     observe: charge => { observations++; return checked(commonMoon.clientProgramRowSourceConsumeObservationCharge(run, charge)); },
     page: (rows, _page, {charge}) => checked(commonMoon.clientProgramRowSourceAcceptChargedPage(run, charge, Buffer.from(JSON.stringify(rows)))),
     finish() {
@@ -424,6 +425,8 @@ async function accountedIssueRows(verifyTransport) {
       return commonMoon.clientProgramCapturedSourceRowCount(relation);
     },
     counts: () => ({charges, observations}),
+    receivedBytes: () => receivedBytes,
+    transferredBytes: () => commonMoon.clientProgramMultiCapturedLedgerUsage(ledger)[3],
     close() {
       checked(commonMoon.clientProgramRowSourceCloseAccounted(run));
       assert.deepEqual(commonMoon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
@@ -436,7 +439,15 @@ test('the same actual accounted RowRun admits child observations then captures e
   const labels = Array.from({length: 101}, (_, index) => `label-${index}`);
   state.repositories.get('R_A').issues = [{number: 7, comments: 2147483647, labels}];
   const context = await setup(t, state, {accounted: true});
-  const result = await context.read();
+  const actualBodies = [];
+  const result = await context.read({callResource: async request => {
+    const response = await callHttpsCredentialResource(request);
+    actualBodies.push(response.body);
+    return response;
+  }});
+  assert.equal(context.rowRun.receivedBytes(), actualBodies.reduce((sum, body) => sum + body.byteLength, 0));
+  assert.equal(context.rowRun.transferredBytes(), BigInt(context.rowRun.receivedBytes()));
+  assert.equal(actualBodies.length, 2);
   assert.equal(result.rows[0].number, '7');
   assert.equal(result.rows[0].comments, '2147483647');
   assert.deepEqual(result.rows[0].labels, labels);
@@ -489,4 +500,88 @@ test('current authorization after awaited child consumption still fences the nex
   assert.deepEqual(checks, [0, 1, 2]);
   assert.equal(context.fixture.seen().length, 2);
   assert.equal(published, 0);
+});
+
+
+test('original prefix mutation during awaited accounting or final consumption is sticky and never publishes completion', async t => {
+  for (const phase of ['charge', 'observation', 'page']) {
+    const state = world();
+    state.repositories.get('R_A').issues = [{number: 7,
+      labels: Array.from({length: 101}, (_, index) => `label-${index}`)}];
+    const context = await setup(t, state);
+    const responses = [];
+    let published = 0;
+    const corrupt = async () => {
+      await Promise.resolve();
+      responses[0].body[0] ^= 1;
+    };
+    const failure = await stopOf(context.read({
+      callResource: async request => {
+        const response = await callHttpsCredentialResource(request);
+        responses.push(response); return response;
+      },
+      chargePage: async body => {
+        if (phase === 'charge') await corrupt();
+        return Object.freeze({body});
+      },
+      consumeObservation: async () => { if (phase === 'observation') await corrupt(); },
+      consumePage: async () => {
+        published++;
+        if (phase === 'page') await corrupt();
+      },
+    }));
+    assert.equal(failure.code, 'RemoteCredentialRunResponseChanged', phase);
+    assert.equal(failure.stopped, true, phase);
+    assert.deepEqual(failure.acceptedPages, [], phase);
+    assert.equal(published, phase === 'page' ? 1 : 0, phase);
+    assert.equal(context.fixture.seen().length, phase === 'page' ? 2 : 1, phase);
+    responses[0].body[0] ^= 1;
+    assert.throws(() => withHttpsCredentialRunResponseOriginal(responses[0],
+      context.credential.control, context.journal, () => {}),
+    {code: 'RemoteCredentialRunResponseChanged'}, phase);
+    assert.ok(context.journal.recover().every(record => record.outcome === 'succeeded'), phase);
+  }
+});
+
+test('copied and another read original responses cannot substitute for this request use before charge', async t => {
+  for (const kind of ['copy', 'foreign-read']) {
+    const context = await setup(t, world());
+    let previous;
+    if (kind === 'foreign-read') {
+      await context.read({callResource: async request => {
+        const response = await callHttpsCredentialResource(request);
+        previous ??= response; return response;
+      }});
+    }
+    const sends = context.fixture.seen().length;
+    let charged = 0;
+    const failure = await stopOf(context.read({
+      callResource: async request => {
+        const response = await callHttpsCredentialResource(request);
+        return kind === 'copy' ? Object.freeze({...response}) : previous;
+      },
+      chargePage: () => { charged++; },
+    }));
+    assert.equal(failure.code, kind === 'copy' ?
+      'RemoteCredentialRunResponseOriginalUnavailable' : 'GitHubResponseOriginalChanged', kind);
+    assert.equal(charged, 0, kind);
+    assert.equal(context.fixture.seen().length, sends + 1, kind);
+    assert.deepEqual(failure.acceptedPages, [], kind);
+  }
+});
+
+test('actual RowRun refuses copied foreign reused and observed-only tickets without releasing a row prefix', async t => {
+  const first = await accountedIssueRows(() => true);
+  const foreign = await accountedIssueRows(() => true);
+  t.after(() => { first.close(); foreign.close(); });
+  const body = Buffer.from('[]');
+  const ticket = first.charge(body);
+  assert.throws(() => foreign.page([], 1, {charge: ticket}));
+  assert.throws(() => first.page([], 1, {charge: {...ticket}}));
+  // Each refusal aborts only its original attempt; fresh attempts cover reuse.
+  const observed = await accountedIssueRows(() => true);
+  t.after(() => observed.close());
+  const observation = observed.charge(body);
+  observed.observe(observation);
+  assert.throws(() => observed.page([], 1, {charge: observation}));
 });
