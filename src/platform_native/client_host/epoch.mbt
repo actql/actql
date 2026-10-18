@@ -135,17 +135,24 @@ fn read_epoch_custody(
   database : @sqlite.Database,
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[(Bytes, Double, Int64), NativeClientEpochIssue] {
-  match scan_client_journal_value(database, "client_submission_epoch", "", reads) {
+  match
+    scan_client_journal_value(database, "client_submission_epoch", "", reads) {
     Ok(entry) if entry.key == "authority" => ()
     Ok(_) | Err(@sqlite.NotFound) => return Err(CustodyLost)
     Err(issue) => return Err(Physical(issue))
   }
-  match scan_client_journal_value(database, "client_submission_epoch", "authority", reads) {
+  match
+    scan_client_journal_value(
+      database, "client_submission_epoch", "authority", reads,
+    ) {
     Err(@sqlite.NotFound) => ()
     Ok(_) => return Err(CustodyLost)
     Err(issue) => return Err(Physical(issue))
   }
-  let row = match read_client_journal_value(database, "client_submission_epoch", "authority", reads) {
+  let row = match
+    read_client_journal_value(
+      database, "client_submission_epoch", "authority", reads,
+    ) {
     Ok(value) => value
     Err(@sqlite.NotFound) => return Err(CustodyLost)
     Err(issue) => return Err(Physical(issue))
@@ -265,7 +272,7 @@ fn open_native_client_epoch_authority_with_reads(
   if !valid_epoch_clock(ttl_ms) || ttl_ms < 1.0 || ttl_ms > 86400000.0 {
     return Err(InvalidInput)
   }
-  match read_epoch_custody(database, reads=reads) {
+  match read_epoch_custody(database, reads~) {
     Ok(_) => Ok({ database, crypto, ttl_ms, fenced: false, })
     Err(issue) => Err(issue)
   }

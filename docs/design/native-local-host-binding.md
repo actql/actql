@@ -1312,7 +1312,7 @@ The original-pair inspection separates physical queries from row interpretation.
 The existing bounded snapshot is retained before leaving its Read preparation;
 its copied DB opens in the same pair's SQLite scope. Each custody query leaves
 the original Read scope, uses that same DB in SQLite, then resumes the original
-Read before UTF-8, canonical, Run, Policy or HMAC validation. The complete epoch,
+Read before protocol-body UTF-8, canonical, Run, Policy or HMAC validation. The complete epoch,
 Run, Effect, cancellation, submitted-intent and named-startup predicates and
 transaction order are shared with the ordinary Journal entrance. A failed
 exchange stops subsequent queries and retains its original scope failure;

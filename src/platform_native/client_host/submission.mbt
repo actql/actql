@@ -165,10 +165,12 @@ fn NativeClientRunJournal::submitted_intent_custody(
   @host.inspect_client_submitted_journal_inventory(
     self.max_records,
     (table_name, cursor) => {
-      client_journal_scan(self.database, table_name, cursor, reads=reads)
+      client_journal_scan(self.database, table_name, cursor, reads~)
     },
-    (table_name, key) => client_journal_read(self.database, table_name, key, reads=reads),
-    row => self.inspect_submitted_intent_row(row, reads=reads),
+    (table_name, key) => {
+      client_journal_read(self.database, table_name, key, reads~)
+    },
+    row => self.inspect_submitted_intent_row(row, reads~),
     CustodyLost,
   )
 }
@@ -198,7 +200,7 @@ fn NativeClientRunJournal::inspect_submitted_intent_row(
   if record.reference.request_id != row.key {
     return Err(CustodyLost)
   }
-  match self.validate_submitted_run_admission(record, reads=reads) {
+  match self.validate_submitted_run_admission(record, reads~) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
