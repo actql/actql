@@ -5200,6 +5200,10 @@
               {
                 "path": "adapters/site-node/https-credential-resource.mjs",
                 "anchor": "requestRepresentation: response.requestRepresentation"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "responseRepresentation: response.responseRepresentation"
               }
             ],
             "identity": [
@@ -5230,6 +5234,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "response.rawHeaders[index].toLowerCase()"
               }
             ],
             "ownership": [
@@ -5384,6 +5392,10 @@
               {
                 "path": "adapters/site-node/https-credential-resource.mjs",
                 "anchor": "const requestRepresentation = !retainRunResponseOriginal"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "Object.freeze({etagCount, contentEncodingCount})"
               }
             ],
             "extension": [
@@ -5488,6 +5500,10 @@
               {
                 "path": "adapters/site-node/https-credential-resource.test.mjs",
                 "anchor": "representation on the original fenced acquisition"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/account-target-original.test.mjs",
+                "anchor": "Account target original rejects missing weak wildcard"
               }
             ]
           }
@@ -5592,7 +5608,7 @@
           }
         }
       ],
-      "sha256": "3f5b43b246f60a5aa2dc7f4c14e2fdabd4b8aa9f373bbfff5082c0f275861f79",
+      "sha256": "3731ebc0fdc40c078106bc2c00f995c2f791eb5b9f925ddb4bf64649787538e4",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",
