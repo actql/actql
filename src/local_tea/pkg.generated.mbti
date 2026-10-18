@@ -200,6 +200,7 @@ pub(all) enum SessionIssue {
   SessionWorkspaceLimit
   SessionOutput(@managed_record_runtime.Issue)
   SessionExecutionIssue(@bounded_execution.Issue)
+  SessionTimestampPrecisionUnavailable
 } derive(Eq, @debug.Debug)
 
 pub enum SessionPoll {

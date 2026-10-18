@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "src/connectors/bigquery/catalog/description.mbt",
-      "sha256": "0f1829ea9dfe78efb281a87c2a68bb5d0fd6554af948144488d77be8f98ffdbd",
+      "sha256": "70f1acc24f812d7f0a68b1a4965593b4fc2e9aa2dda437b5b9cef00300b16723",
       "exports": [],
       "operations": [
         {
@@ -180,6 +180,10 @@
               {
                 "path": "src/connectors/bigquery/catalog/README.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/signed64_wbtest.mbt",
+                "anchor": "test \"INT64 metadata uses the existing exact Common contract for both REST aliases\""
               }
             ]
           }
@@ -909,12 +913,16 @@
               {
                 "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
                 "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/signed64_wbtest.mbt",
+                "anchor": "test \"INT64 metadata uses the existing exact Common contract for both REST aliases\""
               }
             ]
           }
         }
       ],
-      "sha256": "076f9a6fb68a322362dd3adca138918e3f720d6521b5288cc5471e9666863499",
+      "sha256": "865e03ffd12fa118f2cb5275f41f9dcb772c7acc3acd7dc7e701fef9b28d0cdc",
       "exports": [],
       "operations": [
         {
@@ -986,5 +994,5 @@
       "owner": "BigQuery vendor response; existing Common value-contract and row admission Owners"
     }
   ],
-  "source": "541141d45496adf1a564cc2c904683d1c4b4c0d3"
+  "source": "fa2bf7e48da40a6a984a761491d030fc11f57247"
 }

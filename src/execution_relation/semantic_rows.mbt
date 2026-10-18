@@ -290,8 +290,15 @@ fn compare_admitted_value(
       compare_complete_scalar(Text(a), Text(b), control)
     (@admitted.Date(a), @admitted.Date(b)) =>
       compare_complete_text(a, b, control)
-    (@admitted.Timestamp(a), @admitted.Timestamp(b)) =>
-      compare_complete_text(a, b, control)
+    (@admitted.Timestamp(a), @admitted.Timestamp(b)) => {
+      if !spend_control_text(control, a) || !spend_control_text(control, b) {
+        return Err(Limit)
+      }
+      match @admitted.compare_timestamp_text(a, b) {
+        Some(order) => Ok(order)
+        None => Err(Scalar(InvalidOperand))
+      }
+    }
     (@admitted.Decimal(a), @admitted.Decimal(b)) => {
       if !spend_control_text(control, a.coefficient) ||
         !spend_control_text(control, b.coefficient) {

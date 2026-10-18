@@ -10,6 +10,7 @@ fn window_timestamp_milliseconds(text : String) -> Double? {
 priv enum WindowTimeReadIssue {
   InvalidWindowTime
   WindowTimeResourceLimit
+  WindowTimePrecisionUnavailable
 }
 
 ///|
@@ -17,6 +18,7 @@ fn window_time_row_issue(issue : WindowTimeReadIssue, row : Int) -> RowIssue {
   match issue {
     InvalidWindowTime => WindowTime(row)
     WindowTimeResourceLimit => RowLimit
+    WindowTimePrecisionUnavailable => TemporalPrecisionUnavailable
   }
 }
 
@@ -35,7 +37,12 @@ fn window_time_milliseconds(
     }
     match window_timestamp_milliseconds(text) {
       Some(value) => Ok(value)
-      None => Err(InvalidWindowTime)
+      None =>
+        if @admitted.timestamp_instant(text) is Some(_) {
+          Err(WindowTimePrecisionUnavailable)
+        } else {
+          Err(InvalidWindowTime)
+        }
     }
   } else {
     match value {
@@ -64,8 +71,12 @@ fn window_time_coordinate(
     if !spend_control_text(control, text) {
       return Err(WindowTimeResourceLimit)
     }
-    match @admitted.timestamp_epoch_milliseconds(text) {
-      Some(milliseconds) => Ok(@grid.from_timestamp_milliseconds(milliseconds))
+    match @admitted.timestamp_instant(text) {
+      Some(instant) =>
+        match @grid.from_timestamp_parts(instant.seconds, instant.nanoseconds) {
+          Some(value) => Ok(value)
+          None => Err(InvalidWindowTime)
+        }
       None => Err(InvalidWindowTime)
     }
   } else {

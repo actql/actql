@@ -2,6 +2,7 @@
 priv enum BoundedKeyKind {
   FixedOrder(Int)
   TextOrder(String, String)
+  TimestampOrder(String, String)
   DecimalOrder(DecimalValue, DecimalValue)
 }
 
@@ -131,9 +132,9 @@ fn start_bounded_nonnull_comparison(
   let kind = match
     (left.value, right.value, left.contract.shape, right.contract.shape) {
     (Text(a), Text(b), @contract.Text(_), @contract.Text(_))
-    | (Date(a), Date(b), @contract.Date, @contract.Date)
-    | (Timestamp(a), Timestamp(b), @contract.Timestamp, @contract.Timestamp) =>
-      TextOrder(a, b)
+    | (Date(a), Date(b), @contract.Date, @contract.Date) => TextOrder(a, b)
+    (Timestamp(a), Timestamp(b), @contract.Timestamp, @contract.Timestamp) =>
+      TimestampOrder(a, b)
     (Decimal(a), Decimal(b), @contract.Decimal(..), @contract.Decimal(..)) =>
       DecimalOrder(a, b)
     (
@@ -188,6 +189,18 @@ pub fn advance_bounded_key_comparison(
     work += 1
     match value.kind {
       FixedOrder(order) => return Ok(bounded_key_result(value, order, work))
+      TimestampOrder(left, right) => {
+        let index = value.index
+        let a = if index < left.length() - 1 { left[index] } else { '0' }
+        let b = if index < right.length() - 1 { right[index] } else { '0' }
+        if a != b {
+          return Ok(bounded_key_result(value, if a < b { -1 } else { 1 }, work))
+        }
+        value.index += 1
+        if value.index == 29 {
+          return Ok(bounded_key_result(value, 0, work))
+        }
+      }
       TextOrder(left, right) => {
         let index = value.index
         if index < left.length() && index < right.length() {

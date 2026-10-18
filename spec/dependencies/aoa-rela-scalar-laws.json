@@ -63,9 +63,9 @@
     }
   },
   "time": {
-    "timestamp": "utc-iso8601-millisecond-Z",
+    "timestamp": "canonical-exact-utc-iso8601-three-to-nine-fractional-digits-Z",
     "date": "iso8601-calendar-date-day-arithmetic-only",
-    "arithmetic": "fixed-utc-milliseconds",
+    "arithmetic": "exact-instants-with-declared-fixed-utc-ms-s-m-h-d-units",
     "units": [
       "ms",
       "s",
@@ -76,7 +76,20 @@
     "timezone_offsets": "invalid",
     "leap_seconds": "invalid",
     "timestamp_date_diff": "fixed-unit-quotient-truncate-toward-zero",
-    "date_only_diff": "whole-days-only"
+    "date_only_diff": "whole-days-only",
+    "canonical_fraction": {
+      "minimum_digits": 3,
+      "maximum_digits": 9,
+      "millisecond_aligned": "exactly_three_digits",
+      "finer": "remove_only_trailing_zeros_beyond_three_digits",
+      "unrelated_authored_spellings": "unchanged_refusal"
+    },
+    "comparison_and_key": "exact_instant_order_not_variable_fraction_UTF16_order_canonical_equality_and_key_correspondence",
+    "legacy_value_identity": "all_previously_canonical_millisecond_Value_bytes_and_CIDs_unchanged_internal_sort_representation_is_separate",
+    "event_clock": "same_original_Timestamp_to_exact_rational_UTC_epoch_milliseconds_not_public_Number_or_truncating_date_diff_preserve_payload_and_numeric_clock_domain",
+    "millisecond_only_projection": "refuse_nonrepresentable_fraction_without_rounding_or_truncation",
+    "operational_clocks": "trusted_now_expiry_deadline_rollback_provenance_keep_original_millisecond_contracts_and_issuers",
+    "conformance_boundary": "legacy_millisecond_conformance_does_not_prove_extended_fractional_consumers"
   },
   "unicode": {
     "data_version": "16.0",
@@ -124,7 +137,7 @@
       "null": "null"
     },
     "to_timestamp": {
-      "input": "YYYY-MM-DDTHH:mm:ss.sssZ-only",
+      "input": "canonical-YYYY-MM-DDTHH:mm:ss-with-three-to-nine-fractional-digits-Z-no-redundant-extra-trailing-zeros",
       "trims_whitespace": false,
       "date_only_coercion": false,
       "timezone_offsets": false,

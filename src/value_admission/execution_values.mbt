@@ -62,16 +62,27 @@ fn timestamp_digits(text : String, start : Int, end : Int) -> Int? {
 }
 
 ///|
-/// Convert an admitted canonical UTC timestamp to Unix epoch milliseconds.
-pub fn timestamp_epoch_milliseconds(text : String) -> Int64? {
-  if text.length() != 24 ||
+/// Exact UTC Value projection. Seconds are floored, and nanoseconds are in
+/// 0..<1000000000, including before the epoch. This is DATA, not a clock issuer.
+pub struct TimestampInstant {
+  seconds : Int64
+  nanoseconds : Int
+} derive(Eq, Debug)
+
+///|
+/// Read only canonical UTC Value spelling, without host dates or binary64.
+pub fn timestamp_instant(text : String) -> TimestampInstant? {
+  let length = text.length()
+  if length < 24 ||
+    length > 30 ||
     text[4] != '-' ||
     text[7] != '-' ||
     text[10] != 'T' ||
     text[13] != ':' ||
     text[16] != ':' ||
     text[19] != '.' ||
-    text[23] != 'Z' {
+    text[length - 1] != 'Z' ||
+    (length > 24 && text[length - 2] == '0') {
     return None
   }
   guard timestamp_digits(text, 0, 4) is Some(year) &&
@@ -80,15 +91,10 @@ pub fn timestamp_epoch_milliseconds(text : String) -> Int64? {
     timestamp_digits(text, 11, 13) is Some(hour) &&
     timestamp_digits(text, 14, 16) is Some(minute) &&
     timestamp_digits(text, 17, 19) is Some(second) &&
-    timestamp_digits(text, 20, 23) is Some(millisecond) else {
+    timestamp_digits(text, 20, length - 1) is Some(fraction) else {
     return None
   }
-  if month < 1 ||
-    month > 12 ||
-    hour > 23 ||
-    minute > 59 ||
-    second > 59 ||
-    millisecond > 999 {
+  if month < 1 || month > 12 || hour > 23 || minute > 59 || second > 59 {
     return None
   }
   let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
@@ -124,13 +130,63 @@ pub fn timestamp_epoch_milliseconds(text : String) -> Int64? {
     1 +
     leap_day -
     719528
+  let mut nanoseconds = fraction
+  for _ in (length - 21)..<9 {
+    nanoseconds *= 10
+  }
+  Some({
+    seconds: days.to_int64() * 86400L +
+    hour.to_int64() * 3600L +
+    minute.to_int64() * 60L +
+    second.to_int64(),
+    nanoseconds,
+  })
+}
+
+///|
+/// Lossless millisecond-only projection, also used by operational clocks.
+/// A finer Value is not a trusted sample and must not be truncated here.
+pub fn timestamp_epoch_milliseconds(text : String) -> Int64? {
+  guard text.length() == 24 && timestamp_instant(text) is Some(instant) else {
+    return None
+  }
+  Some(instant.seconds * 1000L + (instant.nanoseconds / 1000000).to_int64())
+}
+
+///|
+/// Exact chronological order for canonical UTC Values. The fixed calendar
+/// prefix orders chronologically; virtual fractional zeros avoid comparing Z
+/// against a finer fractional digit. No replacement Value or CID is issued.
+pub fn compare_timestamp_text(left : String, right : String) -> Int? {
+  guard timestamp_instant(left) is Some(a) &&
+    timestamp_instant(right) is Some(b) else {
+    return None
+  }
   Some(
-    days.to_int64() * 86400000L +
-    hour.to_int64() * 3600000L +
-    minute.to_int64() * 60000L +
-    second.to_int64() * 1000L +
-    millisecond.to_int64(),
+    if a.seconds < b.seconds {
+      -1
+    } else if a.seconds > b.seconds {
+      1
+    } else if a.nanoseconds < b.nanoseconds {
+      -1
+    } else if a.nanoseconds > b.nanoseconds {
+      1
+    } else {
+      0
+    },
   )
+}
+
+///|
+/// Internal sort token only; canonical Value serialization keeps its original
+/// shortest fractional spelling. The caller retains the admitted Value.
+pub fn timestamp_order_text(text : String) -> String? {
+  guard timestamp_instant(text) is Some(_) else { return None }
+  let mut out = text[:text.length() - 1].to_owned()
+  while out.length() < 29 {
+    out += "0"
+  }
+  Some(out + "Z")
 }
 
 ///|
@@ -141,7 +197,7 @@ pub fn checked_timestamp_value(
 ) -> CheckedValue? {
   guard !contract.nullable &&
     contract.shape is @contract.Timestamp &&
-    timestamp_epoch_milliseconds(text) is Some(_) else {
+    timestamp_instant(text) is Some(_) else {
     return None
   }
   Some({ contract, value: Timestamp(text), })
@@ -259,6 +315,29 @@ pub fn epoch_milliseconds_timestamp(milliseconds : Int64) -> String? {
     timestamp_three_digits(millisecond) +
     "Z",
   )
+}
+
+///|
+/// Format an exact instant in the existing canonical UTC Value domain.
+/// Arbitrary input is range checked before multiplication; no epoch-nanosecond
+/// Int64 or floating point intermediate is used.
+pub fn epoch_parts_timestamp(seconds : Int64, nanoseconds : Int) -> String? {
+  if seconds < -62167219200L ||
+    seconds > 253402300799L ||
+    nanoseconds < 0 ||
+    nanoseconds >= 1000000000 {
+    return None
+  }
+  guard epoch_milliseconds_timestamp(seconds * 1000L) is Some(base) else {
+    return None
+  }
+  let digits = nanoseconds.to_string()
+  let padded = "000000000"[:9 - digits.length()].to_owned() + digits
+  let mut length = 9
+  while length > 3 && padded[length - 1] == '0' {
+    length -= 1
+  }
+  Some(base[:20].to_owned() + padded[:length].to_owned() + "Z")
 }
 
 ///|

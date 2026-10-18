@@ -108,6 +108,8 @@ pub fn compare_key_values(CheckedValue, CheckedValue) -> Result[Int, KeyOrderIss
 
 pub fn compare_present_key_values(CheckedValue, CheckedValue) -> Result[Int, KeyOrderIssue]
 
+pub fn compare_timestamp_text(String, String) -> Int?
+
 pub fn complete_equality_next_frame_bound(CompleteEquality) -> Int
 
 pub fn complete_equality_pending_frames(CompleteEquality) -> Int
@@ -127,6 +129,8 @@ pub fn emit_checked_wire_value(CheckedValue, @encode_core.Writer) -> Unit raise 
 pub fn emit_wire_value(Value, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn epoch_milliseconds_timestamp(Int64) -> String?
+
+pub fn epoch_parts_timestamp(Int64, Int) -> String?
 
 pub fn event_time_milliseconds(CheckedValue, Bool) -> Double?
 
@@ -221,6 +225,10 @@ pub fn start_wire_emit(Value, @encode_core.Writer) -> WireEmitCursor
 pub fn text_value(String, Int) -> Value?
 
 pub fn timestamp_epoch_milliseconds(String) -> Int64?
+
+pub fn timestamp_instant(String) -> TimestampInstant?
+
+pub fn timestamp_order_text(String) -> String?
 
 pub fn typed_key_order_text(CheckedValue) -> Result[String, KeyOrderIssue]
 
@@ -413,6 +421,11 @@ pub enum ScalarTextPoll {
   ScalarTextComplete(String, Int, Int)
   ScalarTextFailed
 }
+
+pub struct TimestampInstant {
+  seconds : Int64
+  nanoseconds : Int
+} derive(Eq, @debug.Debug)
 
 type TypedAdmission
 

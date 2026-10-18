@@ -1,0 +1,23 @@
+///|
+test "exact nanosecond grids retain negative floor and closed-open boundaries" {
+  let before = from_timestamp_parts(-1L, 999999999).unwrap()
+  let epoch = from_timestamp_parts(0L, 0).unwrap()
+  let after = from_timestamp_parts(0L, 1).unwrap()
+  let zero = @bigint.BigInt::from_int(0)
+  assert_eq(compare(before, zero), -1)
+  assert_eq(compare(epoch, zero), 0)
+  assert_eq(compare(after, zero), 1)
+  assert_eq(latest_start(before, 1L, 0L).to_string(), "-1")
+  assert_eq(latest_start(epoch, 1L, 0L).to_string(), "0")
+  assert_eq(latest_start(after, 1L, 0L).to_string(), "0")
+  let boundary = from_timestamp_parts(0L, 1000000).unwrap()
+  assert_eq(latest_start(boundary, 1L, 0L).to_string(), "1")
+  assert_eq(compare_coordinates(before, from_finite_number(0.0).unwrap()), -1)
+  assert_eq(compare_coordinates(boundary, from_finite_number(1.0).unwrap()), 0)
+  assert_eq(
+    compare_coordinates(after, from_finite_number(0.0000005).unwrap()),
+    1,
+  )
+  assert_true(from_timestamp_parts(0L, -1) is None)
+  assert_true(from_timestamp_parts(0L, 1000000000) is None)
+}
