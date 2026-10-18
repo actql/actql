@@ -490,6 +490,127 @@ static bool private_root_without_current(const char *directory) {
     return true;
 }
 #endif
+static bool allocation_failure_observation(void) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    context_enter(lease,context);
+    size_t mi=stock_mi_allocations,file=stock_file_allocations;
+    assert(actql_native_file_scoped_allocate(lease->length)==NULL);
+    assert(read_allocation_observation.requested==lease->length);
+    assert(read_allocation_observation.known==1 && read_allocation_observation.depth==1);
+    assert(read_allocation_observation.active==1 && read_allocation_observation.current==1);
+    assert(read_allocation_observation.status==ACTQL_OWNED_EXHAUSTED);
+    assert(read_allocation_observation.occupied==lease->occupied_pages);
+    assert(read_allocation_observation.control==lease->control_pages);
+    assert(read_allocation_observation.pages==lease->page_count);
+    assert(read_allocation_observation.page_bytes==lease->page_size);
+    report_read_allocation_failure();
+    assert(stock_mi_allocations==mi && stock_file_allocations==file);
+    void *small=actql_native_file_scoped_allocate(3); assert(small);
+    actql_native_file_scoped_free(small);
+    context_leave(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    finish(&lease,&context);
+    return true;
+}
+
+static bool managed_subpages(void) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    context_enter(lease,context);
+    size_t stock=stock_mi_allocations;
+    void *values[1024];
+    for(size_t i=0;i<1024;i++) {
+        values[i]=actql_native_moon_scoped_allocate(32);
+        assert(values[i] && (uintptr_t)values[i]%_Alignof(max_align_t)==0);
+        memset(values[i],(int)(i%251),32);
+        assert(actql_native_owned_contains_live_span(lease,values[i],32)==0);
+        assert(actql_native_owned_contains_live_span(lease,values[i],33)==ACTQL_OWNED_INVALID);
+    }
+    assert(stock==stock_mi_allocations && lease->occupied_pages<16);
+    void *page=(void *)((uintptr_t)values[0] & ~(lease->page_size-1));
+    assert(actql_native_owned_protect(lease,page,0,lease->page_size,PROT_READ)==ACTQL_OWNED_INVALID);
+    assert(actql_native_owned_retire(lease,page)==ACTQL_OWNED_INVALID);
+    actql_owned_extent_loan loan={0};
+    assert(actql_native_owned_lend_extent(lease,page,false,&loan)==ACTQL_OWNED_INVALID);
+    actql_native_moon_scoped_free(values[0]);
+    assert(actql_native_owned_contains_live_span(lease,values[0],1)==ACTQL_OWNED_INVALID);
+    assert(release_read_bytes(values[0],true)==ACTQL_OWNED_INVALID);
+    assert(release_read_bytes(values[1],false)==ACTQL_OWNED_INVALID);
+    assert(release_read_bytes((unsigned char *)values[1]+1,true)==ACTQL_OWNED_INVALID);
+    context_leave(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY);
+    for(size_t i=1;i<1024;i++) {
+        assert(((unsigned char *)values[i])[0]==i%251);
+        actql_native_moon_scoped_free(values[i]);
+    }
+    finish(&lease,&context);return true;
+}
+static bool managed_page_retirement(void) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    context_enter(lease,context);
+    void *value=actql_native_moon_scoped_allocate(31);
+    retirement_target=(void *)((uintptr_t)value & ~(lease->page_size-1));
+    retirement_failures=2; retirement_calls=0;
+    context_leave(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    actql_native_moon_scoped_free(value);
+    assert(retirement_calls==1 && retirement_failures==1);
+    assert(actql_read_context_try_close(&context)==ACTQL_OWNED_PHYSICAL_FAILURE && context);
+    assert(retirement_calls==2 && retirement_failures==0);
+    finish(&lease,&context); retirement_target=NULL;return true;
+}
+static bool managed_page_exhaustion(void) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    context_enter(lease,context);
+    void *values[32769];size_t count=0,stock=stock_mi_allocations;
+    while(count<32769 && (values[count]=allocate_read_bytes(32,true))!=NULL) count++;
+    fprintf(stderr,"managed-exhaustion count=%zu occupied=%zu pages=%zu status=%d\n",count,lease->occupied_pages,lease->page_count,read_allocation_observation.status);
+    assert(count>1024 && count<32769);
+    assert(read_allocation_observation.status==ACTQL_OWNED_EXHAUSTED);
+    assert(stock_mi_allocations==stock && lease->occupied_pages==lease->page_count);
+    context_leave(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY);
+    for(size_t i=0;i<count;i++) actql_native_moon_scoped_free(values[i]);
+    finish(&lease,&context);return true;
+}
+
+static bool managed_original_provenance(void) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *a=context_new(lease),*b=context_new(lease);
+    assert(actql_read_context_retain(a)==0 && actql_read_context_retain(b)==0);
+    context_enter(lease,a);
+    const size_t sizes[]={0,31,8192,8193};void *values[4];
+    for(size_t i=0;i<4;i++) {
+        values[i]=actql_native_moon_scoped_allocate(sizes[i]);
+        assert(values[i] && actql_native_owned_contains_live_span(lease,values[i],sizes[i]?sizes[i]:1)==0);
+    }
+    context_leave(lease,a);
+    assert(actql_read_context_release_after_owner_ack(a)==0);
+    assert(actql_read_context_try_close(&a)==ACTQL_OWNED_BUSY);
+    context_enter(lease,b);
+    for(size_t i=0;i<4;i++) actql_native_moon_scoped_free(values[i]);
+    assert(read_current==b && read_depth==1 && b->active==1);
+    assert(actql_read_context_try_close(&a)==0 && a==NULL);
+    /* The finite serial space cannot wrap or fall back into a generic page. */
+    b->managed_serial=UINT64_MAX;
+    size_t stock=stock_mi_allocations,occupied=lease->occupied_pages;
+    assert(allocate_read_bytes(1,true)==NULL);
+    assert(read_allocation_observation.status==ACTQL_OWNED_EXHAUSTED);
+    assert(stock_mi_allocations==stock && lease->occupied_pages==occupied);
+    context_leave(lease,b);
+    assert(actql_read_context_release_after_owner_ack(b)==0);
+    finish(&lease,&b);return true;
+}
+
 int main(int argc,char **argv) {
     struct rlimit core={0,0}; assert(setrlimit(RLIMIT_CORE,&core)==0);
     setbuf(stdout,NULL);
@@ -497,6 +618,26 @@ int main(int argc,char **argv) {
         bool ok=fork_stock();
         printf("{\"case\":\"fork-stock\",\"ok\":%s}\n",ok?"true":"false");
         return ok?0:1;
+    }
+    if(argc==2 && strcmp(argv[1],"--allocation-diagnostic-only")==0) {
+        bool ok=allocation_failure_observation();
+        puts("{\"case\":\"same-original-allocation-failure-observation\",\"passed\":1,\"failed\":0}");
+        return ok?0:1;
+    }
+    if(argc==2 && strcmp(argv[1],"--managed-subpage-only")==0) {
+        assert(managed_subpages());
+        assert(managed_page_retirement());
+        assert(managed_page_exhaustion());
+        assert(managed_original_provenance());
+        puts("{\"case\":\"managed-subpages\",\"passed\":4,\"failed\":0}");
+        return 0;
+    }
+    if(argc==2 && strcmp(argv[1],"--managed-layout-only")==0) {
+        printf("{\"alignment\":%zu,\"blockStruct\":%zu,\"blockHeader\":%zu,\"pageHeader\":%zu,\"readContext\":%zu,\"extentRecord\":%zu,\"capacityHeader\":%zu}\n",
+            _Alignof(max_align_t),sizeof(struct read_heap_block),read_heap_header(),
+            read_heap_round(sizeof(struct read_heap_page)),sizeof(actql_read_context),
+            sizeof(struct extent),sizeof(actql_owned_capacity));
+        return 0;
     }
     assert(argc==2);
     bool (*tests[])(void)={fork_stock,managed_alias,busy_cleanup,cleanup_result_after_last_user,alias_only_cleanup,nested_foreign_closing,

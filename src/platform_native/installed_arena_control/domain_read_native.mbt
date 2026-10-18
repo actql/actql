@@ -105,6 +105,9 @@ pub fn InstalledArenaHost::close_domain_read(
   match self.original_read_domain(record) {
     Err(issue) => Err(issue)
     Ok(domain) => {
+      if record.crypto_component is Some(component) && !component.closed {
+        return Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending))
+      }
       if record.sqlite_library is Some(library) && !library.closed {
         return Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending))
       }

@@ -233,9 +233,21 @@ fn execute_native_local_packaged_with_parent(
   if !local_product_runtime_current(runtime) {
     stop("PackagedLocalRuntimeChanged")
   }
-  let crypto = @local_crypto.load_library(runtime.crypto).unwrap_or_else(() => {
-    stop("NativeLocalSignatureUnavailable")
-  })
+  let initial_crypto = if operation == "adopt" {
+    Some(local_begin_initial_crypto(runtime))
+  } else {
+    None
+  }
+  let crypto = match initial_crypto {
+    Some(original) =>
+      original
+      .library(false)
+      .unwrap_or_else(() => stop("InitialCryptoOuterLibraryUnavailable"))
+    None =>
+      @local_crypto.load_library(runtime.crypto).unwrap_or_else(() => {
+        stop("NativeLocalSignatureUnavailable")
+      })
+  }
   if !local_product_runtime_current(runtime) {
     stop("PackagedLocalRuntimeChanged")
   }
@@ -335,6 +347,7 @@ fn execute_native_local_packaged_with_parent(
         operation,
         child,
         packaged_runtime=Some(runtime.physical),
+        initial_crypto~,
       )
     }
   }
