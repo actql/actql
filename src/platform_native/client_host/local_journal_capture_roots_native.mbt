@@ -32,6 +32,22 @@ extern "C" fn register_local_journal_capture_roots_ffi(
 ) -> Unit = "actql_native_control_register_local_journal_roots"
 
 ///|
+extern "C" fn register_local_journal_original_roots_ffi(
+  prepare : FuncRef[
+    (
+      NativeLocalAdoptionSession,
+      @arena.InstalledArenaHost,
+      @arena.InstalledArenaLocalHostResources,
+      @arena.InstalledArenaOriginalRead,
+      @crypto.Library,
+      Double,
+      Int,
+      Int64,
+    ) -> NativeLocalJournalCapture,
+  ],
+) -> Unit = "actql_native_control_register_local_journal_original_roots"
+
+///|
 /// Code registration only. It does not initialize a Host, select a Library or
 /// provide current/funded origins. The installed caller owns those originals.
 pub fn register_native_local_journal_capture_roots() -> Unit {
@@ -53,4 +69,18 @@ pub fn register_native_local_journal_capture_roots() -> Unit {
     fn(reply) { reply.issue_family() },
     fn(capture) { capture.original_issue_family() },
   )
+  register_local_journal_original_roots_ffi(fn(
+    session,
+    host,
+    resources,
+    read,
+    crypto,
+    ttl,
+    max_records,
+    max_snapshot,
+  ) {
+    prepare_native_local_journal_capture_with_original_resources(
+      session, host, resources, read, crypto, ttl, max_records, max_snapshot,
+    )
+  })
 }

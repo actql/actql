@@ -105,6 +105,7 @@ int32_t actql_local_journal_operation(actql_local_journal_reply * reply);
 int32_t actql_local_journal_original_issue_family(actql_local_journal_capture * capture);
 int actql_local_journal_originals_into(actql_local_journal_capture * capture, actql_local_session ** session, actql_local_host ** host, actql_local_journal_failure ** failure);
 int actql_local_journal_prepare_into(actql_local_session * session, actql_local_sqlite_library * library, actql_local_crypto_library * crypto, double ttl_ms, int32_t max_records, int64_t max_snapshot_bytes, actql_local_journal_capture ** capture);
+int actql_local_journal_prepare_original_into(actql_local_session * session, actql_control_host * host, actql_local_host_resources * resources, actql_parent_read * read, actql_local_crypto_library * crypto, double ttl_ms, int32_t max_records, int64_t max_snapshot_bytes, actql_local_journal_capture ** capture);
 int actql_packaged_product_drop_reply(actql_packaged_product_reply ** reply, actql_control_host * host, actql_parent_read * read, actql_packaged_runtime * runtime);
 int actql_packaged_product_identity_into(actql_packaged_runtime * runtime, actql_packaged_product_reply ** reply);
 int32_t actql_packaged_product_issue_family(actql_packaged_product_reply * reply);

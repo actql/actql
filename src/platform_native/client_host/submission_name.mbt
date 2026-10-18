@@ -57,6 +57,7 @@ fn NativeClientRunJournal::authenticated_name_row(
   authority : NativeClientEpochAuthority,
   index : String,
   body : Bytes,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[@host.ClientSubmittedNameRow, NativeClientRunJournalIssue] {
   let row = match @host.decode_client_submitted_name_row(body) {
     Ok(value) => value
@@ -70,7 +71,7 @@ fn NativeClientRunJournal::authenticated_name_row(
   if expected_index != index {
     return Err(CustodyLost)
   }
-  let (secret, _, _) = match read_epoch_custody(self.database) {
+  let (secret, _, _) = match read_epoch_custody(self.database, reads~) {
     Ok(value) => value
     Err(issue) => return Err(Epoch(issue))
   }

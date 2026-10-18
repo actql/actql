@@ -1289,9 +1289,38 @@ Adoption Session applies the same physical check to each Root it owns; this
 neither substitutes for its full current/adoption fence nor combines Read and
 SQLite stages into one ambient scope.
 
+The original-pair Journal capture retains its existing-only Adoption Session
+and the same Host/Read/SQLite pair before physical open. It borrows the SQLite
+Library from that pair and brackets each original journal stage with its
+respective physical scope. Runtime current callbacks retain their own Read
+brackets; the Journal does not nest another Read around those callbacks.
+A returned DB is retained before leaving its SQLite stage. On refusal, the same
+partial-acquisition carrier preserves it, the original Roots and exclusive
+lock. A stage failure and a failed leave remain independently represented;
+cleanup may finish that original leave but cannot replay the protected stage.
+Directory/DB close, managed-reference retirement, domain/loan and Host ACKs
+remain distinct obligations of the existing Owners.
+
 A refused Journal open may retain the existing read-only inspection's copied
 database and scratch-file cleanup inside its original issue. Journal cleanup
 must obtain that original inspection Owner's close acknowledgement before
 releasing the adoption Roots or exclusive lock. Cleanup failure preserves both
 the immutable semantic refusal and the current cleanup cause; it does not
 repeat inspection, reopen the source database or authorize initialization.
+
+The original-pair inspection separates physical queries from row interpretation.
+The existing bounded snapshot is retained before leaving its Read preparation;
+its copied DB opens in the same pair's SQLite scope. Each custody query leaves
+the original Read scope, uses that same DB in SQLite, then resumes the original
+Read before protocol-body UTF-8, canonical, Run, Policy or HMAC validation. The complete epoch,
+Run, Effect, cancellation, submitted-intent and named-startup predicates and
+transaction order are shared with the ordinary Journal entrance. A failed
+exchange stops subsequent queries and retains its original scope failure;
+transaction uncertainty remains independently fenced.
+
+The same inspection carrier retains any partial copy before a scope can fail.
+Its DB close and scratch cleanup have separate physical acknowledgements;
+scratch deletion cannot bypass a pending DB close. Refusal retains that carrier
+with its primary issue until cleanup completes, before the original Roots and
+lock can retire. Neither query routing nor scope resumption supplies another
+logical claim, a current permit, or a numerical resource profile.
