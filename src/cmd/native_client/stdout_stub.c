@@ -10,6 +10,7 @@
 #include <limits.h>
 #if defined(__APPLE__)
 #include <crt_externs.h>
+#include <malloc/malloc.h>
 #endif
 
 #include "../../platform_native/host_bootstrap/command_input.h"
@@ -145,6 +146,48 @@ static int actql_command_input_status = ACTQL_COMMAND_INPUT_INVALID;
 static const char *actql_command_input_source;
 static const char *actql_command_input_context;
 static actql_bootstrap_command_preparation_observation actql_command_input;
+// Partial initial-control inventory, not capacity or an allocation receipt.
+// These are the selected Darwin allocator classes for the original raw argv,
+// worst-case UTF16 decode/trim overlap, and every growing argv ref buffer.
+static int64_t actql_command_argument_classes[4];
+
+#if defined(__APPLE__)
+static bool actql_command_add_class(int64_t *sum, size_t request) {
+  size_t quoted = malloc_good_size(request);
+  if (quoted < request || quoted > INT64_MAX ||
+      *sum > INT64_MAX - (int64_t)quoted) return false;
+  *sum += (int64_t)quoted;
+  return true;
+}
+
+static bool actql_command_quote_arguments(int argc, const char *const *argv) {
+  int64_t values[4] = {0};
+  const size_t header = sizeof(struct moonbit_object);
+  if (argc <= 0 || (size_t)argc > (SIZE_MAX-header)/sizeof(void *) ||
+      !actql_command_add_class(&values[0], header+(size_t)argc*sizeof(void *)))
+    return false;
+  for (int index = 0; index < argc; ++index) {
+    size_t bytes = strlen(argv[index]);
+    if (bytes > (SIZE_MAX-header)/2-1 ||
+        !actql_command_add_class(&values[1], header+bytes+1) ||
+        !actql_command_add_class(&values[2], header+2*(bytes+1)) ||
+        !actql_command_add_class(&values[2], header+2*(bytes+1))) return false;
+  }
+  // Pinned env_native uses an empty Array then push. Its ref buffers begin
+  // at eight and double; retain the conservative sum of all generations.
+  size_t capacity = 8;
+  for (;;) {
+    if (capacity > (SIZE_MAX-header)/sizeof(void *) ||
+        !actql_command_add_class(&values[3], header+capacity*sizeof(void *)))
+      return false;
+    if (capacity >= (size_t)argc) break;
+    if (capacity > SIZE_MAX/2) return false;
+    capacity *= 2;
+  }
+  memcpy(actql_command_argument_classes, values, sizeof(values));
+  return true;
+}
+#endif
 
 int32_t actql_native_client_measure_prearguments(
     int32_t maximum_arguments, int32_t maximum_argument_bytes,
@@ -166,6 +209,10 @@ int32_t actql_native_client_measure_prearguments(
       (size_t)maximum_arguments, (size_t)maximum_argument_bytes,
       (size_t)maximum_storage_bytes, (size_t)maximum_context_bytes,
       &actql_command_input);
+  if (actql_command_input_status == ACTQL_COMMAND_INPUT_OK &&
+      !actql_command_quote_arguments(*_NSGetArgc(),
+          (const char *const *)*_NSGetArgv()))
+    actql_command_input_status = ACTQL_COMMAND_INPUT_INVALID;
   if (actql_command_input_status == ACTQL_COMMAND_INPUT_OK) {
     actql_command_input_source = source;
     actql_command_input_context = context;
@@ -204,4 +251,13 @@ int32_t actql_native_client_copy_preargument_context(
       actql_command_input_context == NULL) return 0;
   memcpy(bytes, actql_command_input_context, (size_t)length);
   return 1;
+}
+
+// Closed private selectors: raw reference array, raw Bytes, simultaneous
+// UTF16 temporary+result upper bound, all argv growth backings. Record objects,
+// parser/maps/rendering and later physical overlap remain separate terms.
+int64_t actql_native_client_preargument_class_bytes(int32_t field) {
+  if (actql_command_input_status != ACTQL_COMMAND_INPUT_OK ||
+      field < 0 || field >= 4) return -1;
+  return actql_command_argument_classes[field];
 }

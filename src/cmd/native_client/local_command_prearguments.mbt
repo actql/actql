@@ -78,3 +78,47 @@ fn command_preargument_bound(
     _ => Err(CommandUnavailable)
   }
 }
+
+///|
+extern "C" fn command_preargument_class_ffi(field : Int) -> Int64 = "actql_native_client_preargument_class_bytes"
+
+///|
+// Same original measured argv only. These partial class terms exclude the
+// complete Command/Matches/render graph and do not admit physical resources.
+priv struct LocalCommandArgumentClasses {
+  arguments : Int
+  original_storage_bytes : Int
+  raw_reference_bytes : Int64
+  raw_bytes : Int64
+  decode_overlap_bytes : Int64
+  argument_growth_bytes : Int64
+}
+
+///|
+fn command_preargument_classes() -> Result[
+  LocalCommandArgumentClasses,
+  LocalCommandPreparationIssue,
+] {
+  let arguments = command_preargument_count_ffi()
+  let original_storage_bytes = command_preargument_storage_ffi()
+  let raw_reference_bytes = command_preargument_class_ffi(0)
+  let raw_bytes = command_preargument_class_ffi(1)
+  let decode_overlap_bytes = command_preargument_class_ffi(2)
+  let argument_growth_bytes = command_preargument_class_ffi(3)
+  if arguments <= 0 ||
+    original_storage_bytes < arguments ||
+    raw_reference_bytes <= 0L ||
+    raw_bytes <= 0L ||
+    decode_overlap_bytes <= 0L ||
+    argument_growth_bytes <= 0L {
+    return Err(CommandUnavailable)
+  }
+  Ok({
+    arguments,
+    original_storage_bytes,
+    raw_reference_bytes,
+    raw_bytes,
+    decode_overlap_bytes,
+    argument_growth_bytes,
+  })
+}

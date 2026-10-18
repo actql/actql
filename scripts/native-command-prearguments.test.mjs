@@ -25,12 +25,12 @@ before(() => {
       qualification:'actual C/O0 raw wrapper only; no Host, Read or command admission'}));
   }
 });
-for (const name of ['selected','absent','missing-source','context-limit','invalid-bound']) {
+for (const name of ['selected','absent','missing-source','context-limit','invalid-bound','quoted-growth']) {
   test(`original preargument wrapper ${name}`, () => {
     const env = {...process.env};
     if (name === 'absent') delete env.ACTQL_NATIVE_LOCAL_RUNTIME;
     else env.ACTQL_NATIVE_LOCAL_RUNTIME = '{"original":"fixture"}';
-    const run = spawnSync(binaries[name === 'missing-source' ? 'missing' : 'selected'], [name],
+    const run = spawnSync(binaries[name === 'missing-source' ? 'missing' : 'selected'], name === 'quoted-growth' ? [name, '', 'ascii', '日本語', '😀', 'x', 'y', 'z', 'tail'] : [name],
       {env, cwd:root, encoding:'utf8', timeout:10_000});
     assert.equal(run.status, 0, `${run.error ?? ''}\n${run.stdout}\n${run.stderr}`);
     assert.equal(run.stdout.trim(), 'original preargument wrapper passed');
