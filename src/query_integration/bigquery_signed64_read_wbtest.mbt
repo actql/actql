@@ -33,7 +33,32 @@ fn bigquery_signed64_preparation() -> @bigquery_read.PreparedRead raise {
             ": " +
             @debug.to_string(issue.kind),
           )
-        SourceView(Program(_)) => fail("BigQuery Signed64 Source view Program")
+        SourceView(Program(Registration(stage, issue))) =>
+          fail(
+            "BigQuery Signed64 registration " +
+            stage.to_string() +
+            ": " +
+            @debug.to_string(issue),
+          )
+        SourceView(Program(Program(issue))) =>
+          match issue {
+            LocalInput(_, _) => fail("BigQuery Signed64 Program LocalInput")
+            Import(_, _) => fail("BigQuery Signed64 Program Import")
+            Results(_, _) => fail("BigQuery Signed64 Program Results")
+            Order(_, _) => fail("BigQuery Signed64 Program Order")
+            Ports(_, _) => fail("BigQuery Signed64 Program Ports")
+            TableInputs(_, _) => fail("BigQuery Signed64 Program TableInputs")
+            Wiring(_) => fail("BigQuery Signed64 Program Wiring")
+            _ => fail("BigQuery Signed64 Program registration or limits")
+          }
+        SourceView(Program(ForeignSource)) =>
+          fail("BigQuery Signed64 foreign Source")
+        SourceView(Program(ForeignPartition(stage))) =>
+          fail("BigQuery Signed64 foreign partition " + stage.to_string())
+        SourceView(Program(BudgetExceeded)) =>
+          fail("BigQuery Signed64 Program budget")
+        SourceView(Program(_)) =>
+          fail("BigQuery Signed64 Source view environment or calendar")
         SourceView(Binding(_)) => fail("BigQuery Signed64 Source view Binding")
         SourceView(Context(_)) => fail("BigQuery Signed64 Source view Context")
         SourceView(_) => fail("BigQuery Signed64 Source view limits")
