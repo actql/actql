@@ -3,8 +3,8 @@
 // `node(id:)` resolves the persisted global ID; `errors` (including
 // RATE_LIMITED in an HTTP 200) is never a page.
 import assert from 'node:assert/strict';
-import {generateKeyPairSync} from 'node:crypto';
-import {mkdtemp, rm} from 'node:fs/promises';
+import {generateKeyPairSync, randomUUID} from 'node:crypto';
+import {mkdtemp, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -15,7 +15,9 @@ import * as moon from
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {openHttpsExchangeFixture} from
   '../../../site-node/https-exchange-fixture.mjs';
-import {callHttpsCredentialResource} from
+import {checked} from '../../../host-common/runtime-result.mjs';
+import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
+import {callHttpsCredentialResource, openHttpsCredentialBinding, closeHttpsCredentialBinding} from
   '../../../site-node/https-credential-resource.mjs';
 import {openSqliteCredentialJournal} from
   '../../../site-node/sqlite-credential-journal.mjs';
@@ -37,7 +39,7 @@ const row = number => ({number: String(number), node_id: `I_${number}`,
   url: `https://github.com/octo/hello/issues/${number}`, milestone: null, created_at: '2026-10-01T00:00:00.000Z',
   updated_at: '2026-10-02T00:00:00.000Z', closed_at: null});
 
-async function setup(t, state, {faults = [], beforeAuthorize} = {}) {
+async function setup(t, state, {faults = [], beforeAuthorize, accounted = false} = {}) {
   const fixture = await openHttpsExchangeFixture(t, {faults,
     routes: [graphqlRoute(() => state)]});
   const root = await mkdtemp(join(tmpdir(), 'actql-github-graphql-'));
@@ -46,7 +48,11 @@ async function setup(t, state, {faults = [], beforeAuthorize} = {}) {
     credentialAuthorities: new Map([['authority-a',
       new Map([['key-a', authority.publicKey]])]]),
   });
+  let binding;
+  let rowRun;
   t.after(async () => {
+    if (binding !== undefined) assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+    if (rowRun !== undefined) rowRun.close();
     journal.close();
     if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
       t.diagnostic(`Retained GitHub GraphQL credential fixture: ${root}`);
@@ -64,12 +70,18 @@ async function setup(t, state, {faults = [], beforeAuthorize} = {}) {
   const grant = control.prepare(scope);
   journal.acceptGrant(signRemoteCredentialGrant(grant, control,
     {keyId: 'key-a', privateKey: authority.privateKey}), control);
+  const credential = {control, journal, resolveSecret: async () => 'token-a',
+    ca: fixture.ca, now: () => 1_999_999_999_999};
+  if (accounted) {
+    binding = openHttpsCredentialBinding({...credential, scope, maxSecretBytes: 128});
+    credential.binding = binding;
+    rowRun = await accountedIssueRows(() => closeHttpsCredentialBinding(binding) === 'closed');
+  }
   let reads = 0;
   const read = (overrides = {}) => {
     const id = reads++;
     return readGitHubIssuesByNode({moon, repository: A,
-      credential: {control, journal, resolveSecret: async () => 'token-a',
-        ca: fixture.ca, now: () => 1_999_999_999_999},
+      credential,
       callResource: callHttpsCredentialResource,
       authorizationFor: async index => {
         await beforeAuthorize?.(index);
@@ -78,9 +90,11 @@ async function setup(t, state, {faults = [], beforeAuthorize} = {}) {
       limits: {maxPages: 5, maxRows: 100, maxBytes: 100_000,
         maxNodes: 10_000, maxDepth: 32, perPage: 100,
         maxRequestBytes: 16_384},
+      ...(rowRun === undefined ? {} : {chargePage: rowRun.charge,
+        consumeObservation: rowRun.observe, consumePage: rowRun.page}),
       ...overrides});
   };
-  return {fixture, journal, read};
+  return {fixture, journal, read, rowRun};
 }
 
 const world = (extra = {}) => ({
@@ -361,4 +375,69 @@ test('nested pages spend the existing request ceiling and current authorization 
   assert.deepEqual(checks, [0, 1]);
   assert.equal(revoked.fixture.seen().length, 1);
   assert.equal(revoked.journal.recover().length, 1);
+});
+
+
+// Explicit component reservations exercise the original accounted RowRun;
+// they are not the installed Host's normal resource supplier.
+async function accountedIssueRows(verifyTransport) {
+  const read = name => readFile(new URL('../../../../' + name, import.meta.url), 'utf8');
+  const declaration = checked(commonMoon.clientProgramRowSourceRestoreRelationDeclaration(
+    'gh', 'github', 'github/0.1', await read('src/connectors/github/source-views.json'), undefined));
+  const declared = JSON.parse(commonMoon.clientProgramRowSourceDeclarationJson(declaration));
+  const environment = rowSourceCheckEnvironment((await read('spec/local-check-environment.json')).trimEnd(), declared);
+  const check = commonMoon.clientProgramCheckEnvironment(environment.wire, environment.evidenceCid,
+    false, false, true, false, false, false, false);
+  const view = declared.views[0];
+  const publication = JSON.stringify({environmentCid: environment.evidenceCid, aliases: [{name: 'gh.issues',
+    sourceRef: view.source_ref, sourceViewContractCid: view.view_cid, schemaContractCid: view.carrier_schema_cid}]});
+  const preparation = commonMoon.clientProgramPrepareSourceWithParameters(
+    'SELECT number, comments, state_reason, assignees, labels, url FROM gh.issues ORDER BY number',
+    'sql', check, publication, undefined, undefined);
+  const program = commonMoon.clientProgramPreparationReady(preparation);
+  assert.ok(program, commonMoon.clientProgramPreparationIssueCode(preparation));
+  const aoa = JSON.parse(await read('spec/contracts/actql-aoa.json'));
+  const requirement = checked(commonMoon.clientProgramPrepareLocalQueryRequirement(program, 0, 0,
+    await read('spec/dependencies/aoa-pipeline-registry.json'), JSON.stringify(aoa.execution_contracts['REL.values']),
+    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+  const acquisition = checked(commonMoon.clientProgramRowSourcePrepareAcquisition(declaration, requirement,
+    await read('spec/contracts/actql-query-acquisition.json'), await read('spec/contracts/actql-query-process-evidence.json')));
+  const ledger = checked(commonMoon.clientProgramAcquisitionLedger(1, 1, 100000n, 100000000n, 100000000n, 0));
+  const run = checked(commonMoon.clientProgramRowSourceStartAccounted(acquisition, randomUUID(), verifyTransport,
+    ledger, 100000n, 100000n));
+  checked(commonMoon.clientProgramRowSourceBegin(run, 100000, 5, 100, undefined));
+  let charges = 0;
+  let observations = 0;
+  return {
+    charge: body => { charges++; return checked(commonMoon.clientProgramRowSourceChargePage(run, body)); },
+    observe: charge => { observations++; return checked(commonMoon.clientProgramRowSourceConsumeObservationCharge(run, charge)); },
+    page: (rows, _page, {charge}) => checked(commonMoon.clientProgramRowSourceAcceptChargedPage(run, charge, Buffer.from(JSON.stringify(rows)))),
+    finish() {
+      checked(commonMoon.clientProgramRowSourceFinish(run));
+      const capture = checked(commonMoon.clientProgramRowSourceCapture(run));
+      const source = checked(commonMoon.clientProgramRowSourceCaptureSource(capture));
+      const relation = checked(commonMoon.clientProgramIdentifyCapturedSourceRelation(source));
+      return commonMoon.clientProgramCapturedSourceRowCount(relation);
+    },
+    counts: () => ({charges, observations}),
+    close() {
+      checked(commonMoon.clientProgramRowSourceCloseAccounted(run));
+      assert.deepEqual(commonMoon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+    },
+  };
+}
+
+test('the same actual accounted RowRun admits child observations then captures exact array and int64 contracts', async t => {
+  const state = world();
+  const labels = Array.from({length: 101}, (_, index) => `label-${index}`);
+  state.repositories.get('R_A').issues = [{number: 7, comments: 2147483647, labels}];
+  const context = await setup(t, state, {accounted: true});
+  const result = await context.read();
+  assert.equal(result.rows[0].number, '7');
+  assert.equal(result.rows[0].comments, '2147483647');
+  assert.deepEqual(result.rows[0].labels, labels);
+  assert.deepEqual(context.rowRun.counts(), {charges: 2, observations: 1});
+  assert.equal(context.rowRun.finish(), 1);
+  assert.equal(context.fixture.seen().length, 2);
 });
