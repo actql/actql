@@ -169,6 +169,12 @@ export async function loadRowSourceCredentialCustody({
   // original key/CA admission. It receives no private key or provider secret.
   const resolveSecret = prepareResolver === undefined
     ? options.resolveSecret : prepareResolver();
+  if (typeof resolveSecret !== 'function') {
+    if (typeof resolveSecret?.then === 'function') {
+      void Promise.resolve(resolveSecret).catch(() => {});
+    }
+    fail(invalidCode);
+  }
   return openRowSourceCredentialCustody({...options,
     privateKey, ca, resolveSecret, openCredentialJournal});
 }
