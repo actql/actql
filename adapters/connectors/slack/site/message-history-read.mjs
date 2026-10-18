@@ -42,6 +42,7 @@ const providerExports = ['slackAdmitMessageHistoryPage','slackMessageHistoryRequ
   'slackProjectWorkspaceIdentity','slackWorkspaceIdentityMatches',
   'slackPrepareMessageHistory','slackBeginMessageHistory','slackMessageHistoryRequestJson',
   'slackMessageHistoryPageHasNext','slackNextMessageHistoryRequest','slackFinishMessageHistory','slackCloseMessageHistory'];
+const windowProviderExports = ['slackPrepareMessageHistoryWindow'];
 const replyProviderExports = ['slackPrepareMessageReplies','slackMessageRepliesMatchesOriginal',
   'slackBeginMessageReplies','slackMessageRepliesRequestMatches','slackMessageRepliesRequestJson',
   'slackAdmitMessageRepliesPage','slackMessageRepliesPageHasNext','slackNextMessageRepliesRequest',
@@ -74,8 +75,25 @@ export class SlackMessageHistoryReadFailure extends Error {
   }
 }
 
+// Exact request DATA supplied by the original caller, never a WHERE-derived
+// coverage claim. Common alone validates timestamp syntax and interval order.
+function ownHistoryWindow(value) {
+  if (value === undefined) return undefined;
+  if (!value || typeof value !== 'object' || types.isProxy(value)) fail('InvalidSlackMessageHistoryWindow');
+  const keys = Reflect.ownKeys(value);
+  if (keys.length !== 2 || !keys.includes('oldest') || !keys.includes('latest')) fail('InvalidSlackMessageHistoryWindow');
+  const fields = {};
+  for (const name of ['oldest','latest']) {
+    const descriptor = Object.getOwnPropertyDescriptor(value,name);
+    if (!descriptor || !Object.hasOwn(descriptor,'value') ||
+        (descriptor.value !== null && typeof descriptor.value !== 'string')) fail('InvalidSlackMessageHistoryWindow');
+    fields[name] = descriptor.value;
+  }
+  return Object.freeze(fields);
+}
+
 function prepareRead({moon, workspaceId, channel, names, initialAuthorization, credential,
-  authorizationFor, limits, current, chargeResponse, consumeObservation, consumePage, signal}) {
+  authorizationFor, limits, current, chargeResponse, consumeObservation, consumePage, signal, requestWindow}) {
   if (!Array.isArray(names) ||
       [authorizationFor,current,chargeResponse,consumeObservation,consumePage].some(fn=>typeof fn !== 'function') ||
       typeof workspaceId !== 'string' || !workspaceId.length ||
@@ -85,6 +103,9 @@ function prepareRead({moon, workspaceId, channel, names, initialAuthorization, c
   }
   if (!moon || typeof moon !== 'object' || types.isProxy(moon)) fail('InvalidSlackMessageHistoryRead');
   const provider = captureProvider(moon,providerExports,false,'InvalidSlackMessageHistoryRead');
+  const timeWindow = ownHistoryWindow(requestWindow);
+  const windowProvider = timeWindow === undefined ? undefined
+    : captureProvider(moon,windowProviderExports,false,'SlackMessageHistoryWindowRuntimeUnavailable');
   const replyProvider = captureProvider(moon,replyProviderExports,true);
   const projectionProvider = captureProvider(moon,projectionProviderExports,true);
   const context = ownInvocationContext({authorization:initialAuthorization,credential,limits,
@@ -110,11 +131,13 @@ function prepareRead({moon, workspaceId, channel, names, initialAuthorization, c
       if (selected[previous] === name) fail('InvalidSlackMessageHistoryRead');
     }
   }
-  return Object.freeze({provider,replyProvider,projectionProvider,context,workspaceId,channel,names:selected,signal});
+  return Object.freeze({provider,windowProvider,timeWindow,replyProvider,projectionProvider,context,workspaceId,channel,names:selected,signal});
 }
 
 async function executeRead(prepared, received, retainPage, retainIdentity, retainExchange, retainControl) {
-  const {provider,context,workspaceId,channel,names,signal} = prepared, bound = context.limits;
+  const {provider,windowProvider,timeWindow,context,workspaceId,channel,names,signal} = prepared, bound = context.limits;
+  // Vendor dispatch limit, independent of the admitted Host/Program ceilings.
+  const historyPageSize = Math.min(bound.pageSize,999);
   const observations = [];
   let history;
   let bytes = 0, totalRows = 0;
@@ -151,6 +174,13 @@ async function executeRead(prepared, received, retainPage, retainIdentity, retai
     return {response,charge,exchange};
   };
   try {
+    if (timeWindow !== undefined) {
+      await verify(SLACK_MESSAGE_HISTORY_OPERATION);
+      history=checked(windowProvider.slackPrepareMessageHistoryWindow(channel,timeWindow.oldest??undefined,timeWindow.latest??undefined,
+        bound.maxResponseBytes,bound.maxNodes,bound.maxDepth,Math.min(bound.maxRows,historyPageSize),
+        bound.maxCursorBytes,bound.maxValueNodes,bound.maxValueTextBytes,bound.maxPages));
+      retainControl(history);
+    }
     const observed = await request(SLACK_WORKSPACE_IDENTITY_OPERATION,0,'POST','/api/auth.test',[],'{}');
     const identity = checked(provider.slackProjectWorkspaceIdentity(observed.response.body,
       bound.maxResponseBytes,bound.maxNodes,bound.maxDepth,bound.maxIdentityBytes));
@@ -162,19 +192,25 @@ async function executeRead(prepared, received, retainPage, retainIdentity, retai
     // workspace tokens. The actual auth.test response and same retained token
     // must agree with the originally selected workspace before any data call.
     await verify(SLACK_MESSAGE_HISTORY_OPERATION);
-    history=checked(provider.slackPrepareMessageHistory(channel,bound.maxResponseBytes,
-      bound.maxNodes,bound.maxDepth,Math.min(bound.maxRows,bound.pageSize),bound.maxCursorBytes,
-      bound.maxValueNodes,bound.maxValueTextBytes,bound.maxPages));
-    retainControl(history);
+    if (history === undefined) {
+      history=checked(provider.slackPrepareMessageHistory(channel,bound.maxResponseBytes,
+        bound.maxNodes,bound.maxDepth,Math.min(bound.maxRows,historyPageSize),bound.maxCursorBytes,
+        bound.maxValueNodes,bound.maxValueTextBytes,bound.maxPages));
+      retainControl(history);
+    }
     let pending=checked(provider.slackBeginMessageHistory(history));
     for (let index=0; index<bound.maxPages; index++) {
       await verify(SLACK_MESSAGE_HISTORY_OPERATION);
       if (!provider.slackMessageHistoryRequestMatches(history,pending)) fail('ForeignSlackMessageHistoryRequest');
       const original=JSON.parse(provider.slackMessageHistoryRequestJson(pending));
       if (original.channel!==channel || original.ordinal!==index) fail('ForeignSlackMessageHistoryRequest');
-      const query=[['channel',original.channel],['limit',String(bound.pageSize)]];
+      const query=[['channel',original.channel],['limit',String(historyPageSize)]];
       if (original.cursor!==null) query.push(['cursor',original.cursor]);
-      if (original.latest!==null) query.push(['latest',original.latest],['inclusive','false']);
+      const oldest=Object.hasOwn(original,'oldest')?original.oldest:null;
+      if (oldest!==(timeWindow?.oldest??null)) fail('ForeignSlackMessageHistoryRequest');
+      if (oldest!==null) query.push(['oldest',oldest]);
+      if (original.latest!==null) query.push(['latest',original.latest]);
+      if (oldest!==null || original.latest!==null) query.push(['inclusive','false']);
       const {response,charge,exchange}=await request(SLACK_MESSAGE_HISTORY_OPERATION,index,'GET','/api/conversations.history',query);
       const page=checked(provider.slackAdmitMessageHistoryPage(history,pending,response.body));
       const rowCount=provider.slackMessagePageRowCount(page);
