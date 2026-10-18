@@ -244,11 +244,63 @@ pub fn NativeLocalAdoptionCapture::capture_journal_with_original_resources(
   max_records : Int,
   max_snapshot_bytes : Int64,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
+  self.capture_original_journal_resources(
+    host,
+    resources,
+    read,
+    ttl_ms,
+    max_records,
+    max_snapshot_bytes,
+    false,
+    None,
+  )
+}
+
+///|
+/// The finite Native command-preparation operational selection only. The
+/// original acquired Session/Lock, same claimed pair and current checks remain
+/// mandatory. It neither selects a generic SQLite mode nor issues authority.
+pub fn NativeLocalAdoptionCapture::capture_command_journal_with_original_resources(
+  self : NativeLocalAdoptionCapture,
+  host : @arena.InstalledArenaHost,
+  resources : @arena.InstalledArenaLocalHostResources,
+  read : @arena.InstalledArenaOriginalRead,
+  ttl_ms : Double,
+  max_records : Int,
+  max_snapshot_bytes : Int64,
+) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
+  self.capture_original_journal_resources(
+    host,
+    resources,
+    read,
+    ttl_ms,
+    max_records,
+    max_snapshot_bytes,
+    true,
+    None,
+  )
+}
+
+///|
+fn NativeLocalAdoptionCapture::capture_original_journal_resources(
+  self : NativeLocalAdoptionCapture,
+  host : @arena.InstalledArenaHost,
+  resources : @arena.InstalledArenaLocalHostResources,
+  read : @arena.InstalledArenaOriginalRead,
+  ttl_ms : Double,
+  max_records : Int,
+  max_snapshot_bytes : Int64,
+  command_preparation_journal : Bool,
+  initial_signing : (
+    NativeLocalInitialSigningMaterial,
+    @host.ClientLocalSigningBootstrapPolicy,
+  )?,
+) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
   let session = match self.journal_capture_session() {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
-  let journal = prepare_native_local_journal_capture_with_original_resources(
+  let prepared = prepare_native_local_journal_capture_with_original_resources(
     session,
     host,
     resources,
@@ -258,6 +310,7 @@ pub fn NativeLocalAdoptionCapture::capture_journal_with_original_resources(
     max_records,
     max_snapshot_bytes,
   )
+  let journal = { ..prepared, command_preparation_journal, initial_signing, }
   self.journal = Some(journal)
   Ok(journal)
 }
@@ -277,24 +330,42 @@ pub fn NativeLocalAdoptionCapture::capture_initial_journal_with_original_resourc
   max_records : Int,
   max_snapshot_bytes : Int64,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
-  let session = match self.journal_capture_session() {
-    Err(issue) => return Err(issue)
-    Ok(value) => value
-  }
-  let journal = prepare_native_local_initial_journal_capture_with_original_resources(
-    session,
+  self.capture_original_journal_resources(
     host,
     resources,
     read,
-    self.crypto,
-    material,
-    policy,
     ttl_ms,
     max_records,
     max_snapshot_bytes,
+    false,
+    Some((material, policy)),
   )
-  self.journal = Some(journal)
-  Ok(journal)
+}
+
+///|
+/// The same explicit initialization materials and durable marker rules as the
+/// original entrance, with the command-only Journal operational selection.
+pub fn NativeLocalAdoptionCapture::capture_initial_command_journal_with_original_resources(
+  self : NativeLocalAdoptionCapture,
+  host : @arena.InstalledArenaHost,
+  resources : @arena.InstalledArenaLocalHostResources,
+  read : @arena.InstalledArenaOriginalRead,
+  material : NativeLocalInitialSigningMaterial,
+  policy : @host.ClientLocalSigningBootstrapPolicy,
+  ttl_ms : Double,
+  max_records : Int,
+  max_snapshot_bytes : Int64,
+) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
+  self.capture_original_journal_resources(
+    host,
+    resources,
+    read,
+    ttl_ms,
+    max_records,
+    max_snapshot_bytes,
+    true,
+    Some((material, policy)),
+  )
 }
 
 ///|

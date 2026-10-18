@@ -35,6 +35,7 @@ pub fn prepare_native_local_journal_capture_with_original_resources(
       active_phase: None,
       interrupted: false,
     }),
+    command_preparation_journal: false,
     initial_signing: None,
     read_operation_issue: None,
     opening_database: None,
@@ -229,7 +230,18 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
   let database = match
     original.stage(@arena.HostSqlite, fn() {
       match
-        (if first {
+        (if self.command_preparation_journal && first {
+          library.initialize_owned_journal_database_with_custody(
+            self.session.state_path + "/client.sqlite3",
+            ownership,
+            131072L,
+          )
+        } else if self.command_preparation_journal {
+          library.open_existing_journal_database_with_custody(
+            self.session.state_path + "/client.sqlite3",
+            131072L,
+          )
+        } else if first {
           library.initialize_owned_database(
             self.session.state_path + "/client.sqlite3",
             ownership,

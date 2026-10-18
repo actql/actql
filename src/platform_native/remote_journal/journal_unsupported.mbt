@@ -25,6 +25,15 @@ type CoordinatorJournal
 type CoordinatorInitializationCleanup
 
 ///|
+pub fn prepare_sqlite_journal_source_inspection(
+  _path : String,
+  _max_record_bytes : Int64,
+  _max_snapshot_bytes : Int64,
+) -> Result[CoordinatorInitializationCleanup, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn prepare_sqlite_source_inspection(
   _path : String,
   _max_record_bytes : Int64,
