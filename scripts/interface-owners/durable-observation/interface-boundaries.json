@@ -3983,7 +3983,7 @@
     {
       "module": "adapters/host-node/sqlite-coordinator-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "80739e1be7dd600cfa4ac6edec4c773d9ed763b0ff7f7460084ca1837e401ea6",
+      "sha256": "6c40cc15dc9dcd32067bf47d0ad7335638b65575f478999625498cdacded020d",
       "exports": [
         "openSqliteCoordinatorDispatchJournal"
       ],
@@ -4007,7 +4007,9 @@
           "name": "inspectCoordinatorFormat",
           "parameters": [
             "root",
-            "coordinatorAuthority"
+            "coordinatorAuthority",
+            "maxInspectionEntries",
+            "maxInspectionBytes"
           ],
           "async": false
         },
@@ -4024,10 +4026,17 @@
           "async": false
         },
         {
+          "name": "inspectCoordinatorFormat/inspectEntries/inspectEntries",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openSqliteCoordinatorDispatchJournal",
           "parameters": [
             "root",
             "coordinatorAuthority",
+            "maxInspectionEntries",
+            "maxInspectionBytes",
             "maxDispatches",
             "maxRequestBytes",
             "maxEvidenceBytes",
@@ -4519,7 +4528,8 @@
             "openSqliteCoordinatorDispatchJournal/sameState/sameState/sameState",
             "syncDirectory",
             "tableDefinitions/tableDefinitions",
-            "text/text"
+            "text/text",
+            "inspectCoordinatorFormat/inspectEntries/inspectEntries"
           ],
           "exports": [
             "openSqliteCoordinatorDispatchJournal"
@@ -4529,65 +4539,123 @@
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Responsibility |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Inputs/outputs |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "identity": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Identity |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "ownership": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Ownership |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Synchronization |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "failure": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Failure |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Cancellation |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "resources": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Resources |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+                "anchor": "maxInspectionBytes = 64 * 1024 * 1024,"
               }
             ],
             "extension": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Extension |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "verification": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Verification |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/coordinator-inspection-bounds.test.mjs",
+                "anchor": "Coordinator pending Dir cleanup keeps the same original receiver before any database handoff"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/remote-dispatch-wire.mjs",
+        "../host-common/sqlite-format-inspection.mjs",
+        "../host-common/sqlite-transaction.mjs",
+        "node:fs",
+        "node:path",
+        "node:sqlite"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/site-node/https-credential-resource.mjs",

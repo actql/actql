@@ -4,13 +4,13 @@ import {DatabaseSync} from 'node:sqlite';
 import {prepareInstalledRunStateObservation, issueInstalledRunControlObservation}
   from '../host-common/run-state-observation.mjs';
 import {createHash, createHmac, randomBytes, timingSafeEqual} from 'node:crypto';
-import {closeSync, existsSync, fsyncSync, lstatSync,
-  mkdirSync, openSync, readFileSync, readdirSync,
+import {closeSync, constants, existsSync, fstatSync, fsyncSync, lstatSync,
+  mkdirSync, openSync, readSync,
   realpathSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
-import {inspectSqliteSnapshot} from '../host-common/sqlite-format-inspection.mjs';
+import {inspectSqliteSnapshot, inspectJournalDirectory} from '../host-common/sqlite-format-inspection.mjs';
 import {openClientObservationStorage} from './client-observation-journal.mjs';
 import {isHostObservationProjection} from '../host-common/observation.mjs';
 import {canonicalJson} from './local-account-config.mjs';
@@ -32,6 +32,74 @@ const instant = value => typeof value === 'string' &&
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
+const applyOriginal = Reflect.apply;
+
+// This is an inspection-work ceiling, not a stored-request limit, format
+// rule, physical capacity supplier or permission. Never materialize a complete
+// unbounded listing before checking it. Preserve the exact full-name snapshot
+// (including unrelated retained entries) for the existing currentness check.
+function journalDirectoryEntries(directory, maxInspectionEntries) {
+  return inspectJournalDirectory(directory, {maxEntries: maxInspectionEntries,
+    unavailableCode: 'ClientRequestJournalInspectionUnavailable',
+    cleanupCode: 'ClientRequestJournalInspectionCleanupPending'});
+}
+
+// Closed format markers have a fixed exact length. A prior pathname stat
+// cannot bound a later readFile allocation: acquire one non-following original
+// FD, inspect it, and read only the fixed body plus one byte of lookahead.
+// Both classification and the final snapshot fence use this same operation.
+function journalMarkerMatches(path, expected) {
+  let original = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW |
+    constants.O_NONBLOCK);
+  const originalClose = closeSync;
+  const close = () => {
+    if (original === undefined) return;
+    if (applyOriginal(originalClose, undefined, [original]) !== undefined) {
+      throw new TypeError('JournalMarkerCleanupPending');
+    }
+    original = undefined;
+  };
+  let failed = false, primary, matches = false;
+  try {
+    const first = fstatSync(original, {bigint: true});
+    if (first.isFile() && first.size === BigInt(expected.length)) {
+      const body = Buffer.alloc(expected.length), lookahead = Buffer.alloc(1);
+      let offset = 0;
+      while (offset < body.length) {
+        const count = readSync(original, body, offset, body.length - offset, null);
+        if (!Number.isSafeInteger(count) || count <= 0 || count > body.length - offset) {
+          fail('UnknownClientRequestJournalFormat');
+        }
+        offset += count;
+      }
+      const end = readSync(original, lookahead, 0, 1, null);
+      const last = fstatSync(original, {bigint: true});
+      matches = end === 0 && body.equals(expected) &&
+        ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs'].every(name => first[name] === last[name]);
+    }
+  } catch (cause) { failed = true; primary = cause; }
+  try { close(); }
+  catch (cause) {
+    const first = cause;
+    let latest = cause;
+    const status = () => Object.freeze({pending: original !== undefined,
+      errors: Object.freeze(first === latest ? [first] : [first, latest])});
+    const retry = () => {
+      try { close(); } catch (error) { latest = error; }
+      return status();
+    };
+    const carrier = Object.assign(new Error('ClientRequestJournalInspectionCleanupPending',
+      {cause: failed ? primary : cause}), {
+      code: 'ClientRequestJournalInspectionCleanupPending',
+      primaryFailure: failed ? primary : cause,
+      cleanupHandle: Object.freeze({status, retry}),
+    });
+    Object.defineProperty(carrier, 'cleanupPending', {get: () => status().pending});
+    throw carrier;
+  }
+  if (failed) throw primary;
+  return matches;
+}
 function syncDirectory(path) {
   const descriptor = openSync(path, 'r');
   try { fsyncSync(descriptor); }
@@ -722,42 +790,42 @@ function inspectCancellationStorage(database, enabled) {
 
 // A read-only SQLite connection can still create -shm beside a WAL database.
 // Inspect a private copy and refuse a source that changes during inspection.
-function inspectJournalSnapshot(directory, databasePath, markerPath) {
-  const entries = readdirSync(directory).sort();
+function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries, maxInspectionBytes) {
+  const entries = journalDirectoryEntries(directory, maxInspectionEntries);
   const featurePath = join(directory, cancellationMarkerName);
   const enabled = entries.includes(cancellationMarkerName);
   if (enabled && (!lstatSync(featurePath).isFile() ||
-      !readFileSync(featurePath).equals(cancellationMarker))) {
+      !journalMarkerMatches(featurePath, cancellationMarker))) {
     fail('UnknownClientRequestJournalFormat');
   }
   const submissionPath = join(directory, submissionMarkerName);
   const submissionEnabled = entries.includes(submissionMarkerName);
   if (submissionEnabled && (!lstatSync(submissionPath).isFile() ||
-      !readFileSync(submissionPath).equals(submissionMarker))) {
+      !journalMarkerMatches(submissionPath, submissionMarker))) {
     fail('UnknownClientRequestJournalFormat');
   }
   const epochPath = join(directory, epochMarkerName);
   const epochEnabled = entries.includes(epochMarkerName);
   if (epochEnabled && (!lstatSync(epochPath).isFile() ||
-      !readFileSync(epochPath).equals(epochMarker))) {
+      !journalMarkerMatches(epochPath, epochMarker))) {
     fail('UnknownClientRequestJournalFormat');
   }
   const intentPath = join(directory, intentMarkerName);
   const intentEnabled = entries.includes(intentMarkerName);
   if (intentEnabled && (!lstatSync(intentPath).isFile() ||
-      !readFileSync(intentPath).equals(intentMarker))) fail('UnknownClientRequestJournalFormat');
+      !journalMarkerMatches(intentPath, intentMarker))) fail('UnknownClientRequestJournalFormat');
   const retirementPath = join(directory, retirementMarkerName);
   const retirementEnabled = entries.includes(retirementMarkerName);
   if (retirementEnabled && (!intentEnabled || !lstatSync(retirementPath).isFile() ||
-      !readFileSync(retirementPath).equals(retirementMarker))) fail('UnknownClientRequestJournalFormat');
+      !journalMarkerMatches(retirementPath, retirementMarker))) fail('UnknownClientRequestJournalFormat');
   const restartPath = join(directory, restartMarkerName);
   const restartEnabled = entries.includes(restartMarkerName);
   if (restartEnabled && (!intentEnabled || !lstatSync(restartPath).isFile() ||
-      !readFileSync(restartPath).equals(restartMarker))) fail('UnknownClientRequestJournalFormat');
+      !journalMarkerMatches(restartPath, restartMarker))) fail('UnknownClientRequestJournalFormat');
   const namePath = join(directory, nameMarkerName);
   const nameEnabled = entries.includes(nameMarkerName);
   if (nameEnabled && (!intentEnabled || !lstatSync(namePath).isFile() ||
-      !readFileSync(namePath).equals(nameMarker))) fail('UnknownClientRequestJournalFormat');
+      !journalMarkerMatches(namePath, nameMarker))) fail('UnknownClientRequestJournalFormat');
   inspectSqliteSnapshot(databasePath, database => {
     const fields = database.prepare('PRAGMA table_info(client_requests)')
       .all().map(field => field.name).sort();
@@ -771,25 +839,26 @@ function inspectJournalSnapshot(directory, databasePath, markerPath) {
     inspectIntentRetirementStorage(database, retirementEnabled);
     inspectRestartStorage(database, restartEnabled);
     inspectNameStorage(database, nameEnabled);
-  }, {code: 'UnknownClientRequestJournalFormat',
-    validateSource: () => readFileSync(markerPath).equals(journalMarker) &&
-      (!enabled || readFileSync(featurePath).equals(cancellationMarker)) &&
-      (!submissionEnabled || readFileSync(submissionPath).equals(submissionMarker)) &&
-      (!epochEnabled || readFileSync(epochPath).equals(epochMarker)) &&
-      (!intentEnabled || readFileSync(intentPath).equals(intentMarker)) &&
-      (!retirementEnabled || readFileSync(retirementPath).equals(retirementMarker)) &&
-      (!restartEnabled || readFileSync(restartPath).equals(restartMarker)) &&
-      (!nameEnabled || readFileSync(namePath).equals(nameMarker)) &&
-      JSON.stringify(readdirSync(directory).sort()) === JSON.stringify(entries)});
+  }, {code: 'UnknownClientRequestJournalFormat', maxSourceBytes: maxInspectionBytes,
+    unavailableCode: 'ClientRequestJournalInspectionUnavailable',
+    validateSource: () => journalMarkerMatches(markerPath, journalMarker) &&
+      (!enabled || journalMarkerMatches(featurePath, cancellationMarker)) &&
+      (!submissionEnabled || journalMarkerMatches(submissionPath, submissionMarker)) &&
+      (!epochEnabled || journalMarkerMatches(epochPath, epochMarker)) &&
+      (!intentEnabled || journalMarkerMatches(intentPath, intentMarker)) &&
+      (!retirementEnabled || journalMarkerMatches(retirementPath, retirementMarker)) &&
+      (!restartEnabled || journalMarkerMatches(restartPath, restartMarker)) &&
+      (!nameEnabled || journalMarkerMatches(namePath, nameMarker)) &&
+      JSON.stringify(journalDirectoryEntries(directory, maxInspectionEntries)) === JSON.stringify(entries)});
 }
 
-function admitJournalDirectory(directory) {
+function admitJournalDirectory(directory, maxInspectionEntries, maxInspectionBytes) {
   if (!existsSync(directory)) return false;
   const state = lstatSync(directory);
   if (!state.isDirectory() || state.isSymbolicLink()) {
     fail('UnknownClientRequestJournalFormat');
   }
-  const entries = readdirSync(directory);
+  const entries = journalDirectoryEntries(directory, maxInspectionEntries);
   if (entries.length === 0) return false;
   const markerPath = join(directory, 'journal-format.json');
   if (!entries.includes('journal-format.json')) {
@@ -799,7 +868,7 @@ function admitJournalDirectory(directory) {
   }
   if (!entries.includes('client-requests.sqlite3') ||
       !lstatSync(markerPath).isFile() ||
-      !readFileSync(markerPath).equals(journalMarker)) {
+      !journalMarkerMatches(markerPath, journalMarker)) {
     fail('UnknownClientRequestJournalFormat');
   }
   const databasePath = join(directory, 'client-requests.sqlite3');
@@ -807,9 +876,10 @@ function admitJournalDirectory(directory) {
     fail('UnknownClientRequestJournalFormat');
   }
   try {
-    inspectJournalSnapshot(directory, databasePath, markerPath);
+    inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries, maxInspectionBytes);
   } catch (cause) {
     if (cause?.cleanupPending) throw cause;
+    if (cause?.code === 'ClientRequestJournalInspectionUnavailable') throw cause;
     if (cause?.code === 'UnknownClientRequestJournalFormat') throw cause;
     fail('UnknownClientRequestJournalFormat', cause);
   }
@@ -818,19 +888,23 @@ function admitJournalDirectory(directory) {
 
 export function openClientRequestJournal(directory, {
   maxRecords = 100_000,
+  maxInspectionEntries = 100_000,
+  maxInspectionBytes = 64 * 1024 * 1024,
   maxRunDefinitionWireBytes = 65_536,
   submissionEpochTtlMs = maxEpochTtlMs,
   submissionEpochNow = Date.now,
   updateOriginalControl,
 } = {}) {
   if (!pathText(directory) || !Number.isSafeInteger(maxRecords) ||
+      !Number.isSafeInteger(maxInspectionEntries) || maxInspectionEntries < 1 ||
+      !Number.isSafeInteger(maxInspectionBytes) || maxInspectionBytes < 1 ||
       maxRecords < 1 || !Number.isSafeInteger(maxRunDefinitionWireBytes) ||
       maxRunDefinitionWireBytes < 1024 ||
       !Number.isSafeInteger(submissionEpochTtlMs) || submissionEpochTtlMs < 1 ||
       submissionEpochTtlMs > maxEpochTtlMs || typeof submissionEpochNow !== 'function') {
     fail('InvalidClientRequestJournalConfiguration');
   }
-  const current = admitJournalDirectory(directory);
+  const current = admitJournalDirectory(directory, maxInspectionEntries, maxInspectionBytes);
   mkdirSync(directory, {recursive: true, mode: 0o700});
   const root = realpathSync(directory);
   const path = join(root, 'client-requests.sqlite3');

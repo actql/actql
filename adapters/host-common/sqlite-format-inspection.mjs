@@ -3,7 +3,7 @@
 // descriptors, inspect an isolated DB+WAL copy, and refuse concurrent changes.
 import {DatabaseSync} from 'node:sqlite';
 import {closeSync, constants, existsSync, fstatSync, lstatSync, mkdtempSync,
-  openSync, readSync, realpathSync, rmSync, writeSync} from 'node:fs';
+  openSync, opendirSync, readSync, realpathSync, rmSync, writeSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {basename, dirname, join, relative, isAbsolute, sep} from 'node:path';
 import {throwSqliteInitializationFailure} from './sqlite-transaction.mjs';
@@ -11,10 +11,81 @@ import {throwSqliteInitializationFailure} from './sqlite-transaction.mjs';
 const sameFile = (left, right) => ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']
   .every(key => left[key] === right[key]);
 
+// Original directory inspection shared by the existing SQLite journal Owners.
+// Keep complete names, including unrelated entries, for the currentness fence.
+// A ceiling is an inspection support bound, not a file-format restriction or
+// capacity grant. The same actual Dir owns one lookahead and its close duty.
+export function inspectJournalDirectory(directory, {maxEntries = 100_000,
+  unavailableCode = 'JournalDirectoryInspectionUnavailable',
+  cleanupCode = 'JournalDirectoryInspectionCleanupPending'} = {}) {
+  if (!Number.isSafeInteger(maxEntries) || maxEntries < 1) {
+    throw Object.assign(new Error('InvalidJournalDirectoryInspectionConfiguration'),
+      {code: 'InvalidJournalDirectoryInspectionConfiguration'});
+  }
+  let original = opendirSync(directory, {bufferSize: 1});
+  let originalClose, failed = false, primary;
+  const captureClose = () => {
+    if (originalClose !== undefined) return;
+    const selected = original.closeSync;
+    if (typeof selected !== 'function') throw new TypeError('JournalDirectoryCloseUnavailable');
+    originalClose = selected;
+  };
+  const close = () => {
+    if (original === undefined) return;
+    captureClose();
+    if (Reflect.apply(originalClose, original, []) !== undefined) {
+      throw new TypeError('JournalDirectoryCleanupPending');
+    }
+    original = originalClose = undefined;
+  };
+  let entries;
+  try {
+    captureClose();
+    const read = original.readSync;
+    if (typeof read !== 'function') throw new TypeError('JournalDirectoryReadUnavailable');
+    entries = [];
+    for (;;) {
+      const entry = Reflect.apply(read, original, []);
+      if (entry === null) break;
+      if (entries.length === maxEntries) {
+        throw Object.assign(new Error(unavailableCode), {code: unavailableCode});
+      }
+      entries.push(entry.name);
+    }
+    entries.sort();
+  } catch (cause) { failed = true; primary = cause; }
+  try { close(); }
+  catch (cause) {
+    const first = cause;
+    let latest = cause;
+    const status = () => Object.freeze({pending: original !== undefined,
+      errors: Object.freeze(first === latest ? [first] : [first, latest])});
+    const retry = () => {
+      try { close(); } catch (error) { latest = error; }
+      return status();
+    };
+    const carrier = Object.assign(new Error(cleanupCode, {cause: failed ? primary : cause}), {
+      code: cleanupCode, primaryFailure: failed ? primary : cause,
+      cleanupHandle: Object.freeze({status, retry}),
+    });
+    Object.defineProperty(carrier, 'cleanupPending', {get: () => status().pending});
+    throw carrier;
+  }
+  if (failed) throw primary;
+  return entries;
+}
+
 export function inspectSqliteSnapshot(databasePath, inspect, {
   code = 'UnknownSqliteJournalFormat',
   validateSource = () => true,
+  maxSourceBytes = Number.MAX_SAFE_INTEGER,
+  unavailableCode = 'SqliteSnapshotInspectionUnavailable',
 } = {}) {
+  if (!Number.isSafeInteger(maxSourceBytes) || maxSourceBytes < 1 ||
+      typeof unavailableCode !== 'string' || unavailableCode.length === 0) {
+    throw Object.assign(new Error('InvalidSqliteSnapshotInspectionConfiguration'),
+      {code: 'InvalidSqliteSnapshotInspectionConfiguration'});
+  }
   const fail = cause => {
     throw Object.assign(new Error(code, {cause}), {code, path: databasePath});
   };
@@ -23,21 +94,33 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
   const walPath = `${databasePath}-wal`;
   let isolated;
   let database;
+  let databaseClose;
   let result;
   const complete = new Error('SqliteSnapshotInspectionComplete');
   let primaryFailure = complete;
+  const closeFile = original => {
+    if (Reflect.apply(original.close, undefined, [original.fd]) !== undefined) {
+      throw new TypeError('SqliteInspectionFileCleanupPending');
+    }
+  };
   const cleanup = {
     close() {
       if (database !== undefined) {
-        database.close();
-        database = undefined;
+        // Capture once before handing the database to the inspector. Retry
+        // only that original close; a later replacement is not an ACK.
+        databaseClose ??= database.close;
+        if (typeof databaseClose !== 'function' ||
+            Reflect.apply(databaseClose, database, []) !== undefined) {
+          throw new TypeError('SqliteInspectionDatabaseCleanupPending');
+        }
+        database = databaseClose = undefined;
       }
       while (sources.length !== 0) {
-        closeSync(sources.at(-1).fd);
+        closeFile(sources.at(-1));
         sources.pop();
       }
       while (outputs.length !== 0) {
-        closeSync(outputs.at(-1));
+        closeFile(outputs.at(-1));
         outputs.pop();
       }
       if (isolated !== undefined) {
@@ -49,15 +132,23 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
   try {
     if (existsSync(`${databasePath}-journal`)) fail();
     const hadWal = existsSync(walPath);
+    let retainedSourceBytes = 0n;
     for (const path of hadWal ? [databasePath, walPath] : [databasePath]) {
       const fd = openSync(path, constants.O_RDONLY |
         (constants.O_NOFOLLOW ?? 0));
-      const source = {path, fd};
+      const source = {path, fd, close: closeSync};
       sources.push(source);
       const identity = fstatSync(fd, {bigint: true});
       source.identity = identity;
       if (!identity.isFile() ||
           identity.size > BigInt(Number.MAX_SAFE_INTEGER)) fail();
+      retainedSourceBytes += identity.size;
+      // The original pinned DB and WAL coexist with their isolated copies.
+      // Refuse their combined extent before allocating scratch or invoking
+      // SQLite; an inspection limit is neither a format rule nor funding.
+      if (retainedSourceBytes > BigInt(maxSourceBytes)) {
+        throw Object.assign(new Error(unavailableCode), {code: unavailableCode});
+      }
     }
     const scratch = realpathSync(tmpdir());
     const sourceDirectory = realpathSync(dirname(databasePath));
@@ -68,7 +159,8 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
     isolated = mkdtempSync(join(scratch, 'actql-journal-format-'));
     for (const source of sources) {
       const output = openSync(join(isolated, basename(source.path)), 'wx', 0o600);
-      outputs.push(output);
+      const originalOutput = {fd: output, close: closeSync};
+      outputs.push(originalOutput);
       try {
         const chunk = Buffer.allocUnsafe(64 * 1024);
         let offset = 0;
@@ -86,12 +178,16 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
           offset += count;
         }
       } finally {
-        closeSync(output);
+        closeFile(originalOutput);
         outputs.pop();
       }
     }
     database = new DatabaseSync(join(isolated, basename(databasePath)),
       {open: true, readOnly: true});
+    databaseClose = database.close;
+    if (typeof databaseClose !== 'function') {
+      throw new TypeError('SqliteInspectionDatabaseCloseUnavailable');
+    }
     result = inspect(database);
     if (existsSync(`${databasePath}-journal`) ||
         existsSync(walPath) !== hadWal || !validateSource() ||
