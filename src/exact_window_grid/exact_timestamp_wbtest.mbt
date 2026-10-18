@@ -14,7 +14,10 @@ test "exact nanosecond grids retain negative floor and closed-open boundaries" {
   assert_eq(latest_start(boundary, 1L, 0L).to_string(), "1")
   assert_eq(compare_coordinates(before, from_finite_number(0.0).unwrap()), -1)
   assert_eq(compare_coordinates(boundary, from_finite_number(1.0).unwrap()), 0)
-  assert_eq(compare_coordinates(after, from_finite_number(0.0000005).unwrap()), 1)
+  assert_eq(
+    compare_coordinates(after, from_finite_number(0.0000005).unwrap()),
+    1,
+  )
   assert_true(from_timestamp_parts(0L, -1) is None)
   assert_true(from_timestamp_parts(0L, 1000000000) is None)
 }

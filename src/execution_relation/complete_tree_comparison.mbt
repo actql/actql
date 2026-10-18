@@ -351,7 +351,9 @@ fn advance_complete_tree_comparison(
         let a = if index < left.length() - 1 { left[index] } else { '0' }
         let b = if index < right.length() - 1 { right[index] } else { '0' }
         text.offset += 1
-        return if a == b { Ok(None) } else {
+        return if a == b {
+          Ok(None)
+        } else {
           Ok(complete_tree_result(cursor, if a < b { -1 } else { 1 }))
         }
       }

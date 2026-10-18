@@ -65,10 +65,11 @@ fn window_time_coordinate(
       return Err(WindowTimeResourceLimit)
     }
     match @admitted.timestamp_instant(text) {
-      Some(instant) => match @grid.from_timestamp_parts(instant.seconds, instant.nanoseconds) {
-        Some(value) => Ok(value)
-        None => Err(InvalidWindowTime)
-      }
+      Some(instant) =>
+        match @grid.from_timestamp_parts(instant.seconds, instant.nanoseconds) {
+          Some(value) => Ok(value)
+          None => Err(InvalidWindowTime)
+        }
       None => Err(InvalidWindowTime)
     }
   } else {

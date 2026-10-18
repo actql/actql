@@ -73,7 +73,8 @@ pub struct TimestampInstant {
 /// Read only canonical UTC Value spelling, without host dates or binary64.
 pub fn timestamp_instant(text : String) -> TimestampInstant? {
   let length = text.length()
-  if length < 24 || length > 30 ||
+  if length < 24 ||
+    length > 30 ||
     text[4] != '-' ||
     text[7] != '-' ||
     text[10] != 'T' ||
@@ -93,11 +94,7 @@ pub fn timestamp_instant(text : String) -> TimestampInstant? {
     timestamp_digits(text, 20, length - 1) is Some(fraction) else {
     return None
   }
-  if month < 1 ||
-    month > 12 ||
-    hour > 23 ||
-    minute > 59 ||
-    second > 59 {
+  if month < 1 || month > 12 || hour > 23 || minute > 59 || second > 59 {
     return None
   }
   let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
@@ -138,8 +135,10 @@ pub fn timestamp_instant(text : String) -> TimestampInstant? {
     nanoseconds *= 10
   }
   Some({
-    seconds: days.to_int64() * 86400L + hour.to_int64() * 3600L +
-      minute.to_int64() * 60L + second.to_int64(),
+    seconds: days.to_int64() * 86400L +
+    hour.to_int64() * 3600L +
+    minute.to_int64() * 60L +
+    second.to_int64(),
     nanoseconds,
   })
 }
@@ -160,10 +159,22 @@ pub fn timestamp_epoch_milliseconds(text : String) -> Int64? {
 /// against a finer fractional digit. No replacement Value or CID is issued.
 pub fn compare_timestamp_text(left : String, right : String) -> Int? {
   guard timestamp_instant(left) is Some(a) &&
-    timestamp_instant(right) is Some(b) else { return None }
-  Some(if a.seconds < b.seconds { -1 } else if a.seconds > b.seconds { 1 }
-    else if a.nanoseconds < b.nanoseconds { -1 }
-    else if a.nanoseconds > b.nanoseconds { 1 } else { 0 })
+    timestamp_instant(right) is Some(b) else {
+    return None
+  }
+  Some(
+    if a.seconds < b.seconds {
+      -1
+    } else if a.seconds > b.seconds {
+      1
+    } else if a.nanoseconds < b.nanoseconds {
+      -1
+    } else if a.nanoseconds > b.nanoseconds {
+      1
+    } else {
+      0
+    },
+  )
 }
 
 ///|
@@ -172,7 +183,9 @@ pub fn compare_timestamp_text(left : String, right : String) -> Int? {
 pub fn timestamp_order_text(text : String) -> String? {
   guard timestamp_instant(text) is Some(_) else { return None }
   let mut out = text[:text.length() - 1].to_owned()
-  while out.length() < 29 { out += "0" }
+  while out.length() < 29 {
+    out += "0"
+  }
   Some(out + "Z")
 }
 
@@ -309,8 +322,10 @@ pub fn epoch_milliseconds_timestamp(milliseconds : Int64) -> String? {
 /// Arbitrary input is range checked before multiplication; no epoch-nanosecond
 /// Int64 or floating point intermediate is used.
 pub fn epoch_parts_timestamp(seconds : Int64, nanoseconds : Int) -> String? {
-  if seconds < -62167219200L || seconds > 253402300799L ||
-    nanoseconds < 0 || nanoseconds >= 1000000000 {
+  if seconds < -62167219200L ||
+    seconds > 253402300799L ||
+    nanoseconds < 0 ||
+    nanoseconds >= 1000000000 {
     return None
   }
   guard epoch_milliseconds_timestamp(seconds * 1000L) is Some(base) else {
@@ -319,7 +334,9 @@ pub fn epoch_parts_timestamp(seconds : Int64, nanoseconds : Int) -> String? {
   let digits = nanoseconds.to_string()
   let padded = "000000000"[:9 - digits.length()].to_owned() + digits
   let mut length = 9
-  while length > 3 && padded[length - 1] == '0' { length -= 1 }
+  while length > 3 && padded[length - 1] == '0' {
+    length -= 1
+  }
   Some(base[:20].to_owned() + padded[:length].to_owned() + "Z")
 }
 

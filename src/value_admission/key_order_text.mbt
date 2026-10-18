@@ -95,8 +95,8 @@ pub fn typed_key_order_text(
     (Number(value), @contract.Number) => Ok(binary64_order_text(value))
     (Signed64(value), @contract.Signed64) => Ok(signed64_order_text(value))
     (Boolean(value), @contract.Boolean) => Ok(if value { "1" } else { "0" })
-    (Text(value), @contract.Text(_))
-    | (Date(value), @contract.Date) => Ok(value)
+    (Text(value), @contract.Text(_)) | (Date(value), @contract.Date) =>
+      Ok(value)
     (Timestamp(value), @contract.Timestamp) =>
       match timestamp_order_text(value) {
         Some(text) => Ok(text)

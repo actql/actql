@@ -132,8 +132,7 @@ fn start_bounded_nonnull_comparison(
   let kind = match
     (left.value, right.value, left.contract.shape, right.contract.shape) {
     (Text(a), Text(b), @contract.Text(_), @contract.Text(_))
-    | (Date(a), Date(b), @contract.Date, @contract.Date) =>
-      TextOrder(a, b)
+    | (Date(a), Date(b), @contract.Date, @contract.Date) => TextOrder(a, b)
     (Timestamp(a), Timestamp(b), @contract.Timestamp, @contract.Timestamp) =>
       TimestampOrder(a, b)
     (Decimal(a), Decimal(b), @contract.Decimal(..), @contract.Decimal(..)) =>

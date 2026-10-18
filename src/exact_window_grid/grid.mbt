@@ -6,7 +6,10 @@ pub struct Coordinate {
 
 ///|
 pub fn from_timestamp_milliseconds(value : Int64) -> Coordinate {
-  { coefficient: @bigint.BigInt::from_int64(value), denominator: @bigint.BigInt::from_int(1), }
+  {
+    coefficient: @bigint.BigInt::from_int64(value),
+    denominator: @bigint.BigInt::from_int(1),
+  }
 }
 
 ///|
@@ -14,10 +17,13 @@ pub fn from_timestamp_milliseconds(value : Int64) -> Coordinate {
 /// Nanoseconds are bounded before forming the BigInt numerator. This does not
 /// admit a Value, acquire memory or issue an operational clock.
 pub fn from_timestamp_parts(seconds : Int64, nanoseconds : Int) -> Coordinate? {
-  if nanoseconds < 0 || nanoseconds >= 1000000000 { return None }
+  if nanoseconds < 0 || nanoseconds >= 1000000000 {
+    return None
+  }
   Some({
-    coefficient: @bigint.BigInt::from_int64(seconds) * @bigint.BigInt::from_int(1000000000) +
-      @bigint.BigInt::from_int(nanoseconds),
+    coefficient: @bigint.BigInt::from_int64(seconds) *
+    @bigint.BigInt::from_int(1000000000) +
+    @bigint.BigInt::from_int(nanoseconds),
     denominator: @bigint.BigInt::from_int(1000000),
   })
 }
@@ -40,25 +46,30 @@ pub fn from_finite_number(number : Double) -> Coordinate? {
     @bigint.BigInt::from_uint64(fraction | 0x0010000000000000UL)
   }
   let signed = if (bits & 0x8000000000000000UL) == 0UL {
-      coefficient
-    } else {
-      -coefficient
-    }
-  let exponent = if encoded == 0 {
-      -1074
-    } else {
-      encoded - 1023 - 52
-    }
+    coefficient
+  } else {
+    -coefficient
+  }
+  let exponent = if encoded == 0 { -1074 } else { encoded - 1023 - 52 }
   Some({
-    coefficient: if exponent > 0 { signed << exponent } else { signed },
-    denominator: if exponent < 0 { @bigint.BigInt::from_int(1) << -exponent }
-      else { @bigint.BigInt::from_int(1) },
+    coefficient: if exponent > 0 {
+      signed << exponent
+    } else {
+      signed
+    },
+    denominator: if exponent < 0 {
+      @bigint.BigInt::from_int(1) << -exponent
+    } else {
+      @bigint.BigInt::from_int(1)
+    },
   })
 }
 
 ///|
 pub fn compare_coordinates(left : Coordinate, right : Coordinate) -> Int {
-  (left.coefficient * right.denominator).compare(right.coefficient * left.denominator)
+  (left.coefficient * right.denominator).compare(
+    right.coefficient * left.denominator,
+  )
 }
 
 ///|

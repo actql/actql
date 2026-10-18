@@ -1,20 +1,27 @@
 ///|
 test "exact UTC projection preserves negative epochs and the complete calendar range" {
-  for (text, seconds, nanoseconds) in [
-    ("1970-01-01T00:00:00.000Z", 0L, 0),
-    ("1969-12-31T23:59:59.999999999Z", -1L, 999999999),
-    ("1970-01-01T00:00:00.000000001Z", 0L, 1),
-    ("0000-01-01T00:00:00.000000001Z", -62167219200L, 1),
-    ("9999-12-31T23:59:59.999999999Z", 253402300799L, 999999999),
-    ("2000-02-29T12:34:56.123456Z", 951827696L, 123456000),
-  ] {
+  for
+    (text, seconds, nanoseconds) in [
+      ("1970-01-01T00:00:00.000Z", 0L, 0),
+      ("1969-12-31T23:59:59.999999999Z", -1L, 999999999),
+      ("1970-01-01T00:00:00.000000001Z", 0L, 1),
+      ("0000-01-01T00:00:00.000000001Z", -62167219200L, 1),
+      ("9999-12-31T23:59:59.999999999Z", 253402300799L, 999999999),
+      ("2000-02-29T12:34:56.123456Z", 951827696L, 123456000),
+    ] {
     let instant = timestamp_instant(text).unwrap()
     assert_eq(instant.seconds, seconds)
     assert_eq(instant.nanoseconds, nanoseconds)
     assert_eq(epoch_parts_timestamp(seconds, nanoseconds), Some(text))
   }
-  assert_eq(epoch_parts_timestamp(0L, 123000000), Some("1970-01-01T00:00:00.123Z"))
-  for seconds in [-9223372036854775808L, -62167219201L, 253402300800L, 9223372036854775807L] {
+  assert_eq(
+    epoch_parts_timestamp(0L, 123000000),
+    Some("1970-01-01T00:00:00.123Z"),
+  )
+  for
+    seconds in [
+      -9223372036854775808L, -62167219201L, 253402300800L, 9223372036854775807L,
+    ] {
     assert_true(epoch_parts_timestamp(seconds, 0) is None)
   }
   assert_true(epoch_parts_timestamp(0L, -1) is None)
@@ -23,13 +30,13 @@ test "exact UTC projection preserves negative epochs and the complete calendar r
 
 ///|
 test "canonical exact UTC refuses noncanonical fractions and unchanged invalid spellings" {
-  for text in [
-    "1970-01-01T00:00:00.12Z", "1970-01-01T00:00:00.1230Z",
-    "1970-01-01T00:00:00.123456000Z", "1970-01-01T00:00:00.1234567891Z",
-    "1970-01-01t00:00:00.123Z", "1970-01-01T00:00:00.123z",
-    "1970-01-01T00:00:00.123+00:00", "1900-02-29T00:00:00.123Z",
-    "2000-01-01T00:00:60.123Z", "10000-01-01T00:00:00.123Z",
-  ] {
+  for
+    text in [
+      "1970-01-01T00:00:00.12Z", "1970-01-01T00:00:00.1230Z", "1970-01-01T00:00:00.123456000Z",
+      "1970-01-01T00:00:00.1234567891Z", "1970-01-01t00:00:00.123Z", "1970-01-01T00:00:00.123z",
+      "1970-01-01T00:00:00.123+00:00", "1900-02-29T00:00:00.123Z", "2000-01-01T00:00:60.123Z",
+      "10000-01-01T00:00:00.123Z",
+    ] {
     assert_true(timestamp_instant(text) is None)
     assert_false(valid_timestamp(text))
   }
@@ -43,9 +50,14 @@ test "exact UTC order agrees across typed bounded author and complete sort keys"
   assert_eq(compare_key_values(a, b), Ok(-1))
   assert_eq(compare_author_order_values(a, b), Ok(-1))
   assert_eq(compare_group_key_values(b, a), Ok(1))
-  assert_true(typed_key_order_text(a).unwrap() < typed_key_order_text(b).unwrap())
+  assert_true(
+    typed_key_order_text(a).unwrap() < typed_key_order_text(b).unwrap(),
+  )
   let limits : Limits = { max_nodes: 2, max_depth: 1, max_text_bytes: 64, }
-  assert_true(complete_order_key(a, limits).unwrap() < complete_order_key(b, limits).unwrap())
+  assert_true(
+    complete_order_key(a, limits).unwrap() <
+    complete_order_key(b, limits).unwrap(),
+  )
   let expected = "[\"timestamp\",\"1970-01-01T00:00:00.123000000Z\"]"
   assert_eq(complete_order_key(a, limits), Ok(expected))
   for bytes in [expected.length(), expected.length() - 1] {
@@ -62,7 +74,7 @@ test "exact UTC order agrees across typed bounded author and complete sort keys"
             completed = true
           }
           OrderFailed(CompleteOrderLimit, ..) => failed = true
-          _ => fail("unexpected sort-token failure")
+          _ => abort("unexpected sort-token failure")
         }
       }
     }
