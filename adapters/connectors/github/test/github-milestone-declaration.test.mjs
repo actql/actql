@@ -54,8 +54,8 @@ test('the PullRequest declaration keeps native read types and an inapplicable nu
     'created_at', 'updated_at', 'closed_at', 'url', 'base', 'head', 'draft',
     'mergeable', 'merged_at', 'merged_by', 'review_decision'].sort());
   for (const name of ['base', 'head']) assert.deepEqual(schema.body.fields[name], {type: 'string', nullable: false});
-  assert.deepEqual(schema.body.fields.draft, {type: 'bool', nullable: false});
-  assert.deepEqual(schema.body.fields.mergeable, {type: 'bool', nullable: true});
+  assert.deepEqual(schema.body.fields.draft, {type: 'boolean', nullable: false});
+  assert.deepEqual(schema.body.fields.mergeable, {type: 'boolean', nullable: true});
   assert.deepEqual(schema.body.fields.merged_at, {type: 'timestamp', nullable: true});
   for (const name of ['merged_by', 'review_decision', 'state_reason']) assert.deepEqual(schema.body.fields[name], {type: 'string', nullable: true});
 });
