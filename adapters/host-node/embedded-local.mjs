@@ -19,12 +19,14 @@ import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {validClientConnection} from '../../packages/client-wire/index.mjs';
 import {createEmbeddedHostRegistry, installedHostShutdown} from './embedded-local-lifecycle.mjs';
-import {openClientRequestJournal, observeOriginalClientRequestJournalCustody}
+import {openClientRequestJournal, observeOriginalClientRequestJournalCustody,
+  assertOriginalClientRequestJournalFacilityCurrent}
   from './client-request-journal.mjs';
 // The selected startup captures these exact existing Owner operations from
 // this namespace. An export alone supplies neither admission nor authority.
 export {openClientRequestJournal as openOriginalHostRequestJournal,
-  observeOriginalClientRequestJournalCustody as observeOriginalHostRequestJournalCustody};
+  observeOriginalClientRequestJournalCustody as observeOriginalHostRequestJournalCustody,
+  assertOriginalClientRequestJournalFacilityCurrent as assertOriginalHostRequestJournalFacilityCurrent};
 import {installNodeClientSubmission, issueNodeClientSubmissionEpoch} from './client-submission.mjs';
 import {admitHostRootFormat} from './host-root-format.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
