@@ -53,7 +53,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py",
-      "sha256": "309b1be5fb758c757e78e8bba2518cb689559855ad00d58cf693142e580829e9",
+      "sha256": "fb53dac7d324de78a6eaf483f9f401ecd43ffe7b2437edaa92f0697aeb0a3d66",
       "generator": {
         "path": "scripts/generate-local-native-shim-bindings.py",
         "anchor": "def render("
