@@ -21,10 +21,11 @@ function fixture(t, files = {'original.mjs': 'export const value = "original";\n
     facts.push({path, expected: {bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex')}});
   }
   const preload = join(root, 'preload.cjs'), entry = join(root, 'entry.mjs');
-  return {root, images, sources, facts, run(body, after = '') {
+  return {root, images, sources, facts, run(body, after = '', before = '') {
     // Disposable preloads exercise real Node hooks, not the selected ActQL
     // envelope, original Host, operational admission or normal funding.
     writeFileSync(preload, [
+      before,
       "const fs = require('node:fs');",
       'const {captureInitialControlImageSource} = require(' + JSON.stringify(capture) + ');',
       'const {installInitialControlImageLoader} = require(' + JSON.stringify(loader) + ');',
@@ -112,7 +113,7 @@ test('application-time helper invocation refuses before reading caller records o
   assert.equal(result.status, 0, result.stderr);
 });
 
-test('later hook registration and deregistration cannot restore the selected original history', t => {
+test('registration through the published fence stays invalidated after deregistration', t => {
   const f = fixture(t), result = f.run([
     "import assert from 'node:assert/strict';",
     "import {registerHooks} from 'node:module';",
@@ -123,6 +124,29 @@ test('later hook registration and deregistration cannot restore the selected ori
     "assert.throws(()=>originalImageLoader.assertCurrent(),{code:'InitialControlImageLoaderChanged'});",
     "await assert.rejects(import('./images/original.mjs'),{code:'InitialControlImageLoaderChanged'});",
   ].join('\n'));
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('a retained pre-fence registration function is outside the property fence observation', t => {
+  const f = fixture(t), result = f.run([
+    "import assert from 'node:assert/strict';",
+    "import {createRequire} from 'node:module';",
+    "const NodeModule=createRequire(import.meta.url)('node:module');",
+    'assert.equal(NodeModule.registerHooks,originalRegistrationFence);',
+    'originalImageLoader.assertCurrent();',
+    "assert.equal((await import('./images/original.mjs')).value,'retained-registration');",
+    'originalImageLoader.assertCurrent();',
+    'retainedRegistration.deregister();',
+    'assert.equal(NodeModule.registerHooks,originalRegistrationFence);',
+    'originalImageLoader.assertCurrent();',
+  ].join('\n'), [
+    'originalImageLoader.captureLoadedModules();',
+    "globalThis.originalRegistrationFence=require('node:module').registerHooks;",
+    'globalThis.retainedRegistration=retainedRegisterHooks({',
+    "resolve(name,context,next){if(name.endsWith('/images/original.mjs'))return {url:new URL(name,context.parentURL).href,shortCircuit:true};return next(name,context);},",
+    "load(url,context,next){if(url.endsWith('/images/original.mjs'))return {format:'module',source:'export const value=\"retained-registration\";',shortCircuit:true};return next(url,context);}",
+    '});',
+  ].join('\n'), "const retainedRegisterHooks=require('node:module').registerHooks;");
   assert.equal(result.status, 0, result.stderr);
 });
 
