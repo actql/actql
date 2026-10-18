@@ -145,6 +145,10 @@ pub fn NativeLocalJournalCapture::check_current(
 ) -> NativeLocalJournalCaptureReply {
   let issue = if self.closing {
     Some(JournalCaptureClosed)
+  } else if self.read_operation_issue is Some(original) {
+    // A failed preparation exchange is cleanup-only. A later observation may
+    // not erase that first failure by attempting the protected fence again.
+    Some(JournalAdoption(original))
   } else {
     match self.opening {
       JournalNotAttempted => Some(JournalNotOpened)
