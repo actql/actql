@@ -1,0 +1,17 @@
+{
+  "installation": {
+    "registration": "slack",
+    "revision": "slack/0.1",
+    "providerBundle": "connectors/slack/host_node",
+    "responseHeaders": [],
+    "source": {
+      "profileVersion": "actql-installed-slack-source/0.1",
+      "module": "adapters/connectors/slack/host/installed-slack-source.mjs",
+      "exports": {
+        "check": "checkInstalledSlackSourceProfile",
+        "identityParts": "installedSlackSourceIdentityParts",
+        "load": "loadInstalledSlackSource"
+      }
+    }
+  }
+}
