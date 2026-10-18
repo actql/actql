@@ -53,6 +53,21 @@ function installInitialControlImageLoader(groups) {
       typeof registerHooks !== 'function' || typeof register !== 'function') {
     fail('InitialControlImageLoaderUnavailable');
   }
+  return installImageLoader(groups, false);
+}
+
+// Byte/module custody only. This separate ordinary implementation never
+// authenticates a startup or issues an installation scope. Its actual package
+// prefix must already hold the ordinary runtime/compiler/lifetime original.
+function installOrdinaryInitialControlImageLoader(groups) {
+  if (typeof preloading !== 'function' || nativeApply(preloading, module, []) !== false ||
+      typeof registerHooks !== 'function' || typeof register !== 'function') {
+    fail('InitialControlImageLoaderUnavailable');
+  }
+  return installImageLoader(groups, true);
+}
+
+function installImageLoader(groups, ordinary) {
   if (!isArray(groups) || groups.length === 0) fail('InvalidInitialControlLoaderImage');
   const images = new NativeMap(), prefixes = [];
   const initialCache = new NativeMap(), delivered = new NativeMap();
@@ -123,7 +138,7 @@ function installInitialControlImageLoader(groups) {
         (held.jsonInterop ? jsonInteropRecord(held.module) :
           descriptor(held.module, 'filename')?.value === held.filename &&
           (descriptor(held.module, 'loaded')?.value === true ||
-            held.loading && nativeApply(preloading, module, []) === true));
+            held.loading && (ordinary || nativeApply(preloading, module, []) === true)));
       if (same && held.properties !== undefined) {
         const names = ownKeys(held.exports);
         same = names.length === held.properties.length;
@@ -197,7 +212,7 @@ function installInitialControlImageLoader(groups) {
     // Only the original preload can finish this handoff, immediately after its
     // synchronous original namespace initialization and BEFORE entry. A late
     // snapshot cannot authenticate exports that entry may already have changed.
-    if (nativeApply(preloading, module, []) !== true) fail('InitialControlImageLoaderUnavailable');
+    if (nativeApply(preloading, module, []) !== !ordinary) fail('InitialControlImageLoaderUnavailable');
     assertCurrent();
     if (loadedCaptured) return;
     nativeApply(nativeMapEach, images, [original => {
@@ -330,5 +345,5 @@ function installInitialControlImageLoader(groups) {
   return freeze({assertCurrent, captureLoadedModules});
 }
 
-module.exports = {installInitialControlImageLoader};
+module.exports = {installInitialControlImageLoader, installOrdinaryInitialControlImageLoader};
 freeze(module.exports);

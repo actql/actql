@@ -1,0 +1,105 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
+import {join} from 'node:path';
+import {fileURLToPath, pathToFileURL} from 'node:url';
+import {createRequire} from 'node:module';
+import * as actual from './node-source-managed-installation.mjs';
+
+test('the actual absent Source issuer refuses without observing caller originals', async () => {
+  let reads = 0;
+  const raw = new Proxy({}, {get() {reads++;}, ownKeys() {reads++;},
+    getOwnPropertyDescriptor() {reads++;}});
+  await assert.rejects(actual.prepareSourceManagedInstallation(raw),
+    {code: 'SourceManagedPreparationUnavailable'});
+  assert.throws(() => actual.assertSourceManagedInstallationCurrent(raw, raw),
+    {code: 'SourceManagedPreparationUnavailable'});
+  assert.equal(reads, 0);
+});
+
+// Execute the exact consumer Source with an explicitly substituted CJS
+// receiver. These test-only ports prove forwarding/custody, not a selected
+// startup, Resource issuer, original Source capacity or real Host positive.
+async function fixture(t) {
+  const root = fileURLToPath(new URL('../../', import.meta.url));
+  await mkdir(join(root, '_build'), {recursive:true});
+  const scratch = {path: await mkdtemp(join(root, '_build/source-forward-controls-'))};
+  await writeFile(join(scratch.path, 'infer-trusted-node-preload.cjs'), 'module.exports={};\n');
+  const owner = createRequire(import.meta.url)(join(scratch.path, 'infer-trusted-node-preload.cjs'));
+  const originals = Object.freeze({}), installation = Object.freeze({}), receipt = Object.freeze({});
+  const s = {current: true, close: {pending: false}, closes: 0, calls: [], returnReceipt: receipt,
+    bindingReturn: undefined};
+  Object.assign(owner, {
+    prepareSourceManagedInstallation(value) {assert.equal(this, owner);assert.equal(value, originals);return installation;},
+    assertSourceManagedInstallationCurrent(value, pair) {assert.equal(this, owner);assert.equal(value, installation);
+      assert.equal(pair, originals);if (!s.current) throw s.cause;},
+    beforeSourceSnapshot(value, pair, ...args) {assert.equal(this, owner);assert.equal(value, installation);
+      assert.equal(pair, originals);s.calls.push(['before', ...args]);return s.returnReceipt;},
+    bindSourceSnapshot(value, pair, r, body) {assert.equal(this, owner);assert.equal(value, installation);
+      assert.equal(pair, originals);assert.equal(r, receipt);s.calls.push(['snapshot',body]);return s.bindingReturn;},
+    bindSourceRequest(value, pair, r, body, request) {assert.equal(this, owner);assert.equal(value, installation);
+      assert.equal(pair, originals);assert.equal(r, receipt);s.calls.push(['request',body,request]);},
+    finishSourceProducer(value, pair, r, terminal) {assert.equal(this, owner);assert.equal(value, installation);
+      assert.equal(pair, originals);assert.equal(r, receipt);s.calls.push(['finish',terminal]);},
+    closeSourceManagedInstallation(value, pair) {assert.equal(this, owner);assert.equal(value, installation);
+      assert.equal(pair, originals);s.closes++;return s.close;},
+  });
+  await writeFile(join(scratch.path, 'consumer.mjs'), await readFile(new URL('./node-source-managed-installation.mjs', import.meta.url)));
+  const consumer = await import(pathToFileURL(join(scratch.path, 'consumer.mjs')));
+  // Keep these tiny explicit-port fixtures; no automatic test-failure cleanup
+  // can be mistaken for an original Source/physical acknowledgement.
+  return {s, consumer, owner, originals, installation, receipt};
+}
+
+test('four producer calls synchronously forward exact originals to the captured receiver', async t => {
+  const f = await fixture(t), view = await f.consumer.prepareSourceManagedInstallation(f.originals);
+  const input = {}, options = {}, body = {}, request = {}, terminal = {};
+  f.owner.beforeSourceSnapshot = () => {throw new Error('ReplacementMustNotRun');};
+  assert.equal(view.beforeSourceSnapshot('aql', input, options), f.receipt);
+  assert.equal(view.bindSourceSnapshot(f.receipt, body), undefined);
+  assert.equal(view.bindSourceRequest(f.receipt, body, request), undefined);
+  assert.equal(view.finishSourceProducer(f.receipt, terminal), undefined);
+  assert.deepEqual(f.s.calls, [['before','aql',input,options],['snapshot',body],
+    ['request',body,request],['finish',terminal]]);
+  assert.throws(() => f.consumer.assertSourceManagedInstallationCurrent({...view}, f.originals));
+  assert.throws(() => f.consumer.assertSourceManagedInstallationCurrent(view, {...f.originals}));
+});
+
+test('an async producer receipt refuses synchronously and remains sticky without snapshot fallback', async t => {
+  const f = await fixture(t), view = await f.consumer.prepareSourceManagedInstallation(f.originals);
+  f.s.returnReceipt = Promise.resolve(f.receipt);
+  let failure;
+  assert.throws(() => view.beforeSourceSnapshot('aql', {}, {}), cause => {
+    failure = cause;return cause.code === 'SourceManagedSynchronousProtocolChanged';});
+  assert.equal(failure.cause, f.s.returnReceipt);
+  assert.throws(() => view.beforeSourceSnapshot('aql', {}, {}), cause => cause === failure);
+  assert.equal(f.s.calls.length, 1);
+  await view.close();assert.equal(f.s.closes, 1);
+});
+
+test('post-acquisition current failure preserves the exact cause and original cleanup through pending', async t => {
+  const f = await fixture(t);f.s.current = false;f.s.cause = Object.freeze(new Error('OriginalCurrent'));
+  let failure;
+  await assert.rejects(f.consumer.prepareSourceManagedInstallation(f.originals), cause => {
+    failure = cause;return cause.code === 'SourceManagedInstallationCleanupPending';});
+  assert.equal(failure.cause, f.s.cause);
+  f.owner.closeSourceManagedInstallation = () => {throw new Error('ReplacementMustNotRun');};
+  f.s.close = {pending: true};assert.equal((await failure.cleanupHandle.retry()).pending, true);
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  f.s.close = {pending: false};assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal(failure.cleanupHandle.status().pending, false);assert.equal(f.s.closes, 2);
+});
+
+test('same original close is single-flight and only own DATA pending false retires aliases', async t => {
+  const f = await fixture(t), view = await f.consumer.prepareSourceManagedInstallation(f.originals);
+  let resolve;f.s.close = new Promise(done => {resolve = done;});
+  const first = view.close(), second = view.close();assert.equal(f.s.closes, 1);
+  resolve({pending: true});await first;await second;
+  for (const observation of [undefined, true, {}, Object.create({pending:false})]) {
+    f.s.close = observation;await view.close();view.assertCurrent();
+  }
+  let reads = 0;f.s.close = {get pending(){reads++;return false;}};
+  await view.close();assert.equal(reads, 0);view.assertCurrent();
+  f.s.close = {pending:false};await view.close();const count=f.s.closes;
+  assert.throws(() => view.assertCurrent());await view.close();assert.equal(f.s.closes,count);
+});

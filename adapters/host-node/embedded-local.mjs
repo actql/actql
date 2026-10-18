@@ -2,6 +2,7 @@ import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, ru
 // Private selected-namespace DATA reader. Exporting this pure operation does
 // not expose the startup issuer or authenticate a caller-created packet.
 export {snapshotInitialControlHostInput} from './initial-control-host-input.mjs';
+export {readSourceManagedOriginalInput} from './source-managed-original-input.mjs';
 export {snapshotInitialControlHostInput as readInitialControlHostInput}
   from './initial-control-host-input.mjs';
 import {installClientRunPlan} from './client-run-plan.mjs';
@@ -148,6 +149,18 @@ export function assertInitialControlHostPreparation(originals) {
     throw clientOperationError('InstalledHostPreparationChanged');
   }
   profiles.assertPreparation(originals.host, originals.installation, originals.generation);
+}
+
+// The actual selected startup captures this fixed operation, not a caller
+// predicate. Its installation phase may check the original Host before a
+// request exists. A request phase additionally requires that SAME pending
+// in-process request; neither check issues Source capacity or authority.
+export function assertSourceManagedHostPreparation(originals, originalOwnedRequest) {
+  assertInitialControlHostPreparation(originals);
+  if (originalOwnedRequest !== undefined) {
+    profiles.assertSourceRequest(originals.host, originals.installation,
+      originals.generation, originalOwnedRequest);
+  }
 }
 
 const bytesCid = bytes => `sha256:${createHash('sha256')

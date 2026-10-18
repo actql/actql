@@ -71,13 +71,37 @@ function declareInitialControlPhaseEnvelope(heapCeilingBytes) {
     lifetime: 'original-process-and-escaped-module-lifetime'});
 }
 
+function declareOrdinaryInitialControlPhaseEnvelope(heapCeilingBytes) {
+  const base = declareInitialControlPhaseEnvelope(heapCeilingBytes);
+  // Ordinary import has no eager-bytecode original. Retain a separate finite
+  // lazy compilation/tiering/cache disposition for the selected package code
+  // and all escaped functions through process end. This is the selected
+  // runtime premise, not a measured free-credit or universal V8/RSS claim.
+  const lazyCompilerBytes = limits.sourceBytes * 64;
+  const bytes = base.bytes - base.compilerBytes + lazyCompilerBytes;
+  if (!integer(bytes)) unavailable();
+  return freeze({...base, compilerBytes:lazyCompilerBytes,
+    nativeBytes:base.nativeBytes-base.compilerBytes+lazyCompilerBytes,bytes,
+    recipe:'ordinary-installed-public-prefix',compilation:'ordinary-lazy',eager:false});
+}
+
 function inspectInitialControlPhaseEnvelope(inventory, declaration, runtimeOriginal) {
+  return inspectPhaseEnvelope(inventory, declaration, runtimeOriginal, false);
+}
+
+function inspectOrdinaryInitialControlPhaseEnvelope(inventory, declaration, runtimeOriginal) {
+  if (declaration?.recipe !== 'ordinary-installed-public-prefix' || declaration.eager !== false ||
+      declaration.compilation !== 'ordinary-lazy') unavailable();
+  return inspectPhaseEnvelope(inventory, declaration, runtimeOriginal, true);
+}
+
+function inspectPhaseEnvelope(inventory, declaration, runtimeOriginal, ordinary) {
   if (declaration?.limits !== limits) unavailable();
   // The generated recipe must describe this actual selected backend, not just
   // a similarly sized image graph. This comparison is DATA correspondence;
   // only the real early preload retains the runtime/module original and can
   // operationally adopt the declaration. It authenticates no caller factory.
-  const engine = own(inventory, 'engine');
+  const engine = own(inventory, ordinary ? 'ordinaryEngine' : 'engine');
   for (const name of ['node', 'v8', 'openssl', 'platform', 'arch', 'eager']) {
     if (own(engine, name) !== own(runtimeOriginal, name)) unavailable();
   }
@@ -133,5 +157,6 @@ function inspectInitialControlPhaseEnvelope(inventory, declaration, runtimeOrigi
     sourceBytes, declaration, runtimeOriginal});
 }
 
-module.exports = {declareInitialControlPhaseEnvelope, inspectInitialControlPhaseEnvelope};
+module.exports = {declareInitialControlPhaseEnvelope, inspectInitialControlPhaseEnvelope,
+  declareOrdinaryInitialControlPhaseEnvelope, inspectOrdinaryInitialControlPhaseEnvelope};
 freeze(module.exports);
