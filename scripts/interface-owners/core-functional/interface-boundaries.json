@@ -7790,7 +7790,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -8561,7 +8561,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -15344,7 +15344,7 @@
     },
     {
       "module": "packages/run-host-core/index.mjs",
-      "sha256": "bdc85d295da1ba5b9504c462c3ad2bcf70c371156adfaa28c5133b97a7e4b32c",
+      "sha256": "0a5be47758658c3cb7cc67c83c1d692814639e090068c5e8b58ac703c8c6e2b8",
       "role": "physical-io",
       "exports": [
         "admitCapturedResultSnapshot",
@@ -15454,6 +15454,7 @@
         "privateRunDefinition",
         "privateTaskCompilationWires",
         "projectCommittedResultRead",
+        "projectEffectSiteRun",
         "projectPublicationSnapshot",
         "projectSiteRun",
         "projectTaskSiteRun",
@@ -15975,6 +15976,13 @@
           "async": false
         },
         {
+          "name": "effectProjectionArray",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "effectResultDefinitions",
           "parameters": [
             "prepared",
@@ -16139,6 +16147,21 @@
           "async": false
         },
         {
+          "name": "effectTaskProgressSnapshot",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectTaskProgressSnapshot/effectTaskProgressSnapshot",
+          "parameters": [
+            "row",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "evidenceItems",
           "parameters": [
             "values"
@@ -16199,14 +16222,6 @@
             "definition",
             "authority",
             "durableWires"
-          ],
-          "async": false
-        },
-        {
-          "name": "inspectEffectTaskProgress/inspectEffectTaskProgress",
-          "parameters": [
-            "row",
-            "index"
           ],
           "async": false
         },
@@ -17719,6 +17734,27 @@
           "async": false
         },
         {
+          "name": "projectEffectSiteRun",
+          "parameters": [
+            "allowed",
+            "definition",
+            "authority",
+            "durableWires",
+            "observedAt",
+            "cancellationRequested",
+            "savedClaims"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectEffectSiteRun/projectEffectSiteRun",
+          "parameters": [
+            "task",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "projectPublicationSnapshot",
           "parameters": [
             "record",
@@ -18433,14 +18469,14 @@
             "beginResultMaterialHolds",
             "captureOriginalRunPlan",
             "captureOriginalRunPlan/captureOriginalRunPlan",
+            "checkRunBinding",
             "checked",
             "checkedProfileSelection",
             "checkedProfileSelection/checkedProfileSelection",
-            "checkRunBinding",
-            "compiledPlanCid",
             "compileEffect",
             "compileTasks",
             "compileValues",
+            "compiledPlanCid",
             "deliveryCall",
             "deliveryContract",
             "deliveryResult",
@@ -18450,6 +18486,7 @@
             "effectCompilationFor",
             "effectExecutionShape",
             "effectExecutionShape/effectExecutionShape",
+            "effectProjectionArray",
             "effectResultDefinitions",
             "effectResultDefinitions/effectResultDefinitions",
             "effectResultDefinitions/effectResultDefinitions#2",
@@ -18471,6 +18508,8 @@
             "effectSourceInputBinding",
             "effectTaskKeys",
             "effectTaskKeys/effectTaskKeys",
+            "effectTaskProgressSnapshot",
+            "effectTaskProgressSnapshot/effectTaskProgressSnapshot",
             "evidenceItems",
             "evidenceItems/evidenceItems",
             "exactRetainedFields/exactRetainedFields",
@@ -18479,7 +18518,6 @@
             "inspectCanonicalResultRows",
             "inspectCanonicalResultRows/inspectCanonicalResultRows",
             "inspectEffectTaskProgress",
-            "inspectEffectTaskProgress/inspectEffectTaskProgress",
             "inspectTaskProgress",
             "issueAllowedEffectRun",
             "issueAllowedEffectRun/issueAllowedEffectRun",
@@ -18490,7 +18528,6 @@
             "issueCheckedValuesResultOccurrenceEvidence",
             "issueCheckedValuesResultOccurrenceEvidence/issueCheckedValuesResultOccurrenceEvidence",
             "issueCompleteResultArtifact",
-            "issuedDelivery",
             "issueDurableResultBinding",
             "issueDurableResultBinding/issueDurableResultBinding",
             "issueDurableResultBinding/issueDurableResultBinding#2",
@@ -18504,13 +18541,13 @@
             "issueEffectRunMaterials",
             "issueEffectSourceDispatch",
             "issuePreparedEffectRunMaterials",
+            "issuePublicIndexEntry",
             "issuePublicationAttempt",
             "issuePublicationAttempt/issuePublicationAttempt",
             "issuePublicationRecord",
             "issuePublicationRecord/issuePublicationRecord",
             "issuePublicationRequest",
             "issuePublicationRequest/issuePublicationRequest",
-            "issuePublicIndexEntry",
             "issueReadOnlyCapturedRun",
             "issueReadOnlyCapturedRun/issueReadOnlyCapturedRun",
             "issueResultManifest",
@@ -18553,6 +18590,7 @@
             "issueTaskRunDefinition/issueTaskRunDefinition",
             "issueTaskRunMaterials",
             "issueUnpublishedRunStateWire",
+            "issuedDelivery",
             "nonnegativeCount",
             "openResultDeliveryControl",
             "openResultDeliveryControl/init:admit/init:admit",
@@ -18650,6 +18688,8 @@
             "projectCommittedResultRead/cid/cid",
             "projectCommittedResultRead/projectCommittedResultRead",
             "projectCommittedResultRead/projectCommittedResultRead#2",
+            "projectEffectSiteRun",
+            "projectEffectSiteRun/projectEffectSiteRun",
             "projectPublicationSnapshot",
             "projectPublicationSnapshot/projectPublicationSnapshot",
             "projectSiteRun",
@@ -18846,6 +18886,7 @@
             "privateRunDefinition",
             "privateTaskCompilationWires",
             "projectCommittedResultRead",
+            "projectEffectSiteRun",
             "projectPublicationSnapshot",
             "projectSiteRun",
             "projectTaskSiteRun",
@@ -18903,6 +18944,10 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "inputsOutputs": [
@@ -18913,6 +18958,10 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "identity": [
@@ -18923,6 +18972,10 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "ownership": [
@@ -18933,6 +18986,10 @@
               {
                 "path": "docs/design/portable-execution-boundary.md",
                 "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "synchronization": [
@@ -18943,6 +19000,10 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "failure": [
@@ -18953,6 +19014,10 @@
               {
                 "path": "docs/design/portable-execution-boundary.md",
                 "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "cancellation": [
@@ -18963,6 +19028,10 @@
               {
                 "path": "docs/design/portable-execution-boundary.md",
                 "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "resources": [
@@ -18973,6 +19042,10 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "extension": [
@@ -18983,6 +19056,10 @@
               {
                 "path": "docs/design/portable-execution-boundary.md",
                 "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "verification": [
@@ -18993,6 +19070,10 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ]
           }
