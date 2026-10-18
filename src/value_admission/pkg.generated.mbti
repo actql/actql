@@ -186,6 +186,8 @@ pub fn reference_same_issuer(ReferenceValue, ReferenceValue) -> Bool
 
 pub fn reference_wire(ReferenceValue) -> String
 
+pub fn signed64_comparison_literal_value(Double) -> Value?
+
 pub fn signed64_value(Int64) -> Value
 
 pub fn start_bounded_author_order_comparison(CheckedValue, CheckedValue) -> Result[BoundedKeyComparison, KeyOrderIssue]

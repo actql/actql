@@ -1101,6 +1101,32 @@ existing recursive structure, extents and nullability rules without implicit
 coercion to or from Number, Decimal or Text. `int64` is KeyComparable and
 AuthorOrderable only with that same logical domain.
 
+<!-- requirement-block: signed64-values.comparison-literal-context signed64-values.comparison-literal-operand-order -->
+Equality, distinctness, ordering, BETWEEN and scalar membership predicates MUST
+use an independently typed `int64` peer to contextually admit an immediate
+numeric literal only when its existing admitted finite binary64 Number value
+is integral, lies within `[-2^63, 2^63)`, and converts losslessly to the same
+signed integer. Check these bounds before integer conversion, including the
+exclusive upper endpoint. Operand order MUST NOT affect this rule. Membership
+uses the original typed item domain, including each immediate list occurrence;
+an untyped empty list does not supply a domain. Conflicting typed peers remain
+incompatible, and existing literal-NULL refusal, null-safe comparison and
+nullable-value behavior remain unchanged.
+
+<!-- requirement-block: signed64-values.comparison-literal-normalization signed64-values.comparison-literal-no-raw-reinterpretation signed64-values.comparison-literal-no-nonliteral-conversion -->
+Comparison context MUST preserve the original Number literal body and its
+normalized source. It MUST NOT reinterpret a raw numeric spelling after Number
+admission or recover lost precision on emit, re-admission or cold reconstruction.
+For example, `9007199254740993` already admitted as Number
+`9007199254740992` keeps that integer in this context. The checked operand lowers
+to exact `int64` and uses its existing decimal-String value wire. Original typed
+`int64` Parameters supply the full signed range and distinct adjacent integers
+above 2^53. This exception is not schema-directed JSON Number admission to an
+`int64` contract or a new full-range numeric-literal grammar. Nonliteral Number
+fields, Parameters, arithmetic expressions, casts and other computed values,
+Decimal and Text MUST NOT acquire this conversion. All retained original and
+typed records, text, traversal and work remain charged to the existing owners.
+
 <!-- requirement-block: signed64-values.no-implicit-arithmetic-overload -->
 Adding this value domain MUST NOT widen existing arithmetic signatures,
 integer-literal interpretation or mixed-domain operations implicitly.
@@ -3040,7 +3066,10 @@ or other pattern consumer interprets the resulting string under its own law.
 
 <!-- requirement-block: expression-text.a-comparison-with-a-literal-null-operand-must-be-rejected -->
 Unadorned numeric literals denote finite binary64 `number`, including those
-with a fractional part or exponent. Negative zero is invalid. Decimal values
+with a fractional part or exponent. The explicit [signed64 comparison-context
+rule](#signed64-values) may admit that existing Number value under an original
+`int64` peer; it does not change the Number literal body or recover its raw
+spelling. Negative zero is invalid. Decimal values
 use explicit `to_decimal`/`try_decimal` conversion, decimal parameters, or
 decimal fields; no decimal/binary64 promotion is inferred. `/` is number
 division even for integral operands; decimal division uses `decimal_divide`.
@@ -11226,7 +11255,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:e706a8b3975610962571ebd7286c135aca07a95c915da8255f70828ead194b37
+../../spec/contracts/actql-aoa.json# sha256:899be6a80ef655f4460e4a0414ec2ef861110b63c19f257de7a5579efa09470c
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11235,11 +11264,11 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:ed54dd0a56f4bfc7811a600db137ae5b32b24c2819a81ab69c7c5f06d349da7b
+../../spec/contracts/actql-expressions.json# sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35
 ../../spec/contracts/actql-expressions.json#/schemas/expression sha256:5c7ab5c2189768003f4cc1cf5665b3c42ef1bc47497e606a46938fc1dfa40c77
 ../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:c37306c98c772f79f11782503522843430c0867b0bf903248fe9933cb477fb6f
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:bb8faf6038bb2b548b25b994d5baf926d2052a4611d1608191bab2d296251725
+../../spec/contracts/actql-expressions.json#/laws sha256:3f1929f52bc30393c75865d82bcec1d18afd76540dff3dc7786b253c0ce1487b
 ../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:46609f6f81679938a14f2b79e6f750d242b841684f9a00d911568efded652905
 ../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:e3b47a961be9b92970dd52c9415208821fbac6b9d7c3ea28e573e02603194fc9
 ```
