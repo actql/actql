@@ -50,6 +50,23 @@ pub fn read_notion_database_read_declarations(
     Ok(value) => value
     Err(issue) => return Err(Metadata(issue))
   }
+  read_notion_database_read_declarations_cursor(
+    original_bytes, original_bytes, original, limits, max_databases, budget,
+  )
+}
+
+///|
+/// Reuse the same admitted source cursor inside an original public connection.
+/// Source spans address the complete original input; the separate identity
+/// bytes are the exact map span, never a JSON re-encoding.
+fn read_notion_database_read_declarations_cursor(
+  source_bytes : Bytes,
+  identity_bytes : Bytes,
+  original : @decode.Cursor,
+  limits : NotionReadContractLimits,
+  max_databases : Int,
+  budget : NotionReadContractBudget,
+) -> Result[NotionDatabaseReadDeclarations, NotionReadContractIssue] {
   guard @decode.open_object(original) is Ok(root) &&
     @decode.object_field_names(original) is Ok(aliases) else {
     return Err(InvalidDeclaration)
@@ -72,7 +89,7 @@ pub fn read_notion_database_read_declarations(
     let span = @decode.cursor_span(cursor)
     if span.start_byte < 0 ||
       span.end_byte < span.start_byte ||
-      span.end_byte > original_bytes.length() {
+      span.end_byte > source_bytes.length() {
       return Err(InvalidDeclaration)
     }
     let length = span.end_byte - span.start_byte
@@ -80,7 +97,7 @@ pub fn read_notion_database_read_declarations(
       return Err(BudgetExceeded)
     }
     let value_bytes = Bytes::makei(length, index => {
-      original_bytes[span.start_byte + index]
+      source_bytes[span.start_byte + index]
     })
     let declaration = match
       read_notion_database_read_declaration_cursor(
@@ -93,7 +110,7 @@ pub fn read_notion_database_read_declarations(
   }
   let declarations : NotionDatabaseReadDeclarations = {
     original_self: Ref(None),
-    source_cid: "sha256:" + @sha.hex(original_bytes),
+    source_cid: "sha256:" + @sha.hex(identity_bytes),
     aliases,
     declarations,
   }
