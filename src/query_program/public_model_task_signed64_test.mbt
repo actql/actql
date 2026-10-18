@@ -216,6 +216,34 @@ test "public guide Signed64 Task and enum retain original full canonical materia
 }
 
 ///|
+fn public_signed64_query_issue(issue : Issue) -> String {
+  match issue {
+    InvalidQuery => "InvalidQuery"
+    RangeAliasRequiresRelation => "RangeAliasRequiresRelation"
+    UnknownRelation => "UnknownRelation"
+    AmbiguousRelation => "AmbiguousRelation"
+    UnsupportedProjection => "UnsupportedProjection"
+    UnsupportedGrouping => "UnsupportedGrouping"
+    UnsupportedAggregate => "UnsupportedAggregate"
+    UnsupportedHaving => "UnsupportedHaving"
+    UnsupportedOrdering => "UnsupportedOrdering"
+    UnsupportedAnalytic => "UnsupportedAnalytic"
+    UnsupportedSet => "UnsupportedSet"
+    UnsupportedJoin => "UnsupportedJoin"
+    UnsupportedCte => "UnsupportedCte"
+    UnsupportedGraph => "UnsupportedGraph"
+    UnsupportedNearest => "UnsupportedNearest"
+    UnsupportedResult => "UnsupportedResult"
+    UnsupportedEffect => "UnsupportedEffect"
+    UpdateTargetBinding(_) => "UpdateTargetBinding"
+    StoreTargetBinding(_) => "StoreTargetBinding"
+    CommandTargetBinding(_) => "CommandTargetBinding"
+    TableWriteBinding(_) => "TableWriteBinding"
+    _ => infer_defaults_issue_tag(issue)
+  }
+}
+
+///|
 fn public_signed64_effect(
   program : @program.Program,
   environment : @check.CheckEnvironment,
@@ -236,8 +264,30 @@ fn public_signed64_effect(
     Err(Computation(Environment(_))) =>
       fail("public Signed64 effect Environment refusal")
     Err(Computation(Units(_))) => fail("public Signed64 effect unit refusal")
-    Err(Computation(Closure(_))) =>
-      fail("public Signed64 effect closure refusal")
+    Err(Computation(Closure(issue))) => {
+      let tag = match issue {
+        InvalidLimits => "InvalidLimits"
+        BudgetExceeded => "BudgetExceeded"
+        Contracts(kind) => "Contracts/" + @debug.to_string(kind)
+        Operations(_) => "Operations"
+        Values(_) => "Values"
+        Joins(_) => "Joins"
+        IntervalSearch(_) => "IntervalSearch"
+        AsOfSearch(_) => "AsOfSearch"
+        WindowLimits(_) => "WindowLimits"
+        GroupLimits(_) => "GroupLimits"
+        NestValues(_) => "NestValues"
+        GroupStringLimits(_) => "GroupStringLimits"
+        NumericSlots(_) => "NumericSlots"
+        Incoming(_) => "Incoming"
+        Links(_) => "Links"
+        Requirements(_) => "Requirements"
+        UnresolvedOperation(_) => "UnresolvedOperation"
+        IncompleteInventory(_) => "IncompleteInventory"
+        Gates(_) => "Gates"
+      }
+      fail("public Signed64 effect closure: " + tag)
+    }
     Err(Computation(error)) => raise error
     Err(_) => fail("public Signed64 effect candidate refusal")
   }
@@ -310,7 +360,7 @@ test "SQL and AQL Signed64 public INFER use the same checked computation" {
       ) {
       Ok(value) => value
       Err(issue) =>
-        fail("public Signed64 query: " + infer_defaults_issue_tag(issue))
+        fail("public Signed64 query: " + public_signed64_query_issue(issue))
     }
   }
   let a = prepare(sql)
