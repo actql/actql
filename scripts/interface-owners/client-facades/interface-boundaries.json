@@ -2229,7 +2229,9 @@
       "module": "packages/local-node/selected-infer-startup.cjs",
       "responsibilityFacet": "primary",
       "sha256": "6312f7e0c046b6823614d1ec14abc4cb272d2fc83ad352c4883968c99c8f2d5f",
-      "exports": [],
+      "exports": [
+        "commonjs:selectedInitialControlHostPreparation"
+      ],
       "operations": [
         {
           "name": "connectInitialControlHostPreparation",
@@ -2926,7 +2928,9 @@
       "module": "packages/node/selected-infer-startup.cjs",
       "responsibilityFacet": "primary",
       "sha256": "47cdd74832803f6f6fcac3e11c8f713d43493009ea0a488397b44c3b1d66b7cb",
-      "exports": [],
+      "exports": [
+        "commonjs:selectedInitialControlHostPreparation"
+      ],
       "operations": [
         {
           "name": "connectInitialControlHostPreparation",
