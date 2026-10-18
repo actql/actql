@@ -156,6 +156,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       value: undefined, reads: [undefined, undefined], failure: undefined};
     try {
       record.original = sourceManaged.prepareRun(prepared);
+      sourceManaged.assertCurrent();
       record.admission = checked(moon.clientProgramNodeManagedRunPrepare(record.original, prepared));
       record.value = checked(moon.clientProgramInstalledManagedRunBegin(record.admission, prepared, request));
       sameRun(prepared);
@@ -224,6 +225,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           if (typeof read.close !== 'function' || typeof read.bytes !== 'function') {
             fail('InstalledMockSourceUnavailable');
           }
+          sourceManaged.assertCurrent();
           read.value = checked(moon.clientProgramInstalledManagedRunSourceRead(run.value, index));
           return read.value;
         },

@@ -141,7 +141,9 @@ export async function prepareSourceManagedInstallation(originals) {
       // Host resolves the same pending SDK request and checked preparation.
       const result=invoke(9,[state.installation,state.originals,originalCheckedPrepared]);
       if (result===null || typeof result!=='object' || isPromise(result)) unavailable();
-      current(state);
+      // Return the acquired original before the consumer's post-factory
+      // current fence. Throwing here would lose its partial cleanup carrier.
+      // The same Host retains it before any typed preparation or use.
       return result;
     },
     prepareRead(originalDerivedRequest, originalDeclaration, originalRun) {
@@ -152,7 +154,8 @@ export async function prepareSourceManagedInstallation(originals) {
       const read = invoke(8, [state.installation, state.originals,
         originalDerivedRequest, originalDeclaration, originalRun]);
       if (read === null || typeof read !== 'object' || isPromise(read)) unavailable();
-      current(state);
+      // The same Host must retain this child's original close receiver before
+      // its post-factory current check, then refuse before Core/physical use.
       return read;
     },
     // A single original close flight. Cutting these aliases cannot return

@@ -53,6 +53,11 @@ async function fixture(t, {ordinaryAbsent = false} = {}) {
     sourceIntentCid(value, pair, r, body) {assert.equal(this, owner);assert.equal(value, installation);
       assert.equal(pair, originals);assert.equal(r, receipt);s.calls.push(['intent', body]);
       s.afterIntent?.();return s.intentCid;},
+    prepareSourceManagedRun(value,pair,prepared) {assert.equal(this,owner);assert.equal(value,installation);
+      assert.equal(pair,originals);s.calls.push(['run',prepared]);s.afterRun?.();return s.run;},
+    prepareSourceManagedRead(value,pair,prepared,declaration,run) {assert.equal(this,owner);
+      assert.equal(value,installation);assert.equal(pair,originals);
+      s.calls.push(['read',prepared,declaration,run]);s.afterRead?.();return s.read;},
   });
   await writeFile(join(scratch.path, 'consumer.mjs'), await readFile(new URL('./node-source-managed-installation.mjs', import.meta.url)));
   const consumer = await import(pathToFileURL(join(scratch.path, 'consumer.mjs')));
@@ -60,6 +65,31 @@ async function fixture(t, {ordinaryAbsent = false} = {}) {
   // can be mistaken for an original Source/physical acknowledgement.
   return {s, consumer, owner, originals, installation, receipt, path: scratch.path};
 }
+
+test('acquired managed Run reaches its same consumer before the post-factory current refusal',async t=>{
+  const f=await fixture(t),view=await f.consumer.prepareSourceManagedInstallation(f.originals);
+  const prepared=Object.freeze({}),run=Object.freeze({});f.s.run=run;
+  f.s.cause=Object.freeze(new Error('OriginalRunChangedAfterFactory'));
+  f.s.afterRun=()=>{f.s.current=false;};
+  const retained=view.prepareRun(prepared);assert.strictEqual(retained,run);
+  assert.throws(()=>view.assertCurrent(),error=>error===f.s.cause);
+  assert.deepEqual(f.s.calls,[['run',prepared]]);
+  await view.close();assert.equal(f.s.closes,1);
+});
+
+test('acquired Source child reaches its same cleanup consumer before the post-factory current refusal',async t=>{
+  const f=await fixture(t),view=await f.consumer.prepareSourceManagedInstallation(f.originals);
+  const prepared=Object.freeze({}),declaration=Object.freeze({}),run=Object.freeze({});
+  let closes=0;const read=Object.freeze({close(){closes++;return {pending:false};}});f.s.read=read;
+  f.s.cause=Object.freeze(new Error('OriginalSourceChangedAfterFactory'));
+  f.s.afterRead=()=>{f.s.current=false;};
+  const retained=view.prepareRead(prepared,declaration,run);assert.strictEqual(retained,read);
+  const originalClose=retained.close;
+  assert.throws(()=>view.assertCurrent(),error=>error===f.s.cause);
+  assert.deepEqual(f.s.calls,[['read',prepared,declaration,run]]);
+  assert.deepEqual(Reflect.apply(originalClose,retained,[]),{pending:false});
+  assert.equal(closes,1);await view.close();assert.equal(f.s.closes,1);
+});
 
 test('ordinary Source absence cannot borrow the explicit preload receiver or observe caller originals', async t => {
   const f = await fixture(t, {ordinaryAbsent: true});
