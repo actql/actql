@@ -1,6 +1,6 @@
 {
-  "source": "7a3c2c5c5579d41d0ead93eb2dbedbc52a6ce224",
-  "syntaxProjectionSha256": "756720d5d6c93843db6b574924cbaea4f8b0d282897bfe229c129e93982b1602",
+  "source": "9301c985ec87bd28bb4eccf8f2d65d0859609b08",
+  "syntaxProjectionSha256": "4a31ecaf4ac9e25c4558a6363ef836ef44d22cbc792e2ae1cd9c05bbdc05c888",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -53,7 +53,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py",
-      "sha256": "4d1ab0c2605a1df4c0c7ecdc557c98a0e7d68a3fed6cc71fda8eae5cdd8ba8ff",
+      "sha256": "3cec2499f43654e2c431f15b10015299015b8bd7d2e22082e628e1ddb3daea3e",
       "generator": {
         "path": "scripts/generate-local-native-shim-bindings.py",
         "anchor": "def render("
@@ -28652,6 +28652,40 @@
         },
         {
           "async": false,
+          "name": "_OriginalDomainCustody/_prepare",
+          "parameters": [
+            "cls",
+            "owner",
+            "scope",
+            "descriptor",
+            "functions",
+            "initial",
+            "size",
+            "work",
+            "attempts",
+            "holdings",
+            "transfer",
+            "retained",
+            "execution"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalDomainCustody/_prepare_initial_original",
+          "parameters": [
+            "cls",
+            "owner",
+            "scope",
+            "descriptor",
+            "functions",
+            "work",
+            "attempts",
+            "holdings",
+            "transfer"
+          ]
+        },
+        {
+          "async": false,
           "name": "_OriginalDomainCustody/_prepare_original",
           "parameters": [
             "cls",
@@ -28795,7 +28829,7 @@
           "parameters": []
         }
       ],
-      "sha256": "beed50c0f5d8a953ef21e9fb4db239912275c433cd1d75ec1278ad8cd4ece1f1",
+      "sha256": "db564195e46ed240532205e4e1906be73607cd780e0810fe0b571fb4ea637912",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -28811,6 +28845,8 @@
             "_OriginalDomainCustody/_fact",
             "_OriginalDomainCustody/_mark_unknown",
             "_OriginalDomainCustody/_physical_scope",
+            "_OriginalDomainCustody/_prepare",
+            "_OriginalDomainCustody/_prepare_initial_original",
             "_OriginalDomainCustody/_prepare_original",
             "_OriginalDomainCustody/_prepare_read_context",
             "_OriginalDomainCustody/_project_original_material",
@@ -28857,6 +28893,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_domain_custody.py",
+                "anchor": "def _prepare_initial_original("
               }
             ],
             "identity": [
@@ -28961,6 +29001,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_domain_custody.py",
                 "anchor": "class _OriginalDomainCustody:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_initial_domain.py",
+                "anchor": "test_lost_prepare_retains_original_reply_and_blocks_cleanup_replay"
               }
             ]
           }
@@ -36482,7 +36526,7 @@
           ]
         }
       ],
-      "sha256": "4d1ab0c2605a1df4c0c7ecdc557c98a0e7d68a3fed6cc71fda8eae5cdd8ba8ff",
+      "sha256": "3cec2499f43654e2c431f15b10015299015b8bd7d2e22082e628e1ddb3daea3e",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [

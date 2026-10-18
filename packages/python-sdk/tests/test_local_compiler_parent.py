@@ -45,13 +45,19 @@ class CompilerParentTests(unittest.TestCase):
         self.original = compiler._runtime_original(self.original, self.fixture.fixture.preparation(self.original))
         self.selected = compiler._compiler_holding_original(self.original)
 
-    def acquire(self, fixture):
+    def acquire(self, fixture, *, initialize=None, current=None):
         control = fixture.backing.control
         def prepare(*args):
             control.events.append(('prepare', args[4], args[5]))
             args[-1]._obj.value = 11
             return 0
         control.library.actql_control_prepare_utf16_into = Function(prepare)
+        def start(slot):
+            control.events.append(('runtime_initialize',))
+            slot._obj.value = 701
+            return 0
+        control.library.actql_control_runtime_initialize_into = Function(initialize or start)
+        control.library.actql_control_runtime_current = Function(current or (lambda slot: 0 if slot.value == 701 else -1))
         with patch.object(compiler, 'CDLL', return_value=control.library):
             return compiler._acquire_compiler_parent(self.original, self.selected, self.descriptor)
 
@@ -100,6 +106,78 @@ class CompilerParentTests(unittest.TestCase):
         self.assertTrue(parent.domain._closed and parent.backing._closed and parent.host._closed)
         self.assertFalse(self.descriptor.close_attempted)
         self.assertEqual(sum(e[0] == 'prepare' for e in f.backing.control.events), 1)
+        self.assertEqual(sum(e[0] == 'runtime_initialize' for e in f.backing.control.events), 1)
+        self.assertEqual(parent.runtime.slot.value, 701)
+        self.assertIs(parent.runtime.library, parent.library)
+        # Arena cleanup is not a process-global Runtime retirement ACK.
+        self.assertTrue(parent.runtime._initialized)
+
+    def test_initializer_reply_loss_keeps_slot_library_and_no_host_acquire(self):
+        f = DomainFixture()
+        calls = []
+        def lost(slot):
+            calls.append('initialize')
+            slot._obj.value = 701
+            raise OSError('lost original initializer reply')
+        with self.assertRaises(compiler.CompilerControlInitializationError) as caught:
+            self.acquire(f, initialize=lost)
+        runtime = caught.exception.cleanup_runtime
+        self.assertIs(runtime.library, f.backing.control.library)
+        self.assertEqual(runtime.slot.value, 701)
+        self.assertIs(runtime._unknown, caught.exception)
+        self.assertFalse(runtime._initialized)
+        self.assertFalse(any(e[0] == 'prepare' for e in f.backing.control.events))
+        with self.assertRaises(compiler.CompilerControlInitializationError) as again:
+            runtime.current()
+        self.assertIs(again.exception, caught.exception)
+        self.assertEqual(calls, ['initialize'])
+        self.assertFalse(self.descriptor.close_attempted)
+
+    def test_failed_initializer_retains_original_slot_without_another_init(self):
+        f = DomainFixture(); calls = []
+        def refused(slot):
+            calls.append('initialize')
+            slot._obj.value = 701
+            return -3
+        with self.assertRaises(compiler.CompilerControlInitializationError) as caught:
+            self.acquire(f, initialize=refused)
+        self.assertEqual(caught.exception.cleanup_runtime.slot.value, 701)
+        with self.assertRaises(compiler.CompilerControlInitializationError):
+            caught.exception.cleanup_runtime.current()
+        self.assertEqual(calls, ['initialize'])
+        self.assertFalse(any(e[0] == 'prepare' for e in f.backing.control.events))
+
+    def test_empty_success_and_changed_runtime_current_refuse_before_host(self):
+        for initialize, current in ((lambda slot: 0, None), (None, lambda slot: -1)):
+            with self.subTest(initializer=initialize is not None):
+                f = DomainFixture()
+                with self.assertRaises(compiler.CompilerControlInitializationError):
+                    self.acquire(f, initialize=initialize, current=current)
+                self.assertFalse(any(e[0] == 'prepare' for e in f.backing.control.events))
+
+    def test_missing_initialization_abi_never_assumes_an_initialized_library(self):
+        f = DomainFixture()
+        library = f.backing.control.library
+        with patch.object(compiler, 'CDLL', return_value=library):
+            with self.assertRaises(compiler.CompilerControlInitializationError) as caught:
+                compiler._acquire_compiler_parent(self.original, self.selected, self.descriptor)
+        self.assertIs(caught.exception.cleanup_runtime.library, library)
+        self.assertIsNone(caught.exception.cleanup_runtime.slot.value)
+        self.assertFalse(any(e[0] == 'prepare' for e in f.backing.control.events))
+        self.assertFalse(self.descriptor.close_attempted)
+
+    def test_runtime_foreign_process_or_thread_refuses_before_current_ffi(self):
+        f = DomainFixture(); calls = []
+        parent = self.acquire(f, current=lambda slot: calls.append('current') or 0)
+        before = list(calls)
+        with patch.object(compiler.os, 'getpid', return_value=parent.runtime._process + 1):
+            with self.assertRaisesRegex(ValueError, 'process/thread'):
+                parent.runtime.current()
+        with patch.object(compiler, 'current_thread', return_value=object()):
+            with self.assertRaisesRegex(ValueError, 'process/thread'):
+                parent.runtime.current()
+        self.assertEqual(calls, before)
+        parent.close_unstarted()
 
     def test_domain_reply_loss_keeps_all_originals_and_no_parent_cleanup(self):
         f = DomainFixture(); f.prepare_fault = OSError('lost original domain reply')

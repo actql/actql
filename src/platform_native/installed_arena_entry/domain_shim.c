@@ -44,6 +44,22 @@ int actql_domain_prepare_into(actql_control_host *host, actql_backing_loan *scop
                                      transfer, retained, execution);
     return *slot ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
 }
+static actql_domain_initial_prepare_fn initial_domain_prepare;
+static int initial_domain_registered;
+void actql_native_control_register_initial_domain_root(actql_domain_initial_prepare_fn prepare) {
+    if (initial_domain_registered) return;
+    initial_domain_registered = prepare ? 1 : -1;
+    initial_domain_prepare = prepare;
+}
+int actql_domain_prepare_initial_into(actql_control_host *host, actql_backing_loan *scope,
+    int32_t fd, int32_t work, int32_t attempts, int32_t holdings,
+    int64_t transfer, actql_domain_reply **slot) {
+    if (!host || !scope || !slot || *slot) return ACTQL_CONTROL_INVALID_SLOT;
+    if (domain_registered != 1 || initial_domain_registered != 1)
+        return ACTQL_CONTROL_UNAVAILABLE;
+    *slot = initial_domain_prepare(host, scope, fd, work, attempts, holdings, transfer);
+    return *slot ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
+}
 static int domain_operation_into(actql_domain_operation_fn operation,
     actql_control_host *host, actql_domain *domain, actql_domain_reply **slot) {
     if (!host || !domain || !slot || *slot) return ACTQL_CONTROL_INVALID_SLOT;
