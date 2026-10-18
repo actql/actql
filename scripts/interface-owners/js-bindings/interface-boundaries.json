@@ -89757,7 +89757,7 @@
     {
       "module": "packages/run-host-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "50d40f7c89f2bccad81193d3314777a11a573a42f24719c35629dfe5e772cb17",
+      "sha256": "a0c6d61c8e35b06bce63e9c7db7c0b41ba1ccef75b8a9dea3cc693ac59d1bc53",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -101638,6 +101638,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "inputsOutputs": [
@@ -101648,6 +101652,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "identity": [
@@ -101658,6 +101666,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "ownership": [
@@ -101668,6 +101680,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "synchronization": [
@@ -101678,6 +101694,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "failure": [
@@ -101688,6 +101708,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "cancellation": [
@@ -101698,6 +101722,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "resources": [
@@ -101708,6 +101736,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "extension": [
@@ -101718,6 +101750,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "verification": [
@@ -101732,6 +101768,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ]
           }
@@ -102793,6 +102833,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "inputsOutputs": [
@@ -102803,6 +102847,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "identity": [
@@ -102813,6 +102861,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "ownership": [
@@ -102823,6 +102875,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "synchronization": [
@@ -102833,6 +102889,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "failure": [
@@ -102843,6 +102903,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "cancellation": [
@@ -102853,6 +102917,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "resources": [
@@ -102863,6 +102931,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "extension": [
@@ -102873,6 +102945,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "verification": [
@@ -102887,6 +102963,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ]
           }

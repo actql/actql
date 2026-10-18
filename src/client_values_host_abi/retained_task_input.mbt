@@ -239,3 +239,67 @@ pub fn client_values_host_prepare_retained_task_dispatch(
     Err(issue) => Err(@host.Input(issue))
   }
 }
+
+///|
+#export_name("clientValuesHostPrepareRetainedTaskDispatchWithSource")
+pub fn client_values_host_prepare_retained_task_dispatch_with_source(
+  prepared : @host.PreparedClientProgram,
+  compilation : @host.ClientTaskCompilation,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  request : @host.ClientRequestIdentity,
+  task : Int,
+  task_attempt : Int,
+  dispatch_id : String,
+  site_key : String,
+  site_generation : Int,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  strategy_revision : String,
+  obligations_cid : String,
+  budget_cid : String,
+  evidence_issuer_capability_cid : String,
+  grant_cid : String,
+  value : ClientValuesHostRetainedTaskInput,
+  source : @host.ClientSourcePreparation,
+) -> Result[@remote.DispatchRequest, @host.ClientRetainedTaskDispatchIssue] {
+  let input = match client_host_retained_transfer(value) {
+    Ok(value) => value
+    Err(issue) => return Err(@host.Input(issue))
+  }
+  let dispatch = match
+    @host.prepare_client_retained_task_dispatch(
+      prepared,
+      compilation,
+      admission,
+      definition,
+      request,
+      task,
+      task_attempt,
+      dispatch_id,
+      {
+        site_key,
+        site_generation,
+        runtime_bundle_cid,
+        connector_registration,
+        connector_revision,
+        strategy_revision,
+        obligations_cid,
+        budget_cid,
+        evidence_issuer_capability_cid,
+        grant_cid,
+      },
+      input,
+      value.current,
+      source=Some(source),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  // Re-read the destination owner after all trusted authorization callbacks.
+  match client_host_retained_transfer(value) {
+    Ok(_) => Ok(dispatch)
+    Err(issue) => Err(@host.Input(issue))
+  }
+}
