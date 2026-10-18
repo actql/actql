@@ -28303,7 +28303,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-image-loader.cjs",
-      "sha256": "5ebcf3a1eb08bde36a8401ebfad3544820edc22b0274ec8f0fb1d4bd86189d5e",
+      "sha256": "a8c936e06ad9b8deb5fb3c1a1e38d66f4ee43f5d6fc29a47b6c4905e2d672aeb",
       "exports": [
         "commonjs:installInitialControlImageLoader"
       ],
@@ -28401,6 +28401,14 @@
           "async": false
         },
         {
+          "name": "installInitialControlImageLoader/sealJsonOriginal",
+          "parameters": [
+            "original",
+            "exported"
+          ],
+          "async": false
+        },
+        {
           "name": "own/own",
           "parameters": [
             "value",
@@ -28445,6 +28453,7 @@
             "installInitialControlImageLoader/registerFence",
             "installInitialControlImageLoader/registerHooksFence",
             "installInitialControlImageLoader/resolve",
+            "installInitialControlImageLoader/sealJsonOriginal",
             "own/own",
             "starts/starts"
           ],
@@ -28466,6 +28475,10 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.cjs",
                 "anchor": "function captureLoadedModules()"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "function sealJsonOriginal(original, exported)"
               }
             ],
             "identity": [
@@ -28480,6 +28493,10 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.cjs",
                 "anchor": "const loadedModules = [];"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "const expected = parse(nativeApply(nativeCharCodeAt, source, [0]) === 0xfeff"
               }
             ],
             "ownership": [
@@ -28500,6 +28517,10 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.cjs",
                 "anchor": "// Only the original preload can finish this handoff, immediately after its"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "// SAME captured Source before sealing any node. Preserve stock Node's JSON"
               }
             ],
             "failure": [
@@ -28514,12 +28535,20 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.test.mjs",
                 "anchor": "a captured but unevaluated CJS image does not gain post-entry module provenance"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "a nested JSON value changed before capture cannot substitute captured Source metadata"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "even after deregistration. This observation does not cover an original native"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "a substituted JSON alias graph refuses before sealing any original node"
               }
             ],
             "resources": [
@@ -28534,6 +28563,10 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.cjs",
                 "anchor": "// this shallow original is not a universal export-graph certificate."
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "// WeakSet and node array overlap the original Module/tree/Source; none is"
               }
             ],
             "extension": [
@@ -28578,6 +28611,22 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.test.mjs",
                 "anchor": "a retained pre-fence registration function is outside the property fence observation"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "captured JSON metadata keeps its original nested records and arrays immutable"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "JSON metadata verification refuses an accessor without invoking it"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "JSON metadata handoff preserves BOM Unicode null and negative zero without freezing prototypes"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "JSON metadata sealing is not a proof or freeze of arbitrary nested CJS library state"
               }
             ]
           }
