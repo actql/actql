@@ -26,6 +26,29 @@ retains its same frame and responsibility. Domain, outer view, FD and backing
 retirement remain separate. Closed registration is cut only at the final domain
 ACK, preserving the one-attempt tombstone until then.
 
+## Same-Host Read and SQLite assembly
+
+`bind_local_host_resources` joins an already acquired original Read and an
+already acquired SQLite Library in distinct domains of the same installed Host.
+Both nominal registrations and actual current checks must succeed. The binding
+does not allocate either domain, adopt a Library from metadata, reserve capacity,
+or issue installation/Run authority. The Host keeps one binding tombstone until
+its final retirement.
+
+Mixed Host operations select `HostRead` or `HostSqlite` for each physical step.
+The pair never nests or replaces an active context. Leaving a scope does not
+retire managed results, diagnostics, Root/Reader aliases, database children or
+either domain. An active or failed-leave phase blocks pair and parent retirement;
+only the original caller can leave it. Logical closing rejects new work while
+the original cleanup entry permits the same stopped users to finish.
+
+The caller closes its original Database and Root before retiring this binding.
+Library cleanup, SQLite context retirement and original Read retirement each
+require their own ACK; a later failure cannot repeat an earlier confirmed
+context retirement. The original domains, views, descriptors and backing retain
+their separate cleanup responsibilities. No joint numerical profile or normal
+Local supplier is implied by this assembly.
+
 The matching `installed_original_read_conformance` executable uses a fresh
 disposable 64-page FD, a 48-page domain and the selected derived scoped runtime.
 Its declaration and alias test are diagnostic inputs, not adopted normal byte
