@@ -1784,7 +1784,7 @@
     },
     {
       "module": "adapters/connectors/slack/site/message-history-read.mjs",
-      "sha256": "53516b98a1e26cec0f49a5a694c338b018ed09c8d582ba750a547ec64ce5dd9f",
+      "sha256": "b36121505f760bd77631b8f33bf898bb5dd9a029d86a9c3a1d325606a08ec314",
       "exports": [
         "SLACK_MESSAGE_HISTORY_OPERATION",
         "SLACK_MESSAGE_REPLIES_OPERATION",
@@ -1845,7 +1845,7 @@
         {
           "name": "coalesceSlackMessageReaders/current/current",
           "parameters": [
-            "callback",
+            "callbacks",
             "operation"
           ],
           "async": true
@@ -2372,6 +2372,10 @@
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
                 "anchor": "retainControl(history);"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "await callbacks.current(operation);"
               }
             ],
             "synchronization": [
@@ -2401,7 +2405,7 @@
               },
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
-                "anchor": "await current(source.prepared.context.callbacks.current,SLACK_MESSAGE_HISTORY_OPERATION);"
+                "anchor": "await current(source.prepared.context.callbacks,SLACK_MESSAGE_HISTORY_OPERATION);"
               }
             ],
             "failure": [
@@ -2572,6 +2576,10 @@
               {
                 "path": "adapters/connectors/slack/test/message-projection-read.test.mjs",
                 "anchor": "test('Slack projection missing partial private bridge group refuses before dependent IO'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-projection-read.test.mjs",
+                "anchor": "test('Slack projection preserves the original current callback receiver across completed reader reuse'"
               }
             ]
           }
