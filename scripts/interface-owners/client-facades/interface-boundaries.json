@@ -1022,7 +1022,9 @@
         "./adapters/host-node/installed-row-source.mjs"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [],
+      "unresolvedSyntax": [
+        "dynamic CommonJS export value"
+      ],
       "role": "physical-io",
       "owner": "existing public Client / installed Host port and Result reader boundary",
       "rationale": "Reviewed original facade, codec or explanation; current wire/Host/Core owns admission and meaning. Original typed refusal, pending cleanup, request identity and Unknown do not authorize resending. Type-only export declarations make no new runtime claim.",
@@ -1443,7 +1445,10 @@
         "./adapters/host-node/embedded-local.mjs"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [],
+      "unresolvedSyntax": [
+        "dynamic CommonJS export value",
+        "runtime-dependent module dependency requires original owner/artifact mapping"
+      ],
       "role": "physical-io",
       "owner": "existing public Client / installed Host port and Result reader boundary",
       "rationale": "Reviewed original facade, codec or explanation; current wire/Host/Core owns admission and meaning. Original typed refusal, pending cleanup, request identity and Unknown do not authorize resending. Type-only export declarations make no new runtime claim.",
@@ -1926,6 +1931,22 @@
             "options"
           ],
           "async": false
+        },
+        {
+          "name": "init:selectedInitialControlHostPreparation/init:selectedInitialControlHostPreparation",
+          "parameters": [
+            "kind",
+            "raw"
+          ],
+          "async": false
+        },
+        {
+          "name": "init:selectedInitialControlHostPreparation/init:selectedInitialControlHostPreparation",
+          "parameters": [
+            "kind",
+            "raw"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -2224,9 +2245,7 @@
       "module": "packages/local-node/selected-infer-startup.cjs",
       "responsibilityFacet": "primary",
       "sha256": "6312f7e0c046b6823614d1ec14abc4cb272d2fc83ad352c4883968c99c8f2d5f",
-      "exports": [
-        "commonjs:selectedInitialControlHostPreparation"
-      ],
+      "exports": [],
       "operations": [
         {
           "name": "connectInitialControlHostPreparation",
@@ -2719,7 +2738,7 @@
     {
       "module": "packages/node/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b4167034b24024c8ece30fdfd59c6af8475f5f79b7f603c7f206e4837e7806f9",
+      "sha256": "8d94f0b9a516f14973cefddca792c45985e10b0d54d6565186c8d7fa4672cfe8",
       "exports": [
         "ClientError",
         "RequestHeld",
@@ -2757,7 +2776,7 @@
       ],
       "imports": [
         "./initial-control-public-dispatch.cjs",
-        "@actql/sdk",
+        "node:module",
         "node:path"
       ],
       "compilerFields": [],
@@ -2923,9 +2942,7 @@
       "module": "packages/node/selected-infer-startup.cjs",
       "responsibilityFacet": "primary",
       "sha256": "47cdd74832803f6f6fcac3e11c8f713d43493009ea0a488397b44c3b1d66b7cb",
-      "exports": [
-        "commonjs:selectedInitialControlHostPreparation"
-      ],
+      "exports": [],
       "operations": [
         {
           "name": "connectInitialControlHostPreparation",
@@ -10288,7 +10305,7 @@
     {
       "module": "packages/sdk/internal/submission-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8c019f98ebb73cbd1eb0668ffe1b4b53ed07d5ce0f4bb6bd3dcccd4f2aac06e9",
+      "sha256": "64326f07589b075379a825b847adad2686ee197200769fe982e088762314887f",
       "exports": [
         "RequestHeld",
         "createSubmissionOperations",
@@ -10326,12 +10343,19 @@
         {
           "name": "createSubmissionOperations/createSubmissionOperations/createSubmissionOperations",
           "parameters": [
+            "sourceProducer"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSubmissionOperations/createSubmissionOperations/createSubmissionOperations#2",
+          "parameters": [
             "options"
           ],
           "async": true
         },
         {
-          "name": "createSubmissionOperations/createSubmissionOperations/createSubmissionOperations#2",
+          "name": "createSubmissionOperations/createSubmissionOperations/createSubmissionOperations#3",
           "parameters": [
             "observation",
             "options"
@@ -10339,7 +10363,7 @@
           "async": true
         },
         {
-          "name": "createSubmissionOperations/createSubmissionOperations/createSubmissionOperations#3",
+          "name": "createSubmissionOperations/createSubmissionOperations/createSubmissionOperations#4",
           "parameters": [
             "field"
           ],
@@ -10434,11 +10458,19 @@
           "async": false
         },
         {
+          "name": "createSubmissionOperations/startSource/startSource/startSource",
+          "parameters": [
+            "sourceProducer"
+          ],
+          "async": false
+        },
+        {
           "name": "createSubmissionOperations/submit/submit",
           "parameters": [
             "kind",
             "input",
-            "options"
+            "options",
+            "sourceProducer"
           ],
           "async": false
         },
@@ -10447,7 +10479,8 @@
           "parameters": [
             "kind",
             "input",
-            "options"
+            "options",
+            "sourceProducer"
           ],
           "async": false
         },
@@ -10455,6 +10488,44 @@
           "name": "createSubmissionOperations/submitIntent/submitIntent/pending/pending",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "createSubmissionOperations/withSourceProducer/withSourceProducer",
+          "parameters": [
+            "kind",
+            "originalInput",
+            "originalOptions",
+            "run"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSubmissionOperations/withSourceProducer/withSourceProducer/finish/finish",
+          "parameters": [
+            "terminal",
+            "primary",
+            "originalResult"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSubmissionOperations/withSourceProducer/withSourceProducer/finish/finish/retry/retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSubmissionOperations/withSourceProducer/withSourceProducer/pending/pending",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSubmissionOperations/withSourceProducer/withSourceProducer/pending/pending#2",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
         },
         {
           "name": "explainRequestCancellation",
@@ -10682,7 +10753,14 @@
             "retainSubmissionLookupFailure/retainSubmissionLookupFailure",
             "submissionNotSent/submissionNotSent",
             "submissionUnknown/submissionUnknown",
-            "uninterpretableRequestCancellation/uninterpretableRequestCancellation"
+            "uninterpretableRequestCancellation/uninterpretableRequestCancellation",
+            "createSubmissionOperations/createSubmissionOperations/createSubmissionOperations#4",
+            "createSubmissionOperations/startSource/startSource/startSource",
+            "createSubmissionOperations/withSourceProducer/withSourceProducer",
+            "createSubmissionOperations/withSourceProducer/withSourceProducer/finish/finish",
+            "createSubmissionOperations/withSourceProducer/withSourceProducer/finish/finish/retry/retry",
+            "createSubmissionOperations/withSourceProducer/withSourceProducer/pending/pending",
+            "createSubmissionOperations/withSourceProducer/withSourceProducer/pending/pending#2"
           ],
           "exports": [
             "RequestHeld",
@@ -11029,7 +11107,7 @@
     {
       "module": "packages/sdk/internal/transport.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d314376d0fdec66c5415ae9155b421233b742a4d6d0c8548fb1d9065ad69d176",
+      "sha256": "40389a0ca6bba58fdaeb4b3be3402db6e5e92ae756df9f32b95b090504d53cd2",
       "exports": [
         "createTransport",
         "loadLoopbackTransport"
@@ -11066,7 +11144,8 @@
             "body",
             "signal",
             "submitContext",
-            "cancellationContext"
+            "cancellationContext",
+            "sourceProducer"
           ],
           "async": true
         },
@@ -11089,6 +11168,7 @@
         "../connection-string.mjs",
         "./connection-options.mjs",
         "./errors.mjs",
+        "./private-source-preparation.mjs",
         "./run-observation.mjs",
         "./submission-observation.mjs",
         "./transport-response.mjs"
@@ -13080,7 +13160,7 @@
     },
     {
       "module": "packages/local-node/initial-control-public-dispatch.cjs",
-      "sha256": "60a83e398669480025b25b9343b02ac76900b2c264e1a0039c21532326416f8a",
+      "sha256": "a231cf830b7be21fedbb3ef0492a6cc6a8b16a36585d95e2578116b53cffd4d7",
       "exports": [
         "commonjs:selectedInitialControlHostPreparation"
       ],
@@ -13095,6 +13175,7 @@
         }
       ],
       "imports": [
+        "./adapters/host-node/node-public-initial-control-bootstrap.cjs",
         "node:module",
         "node:path",
         "node:process"
@@ -13109,7 +13190,8 @@
         {
           "operations": [
             "<module>",
-            "<anonymous>"
+            "<anonymous>",
+            "init:selectedInitialControlHostPreparation/init:selectedInitialControlHostPreparation"
           ],
           "exports": [
             "commonjs:selectedInitialControlHostPreparation"
@@ -13229,7 +13311,7 @@
     },
     {
       "module": "packages/node/initial-control-public-dispatch.cjs",
-      "sha256": "2d1b8a90db6c7c1fe5eb0578f44e099c13cc555f0f15b67af35fd71c34ff9376",
+      "sha256": "28139f7798590c3cd6eaaf7136b6afc0c060d4f17624f84eb0289ef65a4a2207",
       "exports": [
         "commonjs:selectedInitialControlHostPreparation"
       ],
@@ -13258,7 +13340,8 @@
         {
           "operations": [
             "<module>",
-            "<anonymous>"
+            "<anonymous>",
+            "init:selectedInitialControlHostPreparation/init:selectedInitialControlHostPreparation"
           ],
           "exports": [
             "commonjs:selectedInitialControlHostPreparation"
@@ -13370,6 +13453,161 @@
               {
                 "path": "scripts/initial-control-public-dispatch.test.mjs",
                 "anchor": "// A real but unrelated preload can forge a cache entry and Module parent."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/sdk/internal/private-source-preparation.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "3f4546c9e857bac49a34023f7bfc34d44ba63364bc5a8f63b824c993a94be9df",
+      "exports": [
+        "captureSourcePreparation",
+        "sourcePreparationPort"
+      ],
+      "operations": [
+        {
+          "name": "captureSourcePreparation",
+          "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+          "parameters": [
+            "kind",
+            "input",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:beforeSourceSnapshot/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:bindSourceRequest/init:bindSourceRequest",
+          "parameters": [
+            "receipt",
+            "originalBody",
+            "actualClonedRequest"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:bindSourceSnapshot/init:bindSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "originalFrozenBody"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:finishSourceProducer/init:finishSourceProducer",
+          "parameters": [
+            "receipt",
+            "terminal"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing SDK submission transport and original Host/Resource intake boundary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "captureSourcePreparation",
+            "captureSourcePreparation/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+            "captureSourcePreparation/init:beforeSourceSnapshot/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+            "captureSourcePreparation/init:bindSourceRequest/init:bindSourceRequest",
+            "captureSourcePreparation/init:bindSourceSnapshot/init:bindSourceSnapshot",
+            "captureSourcePreparation/init:finishSourceProducer/init:finishSourceProducer",
+            "captureSourcePreparation/methods/methods",
+            "unavailable/unavailable"
+          ],
+          "exports": [
+            "captureSourcePreparation",
+            "sourcePreparationPort"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "// Private in-process transport connection, not a wire field, receipt issuer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "export function captureSourcePreparation(port) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "return apply(request, receiver, [receipt, originalBody, actualClonedRequest]);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "// connection. A generic Host port implementing these methods gains no grant."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "// Do not defer the original synchronous SDK capture until an await."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "{code: 'NodeSourceManagedAdmissionUnavailable'});"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/source-preparation-submission.test.mjs",
+                "anchor": "failed producer cleanup retains original Unknown and retries only alias retirement on close"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "// or proof of capacity. Only the selected Host/Resource owner authenticates"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source, Compute, Model, Effect, transport and Result"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/private-source-preparation.test.mjs",
+                "anchor": "private Source forwarding retains the same receiver and original arguments"
               }
             ]
           }
