@@ -1784,7 +1784,7 @@
     },
     {
       "module": "adapters/connectors/slack/site/message-history-read.mjs",
-      "sha256": "2aaaffee9923e92f057e41708fe8c3b3f2362062c5e0bfcda511a76311ffe931",
+      "sha256": "0468d24455951d7b69c5736a30db245ad6bac5c77d1fadcd638d34bcabc594ed",
       "exports": [
         "SLACK_MESSAGE_HISTORY_OPERATION",
         "SLACK_WORKSPACE_IDENTITY_OPERATION",
@@ -1877,6 +1877,14 @@
           "async": false
         },
         {
+          "name": "ownColumnArray",
+          "parameters": [
+            "value",
+            "maximum"
+          ],
+          "async": false
+        },
+        {
           "name": "positive/positive",
           "parameters": [
             "value"
@@ -1918,13 +1926,6 @@
         },
         {
           "name": "prepareRead/prepareRead#3",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareRead/prepareRead#4",
           "parameters": [
             "name"
           ],
@@ -1981,12 +1982,12 @@
             "executeRead/verify/verify",
             "fail/fail",
             "originalReader",
+            "ownColumnArray",
             "positive/positive",
             "prepareRead",
             "prepareRead/prepareRead",
             "prepareRead/prepareRead#2",
             "prepareRead/prepareRead#3",
-            "prepareRead/prepareRead#4",
             "prepareRead/provider/provider",
             "prepareRead/provider/provider/provider",
             "SlackMessageHistoryReadFailure/constructor:constructor/constructor:constructor"
@@ -2012,6 +2013,10 @@
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
                 "anchor": "async function executeRead("
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "function ownColumnArray("
               }
             ],
             "identity": [
@@ -2050,6 +2055,10 @@
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
                 "anchor": "currentBeforeSend:()=>verify(operation)"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "Index getters keep their ordinary responsibility;"
               }
             ],
             "failure": [
@@ -2100,6 +2109,22 @@
               {
                 "path": "adapters/connectors/slack/test/message-history-read.test.mjs",
                 "anchor": "test('Slack identity consumption currentness is checked before preparing any history request'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-history-selection.test.mjs",
+                "anchor": "test('Slack history captures original columns without invoking a native array own slice'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-history-selection.test.mjs",
+                "anchor": "test('Slack history reads each original column index getter exactly once before awaits'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-history-selection.test.mjs",
+                "anchor": "test('Slack history rejects the captured invalid column despite native own validation methods'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-history-selection.test.mjs",
+                "anchor": "test('Slack history ignores native array custom iterator some and slice while retaining its indexed values'"
               }
             ]
           }
