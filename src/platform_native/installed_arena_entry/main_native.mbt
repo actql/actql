@@ -764,6 +764,7 @@ extern "C" fn register_original_process_roots(
 /// This initializes code references only. Registration is not supplier adoption,
 /// original arena acquisition, Root creation, Run admission or VM permission.
 fn main {
+  @runtime.register_native_local_journal_capture_roots()
   register_original_sqlite_database_roots(
     fn(host, library, path, bound) {
       @control.restore_installed_sqlite_database_reply(

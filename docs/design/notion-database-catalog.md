@@ -803,6 +803,32 @@ and acquisition inventory; bounds and terminal cursors are neither numerical
 funding nor physical cleanup acknowledgments. A physical caller still needs
 its original property-specific Site use, current checks and response custody.
 
+The physical title receiver selects this origin explicitly and excludes the
+query Contract/column inputs. It snapshots the same compiled callbacks and
+their receiver once. Common's same-Page matcher runs before I/O and again
+after each awaited current check, including the physical pre-send fence.
+The existing property-operation Credential port, original authorization/use,
+opaque cursor path and response accounting remain the sole transport route.
+A Page GET grant cannot authorize a property read. The caller must obtain a
+separately scoped original property grant; it cannot relabel the Page id or
+matching scalar scope as issuer evidence.
+
+Both origins use the same serial reader and terminal Value receiver. No inline
+fragment is returned on refusal. Current/abort, malformed response, output or
+aggregate exhaustion retains the original body/charge and raw history. A lost
+reply remains the original use's Journal Unknown; neither another read nor
+new secret material resends it. Completion and transport close still leave
+`cleanupConfirmed: false` while those aliases remain retained.
+
+The shared physical preparation adds bounded callback-selection arrays and
+call/match/completion closures with their original receiver, selected Page or
+query Contract/column, and the original request. These coexist with the
+Credential/current callbacks, pending Promises, observations/tickets and the
+complete Common chain. The legacy mode also has the shared record-layout
+cost. These are retained inventory, not a new allocation grant or a physical
+retirement receipt. Installation and normal Source/Run funding remain separate
+from this exact-page property consumer.
+
 ## Checked rows from exact page originals
 
 An exact-page observation can enter the same complete checked row Owner used

@@ -309,6 +309,41 @@ cannot resume after an unconfirmed temporary close. The first namespace close
 failure remains original even if cleanup encounters another one. The failure object issues neither
 a usable Root nor Host adoption, and cleanup cannot retry acquisition.
 
+### Private Root under the original read context
+
+`open_private_root_in_current_read_context_with_custody` uses the same active
+original Native read context as the scoped generic Root entrance. A missing
+context or nonpositive diagnostic bound refuses before UTF-8 encoding or Root
+acquisition. The private constructor still applies its existing namespace,
+owner, mode, ACL and no-follow checks; entering a read context does not grant
+filesystem permission or admit a directory as the Host installation.
+
+The constructor retains the original context use before entering physical
+allocation. It publishes the same acquired Root into custody before leaving,
+including a rejected Root and its diagnostic aliases. Only confirmed physical
+cleanup returns that Root's context use; escaped managed Root/diagnostic aliases
+can still keep the original backing busy. A failed close, managed return,
+reference retirement or GC opportunity is not a physical acknowledgement.
+The path String, UTF-8 backing, acquisition carrier, Root/failure record,
+descriptor, diagnostic bytes and context references overlap under the original
+Host/installation phase envelope. The diagnostic ceiling is not funding.
+
+The enclosing caller must enter its independently admitted original Domain
+around the whole managed operation and perform its Core/current fences. This
+entrance issues no context, capacity, permission, Host binding or installation
+authority. In particular, it does not combine the currently separate original
+read and installed SQLite Domains or authorize an unbound SQLite fallback.
+Missing original bootstrap, whole-phase or retained-alias coverage remains
+unavailable.
+
+The existing-adoption consumer has a separate scoped entry. It uses the same
+Adoption constructor, original configuration selection, exclusive lock and
+failed-acquisition carrier. Its closed internal Root opening selects the scoped
+private constructor for source, parent and optional managed directories alike;
+no legacy Root substitutes for a missing context. The legacy entry retains its
+original behavior. Neither entry initializes a missing Host, and a scoped Session
+does not combine its filesystem context with a selected SQLite Library context.
+
 ## Direct Local credential grant/use scope
 
 ### Explicit post-adoption issuer acquisition
@@ -1022,3 +1057,61 @@ or funding claim. Unknown parents and unlisted empty directories are refused.
 Only the root descriptor path is self-hash-excluded; the same basename below
 a directory is an ordinary declared member. Exact selected npm dependency
 placement remains separate and does not exempt arbitrary node_modules content.
+
+## Original journal capture transport
+
+A trusted installed caller may transfer operational use of an already acquired
+Native adoption Session to a capture, retaining the same SQLite and crypto
+Libraries. Preparation performs no I/O. The caller publishes the opaque capture
+in its original output slot before opening the journal. Opening is attempted
+once; the capture records unconfirmed entry first, then retains the original
+Host or failed-open carrier before allocating a reply. A missing outcome cannot
+be replaced by another attempt. The caller must fence its other Session aliases;
+the transport does not discover or adopt a Session from metadata or a path.
+
+Current observation calls the retained Host's existing complete binding check.
+Cleanup uses that same Host or failed-open carrier; the immutable opening cause
+remains distinct from subsequent current or cleanup errors. Abandonment before
+open closes the original Session and its owned directory descriptors. Only an
+actual close acknowledgement permits retirement of the capture and reply DATA.
+Escaped Readers, Session/Host aliases, provider references, Domains and workspace
+loans require their separate acknowledgements and lifetime accounting.
+
+The private C transport borrows managed inputs and returns owned managed output
+references through initially empty, distinct slots. The same registered provider
+supplies all callbacks. A foreign capture cannot retire a reply, a filled slot
+cannot be overwritten, and a current/open reply cannot stand in for close.
+Returned Session/Host/failure DATA references have a separate drop operation
+which checks the same capture before releasing references; it cannot close the
+underlying resources. Opaque references remain pointers to the original managed
+objects, with no integer-handle registry, JSON restoration or direct compiler-
+layout access.
+
+This transport does not supply initial Root acquisition, an OriginalWorkspaceRead
+or a selected SQLite Library Domain. Those scopes remain distinct. It neither
+provides a joint scope nor makes an unbound Library or heap fallback admissible.
+A complete normal installed caller must still supply those original resources,
+current authority and outer lifetime obligations; absence remains unavailable.
+
+
+## Existing adoption capture
+
+The trusted physical caller retains a first-stage capture before entering any
+Root acquisition. Preparation snapshots bounded selection DATA and allocates the
+same partial-acquisition carrier used by Adoption. Existing-only open enters
+once, publishing an unconfirmed outcome first, then retaining either the actual
+Session or original failure before returning. An interrupted return cannot
+become another acquisition or a cleanup acknowledgement. Scoped and legacy
+constructors are separate entrances; a missing original read scope never falls
+back to legacy allocation or initializes a missing Host.
+
+The capture may retain one journal capture for that same Session. It publishes
+the inner holder before handing it out, refuses replacement Libraries/options,
+and delegates subsequent current observation to its complete binding fence.
+Parent close requires the inner database and descriptor acknowledgements first.
+Without an inner journal it closes only its original Session or partial failure.
+The opening refusal remains available after cleanup; a later cleanup error does
+not replace it. Descriptor retirement does not acknowledge escaped Readers,
+Session/provider aliases or the caller's original Domain/read/workspace loan.
+This holder supplies no physical scope, permission, transport binding or funded
+normal installation profile.

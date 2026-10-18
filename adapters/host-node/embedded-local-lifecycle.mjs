@@ -5,6 +5,7 @@ import {createInstalledHostShutdown} from './installed-host-cleanup.mjs';
 
 export function installedHostShutdown(host) {
   const retireRuntime = host.retireModelRuntime;
+  const initialControl = host.initialControl;
   const shutdown = createInstalledHostShutdown({
     stop: () => {
       host.stopModelRuntime?.();
@@ -22,6 +23,7 @@ export function installedHostShutdown(host) {
     ...(host.observation === undefined ? {} :
       {observation: () => host.observation.close()}),
     ...(host.ownerViews === undefined ? {} : {ownerViews: () => host.ownerViews.close()}),
+    ...(initialControl === undefined ? {} : {initialControl}),
     ...(retireRuntime === undefined ? {} : {finalize: async () => {
       await Reflect.apply(retireRuntime, host, []);
       // The same shutdown marks this duty complete only after success.
