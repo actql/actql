@@ -1346,7 +1346,7 @@
               },
               {
                 "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
-                "anchor": "original sealed request"
+                "anchor": "original body's bounded marker interpretation"
               },
               {
                 "path": "adapters/connectors/gcs/README.md",
@@ -2655,11 +2655,15 @@
     },
     {
       "module": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
-      "sha256": "94eea7453526e358da28c2857c70a65b15d0e3c424436d467f9c89ace4b08d92",
+      "sha256": "e3dd388fab741d2c528ce26a42e2f14a1f3988e3df4546bd43859288b0be3493",
       "operations": [
         {
           "name": "classify_object_mutation_response",
           "declaration": "classify_object_mutation_response ( binding : ObjectMutationBinding , request : ObjectMutationRequest , status : Int , body : Bytes , ) - > Result [ ObjectMutationOutcome , ObjectRequestIssue ]"
+        },
+        {
+          "name": "mutation_body_marker",
+          "declaration": "mutation_body_marker ( binding : ObjectMutationBinding , body : String , ) - > String ?"
         },
         {
           "name": "mutation_request_marker",
@@ -2722,7 +2726,7 @@
             "ownership": [
               {
                 "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
-                "anchor": "original sealed request"
+                "anchor": "original body's bounded marker interpretation"
               },
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
@@ -2787,6 +2791,96 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-owned-object-request.test.mjs",
                 "anchor": "metadata direct response requires the original marker"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "mutation_body_marker"
+          ],
+          "exports": [],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "original.response_sha256 != response_sha256"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "request.cid != request_cid"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Retained mutation request material"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Authenticated capture/Store custody"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous DATA admission. It performs no read/send, awaits no operation and issues no live child current closure. The actual Host must separately authenticate saved custody and fence original/current installation before any dispatch."
+            },
+            "cancellation": {
+              "notApplicable": "No new physical operation, reservation or cleanup Owner is created. The original capture/Store/physical Owner retains borrowed bytes, pending duties and cancellation; returning or dropping this DATA is not ACK."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub(all) enum ObjectRequestIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "return Err(StaleObservation)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "response_bytes.length() > limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Retained bytes and header/intent/body Strings overlap"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery_wbtest.mbt",
+                "anchor": "GCS restore refuses same-field raw replacement"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "actual GCS recovery preserves independent request bytes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_restore_mutation_value"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "returned request belongs to this actual binding"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "live child"
               }
             ]
           }
@@ -4006,7 +4100,7 @@
     {
       "module": "src/connectors/gcs/catalog/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "0d92bed227f06465ff994fd3ea88fd2a1f9648dc5c9612099d5ef5f5ccecd6cc",
+      "sha256": "2db9a60f54fa36f6314c2826f658217dac566cee99612c9697d30f03c40e3152",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [
@@ -4080,6 +4174,7 @@
         "pub fn recheck_object_compose(ObjectComposeBinding, ObjectComposeRequest, ObjectUploadObservation, Array[ObjectMetadata]) -> Result[Unit, ObjectUploadIssue]",
         "pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Result[Unit, ObjectRequestIssue]",
         "pub fn recheck_object_upload(ObjectUploadBinding, ObjectUploadRequest, ObjectUploadObservation) -> Result[Unit, ObjectUploadIssue]",
+        "pub fn restore_object_mutation_value_wire(ObjectMutationBinding, String, Int, Array[(String, String)], Bytes, String, Bytes, String, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
         "pub struct ObjectCollectionBinding {",
         "pub struct ObjectComposeBinding {",
         "pub struct ObjectComposeRequest {",
@@ -4371,6 +4466,10 @@
         {
           "name": "recheck_object_upload",
           "declaration": "pub fn recheck_object_upload(ObjectUploadBinding, ObjectUploadRequest, ObjectUploadObservation) -> Result[Unit, ObjectUploadIssue]"
+        },
+        {
+          "name": "restore_object_mutation_value_wire",
+          "declaration": "pub fn restore_object_mutation_value_wire(ObjectMutationBinding, String, Int, Array[(String, String)], Bytes, String, Bytes, String, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]"
         }
       ],
       "contracts": [
@@ -5311,7 +5410,7 @@
               },
               {
                 "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
-                "anchor": "original sealed request"
+                "anchor": "original body's bounded marker interpretation"
               },
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
@@ -5423,6 +5522,98 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Common must independently admit that complete role graph"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "restore_object_mutation_value_wire"
+          ],
+          "exports": [
+            "pub fn restore_object_mutation_value_wire(ObjectMutationBinding, String, Int, Array[(String, String)], Bytes, String, Bytes, String, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]"
+          ],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "original.response_sha256 != response_sha256"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "request.cid != request_cid"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Retained mutation request material"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Authenticated capture/Store custody"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous DATA admission. It performs no read/send, awaits no operation and issues no live child current closure. The actual Host must separately authenticate saved custody and fence original/current installation before any dispatch."
+            },
+            "cancellation": {
+              "notApplicable": "No new physical operation, reservation or cleanup Owner is created. The original capture/Store/physical Owner retains borrowed bytes, pending duties and cancellation; returning or dropping this DATA is not ACK."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub(all) enum ObjectRequestIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "return Err(StaleObservation)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "response_bytes.length() > limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Retained bytes and header/intent/body Strings overlap"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery_wbtest.mbt",
+                "anchor": "GCS restore refuses same-field raw replacement"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "actual GCS recovery preserves independent request bytes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_restore_mutation_value"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "returned request belongs to this actual binding"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "live child"
               }
             ]
           }
@@ -6178,7 +6369,97 @@
               },
               {
                 "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
-                "anchor": "original sealed request"
+                "anchor": "original body's bounded marker interpretation"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "gcs_object_restore_mutation_value"
+          ],
+          "exports": [],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "original.response_sha256 != response_sha256"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "request.cid != request_cid"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Retained mutation request material"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Authenticated capture/Store custody"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous DATA admission. It performs no read/send, awaits no operation and issues no live child current closure. The actual Host must separately authenticate saved custody and fence original/current installation before any dispatch."
+            },
+            "cancellation": {
+              "notApplicable": "No new physical operation, reservation or cleanup Owner is created. The original capture/Store/physical Owner retains borrowed bytes, pending duties and cancellation; returning or dropping this DATA is not ACK."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub(all) enum ObjectRequestIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "return Err(StaleObservation)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "response_bytes.length() > limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Retained bytes and header/intent/body Strings overlap"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery_wbtest.mbt",
+                "anchor": "GCS restore refuses same-field raw replacement"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "actual GCS recovery preserves independent request bytes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_restore_mutation_value"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "returned request belongs to this actual binding"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "live child"
               }
             ]
           }
@@ -6278,12 +6559,16 @@
           "declaration": "gcs_object_response_projection ( binding : @ catalog . ObjectMutationBinding , request : @ catalog . ObjectMutationRequest , status : Int , body : Bytes , max_bytes : Int , ) - > Result [ String , GcsFailure ]"
         },
         {
+          "name": "gcs_object_restore_mutation_value",
+          "declaration": "gcs_object_restore_mutation_value ( binding : @ catalog . ObjectMutationBinding , name : String , status : Int , headers : Array [ ( String , String ) ] , response : Bytes , response_sha256 : String , changes : Bytes , body : String , request_cid : String , ) - > Result [ @ catalog . ObjectMutationRequest , GcsFailure ]"
+        },
+        {
           "name": "gcs_object_target_observation",
           "declaration": "gcs_object_target_observation ( binding : @ catalog . ObjectMutationBinding , name : String , status : Int , body : Bytes , headers : Array [ ( String , String ) ] , ) - > Result [ @ catalog . ObjectMetadata , GcsFailure ]"
         }
       ],
       "exports": [],
-      "sha256": "9dbbc0c7b2980abe770ec75361c312248f195ec531adc9e5bdd4fe801d1120b9"
+      "sha256": "d4f440fcf5889f590d33bb8afd3ef859f1e4a597dd1502193ec77f9b9ce18e50"
     },
     {
       "module": "src/connectors/gcs/host_node/original_reference.mbt",
@@ -7391,7 +7676,7 @@
               },
               {
                 "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
-                "anchor": "original sealed request"
+                "anchor": "original body's bounded marker interpretation"
               },
               {
                 "path": "src/connectors/gcs/catalog/object_compose.mbt",
@@ -7400,6 +7685,98 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
                 "anchor": "const originals = new WeakMap()"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "gcs_object_restore_mutation_value"
+          ],
+          "exports": [
+            "pub fn gcs_object_restore_mutation_value(@catalog.ObjectMutationBinding, String, Int, Array[(String, String)], Bytes, String, Bytes, String, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]"
+          ],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "original.response_sha256 != response_sha256"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "request.cid != request_cid"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Retained mutation request material"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Authenticated capture/Store custody"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous DATA admission. It performs no read/send, awaits no operation and issues no live child current closure. The actual Host must separately authenticate saved custody and fence original/current installation before any dispatch."
+            },
+            "cancellation": {
+              "notApplicable": "No new physical operation, reservation or cleanup Owner is created. The original capture/Store/physical Owner retains borrowed bytes, pending duties and cancellation; returning or dropping this DATA is not ACK."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub(all) enum ObjectRequestIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "return Err(StaleObservation)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "response_bytes.length() > limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Retained bytes and header/intent/body Strings overlap"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery_wbtest.mbt",
+                "anchor": "GCS restore refuses same-field raw replacement"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "actual GCS recovery preserves independent request bytes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_restore_mutation_value"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "returned request belongs to this actual binding"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "live child"
               }
             ]
           }
@@ -7447,6 +7824,7 @@
         "pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]",
         "pub fn gcs_object_response_matches(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, @catalog.ObjectMetadata) -> Bool",
         "pub fn gcs_object_response_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int, Bytes, Int) -> Result[String, GcsFailure]",
+        "pub fn gcs_object_restore_mutation_value(@catalog.ObjectMutationBinding, String, Int, Array[(String, String)], Bytes, String, Bytes, String, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
         "pub fn gcs_object_target_observation(@catalog.ObjectMutationBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectMetadata, GcsFailure]",
         "pub fn gcs_upload_binding(@catalog.ObjectCollectionBinding, String, Array[String], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectUploadBinding, @catalog.ObjectUploadIssue]",
         "pub fn gcs_upload_body(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest) -> Result[Bytes, @catalog.ObjectUploadIssue]",
@@ -7632,6 +8010,10 @@
           "declaration": "pub fn gcs_object_response_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int, Bytes, Int) -> Result[String, GcsFailure]"
         },
         {
+          "name": "gcs_object_restore_mutation_value",
+          "declaration": "pub fn gcs_object_restore_mutation_value(@catalog.ObjectMutationBinding, String, Int, Array[(String, String)], Bytes, String, Bytes, String, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]"
+        },
+        {
           "name": "gcs_object_target_observation",
           "declaration": "pub fn gcs_object_target_observation(@catalog.ObjectMutationBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectMetadata, GcsFailure]"
         },
@@ -7700,7 +8082,7 @@
           "declaration": "pub fn gcs_upload_target_observation(@catalog.ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]"
         }
       ],
-      "sha256": "42be9cf0677a3d118c73736e92051c68b8783d156cfcd48b2cb1bce103adedd6"
+      "sha256": "453e2ca47d8e540169fd490531aa096184bd1898d37da42f5b31d195a0615b50"
     },
     {
       "module": "src/connectors/gcs/host_node/upload.mbt",
@@ -9251,6 +9633,113 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+      "role": "connector-semantics",
+      "owner": "Existing GCS retained request interpretation; original capture/Store, installation authority and physical custody stay with their current Owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "restore_object_mutation_value_wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "original.response_sha256 != response_sha256"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "request.cid != request_cid"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Retained mutation request material"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Authenticated capture/Store custody"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous DATA admission. It performs no read/send, awaits no operation and issues no live child current closure. The actual Host must separately authenticate saved custody and fence original/current installation before any dispatch."
+            },
+            "cancellation": {
+              "notApplicable": "No new physical operation, reservation or cleanup Owner is created. The original capture/Store/physical Owner retains borrowed bytes, pending duties and cancellation; returning or dropping this DATA is not ACK."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "pub(all) enum ObjectRequestIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "return Err(StaleObservation)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "response_bytes.length() > limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Retained bytes and header/intent/body Strings overlap"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery_wbtest.mbt",
+                "anchor": "GCS restore refuses same-field raw replacement"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "actual GCS recovery preserves independent request bytes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn restore_object_mutation_value_wire"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_restore_mutation_value"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_recovery.mbt",
+                "anchor": "returned request belongs to this actual binding"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-original-mutation-recovery.test.mjs",
+                "anchor": "live child"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "e3054734ee41e820cc55bc3c7b739d84920db5a2c1b7f43bada32bd0decefadc",
+      "operations": [
+        {
+          "name": "restore_object_mutation_value_wire",
+          "declaration": "restore_object_mutation_value_wire ( binding : ObjectMutationBinding , expected_name : String , response_status : Int , response_headers : Array [ ( String , String ) ] , response_bytes : Bytes , response_sha256 : String , changes : Bytes , body : String , request_cid : String , ) - > Result [ ObjectMutationRequest , ObjectRequestIssue ]"
+        }
+      ],
+      "exports": []
     }
   ]
 }
