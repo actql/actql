@@ -40,7 +40,7 @@ import {installSalesforceEffectDispatch} from
   '../host/salesforce-effect-dispatch.mjs';
 import {installSalesforceEffectRoute} from
   '../host/salesforce-effect-route.mjs';
-import {issueSalesforceEffectCapability, inspectSalesforceEffectCapability} from
+import {issueSalesforceEffectCapability} from
   '../site/salesforce-effect-capability.mjs';
 import {installSalesforceAuthorization} from
   '../host/installed-salesforce-site.mjs';
@@ -51,6 +51,7 @@ import {recoverRetainedSalesforceCatalog} from
   '../site/salesforce-catalog-recovery.mjs';
 import {observeSalesforceTargetSet} from
   '../site/salesforce-target-observation.mjs';
+import {capabilitySite} from './effect-capability.fixture.mjs';
 import * as salesforceMoon from
   '../../../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
 import {issueAuthorizedEffectSetReceipt} from
@@ -444,119 +445,6 @@ function effectInputPreview(prepared, evidence, definition, invocation,
   return {wire: canonicalJson(preview), authoringCid:
     authoring.authoring_context_cid, keys};
 }
-
-// One create request of the fixture Site, projected from `observation`.
-function capabilityRequest(site, observation = site.catalog.observation) {
-  const binding = JSON.parse(
-    salesforceMoon.salesforceCatalogObservationJson(observation)).binding;
-  const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
-    observation, binding.namespace_id, binding.principal, binding.environment,
-    binding.connection_revision, binding.org_id, binding.site_key,
-    binding.site_generation, binding.connector_registration,
-    binding.connector_revision, binding.resource_origin,
-    binding.run_invocation_cid, binding.dispatch_request_cid,
-    binding.sync_occurrence,
-    'Test_Record__c', 0, '', ['Name', 'External_Key__c'], 2));
-  const body = checked(salesforceMoon.salesforcePrepareWriteBody(projection,
-    Buffer.from('{"Name":"value","External_Key__c":"value"}'), 1024, 32, 5));
-  return checked(salesforceMoon.salesforcePrepareSingleWriteRequest(
-    body, 'v62.0', 0, '', 0, 256, 128, 1024));
-}
-
-async function capabilitySite(t) {
-  const site = await openSalesforceEffectSiteFixture(t, {
-    commonMoon: moon, salesforceMoon, runInvocationCid: cid('b'),
-    dispatchRequestCid: cid('c'), writeOperation: 'create',
-  });
-  const request = capabilityRequest(site);
-  const options = {moon: salesforceMoon, requests: [request],
-    currentObservation: site.catalog.observation,
-    authorization: site.write, credential: site.credential,
-    mapping: site.executionMapping(fixtureWrites.create).mapping,
-    maxRows: 2, maxBytes: 20000};
-  return {site, request, options};
-}
-
-test('Salesforce capability requires the exact execution Mapping before any use',
-  async t => {
-    const {site, options} = await capabilitySite(t);
-    const other = await openSalesforceEffectSiteFixture(t, {
-      commonMoon: moon, salesforceMoon, runInvocationCid: cid('b'),
-      dispatchRequestCid: cid('c'), writeOperation: 'create',
-      orgId: '00D000000000002EAA'});
-    // A later declaration that no longer allows creating Name cannot even
-    // prepare this write's Mapping.
-    site.setNameCreateable(false);
-    const narrowed = await site.refreshDeclaration();
-    site.setNameCreateable(true);
-    assert.equal(narrowed.writables[0].create_fields.includes('Name'), false);
-    assert.throws(() => site.executionMapping(fixtureWrites.create,
-      narrowed.declaration), {code: 'MoonBitHostFailure'});
-    // The schema changes under the same Site binding: a request projected
-    // from the new describe no longer matches what was declared.
-    site.setNameUpdateable(false);
-    const changed = await site.refreshCatalog();
-    const drifted = capabilityRequest(site, changed.observation);
-    site.setNameUpdateable(true);
-    const uses = site.journal.recover().length;
-    const sent = site.seen.length;
-    assert.throws(() => issueSalesforceEffectCapability({...options,
-      mapping: undefined}), {code: 'InvalidSalesforceEffectCapability'});
-    // Same connection id and schema, another org: a foreign Mapping.
-    assert.throws(() => issueSalesforceEffectCapability({...options,
-      mapping: other.executionMapping(fixtureWrites.create).mapping}),
-    {code: 'MoonBitHostFailure'});
-    // Another write's Mapping: an update of Name is not this create.
-    assert.throws(() => issueSalesforceEffectCapability({...options,
-      mapping: site.executionMapping(fixtureWrites.update).mapping}),
-    {code: 'MoonBitHostFailure'});
-    assert.throws(() => issueSalesforceEffectCapability({...options,
-      requests: [drifted], currentObservation: changed.observation}),
-    {code: 'MoonBitHostFailure'});
-    // Refused before any credential use or request.
-    assert.equal(site.journal.recover().length, uses);
-    assert.equal(site.seen.length, sent);
-    assert.ok(issueSalesforceEffectCapability(options).identity);
-  });
-
-test('Salesforce capability requires current signed authority without a use',
-  async t => {
-    const {site, request, options} = await capabilitySite(t);
-    const uses = site.journal.recover().length;
-    const sent = site.seen.length;
-    const capability = issueSalesforceEffectCapability(options);
-    assert.equal(inspectSalesforceEffectCapability(capability, [request]).route, 0);
-    assert.equal(JSON.parse(capability.wire).binding.runtime_bundle_cid, cid('a'));
-    assert.throws(() => inspectSalesforceEffectCapability({...capability},
-      [request]), {code: 'InvalidSalesforceEffectCapability'});
-    assert.throws(() => inspectSalesforceEffectCapability(capability,
-      [request], {collection: true}), {code: 'InvalidSalesforceEffectCapability'});
-    assert.throws(() => issueSalesforceEffectCapability({...options,
-      credential: {...site.credential, now: () => 2_000_000_000_000}}));
-    for (const changed of [{namespaceId: 'foreign'}, {siteGeneration: 5},
-      {runtimeBundleCid: cid('f')}]) {
-      assert.throws(() => issueSalesforceEffectCapability({...options,
-        authorization: {...site.write, scope: {...site.write.scope, ...changed}}}));
-    }
-    const unsigned = site.credential.control.prepare({...site.write.scope,
-      dispatchRequestCid: cid('f')});
-    assert.throws(() => issueSalesforceEffectCapability({...options,
-      authorization: {...site.write, grant: unsigned}}),
-    {code: 'RemoteCredentialGrantMissing'});
-    assert.equal(site.journal.recover().length, uses);
-    assert.equal(site.seen.length, sent);
-    const refreshed = await site.refreshCatalog();
-    assert.equal(issueSalesforceEffectCapability({...options,
-      currentObservation: refreshed.observation}).identity, capability.identity);
-    site.setNameUpdateable(false);
-    const changed = await site.refreshCatalog();
-    assert.throws(() => inspectSalesforceEffectCapability(capability, [request],
-      {currentObservation: changed.observation}));
-    const beforeRevoke = site.journal.recover().length;
-    site.journal.revoke(site.credential.control.identity(site.write.grant));
-    assert.throws(() => inspectSalesforceEffectCapability(capability, [request]));
-    assert.equal(site.journal.recover().length, beforeRevoke);
-  });
 
 test('Salesforce current-use catalogs belong to one exact refresh',
   async t => {

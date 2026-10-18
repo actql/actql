@@ -30,6 +30,8 @@ pub fn acquire_verified_model_capture(ModelExecution) -> VerifiedModelCapture?
 
 pub fn admit_model_provider(ModelProvider, @check_environment.ModelExecutionContract, @check_environment.SingleAttemptModelDependencies, (@check_environment.ModelTaskContract, @check_environment.ModelDependency) -> Bool) -> Result[AdmittedModelProvider, ModelProviderAdmissionIssue]
 
+pub fn admit_original_model_mock_provider(ModelMockInstallation, @check_environment.ModelExecutionContract, @check_environment.SingleAttemptModelDependencies) -> Result[AdmittedModelProvider, ModelProviderAdmissionIssue]
+
 pub fn admitted_model_provider_for(AdmittedModelProvider, @check_environment.ModelExecutionContract) -> ModelProvider?
 
 pub fn adopt_reconciled_model_response(ModelResponseReconciliation, ModelResponse) -> Result[Unit, ModelExecutionIssue]

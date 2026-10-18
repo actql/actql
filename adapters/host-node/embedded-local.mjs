@@ -20,7 +20,7 @@ import {fileURLToPath} from 'node:url';
 import {validClientConnection} from '../../packages/client-wire/index.mjs';
 import {createEmbeddedHostRegistry, installedHostShutdown} from './embedded-local-lifecycle.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
-import {installNodeClientSubmission} from './client-submission.mjs';
+import {installNodeClientSubmission, issueNodeClientSubmissionEpoch} from './client-submission.mjs';
 import {admitHostRootFormat} from './host-root-format.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
@@ -53,6 +53,7 @@ import {beginInitialControlInstallation, assertInitialControlInstallationCurrent
   readInitialControlInstallationAsset, readInitialControlInstallationInput}
   from './node-initial-control-installation.mjs';
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
+import {loadInstalledProjectMockAnswers} from './installed-project-mock-answers.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 import {prepareInstalledProjectMock, installPreparedProjectMockSources}
   from './installed-project-mock.mjs';
@@ -426,6 +427,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   let modelSdkStaticOriginals;
   let modelProviders;
   let projectTasks;
+  let mockModels;
   let store;
   // Nominal association in this SAME Host, not a capacity pool or Run Owner.
   // A key is an actual Common-issued Scope; its value is retired only after
@@ -529,7 +531,9 @@ async function openInstalledHost(originalInstallation, preparation) {
   // Initial control and Source/Compute admissions cannot cover this write.
   if (preparation !== undefined) await preparation.prepareHostJournal();
   await admitHostRootFormat(root);
-  if (registerModelProviders !== undefined && process.version === 'v22.22.0' &&
+  const originalSourcePreparation = preparation?.sourcePreparation();
+  if (originalSourcePreparation === undefined &&
+      registerModelProviders !== undefined && process.version === 'v22.22.0' &&
       process.platform === 'darwin' && process.arch === 'arm64' &&
       process.versions.openssl === '3.5.4') {
     // Issue before registering the provider table. Local project discovery
@@ -563,10 +567,15 @@ async function openInstalledHost(originalInstallation, preparation) {
   const installedResultDataPolicy = resultDataPolicy === undefined ? undefined :
     control.admitSourceFreeResultPolicy(resultDataPolicy, localContractLimits);
   const evidenceConfiguration = configureInferEvidence(inferEvidence);
-  modelProviders = installModelProviders(moon, registerModelProviders,
-    modelRuntimeView === undefined ? undefined : assertModelRuntime,
-    modelRuntimeView === undefined ? undefined : assertNewModelRuntime,
-    modelRuntimeStartupView === undefined ? undefined : bindModelSdkStaticOriginals);
+  // The explicit Mock profile never registers a configured physical Provider.
+  // Its portable Model owner retains the original fixture Task and answers;
+  // neither that DATA installation nor this empty physical table grants send.
+  modelProviders = originalSourcePreparation === undefined
+    ? installModelProviders(moon, registerModelProviders,
+      modelRuntimeView === undefined ? undefined : assertModelRuntime,
+      modelRuntimeView === undefined ? undefined : assertNewModelRuntime,
+      modelRuntimeStartupView === undefined ? undefined : bindModelSdkStaticOriginals)
+    : new Map();
   const inferSelections = new WeakMap();
   const effectSubmissions = new WeakMap();
   const effectSelections = new WeakMap();
@@ -653,6 +662,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (preparation.sourcePreparation() !== installationSourcePreparation) {
         throw clientOperationError('InstalledSourcePreparationChanged');
       }
+      mockModels = await preparation.installMockModels(moon);
+      projectTasks = mockModels;
     } else {
       sourceProfile = await loadInstalledSources(selectedSourcePaths,
         {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
@@ -686,9 +697,11 @@ async function openInstalledHost(originalInstallation, preparation) {
     environmentWire = composeInstalledCheckEnvironment(moon,
       baseEnvironmentWire, sourceProfile?.environmentWire,
       effectInstallation?.environmentWire);
-    environmentWire = installedModelEnvironment(moon, baseEnvironmentWire,
-      environmentWire, modelInstallation);
-    if (project !== undefined &&
+    if (mockModels === undefined) {
+      environmentWire = installedModelEnvironment(moon, baseEnvironmentWire,
+        environmentWire, modelInstallation);
+    }
+    if (mockModels === undefined && project !== undefined &&
         installedProjectOriginalsForRuntime(project, moon).modelRegistry !== undefined) {
       // These are installation-time reader ceilings, not Model fuel, memory
       // reservations or a numerical execution profile. The ordinary complete
@@ -721,8 +734,17 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (projectTasks !== undefined) {
       // Extend AFTER Host-local policy encoding. Do not NFC-normalize the
       // original public Task identifier or rebuild its preimage in JS.
-      environmentWire = projectTasks.projectEnvironmentForRuntime(moon, environmentWire,
-        JSON.parse(environmentWire).evidence_bundle_cid).environmentWire;
+      if (mockModels === undefined) {
+        environmentWire = projectTasks.projectEnvironmentForRuntime(moon, environmentWire,
+          JSON.parse(environmentWire).evidence_bundle_cid).environmentWire;
+      } else {
+        // All Task/prompt/execution/retry/backoff bodies came from this same
+        // Common profile/normalization. Do not rewrite the original model or
+        // choose a different Task/provider from current registry defaults.
+        modelInstallation = mockModels.modelInstallationForRuntime(moon, environmentWire,
+          JSON.parse(environmentWire).evidence_bundle_cid);
+        environmentWire = modelInstallation.environmentWire;
+      }
     }
     verifyInstalledConnectorBindings(sourceProfile,
       installedEffect ?? effectInstallation);
@@ -801,6 +823,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   let observation;
   let localSnapshotConfiguration;
   let ownerViews;
+  let activationFlight, activationFailure;
   try {
     const delivery = createDiagnosticObserver(authorization?.observe);
     diagnostic = Object.assign((event, detail) => {
@@ -850,13 +873,19 @@ async function openInstalledHost(originalInstallation, preparation) {
           parentDirectory:snapshotDirectory,signal}));
     },
     authorization?.faultInjection);
-    journal = openClientRequestJournal(journalDirectory, {
+    const journalOptions = {
       updateOriginalControl: createUpdateTargetOriginalShapeControl(moon),
       // Private fault hooks exercise the real installed admission clock;
       // Programs and public transport requests cannot select these values.
       submissionEpochTtlMs: authorization?.faultInjection?.submissionEpochTtlMs,
       submissionEpochNow: authorization?.faultInjection?.submissionEpochNow,
-    });
+    };
+    // Only the same selected writable facility may instantiate its Journal.
+    // Unselected Hosts retain the existing constructor. A directory or option
+    // object cannot select a native constructor or issue resource admission.
+    journal = preparation === undefined
+      ? openClientRequestJournal(journalDirectory, journalOptions)
+      : preparation.openRequestJournal(journalDirectory, journalOptions);
     observation = installHostObservation(observationConnection, {journal,
       runId: ref => {
         const retained = journal.lookupRunDefinition(ref, moon, control);
@@ -864,6 +893,37 @@ async function openInstalledHost(originalInstallation, preparation) {
           control.runDefinitionRunId(retained.runDefinition);
       }});
     if (observation !== undefined) journal.installObservationProjection(observation);
+    const hostConnection = ({principalId: actual, connection, ref}) =>
+      actual === principalId &&
+      connection.mode === mode && connection.owner === mode &&
+      (ref === undefined || ref.namespaceId === namespaceId &&
+        ref.authorityScopeCid === authorityScopeCid);
+    const authorizedScope = ({principalId: actual}) =>
+      actual === principalId ? {namespaceId, authorityScopeCid} : undefined;
+    const negotiate = async value => ({version: 'actql-client-host/0.1',
+      mode, owner: mode, durability: 'durable',
+      ...(value.connection.workspaceId === undefined ? {} : {workspaceId}),
+      scopeRef: authorityScopeCid,
+      ...(hostConnection(value) ? {submissionEpoch: await issueNodeClientSubmissionEpoch({
+        journal,moon,authorizedScope: request => hostConnection(request)
+          ? authorizedScope(request) : undefined},value)} : {}),
+      capabilities: ['result-jsonl'], limits: {
+        maxReadWireBytes: 10 * 1024 * 1024,
+        maxRowWireBytes: 1024 * 1024,
+        maxRowRetainedValueBytes: 1024 * 1024,
+        maxRetainedValueBytes: 10 * 1024 * 1024,
+        maxRows: 10000, maxBatchRows: 1000,
+        maxBatchRetainedValueBytes: 10 * 1024 * 1024,
+      }});
+    const initializePublicationServices = async () => {
+    try {
+    if (originalSourcePreparation !== undefined) {
+      // The selected writable Journal facility does not cover Publication
+      // Store/key/Result payload construction. Keep this precise missing
+      // operational boundary before its first constructor or I/O; do not
+      // create a key from path absence or borrow Source/Compute credit.
+      throw clientOperationError('InstalledPublicationPreparationUnavailable');
+    }
     // Generated Content also retains encrypted private proofs. This is Store
     // custody, not an Effect permission or an implicit external write grant.
     if (effectInstallation?.privateEvidenceKey === undefined) {
@@ -898,13 +958,6 @@ async function openInstalledHost(originalInstallation, preparation) {
       assertModelRuntime();
     }
     effectEvidenceKey?.key.fill(0);
-  const hostConnection = ({principalId: actual, connection, ref}) =>
-    actual === principalId &&
-    connection.mode === mode && connection.owner === mode &&
-    (ref === undefined || ref.namespaceId === namespaceId &&
-      ref.authorityScopeCid === authorityScopeCid);
-  const authorizedScope = ({principalId: actual}) =>
-    actual === principalId ? {namespaceId, authorityScopeCid} : undefined;
   const lookupRequest = installNodeClientRequestLookup({journal,
     control: moon, authorizedScope});
   const startRun = installNodeClientRunStart({journal,
@@ -1367,8 +1420,25 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       let admittedProvider;
       try {
-        admittedProvider = admitInstalledModelProvider(moon, execution, dependencies,
-          modelProviders);
+        if (mockModels === undefined) {
+          admittedProvider = admitInstalledModelProvider(moon, execution, dependencies,
+            modelProviders);
+        } else {
+          const taskCid = occurrence === undefined
+            ? moon.clientProgramInferModelTaskCid(preparedProgram, selectedStep)
+            : moon.clientProgramInferOccurrenceModelTaskCid(occurrence);
+          const original = mockModels.forTaskCid(moon, taskCid);
+          if (original === undefined ||
+              typeof moon.clientProgramAdmitOriginalMockProvider !== 'function') {
+            throw clientOperationError('InstalledMockModelOriginalUnavailable');
+          }
+          // The existing Model owner validates its own original Task, prompt,
+          // execution and dependencies. No JS validator, always-true callback
+          // or configured physical Provider can stand in for that admission.
+          admittedProvider = checked(moon.clientProgramAdmitOriginalMockProvider(
+            original.installation, execution, dependencies));
+          mockModels.originalsForRuntime(moon);
+        }
       } catch (cause) {
         diagnostic('infer_preparation_rejected', {boundary: 'model_provider',
           code: cause.code, cause: cause.cause ?? cause,
@@ -1376,6 +1446,15 @@ async function openInstalledHost(originalInstallation, preparation) {
             moon.clientProgramModelProviderAdmissionIssueKind(cause.cause) :
             undefined});
         throw clientOperationError('ClientProgramUnsupported', cause);
+      }
+      if (mockModels !== undefined) {
+        // Installing typed fixture answers is not a Model Run/IO admission.
+        // Do not fabricate physical preflight, egress, quantity capacity or
+        // another Ledger merely to enter the ordinary physical dispatch path.
+        diagnostic('infer_preparation_rejected', {boundary: 'model_dispatch',
+          code: 'InstalledMockModelOperationalAdmissionUnavailable'});
+        throw clientOperationError('ClientProgramUnsupported',
+          new Error('InstalledMockModelOperationalAdmissionUnavailable'));
       }
       const physical = modelProviders.get(moon.clientProgramInferProviderId(execution));
       // Legacy registrations only validate payloads. They cannot implicitly
@@ -2650,19 +2729,6 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (accepted === undefined) throw new Error('HeldRunDefinitionMissing');
     return (await observeRun({ref: accepted.ref, principalId})).status;
   };
-  const negotiate = async value => ({version: 'actql-client-host/0.1',
-    mode, owner: mode, durability: 'durable',
-    ...(value.connection.workspaceId === undefined ? {} : {workspaceId}),
-    scopeRef: authorityScopeCid,
-    ...(hostConnection(value) ? {submissionEpoch: await submissionService.issueEpoch(value)} : {}),
-    capabilities: ['result-jsonl'], limits: {
-      maxReadWireBytes: 10 * 1024 * 1024,
-      maxRowWireBytes: 1024 * 1024,
-      maxRowRetainedValueBytes: 1024 * 1024,
-      maxRetainedValueBytes: 10 * 1024 * 1024,
-      maxRows: 10000, maxBatchRows: 1000,
-      maxBatchRetainedValueBytes: 10 * 1024 * 1024,
-    }});
   // A held request is looked up through the Checkpoint journal until its Run
   // exists; then the request journal answers with its RunRef.
   const lookupHeld = async value => {
@@ -3469,6 +3535,92 @@ async function openInstalledHost(originalInstallation, preparation) {
       {journal, store, checkpoints, dispatchOwner,
         sourceProfile, installedEffect, observation, ownerViews});
   }
+    };
+    const activate = () => {
+      if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
+      if (activationFlight === undefined) {
+        // One actual Host and one optional service construction. Publish the
+        // flight before any fallible constructor; retain its original failure
+        // and cleanup rather than trying another Store/key/Host on retry.
+        activationFlight = Promise.resolve().then(initializePublicationServices)
+          .catch(cause => {
+            activationFailure = {cause,cleanupObserved:false,statusObserved:false,retryObserved:false};
+            modelRuntimeClosing = true; throw cause;
+          });
+      }
+      return activationFlight;
+    };
+    if (originalSourcePreparation === undefined) return await activate();
+    const bootstrapIngress = createNodeInProcessClientHost({
+      authenticate: () => principalId,
+      authorizeConnection: hostConnection,
+      workspaceForPrincipal: () => workspaceId,
+      negotiate, maxRowBytes: 1024 * 1024, observe: diagnostic,
+      async performInstalledRequest(operation,request,signal) {
+        const opened = await activate();
+        if (opened !== host) throw clientOperationError('InstalledHostPreparationChanged');
+        if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
+        return opened.port.perform(operation,request,signal);
+      },
+    });
+    const bootstrapPort = Object.freeze({
+      [sourcePreparationPort]: originalSourcePreparation,
+      async perform(operation, request, signal) {
+        if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
+        return bootstrapIngress.perform(operation,request,signal);
+      },
+    });
+    return Object.assign(host, {port:bootstrapPort,journal,sourceProfile,installedEffect,
+      diagnostic,observation,initialControl:preparation.initialControl,
+      stopModelRuntime() { modelRuntimeClosing = true; },retireModelRuntime,
+      async prepareShutdown() {
+        // Stop new work, then observe the SAME already-started activation to
+        // terminal. Never interrupt a child or treat its Promise as an ACK.
+        modelRuntimeClosing = true;
+        if (activationFlight !== undefined) {
+          try { await activationFlight; }
+          catch {
+            const cause = activationFailure.cause;
+            // Retain each successfully observed callback and its receiver.
+            // Only a getter that has not produced an observation may be
+            // observed again; later replacement cannot ACK this failure.
+            if (!activationFailure.cleanupObserved) {
+              activationFailure.cleanup = cause?.cleanupHandle;
+              activationFailure.cleanupObserved = true;
+            }
+            const cleanup = activationFailure.cleanup;
+            if (!activationFailure.statusObserved) {
+              activationFailure.status = cleanup?.status;
+              activationFailure.statusObserved = true;
+            }
+            if (!activationFailure.retryObserved) {
+              activationFailure.retry = cleanup?.retry;
+              activationFailure.retryObserved = true;
+            }
+            const status = activationFailure.status, retry = activationFailure.retry;
+            if (typeof status !== 'function' || typeof retry !== 'function') throw cause;
+            if (Reflect.apply(status,cleanup,[])?.pending !== false) {
+              await Reflect.apply(retry,cleanup,[]);
+            }
+            if (Reflect.apply(status,cleanup,[])?.pending !== false) throw cause;
+          }
+        }
+      },
+      closePublicationStore() {
+        // No Store exists before activation. An acquired or partially opened
+        // Store remains with its original initialization/physical cleanup.
+        if (store !== undefined) return store.close();
+      },
+    });
+  } catch (cause) {
+    // The optional initializer already retained/attempted these exact child
+    // duties. Do not add another close of the same Journal/Store here.
+    if (activationFlight !== undefined) throw cause;
+    diagnostic?.close();
+    effectEvidenceKey?.key.fill(0);
+    throw await retainInstalledHostInitializationFailure(cause,
+      {journal,store,checkpoints,dispatchOwner,sourceProfile,installedEffect,observation,ownerViews});
+  }
   } catch (cause) {
     modelRuntimeClosing = true;
     // Retain the same original failure/child and Host reference finalizer,
@@ -3632,7 +3784,9 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   profiles.registerPreparation(host, originalInstallation, host);
   let control, controlClose, duty, observedClose, referenceRetirement;
   let moon, project, projectProfile, mockPreparation, sourceManaged, sourceManagedClose;
-  let hostJournal, hostJournalClose, hostJournalFlight;
+  let hostJournal, hostJournalClose, hostJournalOpen, hostJournalFlight;
+  let hostJournalOpenAttempted = false;
+  let mockAnswers, mockModelProfile, mockModelProfileRetire, mockModelFlight;
   let adopted = false, referencesRetired = false;
   const record = {};
   function retirePreparationReferences() {
@@ -3642,6 +3796,17 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     // still owns its semantic references; do not abandon it on this path.
     const retainedMock = profiles.retainedMockPreparation(host, originalInstallation, host);
     (mockPreparation ?? retainedMock?.view)?.retire(moon);
+    // The Model owner can decline retirement while the original execution
+    // still uses these answers. Keep every original and callback on failure;
+    // Source, Journal, Promise settlement and process exit cannot ACK it.
+    mockAnswers?.retire(moon);
+    if (mockModelProfile !== undefined) {
+      if (Reflect.apply(mockModelProfileRetire, moon, [mockModelProfile]) !== true) {
+        throw clientOperationError('InstalledMockModelCleanupPending');
+      }
+      mockModelProfile = mockModelProfileRetire = undefined;
+    }
+    mockAnswers = mockModelFlight = undefined;
     if (referenceRetirement !== undefined) referenceRetirement();
     else {
       projectProfile?.retire(moon);
@@ -3680,7 +3845,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       if (pending === undefined || !Object.hasOwn(pending, 'value') || pending.value !== false) {
         throw clientOperationError('HostJournalInstallationCleanupPending');
       }
-      hostJournal = hostJournalClose = undefined;
+      hostJournal = hostJournalClose = hostJournalOpen = undefined;
       hostJournalFlight = undefined;
       record.hostJournal = undefined;
     }
@@ -3731,6 +3896,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         if (typeof hostJournalClose !== 'function') {
           throw clientOperationError('HostJournalInstallationCleanupPending');
         }
+        hostJournalOpen = original.openRequestJournal;
         const current = original.assertCurrent;
         if (typeof current !== 'function') {
           throw clientOperationError('HostJournalPreparationUnavailable');
@@ -3740,6 +3906,17 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         return original;
       });
       return hostJournalFlight;
+    },
+    openRequestJournal(directory, options) {
+      assertInitialControlHostPreparation(originals);
+      if (hostJournalOpenAttempted || hostJournal === undefined ||
+          typeof hostJournalOpen !== 'function') {
+        throw clientOperationError('HostJournalPreparationUnavailable');
+      }
+      // Mark the same physical attempt before invoking the captured receiver.
+      // A throw may retain a partial native child; no replacement is issued.
+      hostJournalOpenAttempted = true;
+      return Reflect.apply(hostJournalOpen, hostJournal, [directory, options]);
     },
     bindSourceRequest(parent, derived) {
       if (mockPreparation === undefined) return;
@@ -3761,6 +3938,44 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return installPreparedProjectMockSources({moon, mockPreparation, sourceManaged,
         baseEnvironmentWire, authorizationFor,
         readAsset: path => readInitialControlInstallationAsset(control, originals, path)});
+    },
+    installMockModels(runtime) {
+      if (runtime !== moon || mockPreparation === undefined) {
+        throw clientOperationError('ForeignInstalledMockPreparation');
+      }
+      assertInitialControlInstallationCurrent(control, originals);
+      assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      if (mockModelFlight !== undefined) return mockModelFlight;
+      mockModelFlight = Promise.resolve().then(async () => {
+        const install = moon.clientProgramInstallMockProfile;
+        mockModelProfileRetire = moon.clientProgramRetireMockProfile;
+        if (typeof install !== 'function' || typeof mockModelProfileRetire !== 'function') {
+          throw clientOperationError('InstalledMockModelRuntimeUnavailable');
+        }
+        const limits = Object.freeze({maxTasks:128,maxBytes:65536,maxNodes:4096,
+          maxDepth:64,maxMembers:256,contractNodes:4096,contractDepth:64,
+          contractTextBytes:65536,maxWork:2097152,valueNodes:4096,valueDepth:64,
+          valueTextBytes:65536,maxEntries:128});
+        const assertCurrent = () => {
+          assertInitialControlInstallationCurrent(control, originals);
+          assertSourceManagedInstallationCurrent(sourceManaged, originals);
+          mockPreparation.originalsForRuntime(moon);
+        };
+        assertCurrent();
+        mockModelProfile = checked(Reflect.apply(install, moon, [limits.maxBytes,
+          limits.maxNodes,limits.maxDepth,limits.maxMembers,limits.contractNodes,
+          limits.contractDepth,limits.contractTextBytes,limits.maxWork]));
+        record.mockModelProfile = mockModelProfile;
+        assertCurrent();
+        mockAnswers = await loadInstalledProjectMockAnswers(moon, project, projectProfile,
+          {limits,assertCurrent});
+        record.mockAnswers = mockAnswers;
+        const models = mockAnswers.bindModelsForRuntime(moon, mockModelProfile, now);
+        record.mockModels = models;
+        assertCurrent();
+        return models;
+      });
+      return mockModelFlight;
     },
     readEnvironmentSource() {
       return readInitialControlInstallationAsset(control, originals,
@@ -3896,11 +4111,9 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     mockPreparation.originalsForRuntime(moon);
     sourceManaged.assertCurrent();
   }
-  if (selectedProfile.selected !== undefined) {
-    // The original choice is admitted, but this Host has no installed mock
-    // records/answers or another named physical-profile supplier yet. Refuse
-    // before Source/Effect identity, credentials, Provider registration or Store
-    // opening rather than falling back to configured live connections.
+  if (selectedProfile.selected !== undefined && selectedProfile.selected !== 'mock') {
+    // No other named physical-profile supplier exists here. Keep its original
+    // admitted choice unavailable instead of falling back to live profiles.
     throw clientOperationError('InstalledProjectProfileUnavailable');
   }
   const root = installation?.directory === undefined ? project?.stateDirectory ?? localStateRoot() :

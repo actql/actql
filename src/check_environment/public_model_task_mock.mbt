@@ -68,3 +68,23 @@ pub fn normalized_public_mock_model_task_matches_task(
   task.connector == "mock" &&
   task.prompt == normalized.prompt_cid
 }
+
+///|
+/// The fixture implementation consumes this original normalized prompt, rather
+/// than delegating its interpretation to a Host's physical-provider callback.
+/// The dependency reader has already checked its complete canonical body/CID;
+/// keep its kind and payload present and bind that identity to this same Task.
+pub fn normalized_public_mock_model_task_matches_prompt(
+  normalized : NormalizedPublicModelTask,
+  declaration : PublicModelTaskDeclaration,
+  profile : ModelMockProfile,
+  task : ModelTaskContract,
+  prompt : ModelDependency,
+) -> Bool {
+  normalized_public_mock_model_task_matches_task(
+    normalized, declaration, profile, task,
+  ) &&
+  prompt.kind == ModelPrompt &&
+  prompt.cid == normalized.prompt_cid &&
+  prompt.payload is Some(_)
+}
