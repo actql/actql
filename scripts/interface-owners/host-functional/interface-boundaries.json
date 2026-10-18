@@ -28294,7 +28294,7 @@
               },
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "const startup = require(ordinary ? './node-public-initial-control-bootstrap.cjs' : './infer-trusted-node-preload.cjs');"
+                "anchor": "const startup = ordinary ? require('./node-public-initial-control-bootstrap.cjs') :"
               },
               {
                 "path": "adapters/host-node/initial-control-static-assets.test.mjs",
@@ -43004,7 +43004,7 @@
     },
     {
       "module": "adapters/host-node/node-initial-control-installation.mjs",
-      "sha256": "5927c26282a0594598503c730695ba6ecd1af05c08fc117459bc5049cc8c222f",
+      "sha256": "e0b1d10eb45c59fa912329baba74d7c0ab4f6e6450214decf5e53ba32292ca14",
       "exports": [
         "assertInitialControlInstallationCurrent",
         "beginInitialControlInstallation",
@@ -43047,12 +43047,12 @@
         }
       ],
       "imports": [
+        "./infer-trusted-node-preload.cjs",
+        "./node-public-initial-control-bootstrap.cjs",
         "node:module"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ],
+      "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Host/Resource startup installation and original preparation custody",
@@ -43139,7 +43139,7 @@
               },
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "const startup = require(ordinary ? './node-public-initial-control-bootstrap.cjs' : './infer-trusted-node-preload.cjs');"
+                "anchor": "const startup = ordinary ? require('./node-public-initial-control-bootstrap.cjs') :"
               },
               {
                 "path": "adapters/host-node/initial-control-static-assets.test.mjs",
