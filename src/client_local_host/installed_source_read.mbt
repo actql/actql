@@ -76,6 +76,11 @@ fn require_installed_source_read_current(
     Ok(_) => ()
   }
   guard value.ledger is Some(ledger) else { return Err(Retired) }
+  guard value.child is Some(child) else { return Err(Retired) }
+  match @resources.check_imported_original_child_ledger(child, ledger) {
+    Err(issue) => return Err(Import(issue))
+    Ok(_) => ()
+  }
   match @resources.check_original_resources_mutable(ledger) {
     Err(issue) => Err(Resource(issue))
     Ok(_) => Ok(ledger)
@@ -161,8 +166,10 @@ pub fn attach_installed_source_read_acquisition(
   }
   if value.acquisition is Some(original) {
     if !physical_equal(original, acquisition) ||
-      !(value.declaration is Some(selected) && physical_equal(selected, declaration)) ||
-      !(value.requirement is Some(selected) && physical_equal(selected, requirement)) {
+      !(value.declaration is Some(selected) &&
+      physical_equal(selected, declaration)) ||
+      !(value.requirement is Some(selected) &&
+      physical_equal(selected, requirement)) {
       return Err(AlreadyBound)
     }
     return Ok(())

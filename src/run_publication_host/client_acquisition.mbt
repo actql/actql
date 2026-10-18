@@ -146,7 +146,10 @@ pub fn client_query_requirement_matches_effect_program(
   requirement : @planning.QueryRequirement,
 ) -> Bool {
   client_query_requirement_matches_program(
-    client_effect_program_view(prepared), stage, source_index, requirement,
+    client_effect_program_view(prepared),
+    stage,
+    source_index,
+    requirement,
   )
 }
 
