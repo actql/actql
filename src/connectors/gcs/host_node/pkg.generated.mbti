@@ -73,6 +73,8 @@ pub fn gcs_object_mutation_binding(String, String, String, String, String, Strin
 
 pub fn gcs_object_mutation_kind(@catalog.ObjectMutationBinding) -> String
 
+pub fn gcs_object_mutation_mapping_json(@catalog.ObjectMutationBinding, String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]
+
 pub fn gcs_object_patch_effect_target(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]
 
 pub fn gcs_object_prepare_delete(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata) -> Result[@catalog.ObjectMutationRequest, GcsFailure]
