@@ -55,3 +55,27 @@ test('unsupported caller objects refuse before traps without consuming the suppo
     'console.log("initial-control-closed");',
   ].join('\n'));
 });
+
+test('partial initialization retains the actual marker FD until its same close-only duty acknowledges', async () => {
+  await actualHost([
+    'const {createRequire,syncBuiltinESMExports}=await import("node:module");',
+    'const require=createRequire(import.meta.url); const fs=require("node:fs/promises");',
+    'const originalOpen=fs.open; let allow=false, closes=0, held, originalClose;',
+    // Fault only the actual newly acquired physical FileHandle. Neither the
+    // startup/Host nor the scope/cleanup Owner is replaced with a test double.
+    'fs.open=async function(path,...args){const handle=await Reflect.apply(originalOpen,this,[path,...args]);',
+    'if(String(path).endsWith("/host-format.json")){held=handle;originalClose=handle.close;',
+    'handle.close=function(){assert.equal(this,held);closes++;return allow?Reflect.apply(originalClose,held,[]):false;};}return handle;};',
+    'syncBuiltinESMExports();',
+    'let failure;try{await open();assert.fail("Host must not be handed off");}catch(cause){failure=cause;}',
+    'finally{fs.open=originalOpen;syncBuiltinESMExports();}',
+    'assert.ok(held);assert.ok(failure.cleanupHandle);',
+    'assert.equal(failure.cleanupHandle.status().pending,true);',
+    'await failure.cleanupHandle.retry();assert.equal(failure.cleanupHandle.status().pending,true);',
+    'const before=closes;allow=true;',
+    'await failure.cleanupHandle.retry();assert.equal(failure.cleanupHandle.status().pending,false);',
+    'assert.ok(closes>before);',
+    'await assert.rejects(open(),{code:"NodeInitialControlInputUnavailable"});',
+    'console.log("initial-control-closed");',
+  ].join('\n'));
+});
