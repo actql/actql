@@ -140,7 +140,7 @@ test('actual public facade and SDK Remote dispatch do not acquire the Local load
     'assert.strictEqual(facade.ClientError,sdk.ClientError);assert.strictEqual(facade.RequestHeld,sdk.RequestHeld);'+
     'let calls=0;const originalFetch=globalThis.fetch;'+
     'globalThis.fetch=async()=>{calls++;throw Error("ControlledTransportStop");};'+
-    'try{for(const mode of ["remote","local"])await assert.rejects(facade.connect({mode,endpoint:"https://host.example/",token:()=>"fixture-only"}),{code:"ClientTransportUnknown"});}'+
+    'try{for(const mode of ["remote","local"])await assert.rejects(facade.connect({mode,owner:mode,endpoint:"https://host.example/",token:()=>"fixture-only"}),{code:"ClientTransportUnknown"});}'+
     'finally{globalThis.fetch=originalFetch;}'+
     'assert.equal(calls,2);'+
     'for(let i=0;i<names.length;i++)assert.deepEqual(Object.getOwnPropertyDescriptor(Module,names[i]),before[i]);'+
