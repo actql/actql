@@ -53421,6 +53421,167 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/host-node/installed-project-connections.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "f75fb23195b403cb1142c7b04c4e7e21c65e5028b542c4a5703e0f5ad821d4bf",
+      "role": "physical-io",
+      "owner": "Existing Project configuration and installed Host acquisition Owners",
+      "exports": [
+        "loadInstalledProjectConnections"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledProjectConnections",
+          "parameters": [
+            "moon",
+            "project",
+            "assertCurrent",
+            "openFile"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledProjectConnections/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledProjectConnections/init:originalsForRuntime/init:originalsForRuntime",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "loadInstalledProjectConnections",
+            "loadInstalledProjectConnections/check/check",
+            "loadInstalledProjectConnections/init:originalsForRuntime/init:originalsForRuntime"
+          ],
+          "exports": [
+            "loadInstalledProjectConnections"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original public connection declarations"
+              },
+              {
+                "path": "adapters/host-node/installed-project-connections.mjs",
+                "anchor": "// Same-project declaration acquisition only."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_project_connections.mbt",
+                "anchor": "pub fn admit_client_project_connections("
+              },
+              {
+                "path": "adapters/host-node/installed-project-connections.mjs",
+                "anchor": "const original = Object.freeze({project: projectOriginal, path, wire, connections});"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-project-connections.mjs",
+                "anchor": "const projectOriginal = installedProjectOriginalsForRuntime(project, moon);"
+              },
+              {
+                "path": "src/run_publication_host/client_project_connections.mbt",
+                "anchor": "let span = @decode.cursor_span(value)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "let original = await openFile(path, 'r');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-connections.mjs",
+                "anchor": "// failures retain the original FD on the existing reader's cleanup carrier."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-connections.mjs",
+                "anchor": "const select = moon?.clientProjectConfigurationConnectorsFile;"
+              },
+              {
+                "path": "adapters/host-node/installed-project-connections.mjs",
+                "anchor": "const admit = moon?.clientProjectConnectionsAdmit;"
+              },
+              {
+                "path": "adapters/host-node/installed-project-connections.mjs",
+                "anchor": "checked(Reflect.apply(admit, moon, [wire]));"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-connections.mjs",
+                "anchor": "fail('InvalidInstalledProjectConnectionsSelection');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-connections.actual.test.mjs",
+                "anchor": "test('actual Common refuses malformed or missing selected connections without a plain fallback'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-project-connections.mjs",
+                "anchor": "assertCurrent();"
+              },
+              {
+                "path": "adapters/host-node/installed-project-connections.actual.test.mjs",
+                "anchor": "test('actual project connection acquisition refuses currentness loss after its original read'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The existing installation inventory must cover the Project and view references,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-connections.mjs",
+                "anchor": "await readBoundedConfigurationUtf8(path, {maxBytes: 65536, openFile});"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_project_connections.mbt",
+                "anchor": "/// Connector-specific readers still validate every selected entry's fields."
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The projected originals"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-connections.actual.test.mjs",
+                "anchor": "test('actual Common project connections retain the same project and exact UTF8 entry bytes'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-connections.actual.test.mjs",
+                "anchor": "test('actual project connection acquisition retains a pending original FD and retries only close'"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "generated": [],
@@ -53433,10 +53594,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 126,
-    "operations": 3128,
-    "exports": 856,
-    "explicitContractGroups": 144
+    "modules": 127,
+    "operations": 3132,
+    "exports": 857,
+    "explicitContractGroups": 145
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }
