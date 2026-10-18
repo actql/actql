@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/bigquery/site/bigquery-sql-read.mjs",
-      "sha256": "924bd4b142c535f537e594bc95fa097cc43c2a49a6a92d5a36dc4f67860118a0",
+      "sha256": "a46c18b81cf049e2deca5cafa5413484e46c2264cec237c43084bbddd411b7b5",
       "exports": [
         "BIGQUERY_SQL_READ_OPERATION",
         "readBigQuerySqlApi"
