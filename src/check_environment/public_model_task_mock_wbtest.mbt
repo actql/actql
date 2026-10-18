@@ -141,6 +141,39 @@ test "mock execution originals are bounded no-retry and admitted by the same Tas
     model_dependency_identity(single_attempt_model_prompt(dependencies)),
     prompt_cid,
   )
+  let original_prompt = single_attempt_model_prompt(dependencies)
+  assert_true(
+    normalized_public_mock_model_task_matches_prompt(
+      normalized, declaration, profile, task, original_prompt,
+    ),
+  )
+  assert_false(
+    normalized_public_mock_model_task_matches_prompt(
+      normalized,
+      declaration,
+      profile,
+      task,
+      { ..original_prompt, kind: ModelRetryPolicy, },
+    ),
+  )
+  assert_false(
+    normalized_public_mock_model_task_matches_prompt(
+      normalized,
+      declaration,
+      profile,
+      task,
+      { ..original_prompt, payload: None, },
+    ),
+  )
+  assert_false(
+    normalized_public_mock_model_task_matches_prompt(
+      normalized,
+      declaration,
+      profile,
+      task,
+      { ..original_prompt, cid: materials.3, },
+    ),
+  )
   let changed = { ..execution, ceilings: execution.ceilings.copy(), }
   changed.ceilings[0] = 2L
   assert_false(model_mock_execution_matches(profile, normalized, changed))
