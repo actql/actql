@@ -429,12 +429,9 @@ fn initial_crypto_hex_recipe(value : String) -> Bytes raise ClientStop {
       stop("InitialCryptoProfileUnavailable")
     }
   }
-  let bytes = Bytes::make(32, 0)
-  for index in 0..<32 {
-    bytes[index] = (digit(encoded[index * 2]) * 16 +
-    digit(encoded[index * 2 + 1])).to_byte()
-  }
-  bytes
+  Bytes::makei(32, index => {
+    (digit(encoded[index * 2]) * 16 + digit(encoded[index * 2 + 1])).to_byte()
+  })
 }
 
 ///|
