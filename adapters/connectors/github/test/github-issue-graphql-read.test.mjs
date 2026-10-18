@@ -585,3 +585,43 @@ test('actual RowRun refuses copied foreign reused and observed-only tickets with
   observed.observe(observation);
   assert.throws(() => observed.page([], 1, {charge: observation}));
 });
+
+
+test('cancellation after an actual response retains the original pending or consumed ticket without another send', async t => {
+  for (const phase of ['charge', 'observation']) {
+    const state = world();
+    state.repositories.get('R_A').issues = [{number: 7,
+      labels: Array.from({length: 101}, (_, index) => `label-${index}`)}];
+    const context = await setup(t, state, {accounted: true});
+    const controller = new AbortController();
+    const stop = Object.assign(new Error('OriginalReadStopped'), {code: 'OriginalReadStopped'});
+    let response;
+    let published = 0;
+    const failure = await stopOf(context.read({signal: controller.signal,
+      callResource: async request => {
+        response = await callHttpsCredentialResource(request); return response;
+      },
+      chargePage: async body => {
+        const ticket = context.rowRun.charge(body);
+        if (phase === 'charge') { await Promise.resolve(); controller.abort(stop); }
+        return ticket;
+      },
+      consumeObservation: async ticket => {
+        context.rowRun.observe(ticket);
+        if (phase === 'observation') { await Promise.resolve(); controller.abort(stop); }
+      },
+      consumePage: () => { published++; },
+    }));
+    assert.equal(failure.code, stop.code, phase);
+    assert.equal(failure.cause, stop, phase);
+    assert.deepEqual(failure.acceptedPages, [], phase);
+    assert.equal(published, 0, phase);
+    assert.equal(context.fixture.seen().length, 1, phase);
+    assert.equal(context.journal.recover()[0].outcome, 'succeeded', phase);
+    assert.deepEqual(context.rowRun.counts(), {charges: 1,
+      observations: phase === 'observation' ? 1 : 0}, phase);
+    assert.equal(context.rowRun.transferredBytes(), BigInt(response.body.byteLength), phase);
+    withHttpsCredentialRunResponseOriginal(response, context.credential.control,
+      context.journal, facts => { assert.equal(facts.response, response); });
+  }
+});
