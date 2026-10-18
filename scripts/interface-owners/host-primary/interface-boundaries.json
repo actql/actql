@@ -1223,7 +1223,7 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
-      "sha256": "60881213ffe3d5b634caee64d95c425fea5296dc1ad288385cb222952fa3b9b2",
+      "sha256": "c82423bc9ee3d19dd6d06dc4cbfcdc111ca7a999c0368c8233a8eee6a9c5843b",
       "exports": [
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
@@ -1507,6 +1507,13 @@
           "name": "installNodeClientDispatchOwner/start/start/start/capacities/capacities",
           "parameters": [
             "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/init:capture/init:capture",
+          "parameters": [
+            "scope"
           ],
           "async": false
         },
@@ -1897,8 +1904,94 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "installNodeClientDispatchOwner/start/start/start/init:capture/init:capture"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed provider operation may additionally retain its exact first"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-source-operation.mjs",
+                "anchor": "export function bindClientSourceOperationRowRun(source, moon, program,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal and Store receiver remain one pair; neither a lookup result nor a"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each checked Source occurrence retains one original preparation and RowRun"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "commits the exact record under the original Run and task occurrence before"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "lost original-record COMMIT reply keeps the saved material and never enters or replaces the send"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "current cancellation after scope issue refuses before recording or physical send"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "original bindings remain unavailable. Original Strings, row bindings, SQLite"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "lookup yields unresolved original DATA only; it does not reconstruct a live"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "confirmed same-Journal physical claim issues one original scope and commits exact material before send"
+              },
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "an unavailable Common original Job/RowRun projection cannot be replaced by frame DATA"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/acquisition-outcome.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/diagnostic-observer.mjs",
+        "../host-common/runtime-result.mjs",
+        "../host-common/task-observation.mjs",
+        "./client-source-operation.mjs",
+        "./entry.mjs",
+        "./installed-source.mjs",
+        "./local-values-plan.mjs",
+        "./ordinary-source-binding.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/effect-command-key.mjs",

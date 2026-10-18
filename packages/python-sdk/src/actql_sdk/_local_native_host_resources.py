@@ -211,6 +211,9 @@ class _OriginalHostResourcesCustody:
         for parent in (self._read, self._sqlite, self._read._domain, self._sqlite._domain):
             if parent._unknown is not None:
                 raise parent._unknown
+        if operation in (3, 4, 6, 7, 9):
+            from ._local_native_adoption import _require_adoption_retired
+            _require_adoption_retired(self._read)
         if ((operation == 9) != (claim_quote is not None)
                 or (claim_quote is not None
                     and (type(claim_quote) is not tuple or len(claim_quote) != 2
@@ -297,6 +300,8 @@ class _OriginalHostResourcesCustody:
         if self._unknown is not None:
             raise self._unknown
         if not self._closed:
+            from ._local_native_adoption import _require_adoption_retired
+            _require_adoption_retired(self._read)
             # Foreign-response uncertainty or pending metadata belongs to those
             # same child wrappers even if a physical close may have completed.
             from ._local_native_sqlite_database import _RETIRED_DATABASE_DATA

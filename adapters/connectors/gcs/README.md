@@ -10,15 +10,16 @@ capability or make an installation available.
 
 ## Exact ordinary object rows
 
-The ordinary `updated` field enters the existing millisecond UTC Timestamp
-contract. The portable GCS owner converts RFC 3339 whole seconds, exact
-millisecond fractions and offsets to the same UTC instant, with no Host Date
-parser. Extra fractional digits are accepted only when they are zero; a
-sub-millisecond instant is refused rather than rounded or silently omitted.
+The ordinary `updated` field enters the existing exact UTC Timestamp contract.
+The portable GCS owner converts RFC 3339 whole seconds, up to nine fractional
+digits and offsets to the same UTC instant, with no Host Date parser or
+binary64 conversion. Millisecond values retain their exact `.SSSZ` bytes;
+finer values keep only significant extra digits and are never rounded.
 The original provider spelling and physical page digest remain unchanged.
-Such refused precision remains a representation limitation, not completed
-coverage of every possible GCS timestamp. The bounded temporary timestamp
-prefix/fraction/zone/output strings and existing calendar conversion workspace
+The original physical spelling, calendar and offset grammar and range checks
+remain in force; more than nine fractional digits still refuse. The bounded
+temporary timestamp prefix/fraction/zone/output strings, exact seconds and
+nanosecond fields, and existing calendar conversion workspace
 belong to the same Source parser/row envelope, not a free byte grant.
 
 Ordinary and keyed physical RowRun pages use the shared preserving UTF-8/JSON

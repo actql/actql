@@ -181,8 +181,9 @@ pub fn object_metadata_page_row_json(
 
 ///|
 // RFC 3339 provider text becomes the same UTC instant in the existing
-// millisecond Timestamp carrier. Never round sub-millisecond provider data or
-// change the retained physical report. An unrepresentable instant refuses.
+// exact Timestamp carrier. Preserve up to nine fractional digits without binary64,
+// rounding or a Host Date. The retained physical report is independent.
+// An unrepresentable instant refuses.
 fn object_source_timestamp(text : String) -> String? {
   if text.length() < 20 || text.length() > 35 {
     return None
@@ -202,25 +203,22 @@ fn object_source_timestamp(text : String) -> String? {
     }
     fraction = text[start:position].to_owned()
   }
-  if fraction.length() > 3 {
-    for index in 3..<fraction.length() {
-      if fraction[index] != '0' {
-        return None
-      }
-    }
-    fraction = fraction[:3].to_owned()
+  let mut nanoseconds = 0
+  for unit in fraction {
+    nanoseconds = nanoseconds * 10 + unit.to_int() - 48
   }
-  while fraction.length() < 3 {
-    fraction += "0"
+  for _ in fraction.length()..<9 {
+    nanoseconds *= 10
   }
-  let utc_spelling = text[:19].to_owned() + "." + fraction + "Z"
-  guard @admitted.timestamp_epoch_milliseconds(utc_spelling)
-    is Some(milliseconds) else {
+  // Validate the original local calendar fields separately from the exact
+  // fraction. Offset arithmetic uses floored seconds, including before epoch.
+  let local_spelling = text[:19].to_owned() + ".000Z"
+  guard @admitted.timestamp_instant(local_spelling) is Some(instant) else {
     return None
   }
   let zone = text[position:].to_owned()
   if zone == "Z" {
-    return Some(utc_spelling)
+    return @admitted.epoch_parts_timestamp(instant.seconds, nanoseconds)
   }
   if zone.length() != 6 || (zone[0] != '+' && zone[0] != '-') || zone[3] != ':' {
     return None
@@ -235,13 +233,14 @@ fn object_source_timestamp(text : String) -> String? {
   if hours > 23 || minutes > 59 {
     return None
   }
-  let offset = (hours * 60 + minutes).to_int64() * 60000L
-  @admitted.epoch_milliseconds_timestamp(
+  let offset = (hours * 60 + minutes).to_int64() * 60L
+  @admitted.epoch_parts_timestamp(
     if zone[0] == '+' {
-      milliseconds - offset
+      instant.seconds - offset
     } else {
-      milliseconds + offset
+      instant.seconds + offset
     },
+    nanoseconds,
   )
 }
 

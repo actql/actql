@@ -19,6 +19,8 @@ pub struct SlackMessageHistory {
   priv mut phase : SlackMessageHistoryPhase
   priv mut pending : SlackMessageHistoryRequest?
   priv mut last_page : SlackMessagePage?
+  priv pages : Array[SlackMessagePage]
+  priv mut completed : Bool
   priv seen_cursors : Map[String, Bool]
   priv seen_ids : Map[String, Bool]
 }
@@ -60,6 +62,8 @@ pub fn prepare_slack_message_history(
     phase: Ready,
     pending: None,
     last_page: None,
+    pages: [],
+    completed: false,
     seen_cursors: Map([]),
     seen_ids: Map([]),
   })
@@ -145,6 +149,7 @@ pub fn admit_slack_message_history_page(
     }
     history.seen_ids[id] = true
   }
+  history.pages.push(page)
   history.phase = Page
   Ok(page)
 }
@@ -179,6 +184,7 @@ pub fn next_slack_message_history_request(
     return Err(HistoryUnavailable)
   }
   if page.next_cursor is None && !page.has_more {
+    history.completed = true
     history.phase = Complete
     return Ok(None)
   }

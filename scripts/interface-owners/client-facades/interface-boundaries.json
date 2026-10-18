@@ -2374,7 +2374,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "preload consumes generated inventory without issuing a Scope"
+                "anchor": "preload refuses unsupported raw input before its Host consumer"
               },
               {
                 "path": "scripts/initial-control-public-dispatch.test.mjs",
@@ -3073,7 +3073,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "preload consumes generated inventory without issuing a Scope"
+                "anchor": "preload refuses unsupported raw input before its Host consumer"
               },
               {
                 "path": "scripts/initial-control-public-dispatch.test.mjs",
@@ -13216,7 +13216,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "preload consumes generated inventory without issuing a Scope"
+                "anchor": "preload refuses unsupported raw input before its Host consumer"
               },
               {
                 "path": "scripts/initial-control-public-dispatch.test.mjs",
@@ -13365,7 +13365,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "preload consumes generated inventory without issuing a Scope"
+                "anchor": "preload refuses unsupported raw input before its Host consumer"
               },
               {
                 "path": "scripts/initial-control-public-dispatch.test.mjs",

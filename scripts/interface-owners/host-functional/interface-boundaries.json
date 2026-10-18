@@ -16773,7 +16773,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d31f681c6ce02fe54676d62055cd649bc1a5bf92116c7e0c874a5c03c38e808c",
+      "sha256": "3366b9eb971bb075dc2ae338f77f64b894696c1384190f2ce853573ced0b9818",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -17138,7 +17138,8 @@
             "maxRunDefinitionWireBytes",
             "submissionEpochTtlMs",
             "submissionEpochNow",
-            "updateOriginalControl"
+            "updateOriginalControl",
+            "sourceOperationLimits"
           ],
           "async": false
         },
@@ -17480,6 +17481,14 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:lookupOriginalSourceOperation/init:lookupOriginalSourceOperation",
+          "parameters": [
+            "ref",
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:lookupOwnedDefinition/init:lookupOwnedDefinition",
           "parameters": [
             "key",
@@ -17776,20 +17785,21 @@
             "namespaceId",
             "ref",
             "currentAuthorization",
+            "captureSourceOperation",
             "requestControl",
             "publicationControl"
           ],
           "async": false
         },
         {
-          "name": "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/init:reservePhysicalStart",
+          "name": "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/started/started",
           "parameters": [
             "error"
           ],
           "async": false
         },
         {
-          "name": "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/init:reservePhysicalStart#2",
+          "name": "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/started/started#2",
           "parameters": [],
           "async": false
         },
@@ -17932,6 +17942,11 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/openClientRequestJournal#8",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/originalIntent/originalIntent",
           "parameters": [
             "intent",
@@ -18029,6 +18044,13 @@
         },
         {
           "name": "openClientRequestJournal/retainedRestart/retainedRestart/admitRef/admitRef",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/sourceOperations/sourceOperations",
           "parameters": [
             "ref"
           ],
@@ -18347,8 +18369,6 @@
             "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch",
             "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch#2",
             "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart",
-            "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/init:reservePhysicalStart",
-            "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/init:reservePhysicalStart#2",
             "openClientRequestJournal/journal/init:resolveDefinition/init:resolveDefinition",
             "openClientRequestJournal/journal/init:retireSubmittedIntent/init:retireSubmittedIntent",
             "openClientRequestJournal/journal/init:retireSubmittedIntent/init:retireSubmittedIntent/init:retireSubmittedIntent",
@@ -19110,6 +19130,82 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openClientRequestJournal/journal/init:lookupOriginalSourceOperation/init:lookupOriginalSourceOperation",
+            "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/started/started",
+            "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/started/started#2",
+            "openClientRequestJournal/openClientRequestJournal#8",
+            "openClientRequestJournal/sourceOperations/sourceOperations"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed provider operation may additionally retain its exact first"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-source-operation.mjs",
+                "anchor": "export function bindClientSourceOperationRowRun(source, moon, program,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal and Store receiver remain one pair; neither a lookup result nor a"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each checked Source occurrence retains one original preparation and RowRun"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "commits the exact record under the original Run and task occurrence before"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "lost original-record COMMIT reply keeps the saved material and never enters or replaces the send"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "current cancellation after scope issue refuses before recording or physical send"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "original bindings remain unavailable. Original Strings, row bindings, SQLite"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "lookup yields unresolved original DATA only; it does not reconstruct a live"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "confirmed same-Journal physical claim issues one original scope and commits exact material before send"
+              },
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "an unavailable Common original Job/RowRun projection cannot be replaced by frame DATA"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -19121,6 +19217,7 @@
         "../host-common/sqlite-format-inspection.mjs",
         "../host-common/sqlite-transaction.mjs",
         "./client-observation-journal.mjs",
+        "./client-source-operation.mjs",
         "./local-account-config.mjs",
         "./local-values-capacity.mjs",
         "./ordinary-source-binding.mjs",
@@ -28354,7 +28451,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "preload consumes generated inventory without issuing a Scope"
+                "anchor": "preload refuses unsupported raw input before its Host consumer"
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
@@ -29252,7 +29349,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-image-source.cjs",
-      "sha256": "b9c85060f96db776f437ab45d52f4eb139985fd5138b14234f013cadd882a138",
+      "sha256": "ded10c0291b112d5cd79668904407902ceea2d20775173493bb24522bd33abf8",
       "exports": [
         "commonjs:captureInitialControlImageSource"
       ],
@@ -29365,6 +29462,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "asynchronous begin snapshots five originals before initialization"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The owned release-cohort transformation may change only the packaged manifest"
               }
             ],
             "ownership": [
@@ -29403,6 +29504,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "failed asynchronous initialization preserves its exact cause"
+              },
+              {
+                "path": "scripts/initial-control-release-metadata.test.mjs",
+                "anchor": "the exact original and normal release metadata bytes are distinct admitted representations"
               }
             ],
             "cancellation": [
@@ -29431,6 +29536,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the two bound manifest extents once before capture. Admitting this representation"
               }
             ],
             "extension": [
@@ -29459,6 +29568,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
+              },
+              {
+                "path": "scripts/initial-control-release-metadata.test.mjs",
+                "anchor": "a normal staged cohort captures exact release images and refuses mixed or changed metadata before entry"
               }
             ]
           }
@@ -29980,7 +30093,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "preload consumes generated inventory without issuing a Scope"
+                "anchor": "preload refuses unsupported raw input before its Host consumer"
               }
             ]
           }
@@ -29990,7 +30103,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "7d80e015c2fb64cf54faab497474705a2518ea833f1bd83047fd929eab3b0df2",
+      "sha256": "b7cb63f6bb3d5208bcb3278b4a382f85a15b9e87ca6989b68a28015c460ddd27",
       "exports": [
         "commonjs:captureInitialControlPackageCustody"
       ],
@@ -30024,7 +30137,9 @@
             "directory",
             "facts",
             "expectedName",
-            "expectedVersion"
+            "expectedVersion",
+            "expectedReleaseVersion",
+            "expectedRepresentation"
           ],
           "async": false
         },
@@ -30085,6 +30200,14 @@
           "async": false
         },
         {
+          "name": "optionalField/optionalField",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "own/own",
           "parameters": [
             "value",
@@ -30121,6 +30244,7 @@
             "concrete/concrete",
             "concrete/concrete/concrete",
             "fail/fail",
+            "optionalField/optionalField",
             "own/own"
           ],
           "exports": [
@@ -30155,6 +30279,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Its generated facts identify its original public entry and dependencies, with"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The owned release-cohort transformation may change only the packaged manifest"
               }
             ],
             "ownership": [
@@ -30181,6 +30309,10 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
                 "anchor": "a mismatched captured package image refuses before Host and entry compilation"
+              },
+              {
+                "path": "scripts/initial-control-release-metadata.test.mjs",
+                "anchor": "the exact original and normal release metadata bytes are distinct admitted representations"
               }
             ],
             "cancellation": [
@@ -30201,6 +30333,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The extra Source Strings, manifests, dependency paths, image/namespace records,"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the two bound manifest extents once before capture. Admitting this representation"
               }
             ],
             "extension": [
@@ -30241,6 +30377,10 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
                 "anchor": "a public Node dependency cannot substitute a distinct Local installation"
+              },
+              {
+                "path": "scripts/initial-control-release-metadata.test.mjs",
+                "anchor": "a normal staged cohort captures exact release images and refuses mixed or changed metadata before entry"
               }
             ]
           }
@@ -30401,7 +30541,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-phase-envelope.cjs",
-      "sha256": "435aa89eb69a5aacda846ba346ebaa966ad4a0d01b345db35f3ed4bab32b3d1d",
+      "sha256": "d7a9161ece3649b8fbbf743ac26a40a8c3ed0fc25980539b273dc9ee43093c30",
       "exports": [
         "commonjs:declareInitialControlPhaseEnvelope",
         "commonjs:inspectInitialControlPhaseEnvelope"
@@ -30501,6 +30641,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The owned release-cohort transformation may change only the packaged manifest"
               }
             ],
             "ownership": [
@@ -30531,6 +30675,10 @@
               {
                 "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
                 "anchor": "the selected backend and every actual native library identity must correspond before capture"
+              },
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "anchor": "a release representation getter cannot be acquired as ordinary image DATA"
               }
             ],
             "cancellation": [
@@ -30551,6 +30699,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the two bound manifest extents once before capture. Admitting this representation"
               }
             ],
             "extension": [
@@ -30571,6 +30723,14 @@
               {
                 "path": "adapters/host-node/initial-control-finite-host.test.mjs",
                 "anchor": "partial initialization retains the actual marker FD until its same close-only duty acknowledges"
+              },
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "anchor": "manifest alternatives charge the larger exact representation once"
+              },
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "anchor": "an invalid original extent refuses before numeric conversion of manifest alternatives"
               }
             ]
           }
@@ -58228,6 +58388,299 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/host-node/client-source-operation.mjs",
+      "sha256": "4592d8a0d86bd47c91e750f611e7676dede25dbd1bd0555cbf00c7cffef66562",
+      "exports": [
+        "bindClientSourceOperation",
+        "bindClientSourceOperationRowRun",
+        "clientSourceOperationStorage",
+        "inspectClientSourceOperationStorage",
+        "snapshotClientSourceOperationLimits",
+        "sourceOperationTable"
+      ],
+      "operations": [
+        {
+          "name": "bindClientSourceOperation",
+          "parameters": [
+            "scope",
+            "journal",
+            "store",
+            "program",
+            "preparedSource",
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindClientSourceOperationRowRun",
+          "parameters": [
+            "source",
+            "moon",
+            "program",
+            "preparedSource",
+            "frame"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindClientSourceOperationRowRun/bindClientSourceOperationRowRun",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindClientSourceOperationRowRun/port/withOriginalJob",
+          "parameters": [
+            "original",
+            "sendOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindClientSourceOperationRowRun/port/withOriginalJob/withOriginalJob",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientSourceOperationStorage",
+          "parameters": [
+            "database",
+            "ensureOpen",
+            "transact",
+            "readRun",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientSourceOperationStorage/currentRun/currentRun",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientSourceOperationStorage/init:issue/init:issue",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientSourceOperationStorage/init:issue/init:issue/init:issue",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "clientSourceOperationStorage/init:issue/init:issue/persist/persist",
+          "parameters": [
+            "occurrence",
+            "frame",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientSourceOperationStorage/init:issue/init:issue/persist/persist/persist",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientSourceOperationStorage/init:issue/init:issue/persist/persist/persist#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "clientSourceOperationStorage/init:lookup/init:lookup",
+          "parameters": [
+            "ref",
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientSourceOperationStorage/key/key",
+          "parameters": [
+            "ref",
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "coordinate/coordinate",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "coordinate/coordinate/coordinate",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause",
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectClientSourceOperationStorage",
+          "parameters": [
+            "database"
+          ],
+          "async": false
+        },
+        {
+          "name": "ordinal/ordinal",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotClientSourceOperationLimits",
+          "parameters": [
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotClientSourceOperationLimits/snapshotClientSourceOperationLimits",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotClientSourceOperationLimits/snapshotClientSourceOperationLimits#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing Client request/Run Journal and original Source operation custody",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "bindClientSourceOperation",
+            "bindClientSourceOperationRowRun",
+            "bindClientSourceOperationRowRun/bindClientSourceOperationRowRun",
+            "bindClientSourceOperationRowRun/port/withOriginalJob",
+            "bindClientSourceOperationRowRun/port/withOriginalJob/withOriginalJob",
+            "clientSourceOperationStorage",
+            "clientSourceOperationStorage/currentRun/currentRun",
+            "clientSourceOperationStorage/init:issue/init:issue",
+            "clientSourceOperationStorage/init:issue/init:issue/init:issue",
+            "clientSourceOperationStorage/init:issue/init:issue/persist/persist",
+            "clientSourceOperationStorage/init:issue/init:issue/persist/persist/persist",
+            "clientSourceOperationStorage/init:issue/init:issue/persist/persist/persist#2",
+            "clientSourceOperationStorage/init:lookup/init:lookup",
+            "clientSourceOperationStorage/key/key",
+            "coordinate/coordinate",
+            "coordinate/coordinate/coordinate",
+            "fail/fail",
+            "inspectClientSourceOperationStorage",
+            "ordinal/ordinal",
+            "snapshotClientSourceOperationLimits",
+            "snapshotClientSourceOperationLimits/snapshotClientSourceOperationLimits",
+            "snapshotClientSourceOperationLimits/snapshotClientSourceOperationLimits#2"
+          ],
+          "exports": [
+            "bindClientSourceOperation",
+            "bindClientSourceOperationRowRun",
+            "clientSourceOperationStorage",
+            "inspectClientSourceOperationStorage",
+            "snapshotClientSourceOperationLimits",
+            "sourceOperationTable"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed provider operation may additionally retain its exact first"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-source-operation.mjs",
+                "anchor": "export function bindClientSourceOperationRowRun(source, moon, program,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal and Store receiver remain one pair; neither a lookup result nor a"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each checked Source occurrence retains one original preparation and RowRun"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "commits the exact record under the original Run and task occurrence before"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "lost original-record COMMIT reply keeps the saved material and never enters or replaces the send"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "current cancellation after scope issue refuses before recording or physical send"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "original bindings remain unavailable. Original Strings, row bindings, SQLite"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "lookup yields unresolved original DATA only; it does not reconstruct a live"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "confirmed same-Journal physical claim issues one original scope and commits exact material before send"
+              },
+              {
+                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "anchor": "an unavailable Common original Job/RowRun projection cannot be replaced by frame DATA"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "generated": [],
@@ -58240,10 +58693,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 127,
-    "operations": 3155,
-    "exports": 860,
-    "explicitContractGroups": 151
+    "modules": 136,
+    "operations": 3304,
+    "exports": 882,
+    "explicitContractGroups": 163
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }

@@ -36,6 +36,7 @@ import {openHttpsCredentialBinding, closeHttpsCredentialBinding} from
   '../site-node/https-credential-resource.mjs';
 import {readBoundedConfigurationText} from './source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
+import {bindClientSourceOperationRowRun} from './client-source-operation.mjs';
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
@@ -216,6 +217,7 @@ export function openRowSourceCredentialCustody({profile, principalId,
   let closing = false;
   let released = false;
   const runBindings = acquisitionLimits === undefined ? undefined : [];
+  const issuedRunAuthorizations = acquisitionLimits === undefined ? undefined : new WeakMap();
   let runJournalClose, runJournalFailure, runJournalCloseObservation;
   if (runBindings !== undefined) {
     // Capture before returning a borrow. A substituted method cannot retire
@@ -262,11 +264,17 @@ export function openRowSourceCredentialCustody({profile, principalId,
     const grant = control.prepare(scope);
     journal.acceptGrant(signRemoteCredentialGrant(grant, control, {
       keyId: profile.credentialKeyId, privateKey}), control);
-    return Object.freeze({grant, scope});
+    const authorization = Object.freeze({grant, scope});
+    issuedRunAuthorizations?.set(authorization, {state: 'unused'});
+    return authorization;
   }
   function closeRunBindings() {
     let pending = false;
     for (const original of runBindings ?? []) {
+      if (!original.closed && original.binding === undefined) {
+        pending = true;
+        continue;
+      }
       if (!original.closed) {
         original.closed = closeHttpsCredentialBinding(original.binding) === 'closed';
       }
@@ -317,6 +325,17 @@ export function openRowSourceCredentialCustody({profile, principalId,
     }
     const originalRequest = Object.freeze(Object.fromEntries(names.map(name =>
       [name, name === 'taskAttempt' && !Object.hasOwn(fields, name) ? 1 : fields[name].value])));
+    const {assertCurrent, observeCurrent} = captureRunCurrent(callbacks);
+    assertCurrent();
+    // Preserve the existing issue-and-bind caller. A Site that has already
+    // authorized and issued its grant uses bindRunAcquisition instead.
+    const authorization = sign(originalRequest);
+    return retainRunBinding(authorization, {assertCurrent, observeCurrent});
+  }
+  function captureRunCurrent(callbacks) {
+    if (callbacks === null || typeof callbacks !== 'object' || nodeTypes.isProxy(callbacks)) {
+      fail('InvalidRowSourceCredentialAcquisitionCurrent');
+    }
     const methods = Object.getOwnPropertyDescriptors(callbacks);
     if (Reflect.ownKeys(methods).length !== 2 || ['assertCurrent', 'observeCurrent'].some(name =>
       !methods[name] || !Object.hasOwn(methods[name], 'value') || typeof methods[name].value !== 'function')) {
@@ -338,21 +357,51 @@ export function openRowSourceCredentialCustody({profile, principalId,
       await Reflect.apply(originalObserve, undefined, []);
       assertCurrent();
     };
-    assertCurrent();
-    // Reuse the existing original issuer and seventeen-field preimage. The
-    // binding's stable fields do not replace each operation's nominal use.
-    const authorization = sign(originalRequest);
-    const binding = openHttpsCredentialBinding({scope: authorization.scope,
-      control, journal, resolveSecret, maxSecretBytes: acquisitionLimits.maxSecretBytes,
-      assertCurrent});
-    const original = {binding, closed: false};
+    return {assertCurrent, observeCurrent};
+  }
+  function retainRunBinding(authorization, {assertCurrent, observeCurrent}) {
+    ensureOpen();
+    if (acquisitionLimits === undefined) fail('RowSourceCredentialAcquisitionUnavailable');
+    if (runJournalFailure !== undefined) throw runJournalFailure;
+    const issued = issuedRunAuthorizations.get(authorization);
+    if (issued === undefined) fail('ForeignRowSourceCredentialAcquisitionAuthorization');
+    if (issued.state !== 'unused') fail('RowSourceCredentialAcquisitionAuthorizationConsumed');
+    if (runBindings.length >= acquisitionLimits.maxBindings) fail('RowSourceCredentialAcquisitionLimit');
+    // Retain the opening child before invoking a current callback. Reentrant
+    // close cannot ACK the Journal while this original binding is opening.
+    const original = {binding: undefined, closed: false};
+    issued.state = 'opening';
     runBindings.push(original);
+    try {
+      assertCurrent();
+      original.binding = openHttpsCredentialBinding({scope: authorization.scope,
+        control, journal, resolveSecret, maxSecretBytes: acquisitionLimits.maxSecretBytes,
+        assertCurrent});
+      issued.state = 'bound';
+    } catch (cause) {
+      // No physical binding was returned. Keep the original grant with its
+      // Journal and refuse another binding attempt under this authorization.
+      original.closed = true;
+      issued.state = 'failed';
+      throw cause;
+    }
     return Object.freeze({authorization,
-      credential: Object.freeze({...credential, binding, currentBeforeSend: observeCurrent}),
+      credential: Object.freeze({...credential, binding: original.binding,
+        currentBeforeSend: observeCurrent}),
       close() {
-        if (!original.closed) original.closed = closeHttpsCredentialBinding(binding) === 'closed';
+        if (!original.closed) original.closed = closeHttpsCredentialBinding(original.binding) === 'closed';
         return original.closed ? 'closed' : 'pending';
       }});
+  }
+  function bindRunAcquisition(authorization, callbacks) {
+    ensureOpen();
+    if (acquisitionLimits === undefined) fail('RowSourceCredentialAcquisitionUnavailable');
+    // Membership is the exact authorization returned by this existing issuer,
+    // not a re-admitted grant, equal CID, reconstructed scope or caller copy.
+    if (!issuedRunAuthorizations.has(authorization)) {
+      fail('ForeignRowSourceCredentialAcquisitionAuthorization');
+    }
+    return retainRunBinding(authorization, captureRunCurrent(callbacks));
   }
   function signInstallationMetadata({control: metadataControl, scope,
     expiresUnixMilliseconds, maxUses}) {
@@ -393,7 +442,8 @@ export function openRowSourceCredentialCustody({profile, principalId,
     }});
   }
   return Object.freeze({credential, sign, signInstallationMetadata,
-    installationMetadataJournal, openRunAcquisition, checkGrantRequest, ensureOpen,
+    installationMetadataJournal, openRunAcquisition, bindRunAcquisition,
+    checkGrantRequest, ensureOpen,
     referenceCurrent: () => !closing,
     // The existing generic entry calls its original journal close on every
     // close call. The Salesforce entry already skips an acknowledged close.
@@ -1747,7 +1797,8 @@ export async function createInstalledRowSource({moon, declaration,
   async function acquire(state, {preparedProgram, preparedEffect, registry,
     values, fragment, ordered, sourceAccess: access = sourceAccess, signal,
     preparedSource, retainedRelationOutput = false,
-    occurrence = {stage: 0, input: 0, task: 0}, ledger}, captureOnly = false) {
+    occurrence = {stage: 0, input: 0, task: 0}, ledger,
+    originalOperationScope}, captureOnly = false) {
     const prepared = preparedSource ?? await prepare({preparedProgram,
       preparedEffect, registry, values, fragment, ordered,
       sourceAccess: access, occurrence});
@@ -1843,13 +1894,18 @@ export async function createInstalledRowSource({moon, declaration,
       }
       if (!grantBeforeBegin) grant = issueGrant();
       state.started = true;
+      const rowRun = Object.freeze({acquisition, run, requestId: nonce,
+        runInvocationCid, dispatchRequestCid});
+      const withOriginalJob = originalOperationScope === undefined ? undefined
+        : bindClientSourceOperationRowRun(originalOperationScope, moon,
+          preparedProgram, prepared, rowRun);
       const readerOptions = {resource: owner.resource, columns, requestWire, preparedRead,
         operation, signal,
         verifyRead: () => currentRead(prepared, access, signal),
         // Same-runtime opaque borrowing for trusted installed adapters only.
         // The original Host keeps finish/capture/close and physical capacity.
-        rowRun: Object.freeze({acquisition, run, requestId: nonce,
-          runInvocationCid, dispatchRequestCid}),
+        rowRun,
+        ...(withOriginalJob === undefined ? {} : {withOriginalJob}),
         ...(isListing ? {listing: rowListingCallbacks({moon, run, signal,
           currentRead: () => currentRead(prepared, access, signal)})} : {}),
         // The current read decision is taken again before every request.

@@ -7325,7 +7325,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-source.mjs",
-      "sha256": "700f14ef4a1489a6f4655277f3b261923c23dca88cc0a8f84c3e654327410a71",
+      "sha256": "2b31e19c6c89c6c795c850ec943e6aa304cf775b9b274633fa5260dcc8b9b12b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
@@ -7414,6 +7414,7 @@
             "retainedRelationOutput",
             "occurrence",
             "ledger",
+            "originalOperationScope",
             "captureOnly"
           ],
           "async": true
@@ -7987,6 +7988,43 @@
           "async": false
         },
         {
+          "name": "openRowSourceCredentialCustody/bindRunAcquisition",
+          "parameters": [
+            "authorization",
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/captureRunCurrent",
+          "parameters": [
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/captureRunCurrent/captureRunCurrent",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/captureRunCurrent/observeCurrent/observeCurrent",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "openRowSourceCredentialCustody/checkGrantRequest",
           "parameters": [
             "runInvocationCid",
@@ -8080,26 +8118,6 @@
           "async": false
         },
         {
-          "name": "openRowSourceCredentialCustody/openRunAcquisition/assertCurrent/assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRunAcquisition/assertCurrent/assertCurrent/assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRunAcquisition/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRunAcquisition/observeCurrent/observeCurrent",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition",
           "parameters": [
             "name"
@@ -8121,17 +8139,24 @@
           "async": false
         },
         {
-          "name": "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#4",
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest",
           "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest",
+          "name": "openRowSourceCredentialCustody/retainRunBinding",
           "parameters": [
-            "name"
+            "authorization",
+            "assertCurrent",
+            "observeCurrent"
           ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/retainRunBinding/init:close/init:close",
+          "parameters": [],
           "async": false
         },
         {
@@ -8622,15 +8647,18 @@
             "openRowSourceCredentialCustody/openRowSourceCredentialCustody#4",
             "openRowSourceCredentialCustody/openRowSourceCredentialCustody#5",
             "openRowSourceCredentialCustody/openRunAcquisition",
-            "openRowSourceCredentialCustody/openRunAcquisition/assertCurrent/assertCurrent",
-            "openRowSourceCredentialCustody/openRunAcquisition/assertCurrent/assertCurrent/assertCurrent",
-            "openRowSourceCredentialCustody/openRunAcquisition/init:close/init:close",
-            "openRowSourceCredentialCustody/openRunAcquisition/observeCurrent/observeCurrent",
             "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition",
             "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#2",
             "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#3",
-            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#4",
-            "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest"
+            "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest",
+            "openRowSourceCredentialCustody/bindRunAcquisition",
+            "openRowSourceCredentialCustody/captureRunCurrent",
+            "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent",
+            "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent/assertCurrent",
+            "openRowSourceCredentialCustody/captureRunCurrent/captureRunCurrent",
+            "openRowSourceCredentialCustody/captureRunCurrent/observeCurrent/observeCurrent",
+            "openRowSourceCredentialCustody/retainRunBinding",
+            "openRowSourceCredentialCustody/retainRunBinding/init:close/init:close"
           ],
           "exports": [
             "createInstalledRowSource",
@@ -8665,6 +8693,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "When the same Site has already authorized and issued a grant,"
               }
             ],
             "inputsOutputs": [
@@ -8699,6 +8731,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindRunAcquisition(authorization, callbacks)"
               }
             ],
             "identity": [
@@ -8741,6 +8777,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "issuedRunAuthorizations.has(authorization)"
               }
             ],
             "ownership": [
@@ -8783,6 +8823,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "Retain the opening child before invoking a current callback"
               }
             ],
             "synchronization": [
@@ -8825,6 +8869,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "issued.state = 'opening'"
               }
             ],
             "failure": [
@@ -8863,6 +8911,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "issued.state = 'failed'"
               }
             ],
             "cancellation": [
@@ -8897,6 +8949,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const observeCurrent = async () =>"
               }
             ],
             "resources": [
@@ -8947,6 +9003,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Original issued-authorization membership also retains a private weak-map entry"
               }
             ],
             "extension": [
@@ -8977,6 +9037,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "signing another grant. Its private issuer membership rejects a wrapper copy,"
               }
             ],
             "verification": [
@@ -9039,6 +9103,22 @@
               {
                 "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
                 "anchor": "run acquisition custody waits through the final response observation"
+              },
+              {
+                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
+                "anchor": "authorized run acquisition binds the original issued grant without signing another grant"
+              },
+              {
+                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
+                "anchor": "authorized run acquisition retains the opening child across reentrant original Journal close"
+              },
+              {
+                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
+                "anchor": "authorized run acquisition refuses copied equal grant wrappers before current callbacks or I/O"
+              },
+              {
+                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
+                "anchor": "authorized run acquisition does not infer binding capacity from an existing grant"
               }
             ]
           }
@@ -9659,6 +9739,7 @@
         "../site-node/https-credential-resource.mjs",
         "../site-node/remote-credential-signature.mjs",
         "../site-node/sqlite-credential-journal.mjs",
+        "./client-source-operation.mjs",
         "./installed-host-cleanup.mjs",
         "./installed-row-listing.mjs",
         "./installed-row-run.mjs",
