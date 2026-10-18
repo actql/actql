@@ -18083,7 +18083,173 @@
       ],
       "contracts": [
         {
-          "operations": [],
+          "operations": [
+            "<module>",
+            "admission",
+            "admissionEvidenceShape",
+            "admissionEvidenceShape/admissionEvidenceShape",
+            "admissionEvidenceShape/admissionEvidenceShape#2",
+            "admitJournalDirectory",
+            "assertKeyedInventoryRequest",
+            "assertSourceInventory",
+            "checkedIdentity",
+            "checkedRunDefinition",
+            "checkStoredPlanOriginal",
+            "cid/cid",
+            "evidenceJson",
+            "fail/fail",
+            "freezeAdmissionEvidence",
+            "hexKey/hexKey",
+            "inspectCancellationStorage",
+            "inspectCancellationStorage/custodyFields/custodyFields",
+            "inspectCancellationStorage/fields/fields",
+            "inspectEpochStorage",
+            "inspectEpochStorage/fields/fields",
+            "inspectIntentRetirementStorage",
+            "inspectIntentRetirementStorage/fields/fields",
+            "inspectIntentStorage",
+            "inspectIntentStorage/fields/fields",
+            "inspectJournalSnapshot",
+            "inspectJournalSnapshot/inspectJournalSnapshot",
+            "inspectJournalSnapshot/inspectJournalSnapshot/fields/fields",
+            "inspectJournalSnapshot/inspectJournalSnapshot#2",
+            "inspectRestartStorage",
+            "inspectRestartStorage/custodyFields/custodyFields",
+            "inspectRestartStorage/fields/fields",
+            "inspectSubmissionStorage",
+            "inspectSubmissionStorage/fields/fields",
+            "instant/instant",
+            "journalColumns/journalColumns",
+            "logicalPlanOriginalShape",
+            "openClientRequestJournal",
+            "openClientRequestJournal/acceptRecord/acceptRecord",
+            "openClientRequestJournal/acceptRecord/acceptRecord/acceptRecord",
+            "openClientRequestJournal/acceptRecord/acceptRecord/outcome/outcome",
+            "openClientRequestJournal/acceptRecord/acceptRecord/outcome/outcome#2",
+            "openClientRequestJournal/admitRunDefinitionRow/admitRunDefinitionRow",
+            "openClientRequestJournal/assertCancellationCustody/assertCancellationCustody",
+            "openClientRequestJournal/assertIntentCustody/assertIntentCustody",
+            "openClientRequestJournal/assertRestartCustody/assertRestartCustody",
+            "openClientRequestJournal/assertSubmissionCustody/assertSubmissionCustody",
+            "openClientRequestJournal/authenticateEpoch/authenticateEpoch",
+            "openClientRequestJournal/cancellationAction/cancellationAction",
+            "openClientRequestJournal/cancellationDefinition/cancellationDefinition",
+            "openClientRequestJournal/cancellationIdentity/cancellationIdentity",
+            "openClientRequestJournal/cancellationKnownFailure/cancellationKnownFailure",
+            "openClientRequestJournal/cancellationReadmission/cancellationReadmission",
+            "openClientRequestJournal/checkRestartLocked/checkRestartLocked",
+            "openClientRequestJournal/checkSubmissionBinding/checkSubmissionBinding",
+            "openClientRequestJournal/closeObservationStorage/closeObservationStorage",
+            "openClientRequestJournal/ensureOpen/ensureOpen",
+            "openClientRequestJournal/epochClock/epochClock",
+            "openClientRequestJournal/epochHandle/epochHandle",
+            "openClientRequestJournal/journal/init:accept/init:accept",
+            "openClientRequestJournal/journal/init:acceptDefinition/init:acceptDefinition",
+            "openClientRequestJournal/journal/init:admitOrLookupDefinition/init:admitOrLookupDefinition",
+            "openClientRequestJournal/journal/init:checkSubmissionAttempt/init:checkSubmissionAttempt",
+            "openClientRequestJournal/journal/init:checkSubmissionAttempt/init:checkSubmissionAttempt/init:checkSubmissionAttempt",
+            "openClientRequestJournal/journal/init:checkSubmittedIntent/init:checkSubmittedIntent",
+            "openClientRequestJournal/journal/init:checkSubmittedIntent/init:checkSubmittedIntent/result/result",
+            "openClientRequestJournal/journal/init:close/init:close",
+            "openClientRequestJournal/journal/init:completeSubmittedIntent/init:completeSubmittedIntent",
+            "openClientRequestJournal/journal/init:completeSubmittedIntent/init:completeSubmittedIntent/init:completeSubmittedIntent",
+            "openClientRequestJournal/journal/init:installObservationProjection/init:installObservationProjection",
+            "openClientRequestJournal/journal/init:issueSubmissionEpoch/init:issueSubmissionEpoch",
+            "openClientRequestJournal/journal/init:issueSubmissionEpoch/init:issueSubmissionEpoch/init:issueSubmissionEpoch",
+            "openClientRequestJournal/journal/init:lookup/init:lookup",
+            "openClientRequestJournal/journal/init:lookupCancellationOperation/init:lookupCancellationOperation",
+            "openClientRequestJournal/journal/init:lookupCancellationOperation/init:lookupCancellationOperation/init:lookupCancellationOperation",
+            "openClientRequestJournal/journal/init:lookupDefinition/init:lookupDefinition",
+            "openClientRequestJournal/journal/init:lookupIdentity/init:lookupIdentity",
+            "openClientRequestJournal/journal/init:lookupOwnedDefinition/init:lookupOwnedDefinition",
+            "openClientRequestJournal/journal/init:lookupReconciliationState/init:lookupReconciliationState",
+            "openClientRequestJournal/journal/init:lookupRunDefinition/init:lookupRunDefinition",
+            "openClientRequestJournal/journal/init:lookupSubmittedIntent/init:lookupSubmittedIntent",
+            "openClientRequestJournal/journal/init:markPhysicalClose/init:markPhysicalClose",
+            "openClientRequestJournal/journal/init:markPhysicalClose/init:markPhysicalClose/init:markPhysicalClose",
+            "openClientRequestJournal/journal/init:markPhysicalClose/init:markPhysicalClose/init:markPhysicalClose#2",
+            "openClientRequestJournal/journal/init:markPreDispatchFailure/init:markPreDispatchFailure",
+            "openClientRequestJournal/journal/init:markPreDispatchFailure/init:markPreDispatchFailure/init:markPreDispatchFailure",
+            "openClientRequestJournal/journal/init:markPreDispatchFailure/init:markPreDispatchFailure/init:markPreDispatchFailure#2",
+            "openClientRequestJournal/journal/init:observationStorage/init:observationStorage",
+            "openClientRequestJournal/journal/init:observationStorage/init:observationStorage/init:close/init:close",
+            "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation",
+            "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation",
+            "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation",
+            "openClientRequestJournal/journal/init:publishRunState/init:publishRunState",
+            "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState",
+            "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState/init:publishRunState",
+            "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState#2",
+            "openClientRequestJournal/journal/init:recordCancellationAttempt/init:recordCancellationAttempt",
+            "openClientRequestJournal/journal/init:recordCancellationOperation/init:recordCancellationOperation",
+            "openClientRequestJournal/journal/init:recordCancellationOperation/init:recordCancellationOperation/init:recordCancellationOperation",
+            "openClientRequestJournal/journal/init:recordCancellationOperation/init:recordCancellationOperation/pending/pending",
+            "openClientRequestJournal/journal/init:recordReconciliationState/init:recordReconciliationState",
+            "openClientRequestJournal/journal/init:recordReconciliationState/init:recordReconciliationState/init:recordReconciliationState",
+            "openClientRequestJournal/journal/init:recordReconciliationState/init:recordReconciliationState/init:recordReconciliationState#2",
+            "openClientRequestJournal/journal/init:recordSubmissionAttempt/init:recordSubmissionAttempt",
+            "openClientRequestJournal/journal/init:recordSubmissionAttempt/init:recordSubmissionAttempt/init:recordSubmissionAttempt",
+            "openClientRequestJournal/journal/init:recordSubmittedIntent/init:recordSubmittedIntent",
+            "openClientRequestJournal/journal/init:recordSubmittedIntent/init:recordSubmittedIntent/result/result",
+            "openClientRequestJournal/journal/init:requestCancellation/init:requestCancellation",
+            "openClientRequestJournal/journal/init:requestCancellation/init:requestCancellation/init:requestCancellation",
+            "openClientRequestJournal/journal/init:requestCancellation/init:requestCancellation/init:requestCancellation#2",
+            "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch",
+            "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch",
+            "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch#2",
+            "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart",
+            "openClientRequestJournal/journal/init:resolveDefinition/init:resolveDefinition",
+            "openClientRequestJournal/journal/init:retireSubmittedIntent/init:retireSubmittedIntent",
+            "openClientRequestJournal/journal/init:retireSubmittedIntent/init:retireSubmittedIntent/init:retireSubmittedIntent",
+            "openClientRequestJournal/journal/init:submissionIdentity/init:submissionIdentity",
+            "openClientRequestJournal/journal/init:verifySubmissionEpoch/init:verifySubmissionEpoch",
+            "openClientRequestJournal/lookupRecord/lookupRecord",
+            "openClientRequestJournal/openClientRequestJournal",
+            "openClientRequestJournal/openClientRequestJournal#2",
+            "openClientRequestJournal/openClientRequestJournal#3",
+            "openClientRequestJournal/openClientRequestJournal#4",
+            "openClientRequestJournal/openClientRequestJournal#5",
+            "openClientRequestJournal/openClientRequestJournal#6",
+            "openClientRequestJournal/originalIntent/originalIntent",
+            "openClientRequestJournal/ownedCancellationRef/ownedCancellationRef",
+            "openClientRequestJournal/readRunDefinitionRow/readRunDefinitionRow",
+            "openClientRequestJournal/refuseEpoch/refuseEpoch",
+            "openClientRequestJournal/rejectCancellation/rejectCancellation",
+            "openClientRequestJournal/rejectSubmission/rejectSubmission",
+            "openClientRequestJournal/rejectSubmissionEpoch/rejectSubmissionEpoch",
+            "openClientRequestJournal/restartDecision/restartDecision",
+            "openClientRequestJournal/retainedIntent/retainedIntent",
+            "openClientRequestJournal/retainedRestart/retainedRestart",
+            "openClientRequestJournal/retainedRestart/retainedRestart/admitRef/admitRef",
+            "openClientRequestJournal/submissionAttempt/submissionAttempt",
+            "openClientRequestJournal/submissionTransaction/submissionTransaction",
+            "openClientRequestJournal/transact/transact",
+            "openClientRequestJournal/validCancellationRef/validCancellationRef",
+            "openClientRequestJournal/verifyEpoch/verifyEpoch",
+            "openClientRequestJournal/verifyEpoch/verifyEpoch/verifyEpoch",
+            "openClientRequestJournal/verifyEpochLocked/verifyEpochLocked",
+            "pathText/pathText",
+            "retainedEvidence",
+            "retainedIdentity",
+            "retainedResultNames",
+            "retainedResultNames/retainedResultNames",
+            "retainedRunDefinition",
+            "retainedRunFacts",
+            "syncDirectory",
+            "text/text",
+            "validateSourceInventory",
+            "validateSourceInventory/keys/keys",
+            "validateSourceInventory/validPhysicalBinding/validPhysicalBinding",
+            "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding",
+            "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#2",
+            "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#3",
+            "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#4",
+            "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#5",
+            "validEpochAuthority",
+            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent",
+            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/init:assertCurrent/init:assertCurrent",
+            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/readOriginal/readOriginal"
+          ],
           "exports": [
             "openClientRequestJournal",
             "validateSourceInventory"
@@ -18512,7 +18678,21 @@
           }
         },
         {
-          "operations": [],
+          "operations": [
+            "inspectNameStorage",
+            "inspectNameStorage/counters/counters",
+            "inspectNameStorage/fields/fields",
+            "openClientRequestJournal/assertNameCustody/assertNameCustody",
+            "openClientRequestJournal/authenticateName/authenticateName",
+            "openClientRequestJournal/journal/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt",
+            "openClientRequestJournal/journal/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt",
+            "openClientRequestJournal/journal/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName",
+            "openClientRequestJournal/journal/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName/result/result",
+            "openClientRequestJournal/openClientRequestJournal/openClientRequestJournal",
+            "openClientRequestJournal/openClientRequestJournal/openClientRequestJournal#2",
+            "openClientRequestJournal/openClientRequestJournal#7",
+            "openClientRequestJournal/recordIntentLocked/recordIntentLocked"
+          ],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -18622,7 +18802,9 @@
           }
         },
         {
-          "operations": [],
+          "operations": [
+            "admissionEvidenceShape/admissionEvidenceShape#3"
+          ],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -18725,1427 +18907,11 @@
         },
         {
           "operations": [
-            {
-              "name": "admission",
-              "parameters": [
-                "row"
-              ],
-              "async": false
-            },
-            {
-              "name": "admissionEvidenceShape",
-              "parameters": [
-                "value",
-                "updateOriginalControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "admissionEvidenceShape/admissionEvidenceShape",
-              "parameters": [
-                "key"
-              ],
-              "async": false
-            },
-            {
-              "name": "admissionEvidenceShape/admissionEvidenceShape#2",
-              "parameters": [
-                "key"
-              ],
-              "async": false
-            },
-            {
-              "name": "admissionEvidenceShape/admissionEvidenceShape#3",
-              "parameters": [
-                "wire"
-              ],
-              "async": false
-            },
-            {
-              "name": "admitJournalDirectory",
-              "parameters": [
-                "directory"
-              ],
-              "async": false
-            },
-            {
-              "name": "assertKeyedInventoryRequest",
-              "parameters": [
-                "wire",
-                "fields"
-              ],
-              "async": false
-            },
-            {
-              "name": "assertSourceInventory",
-              "parameters": [
-                "retained",
-                "proposed"
-              ],
-              "async": false
-            },
-            {
-              "name": "checkedIdentity",
-              "parameters": [
-                "handle",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "checkedRunDefinition",
-              "parameters": [
-                "value",
-                "control",
-                "maxBytes"
-              ],
-              "async": false
-            },
-            {
-              "name": "checkStoredPlanOriginal",
-              "parameters": [
-                "value",
-                "definition",
-                "programCid",
-                "control",
-                "maxBytes"
-              ],
-              "async": false
-            },
-            {
-              "name": "cid/cid",
-              "parameters": [
-                "value"
-              ],
-              "async": false
-            },
-            {
-              "name": "evidenceJson",
-              "parameters": [
-                "value",
-                "maxBytes",
-                "updateOriginalControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "fail/fail",
-              "parameters": [
-                "code",
-                "cause"
-              ],
-              "async": false
-            },
-            {
-              "name": "freezeAdmissionEvidence",
-              "parameters": [
-                "value"
-              ],
-              "async": false
-            },
-            {
-              "name": "hexKey/hexKey",
-              "parameters": [
-                "value"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectCancellationStorage",
-              "parameters": [
-                "database",
-                "enabled"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectCancellationStorage/custodyFields/custodyFields",
-              "parameters": [
-                "field"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectCancellationStorage/fields/fields",
-              "parameters": [
-                "field"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectEpochStorage",
-              "parameters": [
-                "database",
-                "enabled"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectEpochStorage/fields/fields",
-              "parameters": [
-                "field"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectIntentRetirementStorage",
-              "parameters": [
-                "database",
-                "enabled"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectIntentRetirementStorage/fields/fields",
-              "parameters": [
-                "field"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectIntentStorage",
-              "parameters": [
-                "database",
-                "enabled"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectIntentStorage/fields/fields",
-              "parameters": [
-                "field"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectJournalSnapshot",
-              "parameters": [
-                "directory",
-                "databasePath",
-                "markerPath"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectJournalSnapshot/inspectJournalSnapshot",
-              "parameters": [
-                "database"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectJournalSnapshot/inspectJournalSnapshot/fields/fields",
-              "parameters": [
-                "field"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectJournalSnapshot/inspectJournalSnapshot#2",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "inspectNameStorage",
-              "parameters": [
-                "database",
-                "enabled"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectNameStorage/counters/counters",
-              "parameters": [
-                "field"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectNameStorage/fields/fields",
-              "parameters": [
-                "field"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectRestartStorage",
-              "parameters": [
-                "database",
-                "enabled"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectRestartStorage/custodyFields/custodyFields",
-              "parameters": [
-                "field"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectRestartStorage/fields/fields",
-              "parameters": [
-                "field"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectSubmissionStorage",
-              "parameters": [
-                "database",
-                "enabled"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectSubmissionStorage/fields/fields",
-              "parameters": [
-                "field"
-              ],
-              "async": false
-            },
-            {
-              "name": "instant/instant",
-              "parameters": [
-                "value"
-              ],
-              "async": false
-            },
-            {
-              "name": "journalColumns/journalColumns",
-              "parameters": [
-                "name"
-              ],
-              "async": false
-            },
-            {
-              "name": "logicalPlanOriginalShape",
-              "parameters": [
-                "value"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal",
-              "parameters": [
-                "directory",
-                "maxRecords",
-                "maxRunDefinitionWireBytes",
-                "submissionEpochTtlMs",
-                "submissionEpochNow",
-                "updateOriginalControl",
-                "sourceOperationLimits"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/acceptRecord/acceptRecord",
-              "parameters": [
-                "identity",
-                "namespaceId",
-                "runDefinitionCid",
-                "runDefinitionWire",
-                "resultNames",
-                "runAdmissionEvidence",
-                "revision",
-                "lookupExpiresAt",
-                "submission",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/acceptRecord/acceptRecord/acceptRecord",
-              "parameters": [
-                "name"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/acceptRecord/acceptRecord/outcome/outcome",
-              "parameters": [
-                "error"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/acceptRecord/acceptRecord/outcome/outcome#2",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/admitRunDefinitionRow/admitRunDefinitionRow",
-              "parameters": [
-                "row",
-                "requestControl",
-                "publicationControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/assertCancellationCustody/assertCancellationCustody",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/assertIntentCustody/assertIntentCustody",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/assertNameCustody/assertNameCustody",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/assertRestartCustody/assertRestartCustody",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/assertSubmissionCustody/assertSubmissionCustody",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/authenticateEpoch/authenticateEpoch",
-              "parameters": [
-                "key",
-                "wire"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/authenticateName/authenticateName",
-              "parameters": [
-                "row"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/cancellationAction/cancellationAction",
-              "parameters": [
-                "requested",
-                "retained",
-                "facts",
-                "row",
-                "currentAuthorization",
-                "publicationCommitted",
-                "requestControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/cancellationDefinition/cancellationDefinition",
-              "parameters": [
-                "ref",
-                "requestControl",
-                "publicationControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/cancellationIdentity/cancellationIdentity",
-              "parameters": [
-                "ref",
-                "definition",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/cancellationKnownFailure/cancellationKnownFailure",
-              "parameters": [
-                "error"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/cancellationReadmission/cancellationReadmission",
-              "parameters": [
-                "record",
-                "requestControl",
-                "publicationControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/checkRestartLocked/checkRestartLocked",
-              "parameters": [
-                "requestId",
-                "restartWire",
-                "fields",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/checkSubmissionBinding/checkSubmissionBinding",
-              "parameters": [
-                "fields",
-                "submission",
-                "control",
-                "locked"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/closeObservationStorage/closeObservationStorage",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/ensureOpen/ensureOpen",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/epochClock/epochClock",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/epochHandle/epochHandle",
-              "parameters": [
-                "epoch",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:accept/init:accept",
-              "parameters": [
-                "identity",
-                "namespaceId",
-                "runDefinitionCid",
-                "revision",
-                "lookupExpiresAt",
-                "submission",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:acceptDefinition/init:acceptDefinition",
-              "parameters": [
-                "identity",
-                "namespaceId",
-                "runDefinition",
-                "resultNames",
-                "runAdmissionEvidence",
-                "originalPlan",
-                "originalInferRun",
-                "revision",
-                "lookupExpiresAt",
-                "submission",
-                "requestControl",
-                "publicationControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:admitOrLookupDefinition/init:admitOrLookupDefinition",
-              "parameters": [
-                "identity",
-                "namespaceId",
-                "lookupExpiresAt",
-                "issueDefinition",
-                "resultNames",
-                "sourceInventory",
-                "submission",
-                "requestControl",
-                "publicationControl"
-              ],
-              "async": true
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:checkSubmissionAttempt/init:checkSubmissionAttempt",
-              "parameters": [
-                "submissionRef",
-                "intent",
-                "options",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:checkSubmissionAttempt/init:checkSubmissionAttempt/init:checkSubmissionAttempt",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:checkSubmittedIntent/init:checkSubmittedIntent",
-              "parameters": [
-                "submissionRef",
-                "intent",
-                "authorityScopeCid",
-                "currentAuthorization",
-                "unresolvedHistory",
-                "actorId",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:checkSubmittedIntent/init:checkSubmittedIntent/result/result",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:close/init:close",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:completeSubmittedIntent/init:completeSubmittedIntent",
-              "parameters": [
-                "submissionRef",
-                "outcome",
-                "authorityScopeCid",
-                "currentAuthorization",
-                "expectedRevision",
-                "connection",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:completeSubmittedIntent/init:completeSubmittedIntent/init:completeSubmittedIntent",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:installObservationProjection/init:installObservationProjection",
-              "parameters": [
-                "projection"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:issueSubmissionEpoch/init:issueSubmissionEpoch",
-              "parameters": [
-                "authorityScopeCid",
-                "currentAuthorization",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:issueSubmissionEpoch/init:issueSubmissionEpoch/init:issueSubmissionEpoch",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:lookup/init:lookup",
-              "parameters": [
-                "key",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:lookupCancellationOperation/init:lookupCancellationOperation",
-              "parameters": [
-                "cancelRef",
-                "currentAuthorization",
-                "requestControl",
-                "publicationControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:lookupCancellationOperation/init:lookupCancellationOperation/init:lookupCancellationOperation",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:lookupDefinition/init:lookupDefinition",
-              "parameters": [
-                "key",
-                "requestControl",
-                "publicationControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:lookupIdentity/init:lookupIdentity",
-              "parameters": [
-                "key",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:lookupOriginalSourceOperation/init:lookupOriginalSourceOperation",
-              "parameters": [
-                "ref",
-                "occurrence"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:lookupOwnedDefinition/init:lookupOwnedDefinition",
-              "parameters": [
-                "key",
-                "requestControl",
-                "publicationControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:lookupReconciliationState/init:lookupReconciliationState",
-              "parameters": [
-                "ref"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:lookupRunDefinition/init:lookupRunDefinition",
-              "parameters": [
-                "ref",
-                "requestControl",
-                "publicationControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:lookupSubmittedIntent/init:lookupSubmittedIntent",
-              "parameters": [
-                "submissionRef",
-                "authorityScopeCid",
-                "currentAuthorization",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:markPhysicalClose/init:markPhysicalClose",
-              "parameters": [
-                "ref",
-                "terminalOutcome"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:markPhysicalClose/init:markPhysicalClose/init:markPhysicalClose",
-              "parameters": [
-                "error"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:markPhysicalClose/init:markPhysicalClose/init:markPhysicalClose#2",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:markPreDispatchFailure/init:markPreDispatchFailure",
-              "parameters": [
-                "ref"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:markPreDispatchFailure/init:markPreDispatchFailure/init:markPreDispatchFailure",
-              "parameters": [
-                "error"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:markPreDispatchFailure/init:markPreDispatchFailure/init:markPreDispatchFailure#2",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:observationStorage/init:observationStorage",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:observationStorage/init:observationStorage/init:close/init:close",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation",
-              "parameters": [
-                "ref",
-                "requestControl",
-                "publicationControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation",
-              "parameters": [
-                "key"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent",
-              "parameters": [
-                "identity",
-                "namespaceId",
-                "requestControl",
-                "publicationControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/init:assertCurrent/init:assertCurrent",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/readOriginal/readOriginal",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState",
-              "parameters": [
-                "frame",
-                "state",
-                "requestControl",
-                "publicationControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState",
-              "parameters": [
-                "error"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState/init:publishRunState",
-              "parameters": [
-                "key"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState#2",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:recordCancellationAttempt/init:recordCancellationAttempt",
-              "parameters": [
-                "ref",
-                "attemptRef",
-                "options",
-                "requestControl",
-                "publicationControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:recordCancellationOperation/init:recordCancellationOperation",
-              "parameters": [
-                "ref",
-                "cancelId",
-                "expectedRevision",
-                "currentAuthorization",
-                "publicationCommitted",
-                "modelCancellationOwner",
-                "requestControl",
-                "publicationControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:recordCancellationOperation/init:recordCancellationOperation/init:recordCancellationOperation",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:recordCancellationOperation/init:recordCancellationOperation/pending/pending",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:recordReconciliationState/init:recordReconciliationState",
-              "parameters": [
-                "ref",
-                "wire"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:recordReconciliationState/init:recordReconciliationState/init:recordReconciliationState",
-              "parameters": [
-                "error"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:recordReconciliationState/init:recordReconciliationState/init:recordReconciliationState#2",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:recordSubmissionAttempt/init:recordSubmissionAttempt",
-              "parameters": [
-                "submissionRef",
-                "intent",
-                "options",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:recordSubmissionAttempt/init:recordSubmissionAttempt/init:recordSubmissionAttempt",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:recordSubmittedIntent/init:recordSubmittedIntent",
-              "parameters": [
-                "submissionRef",
-                "intent",
-                "authorityScopeCid",
-                "currentAuthorization",
-                "phase",
-                "outcome",
-                "unresolvedHistory",
-                "actorId",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:recordSubmittedIntent/init:recordSubmittedIntent/result/result",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:requestCancellation/init:requestCancellation",
-              "parameters": [
-                "ref",
-                "currentAuthorization",
-                "publicationCommitted",
-                "requestControl",
-                "publicationControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:requestCancellation/init:requestCancellation/init:requestCancellation",
-              "parameters": [
-                "error"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:requestCancellation/init:requestCancellation/init:requestCancellation#2",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch",
-              "parameters": [
-                "identity",
-                "namespaceId",
-                "currentAuthorization",
-                "requestControl",
-                "publicationControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch",
-              "parameters": [
-                "error"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch#2",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart",
-              "parameters": [
-                "identity",
-                "namespaceId",
-                "ref",
-                "currentAuthorization",
-                "captureSourceOperation",
-                "requestControl",
-                "publicationControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/started/started",
-              "parameters": [
-                "error"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/started/started#2",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:resolveDefinition/init:resolveDefinition",
-              "parameters": [
-                "identity",
-                "namespaceId",
-                "requestControl",
-                "publicationControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt",
-              "parameters": [
-                "name",
-                "intent",
-                "options",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName",
-              "parameters": [
-                "name",
-                "intent",
-                "namespaceId",
-                "actorId",
-                "authorityScopeCid",
-                "currentAuthorization",
-                "submissionRef",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName/result/result",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:retireSubmittedIntent/init:retireSubmittedIntent",
-              "parameters": [
-                "submissionRef",
-                "authorityScopeCid",
-                "currentAuthorization",
-                "expectedRevision",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:retireSubmittedIntent/init:retireSubmittedIntent/init:retireSubmittedIntent",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:submissionIdentity/init:submissionIdentity",
-              "parameters": [
-                "epoch",
-                "nonce",
-                "fields",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/journal/init:verifySubmissionEpoch/init:verifySubmissionEpoch",
-              "parameters": [
-                "epoch",
-                "fields",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/lookupRecord/lookupRecord",
-              "parameters": [
-                "namespaceId",
-                "authorityScopeCid",
-                "requestId",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/openClientRequestJournal",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/openClientRequestJournal/openClientRequestJournal",
-              "parameters": [
-                "sql"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/openClientRequestJournal/openClientRequestJournal#2",
-              "parameters": [
-                "sql"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/openClientRequestJournal#2",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/openClientRequestJournal#3",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/openClientRequestJournal#4",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/openClientRequestJournal#5",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/openClientRequestJournal#6",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/openClientRequestJournal#7",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/openClientRequestJournal#8",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/originalIntent/originalIntent",
-              "parameters": [
-                "intent",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/ownedCancellationRef/ownedCancellationRef",
-              "parameters": [
-                "ref"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/readRunDefinitionRow/readRunDefinitionRow",
-              "parameters": [
-                "ref",
-                "requestControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/recordIntentLocked/recordIntentLocked",
-              "parameters": [
-                "submissionRef",
-                "original",
-                "authorityScopeCid",
-                "currentAuthorization",
-                "phase",
-                "outcome",
-                "restartWire",
-                "requestId",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/refuseEpoch/refuseEpoch",
-              "parameters": [
-                "validity"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/rejectCancellation/rejectCancellation",
-              "parameters": [
-                "code",
-                "kind",
-                "reason"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/rejectSubmission/rejectSubmission",
-              "parameters": [
-                "code",
-                "kind",
-                "reason"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/rejectSubmissionEpoch/rejectSubmissionEpoch",
-              "parameters": [
-                "validity"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/restartDecision/restartDecision",
-              "parameters": [
-                "submissionRef",
-                "intentCid",
-                "unresolvedHistory",
-                "actorId"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/retainedIntent/retainedIntent",
-              "parameters": [
-                "row",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/retainedRestart/retainedRestart",
-              "parameters": [
-                "row",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/retainedRestart/retainedRestart/admitRef/admitRef",
-              "parameters": [
-                "ref"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/sourceOperations/sourceOperations",
-              "parameters": [
-                "ref"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/submissionAttempt/submissionAttempt",
-              "parameters": [
-                "submissionRef",
-                "intent",
-                "options",
-                "control",
-                "action",
-                "kind"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/submissionTransaction/submissionTransaction",
-              "parameters": [
-                "action"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/transact/transact",
-              "parameters": [
-                "operation",
-                "unknownCode",
-                "known",
-                "action"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/validCancellationRef/validCancellationRef",
-              "parameters": [
-                "ref"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/verifyEpoch/verifyEpoch",
-              "parameters": [
-                "epoch",
-                "fields",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/verifyEpoch/verifyEpoch/verifyEpoch",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "openClientRequestJournal/verifyEpochLocked/verifyEpochLocked",
-              "parameters": [
-                "epoch",
-                "authorityScopeCid",
-                "currentAuthorization",
-                "purpose",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "pathText/pathText",
-              "parameters": [
-                "value"
-              ],
-              "async": false
-            },
-            {
-              "name": "retainedEvidence",
-              "parameters": [
-                "row",
-                "updateOriginalControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "retainedIdentity",
-              "parameters": [
-                "row",
-                "control"
-              ],
-              "async": false
-            },
-            {
-              "name": "retainedResultNames",
-              "parameters": [
-                "row"
-              ],
-              "async": false
-            },
-            {
-              "name": "retainedResultNames/retainedResultNames",
-              "parameters": [
-                "name"
-              ],
-              "async": false
-            },
-            {
-              "name": "retainedRunDefinition",
-              "parameters": [
-                "row",
-                "control",
-                "maxBytes"
-              ],
-              "async": false
-            },
-            {
-              "name": "retainedRunFacts",
-              "parameters": [
-                "row",
-                "publicationControl",
-                "maxWireBytes",
-                "updateOriginalControl"
-              ],
-              "async": false
-            },
-            {
-              "name": "syncDirectory",
-              "parameters": [
-                "path"
-              ],
-              "async": false
-            },
-            {
-              "name": "text/text",
-              "parameters": [
-                "value"
-              ],
-              "async": false
-            },
-            {
-              "name": "validateSourceInventory",
-              "parameters": [
-                "wire"
-              ],
-              "async": false
-            },
-            {
-              "name": "validateSourceInventory/keys/keys",
-              "parameters": [
-                "object",
-                "expected"
-              ],
-              "async": false
-            },
-            {
-              "name": "validateSourceInventory/validPhysicalBinding/validPhysicalBinding",
-              "parameters": [
-                "binding"
-              ],
-              "async": false
-            },
-            {
-              "name": "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding",
-              "parameters": [
-                "key"
-              ],
-              "async": false
-            },
-            {
-              "name": "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#2",
-              "parameters": [
-                "value"
-              ],
-              "async": false
-            },
-            {
-              "name": "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#3",
-              "parameters": [
-                "value"
-              ],
-              "async": false
-            },
-            {
-              "name": "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#4",
-              "parameters": [
-                "value"
-              ],
-              "async": false
-            },
-            {
-              "name": "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#5",
-              "parameters": [
-                "value"
-              ],
-              "async": false
-            },
-            {
-              "name": "validEpochAuthority",
-              "parameters": [
-                "row"
-              ],
-              "async": false
-            }
+            "openClientRequestJournal/journal/init:lookupOriginalSourceOperation/init:lookupOriginalSourceOperation",
+            "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/started/started",
+            "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/started/started#2",
+            "openClientRequestJournal/openClientRequestJournal#8",
+            "openClientRequestJournal/sourceOperations/sourceOperations"
           ],
           "exports": [],
           "attributes": {
@@ -59116,176 +57882,29 @@
       "contracts": [
         {
           "operations": [
-            {
-              "name": "bindClientSourceOperation",
-              "parameters": [
-                "scope",
-                "journal",
-                "store",
-                "program",
-                "preparedSource",
-                "occurrence"
-              ],
-              "async": false
-            },
-            {
-              "name": "bindClientSourceOperationRowRun",
-              "parameters": [
-                "source",
-                "moon",
-                "program",
-                "preparedSource",
-                "frame"
-              ],
-              "async": false
-            },
-            {
-              "name": "bindClientSourceOperationRowRun/bindClientSourceOperationRowRun",
-              "parameters": [
-                "key"
-              ],
-              "async": false
-            },
-            {
-              "name": "bindClientSourceOperationRowRun/port/withOriginalJob",
-              "parameters": [
-                "original",
-                "sendOriginal"
-              ],
-              "async": false
-            },
-            {
-              "name": "bindClientSourceOperationRowRun/port/withOriginalJob/withOriginalJob",
-              "parameters": [
-                "key"
-              ],
-              "async": false
-            },
-            {
-              "name": "clientSourceOperationStorage",
-              "parameters": [
-                "database",
-                "ensureOpen",
-                "transact",
-                "readRun",
-                "limits"
-              ],
-              "async": false
-            },
-            {
-              "name": "clientSourceOperationStorage/currentRun/currentRun",
-              "parameters": [
-                "original"
-              ],
-              "async": false
-            },
-            {
-              "name": "clientSourceOperationStorage/init:issue/init:issue",
-              "parameters": [
-                "original"
-              ],
-              "async": false
-            },
-            {
-              "name": "clientSourceOperationStorage/init:issue/init:issue/init:issue",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "clientSourceOperationStorage/init:issue/init:issue/persist/persist",
-              "parameters": [
-                "occurrence",
-                "frame",
-                "wire"
-              ],
-              "async": false
-            },
-            {
-              "name": "clientSourceOperationStorage/init:issue/init:issue/persist/persist/persist",
-              "parameters": [
-                "error"
-              ],
-              "async": false
-            },
-            {
-              "name": "clientSourceOperationStorage/init:issue/init:issue/persist/persist/persist#2",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "clientSourceOperationStorage/init:lookup/init:lookup",
-              "parameters": [
-                "ref",
-                "occurrence"
-              ],
-              "async": false
-            },
-            {
-              "name": "clientSourceOperationStorage/key/key",
-              "parameters": [
-                "ref",
-                "occurrence"
-              ],
-              "async": false
-            },
-            {
-              "name": "coordinate/coordinate",
-              "parameters": [
-                "value"
-              ],
-              "async": false
-            },
-            {
-              "name": "coordinate/coordinate/coordinate",
-              "parameters": [
-                "key"
-              ],
-              "async": false
-            },
-            {
-              "name": "fail/fail",
-              "parameters": [
-                "code",
-                "cause",
-                "facts"
-              ],
-              "async": false
-            },
-            {
-              "name": "inspectClientSourceOperationStorage",
-              "parameters": [
-                "database"
-              ],
-              "async": false
-            },
-            {
-              "name": "ordinal/ordinal",
-              "parameters": [
-                "value"
-              ],
-              "async": false
-            },
-            {
-              "name": "snapshotClientSourceOperationLimits",
-              "parameters": [
-                "limits"
-              ],
-              "async": false
-            },
-            {
-              "name": "snapshotClientSourceOperationLimits/snapshotClientSourceOperationLimits",
-              "parameters": [
-                "key"
-              ],
-              "async": false
-            },
-            {
-              "name": "snapshotClientSourceOperationLimits/snapshotClientSourceOperationLimits#2",
-              "parameters": [
-                "key"
-              ],
-              "async": false
-            }
+            "<module>",
+            "bindClientSourceOperation",
+            "bindClientSourceOperationRowRun",
+            "bindClientSourceOperationRowRun/bindClientSourceOperationRowRun",
+            "bindClientSourceOperationRowRun/port/withOriginalJob",
+            "bindClientSourceOperationRowRun/port/withOriginalJob/withOriginalJob",
+            "clientSourceOperationStorage",
+            "clientSourceOperationStorage/currentRun/currentRun",
+            "clientSourceOperationStorage/init:issue/init:issue",
+            "clientSourceOperationStorage/init:issue/init:issue/init:issue",
+            "clientSourceOperationStorage/init:issue/init:issue/persist/persist",
+            "clientSourceOperationStorage/init:issue/init:issue/persist/persist/persist",
+            "clientSourceOperationStorage/init:issue/init:issue/persist/persist/persist#2",
+            "clientSourceOperationStorage/init:lookup/init:lookup",
+            "clientSourceOperationStorage/key/key",
+            "coordinate/coordinate",
+            "coordinate/coordinate/coordinate",
+            "fail/fail",
+            "inspectClientSourceOperationStorage",
+            "ordinal/ordinal",
+            "snapshotClientSourceOperationLimits",
+            "snapshotClientSourceOperationLimits/snapshotClientSourceOperationLimits",
+            "snapshotClientSourceOperationLimits/snapshotClientSourceOperationLimits#2"
           ],
           "exports": [
             "bindClientSourceOperation",

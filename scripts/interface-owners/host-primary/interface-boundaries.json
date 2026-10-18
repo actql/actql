@@ -1756,7 +1756,77 @@
       "responsibilityFacet": "primary",
       "contracts": [
         {
-          "operations": [],
+          "operations": [
+            "<module>",
+            "cancelNodeRunContinuation",
+            "collectNodeRunStop",
+            "confirmNodeRunCancellation",
+            "installNodeClientDispatchOwner",
+            "installNodeClientDispatchOwner/acquireKeyedSources",
+            "installNodeClientDispatchOwner/acquireKeyedSources/captured/captured",
+            "installNodeClientDispatchOwner/acquireKeyedSources/init:close/init:close",
+            "installNodeClientDispatchOwner/acquireKeyedSources/keyedContent/keyedContent",
+            "installNodeClientDispatchOwner/acquireKeyedSources/lookup/lookup",
+            "installNodeClientDispatchOwner/acquireKeyedSources/open/open",
+            "installNodeClientDispatchOwner/acquireSource",
+            "installNodeClientDispatchOwner/cancel/cancel",
+            "installNodeClientDispatchOwner/current/current",
+            "installNodeClientDispatchOwner/drain/drain",
+            "installNodeClientDispatchOwner/drain/drain/drain",
+            "installNodeClientDispatchOwner/drain/drain/drain#2",
+            "installNodeClientDispatchOwner/drain/drain/drain#3",
+            "installNodeClientDispatchOwner/drain/drain/running/running",
+            "installNodeClientDispatchOwner/finishRun",
+            "installNodeClientDispatchOwner/keyOf/keyOf",
+            "installNodeClientDispatchOwner/live/live",
+            "installNodeClientDispatchOwner/observeStop",
+            "installNodeClientDispatchOwner/operation/operation",
+            "installNodeClientDispatchOwner/releaseAcquisition",
+            "installNodeClientDispatchOwner/resourceUsage/resourceUsage",
+            "installNodeClientDispatchOwner/resourceUsage/resourceUsage/resourceUsage",
+            "installNodeClientDispatchOwner/retire",
+            "installNodeClientDispatchOwner/settleCleanup",
+            "installNodeClientDispatchOwner/settleCleanup/settleCleanup",
+            "installNodeClientDispatchOwner/settleCleanupHandle",
+            "installNodeClientDispatchOwner/start/start",
+            "installNodeClientDispatchOwner/start/start/physical/physical",
+            "installNodeClientDispatchOwner/start/start/start",
+            "installNodeClientDispatchOwner/start/start/start/capacities/capacities",
+            "installNodeClientDispatchOwner/start/start/start/init:close/init:close",
+            "installNodeClientDispatchOwner/start/start/start/init:retainExecution/init:retainExecution",
+            "installNodeClientDispatchOwner/start/start/start/published/published",
+            "installNodeClientDispatchOwner/start/start/start/published/published#2",
+            "installNodeClientDispatchOwner/start/start/start/result/init:retainExecution/init:retainExecution",
+            "installNodeClientDispatchOwner/start/start/start/result/result",
+            "installNodeClientDispatchOwner/start/start/start/result/result#2",
+            "installNodeClientDispatchOwner/start/start/start/start",
+            "installNodeClientDispatchOwner/start/start/start/start#10",
+            "installNodeClientDispatchOwner/start/start/start/start#11",
+            "installNodeClientDispatchOwner/start/start/start/start#2",
+            "installNodeClientDispatchOwner/start/start/start/start#3",
+            "installNodeClientDispatchOwner/start/start/start/start#4",
+            "installNodeClientDispatchOwner/start/start/start/start#5",
+            "installNodeClientDispatchOwner/start/start/start/start#6",
+            "installNodeClientDispatchOwner/start/start/start/start#7",
+            "installNodeClientDispatchOwner/start/start/start/start#8",
+            "installNodeClientDispatchOwner/start/start/start/start#9",
+            "installNodeClientDispatchOwner/start/start/start#2",
+            "installNodeClientDispatchOwner/start/start/start#3",
+            "installNodeClientDispatchOwner/step/step",
+            "installNodeClientDispatchOwner/track/track",
+            "installNodeClientDispatchOwner/track/track/track",
+            "installNodeClientDispatchOwner/track/track/track/init:acquireSource/init:acquireSource",
+            "installNodeClientDispatchOwner/track/track/track/init:beginPhysicalWork/init:beginPhysicalWork",
+            "installNodeClientDispatchOwner/track/track/track/init:observePreEffectFailure/init:observePreEffectFailure",
+            "installNodeClientDispatchOwner/track/track/track/init:retainExecution/init:retainExecution",
+            "installNodeClientDispatchOwner/track/track/track#2",
+            "installNodeClientDispatchOwner/track/track/track#3",
+            "installNodeClientDispatchOwner/track/track/track#4",
+            "installNodeClientDispatchOwner/track/track/track#5",
+            "observeNodeRestoredModelStop",
+            "observeNodeRunStop",
+            "recordNodeRunPhysicalStop"
+          ],
           "exports": [
             "cancelNodeRunContinuation",
             "confirmNodeRunCancellation",
@@ -1837,524 +1907,7 @@
         },
         {
           "operations": [
-            {
-              "name": "cancelNodeRunContinuation",
-              "parameters": [
-                "currentDispatchIdle",
-                "facts"
-              ],
-              "async": true
-            },
-            {
-              "name": "collectNodeRunStop",
-              "parameters": [
-                "ref",
-                "journal",
-                "store",
-                "checkpoints",
-                "moon",
-                "control",
-                "cleanupConfirmed",
-                "physicalStopConfirmed"
-              ],
-              "async": true
-            },
-            {
-              "name": "confirmNodeRunCancellation",
-              "parameters": [
-                "facts"
-              ],
-              "async": true
-            },
-            {
-              "name": "installNodeClientDispatchOwner",
-              "parameters": [
-                "moon",
-                "control",
-                "journal",
-                "store",
-                "checkpoints",
-                "startRun",
-                "hostConnection",
-                "beforeDispatch",
-                "observed",
-                "prepareAcquisition",
-                "planFor",
-                "sourceProfile",
-                "registry",
-                "values",
-                "fragment",
-                "ordered",
-                "namespaceId",
-                "authorityScopeCid",
-                "storeAuthorityCid",
-                "now",
-                "faultInjection",
-                "runInfer",
-                "runContent",
-                "computeConfigurations",
-                "observation",
-                "retainedRelationOutput",
-                "runPublished"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/acquireKeyedSources",
-              "parameters": [
-                "entry",
-                "preparedProgram",
-                "selected",
-                "acquired",
-                "principalId"
-              ],
-              "async": true
-            },
-            {
-              "name": "installNodeClientDispatchOwner/acquireKeyedSources/captured/captured",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/acquireKeyedSources/init:close/init:close",
-              "parameters": [],
-              "async": true
-            },
-            {
-              "name": "installNodeClientDispatchOwner/acquireKeyedSources/keyedContent/keyedContent",
-              "parameters": [
-                "child"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/acquireKeyedSources/lookup/lookup",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/acquireKeyedSources/open/open",
-              "parameters": [
-                "kind",
-                "operation"
-              ],
-              "async": true
-            },
-            {
-              "name": "installNodeClientDispatchOwner/acquireSource",
-              "parameters": [
-                "entry",
-                "preparedProgram",
-                "preparedSource",
-                "sourceAccess",
-                "captureOnly",
-                "ledger"
-              ],
-              "async": true
-            },
-            {
-              "name": "installNodeClientDispatchOwner/cancel/cancel",
-              "parameters": [
-                "ref"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/current/current",
-              "parameters": [
-                "ref"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/drain/drain",
-              "parameters": [],
-              "async": true
-            },
-            {
-              "name": "installNodeClientDispatchOwner/drain/drain/drain",
-              "parameters": [
-                "entry"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/drain/drain/drain#2",
-              "parameters": [
-                "entry"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/drain/drain/drain#3",
-              "parameters": [
-                "entry"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/drain/drain/running/running",
-              "parameters": [
-                "entry"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/finishRun",
-              "parameters": [
-                "entry"
-              ],
-              "async": true
-            },
-            {
-              "name": "installNodeClientDispatchOwner/keyOf/keyOf",
-              "parameters": [
-                "ref"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/live/live",
-              "parameters": [
-                "ref"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/observeStop",
-              "parameters": [
-                "entry"
-              ],
-              "async": true
-            },
-            {
-              "name": "installNodeClientDispatchOwner/operation/operation",
-              "parameters": [
-                "ref"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/releaseAcquisition",
-              "parameters": [
-                "entry"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/resourceUsage/resourceUsage",
-              "parameters": [
-                "ledger"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/resourceUsage/resourceUsage/resourceUsage",
-              "parameters": [
-                "name",
-                "index"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/retire",
-              "parameters": [
-                "entry"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/settleCleanup",
-              "parameters": [
-                "entry"
-              ],
-              "async": true
-            },
-            {
-              "name": "installNodeClientDispatchOwner/settleCleanup/settleCleanup",
-              "parameters": [
-                "value"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/settleCleanupHandle",
-              "parameters": [
-                "entry"
-              ],
-              "async": true
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start",
-              "parameters": [
-                "submission",
-                "requested",
-                "accepted",
-                "held",
-                "finished",
-                "gate"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/physical/physical",
-              "parameters": [
-                "resolve"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start",
-              "parameters": [],
-              "async": true
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/capacities/capacities",
-              "parameters": [
-                "source"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/init:capture/init:capture",
-              "parameters": [
-                "scope"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/init:close/init:close",
-              "parameters": [],
-              "async": true
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/init:retainExecution/init:retainExecution",
-              "parameters": [
-                "execution"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/published/published",
-              "parameters": [
-                "owner"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/published/published#2",
-              "parameters": [
-                "event",
-                "task",
-                "durationMs"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/result/init:retainExecution/init:retainExecution",
-              "parameters": [
-                "execution"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/result/result",
-              "parameters": [
-                "key"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/result/result#2",
-              "parameters": [
-                "key"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/start",
-              "parameters": [
-                "value"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/start#10",
-              "parameters": [
-                "task"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/start#11",
-              "parameters": [
-                "task"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/start#2",
-              "parameters": [
-                "value"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/start#3",
-              "parameters": [
-                "value"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/start#4",
-              "parameters": [
-                "value"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/start#5",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/start#6",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/start#7",
-              "parameters": [
-                "task"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/start#8",
-              "parameters": [
-                "task"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start/start#9",
-              "parameters": [
-                "task"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start#2",
-              "parameters": [
-                "cause"
-              ],
-              "async": true
-            },
-            {
-              "name": "installNodeClientDispatchOwner/start/start/start#3",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/step/step",
-              "parameters": [
-                "name",
-                "detail"
-              ],
-              "async": true
-            },
-            {
-              "name": "installNodeClientDispatchOwner/track/track",
-              "parameters": [
-                "ref",
-                "run",
-                "observeStopped",
-                "barrierFailureOutcome"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/track/track/track",
-              "parameters": [],
-              "async": true
-            },
-            {
-              "name": "installNodeClientDispatchOwner/track/track/track/init:acquireSource/init:acquireSource",
-              "parameters": [
-                "preparedProgram",
-                "preparedSource",
-                "sourceAccess"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/track/track/track/init:beginPhysicalWork/init:beginPhysicalWork",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/track/track/track/init:observePreEffectFailure/init:observePreEffectFailure",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/track/track/track/init:retainExecution/init:retainExecution",
-              "parameters": [
-                "execution"
-              ],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/track/track/track#2",
-              "parameters": [
-                "result"
-              ],
-              "async": true
-            },
-            {
-              "name": "installNodeClientDispatchOwner/track/track/track#3",
-              "parameters": [
-                "cause"
-              ],
-              "async": true
-            },
-            {
-              "name": "installNodeClientDispatchOwner/track/track/track#4",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "installNodeClientDispatchOwner/track/track/track#5",
-              "parameters": [],
-              "async": false
-            },
-            {
-              "name": "observeNodeRestoredModelStop",
-              "parameters": [
-                "facts"
-              ],
-              "async": true
-            },
-            {
-              "name": "observeNodeRunStop",
-              "parameters": [
-                "facts",
-                "failureObserved"
-              ],
-              "async": true
-            },
-            {
-              "name": "recordNodeRunPhysicalStop",
-              "parameters": [
-                "ref",
-                "journal",
-                "moon",
-                "control",
-                "outcome"
-              ],
-              "async": false
-            }
+            "installNodeClientDispatchOwner/start/start/start/init:capture/init:capture"
           ],
           "exports": [],
           "attributes": {
