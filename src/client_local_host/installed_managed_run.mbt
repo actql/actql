@@ -22,6 +22,66 @@ pub(all) enum ClientInstalledManagedRunIssue {
 }
 
 ///|
+/// Quote the existing two original acquisitions and managed sequence inventory
+/// before physical reads. These extents cannot issue or replace the actual
+/// Resource admission, and unsupported downstream families stay unavailable.
+pub fn installed_managed_run_requirements(
+  prepared : @publication_host.PreparedClientProgram,
+  declarations : Array[@row_source_host.RowDeclaration],
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[Array[Int64], ClientInstalledManagedRunIssue] {
+  if declarations.length() != 2 {
+    return Err(Unsupported)
+  }
+  let capacities = []
+  for index in 0..<2 {
+    guard prepare_local_query_requirement(
+        prepared, index, 0, registry_body, values_body, fragment_body, ordered_body,
+      )
+      is Ok(requirement) &&
+      @row_source_host.prepare_row_acquisition(
+        declarations[index],
+        requirement,
+        query_contract_body,
+        evidence_contract_body,
+      )
+      is Ok(acquisition) &&
+      installed_row_capture_capacity(acquisition) is Some(capacity) else {
+      return Err(Unsupported)
+    }
+    capacities.push(capacity)
+  }
+  guard multi_captured_installed_limits_owned(
+      Pure(prepared),
+      capacities,
+      transport_bytes,
+      transport_execution_bytes,
+      registry_body,
+      values_body,
+      fragment_body,
+      ordered_body,
+    )
+    is Some(limits) else {
+    return Err(Unsupported)
+  }
+  Ok([
+    limits.planning_work.to_int64(),
+    limits.attempts.to_int64(),
+    limits.holdings.to_int64(),
+    limits.transfer_bytes,
+    limits.retained_bytes,
+    limits.execution_bytes,
+  ])
+}
+
+///|
 /// The actual installation has retained this admission before compilation.
 /// Bind the resulting original checked Program/request; start/take the
 /// original imported child once, never once per Source occurrence.
@@ -39,7 +99,8 @@ pub fn begin_installed_managed_run(
   }
   if @strategy.graph_captured_prefix(
       @publication_host.prepared_client_graph(prepared),
-    ) != 2 {
+    ) !=
+    2 {
     return Err(Unsupported)
   }
   let ledger = match @resources.start_node_managed_run_admission(admission) {
@@ -142,9 +203,16 @@ pub fn prepare_installed_managed_run_ledger(
     Ok(ledger) => ledger
   }
   guard multi_captured_installed_limits_owned(
-      Pure(prepared), capacities, transport_bytes, transport_execution_bytes,
-      registry_body, values_body, fragment_body, ordered_body,
-    ) is Some(required) else {
+      Pure(prepared),
+      capacities,
+      transport_bytes,
+      transport_execution_bytes,
+      registry_body,
+      values_body,
+      fragment_body,
+      ordered_body,
+    )
+    is Some(required) else {
     return Err(Unsupported)
   }
   let available = @resources.ledger_limits(ledger)
@@ -157,7 +225,8 @@ pub fn prepare_installed_managed_run_ledger(
     return Err(InsufficientCapacity)
   }
   for index in 0..<2 {
-    if !capacities[index].original_input || capacities[index].provider is Some(_) {
+    if !capacities[index].original_input ||
+      capacities[index].provider is Some(_) {
       return Err(Unsupported)
     }
     guard value.reads[index] is Some(read) &&

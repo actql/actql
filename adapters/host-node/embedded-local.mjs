@@ -187,6 +187,48 @@ export function readInstalledMockPreparation(originals) {
   return retained.view.originalsForRuntime(retained.runtime);
 }
 
+// The real Root already retained the separate managed-Compute premise before
+// the packet snapshot. This exact checked original supplies only the existing
+// Core inventory for its bounds check, never a replacement issuer or Ledger.
+export function readSourceManagedRunRequirements(originals, checkedPrepared) {
+  assertSourceManagedHostPreparation(originals);
+  originalSourceManagedHostRequest(originals, checkedPrepared);
+  const {initialControl, projectRuntime: moon} = originals.installation;
+  const retained = profiles.mockPreparation(originals.host, originals.installation,
+    originals.generation);
+  if (retained.runtime !== moon || initialControl === undefined ||
+      typeof moon.clientProgramInstalledManagedRunRequirements !== 'function') {
+    throw clientOperationError('NodeManagedRunAdmissionUnavailable');
+  }
+  const mock = retained.view.originalsForRuntime(moon);
+  const asset = path => readInitialControlInstallationAsset(initialControl, originals, path);
+  const aoa = JSON.parse(asset('spec/contracts/actql-aoa.json'));
+  // Each selected physical child reads its original complete bounded file
+  // once. Its original raw bytes remain charged alongside decoded/captured
+  // rows; this is not a byte total sampled from the successful template.
+  const documentBytes = 1048576n;
+  const limits = checked(moon.clientProgramInstalledManagedRunRequirements(
+    checkedPrepared, mock.sources.map(source => source.declaration),
+    asset('spec/contracts/actql-query-acquisition.json'),
+    asset('spec/contracts/actql-query-process-evidence.json'),
+    [documentBytes, documentBytes], [documentBytes, documentBytes],
+    asset('spec/dependencies/aoa-pipeline-registry.json'),
+    JSON.stringify(aoa.execution_contracts['REL.values']),
+    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+  if (!Array.isArray(limits) || limits.length !== 6 ||
+      limits.some(value => typeof value !== 'bigint' || value < 0n) ||
+      limits.slice(0, 3).some(value => value > 2147483647n)) {
+    throw clientOperationError('InvalidHostRuntimeResult');
+  }
+  assertSourceManagedHostPreparation(originals);
+  originalSourceManagedHostRequest(originals, checkedPrepared);
+  retained.view.originalsForRuntime(moon);
+  return Object.freeze({planningWork: Number(limits[0]), attempts: Number(limits[1]),
+    holdings: Number(limits[2]), transferBytes: limits[3],
+    retainedBytes: limits[4], executionBytes: limits[5]});
+}
+
 // Called only by the selected Source Root's captured namespace operation,
 // after its original managed preparation holding exists, but before that Root
 // acquires the fixture FD and completes the same Source installation. The
@@ -3721,7 +3763,8 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   projectProfile = selectInstalledProjectProfile(moon, project, requestedProfile, 65536);
   record.projectProfile = projectProfile;
   const selectedProfile = projectProfile.originalsForRuntime(moon);
-  Object.assign(originalInstallation, {project, projectProfile, projectRuntime: moon});
+  Object.assign(originalInstallation, {project, projectProfile, projectRuntime: moon,
+    initialControl: control});
   if (selectedProfile.selected === 'mock') {
     // The actual Source admission precedes its connection/catalogue/control
     // preparation. Initial control cannot fund those allocations or file I/O.
