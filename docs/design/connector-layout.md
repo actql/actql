@@ -230,7 +230,7 @@ scope is not physical Content upload, cold recovery or public Provider acceptanc
 
 ## Owned guarded request preparation
 
-An installed UPDATE/upsert driver may use the existing `prepareRequestChild`
+An installed CREATE/UPDATE/upsert/DELETE or Command driver may use the existing `prepareRequestChild`
 port when its exact conditional request depends on an authorized target read.
 The Host first obtains each member's original target-read decision, then passes
 the row index and a zero-argument read-grant supplier closed over that exact

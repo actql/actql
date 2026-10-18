@@ -33,9 +33,10 @@
 //   complete write footprint (`kind` and its fields).
 // Optionally:
 // - `prepareRequestChild({member, value, selector, current, content, signal,
-//   rowIndex, authorizationForRow, assertCurrent})` (command or guarded write): synchronously returns the same original
+//   rowIndex, authorizationForRow, assertCurrent})`: synchronously returns the same original
 //   `{prepare, release, retry, status}` child. Capture retains it before await;
 //   missing physical funding/read authority must refuse before acquisition.
+//   CREATE uses the existing unindexed context without a target-read grant.
 //   Guarded rows receive their exact rowIndex and a zero-argument read grant
 //   supplier closed over that row and the original target-read decision. The
 //   child may read before deriving conditional request bytes; observeTargets
@@ -1442,8 +1443,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
             ? JSON.parse(proposal.selectorWire) : undefined};
       });
       let entries;
-      if ((member.kind === 'command' || guarded(member.kind)) &&
-          owned.prepareRequestChild !== undefined) {
+      if (owned.prepareRequestChild !== undefined) {
         const preparedEntries = [];
         for (const [rowIndex, row] of rows.entries()) {
           if (requestChildren.length >= limits.maxRows) fail('InstalledRowEffectRowLimit');
