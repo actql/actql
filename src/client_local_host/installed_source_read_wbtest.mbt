@@ -2,9 +2,28 @@
 // Pure nominal correspondence using existing independently authored checked
 // Source fixtures. This is not an operational parent, physical backing or
 // permission positive, and constructs no substitute imported child.
+fn installed_source_read_prepared_fixture() -> @publication_host.PreparedClientProgram {
+  // The retained environment declares this original evidence identity. The
+  // older single-installed helper still expects a different historical CID.
+  let environment = @publication_host.admit_client_check_environment(
+    source_query_original_environment,
+    "sha256:4ea01561b9ac9815baaf04a81cff8260c8a47c56f19828b5889cf45ec1436e78",
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  @publication_host.prepare_effect_free_client_program(
+    source_query_original_document,
+    Json,
+    environment,
+    None,
+    @publication_host.client_standard_program_preparation_limits(),
+  ).unwrap()
+}
+
+///|
 test "Source read requirement keeps the same checked Program and occurrence" {
-  let prepared = single_installed_prepared()
-  let foreign = single_installed_prepared()
+  let prepared = installed_source_read_prepared_fixture()
+  let foreign = installed_source_read_prepared_fixture()
   let requirement = original_row_requirement(prepared)
   let other = original_row_requirement(foreign)
   assert_eq(
