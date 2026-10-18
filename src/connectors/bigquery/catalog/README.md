@@ -43,7 +43,7 @@ type/read/write target.
 
 `maxLength` and `collation` remain exact provider metadata. This unit neither
 chooses a length-unit law for writes nor authorizes collation-dependent pushdown.
-It does not generate SQL, create/poll a Job, parse data rows, acquire credentials,
+The metadata projection does not dispatch SQL, create/poll a Job, acquire credentials,
 publish a Source, create a Preview, mutate a table or settle an Effect. Those
 physical routes must retain the original request/response custody and existing
 current/authority/resource checks. Metadata or a successful declaration does not
@@ -119,3 +119,20 @@ Python Local remain separate unfinished work.
 Sources: [query results](https://docs.cloud.google.com/bigquery/docs/reference/rest/v2/jobs/getQueryResults),
 [JobReference](https://docs.cloud.google.com/bigquery/docs/reference/rest/v2/JobReference),
 and [JSON type](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#json_type).
+
+## Original query Job observations
+
+`prepare_query_job_material` emits bounded GoogleSQL for only the original
+selected fields and table. Each original identifier is quoted, including
+backslash, backtick and control-character escaping; names are not normalized.
+The one original Job ID/location, explicit GoogleSQL mode and
+`maximumBytesBilled` are in the same immutable request material. These fields
+are routing and request DATA, not permission, billing credit or physical funding.
+
+`project_query_job_observation` uses the same bounded preserving parser. It
+requires the same Job reference and original submitted query configuration.
+PENDING/RUNNING/DONE are observations, not a new scheduler: DONE says execution
+ended, while final errorResult still forbids successful Source publication.
+The original material remains nominal when observing state; an equal other
+material cannot substitute it. Physical transport and response correspondence
+remain with the original read/Host; these codecs do not issue cleanup ACKs.
