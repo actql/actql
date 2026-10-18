@@ -1,5 +1,13 @@
 import {resolve} from 'node:path';
 import {connect as connectHost, ClientError} from '@actql/sdk';
+import initialControlPublicDispatch from './initial-control-public-dispatch.cjs';
+
+// Capture the actual early private consumer once, not a later cache export or
+// a caller option. Its presence selects an entrance, never an admission. The
+// same startup must still refuse before raw acquisition when coverage is absent.
+const selectedInitialControlHostPreparation =
+  initialControlPublicDispatch.selectedInitialControlHostPreparation;
+const applyInitialControl = Reflect.apply;
 
 export {ClientError, RequestHeld} from '@actql/sdk';
 
@@ -63,7 +71,15 @@ export async function connect(options, stringOptions) {
 
 // The new short Local entry chooses a project-local state directory explicitly.
 // Existing connect() retains its environment/home-directory defaults.
-export async function open(options = {}) {
+export async function open(options) {
+  if (selectedInitialControlHostPreparation !== undefined) {
+    return applyInitialControl(selectedInitialControlHostPreparation,
+      initialControlPublicDispatch, ['open', options]);
+  }
+  // Unselected entrances retain their original semantics and independent
+  // coverage duties. In particular, no default packet is made on the selected
+  // path before its original raw-input acquisition.
+  if (options === undefined) options = {};
   if (options === null || typeof options !== 'object' || Array.isArray(options) ||
       Object.keys(options).some(key => !['stateDir', 'installation',
         'durability', 'consentRefs'].includes(key)) ||
