@@ -336,7 +336,9 @@ test('public Effect submit rejects an unsupported checked acquisition shape befo
         await assert.rejects(client.startSource(unsupported.document,
           {format: 'json', submissionRef: client.newSubmission({nonce: 'unsupported-effect-request'})}),
         error => {
-          assert.equal(error.code, 'SubmissionPreparationFailed');
+          assert.equal(error.code, 'SubmissionPreparationFailed', JSON.stringify({
+            outcome: getSubmissionOutcome(error), cause: error.cause?.message,
+          }));
           assert.deepEqual(getSubmissionOutcome(error).problem,
             {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
           return true;
