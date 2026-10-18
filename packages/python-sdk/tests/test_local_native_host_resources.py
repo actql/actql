@@ -19,7 +19,7 @@ class PairFixture(ParentReadFixture):
         self.bind_issue, self.call_issue = (0, 0), (0, 0)
         self.pair_present = True
         self.bind_fault = self.capture_fault_pair = self.operate_fault = None
-        self.claim_fault = None
+        self.claim_fault = self.claim_drop_fault = None
         self.pair_drop_fault = self.pair_finish_fault = None
         self.closed_override = self.operation_override = None
         self.wrong_original = False
@@ -59,6 +59,7 @@ class PairFixture(ParentReadFixture):
     def claim_read_pair(self,h,p,retained,execution,out):
         self.pair_events.append(('claim',h.value,p.value,retained,execution))
         self.result_pair(out,9,self.call_issue)
+        if self.claim_drop_fault:self.pair_drop_fault=self.claim_drop_fault
         if self.claim_fault: raise self.claim_fault
         return 0
 
@@ -168,17 +169,27 @@ class OriginalHostResourcesTests(unittest.TestCase):
                 p.close()
 
     def test_claim_lost_outslot_or_drop_ack_retains_same_carrier_without_reclaim(self):
-        for failure in ('claim_fault','pair_drop_fault'):
+        for failure in ('claim_fault','claim_drop_fault'):
             with self.subTest(failure=failure):
                 f=PairFixture();p=f.pair();setattr(f,failure,OSError('claim response lost'))
                 with self.assertRaises(_OriginalHostResourcesError) as error:p.claim_read(32,64)
                 self.assertTrue(error.exception.unknown);self.assertIs(error.exception.cleanup_resources,p)
                 self.assertEqual([v.value for v in p._slots()[:-1]],[101,101,701,401,801])
+                self.assertEqual(sum(event[0]=='claim' for event in f.pair_events),1)
                 before=list(f.pair_events)
                 for call in (lambda:p.claim_read(32,64),p.current,p.close):
                     with self.assertRaises(_OriginalHostResourcesError) as again:call()
                     self.assertIs(again.exception,error.exception)
                 self.assertEqual(f.pair_events,before);self.assertFalse(p._closed or f.r._closed or f.s._closed)
+
+    def test_native_unknown_claim_preserves_original_fact_and_never_reissues(self):
+        f=PairFixture();p=f.pair();f.call_issue=(2,9)
+        with self.assertRaises(_OriginalHostResourcesError) as error:p.claim_read(32,64)
+        self.assertTrue(error.exception.unknown);self.assertEqual(error.exception.fact.operation,9)
+        self.assertIsNotNone(p._reply.value);self.assertIsNone(p._phase)
+        before=list(f.pair_events)
+        with self.assertRaises(_OriginalHostResourcesError) as again:p.claim_read(32,64)
+        self.assertIs(again.exception,error.exception);self.assertEqual(f.pair_events,before)
 
     def test_claim_wrong_operation_or_close_shape_does_not_start_phase_or_retire(self):
         for field,value in [('operation_override',3),('closed_override',1)]:
