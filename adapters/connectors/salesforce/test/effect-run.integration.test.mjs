@@ -27,10 +27,11 @@ import {createLocalAuthorizationGate} from
 import {loadCheckpointRuntime, openSqliteCheckpointJournal} from
   '../../../host-node/sqlite-checkpoint-journal.mjs';
 import {captureSalesforceCollectionEffectWrite,
-  captureSalesforceSingleEffectWrite,
-  recoverPreparedSalesforceSingleRequests,
-  recoverCapturedSalesforceSingleRequests} from
+  captureSalesforceSingleEffectWrite} from
   '../host/salesforce-effect-write.mjs';
+import {recoverPreparedSalesforceSingleRequests,
+  recoverCapturedSalesforceSingleRequests} from
+  '../host/salesforce-effect-request-recovery.mjs';
 import {authorObservedSalesforceEffectPreview} from
   '../host/salesforce-effect-preview.mjs';
 import {installSalesforceEffectCurrentUse} from

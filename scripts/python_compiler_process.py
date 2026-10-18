@@ -28,6 +28,8 @@ class CompilerChildProcessError(RuntimeError):
         self.cleanup_parent = parent
         self.cleanup_process: Any = None
         self.response = bytearray()
+        self.primary_error: BaseException | None = None
+        self.cleanup_error: BaseException | None = None
         super().__init__('Original compiler child transport did not complete')
 
 
@@ -39,6 +41,62 @@ def _selected_executable(path: Path, size: int, digest: str) -> None:
             or not os.access(path, os.X_OK)):
         raise ValueError('Selected original compiler executable is unavailable')
     _read_file(path, maximum=size, expected=size, digest=digest)
+
+
+def _finish_original_process(parent: Any, process: Any, deadline: float) -> None:
+    # These are the existing Native owners' phases, not a Python cleanup state
+    # machine. A completed physical process is not signaled/retired again when
+    # only its same parent's partial cleanup remains.
+    if not process._closed:
+        process.restrict_transport()
+        process.return_transport()
+        while not process.poll_stop():
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError('Original compiler stop remains unconfirmed')
+            time.sleep(min(0.001, remaining))
+        process.retire_stopped()
+    parent.close_unstarted()
+
+
+def finish_original_compiler_after_stop_request(failure: CompilerChildProcessError,
+                                               *, timeout: float) -> bool:
+    """Explicit caller cleanup of the same failed invocation; never a retry.
+
+    This is not invoked by response failure. The caller chooses to request the
+    existing original child to stop after ending its I/O. The request result is
+    not an ACK; only the same Native stop/region/parent chain can finish here.
+    Original descriptor and process-lifetime Runtime aliases remain caller-owned.
+    Even successful cleanup cannot accept a response/image or erase the primary
+    failure. Every cleanup error retains this same carrier and partial objects.
+    """
+    if (type(failure) is not CompilerChildProcessError
+            or type(timeout) not in (int, float)
+            or not math.isfinite(timeout) or timeout <= 0):
+        raise ValueError('Select the original compiler failure and finite cleanup budget')
+    from actql_sdk._local_native_process_custody import _OriginalInstalledProcessCustody
+
+    parent, process = failure.cleanup_parent, failure.cleanup_process
+    domain = getattr(parent, 'domain', None)
+    if (domain is None or type(process) is not _OriginalInstalledProcessCustody
+            or process._domain is not domain
+            or process._owner is not parent.host
+            or process._functions.library is not parent.library
+            or (not process._closed and domain._installed_process_original is not process)
+            or (process._closed and (domain._installed_process_original is not None
+                or any(slot.value is not None for slot in process._slots())))):
+        raise ValueError('Original compiler cleanup custody is unavailable')
+    deadline = time.monotonic() + timeout
+    try:
+        if process._unknown is not None:
+            raise process._unknown
+        parent.runtime.current()
+        relayed = process.request_stop() if not process._closed else False
+        _finish_original_process(parent, process, deadline)
+        return relayed
+    except BaseException as cleanup_error:
+        failure.cleanup_error = cleanup_error
+        raise failure from cleanup_error
 
 
 def invoke_original_compiler(parent: Any, *, executable: Path, executable_bytes: int,
@@ -104,19 +162,12 @@ def invoke_original_compiler(parent: Any, *, executable: Path, executable_bytes:
                 raise ValueError('Original compiler control response exceeds its bound')
         # EOF is only an observation. Return IPC through its original Owner,
         # then require its typed stop and actual region/FD retirement separately.
-        process.restrict_transport()
-        process.return_transport()
-        while not process.poll_stop():
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                raise TimeoutError('Original compiler stop remains unconfirmed')
-            time.sleep(min(0.001, remaining))
-        process.retire_stopped()
-        parent.close_unstarted()
+        _finish_original_process(parent, process, deadline)
         # The caller's backing descriptor and process-lifetime Runtime alias are
         # still caller-owned. Neither is closed by returning these report bytes.
         return bytes(failure.response)
     except BaseException as primary:
+        failure.primary_error = primary
         if failure.cleanup_process is None:
             failure.cleanup_process = parent.domain._installed_process_original
         if failure.cleanup_process is None:

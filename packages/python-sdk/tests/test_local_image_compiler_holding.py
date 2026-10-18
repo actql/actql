@@ -57,7 +57,7 @@ class CompilerHoldingTests(unittest.TestCase):
                 patch.object(compiler, 'import_module', side_effect=AssertionError('Engine import')):
             with self.assertRaisesRegex(ValueError, 'compiler holding is unavailable'):
                 compiler.compile_from_original(self.case.module_file, self.case.head,
-                                                self.fixture.destination, bindings_source=self.case.root / 'bindings',
+                                                self.fixture.destination.resolve(), bindings_source=self.case.root / 'bindings',
                                                 native_libraries=self.fixture.library.parent,
                                                 preparation=self.case.root / 'fresh-stage')
 
@@ -207,43 +207,12 @@ class CompilerHoldingTests(unittest.TestCase):
         self.assertTrue(caught.exception.refused)
         provider.actql_native_owned_acquire.assert_not_called()
 
-    def test_changed_second_preflight_closes_same_holding_before_reraising_primary(self):
-        original = self.original()
-        primary = ValueError('Second source fence changed')
-        holding = SimpleNamespace(_capacity_bytes=lambda: self.body['capacity_bytes'], close=Mock())
-        with patch.object(compiler, '_acquire_compiler_holding', return_value=holding), \
-                patch.object(compiler, 'compile_image', side_effect=primary):
-            with self.assertRaises(ValueError) as caught:
-                compiler.compile_from_original(self.case.module_file, self.case.head,
-                                                self.fixture.destination, bindings_source=self.case.root / 'bindings',
-                                                native_libraries=self.fixture.library.parent,
-                                                preparation=self.case.root / 'fresh-stage')
-        self.assertIs(caught.exception, primary)
-        holding.close.assert_called_once()
-
-    def test_physical_capacity_mismatch_refuses_compile_and_retires_same_original(self):
+    def test_ordinary_entry_refuses_holding_without_original_parent_before_unbound_acquire(self):
         self.original()
-        holding = SimpleNamespace(_capacity_bytes=lambda: self.body['capacity_bytes'] - 1, close=Mock())
-        with patch.object(compiler, '_acquire_compiler_holding', return_value=holding), \
-                patch.object(compiler, 'compile_image', side_effect=AssertionError('Compile')):
-            with self.assertRaisesRegex(ValueError, 'Physical compiler holding'):
+        with patch.object(compiler, '_acquire_compiler_holding', side_effect=AssertionError('Unbound acquire')), \
+                patch.object(compiler, 'compile_image', side_effect=AssertionError('In-process compiler')):
+            with self.assertRaisesRegex(ValueError, 'compiler parent is unavailable'):
                 compiler.compile_from_original(self.case.module_file, self.case.head,
-                                                self.fixture.destination, bindings_source=self.case.root / 'bindings',
-                                                native_libraries=self.fixture.library.parent,
-                                                preparation=self.case.root / 'fresh-stage')
-        holding.close.assert_called_once()
-
-    def test_compiler_cleanup_unknown_keeps_same_carrier_without_another_close(self):
-        self.original()
-        holding = SimpleNamespace(_capacity_bytes=lambda: self.body['capacity_bytes'], close=Mock())
-        cleanup = compiler.ImageCompilerCleanupError(compiler._CompilerCustody(holding), OSError('Primary'))
-        with patch.object(compiler, '_acquire_compiler_holding', return_value=holding), \
-                patch.object(compiler, 'compile_image', side_effect=cleanup):
-            with self.assertRaises(compiler.ImageCompilerCleanupError) as caught:
-                compiler.compile_from_original(self.case.module_file, self.case.head,
-                                                self.fixture.destination, bindings_source=self.case.root / 'bindings',
-                                                native_libraries=self.fixture.library.parent,
-                                                preparation=self.case.root / 'fresh-stage')
-        self.assertIs(caught.exception, cleanup)
-        self.assertIs(cleanup.cleanup_compilation.holding, holding)
-        holding.close.assert_not_called()
+                    self.fixture.destination.resolve(), bindings_source=self.case.root / 'bindings',
+                    native_libraries=self.fixture.library.parent, preparation=self.case.root / 'fresh-stage')
+        self.assertFalse(self.fixture.destination.exists())

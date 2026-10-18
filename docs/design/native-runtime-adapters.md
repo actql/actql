@@ -427,3 +427,18 @@ logical identity from a physical digest.
 Cryptography and any later storage or RPC dependencies should likewise use
 maintained libraries behind thin physical adapters. ActQL-specific identities
 and state transitions must remain independent of their transport encodings.
+
+
+The existing Native Signature Library has an explicit cleanup-only close.
+Requesting it stops new cryptographic work through every alias of that Library;
+its original dynamic handle remains retained while any original SHA-256 EVP
+context is live. Each context has its own explicit close acknowledgement, and
+successful digest completion also retires its context. The Library closes only
+after those physical contexts retire. Escaped inert managed references,
+application material and Host/domain retirement remain separate obligations.
+An unconfirmed dynamic close is sticky and cannot authorize an automatic retry,
+replacement load or release acknowledgement. Finalizers are best effort and do
+not supply either explicit acknowledgement. A lost unfinished context leaves
+its retained parent Library cleanup pending even if a finalizer frees native
+memory; only the original explicit context operation can acknowledge it. Existing loading selection,
+credential authority and numerical resource admission are unchanged.

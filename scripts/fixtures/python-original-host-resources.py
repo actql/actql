@@ -17,6 +17,9 @@ from actql_sdk._local_native_host_resources import (
     _OriginalHostResourcesCustody, _OriginalHostResourcesFunctions, _OriginalHostResourcesError,
 )
 from actql_sdk._local_native_original_read import _OriginalParentReadCustody, _OriginalParentReadFunctions
+from actql_sdk._local_native_runtime import (
+    _OriginalPackagedRuntimeCustody, _OriginalPackagedRuntimeFunctions, _OriginalPackagedRuntimeError,
+)
 from actql_sdk._local_native_sqlite import _OriginalSqliteCustody, _OriginalSqliteFunctions
 from actql_sdk._local_native_sqlite_database import _OriginalDatabaseCustody, _OriginalDatabaseFunctions
 from actql_sdk._local_native_shim_abi import bind
@@ -24,7 +27,10 @@ from actql_sdk._local_worker_slot import _OriginalDescriptor
 
 
 def main() -> None:
-    source, bundle_arg, helper_arg, fixture_arg = sys.argv[1:]
+    if len(sys.argv) not in (5, 7):
+        raise ValueError('Expected original pair inputs and optional exact Runtime selection')
+    source, bundle_arg, helper_arg, fixture_arg = sys.argv[1:5]
+    runtime_selection = sys.argv[5:]
     bundle, fixture = Path(bundle_arg), Path(fixture_arg)
     fixture.mkdir(mode=0o700, exist_ok=False)
     root_path = fixture / 'root'
@@ -94,12 +100,25 @@ def main() -> None:
     assert pair.claim_read(16 * page, 1024 * page).operation == 9
     assert pair._phase is None and not read._scope_open
     step('same original Read claim precedes physical work without a new Python handle or phase')
+    runtime = None
+    if runtime_selection:
+        runtime_root, manifest_hash = runtime_selection
+        runtime = _OriginalPackagedRuntimeCustody._capture_original(read,
+            _OriginalPackagedRuntimeFunctions(library), root_path=runtime_root,
+            source_sha=source, platform='darwin-arm64', manifest_sha256=manifest_hash,
+            diagnostic_ceiling=65536)
+        assert runtime._resources is pair and runtime._read is read
+        assert runtime.current().issue_family == 0
+        assert pair._phase is None and not read._scope_open
+        step('whole selected Runtime capture and current use the same already claimed Host pair')
     calls: list[int] = []
     native_operate = pair_functions.operate
 
     def counted_operate(h: object, p: object, op: int, out: object) -> int:
         calls.append(op)
-        return native_operate(h, p, op, out)
+        code: object = native_operate(h, p, op, out)
+        assert type(code) is int
+        return code
 
     pair_functions.operate = counted_operate
     acquisition, root = c.c_void_p(), c.c_void_p()
@@ -129,6 +148,10 @@ def main() -> None:
     fact, size = database.read_into('pair', 'one', output)
     assert fact.has_row and size == 3 and output == b'\x00A\xff\x09'
     step('same Library Database performs actual BEGIN INSERT COMMIT and bounded read')
+    if runtime is not None:
+        assert runtime.current().issue_family == 0
+        assert pair._phase is None and not read._scope_open
+        step('same Runtime resumes its original Read after the SQLite transaction before cleanup')
     before = list(calls)
     try:
         pair.close()
@@ -139,6 +162,26 @@ def main() -> None:
     database.close()
     assert database._closed
     step('pending Database data refuses parent close before a foreign call')
+    if runtime is not None:
+        # Database cleanup stops the original SQLite read-use. A sibling's
+        # normal current check cannot turn that cleanup into fresh permission.
+        try:
+            runtime.current()
+            raise AssertionError('Stopped SQLite read-use admitted normal Runtime work')
+        except _OriginalPackagedRuntimeError as error:
+            assert not error.unknown and error.fact and error.fact.issue_family == 10
+            assert error.cleanup_runtime is runtime
+        before = list(calls)
+        try:
+            pair.close()
+            raise AssertionError('A live Runtime alias allowed outer retirement')
+        except ValueError:
+            pass
+        assert calls == before
+        runtime.close()
+        assert runtime._closed and not pair._closed and not read._closed
+        runtime.close()
+        step('Runtime aliases retain outer retirement until their own physical and data cleanup ACK')
 
     def pending() -> None:
         try:

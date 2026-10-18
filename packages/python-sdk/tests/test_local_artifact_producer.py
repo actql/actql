@@ -94,6 +94,16 @@ class LocalArtifactProducerTests(unittest.TestCase):
             'engine_sha256': descriptor(self.head, '0.0.0.dev0', digest)['engine_sha256'],
             'image': str(self.image_path), 'image_sha256': hash_bytes(IMAGE),
             'compiled': True, 'runtime_executed': False, 'public_local_acceptance': False}
+        # Synthetic metadata below tests only the closed receipt law. No phase
+        # or image has executed; these objects are never runtime evidence.
+        fixture_cohort = {'execution_kind': 'selected_precompiled_image',
+            'module_sha256': digest, 'image_sha256': hash_bytes(IMAGE),
+            'engine_sha256': descriptor(self.head, '0.0.0.dev0', digest)['engine_sha256'],
+            'runtime_library_sha256': RUNTIME_HASH,
+            'provider_library_sha256': json.loads(ORIGINAL)['provider_library_sha256']}
+        self.core['contract']['cases'] = ['synthetic non-executable format fixture']
+        for name in ('contract', 'result', 'physical', 'workspace'):
+            self.core[name]['cohort'] = dict(fixture_cohort)
         self.image_file = self.root / 'image.json'
         self.core_file = self.root / 'core.json'
         self.duckdb_file = self.root / 'duckdb.json'

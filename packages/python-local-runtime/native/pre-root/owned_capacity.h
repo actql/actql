@@ -33,6 +33,15 @@ int actql_native_owned_capacity_bytes(actql_owned_capacity *lease, uint64_t *out
 /* Opaque observations of the same provider, not capacity grants. Output slots
  * must be empty. Rounding cannot exceed the original region's finite bounds. */
 int actql_native_owned_control_bytes(actql_owned_capacity *lease, uint64_t *out);
+/* Read-only current-original census. Exactly16 initially-zero uint64 slots:
+ * capacity/page/control/occupied/peak bytes; generic/slab/large bytes;
+ * slab metadata/live-slot/free-slot bytes; pending-retirement bytes;
+ * generic/large/slab extent counts and live slab-slot count.
+ * Slab details are contained in slab bytes, never additional charges. Pending
+ * extents stay occupied; their payload is not read. Values issue no grant,
+ * availability, exportable alias or cleanup acknowledgement. */
+int actql_native_owned_inventory(actql_owned_capacity *lease, uint64_t *out,
+                                  size_t count);
 int actql_native_owned_rounded_bytes(actql_owned_capacity *lease, size_t bytes,
                                     uint64_t *out);
 /* Exact existing domain transfer, with its original immutable material kept
@@ -57,6 +66,20 @@ int actql_native_owned_capture_image_fd(actql_owned_capacity *lease, int fd,
                                         const unsigned char digest[32], void **out);
 /* Retirement keeps a failed physical cleanup in the same native lease. */
 int actql_native_owned_retire(actql_owned_capacity *lease, void *allocation);
+/* Rust-only internal storage. A token identifies the original live slot and is
+ * consumed once; it is not a grant. Storage/metadata stay in this same holding.
+ * Allocate requires the original current scope. Retirement retains its original
+ * lease after scope exit, but never re-adopts an inherited/foreign process. */
+int actql_native_owned_rust_allocate(actql_owned_capacity *lease, size_t bytes,
+    size_t alignment, void **out, uint64_t *token);
+int actql_native_owned_rust_retire(actql_owned_capacity *lease, void *allocation,
+                                   uint64_t token);
+/* Read-only physical containment inside one live Rust allocation. The trusted
+ * native caller must retain its original owning buffer/handle for the entire
+ * read. This does not identify a stale pointer after reuse, issue a borrow or
+ * authority, or make a heap page a generic/protectable/exportable span. */
+int actql_native_owned_contains_live_rust_span(actql_owned_capacity *lease,
+                                               const void *address, size_t bytes);
 /* Requires all children retired. Failure preserves the original pointer. */
 int actql_native_owned_try_close(actql_owned_capacity **lease);
 

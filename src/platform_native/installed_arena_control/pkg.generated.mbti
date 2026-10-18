@@ -312,12 +312,14 @@ pub fn InstalledArenaHost::project_domain_original(Self, InstalledArenaDomain) -
 pub fn InstalledArenaHost::project_prepared_domain(Self, InstalledArenaDomain) -> Result[@host_bootstrap.NativePreparedDomainTransport, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::report(Self, InstalledArenaDelegation, @physical_resources.LedgerUsage) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::report_live_channel(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain], @physical_resources.LedgerUsage) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::request_process_child_stop(Self, InstalledArenaDomain, InstalledArenaProcess) -> Result[Bool, @host_bootstrap.NativeBackedProcessRegionIssue]
 pub fn InstalledArenaHost::require_backing_borrow_current(Self, InstalledArenaBackingBorrow) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::require_current(Self) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::require_domain_current(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::require_domain_original_read_consumer_current(Self, InstalledArenaOriginalReadConsumer) -> Result[Unit, InstalledArenaOriginalReadIssue]
 pub fn InstalledArenaHost::require_domain_original_read_current(Self, InstalledArenaOriginalRead) -> Result[Unit, InstalledArenaOriginalReadIssue]
 pub fn InstalledArenaHost::require_domain_read_current(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::require_local_host_consuming_read_current(Self, InstalledArenaLocalHostResources, InstalledArenaOriginalRead) -> Result[Unit, InstalledArenaLocalHostResourcesIssue]
 pub fn InstalledArenaHost::require_local_host_resources_current(Self, InstalledArenaLocalHostResources) -> Result[Unit, InstalledArenaLocalHostResourcesIssue]
 pub fn InstalledArenaHost::require_process_current(Self, InstalledArenaDomain, InstalledArenaProcess) -> Result[Unit, @host_bootstrap.NativeBackedProcessRegionIssue]
 pub fn InstalledArenaHost::restrict_process_transport(Self, InstalledArenaDomain, InstalledArenaProcess) -> Result[Unit, @host_bootstrap.NativeBackedProcessRegionIssue]
@@ -434,6 +436,8 @@ pub fn InstalledArenaProcessReply::original_frame(Self) -> @physical_resources.I
 pub fn InstalledArenaProcessReply::original_host(Self) -> InstalledArenaHost
 pub fn InstalledArenaProcessReply::original_process(Self) -> InstalledArenaProcess?
 pub fn InstalledArenaProcessReply::stop_observation(Self) -> Int
+pub fn InstalledArenaProcessReply::stop_request_observation(Self) -> Int
+pub fn InstalledArenaProcessReply::transport_observation(Self) -> Int
 
 type InstalledArenaReply
 pub fn InstalledArenaReply::issue_description(Self) -> String

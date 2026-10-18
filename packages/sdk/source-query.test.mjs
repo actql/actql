@@ -9,6 +9,7 @@ import {tmpdir} from 'node:os';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {CLIENT_PACKAGES, packedClientPackage, packedNpmCache} from '../../scripts/packed-client-packages.mjs';
 import {connect, getSubmissionInput, getSubmissionOutcome, explainSubmission, RequestHeld} from './index.mjs';
+import {validRunState, validRunWaitContract} from '@actql/client-wire';
 
 const cid = x => `sha256:${x.repeat(64)}`;
 const ref = {namespaceId: 'query-test', authorityScopeCid: cid('a'),
@@ -142,7 +143,9 @@ test('a held query preserves the pre-Run observation without a fake Execution', 
 
 for (const status of ['preparing', 'running', 'resuming', 'failed', 'cancelled',
   'waiting_checkpoint', 'needs_reconciliation']) {
-  test(`short query preserves ${status} and does not claim a Result`, async t => {
+  const unstable = ['preparing', 'running', 'resuming'].includes(status);
+  test(unstable ? `short query refuses ${status} as an unstable wait reply`
+    : `short query preserves ${status} and does not claim a Result`, async t => {
     const state = {...succeeded(), status, result_available: false,
       result_availability: {answer: {state: 'unavailable', observed_at: time,
         reason: 'not_published'}}, next_action: {kind: 'none'}};
@@ -153,14 +156,29 @@ for (const status of ['preparing', 'running', 'resuming', 'failed', 'cancelled',
     if (status === 'needs_reconciliation') state.next_action = {kind: 'reconcile', effects: ['write']};
     const f = await fixture(t, {wait: () => Response.json(state)});
     const query = f.client.sql('SELECT 1 AS id');
+    let original;
     await assert.rejects(query, error => {
-      assert.deepEqual(error.executionRef, ref); assert.equal(error.observation.status, status);
-      assert.equal(error.code, ['failed', 'cancelled'].includes(status)
-        ? 'ExecutionUnsuccessful' : ['waiting_checkpoint', 'needs_reconciliation'].includes(status)
-        ? 'ExecutionBlocked' : 'ExecutionPending');
+      original = error;
+      assert.deepEqual(error.executionRef, ref);
+      if (unstable) {
+        // This is a valid status projection, but wait must return a stable
+        // waiting or terminal projection. A malformed reply is not pending
+        // execution evidence and cannot issue a Result or a retry.
+        assert.equal(validRunState(state), true);
+        assert.equal(validRunWaitContract(state, null), false);
+        assert.equal(error.code, 'QueryObservationUnknown');
+        assert.equal(error.cause?.code, 'InvalidHostRunState');
+        assert.equal(error.observation, undefined);
+      } else {
+        assert.equal(error.observation.status, status);
+        assert.equal(error.code, ['failed', 'cancelled'].includes(status)
+          ? 'ExecutionUnsuccessful' : ['waiting_checkpoint', 'needs_reconciliation'].includes(status)
+          ? 'ExecutionBlocked' : 'ExecutionPending');
+      }
       assert.equal(JSON.stringify(error).includes('observation'), false);
       assert.equal(JSON.stringify(error).includes('result_availability'), false); return true;
     });
+    await assert.rejects(query, error => error === original);
     assert.equal(f.count('submit-intent'), 1); assert.equal(f.count('wait'), 1);
     assert.equal(f.count('read'), 0);
   });

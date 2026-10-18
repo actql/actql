@@ -42,7 +42,7 @@ def declarations(root: Path = ROOT):
                   '*mut c_void': 'c_void_p', '*mut *mut c_void': 'POINTER(c_void_p)',
                   '*mut u64': 'POINTER(c_uint64)'}
     forwards = list(re.finditer(r'forward!\((\w+),\s*(\w+),\s*\(([^()]*)\),\s*([^;]+)\);', rust, re.S))
-    if len(forwards) != 13:
+    if len(forwards) != 15:
         raise ValueError('Original Rust memory forwarding inventory changed')
     for forward in forwards:
         alias, native, arguments, result = forward.groups()

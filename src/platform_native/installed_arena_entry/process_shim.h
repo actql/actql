@@ -39,7 +39,9 @@ int actql_process_originals_into(actql_process_reply *, actql_control_host **,
     actql_domain **, actql_process **, actql_live_channel **, actql_original_child_frame **);
 int32_t actql_process_operation(actql_process_reply *);
 int32_t actql_process_issue_family(actql_process_reply *);
-/* Historical checked DATA: writer/read/backing/stop. No current or ACK inference. */
+/* Historical checked DATA: writer/read/backing/operation observation. Exact
+ * operation6 is running1/stopped2; operation12 is stop-request0/1, never a stop
+ * or retirement ACK. No current or ACK inference from these scalars. */
 int actql_process_copy_facts(actql_process_reply *, actql_control_host *, actql_domain *,
     actql_process *, int32_t[4]);
 int actql_process_drop_reply(actql_process_reply **, actql_control_host *, actql_domain *, actql_process *);
