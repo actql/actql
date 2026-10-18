@@ -12,6 +12,13 @@ const prior = history.records['spec/contracts/actql-expressions.json'];
 const current = read('spec/contracts/actql-expressions.json');
 const priorCid = 'sha256:ed54dd0a56f4bfc7811a600db137ae5b32b24c2819a81ab69c7c5f06d349da7b';
 const currentCid = 'sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35';
+// Effect literal DATA keys keep their exact code units. General canonical JSON
+// identifier normalization is a different owner and cannot verify this body.
+const exactLiteralData=value=>Array.isArray(value)?'['+value.map(exactLiteralData).join(',')+']'
+  :value!==null&&typeof value==='object'?'{'+Object.keys(value).sort()
+    .map(key=>JSON.stringify(key)+':'+exactLiteralData(value[key])).join(',')+'}'
+    :JSON.stringify(value);
+
 
 test('comparison extension retains the complete predecessor expression and only two explicit law positions change', () => {
   verifyIdentity(prior, priorCid);
@@ -117,8 +124,10 @@ test('complete prior current Effect literal Stage Program and Definition bodies 
     assert.equal(c.name, original.cases[i].name);
     assert.deepEqual(c.payload, original.cases[i].payload);
     assert.deepEqual(c.stage.body.local_body, original.cases[i].stage_envelope.local_body);
-    for (const role of ['stage','program','definition'])
-      verifyIdentity(c[role].body,c[role].cid,c[role].canonical_preimage);
+    for (const role of ['stage','program','definition']) {
+      assert.equal(exactLiteralData(c[role].body),c[role].canonical_preimage);
+      assert.equal('sha256:'+createHash('sha256').update(c[role].canonical_preimage,'utf8').digest('hex'),c[role].cid);
+    }
     assert.equal(c.stage.body.expression_contract_cid,priorCid);
     assert.equal(c.program.body.expression_contract_cid,priorCid);
     assert.equal(c.program.body.program_template.stages[0].stage_semantics_cid,c.stage.cid);
