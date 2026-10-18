@@ -1476,6 +1476,7 @@ test('Run binding current fence refuses response disclosure after the final awai
   const observe = async () => { await Promise.resolve(); if (++observations === 3) current = false; };
   await assert.rejects(f.invoke('response-revoked', observe, {retainRunResponseOriginal: true}),
     error => error === cause);
+  current = true; // Restored DATA cannot clear the original unknown attempt.
   await assert.rejects(f.invoke('no-replacement', observe), error => error === cause);
   assert.equal(setup.requests(), 1); assert.equal(resolutions, 1); assert.equal(observations, 3);
   assert.deepEqual(setup.journal.recover().map(row => row.outcome), ['unknown']);
@@ -1533,7 +1534,7 @@ test('Run binding current fence retains an unconfirmed original outcome without 
   await assert.rejects(invoke('no-new-attempt'), error => error === cause);
   assert.equal(claims, 1); assert.equal(finishes, 1); assert.equal(resolutions, 1);
   assert.equal(setup.requests(), 1);
-  assert.deepEqual(setup.journal.recover().map(row => row.outcome), ['unknown']);
+  assert.deepEqual(setup.journal.recover().map(row => row.outcome), ['claimed']);
   assert.equal(closeHttpsCredentialBinding(binding), 'closed');
 });
 

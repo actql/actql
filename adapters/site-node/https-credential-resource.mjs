@@ -930,6 +930,10 @@ async function callCredentialResource({
         throw pending;
       }
     } else journal.finish(claimed.record.useCid, outcome);
+    // A later current result cannot authorize a different request in place of
+    // this acquisition's unresolved original physical attempt. Cleanup may
+    // retire the binding; only the original Journal owns reconciliation.
+    if (fenced && outcome === 'unknown') binding.pendingOutcome = error;
     throw error;
   }
 }
