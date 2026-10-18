@@ -23,6 +23,8 @@ const paths = ['src/connectors/gcs/catalog/object_metadata.mbt',
   'src/connectors/gcs/host_node/pkg.generated.mbti',
   'adapters/connectors/gcs/host/gcs-collection-target.mjs',
   'src/connectors/gcs/catalog/upload_declaration.mbt',
+  'src/connectors/gcs/catalog/object_mutation_mapping.mbt',
+  'src/connectors/gcs/catalog/object_mutation_recovery.mbt',
   'src/connectors/gcs/catalog/object_page.mbt',
   'src/connectors/gcs/host_node/upload.mbt',
   'adapters/connectors/gcs/host/gcs-upload-declaration.mjs',
@@ -47,9 +49,9 @@ const moduleOf = (module, source = readFileSync(new URL(`../${module}`, import.m
       : {operations: moonOperations(source), exports: []}),
 });
 
-test('all twenty-nine explicit GCS owner modules and APIs retain their ten contract references', () => {
-  assert.equal(declarations.length, 29);
-  assert.equal(assertInterfaceCoverage({root, modules: paths.map(path => moduleOf(path)), declarations}), 29);
+test('all thirty-one explicit GCS owner modules and APIs retain their ten contract references', () => {
+  assert.equal(declarations.length, 31);
+  assert.equal(assertInterfaceCoverage({root, modules: paths.map(path => moduleOf(path)), declarations}), 31);
   assert.deepEqual(moduleOf(paths.at(-1)).compilerFields, []);
 });
 

@@ -53124,6 +53124,303 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/host-common/installation-publication-storage-metadata.mjs",
+      "sha256": "cae6dbac9fa43180a8864b74051ebe9c63f4d001ee3dd499a326b3bd9953dca2",
+      "exports": [
+        "createInstallationPublicationStorageMetadata"
+      ],
+      "operations": [
+        {
+          "name": "createInstallationPublicationStorageMetadata",
+          "parameters": [
+            "moon",
+            "store",
+            "limits",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPublicationStorageMetadata/createInstallationPublicationStorageMetadata",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPublicationStorageMetadata/createInstallationPublicationStorageMetadata#2",
+          "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPublicationStorageMetadata/createInstallationPublicationStorageMetadata#3",
+          "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPublicationStorageMetadata/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstallationPublicationStorageMetadata/originalFields/originalFields",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPublicationStorageMetadata/originalFields/originalFields/originalFields",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPublicationStorageMetadata/own/own",
+          "parameters": [
+            "receiver"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPublicationStorageMetadata/ports/ports",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPublicationStorageMetadata/read/read",
+          "parameters": [
+            "receiver"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPublicationStorageMetadata/sameFields/sameFields",
+          "parameters": [
+            "found"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPublicationStorageMetadata/sameFields/sameFields/sameFields",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPublicationStorageMetadata/view/init:binding/init:binding",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstallationPublicationStorageMetadata/view/init:cid/init:cid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstallationPublicationStorageMetadata/view/init:forget/init:forget",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstallationPublicationStorageMetadata/view/init:observe/init:observe",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstallationPublicationStorageMetadata/view/init:wire/init:wire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "data",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "data/data",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "data/data#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "primary",
+      "owner": "Existing installed Host and Local Store original observation with Common publication DATA codec",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstallationPublicationStorageMetadata",
+            "createInstallationPublicationStorageMetadata/createInstallationPublicationStorageMetadata",
+            "createInstallationPublicationStorageMetadata/createInstallationPublicationStorageMetadata#2",
+            "createInstallationPublicationStorageMetadata/createInstallationPublicationStorageMetadata#3",
+            "createInstallationPublicationStorageMetadata/current/current",
+            "createInstallationPublicationStorageMetadata/originalFields/originalFields",
+            "createInstallationPublicationStorageMetadata/originalFields/originalFields/originalFields",
+            "createInstallationPublicationStorageMetadata/own/own",
+            "createInstallationPublicationStorageMetadata/ports/ports",
+            "createInstallationPublicationStorageMetadata/read/read",
+            "createInstallationPublicationStorageMetadata/sameFields/sameFields",
+            "createInstallationPublicationStorageMetadata/sameFields/sameFields/sameFields",
+            "createInstallationPublicationStorageMetadata/view/init:binding/init:binding",
+            "createInstallationPublicationStorageMetadata/view/init:cid/init:cid",
+            "createInstallationPublicationStorageMetadata/view/init:forget/init:forget",
+            "createInstallationPublicationStorageMetadata/view/init:observe/init:observe",
+            "createInstallationPublicationStorageMetadata/view/init:wire/init:wire",
+            "data",
+            "data/data",
+            "data/data#2",
+            "fail/fail"
+          ],
+          "exports": [
+            "createInstallationPublicationStorageMetadata"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Installation publication storage association"
+              },
+              {
+                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
+                "anchor": "export function createInstallationPublicationStorageMetadata(moon, store,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
+                "anchor": "let bounds = data(limits, limitNames);"
+              },
+              {
+                "path": "src/run_publication/installation_publication_storage_binding.mbt",
+                "anchor": "pub fn prepare_installation_publication_storage_binding("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
+                "anchor": "if (handle !== original || !sameFields(found)) {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "handle !== originalInstallationPublicationStorageBinding.handle"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
+                "anchor": "if (pending || Reflect.apply(status, store, []).closed !== true) return false;"
+              },
+              {
+                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
+                "anchor": "moon = undefined; store = undefined; assertCurrent = undefined;"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Installation publication storage association"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
+                "anchor": "const handle = await Reflect.apply(observe, store, []);"
+              },
+              {
+                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
+                "anchor": "const found = originalFields(handle);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
+                "anchor": "} finally { pending = false; }"
+              },
+              {
+                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mjs",
+                "anchor": "test('original Host current refusal after awaited Store observation leaves Common unissued'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "originalInstallationPublicationStorageBindingReaders !== 0"
+              },
+              {
+                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mjs",
+                "anchor": "for (const outcome of ['false', 'reject']) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Installation publication storage association"
+              },
+              {
+                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
+                "anchor": "const limitNames = Object.freeze(['maxWireBytes', 'maxNodes', 'maxDepth']);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const bytes = await readBounded(storeContractPath, 256, () => {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Installation publication storage association"
+              },
+              {
+                "path": "src/run_publication/installation_publication_storage_binding.mbt",
+                "anchor": "/// Closed storage-association DATA for installation publication. Even a valid"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mjs",
+                "anchor": "test('same actual Store projects one Common binding with exact retained contract and purpose'"
+              },
+              {
+                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mjs",
+                "anchor": "test('one original asynchronous observation stays pending without a second read or early forgetting'"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "generated": [],
