@@ -11,6 +11,8 @@ import {projectTemplateFiles} from '../../packages/native-cli/lib/project-templa
 assert.ok(process.env.ACTQL_TEST_MOCK_CATALOGUE_COMMON_RUNTIME,
   'Select the matching Common runtime containing the charged document receiver');
 const moon = await import(pathToFileURL(process.env.ACTQL_TEST_MOCK_CATALOGUE_COMMON_RUNTIME));
+assert.equal(typeof moon.clientProgramMockChurnRiskAcceptChargedDocument, 'function',
+  'The selected runtime must contain the original charged document receiver');
 const read = name => readFile(new URL(`../../${name}`, import.meta.url), 'utf8');
 const [base, registry, aoa, queryContract, evidenceContract] = await Promise.all([
   read('spec/local-check-environment.json'),
