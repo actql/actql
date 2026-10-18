@@ -27019,7 +27019,7 @@
     {
       "module": "adapters/host-node/infer-trusted-node-preload.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "4c8ae5d213778530fed33c5e4bf74966211a8f25ffda6e1bd782eff63fc33581",
+      "sha256": "e20bd98024a3b96e9d4092c734540c057fe13af2bf37bdc030d2c788998e21c0",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -28583,14 +28583,14 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-original.cjs",
-      "sha256": "1486fef895dab520eb29e892131fef063273160d890ccc60900cc6e406870acd",
-      "exports": [],
+      "sha256": "5655d70ecda3fcacb527448b3f8ccb4337b71e891b2d7d58513735dbb74c4fcc",
+      "exports": [
+        "commonjs:imageInventory"
+      ],
       "operations": [],
       "imports": [],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "dynamic CommonJS export value"
-      ],
+      "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing private Host/Resource selected image correspondence and original byte custody; no operational admission",
@@ -28599,7 +28599,9 @@
           "operations": [
             "<module>"
           ],
-          "exports": [],
+          "exports": [
+            "commonjs:imageInventory"
+          ],
           "attributes": {
             "responsibility": [
               {
