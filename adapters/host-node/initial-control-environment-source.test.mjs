@@ -10,8 +10,9 @@ const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'u
 const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 const declaration = name => tree.body.map(node => node.declaration ?? node)
   .find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
-const variable = (body, name) => body.body.find(node => node.type === 'VariableDeclaration' &&
-  node.declarations.some(value => value.id.name === name));
+const variable = (body, name) => body.body.flatMap(node =>
+  node.type === 'TryStatement' ? node.block.body : [node]).find(node =>
+  node.type === 'VariableDeclaration' && node.declarations.some(value => value.id.name === name));
 const opening = declaration('openInstalledHost');
 assert.ok(opening);
 const environmentSource = variable(opening.body, 'environmentSource');
