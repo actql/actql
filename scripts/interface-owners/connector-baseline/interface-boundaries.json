@@ -11641,7 +11641,7 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bb80ca7389723b9e959207673187a6e02bc40ed1d143fd00b9b2826f8f8fc20e",
+      "sha256": "3d4ba135481f693667f68af63edd6a9876ad8a04b9e9795aa1f0681d99725ae3",
       "role": "physical-io",
       "owner": "Named describe exchange and historical evidence reprojection; MoonBit keeps incomplete Catalog semantics and original scope",
       "exports": [
@@ -11768,6 +11768,16 @@
           "parameters": [
             "facts"
           ],
+          "async": false
+        },
+        {
+          "name": "withSalesforceNamedDescribeOriginals/recheckOriginals/recheckOriginals",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "withSalesforceNamedDescribeOriginals/recheckOriginals/recheckOriginals/recheckOriginals",
+          "parameters": [],
           "async": false
         },
         {
@@ -11905,7 +11915,9 @@
             "withSalesforceNamedDescribeOriginals",
             "withSalesforceNamedDescribeOriginals/operations/operations",
             "withSalesforceNamedDescribeOriginals/operations/operations/operations",
-            "withSalesforceNamedDescribeOriginals/withSalesforceNamedDescribeOriginals"
+            "withSalesforceNamedDescribeOriginals/withSalesforceNamedDescribeOriginals",
+            "withSalesforceNamedDescribeOriginals/recheckOriginals/recheckOriginals",
+            "withSalesforceNamedDescribeOriginals/recheckOriginals/recheckOriginals/recheckOriginals"
           ],
           "exports": [
             "withSalesforceNamedDescribeOriginals"
