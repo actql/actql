@@ -17,7 +17,7 @@ const own = Object.hasOwn, freeze = Object.freeze;
 const {createInitialControlInstallationOwner} = require('./initial-control-installation-owner.cjs');
 const {declareOrdinaryInitialControlPhaseEnvelope, inspectOrdinaryInitialControlPhaseEnvelope}
   = require('./initial-control-phase-envelope.cjs');
-const {declareSourceManagedPhaseEnvelope} = require('./source-managed-phase-envelope.cjs');
+const {declareSourceManagedPhaseEnvelope,declareSourceComputePhaseEnvelope} = require('./source-managed-phase-envelope.cjs');
 const fail = code => {throw Object.assign(new TypeError(code), {code});};
 const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');
 const inputUnavailable = () => fail('NodeInitialControlInputUnavailable');
@@ -110,10 +110,15 @@ function sourceOriginal(original, held, allowClosing = false) {
 }
 function sourceCurrent(original, held) {
   const entry = sourceOriginal(original, held);
-  assertSamePreparation(held);
-  assertSourceOperationsCurrent();
-  apply(state.source.validator, state.namespace, [held]);
-  return entry;
+  try {
+    assertSamePreparation(held);
+    assertSourceOperationsCurrent();
+    apply(state.source.validator, state.namespace, [held]);
+    return entry;
+  } catch(cause) {
+    sourceFailure(entry,cause);entry.closing=true;
+    throw cause;
+  }
 }
 function sourceReceipt(entry, receipt) {
   if (entry.receipt === undefined || entry.receipt.original !== receipt) sourceUnavailable();
@@ -133,6 +138,7 @@ function sourceChildrenPending(entry) {
 }
 function sourceStatus(entry) {
   return freeze({pending: !entry.closed, fdPending: entry.file !== undefined,
+    managedRunPending: entry.receipt?.managedRun?.admitted === true && !entry.receipt.managedRun.stopped,
     backingUnknown: entry.backingUnknown,
     childrenPending: sourceChildrenPending(entry),
     physicalBackingReleased: false});
@@ -143,6 +149,7 @@ async function closeSource(entry) {
   const flight = (async () => {
     if (entry.backingUnknown) return sourceStatus(entry);
     if (entry.receipt !== undefined && !entry.receipt.finished) return sourceStatus(entry);
+    if (entry.receipt?.managedRun?.admitted === true && !entry.receipt.managedRun.stopped) return sourceStatus(entry);
     if (sourceChildrenPending(entry)) {
       return sourceStatus(entry);
     }
@@ -220,6 +227,7 @@ function sourceChildCurrent(child) {
   if (apply(sourceMapGet, sourceChildren, [child.originalSource]) !== child || child.entry !== entry ||
       child.producer !== entry.receipt || child.request !== child.producer.request ||
       child.stopped || child.released) sourceUnavailable();
+  if (child.managedRun !== undefined) managedRunCurrent(child.managedRun);
   // This exact child was issued while the original request was pending.
   // SDK reply/alias retirement cannot reconstruct or revoke this independent
   // original read duty; no new lookup, value/CID match or grant is made here.
@@ -288,9 +296,19 @@ async function readSourceBytes(entry, child) {
   try {return await flight;} catch (cause) {sourceFailure(entry, cause);throw cause;}
   finally {if (child.flight === flight) child.flight = undefined;}
 }
-function prepareSourceRead(original, held, derived, declaration) {
+function prepareSourceRead(original, held, derived, declaration, originalRun) {
   const entry = sourceCurrent(original, held);
   const request = assertSourceRequest(entry, derived);
+  let managedRun;
+  if (originalRun !== undefined) {
+    managedRun = entry.receipt.managedRun;
+    if (managedRun === undefined || managedRun.original !== originalRun ||
+        managedRun.derived !== derived || !managedRun.admitted) sourceUnavailable();
+    managedRunCurrent(managedRun);
+  } else if (entry.receipt.managedRun !== undefined) {
+    // A joint Run cannot fall back to two independent Source-only Ledgers.
+    sourceUnavailable();
+  }
   let ordinal = -1;
   for (let index = 0; index < entry.bundle.sources.length; index++) {
     if (entry.bundle.sources[index].declaration === declaration) ordinal = index;
@@ -300,15 +318,15 @@ function prepareSourceRead(original, held, derived, declaration) {
     if (entry.children[index].ordinal === ordinal) sourceUnavailable();
   }
   const originalSource = freeze(Object.create(null));
-  const child = {entry, ordinal, derived, request, producer: entry.receipt, originalSource, portsTaken: false,
-    admitted: false, stopped: false, released: false, readAttempted: false,
+  const child = {entry, ordinal, derived, request, producer: entry.receipt, originalSource, managedRun, portsTaken: false,
+    admitted: managedRun !== undefined, stopped: false, released: false, readAttempted: false,
     flight: undefined, bytes: undefined, usage: undefined};
   appendSourceOriginal(entry.children, child);
   apply(sourceMapSet, sourceChildren, [originalSource, child]);
   return freeze({originalSource,
     readOriginalBytes() {return readSourceBytes(entry, child);},
     close() {
-      if (!child.portsTaken) child.stopped = true;
+      if (!child.portsTaken && child.managedRun === undefined) child.stopped = true;
       child.released = true;
       return freeze({pending: child.flight !== undefined});
     },
@@ -319,7 +337,7 @@ function prepareOriginalSourceChildPorts(original) {
   // A missing original is refused without inspecting a caller reference.
   if (sourceInstallation === undefined || typeof sourceMapGet !== 'function') return null;
   const child = apply(sourceMapGet, sourceChildren, [original]);
-  if (child === undefined || child.portsTaken || child.stopped || child.released) return null;
+  if (child === undefined || child.managedRun !== undefined || child.portsTaken || child.stopped || child.released) return null;
   try {sourceChildCurrent(child);}
   catch (cause) {
     sourceFailure(child.entry, cause);
@@ -369,6 +387,92 @@ function prepareOriginalSourceChildPorts(original) {
       return 0;
     },
   });
+}
+function managedRunCurrent(run) {
+  const entry = sourceCurrent(run.entry.original,run.entry.originals);
+  if (run.entry !== entry || entry.receipt !== run.producer ||
+      run.producer.managedRun !== run || run.stopped ||
+      run.request !== run.producer.request || run.derived === undefined) sourceUnavailable();
+}
+function claimManagedRun(original,held,derived) {
+  const entry = sourceCurrent(original,held), request = assertSourceRequest(entry,derived);
+  const run = entry.receipt.managedRun;
+  if (run === undefined || run.claimed) sourceUnavailable();
+  // This is a claim of the pre-snapshot original, not a late Compute issuer.
+  // Retain the exact opaque prepared/request pointers before the fixed Owner's
+  // fallible sizing/current fences. A failure never issues another original.
+  run.claimed = true;run.derived = derived;run.request = request;
+  try {
+    const required = apply(state.runRequirements,state.namespace,[held,derived]);
+    const bounds = state.sourceComputeEnvelope.limits;
+    const names = ['planningWork','attempts','holdings','transferBytes','retainedBytes','executionBytes'];
+    if (required === null || typeof required !== 'object' || isProxy(required) || !Object.isFrozen(required)) sourceUnavailable();
+    const quotas = [];
+    for (let index=0;index<names.length;index++) {
+      const name=names[index], property=descriptor(required,name);
+      if (property === undefined || !own(property,'value')) sourceUnavailable();
+      const value=property.value;
+      if (index<3 ? !Number.isSafeInteger(value) || value<0 || value>2147483647 :
+          typeof value!=='bigint' || value<0n) sourceUnavailable();
+      const amount=BigInt(value);
+      if (amount>BigInt(bounds[name])) sourceUnavailable();
+      appendSourceOriginal(quotas,amount);
+    }
+    run.quotas=freeze(quotas);
+    managedRunCurrent(run);
+    return run.original;
+  } catch(cause) {
+    sourceFailure(entry,cause);entry.closing=true;
+    throw cause;
+  }
+}
+function prepareOriginalManagedRunPorts(original) {
+  const entry=sourceInstallation,run=entry?.receipt?.managedRun;
+  if (run===undefined || run.original!==original || !run.claimed ||
+      run.quotas===undefined || run.portsTaken || run.stopped) return null;
+  try {managedRunCurrent(run);} catch(cause) {
+    sourceFailure(entry,cause);entry.closing=true;return null;
+  }
+  run.portsTaken=true;
+  const current=()=>{
+    if (run.stopped || entry.closing) return 1;
+    try {managedRunCurrent(run);return 0;} catch {return 1;}
+  };
+  return freeze({status(operation) {
+    if (operation===2) {
+      if (!run.admitted || run.stopped || run.usage===undefined ||
+          run.usage.uncertain!==0n || run.usage.reservedTransfer!==0n ||
+          run.usage.heldBytes!==0n || run.usage.reservedRetention!==0n ||
+          run.usage.reservedExecution!==0n) return -42;
+      for (let index=0;index<entry.children.length;index++) {
+        const child=entry.children[index];
+        if (child.managedRun===run && child.flight!==undefined) return -42;
+      }
+      run.stopped=true;
+      for (let index=0;index<entry.children.length;index++) {
+        const child=entry.children[index];
+        if (child.managedRun===run) child.stopped=true;
+      }
+      return 0;
+    }
+    if (operation===1) return current();
+    if (operation!==0 || current()!==0 || run.admitted) return -42;
+    run.admitted=true;return 0;
+  },limit(ordinal) {
+    return Number.isInteger(ordinal)&&ordinal>=0&&ordinal<run.quotas.length?run.quotas[ordinal]:-42n;
+  },report(planning,attempts,holdings,transferred,uncertain,reservedTransfer,
+    heldBytes,reservedRetention,reservedExecution,peakRetention) {
+    const quota=run.quotas;
+    if (!run.admitted || run.stopped || ![planning,attempts,holdings].every(Number.isSafeInteger) ||
+        planning<0 || attempts<0 || holdings<0 || BigInt(planning)>quota[0] ||
+        BigInt(attempts)>quota[1] || BigInt(holdings)>quota[2] ||
+        ![transferred,uncertain,reservedTransfer,heldBytes,reservedRetention,reservedExecution,peakRetention]
+          .every(value=>typeof value==='bigint'&&value>=0n) ||
+        transferred+uncertain+reservedTransfer>quota[3] || heldBytes+reservedRetention>quota[4] ||
+        peakRetention>quota[4] || reservedExecution>quota[5]) return -42;
+    run.usage=freeze({planning,attempts,holdings,transferred,uncertain,reservedTransfer,
+      heldBytes,reservedRetention,reservedExecution,peakRetention});return 0;
+  }});
 }
 const inputLimits = freeze({maxProperties:40,maxNodes:40,maxDepth:4,
   maxStringCodeUnits:4096,maxTotalStringCodeUnits:8192,maxArrayItems:0,maxOpaqueAliases:0,maxWork:65536});
@@ -503,6 +607,14 @@ const table = module.exports = {
     const receipt = freeze(Object.create(null));
     const producer = entry.receipt = {original: receipt, snapshot: undefined,
       body: undefined, request: undefined, finished: false};
+    if (typeof state.runRequirements === 'function') {
+      // The selected startup adopted the complete separate joint disposition
+      // before its namespace loaded. Fix this one original BEFORE input and
+      // Common preparation; a later typed claim only binds its original pair.
+      producer.managedRun={original:freeze(Object.create(null)),entry,producer,
+        claimed:false,derived:undefined,request:undefined,quotas:undefined,
+        portsTaken:false,admitted:false,stopped:false,usage:undefined};
+    }
     // First ownKeys/clone is covered by the separately declared Source phase,
     // not an initial-control credit or admission of the resulting DATA. Retain
     // the one attempt before this fallible read: rejection cannot refill it.
@@ -553,7 +665,9 @@ const table = module.exports = {
     return closeSource(sourceOriginal(original, originals, true));
   },
   prepareSourceManagedRead: prepareSourceRead,
+  prepareSourceManagedRun: claimManagedRun,
   prepareOriginalSourceChildPorts,
+  prepareOriginalManagedRunPorts,
 };
 Object.setPrototypeOf(table,null);
 // Same synchronous receiver handoff for the Host namespace while it loads;
@@ -574,6 +688,7 @@ try {
   // Adopt the separate joint Source recipe before namespace, managed Source
   // metadata or raw SDK acquisition. This is not a second whole VM allowance.
   const sourceEnvelope = declareSourceManagedPhaseEnvelope(declaration);
+  const sourceComputeEnvelope = declareSourceComputePhaseEnvelope(sourceEnvelope);
   const runtime = freeze({node:processOriginal.versions.node,v8:processOriginal.versions.v8,
     openssl:processOriginal.versions.openssl,platform:processOriginal.platform,arch:processOriginal.arch,
     eager:false,libraries:freeze({...processOriginal.versions})});
@@ -613,7 +728,11 @@ try {
     source[name] = entry !== undefined && own(entry, 'value') ? entry.value : undefined;
   }
   freeze(source);
-  state = {declaration,runtime,envelope,sourceEnvelope,inventory,images,namespace,consumer,validator,reader,source,prefixIntrinsics};
+  const runRequirementProperty=descriptor(namespace,'readSourceManagedRunRequirements');
+  const runRequirements=runRequirementProperty!==undefined&&own(runRequirementProperty,'value')
+    ?runRequirementProperty.value:undefined;
+  state = {declaration,runtime,envelope,sourceEnvelope,sourceComputeEnvelope,runRequirements,
+    inventory,images,namespace,consumer,validator,reader,source,prefixIntrinsics};
 } catch(cause) {
   // Keep original FD/namespace/compile failure and its close-only duty. A
   // failed prefix never becomes a second factory or a retrying image read.

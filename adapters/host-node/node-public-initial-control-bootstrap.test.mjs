@@ -9,7 +9,7 @@ import test from 'node:test';
 // Real ordinary Node module loading, same-FD captured images and the private
 // installation Owner. The small Host below is explicit, not the full product
 // Host or a normal installed README success, business supplier or permission.
-function fixture(t,{inventory=true,changeImage=false,publicNode=false,source=false}={}) {
+function fixture(t,{inventory=true,changeImage=false,publicNode=false,source=false,managedRun=false,oversizeRun=false}={}) {
   const directory=mkdtempSync(join(tmpdir(),'actql-ordinary-control-'));
   t.after(()=>rmSync(directory,{recursive:true}));
   const root=join(directory,'node_modules/@actql/local-node');
@@ -38,7 +38,8 @@ function fixture(t,{inventory=true,changeImage=false,publicNode=false,source=fal
     'export async function prepareInstalledMockSourcePreparation(held,original){assertInitialControlHostPreparation(held);}'+
     'export function readInstalledMockPreparation(held){assertInitialControlHostPreparation(held);return Object.freeze({dataPath:'+JSON.stringify(sourcePath)+',sources:Object.freeze(declarations.map(declaration=>Object.freeze({declaration})))});}'+
     'export function originalSourceManagedHostRequest(held,value){assertInitialControlHostPreparation(held);if(value!==derived)throw new Error("ForeignRequestFixture");return request;}'+
-    'export function sourceManagedSubmittedIntentCid(held,original,body){assertInitialControlHostPreparation(held);return "sha256:"+"a".repeat(64);}':'')+
+    'export function sourceManagedSubmittedIntentCid(held,original,body){assertInitialControlHostPreparation(held);return "sha256:"+"a".repeat(64);}'+
+    (managedRun?'export function readSourceManagedRunRequirements(held,value){assertInitialControlHostPreparation(held);if(value!==derived)throw new Error("ForeignPreparedFixture");return Object.freeze({planningWork:100000,attempts:3,holdings:3,transferBytes:10000000n,retainedBytes:252808192n,executionBytes:'+(oversizeRun?'536870913n':'536870912n')+'});}':''):'')+
     'let originals;export function assertInitialControlHostPreparation(held){'+
     'if(!originals||["host","installation","generation","supplier","moduleLifetime"].some(name=>held[name]!==originals[name]))throw new Error("ForeignHostFixture");}'+
     'export async function connectInitialControlHostPreparation(kind,raw){'+
@@ -150,6 +151,67 @@ test('ordinary Source failed original snapshot never starts a replacement attemp
     'assert.throws(()=>root.beforeSourceSnapshot(source,client.originals,"aql","SELECT replacement",{}),{code:"SourceManagedPreparationUnavailable"});'+
     'const closed=await root.closeSourceManagedInstallation(source,client.originals);'+
     'assert.equal(closed.pending,false);assert.equal(closed.physicalBackingReleased,false);'+
+    'assert.equal((await client.scope.close()).pending,false);');
+  assert.equal(result.status,0,result.stderr);
+});
+
+test('ordinary Source managed Run keeps one joint original for both file children without Source child conversion',t=>{
+  const f=fixture(t,{source:true,managedRun:true});
+  const result=f.run(
+    'import assert from"node:assert/strict";import{createRequire}from"node:module";import{connect}from"@actql/local-node";'+
+    'const client=await connect({mode:"local",installation:{directory:".actql"},profile:"mock"});'+
+    'const root=createRequire(import.meta.url)('+JSON.stringify(join(f.root,'adapters/host-node/node-public-initial-control-bootstrap.cjs'))+');'+
+    'const source=await root.prepareSourceManagedInstallation(client.originals),receipt=root.beforeSourceSnapshot(source,client.originals,"aql","SELECT original",{});'+
+    'const body=Object.freeze({kind:"aql",input:"SELECT original",parameters:null});root.bindSourceSnapshot(source,client.originals,receipt,body);'+
+    'const request=Object.freeze({body}),prepared=Object.freeze({});client.bindFixtureRequest(request,prepared);root.bindSourceRequest(source,client.originals,receipt,body,request);'+
+    'const originalRun=root.prepareSourceManagedRun(source,client.originals,prepared);'+
+    'assert.equal(root.prepareOriginalSourceChildPorts(originalRun),null);assert.equal(root.prepareOriginalManagedRunPorts({}),null);'+
+    'assert.throws(()=>root.prepareSourceManagedRun(source,client.originals,prepared),{code:"SourceManagedPreparationUnavailable"});'+
+    'assert.throws(()=>root.prepareSourceManagedRead(source,client.originals,prepared,client.declarations[0],originalRun),{code:"SourceManagedPreparationUnavailable"});'+
+    'const ports=root.prepareOriginalManagedRunPorts(originalRun);assert.ok(ports);assert.equal(root.prepareOriginalManagedRunPorts(originalRun),null);'+
+    'assert.equal(ports.status(0),0);assert.equal(ports.status(0),-42);assert.equal(ports.limit(5),536870912n);'+
+    'const reads=client.declarations.map(decl=>root.prepareSourceManagedRead(source,client.originals,prepared,decl,originalRun));'+
+    'for(const read of reads)assert.equal(root.prepareOriginalSourceChildPorts(read.originalSource),null);'+
+    'const left=await reads[0].readOriginalBytes(),right=await reads[1].readOriginalBytes();assert.equal(left.equals(right),true);assert.notEqual(left.buffer,right.buffer);'+
+    'root.finishSourceProducer(source,client.originals,receipt,"returned");client.bindFixtureRequest(undefined,undefined);'+
+    'assert.equal((await root.closeSourceManagedInstallation(source,client.originals)).managedRunPending,true);'+
+    'assert.equal(ports.report(0,0,0,0n,0n,0n,1n,0n,0n,1n),0);assert.equal(ports.status(2),-42);'+
+    'reads[0].close();assert.equal(reads[1].status().pending,true);reads[1].close();'+
+    'assert.equal(ports.report(0,0,0,0n,0n,0n,0n,0n,0n,1n),0);assert.equal(ports.status(2),0);'+
+    'const closed=await root.closeSourceManagedInstallation(source,client.originals);assert.equal(closed.pending,false);assert.equal(closed.fdPending,false);assert.equal(closed.physicalBackingReleased,false);'+
+    'assert.equal((await client.scope.close()).pending,false);');
+  assert.equal(result.status,0,result.stderr);
+});
+
+test('ordinary Source managed Run foreign reference refuses without consuming the original claim',t=>{
+  const f=fixture(t,{source:true,managedRun:true});
+  const result=f.run(
+    'import assert from"node:assert/strict";import{createRequire}from"node:module";import{connect}from"@actql/local-node";'+
+    'const client=await connect({mode:"local",installation:{directory:".actql"},profile:"mock"});'+
+    'const root=createRequire(import.meta.url)('+JSON.stringify(join(f.root,'adapters/host-node/node-public-initial-control-bootstrap.cjs'))+');'+
+    'const source=await root.prepareSourceManagedInstallation(client.originals),receipt=root.beforeSourceSnapshot(source,client.originals,"aql","SELECT original",{});'+
+    'const body=Object.freeze({kind:"aql",input:"SELECT original",parameters:null});root.bindSourceSnapshot(source,client.originals,receipt,body);'+
+    'const request=Object.freeze({body}),prepared=Object.freeze({});client.bindFixtureRequest(request,prepared);root.bindSourceRequest(source,client.originals,receipt,body,request);'+
+    'assert.throws(()=>root.prepareSourceManagedRun(source,client.originals,{}),/ForeignRequestFixture/);'+
+    'const original=root.prepareSourceManagedRun(source,client.originals,prepared);assert.ok(original);'+
+    'assert.throws(()=>root.prepareSourceManagedRead(source,client.originals,prepared,client.declarations[0]),{code:"SourceManagedPreparationUnavailable"});'+
+    'root.finishSourceProducer(source,client.originals,receipt,"failed");assert.equal((await root.closeSourceManagedInstallation(source,client.originals)).pending,false);'+
+    'assert.equal(root.prepareOriginalManagedRunPorts(original),null);assert.equal((await client.scope.close()).pending,false);');
+  assert.equal(result.status,0,result.stderr);
+});
+
+test('ordinary Source managed Run exhaustion retains its failed claim without issuing another original',t=>{
+  const f=fixture(t,{source:true,managedRun:true,oversizeRun:true});
+  const result=f.run(
+    'import assert from"node:assert/strict";import{createRequire}from"node:module";import{connect}from"@actql/local-node";'+
+    'const client=await connect({mode:"local",installation:{directory:".actql"},profile:"mock"});'+
+    'const root=createRequire(import.meta.url)('+JSON.stringify(join(f.root,'adapters/host-node/node-public-initial-control-bootstrap.cjs'))+');'+
+    'const source=await root.prepareSourceManagedInstallation(client.originals),receipt=root.beforeSourceSnapshot(source,client.originals,"aql","SELECT original",{});'+
+    'const body=Object.freeze({kind:"aql",input:"SELECT original",parameters:null});root.bindSourceSnapshot(source,client.originals,receipt,body);'+
+    'const request=Object.freeze({body}),prepared=Object.freeze({});client.bindFixtureRequest(request,prepared);root.bindSourceRequest(source,client.originals,receipt,body,request);'+
+    'assert.throws(()=>root.prepareSourceManagedRun(source,client.originals,prepared),{code:"SourceManagedPreparationUnavailable"});'+
+    'assert.throws(()=>root.prepareSourceManagedRun(source,client.originals,prepared),{code:"SourceManagedPreparationUnavailable"});'+
+    'root.finishSourceProducer(source,client.originals,receipt,"failed");assert.equal((await root.closeSourceManagedInstallation(source,client.originals)).pending,false);'+
     'assert.equal((await client.scope.close()).pending,false);');
   assert.equal(result.status,0,result.stderr);
 });

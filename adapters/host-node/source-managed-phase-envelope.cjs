@@ -61,5 +61,48 @@ function declareSourceManagedPhaseEnvelope(controlDeclaration) {
     replenishedOnSourceClose:false});
 }
 
-module.exports={declareSourceManagedPhaseEnvelope};
+// Separately adopted Common managed-Compute scope. These are the existing
+// bounded Local provider ceilings, not extra initial-control/Source credits.
+// A fixed actual installer adopts the whole disposition before SDK intake;
+// this DATA function alone cannot issue an admission or a Run Ledger.
+function declareSourceComputePhaseEnvelope(sourceDeclaration) {
+  if (sourceDeclaration?.limits !== limits) unavailable();
+  const compute = freeze({tasks:32, inputPorts:1024, rows:100, columns:100,
+    valueNodes:20000, textBytes:500000, depth:100, work:20000000, frames:100,
+    metadataEntries:10000, retainedEntries:10000, operationEntries:10000,
+    wireBytes:1000000, retainedBytes:536870912, executionBytes:536870912});
+  // Both original capture holdings remain beside all managed outputs. The
+  // standard Direct capture settles its execution reservation before the next
+  // serial acquisition or DAG start. Provider/extended capture is not this
+  // selected recipe and cannot use this max-over-serial-execution argument.
+  const originalRetained = 2000000*8 + 100000*64 + 4096;
+  const sourceRetained = 4000000 + originalRetained;
+  const sourceExecution = 4000000+4000000+2*1000000+1000000+
+    originalRetained+4*2000000;
+  const transferBytes = compute.inputPorts*compute.wireBytes+
+    limits.sourceOccurrences*limits.responseBytes;
+  const retainedBytes = limits.sourceOccurrences*sourceRetained+compute.retainedBytes;
+  const executionBytes = compute.executionBytes;
+  if (![transferBytes,retainedBytes,executionBytes].every(integer) ||
+      sourceExecution > executionBytes) unavailable();
+  return freeze({sourceDeclaration,compute,
+    limits:freeze({planningWork:100000,attempts:compute.tasks,holdings:compute.tasks,
+      transferBytes,retainedBytes,executionBytes}),
+    sourceRetained,sourceExecution,
+    // Shared selected heap/compiler/module/native domains are counted once in
+    // sourceDeclaration.controlDeclaration, through their process/alias life.
+    // Logical reservations restrict this admission; they do not add a second
+    // copy of that whole domain, reserve an OS heap or release it on Run stop.
+    sharedManagedHeapBytes:sourceDeclaration.sharedManagedHeapBytes,
+    additionalManagedHeapBytes:0,additionalWholeNativeDomainBytes:0,
+    overlap:freeze(['Source/Compute preparation, requirements, graph and generated sequences',
+      'two original Source buffers, decoded/captured inputs and their retained allocations',
+      'all task provider/import/export/output reservations and predecessor ports',
+      'bounded values, schema/key comparison frames and callback/receiver aliases',
+      'original SDK packet, intent, pending Promise, returned result and failure/cleanup aliases']),
+    executionOrder:'standard-source-0-capture-then-source-1-capture-then-managed-dag',
+    lifetime:'same-original-process-and-all-escaped-run-aliases',replenishedOnClose:false});
+}
+
+module.exports={declareSourceManagedPhaseEnvelope,declareSourceComputePhaseEnvelope};
 freeze(module.exports);
