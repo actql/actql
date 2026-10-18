@@ -94,7 +94,8 @@ test('the actual selected public preload consumes generated inventory without is
   mkdirSync(join(local, 'adapters/host-node'), {recursive: true});
   const sources = {...f.sources,
     'adapters/host-node/embedded-local.mjs': Buffer.from(
-      'import delivery from "../../selected-infer-startup.cjs";'+
+      'import{createRequire}from"node:module";'+
+      'const delivery=createRequire(import.meta.url)("../../selected-infer-startup.cjs");'+
       'globalThis.originalDelivery=delivery;globalThis.actualHostImageValue="original";'+
       'export function assertInitialControlHostPreparation(){};'),
     'package.json': Buffer.from(JSON.stringify({name: '@actql/local-node', type: 'module',
