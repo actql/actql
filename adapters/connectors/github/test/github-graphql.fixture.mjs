@@ -38,6 +38,20 @@ export const graphqlIssue = (issue, fieldPageSize = 100) => ({number: issue.numb
   updatedAt: issue.updatedAt ?? '2026-10-02T00:00:00Z',
   closedAt: issue.closedAt ?? null});
 
+// PullRequest has no Issue stateReason. Its own native fields are observed,
+// including ref names when a corresponding Ref object no longer exists.
+export const graphqlPullRequest = (pull, fieldPageSize = 100) => {
+  const {stateReason, ...common} = graphqlIssue({...pull,
+    id: pull.id ?? `PR_${pull.number}`,
+    title: pull.title ?? `Pull request ${pull.number}`,
+    url: pull.url ?? `https://github.com/octo/hello/pull/${pull.number}`}, fieldPageSize);
+  return {__typename: 'PullRequest', ...common,
+    baseRefName: pull.baseRefName ?? 'main', headRefName: pull.headRefName ?? 'original/head',
+    isDraft: pull.isDraft ?? false, mergeable: pull.mergeable ?? 'UNKNOWN',
+    mergedAt: pull.mergedAt ?? null, mergedBy: pull.mergedBy ?? null,
+    reviewDecision: pull.reviewDecision ?? null};
+};
+
 // `world()` returns the current provider state:
 // {repositories: Map(nodeId -> {databaseId, nameWithOwner, issues}),
 //  names: Map(nameWithOwner -> nodeId), pageSize, answer?(variables),
@@ -94,6 +108,37 @@ export function graphqlRoute(world) {
         commentEdge: {node: {id: `IC_${databaseId}`, databaseId}},
         subject: {__typename: subject.type, id: variables.subjectId}}}}};
     }
+    const pullField = query.startsWith('query ActqlPullRequestAssignees(') ? 'assignees'
+      : query.startsWith('query ActqlPullRequestLabels(') ? 'labels' : undefined;
+    if (pullField !== undefined) {
+      if (state.pullChildAnswer !== undefined) return state.pullChildAnswer(pullField, variables);
+      const repository = state.repositories.get(variables.id);
+      const pull = repository?.pullRequests?.find(value => value.number === variables.number);
+      return {body: {data: {node: repository === undefined ? null : {
+        __typename: 'Repository', id: repository.answerId ?? variables.id,
+        databaseId: repository.databaseId, nameWithOwner: repository.nameWithOwner,
+        pullRequest: pull === undefined ? null : {__typename: 'PullRequest', id: pull.id ?? `PR_${pull.number}`,
+          number: pull.number, updatedAt: pull.updatedAt ?? '2026-10-02T00:00:00Z',
+          [pullField]: textConnection(pullField, pull[pullField] ?? [], variables.first,
+            variables.after, state.fieldPageSize ?? 100)}}}}};
+    }
+    if (query.startsWith('query ActqlPullRequests(')) {
+      if (state.pullAnswer !== undefined) return state.pullAnswer(variables);
+      const repository = state.repositories.get(variables.id);
+      if (repository === undefined) return {body: {data: {node: null}, errors: [{type: 'NOT_FOUND'}]}};
+      const states = variables.states ?? ['OPEN', 'CLOSED', 'MERGED'];
+      const items = (repository.pullRequests ?? []).filter(pull => states.includes(pull.state ?? 'OPEN') &&
+        (variables.labels ?? []).every(label => (pull.labels ?? []).includes(label)));
+      const start = variables.after == null ? 0 : decode(variables.after) + 1;
+      const size = Math.min(variables.first, state.pageSize ?? 100);
+      const page = items.slice(start, start + size);
+      return {body: {data: {node: {__typename: 'Repository',
+        id: repository.answerId ?? variables.id, databaseId: repository.databaseId,
+        nameWithOwner: repository.nameWithOwner,
+        pullRequests: {pageInfo: {hasNextPage: start + page.length < items.length,
+          endCursor: page.length === 0 ? null : encode(start + page.length - 1)},
+        nodes: page.map(pull => graphqlPullRequest(pull, state.fieldPageSize ?? 100))}}}}};
+    }
     const field = query.startsWith('query ActqlIssueAssignees(') ? 'assignees'
       : query.startsWith('query ActqlIssueLabels(') ? 'labels' : undefined;
     if (field !== undefined) {
@@ -140,6 +185,11 @@ export const issueReads = fixture => fixture.seen()
   .filter(entry => entry.pathname === '/graphql')
   .map(entry => JSON.parse(entry.body))
   .filter(request => request.query.startsWith('query ActqlIssues('));
+
+export const pullRequestReads = fixture => fixture.seen()
+  .filter(entry => entry.pathname === '/graphql')
+  .map(entry => JSON.parse(entry.body))
+  .filter(request => request.query.startsWith('query ActqlPullRequests('));
 
 // The comment mutations a fixture saw, with their variables.
 export const commentSends = fixture => fixture.seen()

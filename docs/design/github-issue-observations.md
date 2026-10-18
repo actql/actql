@@ -1,5 +1,21 @@
 # GitHub Issue observations
 
+The `pull_requests` relation uses the same repository-bound acquisition and
+nested-field state machine with a distinct opaque native PullRequest page.
+Its original `baseRefName` and `headRefName` are read values, including when
+the corresponding Ref objects were deleted. Native OPEN, CLOSED and MERGED
+remain distinct `open`, `closed` and `merged` Source states. Issue-only
+`state_reason` is SQL NULL on an admitted PullRequest because it is inapplicable;
+this is not a missing-field fallback for an Issue or a write-state mapping.
+MERGEABLE, CONFLICTING and UNKNOWN map respectively to true, false and SQL NULL.
+Missing required fields, other native enum values and foreign native types
+refuse admission. Mergeability and a review decision do not grant merge authority.
+
+Adding the view changes the enclosing Catalog identity. The existing Issue
+carrier body and identity remain unchanged; an old publication is not silently
+upgraded to the new declaration. The additional Source fields do not change
+close-with-reason or other mutation contracts.
+
 The `issues` relation keeps the published repository binding and the provider's
 fifteen Issue columns. Repository node ID, database ID and access name are
 independently checked on every outer and dependent response. Issue `number` is
