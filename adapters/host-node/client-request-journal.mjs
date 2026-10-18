@@ -893,6 +893,7 @@ export function openClientRequestJournal(directory, {
   maxRecords = 100_000,
   maxInspectionEntries = 100_000,
   maxInspectionBytes = 64 * 1024 * 1024,
+  maxDatabaseBytes,
   maxRunDefinitionWireBytes = 65_536,
   submissionEpochTtlMs = maxEpochTtlMs,
   submissionEpochNow = Date.now,
@@ -902,6 +903,8 @@ export function openClientRequestJournal(directory, {
   if (!pathText(directory) || !Number.isSafeInteger(maxRecords) ||
       !Number.isSafeInteger(maxInspectionEntries) || maxInspectionEntries < 1 ||
       !Number.isSafeInteger(maxInspectionBytes) || maxInspectionBytes < 1 ||
+      maxDatabaseBytes !== undefined &&
+        (!Number.isSafeInteger(maxDatabaseBytes) || maxDatabaseBytes < 1) ||
       maxRecords < 1 || !Number.isSafeInteger(maxRunDefinitionWireBytes) ||
       maxRunDefinitionWireBytes < 1024 ||
       !Number.isSafeInteger(submissionEpochTtlMs) || submissionEpochTtlMs < 1 ||
@@ -909,7 +912,12 @@ export function openClientRequestJournal(directory, {
     fail('InvalidClientRequestJournalConfiguration');
   }
   sourceOperationLimits = snapshotClientSourceOperationLimits(sourceOperationLimits);
-  const current = admitJournalDirectory(directory, maxInspectionEntries, maxInspectionBytes);
+  // An optional selected-facility support bound is not a format rule or a
+  // capacity issuer. Refuse original DB/WAL extent before its copy/SQLite
+  // inspection, not after materializing rows. Unselected callers are unchanged.
+  const inspectionBytes = maxDatabaseBytes === undefined ? maxInspectionBytes :
+    Math.min(maxInspectionBytes, maxDatabaseBytes);
+  const current = admitJournalDirectory(directory, maxInspectionEntries, inspectionBytes);
   mkdirSync(directory, {recursive: true, mode: 0o700});
   const root = realpathSync(directory);
   const path = join(root, 'client-requests.sqlite3');
@@ -955,6 +963,22 @@ export function openClientRequestJournal(directory, {
         applyOriginal(originalOpen, database, []) !== undefined ||
         applyOriginal(originalDatabaseIsOpen, database, []) !== true) {
       throw new TypeError('ClientRequestJournalConnectionOpenUnavailable');
+    }
+    if (maxDatabaseBytes !== undefined) {
+      const page = database.prepare('PRAGMA page_size').get().page_size;
+      if (!Number.isSafeInteger(page) || page < 512 || page > 65536 ||
+          (page & (page - 1)) !== 0) {
+        fail('ClientRequestJournalDatabaseUnavailable');
+      }
+      const pages = Math.floor(maxDatabaseBytes / page);
+      if (pages < 1 || pages > 4294967294) fail('ClientRequestJournalDatabaseUnavailable');
+      const observed = database.prepare(`PRAGMA max_page_count = ${pages}`).get().max_page_count;
+      if (!Number.isSafeInteger(observed) || observed < 1 || observed > pages) {
+        fail('ClientRequestJournalDatabaseUnavailable');
+      }
+      // This bounds this connection's main DB growth, not native heap, WAL,
+      // another writer or a physical reservation. Their original facilities
+      // and simultaneous holdings remain separate obligations.
     }
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
