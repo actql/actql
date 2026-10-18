@@ -14,6 +14,7 @@ function fixture() {
       assert.equal(bytes, 16); return original; },
     borrowResponseStorage(value, parent, read, offset, bytes) { assert.equal(this, ports);
       assert.equal(value, scope); assert.equal(parent, original); state.windows.push([offset, bytes]);
+      state.afterBorrow?.();
       return Object.freeze({read}); },
     returnResponseBorrow(value, parent, read, borrowed) { assert.equal(this, ports);
       assert.equal(value, scope); assert.equal(parent, original); assert.equal(borrowed.read, read);
@@ -122,4 +123,28 @@ test('response backing never exposes a sibling through the returned Buffer Array
   assert.notEqual(bodyA.buffer, bodyB.buffer);
   new Uint8Array(bodyA.buffer).fill(120);
   assert.equal(bodyB.toString(), 'b');
+});
+
+test('partial current refusal retains the acquired original borrow in the same cleanup carrier', () => {
+  const f = fixture(), read = {};
+  f.state.afterBorrow = () => {f.state.current = false;};
+  let failure;
+  try { f.owner.acquire(f.pool, f.scope, read, 4); assert.fail('acquire must refuse'); }
+  catch (cause) { failure = cause; }
+  assert.ok(failure.cleanupHandle);
+  assert.match(failure.cause.message, /OriginalSourceClosing/);
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  assert.equal(f.state.returns, 0);
+  // The original return callback/receiver, not its later public replacement,
+  // settles exactly this borrow. No writer or body was ever handed off.
+  f.ports.returnResponseBorrow = () => {throw new Error('ReplacementMustNotRun');};
+  f.state.acknowledged = false;
+  assert.equal(failure.cleanupHandle.retry().pending, true);
+  assert.equal(f.state.returns, 1);
+  f.state.acknowledged = true;
+  assert.equal(failure.cleanupHandle.retry().pending, false);
+  assert.equal(f.state.returns, 2);
+  assert.equal(failure.cleanupHandle.retry().pending, false);
+  assert.equal(f.state.returns, 2);
+  assert.equal(f.owner.poolStatus(f.pool, f.scope).allocated, 4);
 });
