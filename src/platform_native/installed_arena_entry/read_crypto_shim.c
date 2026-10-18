@@ -17,7 +17,7 @@ static struct {
     actql_read_crypto_read_fn read;
     actql_read_crypto_component_fn component;
     actql_read_crypto_library_fn library;
-    actql_read_crypto_tag_fn operation, origin, family, closed, length, verified;
+    actql_read_crypto_tag_fn operation, origin, family, closed, length, verified, has_library;
     actql_read_crypto_byte_fn byte;
     actql_read_crypto_current_fn current;
 } callbacks;
@@ -32,11 +32,12 @@ void actql_native_control_register_read_crypto_roots(
     actql_read_crypto_tag_fn operation, actql_read_crypto_tag_fn origin,
     actql_read_crypto_tag_fn family, actql_read_crypto_tag_fn closed,
     actql_read_crypto_tag_fn length, actql_read_crypto_tag_fn verified,
-    actql_read_crypto_byte_fn byte, actql_read_crypto_current_fn current) {
+    actql_read_crypto_byte_fn byte, actql_read_crypto_current_fn current,
+    actql_read_crypto_tag_fn has_library) {
     if (registered) return;
     if (!prepare || !load || !open_library || !close_library || !close_component ||
         !hmac || !verify || !host || !pair || !read || !component || !library ||
-        !operation || !origin || !family || !closed || !length || !verified || !byte || !current) {
+        !operation || !origin || !family || !closed || !length || !verified || !byte || !current || !has_library) {
         registered = -1; return;
     }
     callbacks.prepare = prepare; callbacks.load = load; callbacks.open_library = open_library;
@@ -46,6 +47,7 @@ void actql_native_control_register_read_crypto_roots(
     callbacks.library = library; callbacks.operation = operation; callbacks.origin = origin;
     callbacks.family = family; callbacks.closed = closed; callbacks.length = length;
     callbacks.verified = verified; callbacks.byte = byte; callbacks.current = current;
+    callbacks.has_library = has_library;
     registered = 1;
 }
 static int same_current(actql_control_host *host, actql_local_host_resources *pair,
@@ -130,6 +132,15 @@ static int distinct_slots(void **slots, size_t count) {
     }
     return 1;
 }
+/* Option[external Library] is not a C nullable pointer. The typed Moon
+ * projection decides presence and unwraps only a present original. C neither
+ * reads a Moon tag nor retains an Option wrapper as a Library reference. */
+static int original_library(actql_read_crypto_reply *reply, actql_local_crypto_library **output) {
+    int32_t present = callbacks.has_library(reply);
+    if (present != 0 && present != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    *output = present ? callbacks.library(reply) : NULL;
+    return present && !*output ? ACTQL_CONTROL_UNAVAILABLE : ACTQL_CONTROL_OK;
+}
 int actql_read_crypto_originals_into(actql_read_crypto_reply *reply, actql_control_host **host,
     actql_local_host_resources **pair, actql_parent_read **read,
     actql_read_crypto_component **component, actql_local_crypto_library **library) {
@@ -140,8 +151,8 @@ int actql_read_crypto_originals_into(actql_read_crypto_reply *reply, actql_contr
     *host = callbacks.host(reply); if (!*host) return ACTQL_CONTROL_UNAVAILABLE;
     *pair = callbacks.pair(reply); if (!*pair) return ACTQL_CONTROL_UNAVAILABLE;
     *read = callbacks.read(reply); if (!*read) return ACTQL_CONTROL_UNAVAILABLE;
-    *component = callbacks.component(reply); *library = callbacks.library(reply);
-    return ACTQL_CONTROL_OK;
+    *component = callbacks.component(reply);
+    return original_library(reply, library);
 }
 int32_t actql_read_crypto_operation(actql_read_crypto_reply *reply) { return registered == 1 && reply ? callbacks.operation(reply) : -1; }
 int32_t actql_read_crypto_issue_origin(actql_read_crypto_reply *reply) { return registered == 1 && reply ? callbacks.origin(reply) : -1; }
@@ -155,8 +166,9 @@ static int same_reply(actql_read_crypto_reply *reply, actql_control_host *host,
     actql_local_host_resources *p = callbacks.pair(reply);
     actql_parent_read *r = callbacks.read(reply);
     actql_read_crypto_component *c = callbacks.component(reply);
-    actql_local_crypto_library *l = callbacks.library(reply);
-    int same = h && h == host && p && p == pair && r && r == read && c == component && l == library;
+    actql_local_crypto_library *l = NULL;
+    int library_status = original_library(reply, &l);
+    int same = library_status == ACTQL_CONTROL_OK && h && h == host && p && p == pair && r && r == read && c == component && l == library;
     if (l) moonbit_decref(l); if (c) moonbit_decref(c); if (r) moonbit_decref(r);
     if (p) moonbit_decref(p); if (h) moonbit_decref(h);
     return same;

@@ -81,7 +81,7 @@ extern "C" fn register_read_crypto_roots(
     (@control.InstalledArenaReadCryptoReply) -> @control.InstalledArenaCryptoComponent?,
   ],
   library : FuncRef[
-    (@control.InstalledArenaReadCryptoReply) -> @signature.Library?,
+    (@control.InstalledArenaReadCryptoReply) -> @signature.Library,
   ],
   operation : FuncRef[(@control.InstalledArenaReadCryptoReply) -> Int],
   origin : FuncRef[(@control.InstalledArenaReadCryptoReply) -> Int],
@@ -98,6 +98,7 @@ extern "C" fn register_read_crypto_roots(
       @control.InstalledArenaCryptoComponent,
     ) -> Bool,
   ],
+  has_library : FuncRef[(@control.InstalledArenaReadCryptoReply) -> Bool],
 ) -> Unit = "actql_native_control_register_read_crypto_roots"
 
 ///|
@@ -140,7 +141,7 @@ fn register_original_read_crypto_roots() -> Unit {
     fn(reply) { reply.original_resources() },
     fn(reply) { reply.original_read() },
     fn(reply) { reply.original_component() },
-    fn(reply) { reply.original_library() },
+    fn(reply) { reply.original_library().unwrap() },
     fn(reply) { reply.operation_tag() },
     fn(reply) { reply.issue_origin() },
     fn(reply) { reply.issue_family() },
@@ -153,5 +154,6 @@ fn register_original_read_crypto_roots() -> Unit {
         host, pair, read, component,
       )
     },
+    fn(reply) { reply.original_library() is Some(_) },
   )
 }
