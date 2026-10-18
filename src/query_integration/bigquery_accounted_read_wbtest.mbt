@@ -355,6 +355,18 @@ fn bigquery_assert_retired(
 }
 
 ///|
+fn[T] bigquery_expect(value : Result[T, @bigquery_read.ReadIssue]) -> T raise {
+  match value {
+    Ok(value) => value
+    Err(@bigquery_read.Page(issue)) => fail("BigQuery page: " + @debug.to_string(issue))
+    Err(@bigquery_read.Host(@row_host.Source(issue))) => fail("BigQuery Source: " + @debug.to_string(issue))
+    Err(@bigquery_read.Host(@row_host.Physical(issue))) => fail("BigQuery physical: " + @debug.to_string(issue))
+    Err(@bigquery_read.Host(_)) => fail("BigQuery other Host refusal")
+    Err(_) => fail("BigQuery unexpected read refusal")
+  }
+}
+
+///|
 test "BigQuery original accounted pages preserve decimal38 and SQL null through Common capture" {
   let rows = bigquery_rows()
   let first = bigquery_body([rows[0]], token=Some("next/opaque+token"))
@@ -363,7 +375,7 @@ test "BigQuery original accounted pages preserve decimal38 and SQL null through 
     "bq-two-pages",
     (first.length() + second.length()).to_int64(),
   )
-  assert_eq(@bigquery_read.accept_query_page(read, None, first).unwrap(), 1)
+  assert_eq(bigquery_expect(@bigquery_read.accept_query_page(read, None, first)), 1)
   assert_true(@bigquery_read.capture_result_read(read) is Err(_))
   assert_eq(
     @bigquery_read.accept_query_page(read, Some("next/opaque+token"), second).unwrap(),
