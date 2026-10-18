@@ -25,6 +25,7 @@ struct InstalledArenaDomain {
     InstalledArenaHost,
     InstalledArenaDomain,
   ]?
+  mut crypto_component : InstalledArenaCryptoComponent?
   mut sqlite_library : InstalledArenaSqliteLibrary?
   mut original_read : InstalledArenaOriginalRead?
   mut process : InstalledArenaProcess?
@@ -71,6 +72,7 @@ pub fn InstalledArenaHost::prepare_domain(
     view: None,
     domain: None,
     live_channel: None,
+    crypto_component: None,
     sqlite_library: None,
     original_read: None,
     process: None,
@@ -302,6 +304,9 @@ pub fn InstalledArenaHost::close_domain_after_owner_ack(
   if record.process is Some(process) && !process.closed {
     return Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending))
   }
+  if record.crypto_component is Some(component) && !component.closed {
+    return Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending))
+  }
   if record.sqlite_library is Some(library) && !library.closed {
     return Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending))
   }
@@ -348,6 +353,7 @@ pub fn InstalledArenaHost::close_domain_after_owner_ack(
   // The closed carrier keeps its original domain for nominal identity, so
   // break the reverse registration only after the full domain retirement ACK.
   // Until here it also prevents a second Library attempt in this live domain.
+  record.crypto_component = None
   record.sqlite_library = None
   record.original_read = None
   record.process = None

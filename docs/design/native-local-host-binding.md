@@ -1316,6 +1316,24 @@ cannot revive it. The same pair retains the consuming view and never restores
 its spent available-read port. Scope leave does not retire managed aliases or
 acknowledge material, domain, Library or Host cleanup.
 
+Small managed Moon allocations may share pages inside that same original Read
+domain. The existing provider owns these pages; headers, alignment, splitting,
+fragmentation and serial metadata consume their original physical capacity.
+This path neither calls the Rust storage ABI nor supplies another reservation,
+pool or allocator fallback. File buffers and large managed allocations retain
+their original generic-extent route.
+
+A live-span observation of managed storage covers only one requested live slot,
+including an interior range within that slot. It cannot cover page metadata,
+an adjacent slot or an unused tail. Shared pages cannot be generically lent,
+protected, sealed or retired. Free classifies the original context and exact
+allocation after scope leave; a different current context does not acquire its
+custody. A page remains owned until its last managed allocation retires and the
+original physical page retirement succeeds. Failed retirement remains on the
+same context for its existing close path, independently of user, scope, domain,
+loan and Host acknowledgements. Serial exhaustion refuses allocation rather
+than wrapping or selecting another allocator.
+
 A retained Native filesystem Root can be checked against the caller's actual
 current original Read context without exporting that context or an address.
 The check rejects legacy Roots, retired descriptors and a different active
@@ -1365,3 +1383,81 @@ scratch deletion cannot bypass a pending DB close. Refusal retains that carrier
 with its primary issue until cleanup completes, before the original Roots and
 lock can retire. Neither query routing nor scope resumption supplies another
 logical claim, a current permit, or a numerical resource profile.
+
+
+Fresh Local runtime construction binds the current producer Source, compiler,
+platform/ABI, generated assets, selected library bytes and complete loader
+closure. It does not require that an unrelated historical scalar implementation
+remain byte-identical. Integrity of the frozen scalar descriptor/body proof is
+checked separately from eligibility to use that proof operationally. Its old
+fixtures, implementation hashes, pair identities and vectors remain unchanged.
+
+The current fresh implementation admits no historical operational scalar pair.
+Both the physical Native binding and the CLI's selected original-runtime check
+refuse that path; a copied proof, source label, CID or caller Boolean cannot
+select compatibility. A future historical implementation needs its own genuine
+proof in the existing Owner. Same-runtime restoration still checks its exact
+original assets and physical currentness. Missing, changed or unadmitted old
+state never authorizes fresh initialization, replacement configuration, a new
+Run or renewed authority.
+
+### Original Crypto component custody
+
+First installation acquires its selected finite Crypto envelope through the
+existing physical Host and domain Owner before entering the original Read scope.
+The installer declaration selects the envelope; it does not issue a Ledger,
+business-Run capacity or signing authority. The control envelope covers its
+bounded controller objects, not OpenSSL's independent heap or a Root/Writer loan.
+
+The selected private component links its own hidden OpenSSL implementation and
+installs all three allocation hooks before that implementation's first allocation.
+It imports the same process provider, checks its actual current original context,
+and obtains one extent from that holding. State, alignment, block headers,
+fragmentation and old-plus-new realloc overlap remain inside that extent. Internal
+free does not return the outer holding. No stock allocation fallback, second
+extent, implicit growth or configuration of shared system/Python OpenSSL is allowed.
+The recipe binds source, headers, static archive, license and actual deployment
+requirements; a linker flag cannot lower the ABI of a precompiled archive.
+
+The existing Signature Owner retains one original component receiver independently
+of the outer and inner Library borrows. Its bind out-slot is set only by the
+original component CAS winner, before any fallible context/extent initialization.
+A refused duplicate owns only its own module reference and cannot invoke the first
+receiver's component cleanup. A first, partially initialized binding retains its
+original cleanup duty even when no usable Library exists.
+
+The component and typed Library operations are affine to the constructor thread
+and process. Foreign threads refuse before mutable state access even when they
+entered the same original provider/Read context. Cached EVP, BIO, key, cipher and
+hasher functions remain behind that typed entry. A separate close flight covers
+OpenSSL callbacks, extent retirement and context release; the allocator lock is
+not held across those callbacks. Cleanup may allocate only inside the same
+original extent, including its simultaneous retirement overlap.
+
+Each Library retires its own hashers and diagnostic buffers before acknowledging
+its borrow. Closing a Library neither unloads the component nor acknowledges the
+Host, domain, Root, Writer or parent loan. Only after all Library/operation users
+retire can component cleanup acknowledge its extent/context and then its separate
+module reference. Failed scope leave, partial initialization or unconfirmed close
+keeps the same receiver and registration. GC, thread join and PID absence are not
+physical acknowledgements. The parent Read/domain cannot retire while that
+registration remains pending; reverse registration is cleared only after the
+parent's own full retirement acknowledgement. Key bytes, PEM/DER results and
+Writer aliases keep their own original resource and authority obligations.
+
+A later Local Host Read/SQLite pair uses a separate, exact preparation entrance
+for Crypto. The pair's original Read consumer must already own the active
+HostRead phase and its physical original Read context must already be entered
+on the current thread. The entrance checks both original domains and current
+fences without entering a scope, claiming another read or switching contexts.
+The complete consuming Read envelope includes the component heap, metadata,
+diagnostics and all simultaneous aliases; the entrance supplies no profile,
+capacity or authority. The general domain Crypto entrance continues to refuse
+an original Read domain.
+
+Component registration precedes the foreign load, including partial failure.
+A pending component prevents retirement of its parent original Read before its
+frame is stopped, so the original scope remains available for component cleanup.
+Library, component, Read-context, domain, loan and Host acknowledgements remain
+separate. Neither successful preparation nor leaving a serial HostRead phase
+acknowledges component retirement or authorizes a SQLite phase to borrow it.

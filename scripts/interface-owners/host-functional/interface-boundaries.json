@@ -51936,7 +51936,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "4cb525706536bcadc04c750dd2a7d49cc54201c8f588bfc5c63134f1a652d7ac",
+      "sha256": "d0e4c6ac10efab52bd66efdec2ab9769fc99dbe214dcdf84de8eb05b16907159",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -52098,6 +52098,7 @@
         "privateRunDefinition",
         "privateTaskCompilationWires",
         "projectCommittedResultRead",
+        "projectEffectSiteRun",
         "projectPublicationSnapshot",
         "projectSiteRun",
         "projectTaskSiteRun",
@@ -53218,6 +53219,19 @@
           "result": "Readonly<{\n    resultName: string;\n    resultArtifactCid: string;\n    resultDefinitionCid: string;\n    logicalResultCid: string;\n    resultSchemaCid: string;\n    orderingEvidenceCid: string;\n    effectiveRetentionPolicyCid: string;\n    durableResultBindingCid: string;\n    materialGenerationCid: string;\n    storeAuthorityCid: string;\n    codecContractCid: string;\n    resultFields: readonly string[];\n    rowCount: number;\n    byteCount: number;\n    physicalSha256: string;\n  }>"
         },
         {
+          "name": "projectEffectSiteRun",
+          "parameters": [
+            "allowed: AllowedEffectRun",
+            "definition: RunDefinition",
+            "authority: string",
+            "durableWires: readonly string[]",
+            "observedAt: string",
+            "cancellationRequested: boolean",
+            "savedClaims: readonly Readonly<{taskKey: string; dispatchCid: string | null;\n    dispatchReserved: boolean; physicalStartClaimed: boolean}>[]"
+          ],
+          "result": "Readonly<\n    Omit<ReturnType<typeof inspectEffectTaskProgress>, 'tasks'> & {\n      stateWire: string; publicationReady: false;\n      execution: 'unobserved' | 'running' | 'settled' | 'failed' | 'cancelled' | 'unknown';\n      tasks: readonly Readonly<ReturnType<typeof inspectTaskProgress>['tasks'][number] & {\n        nextWork: 'none' | 'cleanup' | 'publication' | 'reconcile' | 'cancel' | 'release'}>[];\n    }>"
+        },
+        {
           "name": "projectPublicationSnapshot",
           "parameters": [
             "record: PublicationContract | undefined",
@@ -53944,6 +53958,51 @@
         {
           "operations": [
             "<module>",
+            "ResultDeliveryControl/admit",
+            "ResultDeliveryControl/beginResultAccessProgress",
+            "ResultDeliveryControl/beginResultDelivery",
+            "ResultDeliveryControl/cancelDurableResultRowFrames",
+            "ResultDeliveryControl/deliveryFailureTerminalAction",
+            "ResultDeliveryControl/deliveryRecordRetryAction",
+            "ResultDeliveryControl/deliveryResultDefinitionCid",
+            "ResultDeliveryControl/deliverySuccessValid",
+            "ResultDeliveryControl/deliveryTransition",
+            "ResultDeliveryControl/describeCommittedResult",
+            "ResultDeliveryControl/existingDeliveryAttemptAction",
+            "ResultDeliveryControl/feedDurableResultRowFrames",
+            "ResultDeliveryControl/finishDurableResultRowFrames",
+            "ResultDeliveryControl/finishResultDelivery",
+            "ResultDeliveryControl/issueDeliveryAttempt",
+            "ResultDeliveryControl/issueDeliveryRecord",
+            "ResultDeliveryControl/issueManifestReadGrant",
+            "ResultDeliveryControl/issueResultDeliveryReceipt",
+            "ResultDeliveryControl/issueResultReadGrant",
+            "ResultDeliveryControl/manifestReadGrantAllowsBytes",
+            "ResultDeliveryControl/manifestReadGrantValidAt",
+            "ResultDeliveryControl/nextResultDeliveryRow",
+            "ResultDeliveryControl/prepareDeliveryGrantUsageClaim",
+            "ResultDeliveryControl/prepareDurableResultRowFrames",
+            "ResultDeliveryControl/prepareResultDeliverySerializer",
+            "ResultDeliveryControl/recordResultAccessGrant",
+            "ResultDeliveryControl/recordResultAccessInitialAvailability",
+            "ResultDeliveryControl/recordResultAccessReadAdmission",
+            "ResultDeliveryControl/recordResultAccessRequestAuthorization",
+            "ResultDeliveryControl/recordResultAccessResolution",
+            "ResultDeliveryControl/resultAccessProgressAction",
+            "ResultDeliveryControl/resultMetadataRetentionState",
+            "ResultDeliveryControl/resultReadAvailability",
+            "ResultDeliveryControl/resultReadDefinitionCid",
+            "ResultDeliveryControl/resultReadExtendedAvailability",
+            "ResultDeliveryControl/resultReadGrantAllowsBytes",
+            "ResultDeliveryControl/resultReadGrantValidAt",
+            "ResultDeliveryControl/resultReadRetentionPolicyCid",
+            "ResultDeliveryControl/resultRetentionClockContractCid",
+            "ResultDeliveryControl/trustedClockNotBefore",
+            "RetainedInputCurrent/<call>",
+            "RetainedInputPlanCurrent/<call>",
+            "RetainedInputPlanCurrent/<call>#2",
+            "RetainedInputPlanCurrent/<call>#3",
+            "RetainedInputPlanCurrent/<call>#4",
             "admitCapturedResultSnapshot",
             "admitCompletedSourceObservation",
             "admitEffectRunMaterials",
@@ -53967,10 +54026,10 @@
             "beginResultMaterialHolds",
             "captureOriginalRunPlan",
             "checkRunBinding",
-            "compiledPlanCid",
             "compileEffect",
             "compileTasks",
             "compileValues",
+            "compiledPlanCid",
             "describeCommittedResult",
             "effectExecutionShape",
             "effectResultDefinitions",
@@ -53997,10 +54056,10 @@
             "issueEffectRunMaterials",
             "issueEffectSourceDispatch",
             "issuePreparedEffectRunMaterials",
+            "issuePublicIndexEntry",
             "issuePublicationAttempt",
             "issuePublicationRecord",
             "issuePublicationRequest",
-            "issuePublicIndexEntry",
             "issueReadOnlyCapturedRun",
             "issueResultManifest",
             "issueResultOccurrenceEvidence",
@@ -54052,6 +54111,7 @@
             "privateRunDefinition",
             "privateTaskCompilationWires",
             "projectCommittedResultRead",
+            "projectEffectSiteRun",
             "projectPublicationSnapshot",
             "projectSiteRun",
             "projectTaskSiteRun",
@@ -54061,58 +54121,13 @@
             "requestRelation",
             "restoreEffectRunNormalization",
             "resultDefinitions",
-            "ResultDeliveryControl/admit",
-            "ResultDeliveryControl/beginResultAccessProgress",
-            "ResultDeliveryControl/beginResultDelivery",
-            "ResultDeliveryControl/cancelDurableResultRowFrames",
-            "ResultDeliveryControl/deliveryFailureTerminalAction",
-            "ResultDeliveryControl/deliveryRecordRetryAction",
-            "ResultDeliveryControl/deliveryResultDefinitionCid",
-            "ResultDeliveryControl/deliverySuccessValid",
-            "ResultDeliveryControl/deliveryTransition",
-            "ResultDeliveryControl/describeCommittedResult",
-            "ResultDeliveryControl/existingDeliveryAttemptAction",
-            "ResultDeliveryControl/feedDurableResultRowFrames",
-            "ResultDeliveryControl/finishDurableResultRowFrames",
-            "ResultDeliveryControl/finishResultDelivery",
-            "ResultDeliveryControl/issueDeliveryAttempt",
-            "ResultDeliveryControl/issueDeliveryRecord",
-            "ResultDeliveryControl/issueManifestReadGrant",
-            "ResultDeliveryControl/issueResultDeliveryReceipt",
-            "ResultDeliveryControl/issueResultReadGrant",
-            "ResultDeliveryControl/manifestReadGrantAllowsBytes",
-            "ResultDeliveryControl/manifestReadGrantValidAt",
-            "ResultDeliveryControl/nextResultDeliveryRow",
-            "ResultDeliveryControl/prepareDeliveryGrantUsageClaim",
-            "ResultDeliveryControl/prepareDurableResultRowFrames",
-            "ResultDeliveryControl/prepareResultDeliverySerializer",
-            "ResultDeliveryControl/recordResultAccessGrant",
-            "ResultDeliveryControl/recordResultAccessInitialAvailability",
-            "ResultDeliveryControl/recordResultAccessReadAdmission",
-            "ResultDeliveryControl/recordResultAccessRequestAuthorization",
-            "ResultDeliveryControl/recordResultAccessResolution",
-            "ResultDeliveryControl/resultAccessProgressAction",
-            "ResultDeliveryControl/resultMetadataRetentionState",
-            "ResultDeliveryControl/resultReadAvailability",
-            "ResultDeliveryControl/resultReadDefinitionCid",
-            "ResultDeliveryControl/resultReadExtendedAvailability",
-            "ResultDeliveryControl/resultReadGrantAllowsBytes",
-            "ResultDeliveryControl/resultReadGrantValidAt",
-            "ResultDeliveryControl/resultReadRetentionPolicyCid",
-            "ResultDeliveryControl/resultRetentionClockContractCid",
-            "ResultDeliveryControl/trustedClockNotBefore",
             "resultMaterialHoldsFacts",
             "resultMaterialHoldsWire",
             "resultReadAvailability",
             "resultSchema",
-            "RetainedInputCurrent/<call>",
             "retainedInputCurrentEnvelope",
             "retainedInputCurrentReplyFacts",
             "retainedInputIntentFacts",
-            "RetainedInputPlanCurrent/<call>",
-            "RetainedInputPlanCurrent/<call>#2",
-            "RetainedInputPlanCurrent/<call>#3",
-            "RetainedInputPlanCurrent/<call>#4",
             "retainedInputPlanEnvelope",
             "retainedInputPlanFacts",
             "retainedInputProducerAvailable",
@@ -54300,6 +54315,7 @@
             "privateRunDefinition",
             "privateTaskCompilationWires",
             "projectCommittedResultRead",
+            "projectEffectSiteRun",
             "projectPublicationSnapshot",
             "projectSiteRun",
             "projectTaskSiteRun",
@@ -54357,6 +54373,10 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "inputsOutputs": [
@@ -54371,6 +54391,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "identity": [
@@ -54385,6 +54409,10 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "ownership": [
@@ -54399,6 +54427,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "# Negotiated Interactive Run Control boundaries"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "synchronization": [
@@ -54413,6 +54445,10 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "failure": [
@@ -54427,6 +54463,10 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "cancellation": [
@@ -54441,6 +54481,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "resources": [
@@ -54455,6 +54499,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "# Negotiated Interactive Run Control boundaries"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "extension": [
@@ -54469,6 +54517,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ],
             "verification": [
@@ -54483,6 +54535,10 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
               }
             ]
           }

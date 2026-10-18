@@ -8,6 +8,7 @@ import {
   "actql/actql/physical_resources" @resources,
   "actql/actql/client_host_buffers" @buffers,
   "actql/actql/platform_native/sqlite" @sqlite,
+  "actql/actql/platform_native/signature" @signature,
   "actql/actql/platform_native/filesystem" @filesystem,
 }
 
