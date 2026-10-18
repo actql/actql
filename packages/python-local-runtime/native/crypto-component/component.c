@@ -6,6 +6,8 @@
 #include <openssl/pem.h>
 #include <openssl/err.h>
 #include <openssl/provider.h>
+#include <openssl/rand.h>
+#include <openssl/hmac.h>
 #include <dlfcn.h>
 #include <stdalign.h>
 #include <stdatomic.h>
@@ -226,6 +228,7 @@ void *actql_crypto_component_symbol(const char *name) {
     SYMBOL(EVP_aes_256_gcm); SYMBOL(EVP_EncryptInit_ex); SYMBOL(EVP_EncryptUpdate);
     SYMBOL(EVP_EncryptFinal_ex); SYMBOL(EVP_DecryptInit_ex); SYMBOL(EVP_DecryptUpdate);
     SYMBOL(EVP_DecryptFinal_ex);
+    SYMBOL(RAND_bytes); SYMBOL(HMAC); SYMBOL(CRYPTO_memcmp);
 #undef SYMBOL
     return NULL;
 }
