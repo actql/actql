@@ -15,6 +15,11 @@ export async function originalRunStateObservations(t, request, definition) {
     '../../_build/run-host-state-observations/', import.meta.url)),
   prefix: 'original-', label: 'Run Host original state observation'});
   const journal = openClientRequestJournal(scratch.path);
+  let reader;
+  t.after(() => {
+    try { reader?.close(); } finally { journal.close(); }
+    scratch.passed();
+  });
   const control = runtimeCore(moon).publicationControl;
   const fields = requestFields(request);
   const identity = moon.clientRequestAdmitRecord(fields.authorityScopeCid,
@@ -28,11 +33,7 @@ export async function originalRunStateObservations(t, request, definition) {
   const ref = journal.acceptDefinition(identity, {namespaceId: 'portable-state',
     runDefinition: admitted, resultNames: ['answer'], lookupExpiresAt: wire.valid_until},
   moon, control).ref;
-  const reader = new DatabaseSync(join(scratch.path, 'client-requests.sqlite3'), {readOnly: true});
-  t.after(() => {
-    try { reader.close(); } finally { journal.close(); }
-    scratch.passed();
-  });
+  reader = new DatabaseSync(join(scratch.path, 'client-requests.sqlite3'), {readOnly: true});
   return Object.freeze({publish(candidateWire) {
     const candidate = JSON.parse(candidateWire);
     assert.equal(Object.hasOwn(candidate, 'revision'), false);
