@@ -44987,7 +44987,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "if (await original.close() === false) {"
+                "anchor": "if (await applyOriginal(originalClose, original, []) === false) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -45061,7 +45061,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "if (await original.close() === false) {"
+                "anchor": "if (await applyOriginal(originalClose, original, []) === false) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -55774,7 +55774,7 @@
               },
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "if (await original.close() === false) {"
+                "anchor": "if (await applyOriginal(originalClose, original, []) === false) {"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
