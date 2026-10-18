@@ -122,7 +122,7 @@ test('open path refusal does not abandon the original initialization or replace 
   assert.equal(f.prepares, 1); assert.equal(f.reads, 1); assert.equal(f.closes, 0);
 });
 
-test('the selected Host consumer forwards only omitted open input without a raw observation', async () => {
+test('the selected Host consumer forwards admitted connect and omitted open without a raw observation', async () => {
   const consumer = tree.body.map(node => node.declaration ?? node)
     .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'connectInitialControlHostPreparation');
   assert.ok(consumer);
@@ -132,15 +132,34 @@ test('the selected Host consumer forwards only omitted open input without a raw 
   const route = compileFunction(source.slice(consumer.body.start + 1, consumer.body.end - 1),
     ['kind', 'rawInput', 'connectEmbeddedLocal', 'clientOperationError']);
   const connect = (input, entry) => {
-    connects++; assert.equal(input, undefined); assert.equal(entry, 'open'); return originalPromise;
+    connects++;
+    if (entry === 'open') assert.equal(input, undefined);
+    else {assert.equal(entry, 'connect'); assert.equal(input, raw);}
+    return originalPromise;
   };
   const error = code => Object.assign(new Error(code), {code});
-  for (const [kind, input] of [['open', raw], ['connect', raw], ['foreign', undefined], ['open', null]]) {
+  for (const [kind, input] of [['open', raw], ['foreign', undefined], ['open', null]]) {
     assert.throws(() => route(kind, input, connect, error), {code: 'NodeInitialControlInputUnavailable'});
   }
   assert.equal(observations, 0); assert.equal(connects, 0);
   assert.equal(route('open', undefined, connect, error), originalPromise);
-  assert.equal(connects, 1);
+  assert.equal(route('connect', raw, connect, error), originalPromise);
+  assert.equal(connects, 2); assert.equal(observations, 0);
+});
+
+test('selected connect defaults only the admitted omitted owner and retains call-time installation', async () => {
+  const raw = {mode: 'local', installation: {directory: '.actql'}, profile: 'mock'};
+  const f = fixture(raw), pending = f.route(raw, 'connect');
+  assert.equal(f.prepares, 1); assert.equal(f.reads, 0);
+  raw.installation.directory = 'replacement'; raw.profile = 'replacement';
+  f.finish();
+  const result = await pending;
+  assert.equal(result.clientOptions.owner, 'local');
+  assert.equal(result.clientOptions.mode, 'local');
+  assert.equal(result.requestedProfile, 'mock');
+  assert.equal(result.suppliedInstallation.directory, '.actql');
+  assert.equal(result.record.connectOptions, result.options);
+  assert.equal(result.record.input, f.bundle.packet);
 });
 
 test('failed original initialization retains the open path aliases until its original cleanup confirms', async () => {

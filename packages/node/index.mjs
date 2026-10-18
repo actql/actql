@@ -35,6 +35,14 @@ export async function connect(options, stringOptions) {
   if (typeof options === 'string') return connectHost(options, stringOptions);
   const hint = "For embedded Local, use open() without a Host or token. For Remote, use connect({mode: 'remote', endpoint: 'https://host.example/', token: getAccessToken}).";
   if (stringOptions !== undefined) throw new ClientError('InvalidConnectionOptions', {hint});
+  if (selectedInitialControlHostPreparation !== undefined) {
+    // The selected startup must cover original Local input BEFORE facade
+    // getters/copy or lazy provider loading. Undefined selects only the
+    // existing unselected route, never an admission or an empty input packet.
+    const routed = applyInitialControl(selectedInitialControlHostPreparation,
+      initialControlPublicDispatch, ['connect', options]);
+    if (routed !== undefined) return routed;
+  }
   let embeddedLocal;
   try {
     embeddedLocal = (options?.mode === 'local' || options?.mode === 'hybrid' &&
