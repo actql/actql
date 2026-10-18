@@ -4,6 +4,7 @@ fn assert_stage_semantics(
   index : Int,
   expected : String,
   expected_cid : String,
+  expected_expression_contract : String,
 ) -> Unit raise {
   let (requests, stages) = fixture(used_bindings=true, empty~)
   let inventory = prepare(requests, stages, caps()).unwrap()
@@ -31,7 +32,7 @@ fn assert_stage_semantics(
   assert_eq(stage_semantics_index(value), index)
   assert_eq(
     stage_semantics_expression_contract(value),
-    "sha256:e7645d18471d4436b7542302adce28303a8a634ce29e9f5fd849f5cee8d1159e",
+    expected_expression_contract,
   )
   for invalid in [-1, 2, 2147483647] {
     assert_true(stage_semantics_at(usage, invalid) is None)

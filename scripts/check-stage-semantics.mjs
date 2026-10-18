@@ -133,7 +133,7 @@ for (const c of vectors.cases) {
   assert.equal(c.envelope.version, 'actql-stage-semantics/0.1');
   verifyIdentity(c.envelope, c.expected_cid);
   assert.deepEqual(Object.keys(c.envelope).sort(), ['binding_references', 'bindings', 'expression_contract_cid', 'local_body', 'parameter_references', 'parameters', 'version']);
-  tests += `\n///|\ntest ${JSON.stringify('stage semantics: ' + c.name)} {\n  assert_stage_semantics(${c.empty}, ${c.stage}, ${JSON.stringify(canonicalText(c.envelope))}, ${JSON.stringify(c.expected_cid)})\n}\n`;
+  tests += `\n///|\ntest ${JSON.stringify('stage semantics: ' + c.name)} {\n  assert_stage_semantics(${c.empty}, ${c.stage}, ${JSON.stringify(canonicalText(c.envelope))}, ${JSON.stringify(c.expected_cid)}, ${JSON.stringify(c.envelope.expression_contract_cid)})\n}\n`;
 }
 for (const c of stageDefinitions.cases) {
   const matches = vectors.cases.filter(v => v.name === c.stage_case);
