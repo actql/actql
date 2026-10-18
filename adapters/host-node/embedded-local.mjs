@@ -3267,10 +3267,16 @@ async function openInstalledHost(originalInstallation, preparation) {
     // including readonly exceptions and partial nominal retirement.
     // The original initializer (including its pending physical child) closes
     // first, then the same installation control, then runtime references.
-    const failure = preparation === undefined ? cause :
-      await retainInstalledHostInitializationFailure(cause,
-        {initialControl: preparation.initialControl});
-    throw retainInstalledHostRuntimeFailure(failure, retireModelRuntime);
+    if (preparation === undefined) {
+      throw retainInstalledHostRuntimeFailure(cause, retireModelRuntime);
+    }
+    const failure = await retainInstalledHostInitializationFailure(cause,
+      {initialControl: preparation.initialControl});
+    const retained = retainInstalledHostRuntimeFailure(failure, retireModelRuntime);
+    // Use the owned carrier through finalization, not the original exception's
+    // potentially effectful cleanup getters. Only completed duties expose it.
+    if (retained === failure && failure.cleanupHandle.status().pending === false) throw cause;
+    throw retained;
   }
 }
 
@@ -3549,6 +3555,8 @@ export async function connectEmbeddedLocal(options) {
       throw retainInstalledHostRuntimeFailure(cause,
         () => profiles.retirePreparation(host, originalInstallation, host));
     }
-    throw await retainInstalledHostInitializationFailure(cause, {initialControl});
+    const retained = await retainInstalledHostInitializationFailure(cause, {initialControl});
+    if (retained.cleanupHandle.status().pending === false) throw cause;
+    throw retained;
   }
 }
