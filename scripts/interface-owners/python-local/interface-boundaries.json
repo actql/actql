@@ -1,5 +1,5 @@
 {
-  "source": "c6284b9264dadfc7bcf296ea13eee2c63c16068d",
+  "source": "49b9badb0f2ecfb5b8aa0623754bd821fb9a6e67",
   "syntaxProjectionSha256": "4a31ecaf4ac9e25c4558a6363ef836ef44d22cbc792e2ae1cd9c05bbdc05c888",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
@@ -53,7 +53,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py",
-      "sha256": "c70134992b39a1ee546b50ad3bba0a10a37f5c104ee68783b828a9deda7068b4",
+      "sha256": "428eacd915e6e803ae42448a57f33869401caafa25ff9039d5e342a6014b716d",
       "generator": {
         "path": "scripts/generate-local-native-shim-bindings.py",
         "anchor": "def render("
@@ -36644,7 +36644,7 @@
           ]
         }
       ],
-      "sha256": "c70134992b39a1ee546b50ad3bba0a10a37f5c104ee68783b828a9deda7068b4",
+      "sha256": "428eacd915e6e803ae42448a57f33869401caafa25ff9039d5e342a6014b716d",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
