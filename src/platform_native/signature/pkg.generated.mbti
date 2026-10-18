@@ -12,6 +12,7 @@ pub fn load_library(String, diagnostic_ceiling? : Int?) -> Result[Library, Nativ
 
 // Types and methods
 type Library
+pub fn Library::close_checked(Self) -> Result[Unit, NativeSignatureIssue]
 pub fn Library::diagnostic_ceiling(Self) -> Int?
 pub fn Library::ed25519_public_key_raw32(Self, String) -> Result[Bytes, NativeSignatureIssue]
 pub fn Library::generate_ed25519_key_pair(Self) -> Result[(Bytes, String), NativeSignatureIssue]
@@ -39,9 +40,12 @@ pub(all) enum NativeSignatureIssue {
   UnsupportedKey(String)
   Verification(String)
   Signing(String)
+  CleanupPending
+  CloseUnconfirmed(String)
 } derive(Eq, @debug.Debug)
 
 type Sha256Hasher
+pub fn Sha256Hasher::close_checked(Self) -> Result[Unit, NativeSignatureIssue]
 pub fn Sha256Hasher::finish_hex(Self) -> Result[String, NativeSignatureIssue]
 pub fn Sha256Hasher::update(Self, Bytes) -> Result[Unit, NativeSignatureIssue]
 
