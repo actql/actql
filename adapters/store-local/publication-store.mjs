@@ -781,6 +781,19 @@ async function releasePreparedOwnership(entry) {
   if (entry.ownership === undefined) return true;
   entry.closing = true;
   entry.releaseFlight = Promise.resolve().then(async () => {
+    // The selected Host may share this SAME exclusion with its Journal.
+    // Payload cleanup must still run independently, but cannot release the
+    // original owner while the retained Journal's physical close is pending.
+    // This dependency only delays release; it issues no capacity/authority.
+    if (entry.dependency !== undefined) {
+      const observation = await Reflect.apply(entry.dependencyStatus, entry.dependency, []);
+      const pending = observation !== null && typeof observation === 'object'
+        ? Object.getOwnPropertyDescriptor(observation, 'pending') : undefined;
+      if (pending === undefined || !Object.hasOwn(pending, 'value') || pending.value !== false) {
+        fail('PublicationStoreCleanupPending');
+      }
+      entry.dependency = entry.dependencyStatus = undefined;
+    }
     if (await entry.ownership.release() !== true) fail('PublicationStoreOwnershipLost');
     entry.ownership = undefined;
     entry.phase = 'closed';
@@ -795,8 +808,17 @@ export function assertOriginalPreparedLocalPublicationStoreOwnership(original, d
     fail('PublicationStoreOwnershipLost');
   }
 }
-export async function prepareLocalPublicationStoreOwnership(directory, bounds) {
+export async function prepareLocalPublicationStoreOwnership(directory, bounds, dependency) {
   if (typeof directory !== 'string' || directory.length === 0) fail('InvalidPublicationStoreConfiguration');
+  // Capture before any acquisition/callback. The actual Root supplies its
+  // original close-only observation, never a replacement DB or public flag.
+  const dependencyProperty = dependency !== null && typeof dependency === 'object'
+    ? Object.getOwnPropertyDescriptor(dependency, 'status') : undefined;
+  if (dependency !== undefined && (dependencyProperty === undefined ||
+      !Object.hasOwn(dependencyProperty, 'value') || typeof dependencyProperty.value !== 'function')) {
+    fail('InvalidPublicationStoreConfiguration');
+  }
+  const dependencyStatus = dependencyProperty?.value;
   const root = resolve(directory);
   const bootstrap = storeBootstrapAcquisition(bounds, 4096);
   let names;
@@ -821,6 +843,7 @@ export async function prepareLocalPublicationStoreOwnership(directory, bounds) {
   }
   const original = Object.freeze(Object.create(null));
   const entry = {root, fresh, ownership: undefined, phase: 'prepared',
+    dependency, dependencyStatus,
     closing: false, releaseFlight: undefined, cleanupFlight: undefined,
     child: undefined, childStatus: undefined, childRetry: undefined, unknownChild: false};
   preparedStoreOwnerships.set(original, entry);

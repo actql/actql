@@ -5,6 +5,9 @@ import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
+import {DatabaseSync} from 'node:sqlite';
+import {openClientRequestJournal, observeOriginalClientRequestJournalCustody}
+  from '../host-node/client-request-journal.mjs';
 import {openLocalPublicationStore, prepareLocalPublicationStoreOwnership,
   assertOriginalPreparedLocalPublicationStoreOwnership,
   closePreparedLocalPublicationStoreOwnership} from './publication-store.mjs';
@@ -21,6 +24,69 @@ async function fixture() {
 }
 const adopt = (f, original, configuration = f.configuration) =>
   openLocalPublicationStore(configuration, f.control, undefined, undefined, original);
+
+test('shared prepared exclusion survives Store cleanup until the same native Journal closes', async () => {
+  const f = await fixture();
+  const close = DatabaseSync.prototype.close;
+  const cause = new Error('OriginalJournalClosePending');
+  let permitted = false, journal;
+  DatabaseSync.prototype.close = function (...args) {
+    if (!permitted) throw cause;
+    return Reflect.apply(close, this, args);
+  };
+  try {journal = openClientRequestJournal(join(f.scratch.path, 'requests'));}
+  finally {DatabaseSync.prototype.close = close;}
+  const dependency = Object.freeze({status() {
+    assert.strictEqual(this, dependency);
+    const observation = observeOriginalClientRequestJournalCustody(journal);
+    return Object.freeze({pending: observation.databaseClosed !== true ||
+      observation.observationDatabaseClosed !== true});
+  }});
+  const original = await prepareLocalPublicationStoreOwnership(f.directory, bounds, dependency);
+  const store = await adopt(f, original);
+  const owner = await readFile(join(f.directory, 'owner', 'owner.json'));
+  assert.throws(() => journal.close(), error => error === cause);
+  await assert.rejects(store.close(), {code: 'PublicationStoreCleanupPending'});
+  assert.deepEqual(await readFile(join(f.directory, 'owner', 'owner.json')), owner);
+  assert.equal((await closePreparedLocalPublicationStoreOwnership(original)).pending, true);
+  permitted = true;
+  journal.close();
+  assert.equal(observeOriginalClientRequestJournalCustody(journal).databaseClosed, true);
+  assert.equal(await store.close(), true);
+  assert.equal((await closePreparedLocalPublicationStoreOwnership(original)).pending, false);
+  await assert.rejects(readFile(join(f.directory, 'owner', 'owner.json')), {code: 'ENOENT'});
+  f.scratch.passed();
+});
+
+test('prepared dependency keeps its captured receiver and refuses ambiguous or failed close observations', async () => {
+  const f = await fixture();
+  const cause = new Error('OriginalDependencyObservationUnknown');
+  let observation, failure = true, calls = 0;
+  const dependency = {status() {
+    assert.strictEqual(this, dependency);
+    calls++;
+    if (failure) throw cause;
+    return observation;
+  }};
+  const original = await prepareLocalPublicationStoreOwnership(f.directory, bounds, dependency);
+  const owner = await readFile(join(f.directory, 'owner', 'owner.json'));
+  dependency.status = () => ({pending: false});
+  await assert.rejects(closePreparedLocalPublicationStoreOwnership(original), error => error === cause);
+  failure = false;
+  for (const value of [undefined, {}, true, {pending: true},
+    Object.create({pending: false}), Object.defineProperty({}, 'pending', {
+      get() {throw new Error('MustNotReadAccessor');},
+    })]) {
+    observation = value;
+    await assert.rejects(closePreparedLocalPublicationStoreOwnership(original),
+      {code: 'PublicationStoreCleanupPending'});
+    assert.deepEqual(await readFile(join(f.directory, 'owner', 'owner.json')), owner);
+  }
+  observation = Object.freeze({pending: false});
+  assert.equal((await closePreparedLocalPublicationStoreOwnership(original)).pending, false);
+  assert.equal(calls, 8);
+  f.scratch.passed();
+});
 
 // Physical ownership/format/custody only. No operational Resource issuer or
 // new Store/key/Account authority follows from this explicit fixture.
