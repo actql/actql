@@ -13,6 +13,7 @@ const applyOriginal = Reflect.apply;
 const {createInitialControlInstallationOwner} = require('./initial-control-installation-owner.cjs');
 const {declareInitialControlPhaseEnvelope, inspectInitialControlPhaseEnvelope}
   = require('./initial-control-phase-envelope.cjs');
+const {declareSourceManagedPhaseEnvelope} = require('./source-managed-phase-envelope.cjs');
 // Selected runtime implementation duty: ONLY the V8 internal backing of these
 // two identity indices stays with this actual startup/module and escaped-handle
 // lifetime. It is not fixed SDK storage or a numerical lease. Entry records,
@@ -92,6 +93,13 @@ const selected = module.isPreloading === true &&
 const initialControlDeclaration = selected && eagerSdkStartup && publicPreload !== undefined
   ? declareInitialControlPhaseEnvelope(applyOriginal(getHeapStatistics, undefined, []).heap_size_limit)
   : undefined;
+// Declare the additional Source scope against the SAME original VM before
+// inventory capture, namespace initialization or SDK input acquisition. This
+// is not Source admission: missing external suppliers/nominal child bindings
+// still refuse. No second heap/native allowance or initial-control credit is
+// created, and Source retirement cannot replenish process-lived holdings.
+const sourceManagedEnvelope = initialControlDeclaration === undefined ? undefined :
+  declareSourceManagedPhaseEnvelope(initialControlDeclaration);
 // Native runtime/library identities stay with this SAME actual process/module
 // lifetime. Their finite selected disposition is not retired by Host cleanup.
 const initialControlRuntimeOriginal = initialControlDeclaration === undefined ? undefined :
@@ -407,7 +415,7 @@ if (selected) try {
   startup = {process: originalProcess, module, entry: originalProcess.argv[1], originals, publicPreload,
     promiseSpecies, sdkStaticModules, eagerSdkStartup, initialControlImages,
     initialControlHostNamespace, initialControlHostConsumer, initialControlHostValidator,
-    initialControlEnvelope, invalidated: false};
+    initialControlEnvelope, sourceManagedEnvelope, invalidated: false};
 } catch (cause) {
   // Retain the exact original startup/physical cleanup cause. A failed image
   // never becomes a namespace and is not reread after a close-only retry.
