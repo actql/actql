@@ -19,6 +19,7 @@ pub enum Shape {
   Vector(dimensions~ : Double)
   ResourceRef(resource_kind~ : String)
   ContentRef(media_type~ : String?)
+  Signed64
 }
 
 ///|
