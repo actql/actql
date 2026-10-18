@@ -6,10 +6,7 @@
 #export_name("clientProgramNodeOriginalSourceChildPrepare")
 pub fn client_program_node_original_source_child_prepare(
   original : @resources.OriginalNodeSourceReference,
-) -> Result[
-  @resources.ImportedChildLedger,
-  @resources.ImportedChildLedgerIssue,
-] {
+) -> Result[@resources.ImportedChildLedger, @resources.ImportedChildLedgerIssue] {
   @resources.prepare_node_original_source_child(original)
 }
 

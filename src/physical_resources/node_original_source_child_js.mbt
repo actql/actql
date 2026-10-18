@@ -114,7 +114,7 @@ pub fn prepare_node_original_source_child(
     _ => original_node_source_child_status(ports, 1),
     (_, ordinal) => original_node_source_child_amount(ports, ordinal),
     (_, _) => -42L,
-    (_, usage) =>
+    (_, usage) => {
       original_node_source_child_report(
         ports,
         usage.planning_work,
@@ -127,7 +127,8 @@ pub fn prepare_node_original_source_child(
         usage.reserved_retention_bytes,
         usage.reserved_execution_bytes,
         usage.peak_retention_bytes,
-      ),
+      )
+    },
     _ => original_node_source_child_status(ports, 2),
     fixed_capacities=false,
   )
