@@ -477,19 +477,19 @@ export async function coalesceSlackMessageReaders(options) {
   }
   const state={historyReader:original.historyReader,handles,source,states,controls,signal,names,bound,
     projection:undefined,wire:undefined,rows:undefined};
-  const current=async(callback,operation)=>{
+  const current=async(callbacks,operation)=>{
     signal.throwIfAborted();
-    await callback(operation);
+    await callbacks.current(operation);
     signal.throwIfAborted();
   };
   try {
-    await current(source.prepared.context.callbacks.current,SLACK_MESSAGE_HISTORY_OPERATION);
+    await current(source.prepared.context.callbacks,SLACK_MESSAGE_HISTORY_OPERATION);
     if (states.length) {
-      await current(source.prepared.context.callbacks.current,SLACK_MESSAGE_REPLIES_OPERATION);
+      await current(source.prepared.context.callbacks,SLACK_MESSAGE_REPLIES_OPERATION);
       for (let index=0;index<states.length;index++) {
         const reply=states[index];
         if (reply.prepared.context.callbacks.current!==source.prepared.context.callbacks.current) {
-          await current(reply.prepared.context.callbacks.current,SLACK_MESSAGE_REPLIES_OPERATION);
+          await current(reply.prepared.context.callbacks,SLACK_MESSAGE_REPLIES_OPERATION);
         }
       }
     }
