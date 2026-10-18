@@ -44,6 +44,8 @@ pub fn object_compose_response_matches(ObjectComposeBinding, ObjectComposeReques
 
 pub fn object_compose_response_projection_json(ObjectComposeBinding, ObjectComposeRequest, Int, Bytes, Int) -> Result[String, ObjectUploadIssue]
 
+pub fn object_delete_effect_target_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]
+
 pub fn object_listing_prefix(String, Bytes, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]
 
 pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields
@@ -79,6 +81,8 @@ pub fn object_mutation_changes_json(ObjectMutationBinding, ObjectMutationRequest
 pub fn object_mutation_cid(ObjectMutationRequest) -> String
 
 pub fn object_mutation_kind(ObjectMutationBinding) -> ObjectMutationKind
+
+pub fn object_mutation_mapping_json(ObjectMutationBinding, String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]
 
 pub fn object_mutation_metadata_max_bytes(ObjectMutationBinding) -> Int
 
@@ -143,6 +147,8 @@ pub fn recheck_object_compose(ObjectComposeBinding, ObjectComposeRequest, Object
 pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Result[Unit, ObjectRequestIssue]
 
 pub fn recheck_object_upload(ObjectUploadBinding, ObjectUploadRequest, ObjectUploadObservation) -> Result[Unit, ObjectUploadIssue]
+
+pub fn restore_object_mutation_value_wire(ObjectMutationBinding, String, Int, Array[(String, String)], Bytes, String, Bytes, String, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]
 
 // Errors
 

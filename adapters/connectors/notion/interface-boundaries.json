@@ -981,14 +981,33 @@
     },
     {
       "module": "adapters/connectors/notion/site/database-discovery.mjs",
-      "sha256": "6d32c863defa19a7f3029c8da1ad6cf63aaeb85cfe83380f26e6ddc31118f2b1",
+      "sha256": "9aa46d82b3f853f064a99aeb2e9122f7e904769f947988e946c8ba14a7fb3cfb",
       "exports": [
         "NOTION_DATABASE_RETRIEVE_OPERATION",
         "NOTION_DATA_SOURCE_RETRIEVE_OPERATION",
         "NotionDatabaseDiscoveryFailure",
-        "createNotionDatabaseDiscovery"
+        "captureNotionDatabaseDiscoveryPublication",
+        "createNotionDatabaseDiscovery",
+        "notionDatabaseDiscoveryPublicationOriginals"
       ],
       "operations": [
+        {
+          "name": "captureNotionDatabaseDiscoveryPublication",
+          "parameters": [
+            "reader",
+            "result",
+            "limits"
+          ],
+          "async": true
+        },
+        {
+          "name": "captureNotionDatabaseDiscoveryPublication/captureNotionDatabaseDiscoveryPublication",
+          "parameters": [
+            "x",
+            "index"
+          ],
+          "async": false
+        },
         {
           "name": "coordinate/coordinate",
           "parameters": [
@@ -1067,6 +1086,13 @@
           "async": false
         },
         {
+          "name": "hash/hash",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "NotionDatabaseDiscoveryFailure/constructor:constructor/constructor:constructor",
           "parameters": [
             "cause",
@@ -1076,9 +1102,83 @@
           "async": false
         },
         {
+          "name": "notionDatabaseDiscoveryPublicationOriginals",
+          "parameters": [
+            "capture"
+          ],
+          "async": false
+        },
+        {
           "name": "originalReader",
           "parameters": [
             "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownData",
+          "parameters": [
+            "value",
+            "names",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownData/ownData",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownData/ownData#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownPublication",
+          "parameters": [
+            "value",
+            "moon",
+            "declaration",
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownPublication/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownPublication/ownPublication",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "ownPublication/ports/ports",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownPublication/retained/retained",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownPublication/retained/retained#2",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -1104,7 +1204,8 @@
             "consumeObservation",
             "limits",
             "signal",
-            "systemColumns"
+            "systemColumns",
+            "publication"
           ],
           "async": false
         },
@@ -1135,13 +1236,33 @@
             "name"
           ],
           "async": false
+        },
+        {
+          "name": "sameRequestData",
+          "parameters": [
+            "control",
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameRequestData/sameRequestData",
+          "parameters": [
+            "key"
+          ],
+          "async": false
         }
       ],
       "imports": [
+        "../../../host-common/installation-preparation-fields.generated.mjs",
         "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-source.mjs",
         "../../../site-node/https-credential-resource.mjs",
-        "./property-item-read.mjs"
+        "./property-item-read.mjs",
+        "node:crypto",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -1196,6 +1317,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original installation metadata consumption"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "A discovery reader may retain the original Host publication request"
               }
             ],
             "inputsOutputs": [
@@ -1222,6 +1347,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original installation metadata consumption"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Only the same reader's successful, exact returned result may issue one opaque"
               }
             ],
             "identity": [
@@ -1248,6 +1377,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original installation metadata consumption"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "all six existing generated request fields must match"
               }
             ],
             "ownership": [
@@ -1266,6 +1399,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original installation metadata consumption"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The capture's private getter returns provenance DATA even after retirement"
               }
             ],
             "synchronization": [
@@ -1284,6 +1421,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original installation metadata consumption"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "existing Host request assertion runs before and after awaited current checks"
               }
             ],
             "failure": [
@@ -1306,6 +1447,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original installation metadata consumption"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Copied results, another reader, a missing original request, wrong scope and a"
               }
             ],
             "cancellation": [
@@ -1324,6 +1469,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original installation metadata consumption"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Failure keeps its original"
               }
             ],
             "resources": [
@@ -1346,6 +1495,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original installation metadata consumption"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Each reader now retains its successful result alias, capture phase/failure and"
               }
             ],
             "extension": [
@@ -1364,6 +1517,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original installation metadata consumption"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Neither publication retirement nor copied wire can reconstruct this live token."
               }
             ],
             "verification": [
@@ -1406,6 +1563,104 @@
               {
                 "path": "adapters/connectors/notion/test/installation-metadata-discovery.test.mjs",
                 "anchor": "test('actual Notion pre-schema discovery consumes one original Host metadata Subject without a fake Program Run'"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-publication-capture.test.mjs",
+                "anchor": "live publication capture retains actual Host request Catalog snapshot"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-publication-capture.test.mjs",
+                "anchor": "capture binds retained Catalog bytes to the response"
+              }
+            ]
+          }
+        },
+        {
+          "id": "notion-live-original-publication-capture",
+          "operations": [
+            "captureNotionDatabaseDiscoveryPublication",
+            "captureNotionDatabaseDiscoveryPublication/captureNotionDatabaseDiscoveryPublication",
+            "hash/hash",
+            "notionDatabaseDiscoveryPublicationOriginals",
+            "ownData",
+            "ownData/ownData",
+            "ownData/ownData#2",
+            "ownPublication",
+            "ownPublication/call/call",
+            "ownPublication/ownPublication",
+            "ownPublication/ports/ports",
+            "sameRequestData",
+            "sameRequestData/sameRequestData",
+            "ownPublication/retained/retained",
+            "ownPublication/retained/retained#2"
+          ],
+          "exports": [
+            "captureNotionDatabaseDiscoveryPublication",
+            "notionDatabaseDiscoveryPublicationOriginals"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "A discovery reader may retain the original Host publication request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Only the same reader's successful, exact returned result may issue one opaque"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "all six existing generated request fields must match"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The capture's private getter returns provenance DATA even after retirement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "existing Host request assertion runs before and after awaited current checks"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Copied results, another reader, a missing original request, wrong scope and a"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Failure keeps its original"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Each reader now retains its successful result alias, capture phase/failure and"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Neither publication retirement nor copied wire can reconstruct this live token."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/notion/test/database-publication-capture.test.mjs",
+                "anchor": "live publication capture retains actual Host request Catalog snapshot"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-publication-capture.test.mjs",
+                "anchor": "capture binds retained Catalog bytes to the response"
               }
             ]
           }
