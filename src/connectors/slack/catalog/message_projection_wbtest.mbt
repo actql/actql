@@ -299,3 +299,63 @@ test "Slack coalescence bounds every occurrence and comparison without changing 
     is Err(BudgetExceeded),
   )
 }
+
+///|
+test "Slack coalescence retains every original history page and unique child keys across protocols" {
+  let history = message_history()
+  let request = begin_slack_message_history(history).unwrap()
+  let first = history_admit(
+    history, request, "[{\"type\":\"message\",\"ts\":\"3.000001\",\"text\":\"later\"}]",
+    ",\"has_more\":true,\"response_metadata\":{\"next_cursor\":\"next\"}",
+  ).unwrap()
+  let next = next_slack_message_history_request(history, first)
+    .unwrap()
+    .unwrap()
+  let second = history_admit(
+    history,
+    next,
+    "[" + projection_parent("") + "]",
+    ",\"has_more\":false",
+  ).unwrap()
+  assert_true(
+    next_slack_message_history_request(history, second).unwrap() is None,
+  )
+  let wire = "[" +
+    projection_parent("") +
+    ",{\"type\":\"message\",\"ts\":\"2.000001\",\"thread_ts\":\"1.000001\"}]"
+  let a = projection_replies(second, wire)
+  let b = projection_replies(second, wire)
+  let result = coalesce_slack_message_originals(
+    history,
+    [a, b],
+    projection_limits(),
+  ).unwrap()
+  assert_eq(slack_message_projection_row_count(result), 3)
+  assert_true(physical_equal(result.rows[0], first.rows[0]))
+  assert_true(physical_equal(result.rows[1], second.rows[0]))
+  assert_true(physical_equal(result.rows[2], a.pages[0].original.rows[1]))
+  assert_true(
+    coalesce_slack_message_originals(history, [a], {
+      ..projection_limits(),
+      max_rows: 2,
+    })
+    is Err(BudgetExceeded),
+  )
+}
+
+///|
+test "Slack coalescence refuses a positive parent count smaller than distinct original children" {
+  let parent = "{\"type\":\"message\",\"ts\":\"1.000001\",\"reply_count\":1}"
+  let (history, page) = projection_history("[" + parent + "]")
+  let replies = projection_replies(
+    page,
+    "[" +
+    parent +
+    ",{\"type\":\"message\",\"ts\":\"2.000001\",\"thread_ts\":\"1.000001\"}" +
+    ",{\"type\":\"message\",\"ts\":\"3.000001\",\"thread_ts\":\"1.000001\"}]",
+  )
+  assert_true(
+    coalesce_slack_message_originals(history, [replies], projection_limits())
+    is Err(InconsistentThread),
+  )
+}
