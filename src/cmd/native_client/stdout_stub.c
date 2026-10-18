@@ -15,6 +15,15 @@ int32_t actql_native_client_write_stdout(moonbit_bytes_t bytes, int32_t length) 
   return fflush(stdout) == 0;
 }
 
+// Report the original operation failure while its managed aliases are alive.
+// The caller still performs each independent cleanup before the final exit.
+void actql_native_client_report_failure(moonbit_bytes_t bytes, int32_t length) {
+  if (length >= 0) fwrite(bytes, 1, (size_t)length, stderr);
+  fputc('\n', stderr);
+  fflush(stderr);
+}
+void actql_native_client_exit_failure(void) { exit(1); }
+
 void actql_native_client_fail(moonbit_bytes_t bytes, int32_t length) {
   if (length >= 0) fwrite(bytes, 1, (size_t)length, stderr);
   fputc('\n', stderr);

@@ -337,6 +337,23 @@ fn InitialCryptoOriginal::close_checked(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  if self.host is Some(host) {
+    if self.backing_scope is Some(scope) {
+      if self.backing_entered {
+        match
+          host.leave_backing_borrow_scope(scope).map_err(issue => Host(issue)) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        self.backing_entered = false
+      }
+      match host.return_backing_borrow(scope).map_err(issue => Host(issue)) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      self.backing_scope = None
+    }
+  }
   if self.host is Some(host) && self.domain is Some(domain) {
     if self.inner_library is Some(_) || self.outer_library is Some(_) {
       match
@@ -380,21 +397,6 @@ fn InitialCryptoOriginal::close_checked(
     self.domain = None
   }
   if self.host is Some(host) {
-    if self.backing_scope is Some(scope) {
-      if self.backing_entered {
-        match
-          host.leave_backing_borrow_scope(scope).map_err(issue => Host(issue)) {
-          Ok(value) => value
-          Err(issue) => return Err(issue)
-        }
-        self.backing_entered = false
-      }
-      match host.return_backing_borrow(scope).map_err(issue => Host(issue)) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      self.backing_scope = None
-    }
     match host.try_close().map_err(issue => Host(issue)) {
       Ok(value) => value
       Err(issue) => return Err(issue)
@@ -406,4 +408,114 @@ fn InitialCryptoOriginal::close_checked(
   }
   self.closed = true
   Ok(())
+}
+
+///|
+let initial_crypto_invocation : Ref[InitialCryptoOriginal?] = Ref(None)
+
+///|
+fn initial_crypto_hex_recipe(value : String) -> Bytes raise ClientStop {
+  let encoded = @utf8.encode(value)
+  if encoded.length() != 64 {
+    stop("InitialCryptoProfileUnavailable")
+  }
+  let digit = fn(byte : Byte) -> Int raise ClientStop {
+    let value = byte.to_int()
+    if value >= 48 && value <= 57 {
+      value - 48
+    } else if value >= 97 && value <= 102 {
+      value - 87
+    } else {
+      stop("InitialCryptoProfileUnavailable")
+    }
+  }
+  let bytes = Bytes::make(32, 0)
+  for index in 0..<32 {
+    bytes[index] = (digit(encoded[index * 2]) * 16 +
+    digit(encoded[index * 2 + 1])).to_byte()
+  }
+  bytes
+}
+
+///|
+// Private first-consumer declaration, selected before physical acquisition.
+// The component digest and executable Source bind this finite recipe. No
+// initial-control credit is transferred to a business Run or another allocator.
+fn local_initial_crypto_profile(
+  runtime : LocalPackagedRuntime,
+) -> InitialCryptoProfile raise ClientStop {
+  let wire = @run_host.client_native_local_runtime_original(runtime.manifest)
+  let fields = @decode.open_object(local_input_cursor(wire)).unwrap_or_else(() => {
+    stop("InitialCryptoProfileUnavailable")
+  })
+  let source = @decode.lookup(fields, "sourceSha")
+    .bind(value => @decode.text(value).to_option())
+    .unwrap_or_else(() => stop("InitialCryptoProfileUnavailable"))
+  let members = @run_host.client_native_local_runtime_members(runtime.manifest).filter(value => {
+      value.role == "crypto"
+    },
+  )
+  if members.length() != 1 {
+    stop("InitialCryptoProfileUnavailable")
+  }
+  {
+    source,
+    recipe: initial_crypto_hex_recipe(members[0].sha256),
+    arena_bytes: 16777216L,
+    domain_bytes: 15728640L,
+    heap_bytes: 2097152L,
+    control_bytes: 262144L,
+    host_limits: {
+      planning_work: 64,
+      attempts: 8,
+      holdings: 8,
+      transfer_bytes: 1048576L,
+      retained_bytes: 0L,
+      execution_bytes: 16777216L,
+    },
+    domain_limits: {
+      planning_work: 32,
+      attempts: 8,
+      holdings: 8,
+      transfer_bytes: 1048576L,
+      retained_bytes: 4194304L,
+      execution_bytes: 11534336L,
+    },
+    diagnostic_ceiling: 4096,
+  }
+}
+
+///|
+fn local_begin_initial_crypto(
+  runtime : LocalPackagedRuntime,
+) -> InitialCryptoOriginal raise ClientStop {
+  if initial_crypto_invocation.val is Some(_) {
+    // A prior partial/Unknown attempt is not a fresh acquisition opportunity.
+    stop("InitialCryptoAlreadySelected")
+  }
+  let original = prepare_initial_crypto_original(
+    runtime.physical,
+    local_initial_crypto_profile(runtime),
+  ).unwrap_or_else(() => stop("InitialCryptoProfileUnavailable"))
+  initial_crypto_invocation.val = Some(original)
+  if original.primary is Some(_) {
+    stop("InitialCryptoAcquisitionUnavailable")
+  }
+  original.enter().unwrap_or_else(() => stop("InitialCryptoScopeUnavailable"))
+  original
+}
+
+///|
+fn local_finish_initial_crypto() -> Bool {
+  match initial_crypto_invocation.val {
+    None => true
+    Some(original) =>
+      match original.close_checked() {
+        Err(_) => false
+        Ok(_) => {
+          initial_crypto_invocation.val = None
+          true
+        }
+      }
+  }
 }
