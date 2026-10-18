@@ -370,6 +370,7 @@ fn LocalCommandPreparationOriginal::acquire_runtime(
         platform,
         manifest_digest,
         profile.diagnostic_ceiling,
+        command_preparation=true,
       ) {
       Ok(value) => value
       Err(Pending(value, issue)) => {
