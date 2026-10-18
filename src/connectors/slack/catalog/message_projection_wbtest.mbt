@@ -13,9 +13,9 @@ fn projection_history(rows : String) -> (SlackMessageHistory, SlackMessagePage) 
   let history = message_history()
   let request = begin_slack_message_history(history).unwrap()
   let page = history_admit(history, request, rows, ",\"has_more\":false").unwrap()
-  assert_true(
-    next_slack_message_history_request(history, page).unwrap() is None,
-  )
+  guard next_slack_message_history_request(history, page).unwrap() is None else {
+    abort("history incomplete")
+  }
   (history, page)
 }
 
@@ -27,9 +27,9 @@ fn projection_replies(
   let replies = prepare_slack_message_replies(page, 0, replies_limits()).unwrap()
   let request = begin_slack_message_replies(replies).unwrap()
   let received = reply_page(replies, request, rows, ",\"has_more\":false").unwrap()
-  assert_true(
-    next_slack_message_replies_request(replies, received).unwrap() is None,
-  )
+  guard next_slack_message_replies_request(replies, received).unwrap() is None else {
+    abort("replies incomplete")
+  }
   replies
 }
 
@@ -228,7 +228,7 @@ test "Slack coalescence requires original successful completions and refuses equ
     is Err(HistoryUnavailable),
   )
   let request = begin_slack_message_history(history).unwrap()
-  let page = history_admit(
+  let _page = history_admit(
     history,
     request,
     "[" + projection_parent("") + "]",

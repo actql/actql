@@ -71,6 +71,7 @@ fn projection_equal(
       EqualityFailed(_, work=_) => return Err(BudgetExceeded)
     }
   }
+  Err(BudgetExceeded)
 }
 
 ///|
