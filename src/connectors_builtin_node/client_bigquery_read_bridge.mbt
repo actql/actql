@@ -360,3 +360,13 @@ pub fn client_program_bigquery_job_original_record_matches_request(
 ) -> Bool {
   @bigquery_read.job_original_record_matches_request(value, request, record)
 }
+
+///|
+#export_name("clientProgramBigQueryJobReadMatchesRowRun")
+pub fn client_program_bigquery_job_read_matches_row_run(
+  value : @bigquery_read.JobRead,
+  run : @client_row_source_host.RowRun,
+  acquisition : @client_row_source_host.RowAcquisition,
+) -> Bool {
+  @bigquery_read.job_read_matches_row_run(value, run, acquisition)
+}

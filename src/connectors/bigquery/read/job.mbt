@@ -198,6 +198,20 @@ fn job_live(value : JobRead) -> Bool {
 }
 
 ///|
+/// Relate this live Job to its original same-runtime RowRun and acquisition.
+/// This observation issues no reservation, request authority, journal COMMIT
+/// or cleanup acknowledgement; matching routing DATA is not nominal identity.
+pub fn job_read_matches_row_run(
+  value : JobRead,
+  run : @rows.RowRun,
+  acquisition : @rows.RowAcquisition,
+) -> Bool {
+  job_live(value) &&
+  physical_equal(value.read.run, run) &&
+  physical_equal(value.read.prepared.acquisition, acquisition)
+}
+
+///|
 fn[T] fail_job(value : JobRead, issue : JobIssue) -> Result[T, JobIssue] {
   interrupt_result_read(value.read)
   value.next = None

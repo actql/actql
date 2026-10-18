@@ -15,7 +15,9 @@ derived source, not an independent semantic implementation.
 - Identity: the caller retains the selected runtime instance and original
   values throughout the call. Objects are not rebuilt from JSON, property
   layout, matching schema bytes or another runtime. Nominal foreign requests
-  and responses refuse in the original Read Owner.
+  and responses refuse in the original Read Owner. The live Job correspondence
+  port compares the same original RowRun and acquisition; a true observation
+  is neither a journal COMMIT nor a request grant or cleanup ACK.
 - Ownership: the Host owns the original RowRun, reservation, finish, capture
   and physical retirement. The response borrow registers the same stop observer;
   these wrappers cannot issue a replacement root or substitute another lease.

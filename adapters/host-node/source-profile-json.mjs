@@ -84,7 +84,7 @@ export async function installedRuntimeBundleCid(path, {openFile = open} = {}) {
 
 // Shared physical custody of the original configuration/runtime read. A
 // close failure retains this same handle and retry, never a second read.
-async function withOriginalFile(path, openFile, consume) {
+export async function withOriginalFile(path, openFile, consume) {
   let original = await openFile(path, 'r');
   let originalClose;
   const captureClose = () => {

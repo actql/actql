@@ -42,6 +42,8 @@ pub fn job_original_record_wire(JobOriginalRecord) -> String
 
 pub fn job_read_complete(JobRead) -> Bool
 
+pub fn job_read_matches_row_run(JobRead, @client_row_source_host.RowRun, @client_row_source_host.RowAcquisition) -> Bool
+
 pub fn job_read_original(JobRead) -> @catalog.QueryJob
 
 pub fn job_read_remote_done(JobRead) -> Bool

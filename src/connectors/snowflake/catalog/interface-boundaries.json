@@ -4,7 +4,7 @@
     {
       "module": "src/connectors/snowflake/catalog/response.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "53941fad7abfc2bc53df95c597215c55f815194f9f8a4dc23c32d45b56d4e07e",
+      "sha256": "362e51e88e77067bee3fb672e968a16e425493113e561abf401472d57cd16ea5",
       "role": "connector-semantics",
       "owner": "Snowflake bounded original SQL API response spelling; Common retains scalar contract and value admission",
       "exports": [],
@@ -367,6 +367,106 @@
             "pub struct Partition {",
             "pub struct ResultSet {"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/snowflake/catalog/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/snowflake/catalog/rows.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "6a419311e1caff7f1151d2fb10daff21dd273c029843efe063c65f914fb8f755",
+      "role": "connector-semantics",
+      "owner": "Snowflake bounded original SQL API response spelling; Common retains scalar contract and value admission",
+      "exports": [],
+      "operations": [
+        {
+          "name": "admit_cell",
+          "declaration": "admit_cell ( cursor : @ decode . Cursor , column : Column , budget : CellBudget , ) - > Result [ @ admitted . CheckedValue , ResponseIssue ]"
+        },
+        {
+          "name": "converted_cursor",
+          "declaration": "converted_cursor ( node : @ source . Node , column : Column , budget : CellBudget , ) - > Result [ @ admitted . CheckedValue , ResponseIssue ]"
+        },
+        {
+          "name": "project_cell",
+          "declaration": "project_cell ( cursor : @ decode . Cursor , column : Column , budget : CellBudget , ) - > Result [ @ admitted . CheckedValue , ResponseIssue ]"
+        },
+        {
+          "name": "project_rows",
+          "declaration": "project_rows ( object : @ decode . ObjectView , columns : Array [ Column ] , expected_rows : Int64 , limits : ResponseLimits , ) - > Result [ Array [ Array [ @ admitted . CheckedValue ] ] , ResponseIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_cell",
+            "converted_cursor",
+            "project_cell",
+            "project_rows"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
