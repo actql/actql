@@ -81,6 +81,8 @@ pub fn slack_message_page_rows_wire(SlackMessagePage, Array[String], Int, Int, I
 
 pub fn slack_message_replies_matches_original(SlackMessageReplies, SlackMessagePage, Int) -> Bool
 
+pub fn slack_message_replies_page_has_next(SlackMessageRepliesPage) -> Bool
+
 pub fn slack_message_replies_page_response_sha256(SlackMessageRepliesPage) -> String
 
 pub fn slack_message_replies_page_row_count(SlackMessageRepliesPage) -> Int
