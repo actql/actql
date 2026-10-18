@@ -25,8 +25,8 @@ async function fixture(t, options = {}) {
     ...borrow.credential, ...borrow.authorization, useId,
     operations: new Map([[write ? 'salesforce:record:update' : 'salesforce:record:observe',
       {method: write ? 'PATCH' : 'GET',
-        path: '/services/data/v62.0/sobjects/Test_Record__c/001000000000001'}]]),
-    ...(write ? {body: Buffer.from('{"Name":"approved"}')} : {}),
+        path: '/services/data/v62.0/sobjects/Test_Record__c/001000000000001',
+        ...(write ? {body: '{"Name":"approved"}'} : {})}]]),
     maxRequestBytes: 1024, maxResponseBytes: 4096, retainRunResponseOriginal: true});
   return {setup, invoke, initialRequests,
     resolutions: () => resolutions, rotate: value => { secret = value; }};
