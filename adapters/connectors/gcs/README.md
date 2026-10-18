@@ -816,6 +816,14 @@ or physical retirement acknowledgement.
 
 ### Mutation Mapping declarations
 
+The private `gcsObjectMutationMappingJson` Node bridge forwards the same
+bounded portable Mapping projection over an original mutation binding and
+complete declaration. It does not regenerate the schema, resource identity,
+permission rules or CIDs in JavaScript. The request's actual contract binding
+must separately correspond to the exact Mapping admitted by Common; projecting
+a candidate does not authenticate an installation or establish purpose through
+an equal selection CID.
+
 `object_mutation_mapping_json` derives Mapping candidate DATA from the selected
 GCS mutation binding and the complete source declaration. It checks the Catalog
 body hash, detached contracts, connector manifest and original `objects#records`
