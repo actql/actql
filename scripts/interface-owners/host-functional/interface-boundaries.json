@@ -23693,7 +23693,7 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e29976bec50706ce70e6ac9bab646b1375d343114a5fb1f48083638eecd91b51",
+      "sha256": "c046a4ac567220c908761e36daaa689a97d262e25de4a65dfc32f9f7684a6dfd",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -23722,12 +23722,24 @@
           "async": false
         },
         {
+          "name": "createEmbeddedHostRegistry/init:assertPreparation/init:assertPreparation",
+          "parameters": [
+            "host",
+            "installation",
+            "generation"
+          ],
+          "async": false
+        },
+        {
           "name": "createEmbeddedHostRegistry/init:connect/init:connect",
           "parameters": [
             "root",
             "identity",
             "open",
-            "options"
+            "options",
+            "preparedHost",
+            "releaseUnadopted",
+            "initialControl"
           ],
           "async": true
         },
@@ -23751,14 +23763,24 @@
           "parameters": [
             "host"
           ],
+          "async": true
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/init:connect/error/error",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/init:connect/init:connect",
+          "parameters": [],
           "async": false
         },
         {
           "name": "createEmbeddedHostRegistry/init:connect/init:connect/init:connect#2",
           "parameters": [
-            "error"
+            "cause"
           ],
-          "async": false
+          "async": true
         },
         {
           "name": "createEmbeddedHostRegistry/init:connect/init:connect/init:retry/init:retry",
@@ -23821,6 +23843,38 @@
         {
           "name": "createEmbeddedHostRegistry/init:connect/init:connect/status/status",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:registerPreparation/init:registerPreparation",
+          "parameters": [
+            "host",
+            "installation",
+            "generation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:retirePreparation/init:retirePreparation",
+          "parameters": [
+            "host",
+            "installation",
+            "generation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/preparationChanged/preparationChanged",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/preparationFor",
+          "parameters": [
+            "host",
+            "installation",
+            "generation"
+          ],
           "async": false
         },
         {
@@ -23954,6 +24008,14 @@
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
                 "anchor": "function originalInitialControlClose(original) {"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Host registry retains a preparation candidate under its"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function assertInitialControlHostPreparation(originals) {"
               }
             ],
             "inputsOutputs": [
@@ -23984,6 +24046,14 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
                 "anchor": "const initialControl = host.initialControl;"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "control = await beginInitialControlInstallation(originals);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
               }
             ],
             "identity": [
@@ -24014,6 +24084,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('original close receiver and callback survive pending retries without replacement'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "originals?.moduleLifetime !== import.meta"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "function preparationFor(host, installation, generation) {"
               }
             ],
             "ownership": [
@@ -24044,6 +24122,14 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "and original retry carrier. A successful sibling close cannot release the"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Project views share one original retirement record."
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               }
             ],
             "synchronization": [
@@ -24074,6 +24160,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('failed child close retains initial control until the same child ACK'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "await releaseUnadopted();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "lifetime after the await, before exposing another lease."
               }
             ],
             "failure": [
@@ -24104,6 +24198,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('initialization does not retire control while an independent Store close remains Unknown'"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const pending = new Set(['initialization']);"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
               }
             ],
             "cancellation": [
@@ -24134,6 +24236,14 @@
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
                 "anchor": "await attempt('stop', stop);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('final close waits in-flight ingress and dispatch without cancelling a Run'"
               }
             ],
             "resources": [
@@ -24160,6 +24270,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "// They do not issue a startup admission, physical lease or business capacity."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               }
             ],
             "extension": [
@@ -24190,6 +24308,14 @@
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
                 "anchor": "...(initialControl === undefined ? [] : ['initialControl']),"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "// do not acquire an operational admission by omitting these private inputs."
               }
             ],
             "verification": [
@@ -24224,6 +24350,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('existing installed Host shutdown retains and closes the same initial control'"
+              },
+              {
+                "path": "adapters/host-node/embedded-host-preparation.test.mjs",
+                "anchor": "test('foreign returned Host stays in acquired shutdown custody on pair refusal'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.test.mjs",
+                "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
               }
             ]
           }
@@ -24335,6 +24469,120 @@
               {
                 "path": "adapters/host-node/sdk-checkpoint-actions.integration.test.mjs",
                 "anchor": "test(`public ${decision}(id) binds the original Checkpoint"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createEmbeddedHostRegistry/init:assertPreparation/init:assertPreparation",
+            "createEmbeddedHostRegistry/init:connect/init:connect/init:connect/error/error",
+            "createEmbeddedHostRegistry/init:connect/init:connect/init:connect/init:connect",
+            "createEmbeddedHostRegistry/init:registerPreparation/init:registerPreparation",
+            "createEmbeddedHostRegistry/init:retirePreparation/init:retirePreparation",
+            "createEmbeddedHostRegistry/preparationChanged/preparationChanged",
+            "createEmbeddedHostRegistry/preparationFor"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Host registry retains a preparation candidate under its"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function assertInitialControlHostPreparation(originals) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "control = await beginInitialControlInstallation(originals);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "originals?.moduleLifetime !== import.meta"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "function preparationFor(host, installation, generation) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Project views share one original retirement record."
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "await releaseUnadopted();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "lifetime after the await, before exposing another lease."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const pending = new Set(['initialization']);"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('final close waits in-flight ingress and dispatch without cancelling a Run'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// This private installation bag holds backreferences, not canonical DATA."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "// do not acquire an operational admission by omitting these private inputs."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-host-preparation.test.mjs",
+                "anchor": "test('foreign returned Host stays in acquired shutdown custody on pair refusal'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.test.mjs",
+                "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
               }
             ]
           }
@@ -33728,11 +33976,12 @@
     {
       "module": "adapters/host-node/installed-host-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "02e38722e20c1a96c202781c9936526d515b1dedea37aa21e5a0138291ea20bd",
+      "sha256": "f719042e69f5252879811911b01ffbfb6c1416f26c959226d073cdeeeaa1676e",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
         "createInstalledHostShutdown",
+        "originalInitialControlClose",
         "releaseInstalledCredentialSite",
         "retainInstalledCredentialSiteCleanup",
         "retainInstalledHostInitializationFailure",
@@ -33917,6 +34166,11 @@
           "parameters": [
             "item"
           ],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostInitializationFailure/captureOriginalCleanup",
+          "parameters": [],
           "async": false
         },
         {
@@ -34109,6 +34363,14 @@
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
                 "anchor": "function originalInitialControlClose(original) {"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Host registry retains a preparation candidate under its"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function assertInitialControlHostPreparation(originals) {"
               }
             ],
             "inputsOutputs": [
@@ -34131,6 +34393,14 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
                 "anchor": "const initialControl = host.initialControl;"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "control = await beginInitialControlInstallation(originals);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
               }
             ],
             "identity": [
@@ -34148,7 +34418,7 @@
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "const originalCleanup = cause?.cleanupHandle;"
+                "anchor": "originalCleanup = cause?.cleanupHandle;"
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
@@ -34161,6 +34431,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('shutdown captures original control close before its first close request'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "originals?.moduleLifetime !== import.meta"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "function preparationFor(host, installation, generation) {"
               }
             ],
             "ownership": [
@@ -34178,7 +34456,7 @@
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "const originalCleanup = cause?.cleanupHandle;"
+                "anchor": "originalCleanup = cause?.cleanupHandle;"
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
@@ -34187,6 +34465,14 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "and original retry carrier. A successful sibling close cannot release the"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Project views share one original retirement record."
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               }
             ],
             "synchronization": [
@@ -34204,7 +34490,7 @@
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "const originalCleanup = cause?.cleanupHandle;"
+                "anchor": "originalCleanup = cause?.cleanupHandle;"
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
@@ -34225,6 +34511,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('shutdown captures original control close before a preceding child await'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "await releaseUnadopted();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "lifetime after the await, before exposing another lease."
               }
             ],
             "failure": [
@@ -34263,6 +34557,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "retains an unobserved throwing control getter for retry"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const pending = new Set(['initialization']);"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
               }
             ],
             "cancellation": [
@@ -34285,6 +34587,14 @@
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
                 "anchor": "await attempt('stop', stop);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('final close waits in-flight ingress and dispatch without cancelling a Run'"
               }
             ],
             "resources": [
@@ -34311,6 +34621,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "// They do not issue a startup admission, physical lease or business capacity."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               }
             ],
             "extension": [
@@ -34333,6 +34651,14 @@
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
                 "anchor": "...(initialControl === undefined ? [] : ['initialControl']),"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "// do not acquire an operational admission by omitting these private inputs."
               }
             ],
             "verification": [
@@ -34367,6 +34693,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('shutdown captures original control close before a preceding child await'"
+              },
+              {
+                "path": "adapters/host-node/embedded-host-preparation.test.mjs",
+                "anchor": "test('foreign returned Host stays in acquired shutdown custody on pair refusal'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.test.mjs",
+                "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
               }
             ]
           }
@@ -34581,7 +34915,9 @@
             "retainInstalledHostInitializationFailure/attempt/latest/latest",
             "retainInstalledHostInitializationFailure/drain/drain#11"
           ],
-          "exports": [],
+          "exports": [
+            "originalInitialControlClose"
+          ],
           "attributes": {
             "responsibility": [
               {
@@ -34845,6 +35181,114 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('shutdown captures original control close before a preceding child await'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "retainInstalledHostInitializationFailure/captureOriginalCleanup"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Host registry retains a preparation candidate under its"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function assertInitialControlHostPreparation(originals) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "control = await beginInitialControlInstallation(originals);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "originals?.moduleLifetime !== import.meta"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "function preparationFor(host, installation, generation) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Project views share one original retirement record."
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "await releaseUnadopted();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "lifetime after the await, before exposing another lease."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const pending = new Set(['initialization']);"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('final close waits in-flight ingress and dispatch without cancelling a Run'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// This private installation bag holds backreferences, not canonical DATA."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "// do not acquire an operational admission by omitting these private inputs."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-host-preparation.test.mjs",
+                "anchor": "test('foreign returned Host stays in acquired shutdown custody on pair refusal'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.test.mjs",
+                "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
               }
             ]
           }
@@ -43665,7 +44109,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+                "anchor": "if (retained.moon !== moon) fail('ForeignInstalledProjectRuntime');"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -54106,11 +54550,12 @@
     {
       "module": "adapters/host-node/installed-project-configuration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "16c2d1c560fc338623b5450a1f580248a80413f77f21e4eb0b80ce6e19931bec",
+      "sha256": "2c366d1a7a7e6ae5126d7a97ebb7dc1f225afe9dabb50bfe08c11fa680ae74b6",
       "exports": [
         "admitInstalledProjectConfiguration",
         "installedProjectOriginalsForRuntime",
-        "loadInstalledProjectConfiguration"
+        "loadInstalledProjectConfiguration",
+        "retireInstalledProjectConfiguration"
       ],
       "operations": [
         {
@@ -54142,9 +54587,16 @@
           "parameters": [
             "moon",
             "directory",
-            "openFile"
+            "openFile",
+            "initialControl",
+            "initialControlOriginals"
           ],
           "async": true
+        },
+        {
+          "name": "loadInstalledProjectConfiguration/check/check",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "loadInstalledProjectConfiguration/loadInstalledProjectConfiguration",
@@ -54152,6 +54604,14 @@
             "args"
           ],
           "async": true
+        },
+        {
+          "name": "originalForRuntime",
+          "parameters": [
+            "retained",
+            "moon"
+          ],
+          "async": false
         },
         {
           "name": "readConfiguration",
@@ -54180,10 +54640,19 @@
             "runtime"
           ],
           "async": false
+        },
+        {
+          "name": "retireInstalledProjectConfiguration",
+          "parameters": [
+            "project",
+            "moon"
+          ],
+          "async": false
         }
       ],
       "imports": [
         "../host-common/runtime-result.mjs",
+        "./node-initial-control-installation.mjs",
         "./source-profile-json.mjs",
         "node:fs/promises",
         "node:path"
@@ -54221,6 +54690,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Host registry retains a preparation candidate under its"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function assertInitialControlHostPreparation(originals) {"
               }
             ],
             "inputsOutputs": [
@@ -54239,12 +54716,20 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "control = await beginInitialControlInstallation(originals);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+                "anchor": "if (retained.moon !== moon) fail('ForeignInstalledProjectRuntime');"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -54261,6 +54746,14 @@
               {
                 "path": "src/run_publication_host/client_project_model_task_selection.mbt",
                 "anchor": "pub fn client_project_model_task_selection_for("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "originals?.moduleLifetime !== import.meta"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "function preparationFor(host, installation, generation) {"
               }
             ],
             "ownership": [
@@ -54283,6 +54776,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Project views share one original retirement record."
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               }
             ],
             "synchronization": [
@@ -54305,6 +54806,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "originalsForRuntime(runtime);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "await releaseUnadopted();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "lifetime after the await, before exposing another lease."
               }
             ],
             "failure": [
@@ -54323,6 +54832,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
                 "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const pending = new Set(['initialization']);"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
               }
             ],
             "cancellation": [
@@ -54341,6 +54858,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
                 "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('final close waits in-flight ingress and dispatch without cancelling a Run'"
               }
             ],
             "resources": [
@@ -54363,6 +54888,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "const tasks = [];"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               }
             ],
             "extension": [
@@ -54381,6 +54914,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "This connection supplies static checked materials, not execution dependencies,"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "// do not acquire an operational admission by omitting these private inputs."
               }
             ],
             "verification": [
@@ -54403,6 +54944,14 @@
               {
                 "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
                 "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
+              },
+              {
+                "path": "adapters/host-node/embedded-host-preparation.test.mjs",
+                "anchor": "test('foreign returned Host stays in acquired shutdown custody on pair refusal'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.test.mjs",
+                "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
               }
             ]
           }
@@ -54424,6 +54973,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Host registry retains a preparation candidate under its"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function assertInitialControlHostPreparation(originals) {"
               }
             ],
             "inputsOutputs": [
@@ -54434,6 +54991,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "control = await beginInitialControlInstallation(originals);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
               }
             ],
             "identity": [
@@ -54448,6 +55013,14 @@
               {
                 "path": "src/run_publication_host/client_project_model_task_selection.mbt",
                 "anchor": "pub fn client_project_model_task_selection_for("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "originals?.moduleLifetime !== import.meta"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "function preparationFor(host, installation, generation) {"
               }
             ],
             "ownership": [
@@ -54462,6 +55035,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Project views share one original retirement record."
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               }
             ],
             "synchronization": [
@@ -54476,6 +55057,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "originalsForRuntime(runtime);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "await releaseUnadopted();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "lifetime after the await, before exposing another lease."
               }
             ],
             "failure": [
@@ -54486,6 +55075,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
                 "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const pending = new Set(['initialization']);"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
               }
             ],
             "cancellation": [
@@ -54496,6 +55093,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
                 "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('final close waits in-flight ingress and dispatch without cancelling a Run'"
               }
             ],
             "resources": [
@@ -54510,6 +55115,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "const tasks = [];"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               }
             ],
             "extension": [
@@ -54520,6 +55133,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "This connection supplies static checked materials, not execution dependencies,"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "// do not acquire an operational admission by omitting these private inputs."
               }
             ],
             "verification": [
@@ -54534,6 +55155,126 @@
               {
                 "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
                 "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
+              },
+              {
+                "path": "adapters/host-node/embedded-host-preparation.test.mjs",
+                "anchor": "test('foreign returned Host stays in acquired shutdown custody on pair refusal'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.test.mjs",
+                "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "loadInstalledProjectConfiguration/check/check",
+            "originalForRuntime",
+            "retireInstalledProjectConfiguration"
+          ],
+          "exports": [
+            "retireInstalledProjectConfiguration"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Host registry retains a preparation candidate under its"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function assertInitialControlHostPreparation(originals) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "control = await beginInitialControlInstallation(originals);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "originals?.moduleLifetime !== import.meta"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "function preparationFor(host, installation, generation) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Project views share one original retirement record."
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "await releaseUnadopted();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "lifetime after the await, before exposing another lease."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const pending = new Set(['initialization']);"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('final close waits in-flight ingress and dispatch without cancelling a Run'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// This private installation bag holds backreferences, not canonical DATA."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "// do not acquire an operational admission by omitting these private inputs."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-host-preparation.test.mjs",
+                "anchor": "test('foreign returned Host stays in acquired shutdown custody on pair refusal'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.test.mjs",
+                "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
               }
             ]
           }
@@ -55420,7 +56161,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "// Host, however, keeps this same view until its existing shutdown finishes."
+                "anchor": "if (adopted) throw cause; // The original opened/failed Host owns cleanup."
               }
             ],
             "resources": [
@@ -55939,9 +56680,9 @@
   ],
   "counts": {
     "modules": 127,
-    "operations": 3144,
-    "exports": 858,
-    "explicitContractGroups": 148
+    "operations": 3155,
+    "exports": 860,
+    "explicitContractGroups": 151
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }

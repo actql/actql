@@ -48,4 +48,9 @@ int actql_host_resources_drop_reply(actql_local_host_resources_reply **,
 int actql_host_resources_finish_closed_data(actql_control_host **,
     actql_control_host **, actql_parent_read **, actql_sqlite_original **,
     actql_local_host_resources **, actql_local_host_resources_reply **);
+/* Bind refusal has no pair. Retire only its exact original role references;
+ * this neither closes either input nor changes the Native binding registry. */
+int actql_host_resources_finish_refused_bind_data(actql_control_host **,
+    actql_control_host **, actql_parent_read **, actql_sqlite_original **,
+    actql_local_host_resources **, actql_local_host_resources_reply **);
 #endif

@@ -224,6 +224,36 @@ failure, rather than accumulating an unbounded in-memory retry history. This
 bounded diagnostic projection neither completes that phase nor changes its
 original cause, cleanup receiver or retry authority.
 
+The same installed Host registry retains a preparation candidate under its
+actual Host identity before Project discovery. This candidate has no root
+lease. Only the selected startup's original module operation can validate its
+same Host, installation and generation, original `connectEmbeddedLocal`
+function and module lifetime. A namespace, public function, caller callback,
+copied record or equal configuration cannot reconstruct this membership.
+The startup independently supplies the operational admission; registry
+membership is not capacity, authority or coverage of earlier imports.
+
+The Local preparation awaits that admission before snapshotting options,
+importing Common or reading Project originals. Its original scope is checked
+after awaits and between original file acquisitions and Common admission.
+The existing file Owner first closes or retains an acquired FD, so a current
+refusal cannot lose it before cleanup custody. Getter failures on a thrown
+initialization value likewise remain under the retained cleanup phase.
+
+On adoption, the candidate and root lease use the same registry entry and
+actual returned Host. A foreign returned child enters its acquired shutdown
+custody before the pair refusal. Reusing an existing Host first retires only
+the unused preparation, then rechecks that original entry and its nonclosing
+lifetime after the await, before exposing another lease. Pending preparation
+cleanup does not close or replace the existing Host.
+
+Project views share one original retirement record. Existing Host cleanup or
+an unadopted preparation cuts its managed configuration/registry references;
+captured getters and downstream lookups then refuse. This does not rewrite
+escaped canonical DATA or acknowledge its physical storage, GC or capacity.
+Managed preparation aliases are cut before the same control's close, while
+runtime-view retirement remains behind its explicit original completion.
+
 ## Installed Effect cleanup
 
 The installed Effect Site retains target-read authorization, input pins,
