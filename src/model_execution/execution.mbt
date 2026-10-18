@@ -34,13 +34,14 @@ pub(all) enum ModelProviderFailure {
 } derive(Eq, Debug)
 
 ///|
-/// A provider is physical I/O. It is installed by the Host and cannot be
+/// A provider implementation is installed by the Host and cannot be
 /// selected by a Program value or by a model selector string alone.
 pub(all) enum ModelProviderInvocation {
   SynchronousFixture(
     (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]
   )
   AsynchronousPhysical
+  OriginalMock(ModelMockInstallation)
 }
 
 ///|
@@ -79,7 +80,7 @@ pub fn model_provider_synchronous_invoke(
 ) -> ((ModelRequest) -> Result[ModelResponse, ModelProviderFailure])? {
   match provider.invocation {
     SynchronousFixture(invoke) => Some(invoke)
-    AsynchronousPhysical => None
+    AsynchronousPhysical | OriginalMock(_) => None
   }
 }
 
@@ -781,12 +782,15 @@ fn advance_model(
     return @bounded.Continue(1, 1)
   }
   let invoked = match state.physical_preflight {
-    None => {
-      guard provider.invocation is SynchronousFixture(invoke) else {
-        return @bounded.Failed(InvalidProvider, 1, 1)
+    None =>
+      match provider.invocation {
+        SynchronousFixture(invoke) => invoke(request)
+        OriginalMock(original) =>
+          invoke_original_mock(
+            original, provider, state, prepared, request, reader,
+          )
+        AsynchronousPhysical => return @bounded.Failed(InvalidProvider, 1, 1)
       }
-      invoke(request)
-    }
     Some(_) => {
       guard state.physical_plans.get(state.progress.slot) is Some(plan) else {
         return @bounded.Failed(RequestIdentity, 1, 1)
@@ -942,6 +946,21 @@ fn start_model_owned(
   original_startup? : OriginalModelStartup? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
   let task = @infer.model_task(@relation.prepared_infer_rows_owner(rows))
+  // The actual mock is not the legacy synchronous fixture shortcut. Require
+  // the original Run and pre-root startup before retaining inputs. Dispatch
+  // is bound after the same request inventory is prepared, as for durable I/O;
+  // its original acknowledgement remains mandatory before invocation.
+  if source is Provider(provider) &&
+    provider.invocation is OriginalMock(original) {
+    if !original_mock_provider_matches(original, provider, task) ||
+      original.users == 2147483647 ||
+      call_scope is None ||
+      original_startup is None ||
+      physical_preflight is Some(_) ||
+      !durable_calls {
+      return Err(InvalidProvider)
+    }
+  }
   if egress_admission is Some(admission) &&
     !(call_scope is Some(scope) &&
     @publication_host.client_infer_egress_matches_scope(admission, scope)) {
@@ -978,6 +997,16 @@ fn start_model_owned(
     ) {
     return Err(RequestIdentity)
   }
+  if source is Provider(provider) &&
+    provider.invocation is OriginalMock(original) &&
+    !(call_scope is Some(scope) &&
+    @environment.model_mock_execution_matches(
+      original.profile.unwrap(),
+      original.normalized.unwrap(),
+      @publication_host.client_infer_call_scope_model_execution(scope),
+    )) {
+    return Err(RequestIdentity)
+  }
   if dispatch_admission is Some(admission) &&
     !(call_scope is Some(scope) &&
     @publication_host.client_infer_dispatch_matches_scope(admission, scope)) {
@@ -987,7 +1016,10 @@ fn start_model_owned(
   // Task admission does not enable a native Decision transport in this
   // synchronous profile. Refuse before acquiring inputs or creating a Ledger.
   if source is Provider(provider) &&
-    provider.invocation is SynchronousFixture(_) &&
+    (
+      provider.invocation is SynchronousFixture(_) ||
+      provider.invocation is OriginalMock(_)
+    ) &&
     @environment.model_task_kind(task) == @environment.Decision {
     return Err(InvalidProvider)
   }
@@ -1071,6 +1103,13 @@ fn start_model_owned(
   // Refusals above leave the token unconsumed, with original cleanup custody.
   if original_startup is Some(original) {
     original.used = true
+  }
+  if source is Provider(provider) &&
+    provider.invocation is OriginalMock(original) {
+    // Bind the checked Task from the same original rows only on a successful
+    // startup. An equal re-parsed Task cannot replace this original later.
+    original.task = Some(task)
+    original.users += 1
   }
   let reservations : Map[Int, @resources.Reservation] = Map([])
   let state : ModelState = {
@@ -1416,6 +1455,10 @@ fn cleanup_model_execution_owned(
       }
       if execution.state.source is RestoredSlots(read) {
         release_model_slot_replay(read) |> ignore
+      }
+      if execution.state.source is Provider(provider) &&
+        provider.invocation is OriginalMock(original) {
+        original.users -= 1
       }
       // Retire the added adapter captures only after original physical cleanup
       // succeeds. Escaped terminal ACKs still retain their original Owner.
