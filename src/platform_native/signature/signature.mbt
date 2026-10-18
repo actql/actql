@@ -8,4 +8,6 @@ pub(all) enum NativeSignatureIssue {
   UnsupportedKey(String)
   Verification(String)
   Signing(String)
+  CleanupPending
+  CloseUnconfirmed(String)
 } derive(Eq, Debug)

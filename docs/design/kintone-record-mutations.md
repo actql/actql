@@ -672,3 +672,60 @@ neither index nor equal payload bytes can substitute a foreign Preview.
   Node consumers check exact native strings/digest, copied/foreign originals,
   row/value correspondence, malformed replies and finite refusal. Explicit
   Preview DATA fixtures confer no Run authority or physical Provider success.
+
+
+### Original DELETE response and Preview correspondence
+
+The mapped DELETE caller checks its original declaration and Mapping before
+using the existing raw port. It introduces no second transport or acquisition.
+The typed response projection accepts one original request and acknowledgement
+for one admitted DELETE Preview row. It checks the exact resolved Mapping,
+original API ID and the version fingerprint of the original App/ID/revision.
+Common's canonical dispatch order is resolved back to the original changes
+index before checking that row's guard. Source enumeration is not dispatch order.
+The provider's empty-object acknowledgement becomes `result: {}` in the existing
+applied outcome shape; no missing record, Record Number or guessed revision
+becomes an acknowledgement. Raw batch support remains unchanged, but a batch
+response cannot substitute an individual row projection.
+
+- DELETE outcome responsibility: the existing Catalog retains original target,
+  request and native acknowledgement DATA; the existing Common Preview Owner
+  validates the bounded row outcome. Account, Credential and Effect Owners
+  retain current authority, physical response custody and terminal settlement.
+- DELETE outcome inputs and outputs: one original Mapping/declaration, request,
+  typed acknowledgement, admitted Preview and member/ordered-row indices
+  produce outcome DATA, its exact row CID and original response digest. Explicit
+  positive value, comparison, identity, request and output limits remain required.
+- DELETE outcome identity: private constructor self-references reject copied
+  Mappings, requests and acknowledgements. The same original Catalog and full
+  declared field selection remain required. Exact API ID and revision strings
+  are preserved; resolved Mapping, ordered row target and version must agree.
+- DELETE outcome ownership: the same capture retains original Form, declaration,
+  Mapping, request, native response and Preview. The projection creates no
+  grant, claim, saved-response receipt, retry, cleanup Owner or Ledger transition.
+- DELETE outcome synchronization: this synchronous match is not an authority
+  fence. The existing raw port still checks current Account, Site, credential
+  generation and original use around awaits, before sends and after responses.
+  Its caller must supply the original durable claim and approved Preview.
+- DELETE outcome failure: foreign or copied originals, another Mapping, target,
+  guard, member or row, incomplete before fields, exhausted limits and missing
+  runtime ports return no usable outcome. Missing, malformed or non-success
+  replies cannot construct the native acknowledgement. Unknown never causes resend.
+- DELETE outcome cancellation: no new stop, close or release acknowledgement is
+  introduced. The original signal, async frame, response tickets, pending socket
+  and Root cleanup responsibilities remain with their existing Owners.
+- DELETE outcome resources: nominal self-references and the outcome retain
+  their original aliases. During projection, the complete target/page/Form,
+  checked before matrix, before UTF-8, version hash, encoded target string,
+  outcome writer/document and wrapper-decoded result can overlap. Request bytes
+  and all original responses/tickets remain separately held. Bounds are not
+  simultaneous funding; GC or a nominal match is not physical retirement ACK.
+- DELETE outcome extension: Node and generated RelA forward the same opaque
+  originals. This private classification does not supply an installed driver,
+  target-read capacity, authenticated acquisition, sealed approval, saved
+  response custody, recovery, live service support or a normal numerical profile.
+- DELETE outcome verification: actual Common consumers cover copied/foreign
+  originals, wide IDs/revisions, target/guard/Mapping substitution and canonical
+  dispatch order. Mapped/raw Account-Credential-SQLite-TLS counters preserve
+  request assertions, refusal, response loss, no resend and retained cleanup.
+  Authored Preview DATA fixtures do not establish an approved installed write.

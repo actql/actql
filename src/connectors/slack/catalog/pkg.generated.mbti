@@ -2,13 +2,42 @@
 package "actql/actql/connectors/slack/catalog"
 
 import {
+  "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn prepare_slack_command_request(SlackCommandKind, @value_admission.CheckedValue, String, String?, SlackCommandRequestLimits) -> Result[SlackCommandRequest, SlackCommandRequestIssue]
+
+pub fn project_slack_channel_list(Bytes, SlackChannelListLimits) -> Result[SlackChannelListPage, SlackChannelListIssue]
+
 pub fn project_slack_user_list(Bytes, SlackUserListLimits) -> Result[SlackUserListPage, SlackUserListIssue]
 
 pub fn project_slack_workspace_identity(Bytes, Int, Int, Int, Int) -> Result[SlackWorkspaceIdentity, SlackUserListIssue]
+
+pub fn slack_channel_list_column_names() -> Array[String]
+
+pub fn slack_channel_list_facts_wire() -> String
+
+pub fn slack_channel_list_ids(SlackChannelListPage) -> Array[String]
+
+pub fn slack_channel_list_row_count(SlackChannelListPage) -> Int
+
+pub fn slack_channel_list_rows_wire(SlackChannelListPage, Array[String], Int, Int, Int) -> Result[String, SlackChannelListIssue]
+
+pub fn slack_channel_list_schema_wire(Int, Int, Int) -> Result[String, SlackChannelListIssue]
+
+pub fn slack_command_request_body(SlackCommandRequest) -> String
+
+pub fn slack_command_request_channel(SlackCommandRequest) -> String
+
+pub fn slack_command_request_input_matches(SlackCommandRequest, @value_admission.CheckedValue) -> Bool
+
+pub fn slack_command_request_kind(SlackCommandRequest) -> SlackCommandKind
+
+pub fn slack_command_request_marker(SlackCommandRequest) -> String?
+
+pub fn slack_command_request_path(SlackCommandRequest) -> String
 
 pub fn slack_user_list_column_names() -> Array[String]
 
@@ -27,6 +56,60 @@ pub fn slack_workspace_identity_matches(SlackWorkspaceIdentity, String) -> Bool
 // Errors
 
 // Types and methods
+pub(all) enum SlackChannelListIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  InvalidCursor
+  InvalidSelection(String)
+  DuplicateChannel
+  InvalidCell(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SlackChannelListLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_rows : Int
+  max_cursor_bytes : Int
+  max_value_nodes : Int
+  max_value_text_bytes : Int
+}
+
+pub struct SlackChannelListPage {
+  response_sha256 : String
+  next_cursor : String?
+  // private fields
+}
+
+pub(all) enum SlackCommandKind {
+  Post
+  Reply
+  React
+  ArchiveChannel
+} derive(Eq, @debug.Debug)
+
+pub struct SlackCommandRequest {
+  // private fields
+}
+
+pub(all) enum SlackCommandRequestIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidTarget
+  InvalidMarker
+  InvalidInput
+  InvalidField(String)
+  TextWouldTruncate
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SlackCommandRequestLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_value_text_bytes : Int
+}
+
 pub(all) enum SlackUserListIssue {
   InvalidLimits
   BudgetExceeded

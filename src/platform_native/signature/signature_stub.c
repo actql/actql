@@ -52,6 +52,9 @@ typedef struct {
   void *dynamic_library;
   char *error;
   int32_t diagnostic_ceiling;
+  uint32_t pending_hashes;
+  bool closing;
+  bool close_unconfirmed;
   actql_bio_new_mem_buf_fn bio_new_mem_buf;
   actql_bio_free_fn bio_free;
   actql_pem_read_bio_pubkey_fn pem_read_bio_pubkey;
@@ -69,6 +72,14 @@ typedef struct {
   actql_err_error_string_n_fn err_error_string_n;
   actql_evp_pkey_get_raw_public_key_fn evp_pkey_get_raw_public_key;
 } actql_native_signature_library;
+
+// Closing is monotonic. Existing context cleanup may still use cached symbols,
+// but no new cryptographic operation can use an alias after close is requested.
+static bool actql_signature_library_available(
+  const actql_native_signature_library *library
+) {
+  return library != NULL && library->dynamic_library != NULL && !library->closing;
+}
 
 // An explicit installer ceiling is independent of row/response limits.
 // Zero preserves legacy callers, never evidence of a funded numeric profile.
@@ -134,12 +145,37 @@ static bool actql_load_symbol(
 
 static void actql_native_signature_library_finalize(void *value) {
   actql_native_signature_library *library = value;
-  if (library->dynamic_library != NULL) {
-    dlclose(library->dynamic_library);
-    library->dynamic_library = NULL;
+  // Finalization is best effort, never an application cleanup acknowledgement.
+  // In particular it cannot retry an unconfirmed explicit dlclose.
+  if (library->dynamic_library != NULL && !library->close_unconfirmed &&
+      library->pending_hashes == 0) {
+    if (dlclose(library->dynamic_library) == 0) library->dynamic_library = NULL;
   }
   free(library->error);
   library->error = NULL;
+}
+
+// The same Library remains the cleanup receiver on pending or unconfirmed
+// release. No replacement load, automatic retry or alias-based ACK is issued.
+MOONBIT_FFI_EXPORT
+int32_t actql_native_signature_library_close(
+  actql_native_signature_library *library
+) {
+  if (library == NULL) return 2;
+  library->closing = true;
+  if (library->close_unconfirmed) return 3;
+  if (library->dynamic_library == NULL) return 0;
+  if (library->pending_hashes != 0) return 1;
+  dlerror();
+  if (dlclose(library->dynamic_library) != 0) {
+    const char *issue = dlerror();
+    actql_replace_error(&library->error, library->diagnostic_ceiling,
+      issue == NULL ? "crypto library close unconfirmed" : issue);
+    library->close_unconfirmed = true;
+    return 3;
+  }
+  library->dynamic_library = NULL;
+  return 0;
 }
 
 static void actql_openssl_error(
@@ -241,12 +277,31 @@ typedef struct {
   bool closed;
 } actql_native_sha256;
 
+static void actql_native_sha256_retire_context(
+  actql_native_sha256 *hash, bool acknowledge
+) {
+  if (hash->context != NULL) {
+    hash->free_context(hash->context);
+    hash->context = NULL;
+    if (acknowledge) hash->library->pending_hashes -= 1;
+  }
+  hash->closed = true;
+}
+
 static void actql_native_sha256_finalize(void *value) {
   actql_native_sha256 *hash = value;
-  if (hash->context != NULL) hash->free_context(hash->context);
-  hash->context = NULL;
+  // A lost managed receiver is not an explicit context ACK. Its physical
+  // best-effort free cannot let a retained parent Library infer release.
+  actql_native_sha256_retire_context(hash, false);
   if (hash->library != NULL) moonbit_decref(hash->library);
   hash->library = NULL;
+}
+
+MOONBIT_FFI_EXPORT
+bool actql_native_signature_sha256_close(actql_native_sha256 *hash) {
+  if (hash == NULL) return false;
+  actql_native_sha256_retire_context(hash, true);
+  return true;
 }
 
 MOONBIT_FFI_EXPORT
@@ -257,22 +312,24 @@ void *actql_native_signature_sha256_new(
     actql_native_sha256_finalize, sizeof(actql_native_sha256)
   );
   memset(hash, 0, sizeof(*hash));
-  if (library == NULL || library->dynamic_library == NULL) return hash;
+  if (!actql_signature_library_available(library) ||
+      library->pending_hashes == UINT32_MAX) return hash;
   hash->library = library;
   moonbit_incref(library);
   hash->context = library->evp_md_ctx_new();
   hash->free_context = library->evp_md_ctx_free;
+  if (hash->context != NULL) library->pending_hashes += 1;
   if (hash->context == NULL ||
       library->evp_digest_init_ex(hash->context, library->evp_sha256(), NULL) != 1) {
-    if (hash->context != NULL) hash->free_context(hash->context);
-    hash->context = NULL;
+    actql_native_sha256_retire_context(hash, true);
   }
   return hash;
 }
 
 MOONBIT_FFI_EXPORT
 bool actql_native_signature_sha256_ready(actql_native_sha256 *hash) {
-  return hash != NULL && hash->context != NULL && !hash->closed;
+  return hash != NULL && actql_signature_library_available(hash->library) &&
+    hash->context != NULL && !hash->closed;
 }
 
 /* Resolve custody primitives only when used. Signature verification retains
@@ -283,7 +340,7 @@ moonbit_bytes_t actql_native_signature_random_bytes(
 ) {
   typedef int (*random_fn)(unsigned char *, int);
   random_fn random = NULL;
-  if (library == NULL || library->dynamic_library == NULL ||
+  if (!actql_signature_library_available(library) ||
       length < 1 || length > 4096 ||
       !actql_load_symbol(library, (void **)&random, "RAND_bytes")) {
     return moonbit_make_bytes_raw(0);
@@ -307,7 +364,7 @@ moonbit_bytes_t actql_native_signature_hmac_sha256(
   typedef unsigned char *(*hmac_fn)(const EVP_MD *, const void *, int,
     const unsigned char *, size_t, unsigned char *, unsigned int *);
   hmac_fn hmac = NULL;
-  if (library == NULL || library->dynamic_library == NULL ||
+  if (!actql_signature_library_available(library) ||
       key_length < 1 || key_length > 4096 ||
       message_length < 0 || message_length > 1048576 ||
       !actql_load_symbol(library, (void **)&hmac, "HMAC")) {
@@ -331,7 +388,7 @@ int32_t actql_native_signature_equal_tag(
 ) {
   typedef int (*compare_fn)(const void *, const void *, size_t);
   compare_fn compare = NULL;
-  if (library == NULL || library->dynamic_library == NULL ||
+  if (!actql_signature_library_available(library) ||
       !actql_load_symbol(library, (void **)&compare, "CRYPTO_memcmp")) return 2;
   return compare(expected, supplied, 32) == 0 ? 0 : 1;
 }
@@ -342,7 +399,7 @@ bool actql_native_signature_sha256_update(
   moonbit_bytes_t bytes,
   int32_t length
 ) {
-  if (hash == NULL || hash->library == NULL || hash->context == NULL ||
+  if (hash == NULL || !actql_signature_library_available(hash->library) || hash->context == NULL ||
       hash->closed || length < 0) return false;
   return hash->library->evp_digest_update(
     hash->context, bytes, (size_t)length
@@ -354,17 +411,16 @@ moonbit_bytes_t actql_native_signature_sha256_finish(
   actql_native_sha256 *hash
 ) {
   moonbit_bytes_t result = moonbit_make_bytes_raw(0);
-  if (hash == NULL || hash->library == NULL ||
+  if (hash == NULL || !actql_signature_library_available(hash->library) ||
       hash->context == NULL || hash->closed) {
     return result;
   }
   hash->closed = true;
   unsigned char digest[32];
   unsigned int length = 0;
-  if (hash->library->evp_digest_final_ex(
-        hash->context, digest, &length
-      ) != 1 ||
-      length != sizeof(digest)) return result;
+  int finished = hash->library->evp_digest_final_ex(hash->context, digest, &length);
+  actql_native_sha256_retire_context(hash, true);
+  if (finished != 1 || length != sizeof(digest)) return result;
   result = moonbit_make_bytes_raw(32);
   memcpy(result, digest, 32);
   return result;
@@ -374,7 +430,7 @@ MOONBIT_FFI_EXPORT
 bool actql_native_signature_library_ready(
   actql_native_signature_library *library
 ) {
-  return library != NULL && library->dynamic_library != NULL;
+  return actql_signature_library_available(library);
 }
 
 // Configuration of the same ready Owner, never inferred from a caller limit.
@@ -404,7 +460,7 @@ int32_t actql_native_signature_ed25519_public_key_raw32(
   moonbit_bytes_t output,
   int32_t output_length
 ) {
-  if (library == NULL || library->dynamic_library == NULL ||
+  if (!actql_signature_library_available(library) ||
       library->diagnostic_ceiling <= 0 || public_key == NULL ||
       public_key_length <= 0 || public_key_length > 16384 ||
       memchr(public_key, 0, (size_t)public_key_length) != NULL ||
@@ -456,7 +512,7 @@ int32_t actql_native_signature_verify_ed25519(
   moonbit_bytes_t signature,
   int32_t signature_length
 ) {
-  if (library == NULL || library->dynamic_library == NULL ||
+  if (!actql_signature_library_available(library) ||
       public_key_length <= 0 || public_key_length > 16384 ||
       message_length < 0 || message_length > 1048576) {
     return 2;
@@ -531,7 +587,7 @@ moonbit_bytes_t actql_native_signature_sign_ed25519(
 ) {
   moonbit_bytes_t result = moonbit_make_bytes_raw(1);
   result[0] = 2;
-  if (library == NULL || library->dynamic_library == NULL ||
+  if (!actql_signature_library_available(library) ||
       private_key_length <= 0 || private_key_length > 16384 ||
       message_length < 0 || message_length > 1048576 ||
       memchr(private_key, 0, (size_t)private_key_length) != NULL) return result;
@@ -600,7 +656,7 @@ moonbit_bytes_t actql_native_private_evidence_cipher(
   final_fn final = NULL; ctrl_fn ctrl = NULL; random_fn random = NULL;
   moonbit_bytes_t result = moonbit_make_bytes_raw(1);
   result[0] = 1;
-  if (library == NULL || library->dynamic_library == NULL || key_length != 32 ||
+  if (!actql_signature_library_available(library) || key_length != 32 ||
       aad_length < 1 || aad_length > 4096 || input_length < 1 ||
       input_length > 1048576 + 28 || (!encrypt && input_length <= 28)) return result;
 #define ACTQL_PRIVATE_SYMBOL(target, symbol) \

@@ -154,3 +154,70 @@ Site close, Promise settlement and weak-reference collection do not retire
 those aliases. Missing original reader capacity remains unavailable at the
 normal Host entrance; neither profile bounds nor startup-only capacity fills
 that independent supplier responsibility.
+
+## Channels Source
+
+The existing Slack Catalog projects `conversations.list` pages into `id`,
+`name`, `topic`, `purpose`, `member_count`, `is_private`, `is_archived` and
+`created`. Nested topic/purpose values remain exact text. Missing observations
+remain nullable; they never become empty text, zero counts or false flags.
+Counts use the distinct Signed64 contract. Their exact original numeric token
+is normalized as an integral decimal and checked before conversion; the JSON
+parser's binary64 placeholder is not the value. Creation seconds use checked
+integer multiplication and the existing canonical UTC Timestamp owner.
+
+The physical reader selects public/private channels and includes archived
+channels. It rejects observed IM/MPIM discriminants, duplicate channel ids and
+repeated cursors. An empty page with a continuation is not terminal. Every
+returned column is checked before projection. No identifier prefix, channel
+name or one-page result supplies workspace identity or whole-input proof.
+
+The installed Source exposes separate users and channels views through the
+existing Resource-to-operation binding. Each actual RowRun uses its own
+`slack:users:list` or `slack:channels:list` grant and the same Site's separate
+workspace-identity grant on the original token. Account/current/abort checks
+remain per original read. The plural Source binding identifies a new installed
+generation; no saved Run or predecessor publication is rewritten.
+
+Channel response bytes, parse/decode trees, exact numeric-token text, normalized
+integer/UTC text, checked values and rows-wire workspace overlap. The page,
+identifier/cursor sets, original callbacks, reader failures, returned responses
+and escaped aliases remain retained. The installation also retains its two
+reader factories, acquisition memberships and declaration callbacks. Declared
+bounds are not a Resource supplier. Missing normal reader capacity refuses;
+transport closure, Journal success and GC never establish raw retirement or
+return the original reservation. Cleanup remains unconfirmed until its actual
+owner can prove those duties complete.
+
+## Original Command request encoding
+
+The same Slack Catalog encodes the closed post, reply, reaction and archive
+inputs from an original CheckedValue. Its private request retains that original
+value and contract; an equal rechecked value is not the retained input. Every
+declared field and supplied value is checked before emission. Text constraints,
+including enumeration and extents, remain with the original contract. There is
+no JSON-to-CheckedValue adapter, implicit optional field or scalar coercion.
+
+Message `ts` and `thread_ts` are exact String identities. They never pass through
+binary64, a Host Date, or the derived Timestamp domain. The bounded writer
+preserves Unicode and mrkdwn text without normalization. The post/reply text
+limit follows Slack's documented 40,000-character truncation boundary: the
+codec refuses a larger scalar sequence rather than changing approved text or
+creating an implicit upload. Writer and input-recheck bounds remain separate
+from that vendor write-request bound.
+
+Post and reply require an explicit item marker, emitted as metadata with
+`event_type: actql_effect` and `event_payload.effect_item_id`. Reaction and
+archive requests forbid that marker because Slack does not return equivalent
+reconciliation evidence for them. The marker String is DATA: only the existing
+Effect/Preview owner can bind it to the original item. A request codec or
+matching text cannot create that identity, a current target, approval, a
+Credential use, an authenticated outcome or permission to resend.
+
+The retained request, original checked object and child contracts, channel and
+marker Strings, recheck frames, encoded document and escaped body can coexist.
+Their bounds do not fund these holdings. Existing installed Effect, Site,
+Journal and Resource owners retain currentness, exact request binding, claim,
+Unknown resolution, response evidence and physical cleanup responsibilities.
+A successful codec does not supply those originals or close the public Command
+execution and recovery boundary.
