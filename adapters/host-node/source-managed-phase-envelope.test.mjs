@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import source from './source-managed-phase-envelope.cjs';
 import control from './initial-control-phase-envelope.cjs';
+import {readSourceManagedOriginalInput} from './source-managed-original-input.mjs';
 
 // Pure equation/finite-recipe checks only. Actual Root, same-Host Source
 // admission and all distinct physical external suppliers remain separate.
@@ -21,4 +22,26 @@ test('control and Source share one managed/native domain while external overlaps
   assert.equal(phase.inputLimits.maxArrayItems,0);
   assert.equal(phase.issue,undefined);assert.equal(phase.begin,undefined);
   assert(Object.isFrozen(phase.managedOverlap));assert(Object.isFrozen(phase.externalRequired));
+});
+
+test('the same Source recipe includes the original submission epoch rather than a shallower replacement', () => {
+  const phase=source.declareSourceManagedPhaseEnvelope(control.declareInitialControlPhaseEnvelope(4*1024**3));
+  const epoch=Object.freeze({version:'actql-submission-epoch/0.1',authorityScopeCid:'original-scope',
+    epochNonce:'original-epoch',authenticator:'original-proof',notBefore:1,expiresAt:2});
+  const options=Object.freeze({format:'sql',parameters:null,
+    submissionRef:Object.freeze({nonce:'original-nonce',epoch})});
+  const read=readSourceManagedOriginalInput('aql','SELECT 1',options,phase.inputLimits);
+  assert.equal(read.usage.depth,4);
+  assert.equal(read.packet.options.submissionRef.epoch.authenticator,epoch.authenticator);
+  assert.equal(read.originalReferences.length,0);
+  assert.equal(read.packet.options.parameters,null);
+  assert.notEqual(read.packet.options,options);
+});
+
+test('Source intake cannot borrow a callback graph under a zero opaque-alias recipe', () => {
+  const phase=source.declareSourceManagedPhaseEnvelope(control.declareInitialControlPhaseEnvelope(4*1024**3));
+  let called=0;
+  assert.throws(()=>readSourceManagedOriginalInput('aql','SELECT 1',
+    {format:'sql',callback(){called++;}},phase.inputLimits),{code:'NodeSourceManagedInputUnavailable'});
+  assert.equal(called,0);
 });
