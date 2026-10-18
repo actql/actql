@@ -28,6 +28,24 @@ const loadingModule = module;
 let state, firstFailure, preparation, intake, closed = false;
 const inputLimits = freeze({maxProperties:40,maxNodes:40,maxDepth:4,
   maxStringCodeUnits:4096,maxTotalStringCodeUnits:8192,maxArrayItems:0,maxOpaqueAliases:0,maxWork:65536});
+// Capture actual prefix-time descriptors without evaluating a global accessor
+// (Node's standard lazy Buffer binding is an accessor). They stay original
+// observations, not evidence that arbitrary prior application code was covered.
+const prefixIntrinsics = [];
+for (const [receiver,names] of [[Object,['getOwnPropertyDescriptor','hasOwn','freeze','create']],
+  [Reflect,['apply','ownKeys']],[Array,['isArray']],[globalThis,['Object','Reflect','Array','Promise','Buffer']]]) {
+  for (const name of names) prefixIntrinsics.push(freeze({receiver,name,property:descriptor(receiver,name)}));
+}
+freeze(prefixIntrinsics);
+function assertIntrinsicsCurrent() {
+  for (const held of prefixIntrinsics) {
+    const current=descriptor(held.receiver,held.name), original=held.property;
+    if (current === undefined || original === undefined || current.value !== original.value ||
+        current.get !== original.get || current.set !== original.set ||
+        current.writable !== original.writable || current.enumerable !== original.enumerable ||
+        current.configurable !== original.configurable) unavailable();
+  }
+}
 
 function sameOriginals(left,right) {
   return left.host === right.host && left.installation === right.installation &&
@@ -40,9 +58,7 @@ function assertPrefixCurrent() {
   if (processOriginal !== process || loadingModule !== require.cache[__filename] ||
       loadingModule.exports !== table || delivery !== require.cache[delivery.filename] ||
       processOriginal.execArgv.length !== 0 || processOriginal.env.NODE_OPTIONS !== undefined) unavailable();
-  for (const held of state.intrinsics) {
-    if (descriptor(held.receiver,held.name)?.value !== held.value) unavailable();
-  }
+  assertIntrinsicsCurrent();
   state.images.assertCurrent();
 }
 function assertSamePreparation(held) {
@@ -141,12 +157,8 @@ try {
   const validator = field(namespace,'assertInitialControlHostPreparation');
   const reader = field(namespace,'readInitialControlHostInput');
   if ([consumer,validator,reader].some(value=>typeof value !== 'function')) unavailable();
-  const intrinsics = [];
-  for (const [receiver,names] of [[Object,['getOwnPropertyDescriptor','hasOwn','freeze','create']],
-    [Reflect,['apply','ownKeys']],[Array,['isArray']],[globalThis,['Object','Reflect','Array','Promise','Buffer']]]) {
-    for (const name of names) intrinsics.push(freeze({receiver,name,value:field(receiver,name)}));
-  }
-  state = {declaration,runtime,envelope,inventory,images,namespace,consumer,validator,reader,intrinsics:freeze(intrinsics)};
+  assertIntrinsicsCurrent();
+  state = {declaration,runtime,envelope,inventory,images,namespace,consumer,validator,reader,prefixIntrinsics};
 } catch(cause) {
   // Keep original FD/namespace/compile failure and its close-only duty. A
   // failed prefix never becomes a second factory or a retrying image read.
