@@ -39,6 +39,7 @@ const char *actql_native_observed_component_member_sha256(
 const char *actql_native_observed_component_member_manifest_sha256(
   actql_native_observed_component_member *member);
 
+
 /* Borrow the selected entry's existing original. Missing selection, incomplete
  * envelope, retirement, fork inheritance or a foreign thread returns NULL.
  * Looking up the original never creates, renews or replenishes it. */
@@ -50,7 +51,9 @@ actql_native_command_platform_current(void);
  * The implementation checks that actual member again through its filesystem
  * owner, together with the entry/installation/generation/recipe association.
  * Refusal creates no load permission. A consumed attempt cannot be replaced;
- * shared process/thread coverage is never refilled by a child phase or close. */
+ * shared process/thread coverage is never refilled by a child phase or close.
+ * The accepted load retains this member until its own module acknowledgment;
+ * the component receiver and enclosing command retain their original Runtime. */
 actql_native_command_platform_load *actql_native_command_platform_begin_load(
   actql_native_command_platform_original *original,
   enum actql_native_command_component_kind kind,
@@ -65,14 +68,20 @@ int actql_native_command_platform_observe_load(
 
 /* Same original process/thread/member checks before initialization and use.
  * Component owners additionally validate every fixed symbol's actual image
- * origin before invoking it. Cleanup uses their existing retained receiver. */
+ * origin before invoking it. Failure of this NORMAL current check does not
+ * discard or prevent cleanup of the same partial receiver. Cleanup retains
+ * the original thread, handle and existing component/Read obligations. */
 int actql_native_command_platform_load_current(
   actql_native_command_platform_load *load);
 
 /* Only after the same component owner receives its actual module-reference
  * release ACK. A failed/unconfirmed dlclose is not passed here as success.
- * This does not acknowledge component/TLS shutdown, complete image retirement,
- * Read/context/backing cleanup or return process-lived initial coverage. */
+ * NULL is accepted only for a previously observed failed load that acquired no
+ * module; it cannot stand in for a lost module acknowledgment. This drops the
+ * load's retained member alias, after which it must never dereference that
+ * member or its borrowed Runtime. Only process-lived accounting and the spent
+ * attempt remain. This does not acknowledge component/TLS shutdown, complete
+ * image retirement, Read/context/backing cleanup or return initial coverage. */
 int actql_native_command_platform_module_released(
   actql_native_command_platform_load *load, void *module);
 

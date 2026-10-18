@@ -1390,7 +1390,7 @@ fn main {
   // Observe the original OS input before Command construction/default_argv.
   // These selected Darwin input ceilings include argv0 and terminal bytes;
   // they are not the initial-control or physical-capacity admission itself.
-  // No physical original exists on help/version or argument failure.
+  // Help/version and argument failure acquire no Host/Root/Read resources.
   let selected_arguments = match
     command_preargument_bound(1048576, 1048576, 1048576, 8192) {
     Ok(selected) => selected
@@ -1399,6 +1399,7 @@ fn main {
       abort("native Client original argument failure")
     }
   }
+  command_capture_native_entry()
   let control = parse_native_initial_command(selected_arguments) catch {
     error => {
       fail_command(error.to_string())
