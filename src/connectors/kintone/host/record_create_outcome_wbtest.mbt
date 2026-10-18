@@ -18,8 +18,10 @@ fn create_outcome_preview(
   )
   match admitted {
     Ok((_, value)) => value
-    Err(issue) =>
-      abort("Invalid CREATE Preview DATA fixture: " + @debug.to_string(issue))
+    Err(issue) => {
+      println("Invalid CREATE Preview DATA fixture: " + @debug.to_string(issue))
+      abort("Invalid CREATE Preview DATA fixture")
+    }
   }
 }
 
