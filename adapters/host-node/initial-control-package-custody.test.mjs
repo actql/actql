@@ -93,6 +93,10 @@ test('the actual selected public preload consumes generated inventory without is
   const f = fixture(t), local = join(f.directory, 'node_modules/@actql/local-node');
   mkdirSync(join(local, 'adapters/host-node'), {recursive: true});
   const sources = {...f.sources,
+    'adapters/host-node/embedded-local.mjs': Buffer.from(
+      'import delivery from "../../selected-infer-startup.cjs";'+
+      'globalThis.originalDelivery=delivery;globalThis.actualHostImageValue="original";'+
+      'export function assertInitialControlHostPreparation(){};'),
     'package.json': Buffer.from(JSON.stringify({name: '@actql/local-node', type: 'module',
       exports: {'./selected-infer-startup': './selected-infer-startup.cjs'}})),
     'selected-infer-startup.cjs': readFileSync(new URL('../../packages/local-node/selected-infer-startup.cjs', import.meta.url))};
@@ -112,6 +116,7 @@ test('the actual selected public preload consumes generated inventory without is
     'import{createRequire}from"node:module";',
     'const require=createRequire(import.meta.url);',
     'assert.equal(actualHostImageValue,"original");',
+    'assert.equal(originalDelivery,require("@actql/local-node/selected-infer-startup"));',
     'const root=require('+JSON.stringify(join(local, 'adapters/host-node/infer-trusted-node-preload.cjs'))+');',
     'let reads=0;const raw=new Proxy({},{ownKeys(){reads++;throw new Error("RawInput");}});',
     'assert.throws(()=>root.beginInitialControlInstallation({},raw),{code:"NodeInitialControlAdmissionUnavailable"});',
