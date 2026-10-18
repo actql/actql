@@ -1,5 +1,33 @@
 # Original installed row reader custody
 
+## Original public connection declarations
+
+The existing Project configuration Owner admits the closed connectors document
+and keeps each connection's logical name, Connector locator and exact original
+UTF-8 value span. It validates the entire bounded envelope, including unused
+members and duplicate keys; it does not interpret vendor fields or grant a
+credential use. Each selected Connector's own reader admits its complete entry.
+The outer document, connection entry and any declaration inside that entry are
+distinct original byte sequences, not interchangeable source identities.
+
+The Node acquisition stage accepts only the original issued Project and runtime,
+resolves the original locator relative to its captured directory, and retains
+the exact text from the existing bounded strict-UTF8 reader. It captures the
+original Common callbacks before I/O and checks installation currentness after
+the same awaited read and close. A missing or invalid selected document cannot
+become an absent/source-free declaration. Close failure retains the original
+file responsibility; it does not trigger another read. The projected originals
+remain DATA, not publication custody, a Catalog, a read grant or an installation.
+
+The existing installation inventory must cover the Project and view references,
+captured callbacks/current closure, path and raw text, parsed tree and retained
+entry strings, plus simultaneous read/decode workspace. The 65536-byte intake
+ceiling is not a physical reservation or proof of adequate funding. Actual
+publication, durable custody, Connector preparation and Run adoption remain
+separate duties of their existing Owners.
+
+## Accounted row acquisition
+
 The provider-neutral installed row adapter may select a supplemental ordinary
 reader envelope in its existing trusted installation. Its private
 `providerReader` contains the original Common `ExecutionCapacity` declaration
