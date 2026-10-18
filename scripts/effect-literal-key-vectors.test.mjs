@@ -97,16 +97,16 @@ test('current literal references reject the preceding grammar while retaining it
   const sha = value => 'sha256:' + createHash('sha256')
     .update(exactDataJson(value)).digest('hex');
   const retained = JSON.parse(readFileSync(new URL(
-    '../portability/corpus/historical/pre-current-effect-literal-expression.json',
+    '../portability/corpus/historical/pre-signed64-stage-identities.json',
     import.meta.url), 'utf8'));
   assert.equal(retained.expression_contract_cid,
     'sha256:e7645d18471d4436b7542302adce28303a8a634ce29e9f5fd849f5cee8d1159e');
-  assert.equal(sha(retained.body), retained.expression_contract_cid);
-  assert.throws(() => currentEffectLiteralKeyVectors(readCorpus(), retained.body),
+  assert.equal(sha(retained.expression_contract), retained.expression_contract_cid);
+  assert.throws(() => currentEffectLiteralKeyVectors(readCorpus(), retained.expression_contract),
     /review the current expression dependency/);
   // Reconstruct that historical grammar predecessor from its complete original
   // body, never by deleting only a pin from a newer expression contract.
-  const previous = {...retained.body,
+  const previous = {...retained.expression_contract,
     grammar_sha256: '02ac66c34edc5114f0b919e8c5a9e7b147f2154268e29b8e3b9b1ba1b8ed6222'};
   const previousCID = 'sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289';
   assert.equal(sha(previous), previousCID);
