@@ -90329,7 +90329,7 @@
     {
       "module": "packages/run-host-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "0a5be47758658c3cb7cc67c83c1d692814639e090068c5e8b58ac703c8c6e2b8",
+      "sha256": "9d5cf174fac9e3fc8b9fcf56d731cd948d870bb6557897f36c04462aaf2042ac",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -90964,7 +90964,8 @@
         {
           "name": "effectProjectionArray",
           "parameters": [
-            "value"
+            "value",
+            "maximum"
           ],
           "async": false
         },
