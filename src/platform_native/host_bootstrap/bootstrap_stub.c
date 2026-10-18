@@ -526,3 +526,5 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_control_scope_clear(void) {
     return actql_native_owned_control_scope_clear();
 #endif
 }
+
+#include "command_platform_unavailable.h"
