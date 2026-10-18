@@ -18,11 +18,13 @@ priv struct LocalCommandPreparationProfile {
   sqlite_heap_bytes : Int64
   crypto_heap_bytes : Int64
   diagnostic_ceiling : Int
+  native_storage : LocalCommandNativeStorageBounds
 }
 
 ///|
 priv enum LocalCommandPreparationIssue {
   CommandInvalidProfile
+  CommandNativeStorage(LocalCommandNativeStorageIssue)
   CommandUnavailable
   CommandBacking(Int)
   CommandHost(@initial_bootstrap.NativeBootstrapIssue)
@@ -62,6 +64,7 @@ fn[T] command_preparation_value(
 // Host/Journal/Resource Owner. Publish this original before acquiring anything.
 priv struct LocalCommandPreparationOriginal {
   profile : LocalCommandPreparationProfile
+  native_storage : LocalCommandNativeStorageQuote
   mut backing : InitialCryptoBacking?
   mut host : @initial_arena.InstalledArenaHost?
   mut backing_scope : @initial_arena.InstalledArenaBackingBorrow?
@@ -116,8 +119,17 @@ fn prepare_local_command_preparation_original(
     profile.diagnostic_ceiling > 4096 {
     return Err(CommandInvalidProfile)
   }
+  let native_storage = match quote_local_command_native_storage(profile) {
+    Err(issue) => return Err(CommandNativeStorage(issue))
+    Ok(value) => value
+  }
+  match require_native_command_platform_original() {
+    Err(issue) => return Err(CommandNativeStorage(issue))
+    Ok(_) => ()
+  }
   Ok({
     profile,
+    native_storage,
     backing: None,
     host: None,
     backing_scope: None,
@@ -337,7 +349,8 @@ fn LocalCommandPreparationOriginal::acquire_runtime(
     self.primary is Some(_) ||
     self.runtime is Some(_) ||
     self.pair is Some(_) ||
-    source != self.profile.source {
+    source != self.profile.source ||
+    self.native_storage.source != source {
     return Err(CommandUnavailable)
   }
   guard self.host is Some(host) &&
@@ -991,6 +1004,15 @@ fn LocalCommandPreparationOriginal::open_adopted_journal(
     self.primary is Some(_) ||
     self.journal is Some(_) {
     return Err(CommandUnavailable)
+  }
+  // Match the real parsed settings to the pre-acquisition original envelope,
+  // before signing material, inspection, DB open or any Journal mutation.
+  if !self.native_storage.covers_journal(
+      self.profile.source,
+      options.max_records,
+      options.max_snapshot_bytes,
+    ) {
+    return Err(CommandNativeStorage(NativeStorageInsufficient))
   }
   guard self.adoption is Some(adoption) &&
     self.host is Some(host) &&
