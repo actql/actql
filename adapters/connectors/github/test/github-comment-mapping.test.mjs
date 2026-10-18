@@ -20,7 +20,7 @@ const [views, writes, baseWire] = await Promise.all([
   read('src/connectors/github/writes.json'),
   read('spec/local-check-environment.json').then(wire => wire.trimEnd()),
 ]);
-const declaration = checked(moon.clientProgramRowSourceRestoreDeclaration(
+const declaration = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
   'gh-hello', 'github', 'github/0.1', views, undefined));
 const declared = JSON.parse(
   moon.clientProgramRowSourceDeclarationJson(declaration));
