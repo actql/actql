@@ -1062,7 +1062,11 @@ Copied results, another reader, a missing original request, wrong scope and a
 second capture refuse. No caller-supplied snapshot/body/CID is a capture input.
 Capture retains both separately scoped database/schema grants and scope tokens,
 actual returned use CIDs and responses, occurrence ids, ordered GET targets and
-response charges. It hashes each actual body before awaited caller callbacks;
+response charges. The Journal-admitted grant scope and the requested scope can
+have distinct tokens. Both must be original members of the same control/Subject;
+all six existing generated request fields must match, and both tokens remain
+retained. Equal wire/CID or a copied field record cannot supply either original.
+It hashes each actual body before awaited caller callbacks;
 the exact retained database/schema text must reproduce that digest and length.
 Thus a raw alias mutated during charge cannot silently become the saved
 observation. The original declaration text and snapshot wire/CID are projected

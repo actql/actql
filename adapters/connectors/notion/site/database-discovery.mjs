@@ -4,6 +4,8 @@ import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import {assertInstalledSourcePublicationRequest,installedSourcePublicationRequestId}
   from '../../../host-node/installed-source.mjs';
+import {installationPreparationRequestKeys as requestKeys}
+  from '../../../host-common/installation-preparation-fields.generated.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {ownInvocationContext,ownInvocationAuthorization,invocationBindingsMatch,
   invocationScopeFields,invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
@@ -33,6 +35,13 @@ function ownData(value,names,code){
     const d=descriptors[name];if(!d?.enumerable||!Object.hasOwn(d,'value'))fail(code);return[name,d.value];
   })));
 }
+// Journal admission can retain a distinct grant-scope token. Both lookups
+// require this control's same original Subject; compare only the generated
+// closed request fields and retain both originals, never manufacture equality.
+function sameRequestData(control,left,right){
+  const a=control.scopeFields(left),b=control.scopeFields(right);
+  return requestKeys.every(key=>a[key]===b[key]);
+}
 function ownPublication(value,moon,declaration,context){
   if(value===undefined)return undefined;
   const {request,originals}=ownData(value,['request','originals'],'InvalidNotionDiscoveryPublication');
@@ -50,7 +59,7 @@ function ownPublication(value,moon,declaration,context){
   })));
   const call=(name,...args)=>Reflect.apply(ports[name],moon,args);
   const grant=control.projection(context.authorization.grant),fields=control.subjectFields();
-  if(grant.scope!==context.scope||fields.installationRequestId!==installedSourcePublicationRequestId(request)||
+  if(!sameRequestData(control,grant.scope,context.scope)||fields.installationRequestId!==installedSourcePublicationRequestId(request)||
       fields.declarationSourceCid!==call('notionReadDatabaseDeclarationSourceCid',declaration)||
       fields.principal!==retained.principalId||fields.runtimeBundleCid!==retained.runtimeBundleCid||
       fields.connectorRegistration!==retained.installation.registration||
@@ -126,14 +135,14 @@ async function discover(original,state){
     observations.push(response);state.observedBytes+=BigInt(response.body.byteLength);
     if(original.publication!==undefined){
       const projection=context.credential.control.projection(authorization.grant);
-      if(projection.subject!==original.publication.subject||projection.scope!==authorization.scope||
+      if(projection.subject!==original.publication.subject||!sameRequestData(context.credential.control,projection.scope,authorization.scope)||
           typeof response.useCid!=='string'||response.useCid.length===0)fail('ForeignNotionDiscoveryPublication');
       // Capture the actual returned bytes before an awaited charge/current
       // callback can mutate its escaped raw alias. Common keeps its own parsed
       // original; capture below requires those exact retained bytes to match.
       state.operationRecords.push(Object.freeze({index,operation,method:'GET',path,
         origin:scope.resourceOrigin,metadataOccurrenceId:scope.metadataOccurrenceId,
-        grant:authorization.grant,scope:authorization.scope,useId:authorization.useId,
+        grant:authorization.grant,scope:authorization.scope,grantScope:projection.scope,useId:authorization.useId,
         useCid:response.useCid,response,bodyCid:hash(response.body),bodyBytes:response.body.byteLength}));
     }
     // Even an aggregate/current/admission failure retains this actual ticket.

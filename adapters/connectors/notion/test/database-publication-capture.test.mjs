@@ -28,7 +28,8 @@ test('live publication capture retains actual Host request Catalog snapshot and 
       const observed=view.operations[index];assert(Object.isFrozen(observed));
       assert.equal(observed.response,result.observations[index]);assert.equal(observed.useCid,result.observations[index].useCid);
       assert.equal(observed.bodyCid,hash(wire));assert.equal(observed.bodyBytes,Buffer.byteLength(wire));
-      const projection=x.control.projection(observed.grant);assert.equal(projection.subject,view.subject);assert.equal(projection.scope,observed.scope);
+      const projection=x.control.projection(observed.grant);assert.equal(projection.subject,view.subject);assert.equal(projection.scope,observed.grantScope);
+      assert.deepEqual(x.control.scopeFields(projection.scope),x.control.scopeFields(observed.scope));
       assert.equal(x.control.scopeFields(observed.scope).metadataOccurrenceId,observed.metadataOccurrenceId);
     }
     assert.equal(x.journal.recover().filter(x=>x.outcome==='succeeded').length,2);
