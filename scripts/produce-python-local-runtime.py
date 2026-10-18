@@ -208,6 +208,19 @@ def verify_original_module(root: Path, original: dict[str, Any], source: str) ->
     return cast(str, actual['module_sha256'])
 
 
+def physical_core_cohort(selected: _SelectedImageRecipe, image_sha256: str) -> dict[str, str]:
+    """Closed execution correspondence DATA, never admission or a cleanup ACK."""
+    require(type(image_sha256) is str and len(image_sha256) == 64
+            and all(c in '0123456789abcdef' for c in image_sha256),
+            'Original selected-image physical cohort is unavailable')
+    selected.validate()
+    return {'execution_kind': 'selected_precompiled_image',
+        'module_sha256': selected.module_sha256, 'image_sha256': image_sha256,
+        'engine_sha256': hashlib.sha256(selected.engine_body).hexdigest(),
+        'runtime_library_sha256': selected.runtime_library_sha256,
+        'provider_library_sha256': selected.provider_library_sha256}
+
+
 def verify_original_core(root: Path, core: dict[str, Any], source: str) -> str:
     require(set(core) == {'source_sha', 'module', 'module_sha256', 'scope', 'moonc', 'python',
                          'result', 'physical', 'workspace', 'positive_native_result_acceptance',
@@ -232,7 +245,17 @@ def verify_original_core(root: Path, core: dict[str, Any], source: str) -> str:
                 'Core physical receipt did not confirm the same module')
     contract = core['contract']
     require(type(contract) is dict and contract.get('success') is True
-            and contract.get('module_sha256') == digest, 'Core contract receipt did not confirm the same module')
+            and contract.get('module_sha256') == digest
+            and type(contract.get('cases')) is list and bool(contract['cases']),
+            'Core contract receipt did not confirm the same module with nonzero cases')
+    cohort = contract.get('cohort')
+    require(type(cohort) is dict, 'Original selected-image physical cohort is unavailable')
+    selected = _recipe_from_original(recipe.image_recipe_original(root, source), source_sha=source,
+        package_version=recipe.read_cohort(root), module_sha256=digest)
+    expected = physical_core_cohort(selected, cohort.get('image_sha256'))
+    for name in ('contract', 'result', 'physical', 'workspace'):
+        require(core[name].get('cohort') == expected,
+                'Core physical observation did not execute the same selected image cohort')
     original = core['module_original']
     require(type(original) is dict and verify_original_module(root, original, source) == digest
             and original['module'] == core['module'], 'Core physical receipt module original differs')
@@ -307,6 +330,8 @@ def produce(core_receipt: Path, duckdb_receipt: Path, image_receipt: Path, desti
     selected = _recipe_from_original(original, source_sha=source,
         package_version=sdk['version'], module_sha256=digest)
     image_path, image_item = verify_original_image(image, selected, source, digest)
+    require(core['contract']['cohort'] == physical_core_cohort(selected, image_item['sha256']),
+            'Core physical observations differ from the original compiled image')
     engine_hash = hashlib.sha256(selected.engine_body).hexdigest()
     image_body = {'source_sha': source, 'package_version': sdk['version'],
         'module_sha256': digest, 'core_abi': LOCAL_CORE_ABI,

@@ -857,6 +857,14 @@ same registered process/domain/channel/frame can satisfy subsequent current
 checks; response loss retains the original pending carrier. This connection
 performs no spawn, stop or cleanup and does not turn current into a funding ACK.
 
+Contract, Result, physical and workspace observations each carry the same closed
+selected-precompiled-image cohort: original module/image, Engine configuration
+and both native library digests. Each family must have nonzero cases; the final
+producer also matches the cohort to the actual original image bytes. Raw-module
+JIT reports or compiler-only facts cannot supply this correspondence, even when
+the module bytes match. These receipt fields record execution correspondence;
+they do not issue funding, permission or physical retirement acknowledgements.
+
 The physical caller must consume the independently admitted original Native
 parent/domain, child Ledger, control channel and holding before Config or any
 image capture. A scope label, matching bytes, the compiler's holding or a local
