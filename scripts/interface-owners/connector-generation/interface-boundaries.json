@@ -5,7 +5,7 @@
     {
       "module": "adapters/connectors-builtin/installations.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bf28eb881da5755df184e2333a84b00c93162198677c23746805b6404c7bbdad",
+      "sha256": "92d8c3623983bac3d663cf06477869dd8c358e8fe565c6e39e787392a23d3239",
       "exports": [
         "installedConnectors"
       ],
