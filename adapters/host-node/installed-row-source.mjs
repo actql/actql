@@ -151,6 +151,28 @@ export async function installRowSourceAuthorization({accountConfiguration,
     resume: async (...args) => own(await gate.resume(...args))});
 }
 
+// Load the selected installed issuer into the same credential custody. A
+// compatibility installer keeps its own profile and refusal names; neither
+// the key nor a second journal/signing implementation leaves this Owner.
+export async function loadRowSourceCredentialCustody({
+  openCredentialJournal = openSqliteCredentialJournal, ...options}, {
+  caPath, prepareResolver, invalidCode = 'InvalidRowSourceCredentialSite'} = {}) {
+  let privateKey;
+  let ca = options.ca;
+  try {
+    privateKey = createPrivateKey(await readFile(
+      options.profile.credentialPrivateKeyPath, 'utf8'));
+    if (caPath !== undefined) ca = await readFile(caPath);
+  } catch (cause) { fail(invalidCode, cause); }
+  if (privateKey.asymmetricKeyType !== 'ed25519') fail(invalidCode);
+  // The existing installer can construct its default resolver only after the
+  // original key/CA admission. It receives no private key or provider secret.
+  const resolveSecret = prepareResolver === undefined
+    ? options.resolveSecret : prepareResolver();
+  return openRowSourceCredentialCustody({...options,
+    privateKey, ca, resolveSecret, openCredentialJournal});
+}
+
 // One physical credential-journal/signing implementation for installed Row
 // Sites. The existing Site validates its selected profile/key and authorizes
 // each operation before calling sign; this private Host port is not a grant.
@@ -681,24 +703,25 @@ export async function openRowSourceCredentialSite({profile, principalId,
       principalId, authorization, connection, connectorRegistration,
       connectorRevision, runtimeBundleCid, commonMoon, resolveSecret, ca,
       now, grantLifetimeMs});
-  let privateKey;
-  try {
-    privateKey = createPrivateKey(metadata === undefined
-      ? await readFile(profile.credentialPrivateKeyPath, 'utf8')
-      : await readBoundedConfigurationText(metadata.privateKeyPath,
-        {maxBytes: metadata.maxIssuerKeyBytes}));
-  } catch (error) {
-    if (metadata !== undefined) throw await retainInstalledHostInitializationFailure(
-      error, {sourceProfile: metadata});
-    fail('InvalidRowSourceCredentialSite', error);
-  }
-  if (privateKey.asymmetricKeyType !== 'ed25519') {
-    fail('InvalidRowSourceCredentialSite');
-  }
-  metadata?.assertInitializingCurrent();
-  const custody = openRowSourceCredentialCustody({profile, principalId,
+  const custodyOptions = {profile, principalId,
     connectorRegistration, connectorRevision, runtimeBundleCid, commonMoon,
-    privateKey, resolveSecret, ca, now, grantLifetimeMs, openCredentialJournal});
+    resolveSecret, ca, now, grantLifetimeMs, openCredentialJournal};
+  let custody;
+  if (metadata === undefined) custody = await loadRowSourceCredentialCustody(custodyOptions);
+  else {
+    // This separately typed purpose retains its bounded key read and original
+    // initialization/current carrier. It does not adopt legacy Run defaults.
+    let privateKey;
+    try {
+      privateKey = createPrivateKey(await readBoundedConfigurationText(
+        metadata.privateKeyPath, {maxBytes: metadata.maxIssuerKeyBytes}));
+    } catch (error) {
+      throw await retainInstalledHostInitializationFailure(error, {sourceProfile: metadata});
+    }
+    if (privateKey.asymmetricKeyType !== 'ed25519') fail('InvalidRowSourceCredentialSite');
+    metadata.assertInitializingCurrent();
+    custody = openRowSourceCredentialCustody({...custodyOptions, privateKey});
+  }
   if (metadata !== undefined) {
     const attached = metadata.attach(custody);
     if (attached.failure !== undefined) throw await retainInstalledHostInitializationFailure(
