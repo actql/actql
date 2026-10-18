@@ -1,4 +1,7 @@
 import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
+// Private selected-namespace DATA reader. Exporting this pure operation does
+// not expose the startup issuer or authenticate a caller-created packet.
+export {snapshotInitialControlHostInput} from './initial-control-host-input.mjs';
 import {installClientRunPlan} from './client-run-plan.mjs';
 import {configureInferEvidence} from './infer-evaluation-evidence.mjs';
 // One installed Local Host for the current OS user. The Client talks to the
@@ -43,7 +46,7 @@ import {loadInstalledProjectConfiguration, installedProjectOriginalsForRuntime,
   retireInstalledProjectConfiguration}
   from './installed-project-configuration.mjs';
 import {beginInitialControlInstallation, assertInitialControlInstallationCurrent,
-  readInitialControlInstallationAsset}
+  readInitialControlInstallationAsset, readInitialControlInstallationInput}
   from './node-initial-control-installation.mjs';
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
@@ -3467,10 +3470,17 @@ export async function connectEmbeddedLocal(options) {
   try {
   // Before options snapshot, Common import, Project read, normalization or
   // Provider installation. Missing actual startup coverage remains unavailable.
-  control = await beginInitialControlInstallation(originals);
+  control = await beginInitialControlInstallation(originals, options);
   controlClose = control.close;
   assertInitialControlInstallationCurrent(control, originals);
   duty = control.retainPreparation(record);
+  // Only the actual startup may snapshot raw options, synchronously before
+  // begin's first await and after covering their original acquisition. Read
+  // that SAME nominal snapshot, never the caller again after initialization.
+  // Its supplier retains opaque/callback backing and partial-failure custody;
+  // this record owns only the Host's additional managed packet reference.
+  options = readInitialControlInstallationInput(control, originals);
+  record.input = options;
   // Host-owned values never enter the SDK's transport-options packet. Snapshot
   // both once before awaits; selecting a profile is not silently ignoring it.
   const {installation: suppliedInstallation, profile: requestedProfile,

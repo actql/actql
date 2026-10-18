@@ -16,7 +16,7 @@ const view = issueInferTrustedRuntimeView(actual);
 const mode = process.argv[2];
 const rejects = (run, code) => assert.throws(run, error => error.code === code);
 if (mode === 'absent' || mode === 'promise-unselected' || mode === 'string-unselected' ||
-    mode === 'codepoint-unselected' ||
+    mode === 'codepoint-unselected' || mode === 'environment-trim-unselected' ||
     mode === 'iterator-unselected') {
   assert.equal(associateInferTrustedStartupView(view, actual), undefined);
   rejects(() => requireInferTrustedStartupView(view, actual), 'InferTrustedStartupUnavailable');
@@ -54,6 +54,18 @@ if (mode === 'absent' || mode === 'promise-unselected' || mode === 'string-unsel
       globalThis.String = constructor;
       constructor.fromCodePoint = original;
     }
+  }
+  if (mode === 'environment-trim-unselected') {
+    const original = String.prototype.trimEnd;
+    const descriptor = Object.getOwnPropertyDescriptor(String.prototype, 'trimEnd');
+    assert.equal(descriptor.writable, true);
+    assert.equal(descriptor.configurable, true);
+    let calls = 0;
+    try {
+      String.prototype.trimEnd = function() { calls++; return original.call(this); };
+      assert.equal(' \u96ea\n'.trimEnd(), ' \u96ea');
+      assert.equal(calls, 1);
+    } finally { String.prototype.trimEnd = original; }
   }
   if (mode === 'iterator-unselected') {
     const make = Readable.prototype[Symbol.asyncIterator];
@@ -247,6 +259,28 @@ if (mode === 'absent' || mode === 'promise-unselected' || mode === 'string-unsel
     assert.strictEqual(constructor.fromCodePoint, original);
     assert.equal(Object.getOwnPropertyDescriptor(constructor, 'fromCodePoint').writable, false,
       'Retiring a Host view does not retire the selected runtime originals');
+  } else if (mode === 'environment-trim-original') {
+    // The prepared Host passes this result to its existing environment
+    // normalizer. Current Source/module identity alone must not permit an
+    // application replacement to execute during that selected control step.
+    const original = String.prototype.trimEnd;
+    let calls = 0;
+    assert.throws(() => {
+      String.prototype.trimEnd = function() { calls++; return original.call(this); };
+    }, TypeError);
+    assert.throws(() => Object.defineProperty(String.prototype, 'trimEnd',
+      {get: () => original}), TypeError);
+    const text = ' \t{\"environment\":\"\u96ea\ud83d\ude00\"}\r\n\u00a0\ufeff';
+    assert.equal(text.trimEnd(), ' \t{\"environment\":\"\u96ea\ud83d\ude00\"}');
+    assert.equal('\ud800 \t'.trimEnd(), '\ud800');
+    assert.equal(calls, 0);
+    requireInferTrustedStartupView(view, actual);
+    forgetInferTrustedStartupView(view, actual.host, actual.generation);
+    forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
+    const descriptor = Object.getOwnPropertyDescriptor(String.prototype, 'trimEnd');
+    assert.equal(descriptor.writable, false);
+    assert.equal(descriptor.configurable, false,
+      'Host-view retirement does not retire the native implementation');
   } else if (mode === 'read-string-charcode') {
     // The actual emitted Common String.unsafe_char_at/UTF16 read uses this
     // intrinsic method. This is primitive identity, not a heap/GC bound or
