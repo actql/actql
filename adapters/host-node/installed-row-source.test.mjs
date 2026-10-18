@@ -334,7 +334,9 @@ test('the row source Site refuses an undeclared response header before any crede
     // Close the Site before its directory is removed.
     t.after(async () => {
       site.close();
-      await rm(root, {recursive: true, force: true});
+      if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+        console.error(`Row Site custody retained: ${root}`);
+      } else await rm(root, {recursive: true, force: true});
     });
     assert.throws(() => site.callResource({operations: new Map([['op',
       {method: 'GET', path: '/x', responseHeaders: ['link', 'x-secret']}]])}),
@@ -348,7 +350,9 @@ test('the row source Site refuses an undeclared response header before any crede
 test('invalid declared response headers refuse before opening the credential journal',
   async t => {
     const root = await mkdtemp(join(tmpdir(), 'actql-row-site-invalid-'));
-    t.after(() => rm(root, {recursive: true, force: true}));
+    t.after(() => process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1'
+      ? console.error(`Row Site invalid-header custody retained: ${root}`)
+      : rm(root, {recursive: true, force: true}));
     const key = generateKeyPairSync('ed25519');
     await writeFile(join(root, 'credential.key'), key.privateKey.export({
       type: 'pkcs8', format: 'pem'}));
