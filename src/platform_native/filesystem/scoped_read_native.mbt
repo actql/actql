@@ -121,7 +121,11 @@ fn open_current_root_with_custody(
   }
   let encoded = @utf8.encode(path)
   let result = if private_root {
-    acquire_current_private_root_ffi(encoded, encoded.length(), diagnostic_ceiling)
+    acquire_current_private_root_ffi(
+      encoded,
+      encoded.length(),
+      diagnostic_ceiling,
+    )
   } else {
     acquire_current_root_ffi(encoded, encoded.length(), diagnostic_ceiling)
   }

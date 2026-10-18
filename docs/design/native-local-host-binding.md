@@ -298,6 +298,33 @@ rejection close is idempotent. An unconfirmed close retains the original Root
 and diagnostics, stays pending and never closes a reused descriptor. Neither
 result admits the rejected directory as a current or authorized Host Root.
 
+### Private Root under the original read context
+
+`open_private_root_in_current_read_context_with_custody` uses the same active
+original Native read context as the scoped generic Root entrance. A missing
+context or nonpositive diagnostic bound refuses before UTF-8 encoding or Root
+acquisition. The private constructor still applies its existing namespace,
+owner, mode, ACL and no-follow checks; entering a read context does not grant
+filesystem permission or admit a directory as the Host installation.
+
+The constructor retains the original context use before entering physical
+allocation. It publishes the same acquired Root into custody before leaving,
+including a rejected Root and its diagnostic aliases. Only confirmed physical
+cleanup returns that Root's context use; escaped managed Root/diagnostic aliases
+can still keep the original backing busy. A failed close, managed return,
+reference retirement or GC opportunity is not a physical acknowledgement.
+The path String, UTF-8 backing, acquisition carrier, Root/failure record,
+descriptor, diagnostic bytes and context references overlap under the original
+Host/installation phase envelope. The diagnostic ceiling is not funding.
+
+The enclosing caller must enter its independently admitted original Domain
+around the whole managed operation and perform its Core/current fences. This
+entrance issues no context, capacity, permission, Host binding or installation
+authority. In particular, it does not combine the currently separate original
+read and installed SQLite Domains or authorize an unbound SQLite fallback.
+Missing original bootstrap, whole-phase or retained-alias coverage remains
+unavailable.
+
 ## Direct Local credential grant/use scope
 
 ### Explicit post-adoption issuer acquisition
