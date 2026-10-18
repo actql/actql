@@ -1288,3 +1288,10 @@ domain even when their paths or ownership observations match. The existing
 Adoption Session applies the same physical check to each Root it owns; this
 neither substitutes for its full current/adoption fence nor combines Read and
 SQLite stages into one ambient scope.
+
+A refused Journal open may retain the existing read-only inspection's copied
+database and scratch-file cleanup inside its original issue. Journal cleanup
+must obtain that original inspection Owner's close acknowledgement before
+releasing the adoption Roots or exclusive lock. Cleanup failure preserves both
+the immutable semantic refusal and the current cleanup cause; it does not
+repeat inspection, reopen the source database or authorize initialization.
