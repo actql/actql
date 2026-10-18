@@ -11,9 +11,9 @@ const canonical = value => value === null || typeof value !== 'object'
 test('bundled mock catalogue declares the original two sources independently of rows and Task', () => {
   assert.deepEqual(mockChurnRiskCatalogue.map(entry => [entry.connection,
     entry.connectorId, entry.registration, entry.revision, entry.queryAliases]), [
-    ['salesforce', 'salesforce', 'mock.salesforce', 'mock',
+    ['salesforce', 'salesforce', 'mock_salesforce', 'mock_salesforce/0.1',
       [{name: 'salesforce.accounts', resource: 'Account'}]],
-    ['snowflake', 'snowflake', 'mock.snowflake', 'mock',
+    ['snowflake', 'snowflake', 'mock_snowflake', 'mock_snowflake/0.1',
       [{name: 'snowflake.usage_30d', resource: 'usage_30d'}]],
   ]);
   const [salesforce, snowflake] = mockChurnRiskCatalogue.map(entry => entry.views[0]);
