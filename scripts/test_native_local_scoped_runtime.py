@@ -18,6 +18,7 @@ class LocalScopedComposition(unittest.TestCase):
         self.allocator = Path('/owned/derived-read-source')
         self.clang = Path('/selected/clang')
         self.sdk = Path('/selected/sdk')
+        self.source = '1234567890abcdef1234567890abcdef12345678'
         self.core = self.emission / 'native/release/build/cmd/native_client/native_client.c'
         self.exe = self.core.with_suffix('.exe')
         self.commands = [
@@ -34,6 +35,9 @@ class LocalScopedComposition(unittest.TestCase):
             ['/usr/bin/cc', '-o', str(self.emission / 'filesystem.o'), '-I$MOON_HOME/include',
              '-c', '-O2', '-fwrapv', '-fno-strict-aliasing',
              './src/platform_native/filesystem/filesystem_stub.c'],
+            ['/usr/bin/cc', '-o', str(self.emission / 'stdout.o'), '-I$MOON_HOME/include',
+             '-c', '-O2', '-fwrapv', '-fno-strict-aliasing',
+             './src/cmd/native_client/stdout_stub.c'],
             *[['/usr/bin/cc', '-o', str(self.emission / (name + '.o')), '-I$MOON_HOME/include',
                '-c', '-O2', '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC',
                '$MOON_HOME/lib/runtime/' + name + '.c']
@@ -46,7 +50,8 @@ class LocalScopedComposition(unittest.TestCase):
     def plan(self, commands=None, entry='src/cmd/native_client'):
         return MODULE.commands_for(
             '\n'.join(shlex.join(c) for c in (self.commands if commands is None else commands)),
-            self.home, self.emission, self.allocator, self.clang, self.sdk, entry=entry)
+            self.home, self.emission, self.allocator, self.clang, self.sdk, entry=entry,
+            source_sha=self.source)
 
     def test_remote_default_build_arguments_remain_unchanged(self):
         self.assertEqual(MODULE.moon_build_arguments(
@@ -67,7 +72,7 @@ class LocalScopedComposition(unittest.TestCase):
     def test_local_core_filesystem_runtime_share_one_provider(self):
         planned = self.plan()
         c_steps = [c for c in planned if c[0] == str(self.clang)]
-        self.assertEqual(len(c_steps), 8)
+        self.assertEqual(len(c_steps), 9)
         for command in c_steps:
             self.assertLess(command.index('-I/owned/derived-read-source'),
                             command.index('-I/selected/moon/include'))
@@ -92,7 +97,10 @@ class LocalScopedComposition(unittest.TestCase):
                            for symbol in MODULE.LOCAL_COMPONENT_PROVIDER_EXPORTS]
                 self.assertEqual(selected[-len(exports):], exports)
                 selected = selected[:-len(exports)]
-            if before[-1].endswith('/bootstrap_stub.c'):
+            if before[-1].endswith('/stdout_stub.c'):
+                self.assertEqual(selected[-1], '-DACTQL_NATIVE_CLIENT_SOURCE_SHA="' + self.source + '"')
+                selected = selected[:-1]
+            elif before[-1].endswith('/bootstrap_stub.c'):
                 selected = selected[:-1]
             elif before[-1].startswith('$MOON_HOME/lib/runtime/'):
                 original[-1] = str(self.allocator / Path(before[-1]).name)
@@ -163,9 +171,31 @@ class LocalScopedComposition(unittest.TestCase):
         for commands in (self.commands[:3] + self.commands[4:],
                          self.commands + [self.commands[3]],
                          self.commands[:5] + self.commands[6:],
+                         self.commands[:6] + self.commands[7:],
                          self.commands + [self.commands[5]]):
             with self.subTest(commands=commands), self.assertRaises(ValueError):
                 self.plan(commands)
+
+    def test_local_source_pin_is_exact_and_reaches_only_the_original_c_entrance(self):
+        planned = self.plan()
+        pins = [(c, p) for c in planned for p in c
+                if p.startswith('-DACTQL_NATIVE_CLIENT_SOURCE_SHA=')]
+        self.assertEqual(len(pins), 1)
+        self.assertIn('./src/cmd/native_client/stdout_stub.c', pins[0][0])
+        self.assertEqual(pins[0][1], '-DACTQL_NATIVE_CLIENT_SOURCE_SHA="' + self.source + '"')
+
+    def test_missing_malformed_or_duplicate_local_source_pin_refuses(self):
+        output = '\n'.join(shlex.join(c) for c in self.commands)
+        for source in (None, '', 'f' * 39, 'F' * 40, 'g' * 40, 'f' * 40 + 'x'):
+            with self.subTest(source=source), self.assertRaisesRegex(ValueError, 'source pin'):
+                MODULE.commands_for(output, self.home, self.emission, self.allocator,
+                                    self.clang, self.sdk, entry=MODULE.LOCAL_ENTRY, source_sha=source)
+        commands = [c.copy() for c in self.commands]
+        commands[5].append('-DACTQL_NATIVE_CLIENT_SOURCE_SHA="' + self.source + '"')
+        with self.assertRaisesRegex(ValueError, 'Duplicate'):
+            self.plan(commands)
+        with self.assertRaisesRegex(ValueError, 'duplicate'):
+            self.plan(self.commands + [self.commands[5]])
 
 
 if __name__ == '__main__':

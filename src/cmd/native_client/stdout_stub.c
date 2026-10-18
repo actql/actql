@@ -111,3 +111,21 @@ int32_t actql_native_client_status_watch_progress(moonbit_bytes_t bytes, int32_t
   return fwrite(bytes, 1, (size_t)length, stderr) == (size_t)length &&
     fflush(stderr) == 0;
 }
+
+// Build metadata only. The trusted Local producer pins this immutable literal
+// to its exact compiled source; it is not installation/current authority. A raw
+// preargument constructor may borrow it without a Moon String allocation. The
+// ordinary unselected diagnostic build supplies no synthetic replacement pin.
+const char *actql_native_client_selected_source(void) {
+#ifdef ACTQL_NATIVE_CLIENT_SOURCE_SHA
+  static const char source[] = ACTQL_NATIVE_CLIENT_SOURCE_SHA;
+  if (sizeof(source) != 41) return NULL;
+  for (size_t i = 0; i < 40; ++i) {
+    if (!((source[i] >= '0' && source[i] <= '9') ||
+          (source[i] >= 'a' && source[i] <= 'f'))) return NULL;
+  }
+  return source;
+#else
+  return NULL;
+#endif
+}

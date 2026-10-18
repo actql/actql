@@ -15,6 +15,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shlex
 import subprocess
 import sys
@@ -67,13 +68,16 @@ def under(path: Path, root: Path) -> bool:
 
 def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                  clang: Path, sdk: Path, *, cc_driver: Path | None = None,
-                 ar_driver: Path | None = None, entry: str = ENTRY) -> list[list[str]]:
+                 ar_driver: Path | None = None, entry: str = ENTRY,
+                 source_sha: str | None = None) -> list[list[str]]:
     """Keep the actual pinned dry-run closure; reject other targets/entries."""
     entry_package = selected_entry(entry)
+    if entry == LOCAL_ENTRY and (source_sha is None or re.fullmatch(r'[0-9a-f]{40}', source_sha) is None):
+        raise ValueError('Exact Local CLI source pin is required')
     core = emission / 'native/release/build' / entry_package / (Path(entry_package).name + '.c')
     executable = core.with_suffix('.exe')
     commands: list[list[str]] = []
-    links = finals = providers = 0
+    links = finals = providers = source_pins = 0
     runtime: set[str] = set()
     modules: set[str] = set()
     for line in output.splitlines():
@@ -141,6 +145,11 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                 if resolved.resolve() == (ROOT / 'src/platform_native/host_bootstrap/bootstrap_stub.c').resolve():
                     providers += 1
                     parts.append('-DACTQL_SCOPED_READ_PROVIDER="' + str(allocator / 'owned_capacity.c') + '"')
+                if entry == LOCAL_ENTRY and resolved.resolve() == (ROOT / 'src/cmd/native_client/stdout_stub.c').resolve():
+                    if any(p.startswith('-DACTQL_NATIVE_CLIENT_SOURCE_SHA') for p in parts):
+                        raise ValueError('Duplicate Local CLI source pin')
+                    source_pins += 1
+                    parts.append('-DACTQL_NATIVE_CLIENT_SOURCE_SHA="' + source_sha + '"')
             # Every generated Core, original FFI, and runtime source sees the
             # same derived header first. There is exactly one provider below.
             parts[0] = str(clang)
@@ -167,6 +176,8 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
         commands.append(parts)
     if (links, finals, providers) != (1, 1, 1) or runtime != RUNTIME_NAMES:
         raise ValueError('Incomplete or duplicated Core/runtime/provider composition')
+    if entry == LOCAL_ENTRY and source_pins != 1:
+        raise ValueError('Missing or duplicate Local CLI source pin entrance')
     if 'actql/actql/' + entry_package not in modules:
         raise ValueError('Selected CLI entry is missing')
     return commands
@@ -275,7 +286,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     dry = run(moon_arguments + ['--dry-run'], capture=True)
     (destination / 'moon-dry-run.txt').write_text(dry)
     commands = commands_for(dry, moon_home, emission, allocator, clang, sdk,
-                            cc_driver=cc_driver, ar_driver=ar_driver, entry=entry)
+                            cc_driver=cc_driver, ar_driver=ar_driver, entry=entry, source_sha=source)
     (destination / 'commands.json').write_text(json.dumps(commands, indent=2) + '\n')
     originals = [[p.replace('$MOON_HOME', str(moon_home)) for p in shlex.split(line)]
                  for line in dry.splitlines() if line.strip()]
