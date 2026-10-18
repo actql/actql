@@ -1365,3 +1365,20 @@ scratch deletion cannot bypass a pending DB close. Refusal retains that carrier
 with its primary issue until cleanup completes, before the original Roots and
 lock can retire. Neither query routing nor scope resumption supplies another
 logical claim, a current permit, or a numerical resource profile.
+
+
+Fresh Local runtime construction binds the current producer Source, compiler,
+platform/ABI, generated assets, selected library bytes and complete loader
+closure. It does not require that an unrelated historical scalar implementation
+remain byte-identical. Integrity of the frozen scalar descriptor/body proof is
+checked separately from eligibility to use that proof operationally. Its old
+fixtures, implementation hashes, pair identities and vectors remain unchanged.
+
+The current fresh implementation admits no historical operational scalar pair.
+Both the physical Native binding and the CLI's selected original-runtime check
+refuse that path; a copied proof, source label, CID or caller Boolean cannot
+select compatibility. A future historical implementation needs its own genuine
+proof in the existing Owner. Same-runtime restoration still checks its exact
+original assets and physical currentness. Missing, changed or unadmitted old
+state never authorizes fresh initialization, replacement configuration, a new
+Run or renewed authority.
