@@ -1083,6 +1083,105 @@ Only the root descriptor path is self-hash-excluded; the same basename below
 a directory is an ordinary declared member. Exact selected npm dependency
 placement remains separate and does not exempt arbitrary node_modules content.
 
+### Rust storage within the original holding
+
+The private Rust allocation path uses bounded size-class pages within the same
+physical provider and admitted holding. Its page lists, live-slot tokens,
+alignment padding and control metadata consume that holding. Large or highly
+aligned Rust requests remain original extents classified as Rust storage.
+Neither path introduces another capacity root, reservation or system fallback.
+
+A live Rust page is not a generic exportable span: protection, sealing, lending
+and generic retirement reject it. Slot retirement consumes its original token
+under the holding's existing lock. The unsafe Rust caller remains responsible
+for releasing only after its last alias; an equal/copied header is not a new
+allocation. A final-slot retirement failure removes the page from reuse and
+keeps the original pending extent until confirmed physical cleanup. Reallocation
+acquires its replacement before releasing the old slot, so overlap is funded by
+the same finite holding and failure preserves the original allocation.
+
+Process-static Rust storage retains the original process/runtime lifetime.
+Engine or thread close does not acknowledge that storage, original region
+retirement or an external operation. A derived allocator/runtime identity and
+successful compilation do not establish normal funding or final image, workspace
+and Result acceptance.
+
+
+#### Physical occupancy observation
+
+The same provider may expose a read-only census of the current original
+holding. Occupied and peak bytes count physical allocator pages, including its
+control records and pending retirement. Allocation raises the counters only
+for pages actually entered by that original provider. Only confirmed physical
+retirement lowers occupied pages; peak never lowers or issues reusable credit.
+These quantities are neither OS RSS nor the size of an outer reservation.
+
+Generic extents, Rust slab pages, large Rust extents and pending-retirement
+pages partition the occupied payload. Slab metadata, occupied slot capacity and
+empty slot capacity are contained within those slab pages, not additional
+charges or grants. Pending payload is not read after uncertain protection.
+Fixed census counters themselves live in the same charged control records.
+The original provider lock makes a census coherent with allocation/retirement;
+foreign, unbound and inherited-process scopes cannot inspect it as current.
+
+A phase census and its peak establish only this physical domain's observation.
+They do not fund separate stacks, loader/VM domains, unrelated allocations,
+external operations or a normal numerical profile. Observations cannot clear
+RuntimeRetained, acknowledge a stop, export a heap alias or replace original
+cleanup responsibility. Matching compiler diagnostics remain outside the
+successful image response protocol.
+
+
+#### Private physical Core preparation
+
+The maintainer `physical_core_conformance_only` scope selects the existing
+physical verifier. Its preparation separates verified module, compiled image,
+Engine recipe and private library DATA from actual parent/domain admission.
+The same closed image validator serves this preparation and the final component
+producer. Preparation never constructs final `LocalComponents` or supplies an
+`OriginalWorkerFunding` substitute. Compile-only evidence remains insufficient
+for the final physical verifier. Preparation retains its original inputs on the
+existing installed process record before current/projection calls. Only that
+same registered process/domain/channel/frame can satisfy subsequent current
+checks; response loss retains the original pending carrier. This connection
+performs no spawn, stop or cleanup and does not turn current into a funding ACK.
+
+Contract, Result, physical and workspace observations each carry the same closed
+selected-precompiled-image cohort: original module/image, Engine configuration
+and both native library digests. Each family must have nonzero cases; the final
+producer also matches the cohort to the actual original image bytes. Raw-module
+JIT reports or compiler-only facts cannot supply this correspondence, even when
+the module bytes match. These receipt fields record execution correspondence;
+they do not issue funding, permission or physical retirement acknowledgements.
+
+The physical caller must consume the independently admitted original Native
+parent/domain, child Ledger, control channel and holding before Config or any
+image capture. A scope label, matching bytes, the compiler's holding or a local
+resource-guard reservation cannot establish independent pre-root funding. The
+actual supplier must retain Python, loader, process, descriptor and control
+responsibility separately from runtime/Result/workspace overlap. Missing
+funding refuses; it does not select a scalar Root or raw-module JIT path.
+
+#### Original Rust buffer inspection
+
+A trusted native caller may inspect physical containment of an original Rust
+buffer while it retains that buffer's owning handle. The same provider checks
+current holding/process, one live Rust slot or large allocation, and a range
+contained within it. Slab control metadata, retired/pending storage, foreign
+holdings and ranges crossing allocation boundaries refuse. This is a physical
+range observation, not proof of Rust type, logical length, authorization or a
+stale pointer after reuse; original allocation tokens still govern retirement.
+Rust allocation headers remain with their existing Rust owner and are not
+reinterpreted by C.
+
+For the maintainer compiler, the official Wasmtime C API owns its original
+serialized byte vector until the existing cleanup deletes that same vector.
+Only that same lifetime supplies the buffer/length to physical inspection and
+bounded image writing. No generic span, heap-page protection/lending, loader
+fallback or copied-buffer owner is created. The original vector remains live
+through write failure and is deleted in its original scope before holding
+retirement. Generic Rust-page export refusals remain unchanged.
+
 ## Original journal capture transport
 
 A trusted installed caller may transfer operational use of an already acquired
@@ -1189,3 +1288,10 @@ domain even when their paths or ownership observations match. The existing
 Adoption Session applies the same physical check to each Root it owns; this
 neither substitutes for its full current/adoption fence nor combines Read and
 SQLite stages into one ambient scope.
+
+A refused Journal open may retain the existing read-only inspection's copied
+database and scratch-file cleanup inside its original issue. Journal cleanup
+must obtain that original inspection Owner's close acknowledgement before
+releasing the adoption Roots or exclusive lock. Cleanup failure preserves both
+the immutable semantic refusal and the current cleanup cause; it does not
+repeat inspection, reopen the source database or authorize initialization.

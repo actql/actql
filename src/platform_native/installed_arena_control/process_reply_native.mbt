@@ -10,6 +10,7 @@ struct InstalledArenaProcessReply {
   descriptors : (Int, Int)?
   backing_descriptor : Int
   stop_observation : Int
+  stop_request_observation : Int
 }
 
 ///|
@@ -37,6 +38,7 @@ pub fn prepare_installed_arena_process_reply(
     descriptors: None,
     backing_descriptor: -1,
     stop_observation: 0,
+    stop_request_observation: 0,
   }
 }
 
@@ -50,6 +52,7 @@ pub fn operate_installed_arena_process_reply(
   let mut descriptors = None
   let mut backing_descriptor = -1
   let mut stop_observation = 0
+  let mut stop_request_observation = 0
   let result = match operation {
     2 => host.require_process_current(domain, process)
     3 =>
@@ -73,6 +76,14 @@ pub fn operate_installed_arena_process_reply(
     7 => host.close_prepared_process(domain, process)
     8 => host.retire_stopped_process(domain, process)
     11 => host.spawn_prepared_process_child(domain, process)
+    12 =>
+      match host.request_process_child_stop(domain, process) {
+        Err(issue) => Err(issue)
+        Ok(relayed) => {
+          stop_request_observation = if relayed { 1 } else { 0 }
+          Ok(())
+        }
+      }
     9 =>
       match host.process_backing_descriptor(domain, process) {
         Err(issue) => Err(issue)
@@ -95,6 +106,7 @@ pub fn operate_installed_arena_process_reply(
     descriptors,
     backing_descriptor,
     stop_observation,
+    stop_request_observation,
   }
 }
 
@@ -184,6 +196,29 @@ pub fn InstalledArenaProcessReply::stop_observation(
 }
 
 ///|
+/// Closed operation12 request DATA only. In particular, this is never the
+/// operation6 stopped observation, even when the request was relayed.
+pub fn InstalledArenaProcessReply::stop_request_observation(
+  self : InstalledArenaProcessReply,
+) -> Int {
+  self.stop_request_observation
+}
+
+///|
+/// Existing four-scalar private transport, discriminated by its exact checked
+/// operation tag: operation6 carries running1/stopped2, operation12 carries
+/// request-not-confirmed0/relayed1. Consumers must not interchange these laws.
+pub fn InstalledArenaProcessReply::transport_observation(
+  self : InstalledArenaProcessReply,
+) -> Int {
+  if self.operation == 12 {
+    self.stop_request_observation
+  } else {
+    self.stop_observation
+  }
+}
+
+///|
 pub fn InstalledArenaProcessReply::backing_descriptor(
   self : InstalledArenaProcessReply,
 ) -> Int {
@@ -227,6 +262,7 @@ pub fn prepare_installed_arena_process_child_reply(
     descriptors: None,
     backing_descriptor: -1,
     stop_observation: 0,
+    stop_request_observation: 0,
   }
 }
 
@@ -298,5 +334,6 @@ pub fn prepare_installed_arena_process_child_bytes_reply(
     descriptors: None,
     backing_descriptor: -1,
     stop_observation: 0,
+    stop_request_observation: 0,
   }
 }

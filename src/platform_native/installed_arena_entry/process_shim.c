@@ -116,7 +116,8 @@ int actql_process_copy_facts(actql_process_reply *reply, actql_control_host *hos
         callbacks.issue(reply) != 0 || !same_process(reply, host, domain, process))
         return ACTQL_CONTROL_INVALID_SLOT;
     int32_t operation = callbacks.operation(reply);
-    if (operation != 3 && operation != 6 && operation != 9) return ACTQL_CONTROL_INVALID_SLOT;
+    if (operation != 3 && operation != 6 && operation != 9 && operation != 12)
+        return ACTQL_CONTROL_INVALID_SLOT;
     facts[0] = callbacks.descriptor(reply, 0); facts[1] = callbacks.descriptor(reply, 1);
     facts[2] = callbacks.backing(reply); facts[3] = callbacks.stop(reply);
     return ACTQL_CONTROL_OK;

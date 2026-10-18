@@ -56,7 +56,7 @@ class _OriginalInstalledProcessCustody:
     """Thin same-Owner opaque references, not another process cleanup machine."""
     __slots__ = ('_domain', '_owner', '_functions', '_host', '_native_domain',
                  '_process', '_channel', '_frame', '_reply', '_unknown',
-                 '_unknown_carrier', '_closed')
+                 '_unknown_carrier', '_closed', '_preparation_original')
 
     _domain: _OriginalDomainCustody
     _owner: _OriginalControlCustody
@@ -70,6 +70,7 @@ class _OriginalInstalledProcessCustody:
     _unknown: _OriginalInstalledProcessError | None
     _unknown_carrier: _OriginalInstalledProcessError
     _closed: bool
+    _preparation_original: object | None
 
     def __init__(self) -> None:
         raise TypeError('Original process requires trusted installed physical assembly')
@@ -91,6 +92,7 @@ class _OriginalInstalledProcessCustody:
         process._host, process._native_domain, process._process = c_void_p(), c_void_p(), c_void_p()
         process._channel, process._frame, process._reply = c_void_p(), c_void_p(), c_void_p()
         process._unknown, process._closed = None, False
+        process._preparation_original = None
         process._unknown_carrier = _OriginalInstalledProcessError(process, unknown=True)
         # Known local entry failures remain outside the uncertain foreign-call
         # catch. No Native responsibility exists or is changed by this refusal.
@@ -174,7 +176,7 @@ class _OriginalInstalledProcessCustody:
             raise ValueError('Original Native process is unavailable')
 
     def _operate(self, operation: int) -> tuple[_OriginalArenaFact, tuple[int, ...] | None]:
-        if type(operation) is not int or operation not in (2, 3, 4, 5, 6, 7, 8, 9, 11):
+        if type(operation) is not int or operation not in (2, 3, 4, 5, 6, 7, 8, 9, 11, 12):
             raise ValueError('Original Native process operation is unavailable')
         values = (c_int32 * 4)()
         self._enter()
@@ -185,7 +187,7 @@ class _OriginalInstalledProcessCustody:
                 self._process, operation, byref(self._reply)))
             fact = self._fact(operation)
             result = None
-            if fact.issue_family == 0 and operation in (3, 6, 9):
+            if fact.issue_family == 0 and operation in (3, 6, 9, 12):
                 self._status(self._functions.facts(self._reply, self._host,
                     self._native_domain, self._process, values))
                 result = tuple(values)
@@ -240,6 +242,17 @@ class _OriginalInstalledProcessCustody:
 
     def spawn(self) -> None:
         self._operate(11)
+
+    def request_stop(self) -> bool:
+        """Relay to the same original child; never observe stop or release.
+
+        False means the request was not confirmed. A lost/invalid response
+        keeps the existing sticky Unknown; it does not retry the signal.
+        """
+        _, facts = self._operate(12)
+        if facts is None or facts[3] not in (0, 1):
+            raise self._mark_unknown()
+        return facts[3] == 1
 
     def restrict_transport(self) -> None:
         self._operate(4)

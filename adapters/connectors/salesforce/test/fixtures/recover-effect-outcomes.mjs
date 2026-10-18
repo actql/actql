@@ -17,7 +17,7 @@ import {openClientRequestJournal} from
 import {issueAuthorizedEffectSetReceipt} from
   '../../../../host-node/effect-response-recovery.mjs';
 import {recoverCapturedSalesforceSingleRequests} from
-  '../../host/salesforce-effect-write.mjs';
+  '../../host/salesforce-effect-request-recovery.mjs';
 import {reconcileStoredSalesforceSingleEffectWrite} from
   '../../host/salesforce-effect-write.mjs';
 import {installSalesforceEffectCurrentUse} from

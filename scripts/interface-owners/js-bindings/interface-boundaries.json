@@ -10459,7 +10459,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "9f2772f90855bf44f2eedd80fda8c2ce9c45028a26412cfa440cb7a57cbb2118",
+      "sha256": "eba9788fef83247d36df54e4c536436bb746535591e67f1da06e592eed580555",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -11459,7 +11459,21 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/checkpoint-approval.mjs",
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../host-common/effect-preparation-result.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/local-account-config.mjs",
+        "../site/salesforce-effect-capability.mjs",
+        "../site/salesforce-effect-preparation-result.mjs",
+        "../site/salesforce-single-write.mjs",
+        "../site/salesforce-target-observation.mjs",
+        "./salesforce-effect-request-recovery.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-effect-preparation-result.mjs",
@@ -36286,12 +36300,13 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "661dd52e502c823c9b73d7a4fb9456d9b89c0c6dfa6da0f44c3c60fa5307500b",
+      "sha256": "e75d1c1c87dec77a5060876a22aae4c4211519f67e65f5f14c65cbaa7711fc0f",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "assertInitialControlHostPreparation",
         "connectEmbeddedLocal",
+        "connectInitialControlHostPreparation",
         "openInstalledRemoteHttpHost",
         "publishInstalledEffect",
         "publishInstalledSource",
@@ -36330,17 +36345,18 @@
         {
           "name": "connectEmbeddedLocal",
           "parameters": [
-            "options"
+            "options",
+            "initialEntry"
           ],
           "async": true
         },
         {
-          "name": "connectEmbeddedLocal/connectEmbeddedLocal",
+          "name": "connectEmbeddedLocal/client/client",
           "parameters": [],
           "async": false
         },
         {
-          "name": "connectEmbeddedLocal/connectEmbeddedLocal#2",
+          "name": "connectEmbeddedLocal/connectEmbeddedLocal",
           "parameters": [],
           "async": false
         },
@@ -36369,6 +36385,14 @@
         {
           "name": "connectEmbeddedLocal/retirePreparationReferences",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectInitialControlHostPreparation",
+          "parameters": [
+            "kind",
+            "rawInput"
+          ],
           "async": false
         },
         {
@@ -38697,7 +38721,7 @@
         {
           "operations": [
             "connectEmbeddedLocal",
-            "connectEmbeddedLocal/connectEmbeddedLocal"
+            "connectEmbeddedLocal/client/client"
           ],
           "exports": [
             "connectEmbeddedLocal"
@@ -38914,7 +38938,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "control = await beginInitialControlInstallation(originals, options);"
+                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               }
             ],
             "failure": [
@@ -42013,7 +42037,7 @@
         {
           "operations": [
             "assertInitialControlHostPreparation",
-            "connectEmbeddedLocal/connectEmbeddedLocal#2",
+            "connectEmbeddedLocal/connectEmbeddedLocal",
             "connectEmbeddedLocal/initialControl/init:close/init:close",
             "connectEmbeddedLocal/preparation/init:retainReferenceRetirement/init:retainReferenceRetirement",
             "connectEmbeddedLocal/releaseUnadopted",
@@ -42037,7 +42061,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "control = await beginInitialControlInstallation(originals, options);"
+                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -42235,7 +42259,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "control = await beginInitialControlInstallation(originals, options);"
+                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               }
             ],
             "failure": [
@@ -42270,6 +42294,84 @@
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
                 "anchor": "test('Host passes raw input before awaiting and consumes only the same captured packet afterwards'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "connectInitialControlHostPreparation"
+          ],
+          "exports": [
+            "connectInitialControlHostPreparation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The selected public-entry consumer initially supports omitted `open` input."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function connectInitialControlHostPreparation(kind, rawInput) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "options = readInitialControlInstallationInput(control, originals);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The returned Client and `info.stateDir` describe that same registry Host and"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "try { record.openStateDirectory = resolve('.actql'); }"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('open never drops fields from a nonempty supplier packet'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('failed original initialization retains the open path aliases until its original cleanup confirms'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "envelope; its result or failure stays with the same preparation record through"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "validation remain necessary; unsupported selected inputs are unavailable."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('omitted open enters the same original begin before path selection and keeps its call-time path'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('the selected Host consumer forwards only omitted open input without a raw observation'"
               }
             ]
           }
@@ -58676,12 +58778,13 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "bf1b7700e8fbce0245f9744ec7c29c1c96253fc9a182d67d79a81797a9b42212",
+      "sha256": "700f14ef4a1489a6f4655277f3b261923c23dca88cc0a8f84c3e654327410a71",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowSource",
         "installRowSourceAuthorization",
+        "loadRowSourceCredentialCustody",
         "openRowSourceCredentialCustody",
         "openRowSourceCredentialSite",
         "rowSourceCheckEnvironment",
@@ -59295,6 +59398,22 @@
           "parameters": [
             "decision"
           ],
+          "async": false
+        },
+        {
+          "name": "loadRowSourceCredentialCustody",
+          "parameters": [
+            "openCredentialJournal",
+            "options",
+            "caPath",
+            "prepareResolver",
+            "invalidCode"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadRowSourceCredentialCustody/loadRowSourceCredentialCustody",
+          "parameters": [],
           "async": false
         },
         {
@@ -61559,6 +61678,293 @@
               {
                 "path": "adapters/connectors/notion/test/site-metadata-discovery.test.mjs",
                 "anchor": "actual original Site signs and claims separate database and dependent schema uses through Notion discovery"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "loadRowSourceCredentialCustody",
+            "loadRowSourceCredentialCustody/loadRowSourceCredentialCustody"
+          ],
+          "exports": [
+            "loadRowSourceCredentialCustody"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialSite"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The installed Row Credential Site accepts this alternative"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialSite"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Each registered metadata occurrence retains its original selected target,"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialSite"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "pair, original declaration alongside its source CID, Account gate and captured"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialSite"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Admission failure returns the existing initialization cleanup Owner with the"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "unsafe mutable Journal admission"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialSite"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Before signing, the Site checks the bounded Host-profile observation, actual"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialSite"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "occurrences cannot issue another grant, and observed Account/profile failure"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "Account file revoked across await"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialSite"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Publication completion, failure and abort close new-operation admission."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialSite"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "## Installed Row Site physical custody"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The simultaneous preparation inventory includes bounded issuer PEM bytes and"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialSite"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The legacy Run Site retains its existing signing and close behavior."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialSite"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "exact Scope, current authorization and confirmed same-Journal claim. This"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
+                "anchor": "run acquisition custody waits through the final response observation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/installed-salesforce-site.test.mjs",
+                "anchor": "shared Site loading preserves Salesforce key and CA refusal before resolver or journal admission"
               }
             ]
           }
@@ -119017,7 +119423,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "control = await beginInitialControlInstallation(originals, options);"
+                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               }
             ],
             "failure": [
@@ -119093,7 +119499,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "control = await beginInitialControlInstallation(originals, options);"
+                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               }
             ],
             "failure": [

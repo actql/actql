@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {ClientError, RequestHeld, connectInProcess, connect} from './index.mjs';
 import {submissionEpoch, originalSubmission, submissionAttempt} from './submission-fixture.mjs';
+import {validRunState, validRunWaitContract} from '@actql/client-wire';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const ref = Object.freeze({namespaceId: 'local', authorityScopeCid: cid('a'),
@@ -30,6 +31,13 @@ const submissionReply = (value, body) => value.kind === 'held'
     intentCid: body.intentCid ?? cid('e'), admission: value.kind === 'found' ? admission : value}
   : value;
 
+function succeeded() {
+  return {version: 'actql-run-state/0.1', run_id: 'run', revision: 1,
+    status: 'succeeded', updated_at: '2026-10-07T00:00:00.000Z', result_available: true,
+    next_action: {kind: 'read_result', results: ['answer']}, result_availability: {
+      answer: {state: 'available', observed_at: '2026-10-07T00:00:00.000Z', reason: 'confirmed_present'}}};
+}
+
 async function fixture(t, submit = held) {
   const calls = [];
   let reply = held, denial;
@@ -43,10 +51,7 @@ async function fixture(t, submit = held) {
       if (operation === 'lookup-request') return reply;
       if (operation === 'lookup-submission') return submissionReply(reply, body);
       if (operation === 'attach') return admission;
-      if (operation === 'wait') return {version: 'actql-run-state/0.1', run_id: 'run',
-        status: 'succeeded', updated_at: '2026-10-07T00:00:00.000Z', result_available: true,
-        next_action: {kind: 'read_result', results: ['answer']}, result_availability: {
-          answer: {state: 'available', observed_at: '2026-10-07T00:00:00.000Z', reason: 'confirmed_present'}}};
+      if (operation === 'wait') return succeeded();
       assert.fail(`Unexpected operation: ${operation}`);
     },
   });
@@ -107,6 +112,15 @@ test('a genuine short-query Result retains its original request lookup target', 
   assert.deepEqual(recovery.target, target);
   assert.throws(() => f.client.recoverRequest({...result}), {code: 'InvalidRequestRecoveryTarget'});
   assert.deepEqual(operations(f), ['connect', 'submit-intent', 'wait']);
+});
+
+test('request recovery Result fixture requires its original state revision', () => {
+  const state = succeeded();
+  assert.equal(validRunState(state), true);
+  assert.equal(validRunWaitContract(state, null), true);
+  delete state.revision;
+  assert.equal(validRunState(state), false);
+  assert.equal(validRunWaitContract(state, null), false);
 });
 
 test('original lookup observations retain their target but do not seed attachment custody', async t => {

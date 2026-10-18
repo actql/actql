@@ -1,4 +1,4 @@
-//! Uncompiled allocator candidate for the selected C API artifact only.
+//! Same-provider Rust storage for the selected private C API artifact only.
 //!
 //! No system allocation fallback is permitted. This routes Rust allocation
 //! storage, not Core capacity decisions. Infallible Rust allocation exhaustion
@@ -11,9 +11,9 @@ use core::ptr;
 
 unsafe extern "C" {
     fn actql_owned_current() -> *mut c_void;
-    fn actql_owned_allocate(lease: *mut c_void, bytes: usize, alignment: usize,
-                            out: *mut *mut c_void) -> i32;
-    fn actql_owned_retire(lease: *mut c_void, allocation: *mut c_void) -> i32;
+    fn actql_owned_rust_allocate(lease: *mut c_void, bytes: usize, alignment: usize,
+                            out: *mut *mut c_void, token: *mut u64) -> i32;
+    fn actql_owned_rust_retire(lease: *mut c_void, allocation: *mut c_void, token: u64) -> i32;
 }
 
 #[repr(C)]
@@ -23,6 +23,7 @@ struct AllocationHeader {
     extent: *mut c_void,
     size: usize,
     alignment: usize,
+    token: u64,
 }
 
 pub(crate) struct OwnedAllocator;
@@ -45,7 +46,8 @@ impl OwnedAllocator {
             return ptr::null_mut();
         }
         let mut extent = ptr::null_mut();
-        if unsafe { actql_owned_allocate(lease, bytes, alignment, &mut extent) } != 0 {
+        let mut token = 0;
+        if unsafe { actql_owned_rust_allocate(lease, bytes, alignment, &mut extent, &mut token) } != 0 {
             return ptr::null_mut();
         }
         // The native extent starts at the requested alignment and contains
@@ -55,7 +57,7 @@ impl OwnedAllocator {
             .cast::<AllocationHeader>();
         unsafe {
             header.write(AllocationHeader {
-                lease, extent, size: layout.size(), alignment: layout.align(),
+                lease, extent, size: layout.size(), alignment: layout.align(), token,
             });
         }
         output
@@ -70,7 +72,7 @@ impl OwnedAllocator {
 }
 
 // SAFETY: Allocation storage comes from the original synchronized native
-// holding, with checked size/alignment and disjoint live extents. A header
+// holding, with checked size/alignment and disjoint live slots with provider-issued one-use tokens. A header
 // retains the original lease and extent even after its native call scope exits.
 // Callers must obey GlobalAlloc's pointer/layout contract. The original LocalCore
 // cannot release the lease while a retained extent or native handle is live.
@@ -91,9 +93,9 @@ unsafe impl GlobalAlloc for OwnedAllocator {
             // cleanup success; the original holding remains busy.
             return;
         }
-        // Physical failure stays as a retired extent in the same lease, and
+        // Final page physical failure stays as a retired extent in the same lease, and
         // final native lease cleanup retries it. Never free through System.
-        let _ = unsafe { actql_owned_retire(header.lease, header.extent) };
+        let _ = unsafe { actql_owned_rust_retire(header.lease, header.extent, header.token) };
     }
 
     unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, size: usize) -> *mut u8 {

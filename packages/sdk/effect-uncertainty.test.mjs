@@ -14,8 +14,10 @@ const profile = {version: 'actql-client-host/0.1',
     maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
     maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 3,
     maxBatchRetainedValueBytes: 1024}};
-const state = control => ({version: 'actql-run-state/0.1',
-  run_id: 'run-a', status: 'needs_reconciliation',
+// Explicit published state revisions are distinct from cancellation-control
+// revisions. Changing published control facts below advances the former too.
+const state = (revision, control) => ({version: 'actql-run-state/0.1',
+  run_id: 'run-a', revision, status: 'needs_reconciliation',
   updated_at: '2026-10-05T00:00:00.000Z',
   next_action: {kind: 'reconcile', effects: ['save', 'notify']},
   result_available: false, result_availability: {updates: {
@@ -48,10 +50,10 @@ for (const operation of ['status', 'wait', 'reconcile']) {
       endpoint: 'https://host.example/', token: 'private-token'});
     t.after(() => client.close());
     const execution = await client.attach(ref);
-    for (const control of [undefined,
-      {revision: 4, cancellation_requested: true, physical_stop: 'unknown'},
-      {revision: 7, cancellation_requested: false, physical_stop: 'confirmed'}]) {
-      reply = state(control);
+    for (const [revision, control] of [[20, undefined],
+      [21, {revision: 4, cancellation_requested: true, physical_stop: 'unknown'}],
+      [22, {revision: 7, cancellation_requested: false, physical_stop: 'confirmed'}]]) {
+      reply = state(revision, control);
       const response = await execution[operation]();
       const explanation = explainEffectUncertainty(response);
       assert.deepEqual(explanation, expected(control?.physical_stop ?? 'unknown',
@@ -68,16 +70,16 @@ for (const operation of ['status', 'wait', 'reconcile']) {
     assert.deepEqual(operations, ['connect', 'attach', operation, operation, operation],
       '[check-mutation:effect-passive]');
     for (const invalid of [
-      {...state(), status: 'succeeded'},
-      {...state(), private_provider_error: 'private-cause'},
-      {...state(), next_action: {kind: 'reconcile', effects: []}},
-      state({revision: 2, cancellation_requested: true, physical_stop: 'stopped'}),
+      {...state(23), status: 'succeeded'},
+      {...state(23), private_provider_error: 'private-cause'},
+      {...state(23), next_action: {kind: 'reconcile', effects: []}},
+      state(23, {revision: 2, cancellation_requested: true, physical_stop: 'stopped'}),
     ]) {
       reply = invalid;
       await assert.rejects(execution[operation](), {code: 'InvalidHostRunState'});
       assert.equal(explainEffectUncertainty(invalid), undefined);
     }
-    reply = {...state(), next_action: {kind: 'reconcile_run', reason: 'execution_unknown'}};
+    reply = {...state(24), next_action: {kind: 'reconcile_run', reason: 'execution_unknown'}};
     assert.equal(explainEffectUncertainty(await execution[operation]()), undefined);
     assert.equal(explainEffectUncertainty(null), undefined);
     assert.equal(explainEffectUncertainty(new Error('needs_reconciliation')), undefined);
@@ -86,7 +88,7 @@ for (const operation of ['status', 'wait', 'reconcile']) {
 
 test('Local response reuse cannot rebind an earlier Effect explanation to another Run', async t => {
   const otherRef = {...ref, runDefinitionCid: `sha256:${'c'.repeat(64)}`};
-  const shared = state({revision: 4, cancellation_requested: false,
+  const shared = state(20, {revision: 4, cancellation_requested: false,
     physical_stop: 'unknown'});
   const client = await connectInProcess({mode: 'local', owner: 'local'}, {
     perform(operation, body) {
@@ -125,7 +127,7 @@ test('typed Effect explanations separate physical stop, owner revision and recon
 for (const operation of ['status', 'wait', 'reconcile']) {
   for (const kind of ['proxy', 'date', 'control-date', 'action-date']) {
     test(`Local ${operation}: Effect custody refuses ${kind} clone failure or shape loss`, async t => {
-      const value = state({revision: 4, cancellation_requested: false,
+      const value = state(20, {revision: 4, cancellation_requested: false,
         physical_stop: 'confirmed'});
       const reply = value;
       assert.equal(validRunState(reply), true);
