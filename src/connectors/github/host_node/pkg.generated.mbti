@@ -1,6 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "actql/actql/connectors/github/host_node"
 
+import {
+  "actql/actql/connectors/github/catalog",
+}
+
 // Values
 pub fn github_add_comment_request_json(String, String) -> String
 
@@ -14,7 +18,19 @@ pub fn github_comment_subject_json(Bytes, Int, Int, Int, String, String, Double,
 
 pub fn github_comment_subject_request_json(String) -> String
 
+pub fn github_graphql_read_issue_json(@catalog.GraphqlResponseIssue) -> String
+
 pub fn github_issue_page_json(Bytes, Int, Int, Int, Int) -> String
+
+pub fn github_issue_page_read_accept(@catalog.IssuePageRead, Bytes) -> Result[Unit, @catalog.GraphqlResponseIssue]
+
+pub fn github_issue_page_read_begin(Bytes, Int, Int, Int, Int, Int, String, Double, String) -> Result[@catalog.IssuePageRead, @catalog.GraphqlResponseIssue]
+
+pub fn github_issue_page_read_close(@catalog.IssuePageRead) -> Unit
+
+pub fn github_issue_page_read_finish_json(@catalog.IssuePageRead) -> Result[String, @catalog.GraphqlResponseIssue]
+
+pub fn github_issue_page_read_next_request_json(@catalog.IssuePageRead, Int) -> Result[String, @catalog.GraphqlResponseIssue]
 
 pub fn github_issues_page_json(Bytes, Int, Int, Int, Int, String, Double, String) -> String
 
