@@ -10,6 +10,24 @@
 #include "scoped_read.h"
 #include "../filesystem_stub.c"
 
+#ifdef ACTQL_COMMAND_LOAD_CASE
+/* Renamed only while compiling the two component adapters for the unavailable
+ * entry counter. Any loader call is a failure, never a fallback supplier. */
+static unsigned refused_loader_calls;
+void *actql_test_unavailable_dlopen(const char *path, int mode) {
+  (void)path; (void)mode; refused_loader_calls++; return NULL;
+}
+extern void *actql_native_sqlite_load_command_component(
+  moonbit_bytes_t, int32_t, int32_t, int64_t, actql_native_observed_component_member *);
+extern int32_t actql_native_sqlite_library_ready(void *);
+extern int32_t actql_native_sqlite_library_close_checked(void *);
+extern void *actql_native_crypto_component_load_command(
+  moonbit_bytes_t, int32_t, int64_t, int32_t, actql_native_observed_component_member *);
+extern bool actql_native_crypto_component_ready(void *);
+extern int32_t actql_native_crypto_component_close(void *);
+
+#endif
+
 static const unsigned char recipe[32] = {17};
 static moonbit_bytes_t bytes(const char *text) {
   size_t length = strlen(text);
@@ -64,6 +82,30 @@ int main(int argc, char **argv) {
   assert(!strcmp(actql_native_observed_component_member_path(member), path));
   assert(!memcmp(actql_native_observed_component_member_source(member), source, 40));
   assert(actql_native_observed_component_member_image(member, path));
+#ifdef ACTQL_COMMAND_LOAD_CASE
+  if (!strcmp(name, "command-unavailable")) {
+    /* The real entry implementation has no admitted initial original in this
+     * fixture. Positive file DATA and actual Read backing cannot create one. */
+    assert(actql_native_command_platform_current() == NULL);
+    void *sqlite = actql_native_sqlite_load_command_component(
+      (moonbit_bytes_t)path, (int32_t)strlen(path), 128,
+      32 * (int64_t)sysconf(_SC_PAGESIZE), member);
+    assert(sqlite && !actql_native_sqlite_library_ready(sqlite));
+    assert(actql_native_sqlite_library_close_checked(sqlite));
+    moonbit_decref(sqlite);
+    actql_native_observed_component_member *crypto_member =
+      actql_native_filesystem_observed_component_member(root, stat, object,
+        Moonbit_array_length(object), 2, source, manifest, digest);
+    assert(actql_native_filesystem_bind_component_runtime(crypto_member, &association));
+    void *crypto = actql_native_crypto_component_load_command(
+      (moonbit_bytes_t)path, (int32_t)strlen(path),
+      32 * (int64_t)sysconf(_SC_PAGESIZE), 128, crypto_member);
+    assert(crypto && !actql_native_crypto_component_ready(crypto));
+    assert(actql_native_crypto_component_close(crypto) == 0);
+    moonbit_decref(crypto); moonbit_decref(crypto_member);
+    assert(refused_loader_calls == 0);
+  } else
+#endif
   if (!strcmp(name, "foreign-thread")) {
     pthread_t thread;
     assert(pthread_create(&thread, NULL, foreign_thread, member) == 0);
