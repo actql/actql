@@ -481,10 +481,14 @@ fn prepare_multi_captured_capacity_ledger_owned(
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
-  multi_captured_capacity_limits_owned(
-    owner, capacities, transport_bytes, transport_execution_bytes, registry_body,
-    values_body, fragment_body, ordered_body,
-  ).and_then(limits => @resources.create_ledger(limits).to_option())
+  match
+    multi_captured_capacity_limits_owned(
+      owner, capacities, transport_bytes, transport_execution_bytes, registry_body,
+      values_body, fragment_body, ordered_body,
+    ) {
+    None => None
+    Some(limits) => @resources.create_ledger(limits).to_option()
+  }
 }
 
 ///|
@@ -934,10 +938,14 @@ fn prepare_multi_captured_installed_ledger_owned(
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
-  multi_captured_installed_limits_owned(
-    owner, capacities, transport_bytes, transport_execution_bytes, registry_body,
-    values_body, fragment_body, ordered_body,
-  ).and_then(limits => @resources.create_ledger(limits).to_option())
+  match
+    multi_captured_installed_limits_owned(
+      owner, capacities, transport_bytes, transport_execution_bytes, registry_body,
+      values_body, fragment_body, ordered_body,
+    ) {
+    None => None
+    Some(limits) => @resources.create_ledger(limits).to_option()
+  }
 }
 
 ///|
