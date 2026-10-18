@@ -148,6 +148,10 @@ def main() -> None:
     fact, size = database.read_into('pair', 'one', output)
     assert fact.has_row and size == 3 and output == b'\x00A\xff\x09'
     step('same Library Database performs actual BEGIN INSERT COMMIT and bounded read')
+    if runtime is not None:
+        assert runtime.current().issue_family == 0
+        assert pair._phase is None and not read._scope_open
+        step('same Runtime resumes its original Read after the SQLite transaction before cleanup')
     before = list(calls)
     try:
         pair.close()
@@ -159,9 +163,14 @@ def main() -> None:
     assert database._closed
     step('pending Database data refuses parent close before a foreign call')
     if runtime is not None:
-        assert runtime.current().issue_family == 0
-        assert pair._phase is None and not read._scope_open
-        step('same Runtime resumes its original Read after actual SQLite transaction cleanup')
+        # Database cleanup stops the original SQLite read-use. A sibling's
+        # normal current check cannot turn that cleanup into fresh permission.
+        try:
+            runtime.current()
+            raise AssertionError('Stopped SQLite read-use admitted normal Runtime work')
+        except _OriginalPackagedRuntimeError as error:
+            assert not error.unknown and error.fact and error.fact.issue_family == 10
+            assert error.cleanup_runtime is runtime
 
     def pending() -> None:
         try:
