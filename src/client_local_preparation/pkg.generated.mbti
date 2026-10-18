@@ -47,6 +47,18 @@ pub fn local_prepared_original(LocalPreparedInput) -> LocalInput
 
 pub fn local_prepared_program(LocalPreparedInput) -> @run_publication_host.PreparedClientProgram
 
+pub fn local_source_computation_matches(LocalSourceComputation, @run_publication_host.ClientSubmittedIntent, @program_check.CheckEnvironment) -> Bool
+
+pub fn local_source_computation_material(LocalSourceComputation) -> (String, String?)
+
+pub fn local_source_computation_originals(LocalSourceComputation) -> (String, String, String, String)
+
+pub fn local_source_computation_preparation(LocalSourceComputation) -> LocalSourceComputationPreparation
+
+pub fn local_source_computation_request(LocalSourceComputation, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
+
+pub fn local_source_computation_source(LocalSourceComputation) -> (String, String, String?)
+
 pub fn local_submitted_preparation_input(LocalSubmittedPreparation) -> LocalPreparedInput
 
 pub fn local_submitted_preparation_intent(LocalSubmittedPreparation) -> @run_publication_host.ClientSubmittedIntent
@@ -54,6 +66,8 @@ pub fn local_submitted_preparation_intent(LocalSubmittedPreparation) -> @run_pub
 pub fn prepare_local_input(LocalInput, @program_check.CheckEnvironment, @decode_core.Cursor?, LocalInputContext?, @run_publication_host.ClientProgramPreparationLimits) -> Result[@run_publication_host.PreparedClientProgram, LocalPreparationIssue]
 
 pub fn prepare_local_input_material(LocalInput, @program_check.CheckEnvironment, @decode_core.Cursor?, LocalInputContext?, @run_publication_host.ClientProgramPreparationLimits) -> Result[LocalPreparedInput, LocalPreparationIssue]
+
+pub fn prepare_local_source_computation(@run_publication_host.ClientSubmittedIntent, @program_check.CheckEnvironment, String) -> Result[LocalSourceComputation, LocalSourceComputationIssue]
 
 pub fn prepare_local_submitted_input(String, @program_check.CheckEnvironment, LocalInputContext?, @run_publication_host.ClientProgramPreparationLimits) -> Result[LocalSubmittedPreparation, LocalPreparationIssue]
 
@@ -100,6 +114,35 @@ pub(all) enum LocalProgramInputIssue {
   InvalidFormat
   SuppliedSyntax(@source_value.ParseError)
   SuppliedAdmission(@decode_core.Issue)
+}
+
+pub struct LocalSourceComputation {
+  intent : @run_publication_host.ClientSubmittedIntent
+  environment : @program_check.CheckEnvironment
+  publication : String
+  document : String
+  parameters : String?
+  source_document : String
+  source_format : String
+  declarations : String?
+  preparation : LocalSourceComputationPreparation
+}
+
+pub(all) enum LocalSourceComputationIssue {
+  Input
+  Publication(@client_source_publication.PublicationIssue)
+  Frontend(@source_frontend.Issue)
+  Syntax(@stage_syntax.SyntaxError)
+  Pure(@run_publication_host.ClientProgramPreparationIssue)
+  Effect(@run_publication_host.ClientEffectComputationIssue)
+  ArrayProfile(@source_frontend.ArrayProfileIssue)
+  TargetOriginalsUnavailable
+  ReadOnly
+}
+
+pub enum LocalSourceComputationPreparation {
+  Pure(@run_publication_host.PreparedClientProgram)
+  Effect(@run_publication_host.PreparedClientEffectComputation)
 }
 
 pub struct LocalSubmittedPreparation {
