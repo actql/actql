@@ -288,3 +288,62 @@ observations and failed-result aliases, cancellation signal and in-flight
 Promises together. Common closing and a closed transport do not acknowledge
 retirement of escaped aliases or return a ReaderLoan. The actual Host supplier
 must cover that simultaneous graph before this private reader is admitted.
+
+### Original message reply pages
+
+The Catalog reply protocol selects one exact row of an admitted ordinary-history
+page. Its retained page and row occurrence, rather than equal JSON, identify the
+selection. A reply that already names its parent uses that exact `thread_ts`;
+otherwise the actual replies response must establish the parent. Terminal
+completion requires both the actual parent and the selected message. Generic
+message-page admission does not acquire ordinary-history completeness or infer a
+missing reply count.
+
+Each reply exchange has one nominal pending request. The protocol retains the
+entire admitted response-page prefix, exact cursor and timestamp tokens, and all
+original checked rows. Repeated IDs emit once only after bounded complete
+CheckedValue equality; a changed row refuses completion. Equality has explicit
+Value comparison limits independent from single-value admission limits, since
+comparing two valid values retains and charges both. Page, aggregate byte, row,
+comparison and work bounds remain separate. Exhaustion consumes the pending
+request and does not authorize replay.
+
+Cursor continuation is preferred. Ascending time continuation advances the
+exclusive `oldest` token using exact instant ordering, with no Number or Host Date
+conversion. Empty or nonprogressing continuation refuses completion. The physical
+caller must separately retain original responses, operation-specific uses,
+observation tickets and cleanup custody, and consume each prior response ticket
+before a dependent exchange. This DATA protocol supplies no transport authority,
+normal ReaderLoan or complete workspace coverage. Closing its control keeps
+retained aliases and is not a physical cleanup acknowledgment.
+
+The private physical reader exposes an opaque original-page token only through
+the history consumer's page metadata. The exact history reader retains its
+Common page/request, actual exchange and raw response, operation authorization,
+charge and workspace identity. A token is eligible only after consumption and
+the subsequent original-current check, and the history read must have completed
+successfully. Copies, a token from another reader, an invalid row occurrence or
+a second selection of that occurrence do not start another reply reader.
+
+The reply reader captures the original provider callbacks before history I/O,
+retains their receiver and checks the same credential binding/control/journal/
+resolver references and Run/Account context. Its `slack:messages:replies` grant
+and uses are separate from history and workspace identity. Before each exchange
+and after awaited callbacks it rechecks the original history current callback
+and any distinct reply current callback. A previous `auth.test` observation is
+retained identity evidence, never a permission for a different operation.
+
+Both controls retain full exchange records, including pending requests,
+authorizations, actual responses and charges, even when later projection fails.
+Escaped result and failure objects keep that same original prefix through
+private outcome membership. The reply reader keeps the closed Common control
+and its typed page prefix as well as raw response aliases. These records,
+callbacks, maps, selection sets, parsed output and concurrent workspaces belong
+to the actual Host resource inventory; bounds, weak maps, closure settlement
+and garbage collection are not capacity or physical acknowledgments.
+
+Combining reply output with already captured history rows requires the original
+Source owner's coalescence and capture boundary. This private reader does not
+silently overwrite an earlier captured row, establish complete channel history
+or supply a normal business ReaderLoan. Its finite terminal result alone is not
+an installed complete Slack Source.
