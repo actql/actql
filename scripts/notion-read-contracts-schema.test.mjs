@@ -17,7 +17,9 @@ test('public database map reuses complete declaration grammar and rejects an inv
   assert.deepEqual(schema.additionalProperties,declarationSchema);
   assert.deepEqual(schema.$defs,$defs);
   assert.deepEqual(schema.propertyNames,{type:'string',minLength:1});
-  const projected={aliases:project(schema),value_contract:project($defs.value_contract)};
+  const { $defs:mapDefinitions, ...mapBody }=schema;
+  assert.deepEqual(mapDefinitions,$defs);
+  const projected={aliases:project(mapBody),value_contract:project($defs.value_contract)};
   const source='const schemas='+JSON.stringify(projected)+';\n'+
     structuralValidatorSource({extended:true})+'export const check=value=>valid(value,schemas.aliases);';
   const reader=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
