@@ -11,10 +11,10 @@ const unavailable = () => {throw Object.assign(new NativeError('SourceManagedEnv
 const inputLimits = freeze({maxProperties: 40, maxNodes: 40, maxDepth: 4,
   maxStringCodeUnits: 65536, maxTotalStringCodeUnits: 65536 + 4096,
   maxArrayItems: 0, maxOpaqueAliases: 0, maxWork: 2 * 1024 * 1024});
-const limits = freeze({installations: 1, requests: 1, sourceOccurrences: 1,
+const limits = freeze({installations: 1, requests: 1, sourceOccurrences: 2,
   sourceBytes: 65536, sourceNodes: 4096, sourceDepth: 64,
   sourceWork: 2 * 1024 * 1024, rows: 4096, columns: 128,
-  responseBytes: MiB, responses: 128, decodedWireBytes: MiB,
+  responseBytes: MiB, responses: 128, responsesPerOccurrence: 64, decodedWireBytes: MiB,
   // Explicit separate external representations: original SDK input/body and
   // transport clone, serializations, UTF8/hash preimages, response/row decode
   // workspace and captured output representations. Actual external suppliers
@@ -35,6 +35,12 @@ function declareSourceManagedPhaseEnvelope(controlDeclaration) {
   const simultaneousBytes = controlDeclaration.bytes + externalBytes;
   if (!integer(simultaneousBytes)) unavailable();
   return freeze({limits,inputLimits,controlDeclaration,
+    // The README JOIN has two distinct original acquisitions. Both consume
+    // partitions of this SAME request total, never two full parent allowances.
+    occurrencePartitions:freeze([0,1].map(ordinal=>freeze({ordinal,
+      responseStart:ordinal*limits.responsesPerOccurrence,
+      responses:limits.responsesPerOccurrence,
+      responseBackingBytes:limits.responsesPerOccurrence*limits.responseBytes}))),
     sharedManagedHeapBytes:controlDeclaration.heapCeilingBytes,
     additionalManagedHeapBytes:0,additionalWholeNativeDomainBytes:0,
     responseBackingBytes,externalWorkspaceBytes,externalBytes,simultaneousBytes,

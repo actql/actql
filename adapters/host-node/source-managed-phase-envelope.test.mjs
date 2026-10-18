@@ -17,7 +17,13 @@ test('control and Source share one managed/native domain while external overlaps
   assert.equal(phase.externalWorkspaceBytes,16*1024**2);
   assert.equal(phase.simultaneousBytes,original.bytes+144*1024**2);
   assert.equal(phase.replenishedOnSourceClose,false);
-  assert.equal(phase.limits.sourceOccurrences,1);
+  assert.equal(phase.limits.sourceOccurrences,2);
+  assert.equal(phase.occurrencePartitions.length,2);
+  assert.equal(phase.occurrencePartitions[0].responseStart,0);
+  assert.equal(phase.occurrencePartitions[1].responseStart,64);
+  assert.equal(phase.occurrencePartitions.reduce((sum,part)=>sum+part.responses,0),128);
+  assert.equal(phase.occurrencePartitions.reduce((sum,part)=>sum+part.responseBackingBytes,0),phase.responseBackingBytes);
+  assert(phase.occurrencePartitions.every(Object.isFrozen));
   assert.equal(phase.inputLimits.maxOpaqueAliases,0);
   assert.equal(phase.inputLimits.maxArrayItems,0);
   assert.equal(phase.issue,undefined);assert.equal(phase.begin,undefined);
