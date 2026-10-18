@@ -166,9 +166,15 @@ fn LocalCommandPreparationOriginal::execute_adopted_check(
 fn command_project_original_text(
   root : String,
   name : String,
-) -> Result[String, @files.NativeBoundedTextFailure] {
+) -> Result[String, @files.NativeBoundedTextFailure] raise ClientStop {
   guard command_preparation_invocation.val is Some(original) else {
     return @files.read_bounded_text_file_with_custody(root, name, 65536L)
+  }
+  if (!original.phase_open && !original.journal_read_open) ||
+    original.closing ||
+    original.closed ||
+    original.primary is Some(_) {
+    stop("LocalCommandPreparationUnavailable")
   }
   if original.read_failure is Some(previous) {
     match previous.retry_cleanup() {
