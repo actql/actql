@@ -1,7 +1,10 @@
 ///|
 // These fixtures exercise CLI exit projection only, not Check admission or
 // Program validity. Actual portable Check outputs are asserted separately.
-fn check_exit_projection_fixture(verdict : String, runnable : String) -> String raise ClientStop {
+fn check_exit_projection_fixture(
+  verdict : String,
+  runnable : String,
+) -> String raise ClientStop {
   let (reason, outcome) = @preparation.client_program_check_reporting_schema_cids()
   encode_request_json(
     Json::object(
@@ -25,9 +28,12 @@ fn check_exit_projection_fixture(verdict : String, runnable : String) -> String 
         ),
       ]),
     ),
-  ,
     65536,
-  )exit follows only the original invalid verdict" {
+  )
+}
+
+///|
+test "Check exit follows only the original invalid verdict" {
   assert_true(
     local_check_invalid_exit(check_exit_projection_fixture("invalid", "no")),
   )
