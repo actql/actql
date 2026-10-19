@@ -20,6 +20,7 @@ size_t actql_native_domain_borrow_storage_bytes(void);
 int actql_native_domain_borrow_transfer_holding(void * storage, actql_owned_capacity * holding, uint64_t generation, const unsigned char * recipe);
 int actql_native_owned_acquire(size_t capacity, uint64_t generation, const unsigned char * recipe, actql_owned_capacity ** out);
 int actql_native_owned_allocate(actql_owned_capacity * lease, size_t bytes, size_t alignment, void ** out);
+int actql_native_owned_bound_allocations(actql_owned_capacity * lease, size_t bytes);
 int actql_native_owned_capacity_bytes(actql_owned_capacity * lease, uint64_t * out);
 int actql_native_owned_capture_image_fd(actql_owned_capacity * lease, int fd, size_t expected_bytes, size_t maximum_bytes, const unsigned char * digest, void ** out);
 int actql_native_owned_contains_live_rust_span(actql_owned_capacity * lease, const void * address, size_t bytes);

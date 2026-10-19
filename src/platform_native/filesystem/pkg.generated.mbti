@@ -54,6 +54,7 @@ pub(all) struct NativeFileGeneration {
 type NativeFileObservation
 pub fn NativeFileObservation::check_current(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn NativeFileObservation::check_reader(Self, Reader) -> Result[Unit, NativeFilesystemIssue]
+pub fn NativeFileObservation::command_component_member(Self, Int, String, String, String) -> Result[NativeObservedComponentMember, NativeFilesystemIssue]
 pub fn NativeFileObservation::generation(Self) -> Result[NativeFileGeneration, NativeFilesystemIssue]
 pub fn NativeFileObservation::mode(Self) -> Result[Int, NativeFilesystemIssue]
 pub fn NativeFileObservation::open_reader_with_custody(Self) -> Result[Reader, NativeReaderOpenFailure]
@@ -93,6 +94,8 @@ type NativeLockOpenFailure
 pub fn NativeLockOpenFailure::issue(Self) -> NativeFilesystemIssue
 pub fn NativeLockOpenFailure::retry_cleanup(Self) -> Result[Unit, NativeFilesystemIssue]
 
+type NativeObservedComponentMember
+
 type NativeReaderOpenFailure
 pub fn NativeReaderOpenFailure::issue(Self) -> NativeFilesystemIssue
 pub fn NativeReaderOpenFailure::retry_cleanup(Self) -> Result[Unit, NativeFilesystemIssue]
@@ -118,7 +121,7 @@ pub fn Root::acquire_lock(Self, String) -> Result[Lock, NativeFilesystemIssue]
 pub fn Root::acquire_lock_with_custody(Self, String) -> Result[Lock, NativeLockOpenFailure]
 pub fn Root::adopt_private_file_projection(Self, String) -> Result[PrivateFileProjection, NativeFilesystemIssue]
 pub fn Root::bootstrap_parent_ownership(Self) -> Result[NativeFileOwnership, NativeFilesystemIssue]
-pub fn Root::check_directory_members(Self, Array[NativeDirectoryMember]) -> Result[Unit, NativeFilesystemIssue]
+pub fn Root::check_directory_members(Self, Array[NativeDirectoryMember], command_preparation? : Bool) -> Result[Unit, NativeFilesystemIssue]
 pub fn Root::close(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Root::create_directory(Self, String) -> Result[NativeFileOwnership, NativeFilesystemIssue]
 pub fn Root::create_writer(Self, String, Int64) -> Result[Writer, NativeFilesystemIssue]

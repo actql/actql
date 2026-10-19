@@ -173,12 +173,7 @@ fn local_project_read_from(
     // One exact generation at a time. The existing Reader retains rejected
     // constructor/close custody; only acknowledged absence may advance to a
     // parent. Malformed, unreadable or changed nearer files never fall back.
-    match
-      @files.read_bounded_text_file_with_custody(
-        directory,
-        initial.directory_name,
-        65536L,
-      ) {
+    match command_project_original_text(directory, initial.directory_name) {
       Ok(wire) =>
         return Ok(Some(local_project_select_loaded(matches, directory, wire)))
       Err(original) => {
@@ -279,11 +274,10 @@ fn local_project_read_declaration(
   let location = local_product_selected_location(Some(absolute), None)
   // The same bounded Reader owns constructor/next/close custody. Missing,
   // malformed or physically refused declarations never become empty defaults.
-  @files.read_bounded_text_file_with_custody(
-    location.parent_path,
-    location.directory_name,
-    65536L,
-  ).map(wire => Some(wire))
+  command_project_original_text(location.parent_path, location.directory_name).map(wire => {
+      Some(wire)
+    },
+  )
 }
 
 ///|

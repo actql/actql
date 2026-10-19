@@ -16,6 +16,10 @@ test "Runtime Read matching refuses an unregistered pair before using its read" 
     host.require_local_host_consuming_read_current(record, read)
     is Err(Domain(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))),
   )
+  assert_true(
+    host.observe_local_host_consuming_read_scope(record, read)
+    is Err(Domain(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))),
+  )
   assert_true(read.consumer is None && !read.ready)
   local_host_resources_finish_pending(host, read, sqlite)
 }
@@ -45,6 +49,19 @@ test "Runtime Read matching cannot adopt an unclaimed or different original" {
     host.require_local_host_consuming_read_current(record, read)
     is Err(Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable))),
   )
+  for active in [None, Some(HostRead), Some(HostSqlite)] {
+    record.active = active
+    assert_true(
+      host.observe_local_host_consuming_read_scope(record, foreign)
+      is Err(Domain(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))),
+    )
+    assert_true(
+      host.observe_local_host_consuming_read_scope(record, read)
+      is Err(Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable))),
+    )
+    assert_true(record.active == active)
+  }
+  record.active = None
   assert_true(read.consumer is None && foreign.consumer is None)
   assert_false(
     record.closing || record.closed || read.closing || foreign.closing,

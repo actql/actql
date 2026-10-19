@@ -177,15 +177,21 @@ fn execute_native_local_adoption(
   child : @argparse.Matches,
   packaged_runtime? : @local_host.NativeLocalPackagedRuntime? = None,
   initial_crypto? : InitialCryptoOriginal? = None,
+  preparation? : LocalCommandPreparationOriginal? = None,
 ) -> String raise ClientStop {
   let root = required(matches, "config-root")
   let name = required(matches, "config-file")
   let input_root = local_document_root(matches, root)
   // Refuse an untrusted discovery root before loading configuration-selected
   // physical libraries. The adoption Owner rechecks all original generations.
-  let selected_root = @local_filesystem.open_private_root(root).unwrap_or_else(() => {
-    stop("LocalConfigurationRootUntrusted")
-  })
+  let selected_root = match preparation {
+    Some(original) =>
+      command_preparation_result(original.select_configuration_root(root))
+    None =>
+      @local_filesystem.open_private_root(root).unwrap_or_else(() => {
+        stop("LocalConfigurationRootUntrusted")
+      })
+  }
   let root_ownership = selected_root
     .private_ownership()
     .unwrap_or_else(() => stop("LocalConfigurationRootUntrusted"))
@@ -252,6 +258,24 @@ fn execute_native_local_adoption(
   let selected_reviewer = local_selected_effect_reviewer_original(
     root, settings,
   )
+  if preparation is Some(original) {
+    if operation != "check" && operation != "adopt" {
+      stop("LocalCommandPreparationOperationUnavailable")
+    }
+    let additional : Array[(String, Bytes)] = []
+    for
+      selected in [
+        selected_source, selected_run, selected_read, selected_reviewer,
+      ] {
+      if selected is Some(value) {
+        additional.push(value)
+      }
+    }
+    return original.execute_adopted_command(
+      operation, settings, root, name, configuration, environment_file, environment,
+      selected_files, additional, input_root, child,
+    )
+  }
   let (sqlite_path, crypto_path) = match packaged_runtime {
     None => (settings.sqlite_library, settings.signature_library)
     Some(runtime) =>
@@ -472,38 +496,13 @@ fn execute_native_local_adoption(
         ).unwrap_or_else(() => stop("InvalidSubmissionRef")),
       )
     } else {
-      let cid = local_host_result(host.configuration()).configuration_cid()
-      let adopted = operation == "adopt"
-      if child.flags.get("json").unwrap_or(false) {
-        encode_request_json(
-          Json::object(
-            Map([
-              (
-                "kind",
-                Json::string(
-                  if adopted {
-                    "local_host_adopted"
-                  } else {
-                    "local_host_connected"
-                  },
-                ),
-              ),
-              ("mode", Json::string("local")),
-              ("accountId", Json::string(settings.account_id)),
-              ("accountConfigurationCid", Json::string(cid)),
-              ("adoptionCid", Json::string(host.adoption_cid())),
-            ]),
-          ),
-          4096,
-        )
-      } else {
-        "Local Host " +
-        (if adopted { "adopted" } else { "connected" }) +
-        "; no Run has been admitted.\nAccount: " +
-        settings.account_id +
-        "\nAdoption: " +
-        host.adoption_cid()
-      }
+      local_adoption_metadata_reply(
+        operation == "adopt",
+        settings.account_id,
+        local_host_result(host.configuration()).configuration_cid(),
+        host.adoption_cid(),
+        child,
+      )
     }
   } catch {
     issue => {
@@ -729,4 +728,46 @@ fn local_original_run_reference(
     stop("LocalRunReferenceInvalid")
   }
   reference
+}
+
+///|
+// Reply presentation only. The caller must obtain all fields through its same
+// current adopted Host/capture; these strings cannot issue authority or a Run.
+fn local_adoption_metadata_reply(
+  adopted : Bool,
+  account_id : String,
+  configuration_cid : String,
+  adoption_cid : String,
+  child : @argparse.Matches,
+) -> String raise ClientStop {
+  if child.flags.get("json").unwrap_or(false) {
+    encode_request_json(
+      Json::object(
+        Map([
+          (
+            "kind",
+            Json::string(
+              if adopted {
+                "local_host_adopted"
+              } else {
+                "local_host_connected"
+              },
+            ),
+          ),
+          ("mode", Json::string("local")),
+          ("accountId", Json::string(account_id)),
+          ("accountConfigurationCid", Json::string(configuration_cid)),
+          ("adoptionCid", Json::string(adoption_cid)),
+        ]),
+      ),
+      4096,
+    )
+  } else {
+    "Local Host " +
+    (if adopted { "adopted" } else { "connected" }) +
+    "; no Run has been admitted.\nAccount: " +
+    account_id +
+    "\nAdoption: " +
+    adoption_cid
+  }
 }

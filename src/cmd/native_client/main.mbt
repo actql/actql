@@ -73,6 +73,9 @@ fn text_file(
   name : String,
   maximum : Int64,
 ) -> String raise ClientStop {
+  if command_preparation_invocation.val is Some(original) {
+    return command_preparation_result(original.text_file(root, name, maximum))
+  }
   if initial_crypto_invocation.val is Some(original) && original.scope_open {
     return local_initial_crypto_text_file(original, root, name, maximum)
   }
@@ -1355,7 +1358,11 @@ extern "C" fn exit_failure_ffi() -> Unit = "actql_native_client_exit_failure"
 // domain retirement after this return still checks all original escaped users.
 fn execute_and_write_native_reply(
   matches : @argparse.Matches,
+  pending_reply : Ref[String?],
 ) -> Unit raise ClientStop {
+  // The same carrier is registered before the first project/runtime/Store IO.
+  // Help/version and parse errors have already terminated without acquisition.
+  prepare_native_command_invocation(matches)
   let selected = execute_native_project_selection(matches)
   let value = match selected {
     Ok(value) => value
@@ -1371,6 +1378,19 @@ fn execute_and_write_native_reply(
   if local_payload_already_streamed(matches) {
     return
   }
+  if command_preparation_invocation.val is Some(original) {
+    // Static metadata is copied only after leaving its original Read. Keep the
+    // same physical carrier and all aliases until main confirms every cleanup;
+    // a partial close must never publish an adoption/check success beforehand.
+    command_preparation_result(original.leave())
+    if original.journal_read_open ||
+      pending_reply.val is Some(_) ||
+      value.length() > 1048576 {
+      stop("LocalCommandReplyUnavailable")
+    }
+    pending_reply.val = Some(command_control_copy_text(value))
+    return
+  }
   let reply = if matches.subcommand is Some(("read", _)) {
     value
   } else {
@@ -1384,14 +1404,33 @@ fn execute_and_write_native_reply(
 
 ///|
 fn main {
-  let matches = command().parse() catch {
+  // Join the bounded raw input retained by the actual pre-module entry.
+  // Replaced argv cannot be adopted after the original startup observation.
+  // These selected Darwin input ceilings include argv0 and terminal bytes;
+  // they are not the initial-control or physical-capacity admission itself.
+  // Help/version and argument failure acquire no Host/Root/Read resources.
+  let selected_arguments = match
+    command_preargument_bound(1048576, 1048576, 1048576, 8192) {
+    Ok(selected) => selected
+    Err(_) => {
+      fail_command("LocalCommandArgumentsUnavailable")
+      abort("native Client original argument failure")
+    }
+  }
+  command_capture_native_entry()
+  let control = parse_native_initial_command(selected_arguments) catch {
     error => {
       fail_command(error.to_string())
       abort("native Client argument failure")
     }
   }
+  // At most one bounded UTF-16 metadata copy escapes into initial control.
+  // It overlaps the retained Read original until actual child cleanup ACKs.
+  let pending_reply : Ref[String?] = Ref(None)
   let failed = try {
-    execute_and_write_native_reply(matches)
+    control.consume_matches(matches => {
+      execute_and_write_native_reply(matches, pending_reply)
+    })
     false
   } catch {
     ClientStop(message) => {
@@ -1402,10 +1441,37 @@ fn main {
   }
   // stdout/flush, Library, component, context/domain/map, Host and FD retirement
   // are separate facts. An output or process exit never substitutes for ACK.
-  if !local_finish_initial_crypto() {
+  let command_cleanup = local_finish_command_preparation()
+  let command_closed = command_cleanup is Ok(_)
+  let crypto_closed = if command_closed {
+    local_finish_initial_crypto()
+  } else {
+    false
+  }
+  if command_cleanup is Err(issue) {
+    let stage = match command_preparation_invocation.val {
+      Some(original) => original.cleanup_stage
+      None => "original-retained"
+    }
+    fail_command(
+      "LocalCommandPreparationCleanupPending: " +
+      stage +
+      ": " +
+      command_preparation_cleanup_kind(issue),
+    )
+  }
+  if !crypto_closed {
     fail_command("InitialCryptoCleanupPending")
   }
   if failed {
     exit_failure_ffi()
   }
+  if pending_reply.val is Some(body) {
+    let bytes = @utf8.encode(body + "\n")
+    if !write_stdout_ffi(bytes, bytes.length()) {
+      fail_command("stdout write failed")
+    }
+    pending_reply.val = None
+  }
+  command_initial_control_keep_alive(control)
 }

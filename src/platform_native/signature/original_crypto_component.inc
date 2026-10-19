@@ -2,6 +2,7 @@
  * module independently of each Library borrow and never loads a replacement. */
 #include <pthread.h>
 #include <unistd.h>
+#include "../filesystem/observed_component_member.h"
 
 typedef int (*actql_component_bind_fn)(size_t, int *);
 typedef int (*actql_component_unit_fn)(void);
@@ -9,6 +10,8 @@ typedef void *(*actql_component_symbol_fn)(const char *);
 struct actql_original_crypto_component {
   void *module;
   void *context;
+  actql_native_command_platform_load *command_load;
+  actql_native_observed_component_member *command_member;
   pthread_t thread;
   pid_t process;
   int32_t diagnostic_ceiling;
@@ -30,6 +33,17 @@ static bool actql_crypto_original_current(actql_original_crypto_component *value
   return false;
 #endif
 }
+/* Normal use has the additional command bootstrap/member fence. Cleanup
+ * retains the original component/context predicate above, including when the
+ * Runtime has already closed its observed Roots; it cannot load or sign. */
+static bool actql_crypto_original_operational_current(actql_original_crypto_component *value) {
+  if (!actql_crypto_original_current(value)) return false;
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+  return !value->command_load || actql_native_command_platform_load_current(value->command_load);
+#else
+  return false;
+#endif
+}
 static bool actql_crypto_original_enter(actql_original_crypto_component *value) {
   return actql_crypto_original_current(value) && value->enter() == 0;
 }
@@ -43,7 +57,15 @@ static int actql_crypto_original_release_library(actql_original_crypto_component
   return result;
 }
 static void *actql_crypto_original_symbol(actql_original_crypto_component *value, const char *name) {
-  return actql_crypto_original_current(value) ? value->symbol(name) : NULL;
+  if (!actql_crypto_original_operational_current(value)) return NULL;
+  void *symbol = value->symbol(name);
+  if (symbol && value->command_load) {
+    Dl_info original, observed;
+    if (!dladdr((void *)value->symbol, &original) ||
+        !dladdr(symbol, &observed) || observed.dli_fbase != original.dli_fbase)
+      return NULL;
+  }
+  return symbol;
 }
 static void actql_crypto_original_finalize(void *raw) {
   (void)raw;
@@ -58,9 +80,9 @@ bool actql_native_crypto_component_scope_available(void) {
   return false;
 #endif
 }
-MOONBIT_FFI_EXPORT
-void *actql_native_crypto_component_load(moonbit_bytes_t path, int32_t length,
-                                         int64_t heap_bytes, int32_t ceiling) {
+static void *actql_native_crypto_component_load_original(
+    moonbit_bytes_t path, int32_t length, int64_t heap_bytes, int32_t ceiling,
+    actql_native_observed_component_member *member) {
   actql_original_crypto_component *value = moonbit_make_external_object(
     actql_crypto_original_finalize, sizeof(*value));
   memset(value, 0, sizeof(*value));
@@ -70,7 +92,18 @@ void *actql_native_crypto_component_load(moonbit_bytes_t path, int32_t length,
   if (!value->context || length <= 0 || length > 4096 || ceiling <= 0 ||
       heap_bytes <= 0 || (uint64_t)heap_bytes > SIZE_MAX || memchr(path, 0, length)) return value;
   char name[4097]; memcpy(name, path, length); name[length] = 0;
+  if (member) {
+    const char *expected = actql_native_observed_component_member_path(member);
+    if (!expected || strcmp(expected, name)) return value;
+    value->command_member = member; moonbit_incref(member);
+    value->command_load = actql_native_command_platform_begin_load(
+      actql_native_command_platform_current(), ACTQL_NATIVE_COMMAND_CRYPTO_COMPONENT, member);
+    if (!value->command_load) return value;
+  }
   value->module = dlopen(name, RTLD_NOW | RTLD_LOCAL);
+  if (value->command_load &&
+      !actql_native_command_platform_observe_load(value->command_load, value->module))
+    return value;
   if (!value->module) return value;
 #define COMPONENT(field, spelling) do { \
     dlerror(); *(void **)(&value->field) = dlsym(value->module, spelling); \
@@ -85,18 +118,42 @@ void *actql_native_crypto_component_load(moonbit_bytes_t path, int32_t length,
   COMPONENT(close, "actql_crypto_component_close");
   COMPONENT(symbol, "actql_crypto_component_symbol");
 #undef COMPONENT
+  if (member) {
+    Dl_info origin, symbol_origin;
+    if (!dladdr((void *)value->bind, &origin) ||
+        !actql_native_observed_component_member_image(member, origin.dli_fname) ||
+        !actql_native_command_platform_load_current(value->command_load)) return value;
+    const void *entries[] = {(void *)value->current, (void *)value->enter,
+      (void *)value->leave, (void *)value->borrow, (void *)value->release,
+      (void *)value->close, (void *)value->symbol};
+    for (size_t i = 0; i < sizeof(entries) / sizeof(entries[0]); i++)
+      if (!dladdr(entries[i], &symbol_origin) ||
+          symbol_origin.dli_fbase != origin.dli_fbase) return value;
+  }
   int acquired = 0;
   int result = value->bind((size_t)heap_bytes, &acquired);
   value->binding_owned = acquired == 1;
   value->ready = value->binding_owned && result == 0;
 #else
-  (void)path; (void)length; (void)heap_bytes;
+  (void)path; (void)length; (void)heap_bytes; (void)member;
 #endif
   return value;
 }
 MOONBIT_FFI_EXPORT
+void *actql_native_crypto_component_load(moonbit_bytes_t path, int32_t length,
+                                         int64_t heap_bytes, int32_t ceiling) {
+  return actql_native_crypto_component_load_original(path, length, heap_bytes, ceiling, NULL);
+}
+MOONBIT_FFI_EXPORT
+void *actql_native_crypto_component_load_command(moonbit_bytes_t path, int32_t length,
+    int64_t heap_bytes, int32_t ceiling, actql_native_observed_component_member *member) {
+  /* A missing command member cannot select the legacy diagnostic entrance. */
+  if (!member) return NULL;
+  return actql_native_crypto_component_load_original(path, length, heap_bytes, ceiling, member);
+}
+MOONBIT_FFI_EXPORT
 bool actql_native_crypto_component_ready(actql_original_crypto_component *value) {
-  return actql_crypto_original_current(value);
+  return actql_crypto_original_operational_current(value);
 }
 /* Original association only, including a partial or already closed Library.
  * It neither enters a scope nor turns currentness/cleanup into an ACK. The
@@ -121,10 +178,21 @@ int32_t actql_native_crypto_component_close(actql_original_crypto_component *val
   if (value->binding_owned && value->close() != 0) return 1;
   /* Component ACK is not dlclose ACK. A failed dlclose stays sticky and is
    * never retried or repaired through another module load. */
-  if (value->module && dlclose(value->module) != 0) {
+  void *module = value->module;
+  if (module && dlclose(module) != 0) {
     value->close_unconfirmed = true; return 3;
   }
-  value->module = NULL; value->ready = false; value->closed = true;
+  value->module = NULL;
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+  if (value->command_load &&
+      !actql_native_command_platform_module_released(value->command_load, module)) {
+    value->close_unconfirmed = true; return 3;
+  }
+#endif
+  if (value->command_member) {
+    moonbit_decref(value->command_member); value->command_member = NULL;
+  }
+  value->ready = false; value->closed = true;
   return 0;
 }
 MOONBIT_FFI_EXPORT
@@ -135,7 +203,7 @@ void *actql_native_crypto_component_library(actql_original_crypto_component *val
   library->original_allocator = true;
   library->component = value; moonbit_incref(value);
   library->diagnostic_ceiling = value->diagnostic_ceiling;
-  if (!actql_crypto_original_current(value) || value->libraries == UINT32_MAX) return library;
+  if (!actql_crypto_original_operational_current(value) || value->libraries == UINT32_MAX) return library;
   ACTQL_SIGNATURE_SCOPE(library, library);
   if (value->borrow() != 0) return library;
   value->libraries++; library->component_borrowed = true; library->dynamic_library = value->module;

@@ -56,7 +56,8 @@ int main(void) {
 }
 `);
   const compile = spawnSync('/usr/bin/clang', ['-Wall', '-Wextra', '-Werror',
-    `-I${join(resolve(moonHome), 'include')}`, fixture, '-o', executable],
+    `-I${join(resolve(moonHome), 'include')}`, fixture,
+    join(resolve(moonHome), 'lib/libmoonbitrun.o'), '-o', executable],
   {encoding: 'utf8', timeout: 10000});
   assert.ifError(compile.error);
   assert.equal(compile.status, 0, compile.stderr);

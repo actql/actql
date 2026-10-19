@@ -35,7 +35,11 @@ pub fn prepare_native_local_journal_capture_with_original_resources(
       active_phase: None,
       interrupted: false,
     }),
+    command_preparation_journal: false,
+    initial_signing: None,
+    read_operation_issue: None,
     opening_database: None,
+    opening_physical_failure: None,
     opening_inspection: None,
     crypto,
     ttl_ms,
@@ -45,6 +49,28 @@ pub fn prepare_native_local_journal_capture_with_original_resources(
     closing: false,
     cleanup_acknowledged: false,
   }
+}
+
+///|
+/// Carry the actual explicit first-initialization key and policy into the same
+/// Journal capture. Only its original durable marker can select initialization;
+/// retained/ambiguous originals refuse these inputs rather than regenerating.
+pub fn prepare_native_local_initial_journal_capture_with_original_resources(
+  session : NativeLocalAdoptionSession,
+  host : @arena.InstalledArenaHost,
+  pair : @arena.InstalledArenaLocalHostResources,
+  read : @arena.InstalledArenaOriginalRead,
+  crypto : @crypto.Library,
+  material : NativeLocalInitialSigningMaterial,
+  policy : @host.ClientLocalSigningBootstrapPolicy,
+  ttl_ms : Double,
+  max_records : Int,
+  max_snapshot_bytes : Int64,
+) -> NativeLocalJournalCapture {
+  let capture = prepare_native_local_journal_capture_with_original_resources(
+    session, host, pair, read, crypto, ttl_ms, max_records, max_snapshot_bytes,
+  )
+  { ..capture, initial_signing: Some((material, policy)), }
 }
 
 ///|
@@ -138,8 +164,10 @@ fn NativeLocalJournalCapture::open_original_journal(
       let failure = self.session.retain_journal_open_failure_with_resources(
         retained,
         Some(original),
+        physical_open_failure=self.opening_physical_failure,
       )
       self.opening_database = None
+      self.opening_physical_failure = None
       self.opening_inspection = None
       Err(failure)
     }
@@ -151,7 +179,7 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
   self : NativeLocalJournalCapture,
   original : NativeLocalJournalOriginalResources,
 ) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
-  if !self.session.existing_only ||
+  if (!self.session.existing_only && self.initial_signing is None) ||
     !valid_local_journal_options(
       self.ttl_ms,
       self.max_records,
@@ -181,15 +209,21 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
-  // Existing-only marker admission cannot select initial schema/key capture.
-  // Retained inspection still uses the original SQLite Owner and full audit.
+  // Only the actual original marker selects first initialization. Existing
+  // Session admission and retained inspection keep missing/copy refusals.
   let first = if marker {
-    return Err(CustodyLost)
+    if self.session.existing_only {
+      return Err(CustodyLost)
+    }
+    true
   } else {
     match self.inspect_original_retained_journal(original, library) {
       Err(issue) => return Err(issue)
       Ok(value) => value
     }
+  }
+  if !first && self.initial_signing is Some(_) {
+    return Err(AmbiguousInitialization)
   }
   match
     original.stage(@arena.HostRead, fn() { self.session.check_original() }) {
@@ -198,12 +232,42 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
   }
   let database = match
     original.stage(@arena.HostSqlite, fn() {
-      match
-        library.open_existing_database(
-          self.session.state_path + "/client.sqlite3",
-          131072L,
-        ) {
-        Err(issue) => Err(Physical(issue))
+      let opening : Result[@sqlite.Database, NativeLocalAdoptionIssue] = if self.command_preparation_journal {
+        let selected = if first {
+          library.initialize_owned_journal_database_with_custody(
+            self.session.state_path + "/client.sqlite3",
+            ownership,
+            131072L,
+          )
+        } else {
+          library.open_existing_journal_database_with_custody(
+            self.session.state_path + "/client.sqlite3",
+            131072L,
+          )
+        }
+        match selected {
+          Ok(database) => Ok(database)
+          Err(failure) => {
+            self.opening_physical_failure = Some(failure)
+            Err(Physical(failure.issue()))
+          }
+        }
+      } else {
+        (if first {
+          library.initialize_owned_database(
+            self.session.state_path + "/client.sqlite3",
+            ownership,
+            131072L,
+          )
+        } else {
+          library.open_existing_database(
+            self.session.state_path + "/client.sqlite3",
+            131072L,
+          )
+        }).map_err(issue => Physical(issue))
+      }
+      match opening {
+        Err(issue) => Err(issue)
         Ok(database) => {
           self.opening_database = Some(database)
           Ok(database)
@@ -219,16 +283,31 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
     Ok(_) => ()
   }
   let (epoch, journal) = match
-    original.audit_read_stage(database, fn(reads) {
+    original.bootstrap_read_stage(database, fn(bootstrap) {
+      let initial = match self.initial_signing {
+        None => None
+        Some((material, policy)) =>
+          match
+            self.session.prepare_initial_signing_capture(
+              material,
+              policy,
+              self.crypto,
+              adoption_body,
+            ) {
+            Err(issue) => return Err(issue)
+            Ok(value) => Some(value)
+          }
+      }
       self.session.bind_journal_sqlite_originals(
         database,
         self.crypto,
         adoption_body,
         first,
-        None,
+        initial,
         self.ttl_ms,
         self.max_records,
-        reads=Some(reads),
+        reads=Some(bootstrap.reads),
+        bootstrap=Some(bootstrap),
       )
     }) {
     Err(issue) => return Err(issue)

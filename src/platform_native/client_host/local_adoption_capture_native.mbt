@@ -45,6 +45,7 @@ struct NativeLocalAdoptionCapture {
   input : NativeLocalExistingAdoptionInput
   crypto : @crypto.Library
   root_opening : NativeLocalAdoptionRootOpening
+  existing_only : Bool
   original : NativeLocalAdoptionOpenFailure
   mut opening : NativeLocalAdoptionCaptureOpening
   mut journal : NativeLocalJournalCapture?
@@ -64,6 +65,7 @@ fn prepare_local_existing_adoption_capture(
   input : NativeLocalExistingAdoptionInput,
   crypto : @crypto.Library,
   root_opening : NativeLocalAdoptionRootOpening,
+  existing_only? : Bool = true,
 ) -> Result[NativeLocalAdoptionCapture, NativeLocalAdoptionIssue] {
   // Reuse the existing configuration limit before copying caller-owned DATA.
   // Selection, ordering and all physical validation remain in Adoption itself.
@@ -78,6 +80,7 @@ fn prepare_local_existing_adoption_capture(
     input: snapshot,
     crypto,
     root_opening,
+    existing_only,
     original: new_local_adoption_open_failure(),
     opening: AdoptionNotAttempted,
     journal: None,
@@ -112,6 +115,23 @@ pub fn prepare_native_local_existing_adoption_capture_in_current_read_context(
 }
 
 ///|
+/// Explicit trusted installer only. This retains the same original constructor
+/// before its first attempt. The original intent, marker and Account admission
+/// still decide initialization; a path or a scope never authorizes repair.
+pub fn prepare_native_local_initial_adoption_capture_in_current_read_context(
+  input : NativeLocalExistingAdoptionInput,
+  crypto : @crypto.Library,
+  diagnostic_ceiling : Int,
+) -> Result[NativeLocalAdoptionCapture, NativeLocalAdoptionIssue] {
+  prepare_local_existing_adoption_capture(
+    input,
+    crypto,
+    CurrentOriginalReadRoots(diagnostic_ceiling),
+    existing_only=false,
+  )
+}
+
+///|
 fn NativeLocalAdoptionCapture::reply(
   self : NativeLocalAdoptionCapture,
   operation : NativeLocalAdoptionCaptureOperation,
@@ -142,7 +162,7 @@ pub fn NativeLocalAdoptionCapture::open(
         self.crypto,
         configuration_files=self.input.configuration_files,
         managed_root_path=self.input.managed_root_path,
-        existing_only=true,
+        existing_only=self.existing_only,
         custody=Some(self.original),
         root_opening=self.root_opening,
       ) {
@@ -224,11 +244,63 @@ pub fn NativeLocalAdoptionCapture::capture_journal_with_original_resources(
   max_records : Int,
   max_snapshot_bytes : Int64,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
+  self.capture_original_journal_resources(
+    host,
+    resources,
+    read,
+    ttl_ms,
+    max_records,
+    max_snapshot_bytes,
+    false,
+    None,
+  )
+}
+
+///|
+/// The finite Native command-preparation operational selection only. The
+/// original acquired Session/Lock, same claimed pair and current checks remain
+/// mandatory. It neither selects a generic SQLite mode nor issues authority.
+pub fn NativeLocalAdoptionCapture::capture_command_journal_with_original_resources(
+  self : NativeLocalAdoptionCapture,
+  host : @arena.InstalledArenaHost,
+  resources : @arena.InstalledArenaLocalHostResources,
+  read : @arena.InstalledArenaOriginalRead,
+  ttl_ms : Double,
+  max_records : Int,
+  max_snapshot_bytes : Int64,
+) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
+  self.capture_original_journal_resources(
+    host,
+    resources,
+    read,
+    ttl_ms,
+    max_records,
+    max_snapshot_bytes,
+    true,
+    None,
+  )
+}
+
+///|
+fn NativeLocalAdoptionCapture::capture_original_journal_resources(
+  self : NativeLocalAdoptionCapture,
+  host : @arena.InstalledArenaHost,
+  resources : @arena.InstalledArenaLocalHostResources,
+  read : @arena.InstalledArenaOriginalRead,
+  ttl_ms : Double,
+  max_records : Int,
+  max_snapshot_bytes : Int64,
+  command_preparation_journal : Bool,
+  initial_signing : (
+    NativeLocalInitialSigningMaterial,
+    @host.ClientLocalSigningBootstrapPolicy,
+  )?,
+) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
   let session = match self.journal_capture_session() {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
-  let journal = prepare_native_local_journal_capture_with_original_resources(
+  let prepared = prepare_native_local_journal_capture_with_original_resources(
     session,
     host,
     resources,
@@ -238,8 +310,62 @@ pub fn NativeLocalAdoptionCapture::capture_journal_with_original_resources(
     max_records,
     max_snapshot_bytes,
   )
+  let journal = { ..prepared, command_preparation_journal, initial_signing, }
   self.journal = Some(journal)
   Ok(journal)
+}
+
+///|
+/// Retain the actual first-initialization material in this same child before
+/// returning it. The Journal's original durable marker still decides whether
+/// initialization is permitted; this entrance cannot replace retained state.
+pub fn NativeLocalAdoptionCapture::capture_initial_journal_with_original_resources(
+  self : NativeLocalAdoptionCapture,
+  host : @arena.InstalledArenaHost,
+  resources : @arena.InstalledArenaLocalHostResources,
+  read : @arena.InstalledArenaOriginalRead,
+  material : NativeLocalInitialSigningMaterial,
+  policy : @host.ClientLocalSigningBootstrapPolicy,
+  ttl_ms : Double,
+  max_records : Int,
+  max_snapshot_bytes : Int64,
+) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
+  self.capture_original_journal_resources(
+    host,
+    resources,
+    read,
+    ttl_ms,
+    max_records,
+    max_snapshot_bytes,
+    false,
+    Some((material, policy)),
+  )
+}
+
+///|
+/// The same explicit initialization materials and durable marker rules as the
+/// original entrance, with the command-only Journal operational selection.
+pub fn NativeLocalAdoptionCapture::capture_initial_command_journal_with_original_resources(
+  self : NativeLocalAdoptionCapture,
+  host : @arena.InstalledArenaHost,
+  resources : @arena.InstalledArenaLocalHostResources,
+  read : @arena.InstalledArenaOriginalRead,
+  material : NativeLocalInitialSigningMaterial,
+  policy : @host.ClientLocalSigningBootstrapPolicy,
+  ttl_ms : Double,
+  max_records : Int,
+  max_snapshot_bytes : Int64,
+) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
+  self.capture_original_journal_resources(
+    host,
+    resources,
+    read,
+    ttl_ms,
+    max_records,
+    max_snapshot_bytes,
+    true,
+    Some((material, policy)),
+  )
 }
 
 ///|

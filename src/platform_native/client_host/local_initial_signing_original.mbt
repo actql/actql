@@ -131,6 +131,7 @@ fn NativeLocalInitialSigningCapture::control_body(
   database : @sqlite.Database,
   crypto : @crypto.Library,
   adoption : Bytes,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
   try {
     local_initial_signing_value(self.check_current(crypto, adoption))
@@ -138,7 +139,12 @@ fn NativeLocalInitialSigningCapture::control_body(
       return Err(ConfigurationLimit)
     }
     let packet = local_initial_signing_value(
-      local_installation_packet_in_transaction(database, crypto, self.payload),
+      local_installation_packet_in_transaction(
+        database,
+        crypto,
+        self.payload,
+        reads~,
+      ),
     )
     // Closed alternative in the same host control row. The legacy raw adoption
     // body, issued count, setting reservations and all existing rows are intact.

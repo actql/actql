@@ -171,3 +171,52 @@ pub fn NativeFileObservation::check_reader(
     Err(GenerationMismatch)
   }
 }
+
+///|
+/// Private command-loader observation. It carries existing Root/stat aliases,
+/// not an initial operational original or permission to call the loader.
+type NativeObservedComponentMember
+
+///|
+#borrow(root, stat, name, source, manifest, digest)
+extern "C" fn observed_component_member_ffi(
+  root : Root,
+  stat : NativeObservedFileStat,
+  name : Bytes,
+  length : Int,
+  kind : Int,
+  source : Bytes,
+  manifest : Bytes,
+  digest : Bytes,
+) -> NativeObservedComponentMember = "actql_native_filesystem_observed_component_member"
+
+///|
+/// Internal Runtime assembly only: the caller has already checked the complete
+/// Reader digest against the admitted member. This projection supplies physical
+/// file correspondence; the trusted entry must independently admit its original
+/// initial envelope before any selected load.
+pub fn NativeFileObservation::command_component_member(
+  self : NativeFileObservation,
+  kind : Int,
+  source : String,
+  manifest : String,
+  digest : String,
+) -> Result[NativeObservedComponentMember, NativeFilesystemIssue] {
+  match self.check_current() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let name = @utf8.encode(self.name)
+  Ok(
+    observed_component_member_ffi(
+      self.root,
+      self.stat,
+      name,
+      name.length(),
+      kind,
+      @utf8.encode(source),
+      @utf8.encode(manifest),
+      @utf8.encode(digest),
+    ),
+  )
+}

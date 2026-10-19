@@ -145,11 +145,11 @@
   "provider_source_inputs": [
     {
       "source": "owned_capacity.c",
-      "sha256": "94fc7c474f2526db000cd98e0c0f80df097d829e1c5eae5f6b21f40916eace9c"
+      "sha256": "74d077db123fbb1ecb49ab9e8e5e08ecfdbdcf567e5360963aac16317749b24a"
     },
     {
       "source": "owned_capacity.h",
-      "sha256": "48bae3d28fc913d1eccf7b42487d9515d1935567c7aabc3ff8a2fa10b7065278"
+      "sha256": "0eff61d19679bbee232e6fc5089a24d3ab17a8f1ff46fb6ac49eb5a5ec1b6308"
     },
     {
       "source": "owned_image.c",
@@ -161,7 +161,7 @@
     },
     {
       "source": "owned_region.inc",
-      "sha256": "1d980cf798f7df52651cbed8639af2240e3b4cd87c4753b360f025ffa9279776"
+      "sha256": "aebd7984b3c8ec28ecc4507684a3bd11d438e4d05fcbe2151daf6085cc36d6fe"
     },
     {
       "source": "owned_domain_borrow.h",
