@@ -68,6 +68,16 @@ the exact retained owners once; semantic/definition hashes, Values payloads and
 resource metadata use the original cumulative artifact allowance.
 
 Only fully connected static paths produce `Verified` in template scope.
+Source-free Group pipelines use the existing bound Group rule selector for
+partitioning, aggregate demand and result-contract checks. Authoring retains the
+same original operation, validation occurrence and checked aggregate together
+with its selected rule. These are future execution checks, not observations of
+rows or evidence that a result has been produced. They consume the ordinary
+requirement budget; missing Parameter values remain separate original inputs.
+Numeric-observation requirements and collection bounds without their selected
+owners stay unresolved. A Group name alone never permits deferring them, and
+neither declaration defaults nor invented rows discharge them.
+
 Unconnected operations, incoming gates, Source/Local/Table inputs, missing resource
 material and exhausted budgets retain the original scope as `Unresolved`.
 These are implementation/preparation limits, not new language restrictions or
