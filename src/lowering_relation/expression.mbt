@@ -135,6 +135,7 @@ pub(all) enum ManyOperator {
   LPad
   RPad
   Between
+  DateDifference
 } derive(Eq, Debug)
 
 ///|
@@ -332,7 +333,8 @@ fn expression_tag(
     | "vector_concat"
     | "cast"
     | "if"
-    | "case" => ()
+    | "case"
+    | "date_diff" => ()
     "array" | "empty_array" | "object" | "property" | "subscript" => ()
     other => expression_fail(source, ExpressionNotImplemented(other))
   }
@@ -1057,6 +1059,7 @@ fn lower_typed_expression_measured(
         "atan2" => Binary(Atan2, args[0], args[1])
         "log" => Binary(Log, args[0], args[1])
         "strpos" => Binary(Strpos, args[0], args[1])
+        "date_diff" => Many(DateDifference, args)
         "starts_with" => Binary(StartsWith, args[0], args[1])
         "ends_with" => Binary(EndsWith, args[0], args[1])
         "eq" => Binary(Equal, args[0], args[1])
