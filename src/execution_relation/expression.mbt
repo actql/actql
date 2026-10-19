@@ -51,6 +51,7 @@ priv enum Continuation {
   Array(ArrayExpressionState)
   Object(ObjectExpressionState)
   Cast(@lower.Expression, @lower.Expression)
+  TryDecimal(@lower.Expression, @lower.Expression)
   Left(@lower.Expression, @lower.BinaryOperator, @lower.Expression)
   Right(@lower.Expression, @lower.BinaryOperator, Value, ExpressionRootLease?)
   VectorLeft(@lower.Expression, @lower.VectorMetric, @lower.Expression)
@@ -665,7 +666,11 @@ fn advance_expression_frame_impl(
             frame.state = Enter(child)
           }
           Unary(op, child) => {
-            frame.stack.push(Unary(expr, op))
+            if op == @lower.TryDecimal {
+              frame.stack.push(TryDecimal(expr, child))
+            } else {
+              frame.stack.push(Unary(expr, op))
+            }
             frame.state = Enter(child)
           }
           Binary(op, left, right) => {
@@ -1309,14 +1314,21 @@ fn advance_expression_frame_impl(
               Err(e) => return Err({ kind: Scalar(e), expression: expr, })
             }
           }
-          Cast(expr, child) => {
+          Cast(expr, child) | TryDecimal(expr, child) => {
+            let decimal_failure_null = continuation is TryDecimal(_, _)
             release_slots(workspace, 1)
             frame.active = expr
             if charge_value(value, frame.current_root) is Some(issue) {
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
             let converted = match
-              cast_expression_value(expr, child, value, budget) {
+              cast_expression_value(
+                expr,
+                child,
+                value,
+                budget,
+                decimal_failure_null~,
+              ) {
               Ok(value) => value
               Err(issue) => return Err(issue)
             }

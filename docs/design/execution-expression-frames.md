@@ -124,3 +124,16 @@ is reserved before integer and formatting scratch; those slots are not physical
 byte capacity. Generated calendar values return through the original Value
 owner and the original result contract. Timestamp/Date value identities, Run
 clocks, ordinary DATE_DIFF and physical authority remain separate.
+
+### Nullable exact Decimal conversion
+
+TRY_DECIMAL uses one existing child frame and a dedicated continuation with the
+same expression/child references as CAST. The original checked nullable Decimal
+contract supplies precision and scale. It reuses CAST conversion work, variable
+operand preflight, logical charges and original-root release; only the final
+unrepresentable-conversion result becomes NULL. Child, control, logical and
+workspace failures leave through their original errors before this boundary.
+No general error catch or frontend conversion is introduced. Cancellation
+retains caller input and releases only the frame's temporary holdings. Conversion
+scratch and original operand/result aliases overlap under the existing phase;
+a slot bound or logical release is not physical byte capacity or cleanup ACK.

@@ -278,6 +278,7 @@ fn scalar_call(
     "TO_BOOLEAN" => ("TO_BOOLEAN", "to_boolean", 1, 1)
     "TO_TIMESTAMP" => ("TO_TIMESTAMP", "to_timestamp", 1, 1)
     "TO_DECIMAL" => ("TO_DECIMAL", "to_decimal", 1, 3)
+    "TRY_DECIMAL" => ("TRY_DECIMAL", "try_decimal", 1, 3)
     "SPLIT" => ("SPLIT", "split", 1, 2)
     "SUBSTR" | "SUBSTRING" => ("SUBSTR", "substring", 2, 3)
     "LEFT" => ("LEFT", "left", 2, 2)
@@ -686,13 +687,15 @@ fn append_resolved(
               if args.length() < minimum || args.length() > maximum {
                 raise Abort(InvalidArguments)
               }
-              if name == "to_decimal" && args.length() == 1 {
+              if ["to_decimal", "try_decimal"].contains(name) &&
+                args.length() == 1 {
                 // The public lookup also lists an omitted-target spelling.
                 // This explicit-target connection cannot invent its P/S.
                 // Keep that existing implementation frontier, not a new ban.
                 raise Abort(UnsupportedFunction)
               }
-              if name == "to_decimal" && args.length() != 3 {
+              if ["to_decimal", "try_decimal"].contains(name) &&
+                args.length() != 3 {
                 raise Abort(InvalidArguments)
               }
               if name == "date_trunc" &&
@@ -727,7 +730,7 @@ fn append_resolved(
                     ),
                   ]),
                 )
-              } else if name == "to_decimal" {
+              } else if name == "to_decimal" || name == "try_decimal" {
                 // Precision/scale are the existing literal target role, not
                 // evaluated operands or inferred properties of the input.
                 guard numbers[args[1]] is Some(precision) &&
@@ -744,20 +747,31 @@ fn append_resolved(
                   current = @query.expression_origin(ast, args[2])
                   raise Abort(InvalidArguments)
                 }
-                lowering.form(
-                  "cast",
-                  lowering.object([
-                    ("value", nodes[args[0]]),
-                    (
-                      "target",
-                      lowering.object([
-                        ("type", lowering.add(String("decimal"))),
-                        ("precision", lowering.add(Number(precision))),
-                        ("scale", lowering.add(Number(scale))),
-                      ]),
-                    ),
-                  ]),
-                )
+                if name == "try_decimal" {
+                  lowering.form(
+                    "try_decimal",
+                    lowering.object([
+                      ("value", nodes[args[0]]),
+                      ("precision", lowering.add(Number(precision))),
+                      ("scale", lowering.add(Number(scale))),
+                    ]),
+                  )
+                } else {
+                  lowering.form(
+                    "cast",
+                    lowering.object([
+                      ("value", nodes[args[0]]),
+                      (
+                        "target",
+                        lowering.object([
+                          ("type", lowering.add(String("decimal"))),
+                          ("precision", lowering.add(Number(precision))),
+                          ("scale", lowering.add(Number(scale))),
+                        ]),
+                      ),
+                    ]),
+                  )
+                }
               } else if name == "date_trunc" {
                 // SQL/Pipe has value-first spelling. Only the admitted literal
                 // unit moves into the unchanged Common unit-first body.

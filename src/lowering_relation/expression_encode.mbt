@@ -181,6 +181,22 @@ fn emit_frames(
             pending.push(EndObject)
             pending.push(Expr(child))
           }
+          Unary(TryDecimal, arg) => {
+            // Preserve the existing distinct closed operation shape. P/S are
+            // projected from the original checked result, not caller data.
+            guard expr.contract.shape is @contract.Decimal(precision~, scale~) else {
+              raise @encode.InvalidStructure
+            }
+            pending.push(Op("try_decimal"))
+            @encode.begin_object(output)
+            @encode.key(output, "precision")
+            @encode.number_value(output, precision.to_double())
+            @encode.key(output, "scale")
+            @encode.number_value(output, scale.to_double())
+            @encode.key(output, "value")
+            pending.push(EndObject)
+            pending.push(Expr(arg))
+          }
           Unary(op, arg) => {
             pending.push(
               Op(
@@ -214,6 +230,7 @@ fn emit_frames(
                   Round => "round"
                   Trunc => "trunc"
                   SafeNegate => "safe_negate"
+                  TryDecimal => raise @encode.InvalidStructure
                   Not => "not"
                   IsNull => "is_null"
                   NotNull => "not_null"
