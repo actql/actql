@@ -1173,6 +1173,7 @@ pub(all) enum BinaryOperator {
   NullIf
   In
   NotIn
+  Contains
 } derive(Eq, @debug.Debug)
 
 pub struct BindingIssue {

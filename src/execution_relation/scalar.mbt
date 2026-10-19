@@ -390,7 +390,7 @@ pub fn binary(
   match op {
     // Text operations run through their retained, bounded cursor.
     // This scalar fallback handles only its NULL and invalid-domain cases.
-    Strpos | StartsWith | EndsWith | TrimSet | LTrimSet | RTrimSet =>
+    Contains | Strpos | StartsWith | EndsWith | TrimSet | LTrimSet | RTrimSet =>
       if left is Null || right is Null {
         Ok(Null)
       } else {
@@ -489,7 +489,8 @@ pub fn binary(
         | RTrimSet
         | Strpos
         | StartsWith
-        | EndsWith => Err(InvalidOperand)
+        | EndsWith
+        | Contains => Err(InvalidOperand)
       }
       // Only this already-evaluated arithmetic operation is safe. Child,
       // operand-domain, control, cancellation and custody failures keep their
@@ -572,7 +573,8 @@ fn binary_comparison_result(
     | RTrimSet
     | Strpos
     | StartsWith
-    | EndsWith => Err(InvalidOperand)
+    | EndsWith
+    | Contains => Err(InvalidOperand)
   }
 }
 

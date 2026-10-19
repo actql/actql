@@ -277,6 +277,7 @@ fn scalar_call(
     "RIGHT" => ("RIGHT", "right", 2, 2)
     "LPAD" => ("LPAD", "lpad", 2, 3)
     "RPAD" => ("RPAD", "rpad", 2, 3)
+    "CONTAINS" => ("CONTAINS", "contains", 2, 2)
     "STARTS_WITH" => ("STARTS_WITH", "starts_with", 2, 2)
     "ENDS_WITH" => ("ENDS_WITH", "ends_with", 2, 2)
     "FLOOR" => ("FLOOR", "floor", 1, 1)

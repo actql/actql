@@ -113,6 +113,7 @@ pub(all) enum BinaryOperator {
   NullIf
   In
   NotIn
+  Contains
 } derive(Eq, Debug)
 
 ///|
@@ -294,6 +295,7 @@ fn expression_tag(
     | "atan2"
     | "log"
     | "strpos"
+    | "contains"
     | "starts_with"
     | "ends_with"
     | "eq"
@@ -1060,6 +1062,7 @@ fn lower_typed_expression_measured(
         "log" => Binary(Log, args[0], args[1])
         "strpos" => Binary(Strpos, args[0], args[1])
         "date_diff" => Many(DateDifference, args)
+        "contains" => Binary(Contains, args[0], args[1])
         "starts_with" => Binary(StartsWith, args[0], args[1])
         "ends_with" => Binary(EndsWith, args[0], args[1])
         "eq" => Binary(Equal, args[0], args[1])

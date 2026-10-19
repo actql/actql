@@ -1356,7 +1356,8 @@ fn advance_expression_frame_impl(
               }
               continue
             }
-            if op == @lower.Strpos ||
+            if op == @lower.Contains ||
+              op == @lower.Strpos ||
               op == @lower.TrimSet ||
               op == @lower.LTrimSet ||
               op == @lower.RTrimSet {
@@ -1378,6 +1379,8 @@ fn advance_expression_frame_impl(
                     TextLTrim
                   } else if op == @lower.RTrimSet {
                     TextRTrim
+                  } else if op == @lower.Contains {
+                    TextContains
                   } else {
                     TextStrpos
                   },
