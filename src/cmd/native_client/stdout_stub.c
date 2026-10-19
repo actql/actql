@@ -124,7 +124,7 @@ int32_t actql_native_client_status_watch_progress(moonbit_bytes_t bytes, int32_t
 
 // Build metadata only. The trusted Local producer pins this immutable literal
 // to its exact compiled source; it is not installation/current authority. A raw
-// preargument constructor may borrow it without a Moon String allocation. The
+// bounded input capture may borrow it without a Moon String allocation. The
 // ordinary unselected diagnostic build supplies no synthetic replacement pin.
 const char *actql_native_client_selected_source(void) {
 #ifdef ACTQL_NATIVE_CLIENT_SOURCE_SHA
