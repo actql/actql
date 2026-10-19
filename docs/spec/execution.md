@@ -1810,6 +1810,24 @@ All ordinary credential, egress, resource, currentness and approval checks
 remain required. An unreadable, invalid or revoked configuration is refused,
 not treated as absence or a request to restore the bootstrap profile.
 
+For trusted explicit initial Local Mock selection, the limited shared profile is
+`actql-local-mock` version `0.1`, with original body CID
+`sha256:fe8f88f3465a18456678bf9bf32943dcc4e4a8654b6d449f0c6af174fffd7e3a`.
+Its [Common body and materializer](../../src/execution_authorization/local_mock_profile.mbt)
+instantiate only finite principal/connection/resource/operation tuples for the
+same selected Project and actual Mock installation: selected Source reads,
+exact Mock Task inference/answer retention, original Local request/control,
+and purpose-confined signing. The selected UPDATE uses `delegate`, never
+automatic approval. The original Host request-protection `write` tuple is
+distinct from a Source or Effect target and MUST NOT name either in its place.
+Profile bytes, aliases and equal CIDs do not establish a Mock backend or current
+authority. Merely discovered configuration or Program text is not trusted
+selection consent. Existing initialization intent, exclusive creation,
+confirmation and durable adoption precede protected use; current operator
+configuration remains authoritative, and missing adopted state is not regrant
+or rekey permission. Missing signer blocks signing/approval, not independently
+permitted read/inference. Saved Runs retain their originals.
+
 <!-- requirement-block: policy-routing.a-technical-decision-failure-must-not-dispatch-or-record-a-rejection -->
 Initial denial and later denial are distinct. A denial or technical decision
 failure before Run creation follows [Checkpoints and Resolutions](#checkpoints).
