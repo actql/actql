@@ -358,25 +358,38 @@ fn NativeLocalStoreOperationReceiver::begin_cleanup(
   original.store_operation = Some(self)
   self.closing = true
   self.ready = false
-  if self.business_pending {
-    match original.host.leave_domain_retained_execution(self.execution) {
-      Err(issue) =>
-        // A failed original C entry can retain only its nominal attempt. The
-        // existing cleanup port verifies this SAME context/lease had no C
-        // entry, unwinds its saved preparation scope, and never revives use.
-        match
-          original.host.finish_domain_retained_execution_failed_entry_cleanup(
-            self.execution,
-          ) {
-          Err(cleanup) => {
-            self.refuse(StoreOperationExecution(issue)) |> ignore
-            self.refuse(StoreOperationExecution(cleanup)) |> ignore
-            return Err(self.primary.unwrap_or(StoreOperationUnavailable))
+  let business_scope = match
+    original.host.observe_domain_retained_execution_scope(self.execution) {
+    Ok(scope) => Ok(scope)
+    Err(_) =>
+      original.host.observe_domain_retained_execution_cleanup_scope(
+        self.execution,
+      )
+  }
+  match business_scope {
+    Ok(@bootstrap.BackedReadUnentered) => self.business_pending = false
+    Ok(@bootstrap.BackedReadEntered) | Err(_) =>
+      // A successful prior resume can leave the real business frame entered
+      // after its attempted-switch latch cleared. Observe that same frame;
+      // neither the latch nor a failed observation proves it was left.
+      match original.host.leave_domain_retained_execution(self.execution) {
+        Err(issue) =>
+          // A failed original C entry can retain only its nominal attempt. The
+          // existing cleanup port verifies this SAME context/lease had no C
+          // entry, unwinds its saved preparation scope, and never revives use.
+          match
+            original.host.finish_domain_retained_execution_failed_entry_cleanup(
+              self.execution,
+            ) {
+            Err(cleanup) => {
+              self.refuse(StoreOperationExecution(issue)) |> ignore
+              self.refuse(StoreOperationExecution(cleanup)) |> ignore
+              return Err(self.primary.unwrap_or(StoreOperationUnavailable))
+            }
+            Ok(_) => self.business_pending = false
           }
-          Ok(_) => self.business_pending = false
-        }
-      Ok(_) => self.business_pending = false
-    }
+        Ok(_) => self.business_pending = false
+      }
   }
   match original.finish_pending_store_leave(self) {
     Err(issue) => return Err(StoreOperationCapture(issue))
