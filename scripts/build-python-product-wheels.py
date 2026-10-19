@@ -10,6 +10,10 @@ from pathlib import Path
 import subprocess
 import sys
 import zipfile
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from actql_sdk._local_image_recipe import _SelectedImageRecipe
 
 from python_release_cohort import read_cohort
 from python_interface_inventory import wheel_source_correspondence
@@ -76,7 +80,8 @@ def wheel_metadata(path: Path, name: str, version: str) -> None:
             raise ValueError('Python facade/SDK wheel contains a native engine')
 
 
-def runtime_wheel_components(wheel: Path, artifact: Path, stage: Path) -> dict[str, str]:
+def runtime_wheel_components(wheel: Path, artifact: Path, stage: Path, *,
+                             selected_recipe: _SelectedImageRecipe | None = None) -> dict[str, str]:
     """Match the shipped resource bytes to the same verified original artifact."""
     with zipfile.ZipFile(wheel) as archive:
         for name in ('artifact.json', 'engine-recipe.json', 'client_host_wasm.cwasm',
@@ -94,7 +99,17 @@ def runtime_wheel_components(wheel: Path, artifact: Path, stage: Path) -> dict[s
                 raise ValueError('Python runtime wheel component digest mismatch')
         package = stage / 'src/actql_local_runtime'
         private = package / '_wasmtime'
-        allocation = json.loads((artifact / 'engine-recipe.json').read_text()).get('runtime_allocation')
+        allocation = 'native-owned'
+        if selected_recipe is not None:
+            from actql_sdk._local_image_recipe import _SelectedImageRecipe, _recipe_from_original
+            if type(selected_recipe) is not _SelectedImageRecipe:
+                raise ValueError('Unavailable original runtime wheel recipe')
+            actual = _recipe_from_original((artifact / 'engine-recipe.json').read_bytes(),
+                source_sha=selected_recipe.source_sha, package_version=selected_recipe.package_version,
+                module_sha256=selected_recipe.module_sha256)
+            if actual != selected_recipe:
+                raise ValueError('Runtime wheel recipe differs from its original')
+            allocation = selected_recipe.runtime_allocation
         if allocation == 'platform':
             if private.exists() or private.is_symlink():
                 raise ValueError('Ordinary runtime wheel must use its declared Wasmtime dependency')
@@ -226,7 +241,8 @@ def build(artifact: Path, destination: Path, *, bindings_source: Path | None = N
             if capacity is not None:
                 sdk_host_capacity(wheel, capacity)
         if distribution == 'actql-local-runtime':
-            verified_components = runtime_wheel_components(wheel, artifact, runtime)
+            verified_components = runtime_wheel_components(wheel, artifact, runtime,
+                selected_recipe=components.image_recipe)
         wheel_source_correspondence(ROOT, wheel,
             'packages/' + package + '/pyproject.toml', source, verified_components)
         records.append({'distribution': distribution, 'file': wheel.name,
