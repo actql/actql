@@ -406,3 +406,58 @@ those retained originals. Caller-visible output does not issue a Source capture
 or prove complete thread coverage. Connecting the existing actual RowRun and
 normal resource supplier remains a separate responsibility; a final ticket is
 accounting rather than evidence for an otherwise missing original prefix.
+
+### Original history time windows
+
+The history protocol can retain an explicit open interval of original Slack
+`oldest` and `latest` decimal epoch tokens. Both tokens preserve their exact
+String bytes; their derived instants use the existing exact Timestamp owner.
+The original lower bound remains fixed across cursor and time pagination. A
+time-pagination upper bound may only tighten to the last original message
+token, and cursor pagination retains the preceding upper bound. Endpoints and
+out-of-window rows refuse the consumed pending occurrence. Known message
+fields are admitted before that extent check, without skipping unused fields.
+The existing unbounded constructor keeps its original no-window behavior.
+
+This protocol describes a physical interval, not a derivation from WHERE or a
+proof that a broader original Source request has been preserved. A checked
+QueryRequirement, original bound Parameters and the declared request still
+own the selected scan. Provider filtering cannot hide invalid known fields in
+that extent; retaining a residual filter cannot restore their failures. The
+projection-only declaration does not advertise filter preservation. Inclusive
+query predicates, thread coverage and ordinary Source capture need their
+actual existing-owner connections rather than reinterpretation of these tokens.
+
+The retained lower/upper token references, normalized lower instant and each
+request's current upper token overlap the original page and protocol prefix.
+Timestamp parsing/comparison workspace is bounded by the token and page limits;
+those limits are not Resource capacity or a physical cleanup acknowledgement.
+
+### Node history-window projection
+
+The private Node history reader captures explicit `requestWindow` DATA once;
+Common validates the exact boundary tokens and interval order. The caller must
+bind those DATA to the original selected request. A residual `WHERE` does not
+allow a broader original request to be relabelled as a narrower scan. This
+projection does not publish an installed Source or advertise filter pushdown.
+
+The same retained Common history issues every cursor and time-continuation
+request. Its original lower bound is retained throughout; only Common selects
+a later upper bound. Node forwards those tokens without Number or Date
+conversion, with `inclusive=false` once whenever either bound is present.
+Absent lower bounds retain the old private request JSON representation.
+Malformed bounds fail before secret resolution or HTTP; a response outside the
+original window is refused rather than filtered away. The response and its
+charge remain in the original failure custody.
+
+The current [vendor method contract](https://docs.slack.dev/reference/methods/conversations.history/)
+caps a dispatched page at 999. Dispatch takes the smaller of that cap and the
+original Host page ceiling; it does not lower the Program's total row ceiling
+or add read authority. The public documentation's older maximum-page wording
+is a separate documentation clarification, not a global Array or row limit.
+
+A windowed Common history control is retained before workspace identity I/O,
+but its first pending request is issued only after the original identity and
+current checks. The captured callback/receiver, two bound String references,
+control, every page/response/charge and escaped result/error may overlap.
+Closing the protocol does not prove physical retirement of any of them.

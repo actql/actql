@@ -1784,7 +1784,7 @@
     },
     {
       "module": "adapters/connectors/slack/site/message-history-read.mjs",
-      "sha256": "b36121505f760bd77631b8f33bf898bb5dd9a029d86a9c3a1d325606a08ec314",
+      "sha256": "3d6341cf97f193021fc325ebabe899007af2dcc4acd67787b3c0a1ee11dbf09b",
       "exports": [
         "SLACK_MESSAGE_HISTORY_OPERATION",
         "SLACK_MESSAGE_REPLIES_OPERATION",
@@ -2049,6 +2049,13 @@
           "async": false
         },
         {
+          "name": "ownHistoryWindow",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "positive/positive",
           "parameters": [
             "value"
@@ -2070,7 +2077,8 @@
             "chargeResponse",
             "consumeObservation",
             "consumePage",
-            "signal"
+            "signal",
+            "requestWindow"
           ],
           "async": false
         },
@@ -2213,10 +2221,13 @@
         {
           "operations": [
             "<module>",
+            "SlackMessageHistoryReadFailure/constructor:constructor/constructor:constructor",
+            "SlackMessageProjectionFailure/constructor:constructor/constructor:constructor",
+            "SlackMessageRepliesReadFailure/constructor:constructor/constructor:constructor",
             "captureProvider",
             "captureProvider/captureProvider",
-            "captureProvider/captureProvider/captureProvider",
             "captureProvider/captureProvider#2",
+            "captureProvider/captureProvider/captureProvider",
             "coalesceSlackMessageReaders",
             "coalesceSlackMessageReaders/coalesceSlackMessageReaders",
             "coalesceSlackMessageReaders/current/current",
@@ -2248,6 +2259,7 @@
             "originalReader",
             "originalReplyReader",
             "ownColumnArray",
+            "ownHistoryWindow",
             "positive/positive",
             "prepareRead",
             "prepareRead/prepareRead",
@@ -2261,10 +2273,7 @@
             "projectionRecord",
             "projectionRecord/projectionRecord",
             "projectionRecord/projectionRecord#2",
-            "retainOutcome",
-            "SlackMessageHistoryReadFailure/constructor:constructor/constructor:constructor",
-            "SlackMessageProjectionFailure/constructor:constructor/constructor:constructor",
-            "SlackMessageRepliesReadFailure/constructor:constructor/constructor:constructor"
+            "retainOutcome"
           ],
           "exports": [
             "SLACK_MESSAGE_HISTORY_OPERATION",
@@ -2290,6 +2299,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Original message projection receiver"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Node history-window projection"
               }
             ],
             "inputsOutputs": [
@@ -2320,6 +2333,10 @@
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
                 "anchor": "const projectionLimitFields=['maxRows','maxOccurrences','maxWork','maxComparisonNodes'"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Node history-window projection"
               }
             ],
             "identity": [
@@ -2346,6 +2363,10 @@
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
                 "anchor": "reply.prepared.source!==source || reply.phase!=='succeeded' || reply.control===undefined"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Node history-window projection"
               }
             ],
             "ownership": [
@@ -2376,6 +2397,10 @@
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
                 "anchor": "await callbacks.current(operation);"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Node history-window projection"
               }
             ],
             "synchronization": [
@@ -2406,6 +2431,10 @@
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
                 "anchor": "await current(source.prepared.context.callbacks,SLACK_MESSAGE_HISTORY_OPERATION);"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Node history-window projection"
               }
             ],
             "failure": [
@@ -2424,6 +2453,10 @@
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
                 "anchor": "const failure=new SlackMessageProjectionFailure(cause);"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Node history-window projection"
               }
             ],
             "cancellation": [
@@ -2442,6 +2475,10 @@
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
                 "anchor": "const signal=AbortSignal.any(signals);"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Node history-window projection"
               }
             ],
             "resources": [
@@ -2460,6 +2497,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "The receiver additionally retains the source/reply handles and states, copied"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Node history-window projection"
               }
             ],
             "extension": [
@@ -2478,6 +2519,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "Projection performs no additional request, secret resolution, grant claim or"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Node history-window projection"
               }
             ],
             "verification": [
@@ -2580,6 +2625,10 @@
               {
                 "path": "adapters/connectors/slack/test/message-projection-read.test.mjs",
                 "anchor": "test('Slack projection preserves the original current callback receiver across completed reader reuse'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-history-window-read.test.mjs",
+                "anchor": "test('Slack original window survives cursor and exact-time pagination at the real HTTP caller'"
               }
             ]
           }

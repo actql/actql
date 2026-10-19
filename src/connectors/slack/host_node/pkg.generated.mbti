@@ -72,6 +72,8 @@ pub fn slack_next_message_replies_request(@catalog.SlackMessageReplies, @catalog
 
 pub fn slack_prepare_message_history(String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SlackMessageHistory, @catalog.SlackMessagePageIssue]
 
+pub fn slack_prepare_message_history_window(String, String?, String?, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SlackMessageHistory, @catalog.SlackMessagePageIssue]
+
 pub fn slack_prepare_message_replies(@catalog.SlackMessagePage, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SlackMessageReplies, @catalog.SlackMessagePageIssue]
 
 pub fn slack_project_channel_list(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SlackChannelListPage, @catalog.SlackChannelListIssue]

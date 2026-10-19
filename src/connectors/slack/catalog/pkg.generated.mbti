@@ -29,6 +29,8 @@ pub fn prepare_slack_command_request(SlackCommandKind, @value_admission.CheckedV
 
 pub fn prepare_slack_message_history(String, SlackMessagePageLimits, Int) -> Result[SlackMessageHistory, SlackMessagePageIssue]
 
+pub fn prepare_slack_message_history_window(String, String?, String?, SlackMessagePageLimits, Int) -> Result[SlackMessageHistory, SlackMessagePageIssue]
+
 pub fn prepare_slack_message_replies(SlackMessagePage, Int, SlackMessageRepliesLimits) -> Result[SlackMessageReplies, SlackMessagePageIssue]
 
 pub fn project_slack_channel_list(Bytes, SlackChannelListLimits) -> Result[SlackChannelListPage, SlackChannelListIssue]
@@ -72,6 +74,8 @@ pub fn slack_message_history_request_cursor(SlackMessageHistoryRequest) -> Strin
 pub fn slack_message_history_request_latest(SlackMessageHistoryRequest) -> String?
 
 pub fn slack_message_history_request_matches(SlackMessageHistory, SlackMessageHistoryRequest) -> Bool
+
+pub fn slack_message_history_request_oldest(SlackMessageHistoryRequest) -> String?
 
 pub fn slack_message_history_request_ordinal(SlackMessageHistoryRequest) -> Int
 
