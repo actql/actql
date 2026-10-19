@@ -423,7 +423,7 @@ fn store_result_return_work(
   original : @sqlite.NativeStoreOperationOriginal,
   receiver : StoreWalReceiver,
   path : String,
-) -> Bool {
+) -> Bool raise {
   let authority = store_result_payload_cid("formal-return-authority")
   let store = @store.open_original_local_store_with_custody(
     library,
