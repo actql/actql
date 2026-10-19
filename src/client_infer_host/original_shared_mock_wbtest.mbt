@@ -84,7 +84,9 @@ test "shared original Mock preserves Model attempts wire and retention caps desp
         @resources.AttemptLimit,
       ),
       (
-        { ..base, attempts: 4, transfer_bytes: 131071L, },
+        // The unchanged fixture Host caps request bytes at 1000; response
+        // bounds remain 65536. This is one byte below their actual sum.
+        { ..base, attempts: 4, transfer_bytes: 66535L, },
         @resources.TransferLimit,
       ),
       (

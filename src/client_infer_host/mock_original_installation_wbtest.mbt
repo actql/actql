@@ -227,7 +227,10 @@ fn original_mock_fixture(
   ).unwrap()
   bind_egress_admission(active, egress).unwrap()
   let prefix_work = match fixture_finish(active) {
-    Waiting(work~) => work
+    Waiting(work~) => {
+      assert_true(expected_purpose_issue is None)
+      work
+    }
     Failed(Model(@model.Ledger(issue)), ..) if expected_purpose_issue ==
       Some(issue) =>
       return (
