@@ -29,7 +29,7 @@ test "Result material rechecks original contracts and preserves signed64 present
 }
 
 ///|
-test "Result table bounds foreign rows exact fields and terminal controls" {
+test "Result material table bounds foreign rows exact fields and terminal controls" {
   let wire = "{\"v\":{\"type\":\"string\",\"nullable\":false}}"
   let schema = prepare_result_material_schema(wire, ["v"], 4096, 256, 16, 8).unwrap()
   let other = prepare_result_material_schema(wire, ["v"], 4096, 256, 16, 8).unwrap()

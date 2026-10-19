@@ -136,7 +136,7 @@ fn material_table_text(text : String, max_bytes : Int) -> String? {
     let piece = if char == '\\' {
       "\\\\"
     } else if char.to_int() < 32 || char.to_int() > 126 {
-      "\\u{" + char.to_int().to_hex() + "}"
+      "\\u{" + char.to_int().to_string(radix=16) + "}"
     } else {
       char.to_string()
     }
