@@ -308,6 +308,17 @@ within the existing bounded String/finite Number domains. BYTES and distinct
 INT64 overloads remain coverage gaps. All spellings preserve one common child,
 operand nullability, lazy demand, failure, resources and cancellation.
 
+`CONTAINS(value, part)` selects ActQL's existing ordered binary `contains`
+String predicate. It performs exact substring matching without normalization,
+case folding or collation; an empty part matches every non-NULL String.
+Both operands use ordinary String typing, are demanded once in authored order,
+and propagate child errors before strict NULL propagation. Source lowering does
+not replace the predicate with a position function, repeat an operand or add a
+frontend evaluator. The existing Common bounded text matcher retains the two
+original operand roots and charges each comparison until the Boolean result or
+an original control, workspace, cancellation or value limit. Function names use
+the ordinary case-insensitive/quoted lookup; argument count remains exactly two.
+
 `TRANSLATE(value, source, target)` selects the ordered ternary `translate`
 common expression for STRING only. Its simultaneous Unicode scalar mapping
 leaves absent scalars unchanged, deletes source scalars without corresponding

@@ -16,9 +16,13 @@ test('NULL ARRAY grammar preserves the complete previous manifest preimage', () 
   assert.equal(`sha256:${sha(canonical(body))}`, cid);
 });
 
-test('NULL ARRAY current grammar binds exact normative inputs and only their identities change', () => {
-  assert.deepEqual(read('spec/manifests/actql-grammar-0.1.json'), vector.after);
-  const {grammar_manifest_cid: cid, ...body} = vector.after;
+test('NULL ARRAY grammar remains the complete predecessor of the CONTAINS connection', () => {
+  const contains = read('scripts/fixtures/contains-source/identities.json');
+  assert.deepEqual(contains.before, vector.after);
+  const {grammar_manifest_cid: priorCid, ...priorBody} = vector.after;
+  assert.equal(`sha256:${sha(canonical(priorBody))}`, priorCid);
+  assert.deepEqual(read('spec/manifests/actql-grammar-0.1.json'), contains.after);
+  const {grammar_manifest_cid: cid, ...body} = contains.after;
   assert.equal(`sha256:${sha(canonical(body))}`, cid);
   assert.notEqual(cid, vector.before.grammar_manifest_cid);
   const language = readFileSync('docs/spec/language.md', 'utf8');

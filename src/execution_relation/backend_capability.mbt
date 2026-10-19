@@ -164,7 +164,8 @@ fn check_backend_capabilities(
             | RTrimSet
             | Strpos
             | StartsWith
-            | EndsWith => ()
+            | EndsWith
+            | Contains => ()
           }
           pending.push(right)
           pending.push(left)

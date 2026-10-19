@@ -42,3 +42,15 @@ empty-set laws. Parentheses preserve the immediate NULL's source identity.
 General ARRAY conversion is a separate implementation gap and must report that
 limit rather than manufacture a value or a type error. The scalar CAST table,
 old constructor forms and their canonical expression bodies remain unchanged.
+
+## Exact CONTAINS connection
+
+The SQL/Pipe `CONTAINS` call selects the existing Common `contains` expression
+with its two original children. The lowerer does not emulate it through STRPOS
+or perform a Host string search. Ordinary typed expression execution uses the
+existing resumable text matcher with a Boolean terminal value, retaining both
+operand roots and the existing per-poll, logical-value and workspace accounting.
+NULL propagation follows eager child evaluation; enclosing lazy demand remains
+owned by the Common evaluator. The canonical `contains` node already belongs to
+the expression contract, so this connection does not introduce another wire
+shape or reinterpret older Program identities.
