@@ -29,11 +29,11 @@ for(const format of ['sql','aql'])test(`installed Slack ${format} Parameters bin
   assert.equal(f.common.clientRequestParametersCid(request(f.common,p.preparedProgram)),expectedParametersCid('D1','0'));
   const opened=await source.openCapture(p);await f.retain(opened,p.ledger);
   const exported=checked(f.common.clientProgramExportSourceCapture(opened.capture.source(),opened.requirement,'slack-parameter-source'));
-  // This is the complete admitted Source prefix, before the residual filter.
-  // It is not a completed public Query result or a filter-pushdown receipt.
+  // Common admits every original response row before applying the checked
+  // Filter to the capture. This is not a published Run or vendor pushdown.
   assert.deepEqual(f.common.clientProgramSourceCaptureExportRows(exported).map(v=>{
     const row=JSON.parse(v);return[row.id,row.channel,row.reply_count];
-  }),[['C1:1.000001','C1','1'],['C1:2.000001','C1',null],['D1:3.000000001','D1','0']]);
+  }),[['D1:3.000000001','D1','0']]);
   assert.equal(f.state.requests.length,8);
   for(const r of f.state.requests){
     const url=new URL(r.path,f.scope.resourceOrigin);
@@ -53,7 +53,7 @@ test('installed Slack Parameter bindings retain full signed64 values and reject 
   }
   assert.equal(cids.size,4);
   for(const count of ['9223372036854775808','-9223372036854775809','-0','01',0,9007199254740992,null]){
-    await assert.rejects(f.prepare(source,options('sql','D1',count)),/binding_rejected/);
+    await assert.rejects(f.prepare(source,options('sql','D1',count)),/check_invalid_input/);
   }
   assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
 });
