@@ -91,7 +91,7 @@ fn retained_execution_physical_work(
 }
 
 ///|
-test "actual in-process domain supplies one entered ledger and retains original aliases" {
+fn retained_execution_physical_case(failed_entry? : Bool = false) -> Unit raise {
   // Selected same-provider diagnostic only. These numbers do not select an
   // installed candidate, prove a complete Run quote or issue normal funding.
   let root = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap()
@@ -152,6 +152,21 @@ test "actual in-process domain supplies one entered ledger and retains original 
     .retained_execution_value("retained stage 10: issuer") {
     ReadyRetainedExecution(value) => value
     PendingRetainedExecution(_, _) => fail("retained stage 10: partial issuer")
+  }
+  if failed_entry {
+    retained_failed_entry_cleanup_case(host, execution)
+    host.close_domain_retained_execution(execution).unwrap()
+    assert_true(
+      execution.closed && execution.physical_retired && execution.reported,
+    )
+    assert_true(
+      host.finish_domain_retained_execution_failed_entry_cleanup(execution)
+      is Err(_),
+    )
+    host.close_domain_after_owner_ack(domain).unwrap()
+    host.try_close().unwrap()
+    assert_eq(process_test_close(descriptor), 0)
+    return
   }
   assert_true(
     domain.live_channel is None &&
@@ -229,4 +244,68 @@ test "actual in-process domain supplies one entered ledger and retains original 
   .retained_execution_value("retained stage 19: loan/region")
   host.try_close().retained_execution_value("retained stage 20: Host")
   assert_eq(process_test_close(descriptor), 0)
+}
+
+///|
+fn retained_failed_entry_cleanup_case(
+  host : InstalledArenaHost,
+  execution : InstalledArenaRetainedExecution,
+) -> Unit raise {
+  assert_true(
+    host.finish_domain_retained_execution_failed_entry_cleanup(execution)
+    is Err(_),
+  )
+  // The real parent scope excludes entering the child lease. It is not a
+  // fabricated entry status or a mutation of the retained original's latch.
+  let parent = host.borrow_backing().unwrap()
+  host.enter_backing_borrow_scope(parent).unwrap()
+  assert_true(host.enter_domain_retained_execution(execution) is Err(_))
+  assert_true(execution.active && execution.scope_failed)
+  assert_true(
+    host.finish_domain_retained_execution_failed_entry_cleanup(execution)
+    is Err(_),
+  )
+  assert_true(execution.active && !execution.physical_retired)
+  host.leave_backing_borrow_scope(parent).unwrap()
+  host.return_backing_borrow(parent).unwrap()
+  let copied = { ..execution, }
+  let foreign = { ..host, }
+  assert_true(
+    host.finish_domain_retained_execution_failed_entry_cleanup(copied) is Err(_),
+  )
+  assert_true(
+    foreign.finish_domain_retained_execution_failed_entry_cleanup(execution)
+    is Err(_),
+  )
+  assert_true(host.close_domain_retained_execution(execution) is Err(_))
+  assert_true(host.leave_domain_retained_execution(execution) is Err(_))
+  host.finish_domain_retained_execution_failed_entry_cleanup(execution).unwrap()
+  assert_true(!execution.active && execution.scope_failed && execution.closing)
+  assert_false(
+    execution.physical_retired || execution.closed || execution.reported,
+  )
+  assert_eq(
+    host.observe_domain_retained_execution_cleanup_scope(execution).unwrap(),
+    @bootstrap.BackedReadUnentered,
+  )
+  assert_true(host.enter_domain_retained_execution(execution) is Err(_))
+  assert_true(host.borrow_domain_retained_execution_ledger(execution) is Err(_))
+  // A genuinely entered cleanup frame cannot be discharged by this port.
+  host.enter_domain_retained_execution_cleanup(execution).unwrap()
+  assert_true(
+    host.finish_domain_retained_execution_failed_entry_cleanup(execution)
+    is Err(_),
+  )
+  assert_true(execution.active && !execution.physical_retired)
+  host.leave_domain_retained_execution(execution).unwrap()
+}
+
+///|
+test "actual in-process domain supplies one entered ledger and retains original aliases" {
+  retained_execution_physical_case()
+}
+
+///|
+test "failed original entry cleanup confirms non-entry without retiring its parent" {
+  retained_execution_physical_case(failed_entry=true)
 }

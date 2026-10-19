@@ -664,6 +664,31 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_leave_read_context(
 #endif
 }
 
+/* Cleanup of a failed entry only: confirm that THIS original never retained
+ * an entered Read frame. A recorded failed unwind may return only its own
+ * owned scope. No context/user/extent is released and no current is issued. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_finish_failed_read_entry_cleanup(
+    actql_bootstrap_domain *record) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (record == NULL || !record->read_attempted || record->lease == NULL ||
+        record->read_context == NULL || record->read_active != 0)
+        return ACTQL_OWNED_INVALID;
+    if (actql_read_context_current() != NULL) return ACTQL_OWNED_BUSY;
+    if (record->read_prepare_scope) {
+        if (actql_native_owned_current() != record->lease)
+            return ACTQL_OWNED_BUSY;
+        int status = actql_native_owned_leave(record->lease);
+        if (status != ACTQL_OWNED_OK) return status;
+        record->read_prepare_scope = false;
+    }
+    return actql_native_owned_current() == NULL &&
+        actql_read_context_current() == NULL ? ACTQL_OWNED_OK : ACTQL_OWNED_BUSY;
+#else
+    (void)record;
+    return ACTQL_OWNED_INVALID;
+#endif
+}
+
 /* Borrowed only while the existing Native caller holds its active scope. The
  * filesystem constructor retains it before allocating/FD access. No new TLS,
  * pointer transport, permission lookup or context adoption is introduced. */
