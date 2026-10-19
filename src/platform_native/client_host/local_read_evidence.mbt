@@ -292,6 +292,7 @@ fn NativeLocalHostConnection::validate_read_evidence(
   }
   let binding : NativeLocalReadPolicyBinding = {
     host: self,
+    capture: None,
     crypto,
     file,
     selection,

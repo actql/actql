@@ -15,6 +15,14 @@ fn preparation_read_refusal_without_pair() -> (@sqlite.Library, @crypto.Library)
   assert_eq(calls.val, 0)
   capture.read_callback_active = false
   assert_true(
+    read_binding_in_original_read(capture, fn(_host, _operations) {
+      calls.val += 1
+      Ok(())
+    })
+    is Err(OriginalRead(None, OriginalResourceScopePending)),
+  )
+  assert_eq(calls.val, 0)
+  assert_true(
     capture.with_original_read(fn(_host) {
       calls.val += 1
       "must not run"
