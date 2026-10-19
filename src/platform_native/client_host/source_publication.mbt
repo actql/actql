@@ -337,25 +337,45 @@ pub fn NativeClientRunJournal::bind_installed_publication(
   publication : NativeClientCancellationPublication,
   current : () -> Bool,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
+  self.bind_installed_publication_with_operations(request, publication, current)
+}
+
+///|
+fn NativeClientRunJournal::bind_installed_publication_with_operations(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  publication : NativeClientCancellationPublication,
+  current : () -> Bool,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[Unit, NativeClientRunJournalIssue] {
   if !current() {
     return Err(AuthorizationDenied)
   }
   guard publication.binding is Some(binding) else { return Err(Encoding) }
-  self.transaction(() => {
-    let run = match self.retained(request) {
-      Ok(Some(value)) => value
-      Ok(None) => return Err(CustodyLost)
-      Err(issue) => return Err(issue)
-    }
-    if !current() {
-      return Err(AuthorizationDenied)
-    }
-    match run.publication_binding {
-      Some(original) if original == binding => Ok(())
-      Some(_) => Err(ChangedIntent)
-      None if !run.physical_start_claimed && !run.cancellation_requested =>
-        self.save({ ..run, publication_binding: Some(binding), }).map(_ => ())
-      None => Err(ChangedIntent)
-    }
-  })
+  let reads = operations.map(value => value.reads)
+  self.transaction_with_reads(
+    () => {
+      let run = match self.retained(request, reads~) {
+        Ok(Some(value)) => value
+        Ok(None) => return Err(CustodyLost)
+        Err(issue) => return Err(issue)
+      }
+      if !current() {
+        return Err(AuthorizationDenied)
+      }
+      match run.publication_binding {
+        Some(original) if original == binding => Ok(())
+        Some(_) => Err(ChangedIntent)
+        None if !run.physical_start_claimed && !run.cancellation_requested =>
+          self
+          .save_with_operations(
+            { ..run, publication_binding: Some(binding), },
+            operations~,
+          )
+          .map(_ => ())
+        None => Err(ChangedIntent)
+      }
+    },
+    reads~,
+  )
 }
