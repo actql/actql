@@ -33,13 +33,21 @@ function methods(value, names) {
   })));
 }
 
-export function createGmailThreadReaderFactory({moon, site, capacity, mailbox, limits, maxSecretBytes}) {
-  if (capacity === undefined || capacity === null) fail('GmailReaderCapacityUnavailable');
-  if (!text(mailbox) || !integer(maxSecretBytes) || maxSecretBytes === 0) fail('InvalidGmailThreadReaderFactory');
+// Shared by the trusted installed selector and the original reader factory.
+// These bounds constrain work; they do not supply retained/workspace capacity.
+export function checkGmailThreadReaderLimits(limits) {
   const bounded = Object.freeze({...limits});
   if (!positiveLimits.every(name => integer(bounded[name]) && bounded[name] > 0) ||
       !nonnegativeLimits.every(name => integer(bounded[name])) || bounded.pageSize > 500 ||
-      bounded.maxPages > 2147483647 - bounded.maxThreads || !mailbox.includes('@') ||
+      bounded.maxPages > 2147483647 - bounded.maxThreads) fail('InvalidGmailThreadReaderFactory');
+  return bounded;
+}
+
+export function createGmailThreadReaderFactory({moon, site, capacity, mailbox, limits, maxSecretBytes}) {
+  if (capacity === undefined || capacity === null) fail('GmailReaderCapacityUnavailable');
+  if (!text(mailbox) || !integer(maxSecretBytes) || maxSecretBytes === 0) fail('InvalidGmailThreadReaderFactory');
+  const bounded = checkGmailThreadReaderLimits(limits);
+  if (!mailbox.includes('@') ||
       /[\s\u0000-\u001f\u007f]/u.test(mailbox) || mailbox.length > bounded.maxMailboxBytes ||
       Buffer.byteLength(mailbox) > bounded.maxMailboxBytes) fail('InvalidGmailThreadReaderFactory');
   const credential = Object.freeze({...data(site, 'credential')}), sitePorts = methods(site, ['issueReadGrant', 'callResource']);

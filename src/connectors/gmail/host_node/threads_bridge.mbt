@@ -159,3 +159,9 @@ pub fn gmail_thread_schema_wire(
 pub fn gmail_thread_column_names() -> Array[String] {
   @catalog.gmail_thread_column_names()
 }
+
+///|
+#export_name("gmailThreadRelationFactsWire")
+pub fn gmail_thread_relation_facts_wire() -> String {
+  @catalog.gmail_thread_facts_wire()
+}

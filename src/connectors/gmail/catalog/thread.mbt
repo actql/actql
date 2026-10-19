@@ -485,3 +485,8 @@ pub fn gmail_thread_schema_wire(
     }
   }
 }
+
+///|
+pub fn gmail_thread_facts_wire() -> String {
+  "{\"relation_keys\":{\"candidate_keys\":[[\"id\"]]}}"
+}

@@ -178,3 +178,11 @@ test "Gmail full thread enforces aggregate projection work and exact retained va
     is Err(ForeignThread),
   )
 }
+
+///|
+test "thread declaration retains the original exact ID candidate key" {
+  inspect(
+    gmail_thread_facts_wire(),
+    content="{\"relation_keys\":{\"candidate_keys\":[[\"id\"]]}}",
+  )
+}
