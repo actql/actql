@@ -3400,7 +3400,11 @@ including a null parameter and a missing CASE ELSE, uses
 `{op: typed_null, body: {contract: CheckedValueContract}}`, with `nullable: true`.
 Explicit casts retain their cast node around that typed child. There is no
 primitive-versus-structural alternative for implicit ELSE completion.
-This machine-only form is not an author conversion to object or array.
+This machine-only form is not an unchecked author conversion to object or array.
+The narrow source `CAST(NULL AS ARRAY<T>)` context uses an ordinary lazy
+conditional with a typed empty-array peer and the original NULL branch. Common
+checking supplies the nullable array contract; the selected value remains NULL.
+It does not introduce a new author typed-null node or a general array conversion.
 
 Canonical fragments bind the extension contract CID, roots at their semantic
 expression positions, and profile envelopes sorted by canonical expression
@@ -3597,12 +3601,27 @@ Target names are ASCII case-insensitive and normalize to lowercase type names.
 Decimal P/S are integer literal type arguments under [Exact decimal values](#decimal-values).
 `CAST(NULL AS target)` supplies that nullable target without evaluating a
 conversion. Other null operands propagate after input-type checking. No
-reference, object, array, json, or vector cast is supplied by this table.
+reference, object, array, json, or vector conversion is supplied by this scalar table.
 Same-type acceptance also applies to corresponding `to_*` calls, so equivalent
 spellings have the same tree. `DATE`, `::`, and arbitrary SQL type names are
 not cast targets in this revision. Decimal/binary64 fractional mixing remains
 invalid; `CAST('0.1' AS DECIMAL(2,1))` is exact, while casting binary64 `0.1`
 fails if evaluated. `quantize` remains the explicit rounding operation.
+
+<!-- requirement-block: casts.null-array-context -->
+The immediate NULL ARRAY source context MUST preserve the NULL value and the
+original checked item contract without element conversion.
+
+Source `CAST(NULL AS ARRAY<T>)`, with parentheses permitted around the
+immediate NULL, is a separate explicit nullable-array type context. It shares
+[ARRAY item annotations](query-text.md#array-constructors), including `INT64`.
+The result is NULL, not an empty array; `IS NULL` distinguishes those values.
+Membership and NOT membership retain their existing empty-set laws for both.
+An ordinary typed empty-array peer supplies the item contract through lazy
+conditional common typing; it is not evaluated in place of the NULL branch.
+No arbitrary expression is evaluated to decide whether it is syntactically
+NULL. General ARRAY conversion remains an implementation gap, not a new
+language prohibition or a claim of complete ARRAY CAST support.
 
 Conversion diagnostics distinguish static source/target incompatibility from
 evaluation-time domain failure. Repair candidates may suggest an explicit cast

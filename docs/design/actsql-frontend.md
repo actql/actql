@@ -25,3 +25,20 @@ separately authored Program expectation and pass the output through the
 existing Program syntax parser on JS, Wasm and native targets. End-to-end SQL
 execution and a public `Client.sql()` entrance remain separate release work;
 the existing AQL document path does not depend on them.
+
+## NULL ARRAY type context
+
+The source ARRAY annotation parser is shared by constructors and the immediate
+NULL CAST context. INT64 denotes the existing distinct signed64 item contract;
+an annotation never converts ordinary Number elements. Full-range values use
+the existing typed Parameter path.
+
+`CAST(NULL AS ARRAY<T>)` lowers to the existing lazy conditional with a false
+condition, a typed empty-array peer and the original NULL branch. Common
+checking supplies nullable-array type evidence and emits its existing checked
+typed-null representation. The evaluator selects NULL, so `IS NULL` continues
+to distinguish it from an empty array while membership retains the existing
+empty-set laws. Parentheses preserve the immediate NULL's source identity.
+General ARRAY conversion is a separate implementation gap and must report that
+limit rather than manufacture a value or a type error. The scalar CAST table,
+old constructor forms and their canonical expression bodies remain unchanged.
