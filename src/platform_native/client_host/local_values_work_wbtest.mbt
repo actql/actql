@@ -207,38 +207,26 @@ test "Native Local Values retains the supplied Ledger and never replaces an exha
     )
     journal.bind_run(request, prepared, compiled, definition, true).unwrap()
     |> ignore
-    let ledger = @resources.create_ledger({
-      planning_work: if supplied {
-        1000
-      } else {
-        0
-      },
-      attempts: if supplied {
-        64
-      } else {
-        0
-      },
-      holdings: if supplied {
-        64
-      } else {
-        0
-      },
-      transfer_bytes: if supplied {
-        67108864L
-      } else {
-        0L
-      },
-      retained_bytes: if supplied {
-        536870912L
-      } else {
-        0L
-      },
-      execution_bytes: if supplied {
-        1073741824L
-      } else {
-        0L
-      },
-    }).unwrap()
+    let quoted = @local.single_source_free_local_ledger_limits(
+      prepared,
+      assets.registry,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    ).unwrap()
+    let limits = if supplied {
+      quoted
+    } else {
+      {
+        planning_work: 0,
+        attempts: 0,
+        holdings: 0,
+        transfer_bytes: 0L,
+        retained_bytes: 0L,
+        execution_bytes: 0L,
+      }
+    }
+    let ledger = @resources.create_ledger(limits).unwrap()
     let before = @resources.ledger_usage(ledger)
     let work = open_native_client_local_values_work(
       journal,
