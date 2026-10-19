@@ -12,6 +12,8 @@ pub fn command_backing_control_necessary_bytes(Int64) -> Int64?
 
 pub fn execution_domain_necessary_bytes(Int64, Int64) -> Int64
 
+pub fn native_managed_value_layout() -> (Int64, Int64, Int64, Int64, Int64)
+
 pub fn[T] prepare_installed_arena_supplier(T, String, Bytes, Int64, Int64, @physical_resources.LedgerLimits, Int64) -> Result[NativeInstalledArenaSupplier[T], NativeBootstrapIssue]
 
 // Errors
@@ -157,6 +159,7 @@ pub fn[T, C] NativeHostBootstrap::leave_backed_read_context(Self[T], T, NativeBa
 pub fn[T] NativeHostBootstrap::leave_borrow_scope(Self[T], T, NativeBootstrapBorrow[T]) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T, C] NativeHostBootstrap::lend_backed_region(Self[T], T, NativeBackedExecutionRegion[T, C], NativeBootstrapBorrow[T], C, @physical_resources.BackedExecutionExtent, @physical_resources.BackedExecutionAccess, @physical_resources.LedgerLimits, Int64, Int64) -> Result[NativeBackedExecutionAcquisition[T, C], NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::map_backed_view(Self[T], T, NativeBackedExecutionLoan[T, C], C, Int) -> Result[NativeBackedViewAcquisition[T, C], NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::observe_backed_read_cleanup(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[NativeReadCleanupObservation, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::observe_backed_read_cleanup_scope(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[NativeBackedReadScope, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::observe_backed_read_context_scope(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[NativeBackedReadScope, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::original_backed_channel_ledger_frame(Self[T], T, NativeBackedLiveChannel[T, C]) -> Result[@physical_resources.ImportedChildLedger?, NativeBackedOriginalReadIssue]
@@ -212,6 +215,25 @@ pub(all) struct NativePreparedDomainTransport {
   extent : NativeBackedExtentTransport
   limits : @physical_resources.LedgerLimits
 } derive(Eq, @debug.Debug)
+
+pub(all) struct NativeReadCleanupObservation {
+  users : Int64
+  active : Int64
+  generic_live_extents : Int64
+  generic_live_pages : Int64
+  managed_live_pages : Int64
+  managed_live_blocks : Int64
+  managed_requested_bytes : Int64
+  managed_payload_capacity_bytes : Int64
+  pending_extents : Int64
+  pending_pages : Int64
+  minimum_managed_request : Int64
+  maximum_managed_request : Int64
+  closing : Bool
+  calling_thread_read : Bool
+  calling_thread_owned : Bool
+  context_payload_bytes : Int64
+}
 
 // Type aliases
 

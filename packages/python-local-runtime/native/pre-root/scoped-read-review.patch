@@ -103,7 +103,7 @@
          unlock_capacity(lease);
 --- /dev/null
 +++ b/scoped_read.h
-@@ -0,0 +1,28 @@
+@@ -0,0 +1,34 @@
 +#ifndef ACTQL_PRIVATE_SCOPED_READ_H
 +#define ACTQL_PRIVATE_SCOPED_READ_H
 +#include <stddef.h>
@@ -119,6 +119,12 @@
 +int actql_read_context_enter_cleanup(actql_read_context *);
 +int actql_read_context_leave(actql_read_context *);
 +int actql_read_context_try_close(actql_read_context **);
++/* Metadata-only constructor-thread snapshot. Exactly16 zero slots: users,
++ * active, live generic extents/pages, managed pages/blocks/requested/capacity,
++ * pending extents/pages, min/max managed request, closing, calling-thread
++ * Read/owned membership, and actual context payload bytes. No ACK or grant. */
++int actql_read_context_cleanup_thread_current(actql_read_context *);
++int actql_read_context_cleanup_snapshot(actql_read_context *, uint64_t *, size_t);
 +/* Same-provider physical observations. A NULL valid-pointer projection is
 + * not proof that the raw TLS frame is empty. The full clear observation checks
 + * raw read/depth plus original owned/depth under the existing process guard. */
@@ -134,7 +140,7 @@
 +#endif
 --- /dev/null
 +++ b/scoped_read.inc
-@@ -0,0 +1,687 @@
+@@ -0,0 +1,795 @@
 +/* Derived selected-runtime read allocator, included once by the ORIGINAL
 + * owned_capacity.c. Selection still requires its source-bound recipe and
 + * original physical supplier. This is physical provenance
@@ -237,6 +243,9 @@
 +     * both existing locks; retirement/reuse cannot turn this index into credit. */
 +    size_t managed_page_hint;
 +    bool closing;
++    /* Pure cleanup census is constructor-thread scoped; other existing Read
++     * operations retain their original concurrency contracts. */
++    pthread_t observation_thread;
 +};
 +
 +/* Only contexts already retained in their original allocator are indexed.
@@ -298,6 +307,7 @@
 +    context->lease = lease;
 +    context->next = read_contexts;
 +    context->process = getpid();
++    context->observation_thread = pthread_self();
 +    context->users = context->active = 0;
 +    lock_capacity(lease);
 +    bool usable = !lease->closing && !foreign_domain_process(lease);
@@ -821,4 +831,108 @@
 +        actql_native_owned_control_scope_clear() == 1;
 +    unlock_read_contexts();
 +    return clear ? 1 : 0;
++}
++
++
++/* Identity-only early refusal before the typed caller allocates its fixed
++ * output. The snapshot repeats this check; this is not normal-use current. */
++int actql_read_context_cleanup_thread_current(actql_read_context *context) {
++    if (!lock_read_contexts()) return ACTQL_OWNED_INVALID;
++    int status = known_read_context(context) &&
++        pthread_equal(context->observation_thread, pthread_self())
++        ? ACTQL_OWNED_OK : ACTQL_OWNED_INVALID;
++    unlock_read_contexts();
++    return status;
++}
++
++/* Read-only metadata on one retained original. No payload/header guessing,
++ * pointer projection, allocation, scope change, retirement or capacity credit.
++ * Lock order and process/fork fencing are the existing Read -> capacity order.
++ * Sixteen initially-zero slots receive one complete atomic snapshot only. */
++int actql_read_context_cleanup_snapshot(actql_read_context *context,
++                                       uint64_t *output, size_t count) {
++    if (output == NULL || count != 16) return ACTQL_OWNED_INVALID;
++    for (size_t index = 0; index < count; index++)
++        if (output[index] != 0) return ACTQL_OWNED_INVALID;
++    if (!lock_read_contexts()) return ACTQL_OWNED_INVALID;
++    if (!known_read_context(context) ||
++        !pthread_equal(context->observation_thread, pthread_self())) {
++        unlock_read_contexts();
++        return ACTQL_OWNED_INVALID;
++    }
++    uint64_t values[16] = {0};
++    values[0] = context->users;
++    values[1] = context->active;
++    values[12] = context->closing ? 1 : 0;
++    values[13] = read_current == context ? 1 : 0;
++    values[14] = actql_native_owned_current() == context->lease ? 1 : 0;
++    values[15] = sizeof(*context);
++    actql_owned_capacity *lease = context->lease;
++    int status = ACTQL_OWNED_OK;
++    lock_capacity(lease);
++    if (foreign_domain_process(lease) || !lease->transferred) {
++        status = ACTQL_OWNED_INVALID;
++        goto done;
++    }
++    for (size_t index = lease->control_pages; index < lease->page_count; index++) {
++        struct extent *extent = &lease->extents[index];
++        if (extent->read_context != context || extent->read_process != getpid()) continue;
++        if (extent->pages == 0 || extent->pages == SIZE_MAX ||
++            extent->pages > lease->page_count - index) {
++            status = ACTQL_OWNED_INVALID;
++            goto done;
++        }
++        if (extent->read_released || extent->retired) {
++            values[8]++;
++            values[9] += extent->pages;
++            continue; /* Pending/retired payload is never inspected. */
++        }
++        if (!extent->read_heap) {
++            values[2]++;
++            values[3] += extent->pages;
++            continue; /* File/foreign payload is never inspected. */
++        }
++        if (extent->pages != 1) {
++            status = ACTQL_OWNED_INVALID;
++            goto done;
++        }
++        values[4]++;
++        void *page = (unsigned char *)lease + index * lease->page_size;
++        uintptr_t end = (uintptr_t)page + lease->page_size;
++        uint64_t live = 0;
++        for (struct read_heap_block *block = read_heap_first(page); block;
++             block = read_heap_next(page, lease->page_size, block)) {
++            uintptr_t start = (uintptr_t)block;
++            if (start > end || read_heap_header() > end - start ||
++                block->capacity > end - start - read_heap_header() ||
++                block->requested > block->capacity ||
++                (block->requested != 0 && block->serial == 0)) {
++                status = ACTQL_OWNED_INVALID;
++                goto done;
++            }
++            if (block->requested == 0) continue;
++            live++;
++            values[5]++;
++            values[6] += block->requested;
++            values[7] += block->capacity;
++            if (values[10] == 0 || block->requested < values[10])
++                values[10] = block->requested;
++            if (block->requested > values[11]) values[11] = block->requested;
++        }
++        if (live != ((struct read_heap_page *)page)->live) {
++            status = ACTQL_OWNED_INVALID;
++            goto done;
++        }
++    }
++    for (size_t index = 0; index < count; index++) {
++        if (values[index] > INT64_MAX) {
++            status = ACTQL_OWNED_INVALID;
++            goto done;
++        }
++    }
++    for (size_t index = 0; index < count; index++) output[index] = values[index];
++done:
++    unlock_capacity(lease);
++    unlock_read_contexts();
++    return status;
 +}

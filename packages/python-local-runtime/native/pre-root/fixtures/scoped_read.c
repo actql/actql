@@ -789,9 +789,90 @@ static void linux_stock_entry_snapshot(void) {
 }
 #endif
 
+struct cleanup_snapshot_thread_case {
+    actql_read_context *context;
+    int status;
+    uint64_t output[16];
+};
+static void *foreign_cleanup_snapshot(void *opaque) {
+    struct cleanup_snapshot_thread_case *value=opaque;
+    value->status=actql_read_context_cleanup_snapshot(value->context,value->output,16);
+    return NULL;
+}
+static bool cleanup_snapshot_original(void) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    uint64_t values[16]={0};
+    assert(actql_read_context_cleanup_snapshot((actql_read_context *)(uintptr_t)1,values,16)==ACTQL_OWNED_INVALID);
+    assert(actql_read_context_cleanup_snapshot(context,values,15)==ACTQL_OWNED_INVALID);
+    values[4]=1;
+    assert(actql_read_context_cleanup_snapshot(context,values,16)==ACTQL_OWNED_INVALID && values[4]==1);
+    memset(values,0,sizeof(values));
+    struct cleanup_snapshot_thread_case foreign={.context=context};
+    pthread_t thread;
+    assert(pthread_create(&thread,NULL,foreign_cleanup_snapshot,&foreign)==0);
+    assert(pthread_join(thread,NULL)==0 && foreign.status==ACTQL_OWNED_INVALID);
+    for(size_t i=0;i<16;i++) assert(foreign.output[i]==0);
+    pid_t child=fork(); assert(child>=0);
+    if(child==0) {
+        uint64_t inherited[16]={0};
+        _exit(actql_read_context_cleanup_snapshot(context,inherited,16)==ACTQL_OWNED_INVALID ? 0 : 1);
+    }
+    assert(child_status(child,0));
+    context_enter(lease,context);
+    void *generic=actql_native_file_scoped_allocate(9);
+    unsigned char *small=actql_native_moon_scoped_allocate(17);
+    unsigned char *large=actql_native_moon_scoped_allocate(83);
+    assert(generic && small && large);
+    memset(small,41,17); memset(large,42,83);
+    assert(actql_read_context_cleanup_snapshot(context,values,16)==0);
+    assert(values[0]==1 && values[1]==1 && values[2]==1 && values[3]==1);
+    assert(values[4]==1 && values[5]==2 && values[6]==100 && values[7]>=100);
+    assert(values[10]==17 && values[11]==83 && values[13]==1 && values[14]==1);
+    assert(values[15]==sizeof(actql_read_context) && small[16]==41 && large[82]==42);
+    context_leave(lease,context);
+    memset(values,0,sizeof(values));
+    assert(actql_read_context_cleanup_snapshot(context,values,16)==0);
+    assert(values[0]==1 && values[1]==0 && values[12]==0 && values[13]==0 && values[14]==0);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    actql_native_file_scoped_free(generic);
+    actql_native_moon_scoped_free(small);
+    assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY);
+    memset(values,0,sizeof(values));
+    assert(actql_read_context_cleanup_snapshot(context,values,16)==0);
+    assert(values[0]==0 && values[1]==0 && values[2]==0 && values[5]==1 && values[6]==83);
+    assert(values[10]==83 && values[11]==83 && values[12]==1 && large[82]==42);
+    size_t page=((uintptr_t)large-(uintptr_t)lease)/lease->page_size;
+    retirement_target=(unsigned char *)lease+page*lease->page_size;
+    retirement_failures=1;
+    actql_native_moon_scoped_free(large);
+    memset(values,0,sizeof(values));
+    assert(actql_read_context_cleanup_snapshot(context,values,16)==0);
+    assert(values[4]==0 && values[5]==0 && values[6]==0 && values[8]>=1 && values[9]>=1);
+    // Empty live counts/pending metadata still acknowledge no parent close.
+    assert(context!=NULL && actql_native_owned_try_close(&lease)==ACTQL_OWNED_BUSY);
+    retirement_target=NULL; retirement_failures=0;
+    actql_read_context *stale=context;
+    assert(actql_read_context_try_close(&context)==0 && context==NULL);
+    memset(values,0,sizeof(values));
+    assert(actql_read_context_cleanup_snapshot(stale,values,16)==ACTQL_OWNED_INVALID);
+    assert(actql_native_owned_try_close(&lease)==0 && lease==NULL);
+    return true;
+}
+
 int main(int argc,char **argv) {
     struct rlimit core={0,0}; assert(setrlimit(RLIMIT_CORE,&core)==0);
     setbuf(stdout,NULL);
+    if(argc==2 && strcmp(argv[1],"--cleanup-snapshot-only")==0) {
+        assert(cleanup_snapshot_original());
+        printf("{\"case\":\"same-original-cleanup-snapshot\",\"passed\":1,\"failed\":0,"
+               "\"contextPayloadBytes\":%zu,\"objectHeaderBytes\":%zu,\"utf16UnitBytes\":%zu,"
+               "\"utf16SentinelBytes\":%zu,\"valueArrayHeaderBytes\":%zu,\"pointerBytes\":%zu}\n",
+            sizeof(actql_read_context),sizeof(struct moonbit_object),sizeof(uint16_t),
+            sizeof(uint16_t),sizeof(struct moonbit_valtype_array_header),sizeof(void *));
+        return 0;
+    }
 #if defined(__linux__) && defined(ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN)
     if(argc==2 && strcmp(argv[1],"--linux-stock-concurrency-only")==0) {
         linux_stock_concurrent_entry();
