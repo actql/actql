@@ -1022,7 +1022,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
-                "anchor": "type: 'decimal', precision: 19"
+                "anchor": "type: 'int64'"
               }
             ],
             "ownership": [
@@ -3340,7 +3340,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
-                "anchor": "type: 'decimal', precision: 19"
+                "anchor": "type: 'int64'"
               }
             ],
             "ownership": [
@@ -5686,7 +5686,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
-                "anchor": "type: 'decimal', precision: 19"
+                "anchor": "type: 'int64'"
               },
               {
                 "path": "src/connectors/gcs/catalog/content_metadata.mbt",
@@ -6823,7 +6823,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
-                "anchor": "type: 'decimal', precision: 19"
+                "anchor": "type: 'int64'"
               },
               {
                 "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
@@ -8268,7 +8268,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
-                "anchor": "type: 'decimal', precision: 19"
+                "anchor": "type: 'int64'"
               },
               {
                 "path": "src/connectors/gcs/catalog/content_metadata.mbt",
