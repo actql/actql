@@ -1,5 +1,5 @@
-// Actual public facade bytes with an explicit private dispatch port fixture.
-// This does not issue startup coverage or establish an actual Host positive.
+// Actual ordinary public facade with an explicit Local provider fixture.
+// This establishes option routing, not an operational Host positive.
 import assert from 'node:assert/strict';
 import {copyFile, mkdir, readFile, symlink, writeFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
@@ -44,61 +44,50 @@ export function connect(options) {calls.push(options);return Promise.resolve(Obj
   return {entry, port, provider, require, portPath};
 }
 
-test('selected public open forwards omitted input synchronously before constructing a default packet', async t => {
-  const f = await facade(t), client = Object.freeze({originalClient: true});
-  let finish;
-  f.port.setBehavior(() => new Promise(resolve => {finish = resolve;}));
-  const pending = f.entry.open();
-  assert.equal(f.port.calls.length, 1);
-  assert.equal(f.port.calls[0].receiver, f.port);
-  assert.equal(f.port.calls[0].kind, 'open');
-  assert.equal(f.port.calls[0].raw, undefined);
-  assert.equal(f.provider.calls.length, 0);
-  finish(client); assert.equal(await pending, client);
-  assert.equal(f.port.calls.length, 1); assert.equal(f.provider.calls.length, 0);
+test('ordinary public open ignores an ambient private startup table', async t => {
+  const f = await facade(t);
+  f.port.setBehavior(() => {assert.fail('ordinary open must use the normal provider');});
+  const client = await f.entry.open();
+  assert.equal(client.info.stateDir, resolve('.actql'));
+  assert.equal(f.port.calls.length, 0);
+  assert.equal(f.provider.calls.length, 1);
 });
 
-test('selected refusal precedes Proxy observation and preserves the original pending cleanup', async t => {
+test('ordinary open captures documented options and explicit Mock consent before lazy import', async t => {
   const f = await facade(t);
-  let observations = 0;
-  const raw = new Proxy({}, {get() {observations++;}, ownKeys() {observations++;},
-    getOwnPropertyDescriptor() {observations++;}, getPrototypeOf() {observations++;}});
-  const cleanupHandle = Object.freeze({status() {return {pending: true};}, retry() {}});
-  const cause = Object.freeze(Object.assign(new Error('NodeInitialControlInputUnavailable'),
-    {code: 'NodeInitialControlInputUnavailable', cleanupHandle}));
-  f.port.setBehavior((kind, original) => {
-    assert.equal(kind, 'open'); assert.equal(original, raw); throw cause;
-  });
-  await assert.rejects(f.entry.open(raw), error => error === cause && error.cleanupHandle === cleanupHandle);
-  assert.equal(observations, 0); assert.equal(f.port.calls.length, 1);
-  assert.equal(f.provider.calls.length, 0); assert.equal(cleanupHandle.status().pending, true);
+  const callback = () => 'original';
+  let profileReads = 0;
+  const input = {stateDir: '.mock-original', get profile() {profileReads++; return 'mock';},
+    installation: {resolveSourceSecret: callback}};
+  const pending = f.entry.open(input);
+  input.stateDir = '.replacement';
+  input.installation.resolveSourceSecret = () => 'replacement';
+  const client = await pending;
+  assert.equal(profileReads, 1);
+  assert.equal(client.info.stateDir, resolve('.mock-original'));
+  assert.equal(f.provider.calls[0].profile, 'mock');
+  assert.strictEqual(f.provider.calls[0].installation.resolveSourceSecret, callback);
+  assert.equal(f.port.calls.length, 0);
 });
 
-test('selected forwarding retains the exact original object and callback without copying or reading them', async t => {
+test('ordinary connect retains explicit selection rather than a later caller mutation', async t => {
   const f = await facade(t);
-  let reads = 0;
-  const callback = () => {}, raw = Object.defineProperty({installation: {resolveSourceSecret: callback}},
-    'stateDir', {get() {reads++; throw new Error('UnadmittedGetter');}, enumerable: true});
-  f.port.setBehavior((kind, original) => {
-    assert.equal(kind, 'open'); assert.equal(original, raw);
-    return Promise.reject(Object.freeze(new Error('OriginalSupplierUnavailable')));
-  });
-  await assert.rejects(f.entry.open(raw), {message: 'OriginalSupplierUnavailable'});
-  assert.equal(reads, 0); assert.equal(raw.installation.resolveSourceSecret, callback);
-  assert.equal(f.port.calls.length, 1); assert.equal(f.provider.calls.length, 0);
+  const input = {mode: 'local', profile: 'mock', installation: {directory: '.original'}};
+  const pending = f.entry.connect(input);
+  input.profile = 'live'; input.installation.directory = '.replacement';
+  await pending;
+  assert.equal(f.provider.calls[0].profile, 'mock');
+  assert.equal(f.provider.calls[0].installation.directory, '.original');
+  assert.equal(f.port.calls.length, 0);
 });
 
-test('the public facade retains its original callback and receiver after a late cache export replacement', async t => {
+test('absent profile stays absent and an inherited profile cannot consent to Mock setup', async t => {
   const f = await facade(t);
-  let replacementCalls = 0;
-  f.require.cache[f.portPath].exports = Object.freeze({selectedInitialControlHostPreparation() {
-    replacementCalls++; return Promise.resolve({replacement: true});
-  }});
-  const client = Object.freeze({sameOriginal: true});
-  f.port.setBehavior(() => Promise.resolve(client));
-  assert.equal(await f.entry.open(), client);
-  assert.equal(f.port.calls.length, 1); assert.equal(f.port.calls[0].receiver, f.port);
-  assert.equal(replacementCalls, 0); assert.equal(f.provider.calls.length, 0);
+  await f.entry.connect({mode: 'local'});
+  assert.equal(Object.hasOwn(f.provider.calls[0], 'profile'), false);
+  await assert.rejects(f.entry.connect(Object.assign(Object.create({profile: 'mock'}),
+    {mode: 'local'})), {code: 'InvalidConnectionOptions'});
+  assert.equal(f.provider.calls.length, 1);
 });
 
 test('unselected open retains default and explicit Local state-directory behavior', async t => {
@@ -118,6 +107,7 @@ test('unselected open retains default and explicit Local state-directory behavio
 test('unselected open preserves its original closed fields and type refusals before Local dispatch', async t => {
   const f = await facade(t, false);
   for (const raw of [null, [], {unknown: true}, {stateDir: ''}, {stateDir: 1},
+    {profile: false}, {profile: null}, {profile: ''}, {[Symbol('unknown')]: true},
     {installation: null}, {installation: []}, {installation: {directory: '/foreign'}}]) {
     await assert.rejects(f.entry.open(raw), {code: 'InvalidOpenOptions'});
   }

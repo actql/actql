@@ -72,6 +72,8 @@ export declare function connect(connectionString: string,
 export type OpenOptions = Readonly<{
   /** Absolute or relative state directory; defaults to CWD/.actql. */
   stateDir?: string;
+  /** Explicit Project profile selection; Mock consents to its limited initial setup. */
+  profile?: string;
   durability?: Durability;
   consentRefs?: readonly string[];
   installation?: Omit<EmbeddedHostInstallation, 'directory'>;
