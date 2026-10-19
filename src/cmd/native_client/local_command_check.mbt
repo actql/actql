@@ -95,6 +95,10 @@ fn[T] command_preparation_result(
 ) -> T raise ClientStop {
   match result {
     Ok(value) => value
+    // read_command retains the original public ClientStop across its physical
+    // return. Preserve that application failure after the return completes;
+    // it must not become an unrelated preparation/supplier error.
+    Err(CommandApplication(message)) => stop(message)
     Err(_) => stop("LocalCommandPreparationUnavailable")
   }
 }
