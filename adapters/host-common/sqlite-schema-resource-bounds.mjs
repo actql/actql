@@ -1,5 +1,5 @@
 // Resource-only preflight for the same isolated SQLite copy. This reads the
-// schema table's declared payload lengths, not SQL meaning, row authority or
+// schema and selected table/index declared payload lengths, not SQL meaning, row authority or
 // the Journal format. SQLite remains the semantic decoder. No admission is
 // issued here, and unselected inspection does not use this extra boundary.
 import {readSync} from 'node:fs';
@@ -145,16 +145,29 @@ function serialBytes(type) {
   unavailable();
 }
 
+function schemaRootPage(payload, field) {
+  if (field.type === 8) return 0;
+  if (field.type === 9) return 1;
+  if (field.type < 1 || field.type > 6 || (payload[field.offset] & 128) !== 0) unavailable();
+  let number = 0;
+  for (let index = 0; index < field.bytes; index++) {
+    number = number * 256 + payload[field.offset + index];
+    if (number > 0xffffffff) unavailable();
+  }
+  return number;
+}
+
 function supportsSchemaRecord(payload, support) {
   const header = varint(payload, 0, payload.length, true);
   if (header.value > payload.length || header.value < header.offset) unavailable();
-  let cursor = header.offset, body = header.value, typeName, sql;
+  let cursor = header.offset, body = header.value, typeName, root, sql;
   for (let index = 0; index < 5; index++) {
     const type = varint(payload, cursor, header.value, true);
     cursor = type.offset;
     const bytes = serialBytes(type.value);
     if (bytes > payload.length - body) unavailable();
     if (index === 0) typeName = {type: type.value, offset: body, bytes};
+    if (index === 3) root = {type: type.value, offset: body, bytes};
     if (index === 4) sql = {type: type.value, offset: body, bytes};
     body += bytes;
   }
@@ -167,7 +180,7 @@ function supportsSchemaRecord(payload, support) {
     for (let offset = 0; offset < name.length; offset++) {
       if (payload[typeName.offset + offset] !== apply(character, name, [offset])) unavailable();
     }
-    return;
+    return schemaRootPage(payload, root);
   }
   if (sql.type < 13 || sql.type % 2 !== 1) unavailable();
   for (const candidate of support) {
@@ -176,9 +189,49 @@ function supportsSchemaRecord(payload, support) {
     for (let index = 0; index < candidate.length; index++) {
       if (payload[sql.offset + index] !== apply(character, candidate, [index])) { equal = false; break; }
     }
-    if (equal) return;
+    if (equal) return schemaRootPage(payload, root);
   }
   unavailable();
+}
+
+function inspectRecordDeclarations(pending, page, readPage, maxPages, usable, schemaPages, overflowPages) {
+  const seen = new Set();
+  const mark = number => {
+    if (!integer(number) || number < 2 || number > maxPages || seen.has(number) ||
+        schemaPages.has(number) || overflowPages.has(number) ||
+        seen.size + schemaPages.size + overflowPages.size >= maxPages) unavailable();
+    seen.add(number);
+  };
+  for (const number of pending) mark(number);
+  const enqueue = number => {mark(number); pending.push(number);};
+  const maxRecordBytes = maxPages * page.length;
+  while (pending.length !== 0) {
+    readPage(pending.pop(), page);
+    const type = page[0], interior = type === 2 || type === 5;
+    if (!interior && type !== 10 && type !== 13) unavailable();
+    const cells = half(page, 3), header = interior ? 12 : 8;
+    if (header + 2 * cells > usable) unavailable();
+    if (interior) enqueue(be(page, 8));
+    for (let index = 0; index < cells; index++) {
+      let offset = half(page, header + 2 * index);
+      if (offset < header + 2 * cells || offset >= usable) unavailable();
+      if (interior) {
+        if (offset + 4 > usable) unavailable();
+        enqueue(be(page, offset));
+        offset += 4;
+      }
+      if (type === 5) {
+        varint(page, offset, usable, false);
+      } else {
+        const payload = varint(page, offset, usable, true);
+        // Large table-column RCStr allocation can precede the eventual
+        // overflow read. Bound the declaration itself, not a later read error
+        // or SQLite's much larger generic SQLITE_LIMIT_LENGTH.
+        if (payload.value > maxRecordBytes) unavailable();
+        if (type === 13) varint(page, payload.offset, usable, false);
+      }
+    }
+  }
 }
 
 export function inspectBoundedSqliteSchema(database, wal, limits, maxSourceBytes, schemaSqlSupport) {
@@ -202,6 +255,7 @@ export function inspectBoundedSqliteSchema(database, wal, limits, maxSourceBytes
   // existing aggregate schema payload ceiling, not by GC between iterations.
   if (schemaSqlSupport !== undefined && be(header, 56) !== 1) unavailable();
   const overflow = schemaSqlSupport === undefined ? undefined : apply(alloc, Buffer, [pageSize]);
+  const roots = schemaSqlSupport === undefined ? undefined : [];
   const payloadPages = new Set();
   const usable = pageSize - header[20];
   if (usable < 480) unavailable();
@@ -281,11 +335,20 @@ export function inspectBoundedSqliteSchema(database, wal, limits, maxSourceBytes
             payload.value > limits.maxSchemaBytes - payloadBytes) unavailable();
         entries++;
         payloadBytes += payload.value;
-        if (schemaSqlSupport !== undefined) supportsSchemaRecord(
-          readPayload(rowid.offset, payload.value), schemaSqlSupport);
+        if (schemaSqlSupport !== undefined) {
+          const root = supportsSchemaRecord(readPayload(rowid.offset, payload.value), schemaSqlSupport);
+          if (root !== 0) roots.push(root);
+        }
       }
     }
   }
+  // Only the selected own-DDL recipe traverses these actual saved roots.
+  // Reuse the same page/committed-WAL view, without decoding row values,
+  // allocating their payloads or replacing SQLite's format interpretation.
+  // The roots/worklist and one seen set are bounded by maxPages, separately
+  // from the existing schema-page ceiling and retained schema payloads.
+  if (roots !== undefined) inspectRecordDeclarations(
+    roots, page, readPage, maxPages, usable, visited, payloadPages);
   return freeze({pageSize, schemaEntries: entries, schemaPayloadBytes: payloadBytes,
     schemaPages: visited.size + payloadPages.size, committedWalFrames: overlay.frames});
 }

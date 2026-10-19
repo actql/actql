@@ -1060,6 +1060,20 @@ DATA narrows the selected recipe and never issues capacity or custody. Its
 original allowlist Strings, bounded record backings, overflow buffer and all
 FD/current/cleanup overlap belong in that same complete phase.
 
+For this selected own-DDL path, the same copied schema records also identify
+the saved table and index root pages, including automatic indexes with NULL
+SQL. A bounded binary walk follows those Btree pages through the same committed
+WAL view and checks declared cell payload lengths before native open. It does
+not allocate or decode row values. This is necessary because a native large
+column cache may allocate from the declared length before a later overflow
+read discovers corruption; a file-size check at that later read is not an
+earlier allocation bound. The existing source-byte ceiling bounds the selected
+record declarations. An unsupported declaration refuses preparation rather
+than changing SQLite's format or SQL semantics. Unselected inspection remains
+unchanged. The additional root/worklist array, visited-page set, bounded page
+reads and retained copy/source duties coexist with the schema buffers and WAL
+index in the complete facility phase; this preflight issues no backing or ACK.
+
 Installation-time Mock answer documents are bounded Host-preparation
 definitions, not Model execution capacity. The selected control recipe includes
 the additional original Task reread and answer document for each selected Task,

@@ -63325,7 +63325,7 @@
     {
       "module": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ffd3f00746c87022127635d35d2794f84050f47aeba7a31abe9961f3fa297e96",
+      "sha256": "07ce41bbbf4a1ad28e85995e976359193294ffe865bea32df3a385670428d3db",
       "exports": [
         "inspectBoundedSqliteSchema",
         "snapshotSqliteSchemaReadLimits",
@@ -63414,6 +63414,41 @@
           "async": false
         },
         {
+          "name": "inspectRecordDeclarations",
+          "parameters": [
+            "pending",
+            "page",
+            "readPage",
+            "maxPages",
+            "usable",
+            "schemaPages",
+            "overflowPages"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectRecordDeclarations/enqueue/enqueue",
+          "parameters": [
+            "number"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectRecordDeclarations/mark/mark",
+          "parameters": [
+            "number"
+          ],
+          "async": false
+        },
+        {
+          "name": "schemaRootPage",
+          "parameters": [
+            "payload",
+            "field"
+          ],
+          "async": false
+        },
+        {
           "name": "serialBytes",
           "parameters": [
             "type"
@@ -63488,6 +63523,10 @@
             "inspectBoundedSqliteSchema/enqueue/enqueue",
             "inspectBoundedSqliteSchema/readPage/readPage",
             "inspectBoundedSqliteSchema/readPayload/readPayload",
+            "inspectRecordDeclarations",
+            "inspectRecordDeclarations/enqueue/enqueue",
+            "inspectRecordDeclarations/mark/mark",
+            "schemaRootPage",
             "serialBytes",
             "snapshotSqliteSchemaReadLimits",
             "snapshotSqliteSchemaReadLimits/snapshotSqliteSchemaReadLimits",
@@ -63509,7 +63548,7 @@
               },
               {
                 "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
-                "anchor": "// schema table's declared payload lengths, not SQL meaning, row authority or"
+                "anchor": "// schema and selected table/index declared payload lengths, not SQL meaning, row authority or"
               }
             ],
             "inputsOutputs": [
@@ -63524,6 +63563,14 @@
               {
                 "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
                 "anchor": "export function inspectBoundedSqliteSchema(database, wal, limits, maxSourceBytes, schemaSqlSupport) {"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "function schemaRootPage(payload, field) {"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "function inspectRecordDeclarations(pending, page, readPage, maxPages, usable, schemaPages, overflowPages) {"
               }
             ],
             "identity": [
@@ -63580,6 +63627,10 @@
               {
                 "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
                 "anchor": "visited.size + pending.length + payloadPages.size >= limits.maxSchemaPages) unavailable();"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "if (payload.value > maxRecordBytes) unavailable();"
               }
             ],
             "cancellation": [
@@ -63612,6 +63663,14 @@
               {
                 "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
                 "anchor": "const latest = new Map();"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "const roots = schemaSqlSupport === undefined ? undefined : [];"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "seen.size + schemaPages.size + overflowPages.size >= maxPages) unavailable();"
               }
             ],
             "extension": [
@@ -63644,6 +63703,14 @@
               {
                 "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mjs",
                 "anchor": "DB and WAL copying reuse one backing instead of assuming loop-local backing retirement"
+              },
+              {
+                "path": "adapters/host-common/sqlite-record-resource-bounds.test.mjs",
+                "anchor": "test('selected original ' + kind + ' payload extent refuses before native open', async () => {"
+              },
+              {
+                "path": "adapters/host-common/sqlite-record-resource-bounds.test.mjs",
+                "anchor": "test('selected record extent uses the original committed WAL page rather than stale main bytes', async () => {"
               }
             ]
           }
@@ -63663,7 +63730,7 @@
   ],
   "counts": {
     "modules": 145,
-    "operations": 3632,
+    "operations": 3636,
     "exports": 929,
     "explicitContractGroups": 180
   },
