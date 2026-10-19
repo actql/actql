@@ -29,6 +29,7 @@ export {openClientRequestJournal as openOriginalHostRequestJournal,
   assertOriginalClientRequestJournalFacilityCurrent as assertOriginalHostRequestJournalFacilityCurrent};
 import {installNodeClientSubmission, issueNodeClientSubmissionEpoch} from './client-submission.mjs';
 import {admitHostRootFormat} from './host-root-format.mjs';
+export {admitHostRootFormat as admitOriginalHostRootFormat};
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
@@ -544,7 +545,8 @@ async function openInstalledHost(originalInstallation, preparation) {
   // The actual Journal facility precedes even root-format creation/fsync.
   // Initial control and Source/Compute admissions cannot cover this write.
   if (preparation !== undefined) await preparation.prepareHostJournal();
-  await admitHostRootFormat(root);
+  if (preparation === undefined) await admitHostRootFormat(root);
+  else await preparation.admitRootFormat(root);
   const originalSourcePreparation = preparation?.sourcePreparation();
   if (originalSourcePreparation === undefined &&
       registerModelProviders !== undefined && process.version === 'v22.22.0' &&
@@ -3925,6 +3927,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   let control, controlClose, duty, observedClose, referenceRetirement;
   let moon, project, projectProfile, mockPreparation, sourceManaged, sourceManagedClose;
   let hostJournal, hostJournalClose, hostJournalOpen, hostJournalOwnership, hostJournalFlight;
+  let hostJournalAdmitRootFormat;
   let hostJournalOpenAttempted = false;
   let mockAnswers, mockModelProfile, mockModelProfileRetire, mockModelFlight;
   let adopted = false, referencesRetired = false;
@@ -3986,6 +3989,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         throw clientOperationError('HostJournalInstallationCleanupPending');
       }
       hostJournal = hostJournalClose = hostJournalOpen = hostJournalOwnership = undefined;
+      hostJournalAdmitRootFormat = undefined;
       hostJournalFlight = undefined;
       record.hostJournal = undefined;
     }
@@ -4038,6 +4042,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         }
         hostJournalOpen = original.openRequestJournal;
         hostJournalOwnership = original.publicationOwnership;
+        hostJournalAdmitRootFormat = original.admitRootFormat;
         const current = original.assertCurrent;
         if (typeof current !== 'function') {
           throw clientOperationError('HostJournalPreparationUnavailable');
@@ -4047,6 +4052,13 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         return original;
       });
       return hostJournalFlight;
+    },
+    admitRootFormat(root) {
+      assertInitialControlHostPreparation(originals);
+      if (hostJournal === undefined || typeof hostJournalAdmitRootFormat !== 'function') {
+        throw clientOperationError('HostJournalPreparationUnavailable');
+      }
+      return Reflect.apply(hostJournalAdmitRootFormat, hostJournal, [root]);
     },
     openRequestJournal(directory, options) {
       assertInitialControlHostPreparation(originals);

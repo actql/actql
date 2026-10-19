@@ -17,7 +17,7 @@ const load=compileFunction(source.replace(importLine,'')
   .replace('export async function ','async function ')+
   '\nreturn prepareHostJournalInstallation;', ['selectedRequire','process']);
 
-function fixture({open,missingOpen=false}={}){
+function fixture({open,missingOpen=false,admitRootFormat}={}){
   const original=Object.freeze({}),originals=Object.freeze({}),journal=Object.freeze({});
   const state={current:true,opens:0,closes:0,checks:0,pending:false,events:[]};
   const owner={prepareHostJournalInstallation(pair){assert.strictEqual(this,owner);
@@ -33,6 +33,10 @@ function fixture({open,missingOpen=false}={}){
     assert.strictEqual(this,owner);assert.strictEqual(value,original);assert.strictEqual(pair,originals);
     state.events.push('open');state.opens++;
     return open===undefined?journal:open({state,journal,directory,options});
+  };
+  if(admitRootFormat!==undefined)owner.admitHostJournalRootFormat=function(value,pair,root){
+    assert.strictEqual(this,owner);assert.strictEqual(value,original);assert.strictEqual(pair,originals);
+    return admitRootFormat(root);
   };
   const prepare=load(name=>{
     assert.equal(name,'./node-public-initial-control-bootstrap.cjs');return owner;
@@ -87,4 +91,31 @@ test('a pending original facility close prevents another open until its own exac
     {code:'HostJournalPreparationUnavailable'});
   f.state.pending=false;assert.deepEqual(await view.close(),{pending:false});
   assert.equal(f.state.opens,0);assert.equal(f.state.closes,2);
+});
+
+test('root-format admission forwards through the captured sixth Root operation and same original pair',async()=>{
+  let calls=0;const marker={};
+  const f=fixture({admitRootFormat(root){assert.equal(root,'/original');calls++;return marker;}});
+  const view=await f.prepare(f.originals);
+  f.owner.admitHostJournalRootFormat=()=>assert.fail('Replacement is not the original');
+  assert.strictEqual(view.admitRootFormat('/original'),marker);
+  assert.equal(calls,1);await view.close();
+});
+
+test('missing or retired root-format operation refuses before any fallback',async()=>{
+  const f=fixture(),view=await f.prepare(f.originals);
+  f.owner.admitHostJournalRootFormat=()=>assert.fail('Late installation is not original');
+  assert.throws(()=>view.admitRootFormat('/original'),{code:'HostJournalPreparationUnavailable'});
+  await view.close();
+  assert.throws(()=>view.admitRootFormat('/original'),{code:'HostJournalPreparationUnavailable'});
+  assert.equal(f.state.opens,0);
+});
+
+test('root-format failure preserves the same original cleanup and current refusal',async()=>{
+  const failure=Object.assign(new Error('OriginalRootFormatPending'),{cleanupHandle:{}});
+  const f=fixture({admitRootFormat(){throw failure;}}),view=await f.prepare(f.originals);
+  assert.throws(()=>view.admitRootFormat('/original'),error=>error===failure);
+  f.state.current=false;f.state.failure=new Error('OriginalGenerationRetired');
+  assert.throws(()=>view.admitRootFormat('/original'),error=>error===f.state.failure);
+  await view.close();assert.equal(f.state.closes,1);assert.equal(f.state.opens,0);
 });

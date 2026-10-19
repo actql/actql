@@ -99,6 +99,7 @@ const hostMethod = name => {
 };
 const hostPreparation = compileFunction(`
   let hostJournal,hostJournalClose,hostJournalOpen,hostJournalOwnership,hostJournalFlight;
+  let hostJournalAdmitRootFormat;
   let hostJournalOpenAttempted=false;const record={};
   return {${hostMethod('prepareHostJournal')},${hostMethod('openRequestJournal')},
     ${hostMethod('publicationOwnership')}};`,
