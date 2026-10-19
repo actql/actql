@@ -13,7 +13,7 @@ import {channelListFixture,channelListReadLimits} from './channel-list-read.fixt
 // physical transport closure does not return the original reader reservation.
 const pending=new Set();
 const repo=new URL('../../../../',import.meta.url);
-export async function installedSlackChannelsFixture(t,{account='allow'}={}){
+export async function installedSlackChannelsFixture(t,{account='allow',resource='channels'}={}){
   const f=await channelListFixture(t,{accounted:false});
   const site={version:'actql-installed-slack-site/0.1',apiOrigin:f.scope.resourceOrigin,
     credentialAuthorityId:'installed-slack',credentialKeyId:'key',
@@ -24,7 +24,7 @@ export async function installedSlackChannelsFixture(t,{account='allow'}={}){
   await writeFile(siteProfilePath,JSON.stringify(site));
   const policy=canonicalJson({version:'actql-execution-account-config/0.1',account_id:'installed',entries:[{
     entry_id:'channels',outcome:account,principal:{all:true},connection:{any_of:['slack:workspace']},
-    resource:{any_of:['channels']},operation:{any_of:['read']},exclusions:[]}]});
+    resource:{any_of:[resource]},operation:{any_of:['read']},exclusions:[]}]});
   const profile={version:'actql-installed-slack-source/0.1',connectorId:'workspace',workspaceId:f.options.workspaceId,
     siteProfilePath,accountConfigurationWire:policy,limits:{...channelListReadLimits,
       maxDeclarationBytes:4096,maxDeclarationNodes:1000,maxSecretBytes:128,maxCaBytes:16384}};
@@ -37,15 +37,16 @@ export async function installedSlackChannelsFixture(t,{account='allow'}={}){
     baseEnvironmentWire:await readFile(new URL('spec/local-check-environment.json',repo),'utf8'),
     resolveSecret:async()=>{f.state.resolutions++;await f.state.resolved?.();return f.state.secret;},readerCapacity:capacity};
   const load=async(overrides={})=>{const source=await loadInstalledSlackSource(profile,{...options,...overrides});sources.push(source);return source;};
-  const prepare=async(source,{format='sql',selection='id, name'}={})=>{
+  const prepare=async(source,{format='sql',selection='id, name',resource:selectedResource=resource,predicate}={})=>{
     const env=JSON.parse(source.environmentWire);
     const check=common.clientProgramCheckEnvironment(source.environmentWire,env.evidence_bundle_cid,
       false,false,true,false,false,false,false);assert.ok(check);
-    const view=env.schema_snapshots.find(v=>v.source_ref===source.sourceReadAccesses.find(v=>v.resource==='channels').sourceRef);assert.ok(view);
-    const publication=JSON.stringify({environmentCid:env.evidence_bundle_cid,aliases:[{name:'slack.channels',
+    const view=env.schema_snapshots.find(v=>v.source_ref===source.sourceReadAccesses.find(v=>v.resource===selectedResource).sourceRef);assert.ok(view);
+    const publication=JSON.stringify({environmentCid:env.evidence_bundle_cid,aliases:[{name:'slack.'+selectedResource,
       sourceRef:view.source_ref,sourceViewContractCid:view.source_view_contract_cid,
       schemaContractCid:view.carrier_schema_contract_cid}]});
-    const text=format==='sql'?`SELECT ${selection} FROM slack.channels`:`FROM slack.channels |> SELECT ${selection}`;
+    const text=format==='sql'?`SELECT ${selection} FROM slack.${selectedResource}${predicate===undefined?'':' WHERE '+predicate}`
+      :`FROM slack.${selectedResource}${predicate===undefined?'':' |> WHERE '+predicate} |> SELECT ${selection}`;
     const outcome=common.clientProgramPrepareSourceWithParameters(text,format,check,publication,undefined,undefined);
     const preparedProgram=common.clientProgramPreparationReady(outcome);
     assert.ok(preparedProgram,common.clientProgramPreparationIssueCode(outcome));

@@ -6,7 +6,7 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 test('installed Slack channels original Source captures exact typed rows under its separate resource',async t=>{
   for(const format of ['sql','aql']){
     const f=await installedSlackChannelsFixture(t),source=await f.load(),p=await f.prepare(source,{format,selection:'id, name, member_count'});
-    assert.deepEqual(source.sourceReadAccesses.map(v=>v.resource),['users','channels']);
+    assert.deepEqual(source.sourceReadAccesses.map(v=>v.resource),['users','channels','messages']);
     const opened=await source.openCapture(p);await f.retain(opened,p.ledger);
     const exported=checked(f.common.clientProgramExportSourceCapture(opened.capture.source(),opened.requirement,'slack-channels'));
     const rows=f.common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse);
