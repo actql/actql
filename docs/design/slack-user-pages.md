@@ -531,3 +531,53 @@ thread population. It does not change the public channels declaration, saved
 wire, operation grant or Source authority. The additional projector closure
 and fixed request discriminator overlap the existing reader graph and typed
 decoding workspace; their presence is not resource admission or cleanup ACK.
+
+## Installed messages Source
+
+The installed declaration includes the existing Common messages schema and its
+`id` key. Its Account resource is `messages`, independently of `channels` and
+`users`. A channels read decision, token visibility or a shared Slack endpoint
+cannot substitute for an original messages read decision. The actual Site
+issues separate operation grants for conversation enumeration, workspace
+identity, history and replies, each bound to that same messages acquisition,
+Run invocation and dispatch. Current Account/Site checks remain before work
+and across awaits; each use has its own original identifier.
+
+The physical factory captures provider/Site/Host methods and receivers once.
+It realizes a broad conversation request with all four kinds, admits the whole
+returned known record set, and selects each actual page/index for history.
+Replies are read from original history rows; Common coalesces those completed
+protocols before a conversation's rows enter the original RowRun. This checks
+known fields and contradictions even when the eventual query omits a field or
+filters the row out. No residual WHERE is relabelled as a smaller original
+request or time window. The declaration continues to advertise projection
+only; the public pushdown target remains a separate implementation obligation.
+
+There is one pending response ticket. Before the next actual dependent
+exchange is authorized, its predecessor is consumed as an observation. After
+Common coalescence, the conversation's last actual ticket accounts for the
+append through the existing charged-page receiver. It is not proof of earlier
+responses, permission, or physical retirement. The retained original readers,
+requests, responses, checked page/index selections and protocol controls supply
+that prefix. No canonical output is charged as a replacement transfer. An
+empty original conversation extent appends no synthetic message; a later
+failure cannot publish the partially accumulated RowRun.
+
+For messages, the supplied page ceiling bounds total authorized exchanges,
+including workspace observations, across the acquisition. Total response bytes
+and observed row occurrences are bounded across all child readers, in addition
+to the existing per-response limits. Coalescence uses bounded comparison,
+occurrence, work and encoding controls; these controls and the supplied provider
+capacity are not proof of normal physical funding. Exhaustion retains the
+original pending/partial custody rather than retrying or increasing a limit.
+
+The factory retains its acquisition key, RowRun/Host callbacks, provider and
+Site callbacks/receivers, credential binding, per-operation grants, child
+handles and captured read/stop/observe methods, channel page tokens, history
+and reply selections, coalesced outputs, signals, pending charge and failure
+references. Those overlap raw response bodies, cursor and decoder workspace,
+checked contracts, equality state and canonical row encoding/copying in the
+existing Host receiver. Closing transport does not retire escaped aliases or
+return the original reservation. The observer remains `cleanupConfirmed:false`
+without a separate physical retirement supplier. Normal installation funding,
+live Slack and complete public workflow acceptance are separate qualifications.
