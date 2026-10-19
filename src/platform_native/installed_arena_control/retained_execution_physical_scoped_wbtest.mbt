@@ -10,6 +10,21 @@ fn[T, E] Result::retained_execution_value(
 }
 
 ///|
+fn retained_cleanup_observation_foreign_controls(
+  host : InstalledArenaHost,
+  execution : InstalledArenaRetainedExecution,
+) -> Unit raise {
+  let copied = { ..execution, }
+  assert_true(
+    host.observe_domain_retained_execution_cleanup_scope(copied) is Err(_),
+  )
+  let foreign = { ..host, }
+  assert_true(
+    foreign.observe_domain_retained_execution_cleanup_scope(execution) is Err(_),
+  )
+}
+
+///|
 fn retained_execution_physical_work(
   host : InstalledArenaHost,
   execution : InstalledArenaRetainedExecution,
@@ -17,6 +32,9 @@ fn retained_execution_physical_work(
   retained : Ref[Array[Int]?],
   snapshot : Ref[@resources.LedgerUsage?],
 ) -> Unit raise {
+  assert_true(
+    host.observe_domain_retained_execution_cleanup_scope(execution) is Err(_),
+  )
   host
   .enter_domain_retained_execution(execution)
   .retained_execution_value("retained stage 11: actual entered")
@@ -162,6 +180,12 @@ test "actual in-process domain supplies one entered ledger and retains original 
   host
   .enter_domain_retained_execution_cleanup(execution)
   .retained_execution_value("retained cleanup: same original frame")
+  retained_cleanup_observation_foreign_controls(host, execution)
+  assert_eq(
+    host.observe_domain_retained_execution_cleanup_scope(execution).unwrap(),
+    @bootstrap.BackedReadEntered,
+  )
+  assert_true(host.observe_domain_retained_execution_scope(execution) is Err(_))
   assert_true(host.enter_domain_retained_execution_cleanup(execution) is Err(_))
   assert_true(host.borrow_domain_retained_execution_ledger(execution) is Err(_))
   assert_true(host.enter_domain_retained_execution(execution) is Err(_))
@@ -169,6 +193,10 @@ test "actual in-process domain supplies one entered ledger and retains original 
   host
   .leave_domain_retained_execution(execution)
   .retained_execution_value("retained cleanup: original leave")
+  assert_eq(
+    host.observe_domain_retained_execution_cleanup_scope(execution).unwrap(),
+    @bootstrap.BackedReadUnentered,
+  )
   assert_true(
     host.require_domain_retained_execution_current(execution) is Err(_),
   )
@@ -183,6 +211,9 @@ test "actual in-process domain supplies one entered ledger and retains original 
     execution.closed && execution.physical_retired && execution.reported,
   )
   assert_true(host.observe_domain_retained_execution_scope(execution) is Err(_))
+  assert_true(
+    host.observe_domain_retained_execution_cleanup_scope(execution) is Err(_),
+  )
   host
   .close_domain_after_owner_ack(domain)
   .retained_execution_value("retained stage 19: loan/region")
