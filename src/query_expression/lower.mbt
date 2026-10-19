@@ -753,10 +753,12 @@ fn append_resolved(
               if name == "quantize" && args.length() != 2 && args.length() != 4 {
                 raise Abort(InvalidArguments)
               }
-              if name == "decimal_divide" && args.length() < 4 {
+              if name == "decimal_divide" && args.length() == 2 {
                 raise Abort(UnsupportedFunction)
               }
-              if name == "decimal_divide" && args.length() != 5 {
+              if name == "decimal_divide" &&
+                args.length() != 3 &&
+                args.length() != 5 {
                 raise Abort(InvalidArguments)
               }
               if name == "date_trunc" &&
@@ -799,26 +801,39 @@ fn append_resolved(
                   ]),
                 )
               } else if name == "decimal_divide" {
-                guard numbers[args[2]] is Some(precision) &&
-                  precision >= 1.0 &&
-                  precision <= 38.0 &&
-                  precision.trunc() == precision else {
-                  current = @query.expression_origin(ast, args[2])
-                  raise Abort(InvalidArguments)
+                let short = args.length() == 3
+                let precision = if short {
+                  38.0
+                } else {
+                  guard numbers[args[2]] is Some(precision) &&
+                    precision >= 1.0 &&
+                    precision <= 38.0 &&
+                    precision.trunc() == precision else {
+                    current = @query.expression_origin(ast, args[2])
+                    raise Abort(InvalidArguments)
+                  }
+                  precision
                 }
-                guard numbers[args[3]] is Some(scale) &&
+                let scale_index = if short { 2 } else { 3 }
+                guard numbers[args[scale_index]] is Some(scale) &&
                   scale >= 0.0 &&
                   scale <= precision &&
                   scale.trunc() == scale else {
-                  current = @query.expression_origin(ast, args[3])
+                  current = @query.expression_origin(ast, args[scale_index])
                   raise Abort(InvalidArguments)
                 }
-                guard strings[args[4]] is Some(rounding) &&
-                  ["half_even", "half_up", "toward_zero", "floor", "ceiling"].contains(
-                    rounding,
-                  ) else {
-                  current = @query.expression_origin(ast, args[4])
-                  raise Abort(InvalidArguments)
+                let rounding = if short {
+                  "exact"
+                } else {
+                  guard strings[args[4]] is Some(rounding) &&
+                    [
+                      "half_even", "half_up", "toward_zero", "floor", "ceiling",
+                      "exact",
+                    ].contains(rounding) else {
+                    current = @query.expression_origin(ast, args[4])
+                    raise Abort(InvalidArguments)
+                  }
+                  rounding
                 }
                 lowering.form(
                   "decimal_divide",

@@ -4428,7 +4428,8 @@
                         "half_up",
                         "toward_zero",
                         "floor",
-                        "ceiling"
+                        "ceiling",
+                        "exact"
                       ]
                     }
                   },
@@ -10723,7 +10724,8 @@
                         "half_up",
                         "toward_zero",
                         "floor",
-                        "ceiling"
+                        "ceiling",
+                        "exact"
                       ]
                     }
                   },
@@ -22924,7 +22926,8 @@
                         "half_up",
                         "toward_zero",
                         "floor",
-                        "ceiling"
+                        "ceiling",
+                        "exact"
                       ]
                     }
                   },
@@ -28305,7 +28308,8 @@
                         "half_up",
                         "toward_zero",
                         "floor",
-                        "ceiling"
+                        "ceiling",
+                        "exact"
                       ]
                     }
                   },
@@ -36478,7 +36482,8 @@
                         "half_up",
                         "toward_zero",
                         "floor",
-                        "ceiling"
+                        "ceiling",
+                        "exact"
                       ]
                     }
                   },
@@ -41859,7 +41864,8 @@
                         "half_up",
                         "toward_zero",
                         "floor",
-                        "ceiling"
+                        "ceiling",
+                        "exact"
                       ]
                     }
                   },
@@ -44767,6 +44773,13 @@
       "demand": "Preserve original left-to-right eager child evaluation, strict NULL, surrounding lazy demand, root leases, logical value/work accounting, bounded workspace and cancellation. No first-class unbounded Interval value or general int64 arithmetic overload.",
       "compatibility": "Existing date_add Number-bit duration law, short structured units, all former value/clock shapes and operational clock purposes are unchanged.",
       "proof_status": "implementation-required-original-context-and-supported-backend-consumers"
+    },
+    "decimal_divide": {
+      "authoring": "SQL, Pipe and Common expression text decimal_divide(left,right,scale) emit the complete five-field body with precision38, the same static integer scale0..38 and division-only rounding exact. Retain both original children in order. Explicit five-argument policies preserve their meanings; no omitted fields are admitted by machine readers. The two-argument scale policy is not supplied by this rule.",
+      "value": "After both demanded children succeed and NULL propagation, compute the original exact coefficient ratio at the selected target scale. exact requires zero remainder and a fitting coefficient; inexactness, zero divisor and overflow fail with the existing arithmetic failure. The five explicit rounding policies keep their old behavior. No frontend evaluator, binary64 quotient, promotion or losslessness inference from a rounded value is permitted.",
+      "typing": "The left operand is Decimal and the divisor is Decimal or original safe-integer Number. Only an immediate literal NULL left receives the nullable declared Decimal target; only an immediate literal NULL divisor receives the resolved left Decimal contract, including contextualized literal NULL. This context proves no non-null input and never types an unknown field or Parameter or converts Number, Signed64 or String.",
+      "demand": "Both original children remain demanded exactly once in source order, including after a NULL child. Child error, control, cancellation, workspace, live-value and root retirement semantics remain unchanged; NULL does not suppress a demanded failure. Quantize never admits exact.",
+      "identity": "The operation, operand order, five required fields and old explicit-mode expression body bytes remain unchanged. exact is an added division policy at initial0.1, with genuinely changed containing contracts and pins; historical bodies retain their original identities. Authoring spans remain the original source."
     }
   },
   "regex_ast_contract": {

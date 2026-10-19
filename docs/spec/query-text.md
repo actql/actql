@@ -392,13 +392,20 @@ require every field, and the complete four-argument source path is unchanged.
 `DECIMAL_DIVIDE(left, right, precision, scale, rounding)` preserves both
 original operands in source order. The left is Decimal; the right is Decimal
 or an original Number whose evaluated value is a safe integer. Precision,
-scale and rounding retain the same literal target roles as `QUANTIZE`.
-Lowering emits the existing closed `decimal_divide` body. Common computes the
-exact coefficient ratio and rounds once at the explicit target scale; zero
-divisors, unrepresentable results and invalid Number divisors fail. Immediate
+scale and rounding retain the same literal target roles as `QUANTIZE`, with
+`exact` admitted only for division. The original five named rounding modes retain
+their old explicit behavior. SQL/Pipe `DECIMAL_DIVIDE(left,right,scale)` MUST emit
+the complete body with precision38, original integer-literal scale in `0..38`
+and `rounding: exact`, including transparent parentheses. Parameter, field and
+computed scale expressions cannot choose the target. Common requires zero
+remainder in the original coefficient ratio and a fitting result coefficient;
+inexact quotients fail instead of selecting a hidden rounding policy. Structured
+bodies still require all five fields. No omitted-scale policy is supplied.
+Lowering retains both original child subtrees in source order. Zero divisors,
+unrepresentable results and invalid Number divisors fail. Immediate
 NULL uses the explicit Decimal target and original peer context, remains NULL,
-and never suppresses a demanded child error. No default target, frontend
-arithmetic, implicit domain promotion or intermediate binary64 product is used.
+and never suppresses a demanded child error. No frontend arithmetic, implicit
+domain promotion or intermediate binary64 product is used.
 
 `TO_STRING(value)`, `TO_BOOLEAN(value)` and `TO_TIMESTAMP(value)` each take
 exactly one operand and lower to the existing Common `cast` node with target

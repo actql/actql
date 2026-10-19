@@ -276,9 +276,9 @@ fn emit_frames(
           }
           Binary(DecimalDivide(mode), left, right) => {
             guard expr.contract.shape is @contract.Decimal(precision~, scale~) &&
-              ["half_even", "half_up", "toward_zero", "floor", "ceiling"].contains(
-                mode,
-              ) else {
+              [
+                "half_even", "half_up", "toward_zero", "floor", "ceiling", "exact",
+              ].contains(mode) else {
               raise @encode.InvalidStructure
             }
             pending.push(Op("decimal_divide"))

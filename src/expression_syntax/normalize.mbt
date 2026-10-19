@@ -204,7 +204,10 @@ fn finish(
         decimal_fields(value, cursor, origin)
       }
       if tag == "quantize" || tag == "decimal_divide" {
-        if !(part(value, "rounding")
+        let exact = tag == "decimal_divide" &&
+          part(value, "rounding") is Some({ value: @map.String("exact"), .. })
+        if !exact &&
+          !(part(value, "rounding")
           is Some(
             {
               value: @map.String(
