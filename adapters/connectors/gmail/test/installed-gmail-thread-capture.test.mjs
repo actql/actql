@@ -30,7 +30,7 @@ for(const format of ['sql','aql'])test(`installed Gmail threads ${format} binds 
 
 test('installed Gmail threads cannot borrow the labels Account decision',async t=>{
   const f=await installedGmailFixture(t,{resource:'threads',accountResource:'labels'}),source=await f.load();
-  await assert.rejects(f.prepare(source),{code:'ACTQL_E_ACCOUNT_DENIED'});
+  await assert.rejects(f.prepare(source),{code:'ACTQL_E_ACCOUNT_NO_MATCH'});
   assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
 });
 
