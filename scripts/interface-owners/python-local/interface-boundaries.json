@@ -12526,8 +12526,8 @@
         "sys"
       ],
       "imports": [
-        "._local_core",
         "._local_image_recipe",
+        "._local_wasm_abi",
         "._local_worker_slot",
         "__future__",
         "dataclasses",
@@ -12643,7 +12643,7 @@
           ]
         }
       ],
-      "sha256": "0a31d7dfd4933d157872254abba898c1ce4e2bc7f4a26f724f87e6f6187d1965",
+      "sha256": "08f246d8ae61fa23f2cd414ee29f9bf3fae07988a6a89ab5c869f34611c16256",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -13873,6 +13873,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Execution boundary"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The ordinary image recipe explicitly selects"
               }
             ],
             "inputsOutputs": [
@@ -13883,6 +13887,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
+                "anchor": "runtime_allocation: str = 'native-owned'"
               }
             ],
             "identity": [
@@ -13897,6 +13905,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "and compiled-image hashes remain bound together."
               }
             ],
             "ownership": [
@@ -13911,6 +13923,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "and the existing pinned Wasmtime dependency."
               }
             ],
             "synchronization": [
@@ -13921,6 +13937,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
                 "anchor": "def installed_local_components() -> LocalComponents:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing maintainer compiler may prepare that ordinary image using actual"
               }
             ],
             "failure": [
@@ -13935,6 +13955,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "is refused; it does not trigger JIT compilation or another runtime at load."
               }
             ],
             "cancellation": [
@@ -13945,6 +13969,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
                 "anchor": "def installed_local_components() -> LocalComponents:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "platform Config/pool/Engine/Module handles. It closes those handles and does"
               }
             ],
             "resources": [
@@ -13959,6 +13987,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "zero-capacity provider. Source/module/ABI, target, Engine settings, exact native"
               }
             ],
             "extension": [
@@ -13969,6 +14001,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
                 "anchor": "def installed_local_components() -> LocalComponents:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "same-image physical verifier remain distinct and unchanged in meaning."
               }
             ],
             "verification": [
@@ -13987,6 +14023,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
                 "anchor": "def installed_local_components() -> LocalComponents:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_image_recipe.py",
+                "anchor": "def test_platform_and_owned_image_descriptors_are_not_interchangeable("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_platform_binding_requires_same_recipe_without_a_fabricated_capacity("
               }
             ]
           }
@@ -17982,6 +18026,13 @@
         },
         {
           "async": false,
+          "name": "_platform_runtime_library",
+          "parameters": [
+            "recipe"
+          ]
+        },
+        {
+          "async": false,
           "name": "_selected_engine_settings",
           "parameters": [
             "recipe"
@@ -18023,7 +18074,7 @@
           ]
         }
       ],
-      "sha256": "29f14d0692bfb5b3b6d09053c5d2a6539e22d4c6e3d27c8b7cacbf22f885f286",
+      "sha256": "d9e30023e5186ca6d0f3a1bf58a226c356b59e3eaeb01cda119e2428fa82a1d2",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -18689,7 +18740,8 @@
         },
         {
           "operations": [
-            "_installed_runtime_library"
+            "_installed_runtime_library",
+            "_platform_runtime_library"
           ],
           "exports": [],
           "attributes": {
@@ -18701,6 +18753,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The ordinary image recipe explicitly selects"
               }
             ],
             "inputsOutputs": [
@@ -18711,6 +18767,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
+                "anchor": "runtime_allocation: str = 'native-owned'"
               }
             ],
             "identity": [
@@ -18725,6 +18785,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "and compiled-image hashes remain bound together."
               }
             ],
             "ownership": [
@@ -18739,6 +18803,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "and the existing pinned Wasmtime dependency."
               }
             ],
             "synchronization": [
@@ -18749,6 +18817,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
                 "anchor": "def _installed_runtime_library(components: LocalComponents, *, native: bool = False) -> Path:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing maintainer compiler may prepare that ordinary image using actual"
               }
             ],
             "failure": [
@@ -18763,6 +18835,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "is refused; it does not trigger JIT compilation or another runtime at load."
               }
             ],
             "cancellation": [
@@ -18773,6 +18849,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
                 "anchor": "def _installed_runtime_library(components: LocalComponents, *, native: bool = False) -> Path:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "platform Config/pool/Engine/Module handles. It closes those handles and does"
               }
             ],
             "resources": [
@@ -18787,6 +18867,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "zero-capacity provider. Source/module/ABI, target, Engine settings, exact native"
               }
             ],
             "extension": [
@@ -18797,6 +18881,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
                 "anchor": "def _installed_runtime_library(components: LocalComponents, *, native: bool = False) -> Path:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "same-image physical verifier remain distinct and unchanged in meaning."
               }
             ],
             "verification": [
@@ -18815,6 +18903,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
                 "anchor": "def _installed_runtime_library(components: LocalComponents, *, native: bool = False) -> Path:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_image_recipe.py",
+                "anchor": "def test_platform_and_owned_image_descriptors_are_not_interchangeable("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_platform_binding_requires_same_recipe_without_a_fabricated_capacity("
               }
             ]
           }
@@ -24125,8 +24221,8 @@
         "json"
       ],
       "imports": [
-        "._local_core",
         "._local_distribution",
+        "._local_wasm_abi",
         "__future__",
         "dataclasses",
         "hashlib",
@@ -24141,6 +24237,13 @@
           "async": false,
           "name": "_SelectedImageRecipe",
           "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_SelectedImageRecipe/owned_provider",
+          "parameters": [
+            "self"
+          ]
         },
         {
           "async": false,
@@ -24177,14 +24280,15 @@
           ]
         }
       ],
-      "sha256": "d9d53854f0129eb17238f6cdbb02ed0197ed46a95939086fed5e5579a6f3a2c3",
+      "sha256": "4e3d1f1a6e15c66944a7c95ec8293b0ae1b6117169dcd974177729e3c4ee6119",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
         {
           "operations": [
             "_SelectedImageRecipe",
-            "_SelectedImageRecipe/validate"
+            "_SelectedImageRecipe/validate",
+            "_SelectedImageRecipe/owned_provider"
           ],
           "exports": [],
           "attributes": {
@@ -24196,6 +24300,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Execution boundary"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The ordinary image recipe explicitly selects"
               }
             ],
             "inputsOutputs": [
@@ -24206,6 +24314,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
+                "anchor": "runtime_allocation: str = 'native-owned'"
               }
             ],
             "identity": [
@@ -24220,6 +24332,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "and compiled-image hashes remain bound together."
               }
             ],
             "ownership": [
@@ -24234,6 +24350,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "and the existing pinned Wasmtime dependency."
               }
             ],
             "synchronization": [
@@ -24244,6 +24364,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
                 "anchor": "class _SelectedImageRecipe:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing maintainer compiler may prepare that ordinary image using actual"
               }
             ],
             "failure": [
@@ -24258,6 +24382,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "is refused; it does not trigger JIT compilation or another runtime at load."
               }
             ],
             "cancellation": [
@@ -24268,6 +24396,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
                 "anchor": "class _SelectedImageRecipe:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "platform Config/pool/Engine/Module handles. It closes those handles and does"
               }
             ],
             "resources": [
@@ -24282,6 +24414,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "zero-capacity provider. Source/module/ABI, target, Engine settings, exact native"
               }
             ],
             "extension": [
@@ -24292,6 +24428,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
                 "anchor": "class _SelectedImageRecipe:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "same-image physical verifier remain distinct and unchanged in meaning."
               }
             ],
             "verification": [
@@ -24310,6 +24450,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
                 "anchor": "class _SelectedImageRecipe:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_image_recipe.py",
+                "anchor": "def test_platform_and_owned_image_descriptors_are_not_interchangeable("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_platform_binding_requires_same_recipe_without_a_fabricated_capacity("
               }
             ]
           }
