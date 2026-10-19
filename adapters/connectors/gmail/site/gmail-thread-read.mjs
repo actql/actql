@@ -72,7 +72,7 @@ function prepareRead(options) {
     basePath: `/gmail/v1/users/${component(mailbox)}/threads`});
 }
 
-async function executeRead(prepared, received) {
+async function executeRead(prepared, received, retainControl) {
   const {provider, context, mailbox, names, signal, basePath} = prepared;
   const bound = context.limits, observations = [], exchanges = [];
   let control, totalBytes = 0, rowCount = 0, pageCount = 0;
@@ -88,6 +88,7 @@ async function executeRead(prepared, received) {
       bound.maxMessages, bound.maxLabels, bound.maxHeaders, bound.maxHeaderUnits,
       bound.maxCommentDepth, bound.maxValueNodes, bound.maxValueTextBytes,
       bound.maxPages, bound.maxThreads));
+    retainControl(control);
     // Every transition follows the same original consumer's successful charge
     // consumption and a fresh current fence. No later ticket proves the prefix.
     for (let index = 0; index <= bound.maxPages + bound.maxThreads; index++) {
@@ -159,7 +160,7 @@ export function createGmailThreadReader(options) {
   const original = prepareRead(options), stop = new AbortController();
   const signal = original.signal === undefined ? stop.signal : AbortSignal.any([original.signal, stop.signal]);
   const state = {prepared: Object.freeze({...original, signal}), stop, phase: 'ready',
-    receivedResponses: 0, receivedBodyBytes: 0n};
+    receivedResponses: 0, receivedBodyBytes: 0n, control: undefined};
   const own = receiver => {
     if (receiver !== handle || readers.get(receiver) !== state) fail('ForeignGmailThreadReader');
     return state;
@@ -173,7 +174,7 @@ export function createGmailThreadReader(options) {
         const result = await executeRead(state.prepared, response => {
           state.receivedResponses++;
           state.receivedBodyBytes += BigInt(response.body.byteLength);
-        });
+        }, control => {state.control = control;});
         state.phase = 'succeeded';
         return result;
       } catch (cause) {state.phase = 'failed'; throw cause;}
@@ -188,6 +189,16 @@ export function createGmailThreadReader(options) {
   });
   readers.set(handle, state);
   return handle;
+}
+
+// Private installed caller membership assertion only. It exposes no control,
+// issues no grant and substitutes neither current Account nor response custody.
+export function assertOriginalGmailThreadRequest(reader, request) {
+  const state = readers.get(reader);
+  if (state === undefined || state.phase !== 'reading' || state.control === undefined ||
+      state.prepared.provider.gmailThreadRequestMatches(state.control, request) !== true) {
+    fail('ForeignGmailThreadReaderRequest');
+  }
 }
 
 export async function readGmailThreads(options) {

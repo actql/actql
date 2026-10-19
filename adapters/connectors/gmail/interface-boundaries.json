@@ -1253,15 +1253,24 @@
     },
     {
       "module": "adapters/connectors/gmail/site/gmail-thread-read.mjs",
-      "sha256": "5f25f6ec4bdfca812c99ec014391ed12b73c7a45f1334c14cf48cd0b652ccdb0",
+      "sha256": "0d319c99c478ec4379fe23350ef65d515bd860fde0cf75a1317fdc08aafc2800",
       "exports": [
         "GMAIL_THREAD_GET_OPERATION",
         "GMAIL_THREAD_LIST_OPERATION",
         "GmailThreadReadFailure",
+        "assertOriginalGmailThreadRequest",
         "createGmailThreadReader",
         "readGmailThreads"
       ],
       "operations": [
+        {
+          "name": "assertOriginalGmailThreadRequest",
+          "parameters": [
+            "reader",
+            "request"
+          ],
+          "async": false
+        },
         {
           "name": "component/component",
           "parameters": [
@@ -1301,6 +1310,13 @@
           "async": false
         },
         {
+          "name": "createGmailThreadReader/handle/init:read/init:read/result/result#2",
+          "parameters": [
+            "control"
+          ],
+          "async": false
+        },
+        {
           "name": "createGmailThreadReader/handle/init:requestStop/init:requestStop",
           "parameters": [
             "reason"
@@ -1318,7 +1334,8 @@
           "name": "executeRead",
           "parameters": [
             "prepared",
-            "received"
+            "received",
+            "retainControl"
           ],
           "async": true
         },
@@ -1464,12 +1481,14 @@
         {
           "operations": [
             "<module>",
+            "assertOriginalGmailThreadRequest",
             "component/component",
             "component/component/component",
             "createGmailThreadReader",
             "createGmailThreadReader/handle/init:observe/init:observe",
             "createGmailThreadReader/handle/init:read/init:read",
             "createGmailThreadReader/handle/init:read/init:read/result/result",
+            "createGmailThreadReader/handle/init:read/init:read/result/result#2",
             "createGmailThreadReader/handle/init:requestStop/init:requestStop",
             "createGmailThreadReader/own/own",
             "executeRead",
@@ -1496,6 +1515,7 @@
             "GMAIL_THREAD_GET_OPERATION",
             "GMAIL_THREAD_LIST_OPERATION",
             "GmailThreadReadFailure",
+            "assertOriginalGmailThreadRequest",
             "createGmailThreadReader",
             "readGmailThreads"
           ],
@@ -1536,6 +1556,10 @@
               {
                 "path": "adapters/connectors/gmail/site/gmail-thread-read.mjs",
                 "anchor": "const pending = next[0];"
+              },
+              {
+                "path": "adapters/connectors/gmail/site/gmail-thread-read.mjs",
+                "anchor": "export function assertOriginalGmailThreadRequest(reader, request)"
               }
             ],
             "ownership": [
@@ -1622,6 +1646,359 @@
               {
                 "path": "src/connectors/gmail/catalog/thread_read_wbtest.mbt",
                 "anchor": "Gmail omitted repeated metadata is empty only in the same selected original get grammar"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/gmail-thread-factory.test.mjs",
+                "anchor": "Gmail installed reader uses actual original Account Site and RowRun with separate get uses"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/gmail/host/thread-reader.mjs",
+      "sha256": "8b06c683281dd5d4669966e8492954e5c37459c491bc47ca9bca33ac6f1a33d6",
+      "exports": [
+        "createGmailThreadReaderFactory"
+      ],
+      "operations": [
+        {
+          "name": "createGmailThreadReaderFactory",
+          "parameters": [
+            "moon",
+            "site",
+            "capacity",
+            "mailbox",
+            "limits",
+            "maxSecretBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGmailThreadReaderFactory/createGmailThreadReaderFactory",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGmailThreadReaderFactory/createGmailThreadReaderFactory#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGmailThreadReaderFactory/factory/init:prepare/init:prepare",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/authorizationFor/authorizationFor",
+          "parameters": [
+            "input"
+          ],
+          "async": true
+        },
+        {
+          "name": "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/closeTransport/closeTransport",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
+          "parameters": [
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#3",
+          "parameters": [
+            "rows",
+            "ticket"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#4",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/invoke/invoke",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/sameOwner/sameOwner",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/verify/verify",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "createGmailThreadReaderFactory/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGmailThreadReaderFactory/provider/provider/provider",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGmailThreadReaderFactory/requestJson/requestJson",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "data",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "integer/integer",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "methods",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "../site/gmail-thread-read.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Gmail installed reader binding; Common nominal requests and original Host RowRun, Account and Site retain semantic and physical authority",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createGmailThreadReaderFactory",
+            "createGmailThreadReaderFactory/createGmailThreadReaderFactory",
+            "createGmailThreadReaderFactory/createGmailThreadReaderFactory#2",
+            "createGmailThreadReaderFactory/factory/init:prepare/init:prepare",
+            "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/authorizationFor/authorizationFor",
+            "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/closeTransport/closeTransport",
+            "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/handle/init:observe/init:observe",
+            "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read",
+            "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
+            "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
+            "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#3",
+            "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#4",
+            "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+            "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/invoke/invoke",
+            "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/sameOwner/sameOwner",
+            "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/verify/verify",
+            "createGmailThreadReaderFactory/provider/provider",
+            "createGmailThreadReaderFactory/provider/provider/provider",
+            "createGmailThreadReaderFactory/requestJson/requestJson",
+            "data",
+            "fail/fail",
+            "integer/integer",
+            "methods",
+            "methods/methods",
+            "text/text"
+          ],
+          "exports": [
+            "createGmailThreadReaderFactory"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "## Original installed thread reader binding"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/thread-reader.mjs",
+                "anchor": "export function createGmailThreadReaderFactory"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/gmail/host/thread-reader.mjs",
+                "anchor": "factory = Object.freeze({capacity, prepare(options)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const rowRun = Object.freeze({acquisition, run, requestId: nonce,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/gmail/host/thread-reader.mjs",
+                "anchor": "const sameOwner = () =>"
+              },
+              {
+                "path": "adapters/connectors/gmail/site/gmail-thread-read.mjs",
+                "anchor": "export function assertOriginalGmailThreadRequest(reader, request)"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/gmail-thread-factory.test.mjs",
+                "anchor": "Gmail installed reader rechecks original RowRun container after Account await"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/gmail/host/thread-reader.mjs",
+                "anchor": "const preparations = new WeakSet();"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The factory retains the child reader, pending-request references, original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/gmail/host/thread-reader.mjs",
+                "anchor": "const decision = await verify(getOperation);"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/thread-reader.mjs",
+                "anchor": "assertOriginalGmailThreadRequest(child, input.originalRequest);"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/gmail-thread-factory.test.mjs",
+                "anchor": "Gmail installed reader captures original methods receivers and does not repeat its acquisition"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/gmail/host/thread-reader.mjs",
+                "anchor": "originalFailure = cause;throw cause;"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/gmail-thread-factory.test.mjs",
+                "anchor": "Gmail installed reader retains rejected get response charge and refuses another start"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gmail/host/thread-reader.mjs",
+                "anchor": "stop.abort(reason);child?.requestStop(reason);closeTransport();"
+              },
+              {
+                "path": "adapters/connectors/gmail/site/gmail-thread-read.mjs",
+                "anchor": "requestStop(reason) {own(this).stop.abort(reason);}"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "This factory does not register threads in the installed Source profile."
+              },
+              {
+                "path": "adapters/connectors/gmail/host/thread-reader.mjs",
+                "anchor": "cleanupConfirmed: false"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/gmail-thread-factory.fixture.mjs",
+                "anchor": "pending.add({f, site, row, rowRun, options, suppliedSite, decisions, grants});"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "there is no replacement reader, grant retry or resend."
+              },
+              {
+                "path": "adapters/connectors/gmail/host/thread-reader.mjs",
+                "anchor": "invocationBindingsMatch(getAuthorization.scope, initial.scope)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/gmail/test/gmail-thread-factory.test.mjs",
+                "anchor": "Gmail installed reader uses actual original Account Site and RowRun with separate get uses"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/gmail-thread-factory.test.mjs",
+                "anchor": "Gmail installed reader refuses a copied Account decision before dependent get grant and send"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/gmail-thread-factory.test.mjs",
+                "anchor": "Gmail installed reader fails closed for denied Account and missing capacity"
               }
             ]
           }
