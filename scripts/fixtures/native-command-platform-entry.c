@@ -35,6 +35,39 @@ int main(int argc, char **argv) {
     refused_selection[2] == 33 && refused_selection[3] == 44);
   assert(!actql_command_entry.initial_coverage_complete);
   assert(actql_command_entry.initial_managed == NULL);
+  if (strcmp(argv[1], "initial-volume") == 0) {
+    size_t observed = 0, expected = 0;
+    assert(actql_command_initial_parser_volume(
+      actql_command_input.input.arguments, actql_command_input.input.storage_bytes,
+      actql_command_argument_classes, &observed));
+    assert(observed == actql_command_entry.initial_parser_allocation_volume);
+    int64_t arithmetic_classes[4] = {16, 32, 48, 80};
+    assert(actql_command_initial_parser_volume(4, 4096,
+      arithmetic_classes, &expected));
+    assert(expected == 68370633 + 16 + 32 + 48 + 80);
+    assert(actql_command_initial_parser_volume(1048576, 1048576,
+      arithmetic_classes, &expected));
+    assert(expected == 1874331593ULL + 16 + 32 + 48 + 80);
+    size_t unchanged = 123;
+    assert(!actql_command_initial_parser_volume(0, 4096,
+      arithmetic_classes, &unchanged) && unchanged == 123);
+    assert(!actql_command_initial_parser_volume(1048577, 1048577,
+      arithmetic_classes, &unchanged) && unchanged == 123);
+    assert(!actql_command_initial_parser_volume(4, 3,
+      arithmetic_classes, &unchanged) && unchanged == 123);
+    arithmetic_classes[0] = -1;
+    assert(!actql_command_initial_parser_volume(4, 4096,
+      arithmetic_classes, &unchanged) && unchanged == 123);
+    for (size_t i = 0; i < 4; i++) arithmetic_classes[i] = INT64_MAX;
+    assert(!actql_command_initial_parser_volume(4, 4096,
+      arithmetic_classes, &unchanged) && unchanged == 123);
+    assert(!actql_command_entry.initial_coverage_complete);
+    assert(!actql_command_entry.initial_envelope_admitted);
+    assert(actql_command_entry.initial_managed == NULL);
+    assert(actql_native_command_platform_current() == NULL);
+    puts("original entry record passed");
+    return 0;
+  }
   if (strcmp(argv[1], "early-input") == 0) {
     char original[ACTQL_COMMAND_ORIGINAL_CONTEXT_BYTES + 1];
     size_t length = actql_command_input.context_bytes;

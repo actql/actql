@@ -1581,6 +1581,15 @@ refuses before physical acquisition. No scalar, source label or successful
 component test supplies that missing original.
 
 
+The same early entry retains a source-bound managed allocation-volume sum for
+its captured argc, original byte total and four original allocator-class terms.
+The selected immutable Command grammar, its parser, help/error output and fixed
+module graph contribute separate terms. Constructor tuples/captures, reference
+Array carriers, builders and suggestion pairs are counted once. This volume is
+not a reservation or proof of allocator pages, fragmentation, metadata, stack,
+SIMDUTF internals, platform holdings or later command graphs. Recording it does
+not admit initial coverage or create a platform original.
+
 The selected command's trusted initial operational control covers the finite
 loader, dependency-image and TLS/synchronization lifetime of its pinned SQLite
 and Crypto components, together with the selected platform bookkeeping for

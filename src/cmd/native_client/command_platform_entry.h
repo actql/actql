@@ -6,6 +6,7 @@
  * can construct or replenish an entry. */
 #include "../../platform_native/host_bootstrap/command_platform.h"
 #include "command_output.h"
+#include "command_initial_parser_volume.h"
 #include <stdatomic.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -38,6 +39,8 @@ struct actql_native_command_platform_original {
    * allocator setup. No public input or getter can set this private state. */
   bool initial_coverage_complete;
   size_t initial_managed_selection[4];
+  /* Parser allocation volume only; never promotes initial coverage. */
+  size_t initial_parser_allocation_volume;
   actql_native_initial_managed_original *initial_managed;
   actql_bootstrap_command_output output_control;
   bool closing;
@@ -103,6 +106,16 @@ __attribute__((constructor)) static void actql_command_capture_process_entry(voi
   extern const struct mach_header_64 _mh_execute_header;
   actql_command_entry.image = &_mh_execute_header;
   actql_command_entry.source = source;
+  if (!actql_command_initial_parser_volume(
+      actql_command_input.input.arguments, actql_command_input.input.storage_bytes,
+      actql_command_argument_classes,
+      &actql_command_entry.initial_parser_allocation_volume)) {
+    atomic_store_explicit(&actql_command_entry_state, -1, memory_order_release);
+#if defined(ACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY)
+    actql_command_initial_refusal();
+#endif
+    return;
+  }
   atomic_store_explicit(&actql_command_entry_state, 1, memory_order_release);
 #if defined(ACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY)
   if (actql_command_early_input_status != ACTQL_COMMAND_INPUT_NOT_SELECTED) {
