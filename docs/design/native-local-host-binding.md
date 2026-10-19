@@ -1665,10 +1665,11 @@ selection use retained bytes rather than later environment pointers. This
 static initial-control storage remains distinct from an admitted managed arena
 and from the physical Host, Read and component originals.
 
-After the complete initial selection and actual managed original are current,
-the selected entry binds stdout and stderr to separate fixed buffers retained
-inside that same process-lived entry. It observes the supported libc's actual
-buffer address and length; an earlier successful status or equal FILE pointer
+After the complete initial selection is current, the selected entry binds
+stdout and stderr before allocator setup can emit diagnostics. Both fixed
+buffers remain inside that same process-lived entry. The actual managed
+original remains a separate operational conjunct. The entry observes the
+supported libc's actual buffer address and length; an earlier successful status or equal FILE pointer
 cannot hide changed backing. Setup is one-shot, including partial failure,
 and preserves each original result and errno. These buffers do not supply libc
 FILE/lock/TLS bookkeeping, output permission or a retirement acknowledgement.

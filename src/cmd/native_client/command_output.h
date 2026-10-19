@@ -38,9 +38,10 @@ static bool actql_bootstrap_output_buffer_current(
 #endif
 }
 
-/* Called only by the same trusted entry after its complete initial selection
- * and actual managed original. A failed second setup does not forget the
- * first FILE/buffer, retry it, select an alternate buffer or claim cleanup. */
+/* Called only by the same trusted entry after its complete initial selection,
+ * before allocator setup can emit diagnostics. A failed second setup does not
+ * forget the first FILE/buffer, retry it, select an alternate buffer or claim
+ * cleanup. */
 static bool actql_bootstrap_bind_command_output(
     actql_bootstrap_command_output *original, FILE *output, FILE *error) {
 #if !defined(__APPLE__)

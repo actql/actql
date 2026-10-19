@@ -77,9 +77,9 @@ bool actql_native_command_platform_managed_selection(
 }
 
 /* Capture before the generated MoonBit module initializers, not merely before
- * Command construction in MoonBit main. This uses only the actual entry's
- * static records and original process/thread facts; it admits no envelope and
- * acquires no Host, Root, Library, Read, key or loader reference. */
+ * Command construction in MoonBit main. Covered output/allocator setup follows
+ * only the complete original initial selection. No Host, Root, Library, Read,
+ * key or loader reference is acquired by this entry. */
 __attribute__((constructor)) static void actql_command_capture_process_entry(void) {
   int expected = 0;
   if (!atomic_compare_exchange_strong_explicit(&actql_command_entry_state,
@@ -104,6 +104,20 @@ __attribute__((constructor)) static void actql_command_capture_process_entry(voi
   actql_command_entry.image = &_mh_execute_header;
   actql_command_entry.source = source;
   atomic_store_explicit(&actql_command_entry_state, 1, memory_order_release);
+#if defined(ACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY)
+  if (actql_command_early_input_status != ACTQL_COMMAND_INPUT_NOT_SELECTED) {
+    size_t selected_managed[4] = {0};
+    if (!actql_native_command_platform_managed_selection(
+        &actql_command_entry, selected_managed))
+      actql_command_initial_refusal();
+    /* Allocator setup may itself emit a diagnostic. Bind the same original
+     * static stream buffers before that first covered call, without treating
+     * this setup as the allocator/Host admission or a flush acknowledgement. */
+    if (!actql_bootstrap_bind_command_output(
+        &actql_command_entry.output_control, stdout, stderr))
+      actql_command_initial_refusal();
+  }
+#endif
   /* The same physical binding reads the complete private selection first.
    * Incomplete coverage returns NULL before any allocator call. Once setup
    * starts, retain its same partial receiver rather than reopening a heap.
@@ -119,9 +133,6 @@ __attribute__((constructor)) static void actql_command_capture_process_entry(voi
     if (!actql_command_entry.initial_managed ||
         actql_native_initial_managed_issue(actql_command_entry.initial_managed) != 0 ||
         !actql_native_initial_managed_current(actql_command_entry.initial_managed))
-      actql_command_initial_refusal();
-    if (!actql_bootstrap_bind_command_output(
-        &actql_command_entry.output_control, stdout, stderr))
       actql_command_initial_refusal();
     actql_command_entry.initial_envelope_admitted = true;
   }
