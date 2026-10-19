@@ -179,7 +179,13 @@ fn finish(
         invalid(cursor, origin, InvalidArguments)
       }
       if tag == "timestamp_add" || tag == "timestamp_sub" {
-        if !(literal(args[2]) is Some({ value: @map.String("ns" | "us" | "ms" | "s" | "m" | "h" | "d"), .. })) {
+        if !(literal(args[2])
+          is Some(
+            {
+              value: @map.String("ns" | "us" | "ms" | "s" | "m" | "h" | "d"),
+              ..
+            }
+          )) {
           invalid(cursor, origin, InvalidArguments)
         }
       }

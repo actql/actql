@@ -758,7 +758,10 @@ fn advance_expression_frame_impl(
             guard children.get(0) is Some(first) else {
               return Err({ kind: Scalar(InvalidOperand), expression: expr, })
             }
-            if op == @lower.DateDifference || op == @lower.DateAddition || op == @lower.TimestampAddition || op == @lower.TimestampSubtraction {
+            if op == @lower.DateDifference ||
+              op == @lower.DateAddition ||
+              op == @lower.TimestampAddition ||
+              op == @lower.TimestampSubtraction {
               if children.length() != 3 || !reserve_slots(workspace, 6) {
                 return Err({ kind: WorkspaceLimit, expression: expr, })
               }
@@ -766,7 +769,8 @@ fn advance_expression_frame_impl(
                 TemporalArguments({
                   expression: expr,
                   addition: op != @lower.DateDifference,
-                  interval: op == @lower.TimestampAddition || op == @lower.TimestampSubtraction,
+                  interval: op == @lower.TimestampAddition ||
+                  op == @lower.TimestampSubtraction,
                   subtract: op == @lower.TimestampSubtraction,
                   children,
                   values: [],
@@ -1064,7 +1068,13 @@ fn advance_expression_frame_impl(
                 return Err({ kind: ControlLimit, expression: args.expression, })
               }
               let computed = if args.interval {
-                temporal_interval(args.expression, unit, args.values[0], args.values[1], args.subtract)
+                temporal_interval(
+                  args.expression,
+                  unit,
+                  args.values[0],
+                  args.values[1],
+                  args.subtract,
+                )
               } else if args.addition {
                 temporal_addition(
                   args.expression,

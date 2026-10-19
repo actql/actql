@@ -328,7 +328,7 @@ fn ExpressionParser::add(
     Unary(_, child)
     | Parenthesized(child)
     | Cast(child, _)
-      | Interval(child, _)
+    | Interval(child, _)
     | Property(child, _) => child_depth = self.depths[child]
     Binary(_, left, right) =>
       child_depth = self.depths[left].max(self.depths[right])
@@ -621,19 +621,38 @@ fn ExpressionParser::expression(
             let amount = self.peek()
             // Integer spellings are retained as exact data in this source-only
             // interval role. Ordinary Number nodes keep their existing meaning.
-            let sign = if amount.value == Symbol(43) || amount.value == Symbol(45) {
+            let sign = if amount.value == Symbol(43) ||
+              amount.value == Symbol(45) {
               ignore(self.advance())
-              if amount.value == Symbol(45) { "-" } else { "" }
-            } else { "" }
+              if amount.value == Symbol(45) {
+                "-"
+              } else {
+                ""
+              }
+            } else {
+              ""
+            }
             if self.peek().value is Numeric(text) {
               let number = self.advance()
-              if text.length() == 0 || text.iter().any(ch => ch < '0' || ch > '9') {
-                raise ExpressionAbort("Expected integral interval amount", number.start)
+              guard exact_interval_integer(text, sign == "-") is Some(integer) else {
+                raise ExpressionAbort(
+                  "Expected exact signed64 interval integer",
+                  number.start,
+                )
               }
-              result = self.add(StringLiteral(sign + text), amount.start, number.end)
+              result = self.add(
+                StringLiteral(integer.to_string()),
+                amount.start,
+                number.end,
+              )
               frames.push(IntervalUnit(t.start))
             } else {
-              if sign != "" { raise ExpressionAbort("Expected integral interval amount", amount.start) }
+              if sign != "" {
+                raise ExpressionAbort(
+                  "Expected integral interval amount",
+                  amount.start,
+                )
+              }
               frames.push(IntervalUnit(t.start))
               frames.push(Enter(8, depth + 1))
             }
@@ -995,17 +1014,23 @@ fn ExpressionParser::expression(
       IntervalUnit(start) => {
         let token = self.advance()
         let unit = match token.value {
-          Word(name) => match upper_ascii(name) {
-            "NANOSECOND" => "ns"
-            "MICROSECOND" => "us"
-            "MILLISECOND" => "ms"
-            "SECOND" => "s"
-            "MINUTE" => "m"
-            "HOUR" => "h"
-            "DAY" => "d"
-            _ => raise ExpressionAbort("Unsupported fixed interval unit", token.start)
-          }
-          _ => raise ExpressionAbort("Expected fixed interval unit", token.start)
+          Word(name) =>
+            match upper_ascii(name) {
+              "NANOSECOND" => "ns"
+              "MICROSECOND" => "us"
+              "MILLISECOND" => "ms"
+              "SECOND" => "s"
+              "MINUTE" => "m"
+              "HOUR" => "h"
+              "DAY" => "d"
+              _ =>
+                raise ExpressionAbort(
+                  "Unsupported fixed interval unit",
+                  token.start,
+                )
+            }
+          _ =>
+            raise ExpressionAbort("Expected fixed interval unit", token.start)
         }
         result = self.add(Interval(result, unit), start, token.end)
       }

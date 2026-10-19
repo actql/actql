@@ -469,10 +469,13 @@ fn append_resolved(
     let selected_interval = match node.kind {
       Binary("+" | "-", _, right) => interval_roots[right]
       Call(path, args) if path.length() == 1 &&
-        ["TIMESTAMP_ADD", "TIMESTAMP_SUB"].contains(upper(path[0].value)) && args.length() == 2 => interval_roots[args[1]]
+        ["TIMESTAMP_ADD", "TIMESTAMP_SUB"].contains(upper(path[0].value)) &&
+        args.length() == 2 => interval_roots[args[1]]
       _ => None
     }
-    if selected_interval is Some(interval) { allowed_intervals[interval] = true }
+    if selected_interval is Some(interval) {
+      allowed_intervals[interval] = true
+    }
     match node.kind {
       Reference(_) => references[i] = Some(i)
       Parenthesized(child) => references[i] = references[child]
@@ -693,15 +696,28 @@ fn append_resolved(
             _ => raise Abort(InvalidArguments)
           }
         Interval(child, unit) => {
-          if !allowed_intervals[i] { raise Abort(InvalidArguments) }
+          if !allowed_intervals[i] {
+            raise Abort(InvalidArguments)
+          }
           interval = Some(unit)
           nodes[child]
         }
         Binary(op, left, right) => {
           let (name, inverted) = binary_call(op)
-          let value = if intervals[right] is Some(unit) && ["+", "-"].contains(op) {
-            lowering.arguments(if op == "+" { "timestamp_add" } else { "timestamp_sub" },
-              [nodes[left], nodes[right], lowering.form("literal", lowering.add(String(unit)))])
+          let value = if intervals[right] is Some(unit) &&
+            ["+", "-"].contains(op) {
+            lowering.arguments(
+              if op == "+" {
+                "timestamp_add"
+              } else {
+                "timestamp_sub"
+              },
+              [
+                nodes[left],
+                nodes[right],
+                lowering.form("literal", lowering.add(String(unit))),
+              ],
+            )
           } else {
             lowering.arguments(name, [nodes[left], nodes[right]])
           }
@@ -719,7 +735,8 @@ fn append_resolved(
               if args.length() < minimum || args.length() > maximum {
                 raise Abort(InvalidArguments)
               }
-              if ["timestamp_add", "timestamp_sub"].contains(name) && intervals[args[1]] is None {
+              if ["timestamp_add", "timestamp_sub"].contains(name) &&
+                intervals[args[1]] is None {
                 raise Abort(InvalidArguments)
               }
               if ["to_decimal", "try_decimal"].contains(name) &&
@@ -757,7 +774,11 @@ fn append_resolved(
               }
               if ["timestamp_add", "timestamp_sub"].contains(name) {
                 let unit = intervals[args[1]].unwrap()
-                lowering.arguments(name, [nodes[args[0]], nodes[args[1]], lowering.form("literal", lowering.add(String(unit)))])
+                lowering.arguments(name, [
+                  nodes[args[0]],
+                  nodes[args[1]],
+                  lowering.form("literal", lowering.add(String(unit))),
+                ])
               } else if ["to_number", "to_string", "to_boolean", "to_timestamp"].contains(
                   name,
                 ) {
