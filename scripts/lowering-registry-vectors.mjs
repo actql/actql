@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {machineCid} from './actql-spec-family.mjs';
+import {canonicalText} from './check-canonical-json.mjs';
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const contract = read('spec/contracts/actql-aoa.json');
 const registry = read(contract.pipeline_registry_file);
@@ -94,10 +95,14 @@ function nativeSourceEnvironment(text, name, advertisedContracts) {
     assert.equal(capability.capability_contract_cids.length, advertisedContracts.length);
     capability.capability_contract_cids = advertisedContracts.map(name => machineCid(queryContracts.get(name)));
   }
+  preimage.connector_capabilities.sort((a, b) => {
+    const left = machineCid(a), right = machineCid(b);
+    return left < right ? -1 : left > right ? 1 : 0;
+  });
   const generatedCid = machineCid(preimage);
   return {
     text: text.replace(pattern, (_, declaration) => declaration +
-      JSON.stringify({...preimage, evidence_bundle_cid: generatedCid}))
+      canonicalText({...preimage, evidence_bundle_cid: generatedCid}))
       .replaceAll(originalCid, generatedCid),
     originalCid,
     generatedCid,
