@@ -37,6 +37,65 @@ def initializers(path):
 
 
 class LocalInitializerOrder(unittest.TestCase):
+    def test_incomplete_operational_entry_refuses_before_later_initializers(self):
+        self.assertEqual(sys.platform, 'darwin')
+        home = Path(os.environ['MOON_HOME']).resolve()
+        sdk = Path(os.environ['SDKROOT']).resolve()
+        runtime = home / 'lib/libmoonbitrun.o'
+        self.assertEqual(hashlib.sha256(runtime.read_bytes()).hexdigest(),
+                         'd9db2413e755c00ab374901211a03a9551222fe779022bc3648235747ed2bd96')
+        scratch = Path(tempfile.mkdtemp(prefix='actql-initial-refusal-'))
+        emission = scratch / 'emission'
+        directory = emission / 'native/release/build/cmd/native_client'
+        directory.mkdir(parents=True)
+        clang = '/Library/Developer/CommandLineTools/usr/bin/clang'
+        flags = ['-std=c11', '-O0', '-isysroot', str(sdk), '-mmacosx-version-min=11.0',
+                 '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC', '-I' + str(home / 'include')]
+        commands, records = [], []
+
+        def run(command):
+            commands.append(command)
+            result = subprocess.run(command, capture_output=True, text=True, timeout=60)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+        objects = []
+        for name in ['runtime', 'backtrace']:
+            output = scratch / (name + '.o')
+            run([clang, *flags, '-c', str(home / 'lib/runtime' / (name + '.c')), '-o', str(output)])
+            objects.append(str(output))
+        for pinned in [True, False]:
+            observer = scratch / ('entry-pinned.o' if pinned else 'entry-unpinned.o')
+            source = ['-DACTQL_NATIVE_CLIENT_SOURCE_SHA="1234567890abcdef1234567890abcdef12345678"'] if pinned else []
+            run([clang, *flags, '-DACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY=1', *source,
+                 '-c', str(ROOT / 'scripts/fixtures/native-command-initial-refusal.c'), '-o', str(observer)])
+            archive = directory / 'libnative_client-0123456789abcdef.a'
+            # Replace the archive, retaining exactly this selected entry object.
+            if archive.exists():
+                archive.unlink()
+            run(['/usr/bin/ar', 'rcs', str(archive), str(observer)])
+            executable = scratch / ('pinned' if pinned else 'unpinned')
+            command = [clang, *flags, '-o', str(executable), str(runtime), str(archive),
+                       str(ROOT / 'scripts/fixtures/native-command-member-unavailable.c'), *objects]
+            run(MODULE.local_initial_entry_arguments(command, home, emission))
+            for selected in [True, False]:
+                environment = dict(os.environ)
+                environment.pop('ACTQL_NATIVE_LOCAL_RUNTIME', None)
+                if selected:
+                    environment['ACTQL_NATIVE_LOCAL_RUNTIME'] = '{"controlled":"missing initial coverage"}'
+                result = subprocess.run([str(executable)], capture_output=True, text=True,
+                                        timeout=10, env=environment)
+                self.assertEqual(result.returncode, 1 if selected else 0, result.stderr)
+                self.assertEqual(result.stdout, '' if selected else 'later initializer\nmain\n')
+                self.assertEqual(result.stderr, 'actql-native-client: LocalCommandInitialCoverageUnavailable\n' if selected else '')
+                records.append({'pinned': pinned, 'selected': selected, 'exit': result.returncode,
+                                'stdout': result.stdout, 'stderr': result.stderr,
+                                'executable': str(executable),
+                                'sha256': hashlib.sha256(executable.read_bytes()).hexdigest()})
+        packet = {'records': records, 'commands': commands,
+                  'qualification': 'Actual C/O0 selected constructor and pinned allocator object. Incomplete operational selection refuses before later initializers/main; no complete supplier or ordinary CLI positive.'}
+        (scratch / 'result.json').write_text(json.dumps(packet, indent=2) + '\n')
+        print(json.dumps({'evidence': str(scratch / 'result.json'), 'records': records}))
+
     def test_actual_entry_precedes_original_allocator_only_in_selected_link(self):
         self.assertEqual(sys.platform, 'darwin')
         home = Path(os.environ['MOON_HOME']).resolve()

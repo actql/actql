@@ -28,6 +28,13 @@ int main(int argc, char **argv) {
   assert(actql_command_early_input_attempted);
   assert(actql_command_early_input_status == ACTQL_COMMAND_INPUT_OK);
   assert(!actql_command_input_attempted);
+  size_t refused_selection[4] = {11,22,33,44};
+  assert(!actql_native_command_platform_managed_selection(
+    &actql_command_entry, refused_selection));
+  assert(refused_selection[0] == 11 && refused_selection[1] == 22 &&
+    refused_selection[2] == 33 && refused_selection[3] == 44);
+  assert(!actql_command_entry.initial_coverage_complete);
+  assert(actql_command_entry.initial_managed == NULL);
   if (strcmp(argv[1], "early-input") == 0) {
     char original[ACTQL_COMMAND_ORIGINAL_CONTEXT_BYTES + 1];
     size_t length = actql_command_input.context_bytes;

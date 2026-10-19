@@ -33,12 +33,46 @@ struct actql_native_command_platform_original {
    * entry connects its complete source/backend-specific initial envelope.
    * There is intentionally no exported setter or caller-selected constructor. */
   bool initial_envelope_admitted;
+  /* Complete source/backend-specific co-phase selection precedes the first
+   * allocator setup. No public input or getter can set this private state. */
+  bool initial_coverage_complete;
+  size_t initial_managed_selection[4];
+  actql_native_initial_managed_original *initial_managed;
   bool closing;
   actql_native_command_platform_load loads[2];
 };
 
 static _Atomic int actql_command_entry_state;
 static actql_native_command_platform_original actql_command_entry;
+
+#if defined(ACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY)
+static _Noreturn void actql_command_initial_refusal(void) {
+  static const char message[] =
+    "actql-native-client: LocalCommandInitialCoverageUnavailable\n";
+  /* No managed startup or stdio allocation follows a missing/partial initial
+   * supplier. This bounded error is not an ACK for any retained original. */
+  (void)write(STDERR_FILENO, message, sizeof(message) - 1);
+  _exit(1);
+}
+#endif
+
+bool actql_native_command_platform_managed_selection(
+    actql_native_command_platform_original *entry, size_t out[4]) {
+  /* Check nominal membership before dereferencing an external pointer. This
+   * reader does not depend on managed_current or phase-two platform_current:
+   * it is used by the actual original allocator constructor itself. */
+  if (!out || entry != &actql_command_entry) return false;
+  int state = atomic_load_explicit(&actql_command_entry_state, memory_order_acquire);
+  if ((state != 1 && state != 2) || entry->closing ||
+      entry->process != getpid() ||
+      !pthread_equal(entry->thread, pthread_self()) ||
+      entry->source != actql_command_input_source ||
+      actql_command_early_input_status != ACTQL_COMMAND_INPUT_OK ||
+      !entry->initial_coverage_complete) return false;
+  for (size_t index = 0; index < 4; ++index)
+    out[index] = entry->initial_managed_selection[index];
+  return true;
+}
 
 /* Capture before the generated MoonBit module initializers, not merely before
  * Command construction in MoonBit main. This uses only the actual entry's
@@ -53,6 +87,10 @@ __attribute__((constructor)) static void actql_command_capture_process_entry(voi
   const char *source = actql_native_client_selected_source();
   if (!source) {
     atomic_store_explicit(&actql_command_entry_state, -1, memory_order_release);
+#if defined(ACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY)
+    if (actql_command_early_input_status != ACTQL_COMMAND_INPUT_NOT_SELECTED)
+      actql_command_initial_refusal();
+#endif
     return;
   }
   actql_command_entry.process = getpid();
@@ -64,8 +102,31 @@ __attribute__((constructor)) static void actql_command_capture_process_entry(voi
   actql_command_entry.image = &_mh_execute_header;
   actql_command_entry.source = source;
   atomic_store_explicit(&actql_command_entry_state, 1, memory_order_release);
+  /* The same physical binding reads the complete private selection first.
+   * Incomplete coverage returns NULL before any allocator call. Once setup
+   * starts, retain its same partial receiver rather than reopening a heap.
+   * The complete candidate remains unavailable until all initial terms are
+   * connected; successful arena setup alone cannot admit the command. */
+  actql_command_entry.initial_managed =
+    actql_native_initial_managed_begin(&actql_command_entry);
+#if defined(ACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY)
+  if (actql_command_early_input_status != ACTQL_COMMAND_INPUT_NOT_SELECTED) {
+    /* This source-pinned recipe selects operational Local preparation, rather
+     * than a controlled component diagnostic. The real allocator original and
+     * the complete same-phase selection are conjunctive before later initializers. */
+    if (!actql_command_entry.initial_managed ||
+        actql_native_initial_managed_issue(actql_command_entry.initial_managed) != 0 ||
+        !actql_native_initial_managed_current(actql_command_entry.initial_managed))
+      actql_command_initial_refusal();
+    actql_command_entry.initial_envelope_admitted = true;
+  }
+#endif
 #else
   atomic_store_explicit(&actql_command_entry_state, -1, memory_order_release);
+#if defined(ACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY)
+  if (actql_command_early_input_status != ACTQL_COMMAND_INPUT_NOT_SELECTED)
+    actql_command_initial_refusal();
+#endif
 #endif
 }
 
@@ -95,6 +156,10 @@ static bool actql_command_entry_thread(
 actql_native_command_platform_original *
 actql_native_command_platform_current(void) {
   actql_native_command_platform_original *entry = &actql_command_entry;
+#if defined(ACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY)
+  if (!entry->initial_managed ||
+      !actql_native_initial_managed_current(entry->initial_managed)) return NULL;
+#endif
   return actql_command_entry_thread(entry) &&
     entry->initial_envelope_admitted && !entry->closing ? entry : NULL;
 }
@@ -186,5 +251,7 @@ int actql_native_command_platform_module_released(
    * borrowed Runtime or freed member after this acknowledgment. */
   return 1;
 }
+
+#include "../../platform_native/host_bootstrap/initial_managed.inc"
 
 #endif
