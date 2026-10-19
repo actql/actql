@@ -3859,8 +3859,9 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "fd676d6ab1b2562eb442f11af3209a445f1b10461264a588492c952f4003efc7",
+      "sha256": "7c2587249f95cb0bea6e1e7d511f54a6cfe6327fb506128427836eeb4e5565f9",
       "exports": [
+        "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
         "assertOriginalHostPublicationOwnershipCurrent",
         "assertOriginalHostRequestJournalFacilityCurrent",
@@ -3944,6 +3945,13 @@
           "name": "connectEmbeddedLocal/initialControl/init:close/init:close",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:admitRootFormat/init:admitRootFormat",
+          "parameters": [
+            "root"
+          ],
+          "async": false
         },
         {
           "name": "connectEmbeddedLocal/preparation/init:bindSourceRequest/init:bindSourceRequest",
@@ -7066,6 +7074,7 @@
             "assertSourceManagedHostPreparation",
             "connectEmbeddedLocal/connectEmbeddedLocal",
             "connectEmbeddedLocal/initialControl/init:close/init:close",
+            "connectEmbeddedLocal/preparation/init:admitRootFormat/init:admitRootFormat",
             "connectEmbeddedLocal/preparation/init:bindSourceRequest/init:bindSourceRequest",
             "connectEmbeddedLocal/preparation/init:installMockModels/init:installMockModels",
             "connectEmbeddedLocal/preparation/init:installMockModels/init:installMockModels/init:installMockModels",
@@ -7114,7 +7123,8 @@
             "assertOriginalHostRequestJournalFacilityCurrent",
             "prepareOriginalHostPublicationOwnership",
             "assertOriginalHostPublicationOwnershipCurrent",
-            "closeOriginalHostPublicationOwnership"
+            "closeOriginalHostPublicationOwnership",
+            "admitOriginalHostRootFormat"
           ],
           "attributes": {
             "responsibility": [
@@ -7139,6 +7149,10 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
                 "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "admitRootFormat(root) {"
               }
             ],
             "identity": [
@@ -7169,6 +7183,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "  closePreparedLocalPublicationStoreOwnership as closeOriginalHostPublicationOwnership,"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "return Reflect.apply(hostJournalAdmitRootFormat, hostJournal, [root]);"
               }
             ],
             "ownership": [
@@ -7187,6 +7205,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Journal and Store cleanup attempts remain independent."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "hostJournalAdmitRootFormat = original.admitRootFormat;"
               }
             ],
             "synchronization": [
@@ -7197,6 +7219,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "lifetime after the await, before exposing another lease."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "else await preparation.admitRootFormat(root);"
               }
             ],
             "failure": [
@@ -7235,6 +7261,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "does not release shared exclusion while the same Journal's primary, secondary"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Selected Host root-format admission consumes a one-entry view of that same"
               }
             ],
             "extension": [
@@ -7263,6 +7293,10 @@
               {
                 "path": "adapters/host-node/host-journal-root-custody.test.mjs",
                 "anchor": "test('actual unselected Host Store call adopts its same earlier ordinary ownership'"
+              },
+              {
+                "path": "adapters/host-node/host-journal-selected-constructor.test.mjs",
+                "anchor": "test('actual root-format choice awaits the selected original and preserves the unprepared path'"
               }
             ]
           }
