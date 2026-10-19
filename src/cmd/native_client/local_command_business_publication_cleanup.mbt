@@ -47,6 +47,14 @@ fn LocalCommandBusinessOriginal::close_publication_children(
   self.publication_service = None
   self.publication_publisher = None
   self.publication_results = None
+  // The borrowed call has returned and its primary presentation is retained
+  // by the outer command. Do not keep these Read/business-managed receipts
+  // past their domains after the original cancellation/reclamation or known
+  // commit reply above. An unconfirmed commit never reaches this retirement.
+  self.publication_failure = None
+  self.publication_commit_failure = None
+  self.publication_cleanup_failure = None
+  self.publication_result = None
   self.publication_retired = true
   Ok(())
 }
