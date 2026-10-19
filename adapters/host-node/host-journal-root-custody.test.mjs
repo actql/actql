@@ -121,7 +121,8 @@ function connectedHostPreparation(f) {
     code => Object.assign(new Error(code), {code}));
 }
 
-async function fixture({covered = true, open, read, current, nativeCurrent, loadImage = imageLoader,
+async function fixture({covered = true, open, read, current, nativeCurrent, subjectFields,
+  loadImage = imageLoader,
   prepareOwnership = prepareLocalPublicationStoreOwnership} = {}) {
   const scratch = await createOwnedScratch({
     parent: fileURLToPath(new URL('../../_build/', import.meta.url)),
@@ -129,10 +130,12 @@ async function fixture({covered = true, open, read, current, nativeCurrent, load
   });
   const originals = Object.freeze({host: {}, installation: {}, generation: {}});
   const directory = join(scratch.path, 'requests');
-  const subject = Object.freeze({root: scratch.path, journalDirectory: directory,
+  const subject = Object.freeze({root: scratch.path, principalId: 'explicit fixture actor',
+    journalDirectory: directory, ...subjectFields,
     assertCurrent() { current?.(); }});
   const namespace = {};
-  const state = {namespace, journalNative: Object.freeze({DatabaseSync, StatementSync}),
+  const state = {namespace, declaration: Object.freeze({limits: Object.freeze({pathCodeUnits: 4096})}),
+    journalNative: Object.freeze({DatabaseSync, StatementSync}),
     inventory: Object.freeze({nativeImages: Object.freeze([imageFact])}),
     directoryNativeImageLoader: loadImage,
     journalDisposition: covered ? Object.freeze({
@@ -169,6 +172,63 @@ async function fixture({covered = true, open, read, current, nativeCurrent, load
     bindings:root.captureNative(fs,crypto)});
   return {scratch, originals, directory, root, state};
 }
+
+test('Root path support refuses oversized originals before Store or Journal acquisition', async () => {
+  for (const subjectFields of [{root: 'r'.repeat(4097)},
+    {principalId: 'p'.repeat(4097)}, {journalDirectory: 'd'.repeat(4097)}]) {
+    let images = 0, ownerships = 0, journals = 0;
+    const f = await fixture({subjectFields,
+      loadImage(...args) {images++; return imageLoader(...args);},
+      prepareOwnership() {ownerships++; assert.fail('Unsupported subject must not acquire Store');},
+      open() {journals++; assert.fail('Unsupported subject must not acquire Journal');},
+    });
+    let failure;
+    assert.throws(() => f.root.prepare(f.originals), error => {
+      failure = error; return error.cause?.code === 'HostJournalPreparationUnavailable';
+    });
+    // Existing image-before-subject custody is preserved, not moved behind
+    // a raw subject read. Its process-lived coverage is NOT a child ACK.
+    assert.equal(images,1); assert.equal(ownerships,0); assert.equal(journals,0);
+    assert.equal(failure.cleanupHandle.status().nativePending,false);
+    const closed = await failure.cleanupHandle.retry();
+    assert.equal(closed.pending,false);
+    assert.equal(closed.physicalBackingReleased,false);
+    f.scratch.passed();
+  }
+});
+
+test('Root path support keeps exact directory correspondence without issuing from equal DATA', async () => {
+  const f = await fixture({subjectFields: {journalDirectory: '/foreign-journal'}});
+  let failure;
+  assert.throws(() => f.root.prepare(f.originals), error => {
+    failure=error; return error.cause?.code==='HostJournalPreparationUnavailable';
+  });
+  assert.equal((await failure.cleanupHandle.retry()).pending,false);
+  f.scratch.passed();
+});
+
+test('Root path support requires the original selected declaration before directory work', async () => {
+  const f = await fixture();
+  f.state.declaration = Object.freeze({limits:Object.freeze({pathCodeUnits:4097})});
+  let failure;
+  assert.throws(() => f.root.prepare(f.originals), error => {
+    failure=error; return error.cause?.code==='HostJournalPreparationUnavailable';
+  });
+  assert.equal((await failure.cleanupHandle.retry()).pending,false);
+  f.scratch.passed();
+});
+
+test('Root path support preserves earlier native current failure and close-only cleanup', async () => {
+  let changed = false;
+  const cause = new Error('OriginalNativeCurrentBeforeSubjectSupport');
+  const f = await fixture({nativeCurrent() {if (changed) throw cause;}});
+  const original = f.root.prepare(f.originals);
+  changed = true;
+  f.state.declaration = Object.freeze({limits:Object.freeze({pathCodeUnits:4097})});
+  assert.throws(() => f.root.current(original, f.originals), error => error === cause);
+  assert.equal((await f.root.close(original, f.originals)).pending,false);
+  f.scratch.passed();
+});
 
 test('actual Root forwards its same-module bounded native reader before Store exclusion and Journal open', async () => {
   let inspection, prepared = false;

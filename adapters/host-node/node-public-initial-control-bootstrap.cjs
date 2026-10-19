@@ -66,11 +66,35 @@ function journalCurrent(original, held) {
       if (typeof entry.nativeImageCurrent !== 'function') journalUnavailable();
       apply(entry.nativeImageCurrent, entry.nativeImage, []);
     }
+    // The existing selected control recipe bounds path/control Strings. This
+    // is only a support condition on the SAME nominal Host subject, never a
+    // replacement issuer or credit from the initial-control disposition.
+    const limit = field(field(state.declaration, 'limits'), 'pathCodeUnits');
+    const root = field(entry.subject, 'root');
+    const principalId = field(entry.subject, 'principalId');
+    const journalDirectory = field(entry.subject, 'journalDirectory');
+    if (limit !== 4096 || typeof root !== 'string' || root.length === 0 || root.length > limit ||
+        typeof principalId !== 'string' || principalId.length === 0 || principalId.length > limit ||
+        typeof journalDirectory !== 'string' || journalDirectory.length === 0 ||
+        journalDirectory.length > limit) journalUnavailable();
+    // Bound the originals BEFORE constructing this derived path or entering
+    // Store/SQLite path conversion. Keep their aliases through the same joint
+    // close; copying/equal DATA does not establish this subject's provenance.
+    if (journalDirectory !== join(root, 'requests')) journalUnavailable();
+    if (entry.paths === undefined) entry.paths = freeze({root, principalId, journalDirectory});
+    const paths = entry.paths;
+    if (root !== paths.root || principalId !== paths.principalId ||
+        journalDirectory !== paths.journalDirectory) journalUnavailable();
     apply(entry.subjectCurrent, entry.subject, []);
     if (entry.ownership !== undefined) {
       apply(state.journal.ownershipCurrent, state.namespace,
-        [entry.ownership, join(field(entry.subject, 'root'), 'publication')]);
+        [entry.ownership, join(paths.root, 'publication')]);
     }
+    // Current/native callbacks may fail or invalidate the original. Do not
+    // continue from a changed path merely because its first check succeeded.
+    if (field(entry.subject, 'root') !== paths.root ||
+        field(entry.subject, 'principalId') !== paths.principalId ||
+        field(entry.subject, 'journalDirectory') !== paths.journalDirectory) journalUnavailable();
     return entry;
   } catch (cause) {
     entry.closing = true;
@@ -158,7 +182,7 @@ function closeJournal(entry) {
         entry.ownership = undefined;
       }
       entry.closed = true;
-      entry.subject = entry.subjectCurrent = undefined;
+      entry.subject = entry.subjectCurrent = entry.paths = undefined;
       entry.directoryInspection = entry.ownershipDirectoryInspection = undefined;
       entry.nativeImage = entry.nativeImageCurrent = undefined;
       return journalStatus(entry);
@@ -192,7 +216,7 @@ function prepareJournal(held) {
         .some(value => typeof value !== 'function')) journalUnavailable();
   const original = freeze(Object.create(null));
   const entry = journalInstallation = {original, originals: held,
-    disposition: state.journalDisposition, subject: undefined, subjectCurrent: undefined,
+    disposition: state.journalDisposition, subject: undefined, subjectCurrent: undefined, paths: undefined,
     argumentsForJournal: undefined, nativeImage: undefined, nativeImageCurrent: undefined,
     directoryInspection: undefined, directoryEntryBound: undefined,
     ownershipDirectoryInspection: undefined,
@@ -267,7 +291,7 @@ function captureJournalNativeBindings(fsOriginal, cryptoOriginal) {
 }
 function openJournal(original, held, directory, options) {
   const entry = journalCurrent(original, held);
-  if (entry.attempted || directory !== field(entry.subject, 'journalDirectory')) journalUnavailable();
+  if (entry.attempted || directory !== entry.paths.journalDirectory) journalUnavailable();
   // The selected disposition's fixed argument boundary must precede native
   // work. No caller option object or scalar may select a facility/limit.
   entry.attempted = true;
@@ -289,7 +313,7 @@ function openJournal(original, held, directory, options) {
       // Acquire the same Store exclusion before the native Journal; no fresh
       // publication prefix is created during the earlier preparation phase.
       const ownership = await apply(state.journal.ownershipPrepare, state.namespace,
-        [join(field(entry.subject, 'root'), 'publication'), entry.ownershipBounds, entry.dependency,
+        [join(entry.paths.root, 'publication'), entry.ownershipBounds, entry.dependency,
           entry.ownershipDirectoryInspection]);
       entry.ownership = ownership;
       if (ownership === undefined) journalUnavailable();
