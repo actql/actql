@@ -59,7 +59,7 @@ class _OriginalPythonPreparation:
     """
     __slots__ = ('_original', '_process', '_thread', '_interpreter', '_build',
                  '_allocators', '_attempted', '_retired', '_failure',
-                 '_state_dir', '_state_dir_bytes')
+                 '_state_dir', '_state_dir_bytes', '_adopted')
 
     def __init__(self) -> None:
         if (sys.implementation.name != 'cpython'
@@ -74,6 +74,7 @@ class _OriginalPythonPreparation:
                        sys.getfilesystemencoding(), sys.getfilesystemencodeerrors())
         self._allocators = _allocator_snapshot()
         self._attempted = self._retired = False
+        self._adopted = False
         self._failure: BaseException | None = None
         self._state_dir: str | None = None
         self._state_dir_bytes: bytes | None = None
@@ -131,3 +132,40 @@ class _OriginalPythonPreparation:
             raise ValueError('Foreign original Python preparation')
         self._state_dir = self._state_dir_bytes = None
         self._retired = True
+
+    def adopt_captured_state_dir(self, value: str | os.PathLike[str] | None) -> None:
+        """Adopt this same admitted input; never recopy or recapture a baseline."""
+        self.require_current()
+        if not self._attempted or self._state_dir is not value or self._adopted:
+            raise ValueError('Foreign original Python startup input')
+        self._adopted = True
+
+    def retain_import_failure(self, failure: BaseException) -> None:
+        """Spend normal preparation after a partial import, retaining its cause."""
+        if (self._original is not self or self._retired or self._adopted
+                or not self._attempted or self._process != os.getpid()
+                or self._thread is not current_thread()):
+            raise ValueError('Foreign original Python preparation import')
+        # Retain an error even when normal current has become unavailable.
+        # This neither invokes another CAPI binding nor acknowledges cleanup.
+        if self._failure is None:
+            self._failure = failure
+
+
+def _capture_initial_preparation(
+        state_dir: str | os.PathLike[str] | None) -> _OriginalPythonPreparation:
+    """Establish the actual input service before the Local Host import graph.
+
+    This bounded stdlib/CAPI binding prelude does not discover a distribution,
+    load a Native component, reserve bytes or issue worker/VM funding.
+    """
+    from ._local_worker_funding import LocalWorkerFundingUnavailable
+    initial: _OriginalPythonPreparation | None = None
+    try:
+        initial = _OriginalPythonPreparation()
+        initial.capture_state_dir(state_dir)
+    except Exception as failure:
+        raise LocalWorkerFundingUnavailable(
+            'Original Python initial preparation is unavailable',
+            cleanup_preparation=initial) from failure
+    return initial

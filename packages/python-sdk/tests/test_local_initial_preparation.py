@@ -3,12 +3,15 @@ import copy
 import os
 from pathlib import Path
 import pickle
+import subprocess
+import sys
 from threading import Thread
 import unittest
 from unittest.mock import patch
 
 from actql_sdk._local_initial_preparation import (
     _OriginalPythonPreparation, _PythonPreparationPending, _allocator_snapshot,
+    _capture_initial_preparation,
 )
 from actql_sdk._local_product import InstalledLocalHost
 from actql_sdk._local_worker_funding import LocalWorkerFundingUnavailable
@@ -164,3 +167,84 @@ class InitialPreparationTests(unittest.TestCase):
         original.require_current()
         discovery.assert_not_called()
         original.retire_input()
+
+    def test_factory_adopts_same_input_once_without_copy_or_new_baseline(self):
+        selected = '/selected'
+        original = _capture_initial_preparation(selected)
+        with patch('actql_sdk._local_product.installed_local_components',
+                   side_effect=AssertionError('No discovery')) as discovery:
+            with self.assertRaises(LocalWorkerFundingUnavailable) as first:
+                InstalledLocalHost.installed(state_dir=selected, _initial_preparation=original)
+            self.assertIs(first.exception.cleanup_preparation, original)
+            self.assertTrue(original._adopted)
+            with self.assertRaises(LocalWorkerFundingUnavailable) as second:
+                InstalledLocalHost.installed(state_dir=selected, _initial_preparation=original)
+            self.assertIs(second.exception.cleanup_preparation, original)
+            self.assertIsInstance(second.exception.__cause__, ValueError)
+            discovery.assert_not_called()
+        original.require_current()
+        original.retire_input()
+
+    def test_equal_foreign_input_cannot_replace_original_admission(self):
+        selected = '/selected'
+        original = _capture_initial_preparation(selected)
+        foreign = selected.encode().decode()
+        self.assertEqual(foreign, selected)
+        self.assertIsNot(foreign, selected)
+        with self.assertRaises(LocalWorkerFundingUnavailable) as refused:
+            InstalledLocalHost.installed(state_dir=foreign, _initial_preparation=original)
+        self.assertIs(refused.exception.cleanup_preparation, original)
+        self.assertFalse(original._adopted)
+        self.assertIs(original._state_dir, selected)
+        original.retire_input()
+
+    def test_actual_public_entry_prepares_before_local_import_and_retains_failure(self):
+        source = str(Path(__file__).resolve().parents[1] / 'src')
+        child = r'''import asyncio,builtins,json,sys
+sys.path.insert(0,sys.argv[1])
+from actql_sdk import AsyncClient,ClientError
+for name in ['_local_product','_local_core','_local_distribution']:
+ assert 'actql_sdk.'+name not in sys.modules,name
+actual_import=builtins.__import__
+seen=[]
+failure=MemoryError('actual initial import boundary')
+def observe(name,globals=None,locals=None,fromlist=(),level=0):
+ if name=='_local_product' and level==1:
+  original=sys._getframe(1).f_locals['initial']
+  assert original._attempted and not original._adopted
+  assert original._state_dir_bytes==b'/selected'
+  assert len(original._allocators)==3
+  original.require_current()
+  seen.append(original)
+  if sys.argv[2]=='failed': raise failure
+ return actual_import(name,globals,locals,fromlist,level)
+builtins.__import__=observe
+async def run():
+ try: await AsyncClient.open(state_dir='/selected')
+ except ClientError as error:
+  assert error.code=='LocalExecutionFundingUnavailable',error.code
+  original=error.original_error.cleanup_preparation
+  assert len(seen)==1 and original is seen[0]
+  assert original._adopted==(sys.argv[2]=='ordinary')
+  if sys.argv[2]=='failed':
+   assert error.original_error.__cause__ is failure
+   assert 'actql_sdk._local_product' not in sys.modules
+   assert original._failure is failure
+   from actql_sdk._local_initial_preparation import _PythonPreparationPending
+   try: original.adopt_captured_state_dir('/selected')
+   except _PythonPreparationPending as pending:
+    assert pending.cleanup_preparation is original
+   else: raise AssertionError('Failed import cannot resume normal preparation')
+  else: original.require_current()
+  alias=original._state_dir_bytes
+  original.retire_input()
+  assert alias==b'/selected'
+ else: raise AssertionError('No actual worker supplier')
+asyncio.run(run())
+print(json.dumps({'mode':sys.argv[2],'same_initial_original':True,'ordinary_worker':False}))
+'''
+        for mode in ('ordinary', 'failed'):
+            with self.subTest(mode=mode):
+                result = subprocess.run([sys.executable, '-I', '-B', '-c', child, source, mode],
+                                        capture_output=True, text=True, timeout=30)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

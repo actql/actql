@@ -106,13 +106,27 @@ class AsyncClient:
         this method does not substitute a private fixture or inferred allowance.
         """
         selected_signer = None if signer is None else capture_signer(signer)
-        from ._local_product import InstalledLocalHost, LocalProductCleanupPending
-        from ._local_core import LocalCoreInitializationError
-        from ._local_distribution import LocalInstallationError
+        from ._local_initial_preparation import _capture_initial_preparation
         from ._local_worker_funding import LocalWorkerFundingUnavailable
         try:
+            initial = _capture_initial_preparation(state_dir)
+        except LocalWorkerFundingUnavailable as failure:
+            raise ClientError('LocalExecutionFundingUnavailable', original_error=failure) from None
+        try:
+            from ._local_product import InstalledLocalHost, LocalProductCleanupPending
+            from ._local_core import LocalCoreInitializationError
+            from ._local_distribution import LocalInstallationError
+        except Exception as failure:
+            initial.retain_import_failure(failure)
+            unavailable = LocalWorkerFundingUnavailable(
+                'Original Local Host preparation import is unavailable',
+                cleanup_preparation=initial)
+            unavailable.__cause__ = failure
+            raise ClientError('LocalExecutionFundingUnavailable',
+                              original_error=unavailable) from None
+        try:
             options = {} if state_dir is None else {'state_dir': state_dir}
-            host = InstalledLocalHost.installed(**options)
+            host = InstalledLocalHost.installed(_initial_preparation=initial, **options)
         except LocalProductCleanupPending as failure:
             client = cls._from_local_host(failure.cleanup_host)
             client._closed = True

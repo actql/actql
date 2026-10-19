@@ -6,7 +6,7 @@ import os
 import stat
 from tempfile import TemporaryDirectory
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 from actql_sdk import AsyncClient, Client, ClientError
 from actql_sdk._local_distribution import (
@@ -144,7 +144,11 @@ class AsyncLocalFactoryTests(unittest.IsolatedAsyncioTestCase):
                 async with await AsyncClient.open() as client:
                     self.assertIs(client._local_host, host)
                     self.assertEqual(client.profile['mode'], 'local')
-                build.assert_called_once_with()
+                build.assert_called_once_with(_initial_preparation=ANY)
+                original = build.call_args.kwargs['_initial_preparation']
+                original.require_current()
+                self.assertIsNone(original._state_dir)
+                self.addCleanup(original.retire_input)
             self.assertTrue(core._closed)
             self.assertFalse(host._run_loans)
             self.assertFalse(any(name in ('cancel', 'start', 'reserve_task') for _, name in events[before:]))
@@ -203,11 +207,15 @@ class SyncLocalFactoryTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             case = host_fixture.LocalOperationPortTests(); self.addCleanup(case.doCleanups)
             host, core, _, _ = case.host(Path(directory))
-            selected = Path(directory) / 'selected-state'
+            selected = str(Path(directory) / 'selected-state')
             with patch.object(InstalledLocalHost, 'installed', side_effect=LocalProductCleanupPending(host)) as build:
                 with self.assertRaises(ClientError) as failure:
                     actql.open(state_dir=selected)
-            build.assert_called_once_with(state_dir=selected)
+            build.assert_called_once_with(state_dir=selected, _initial_preparation=ANY)
+            original = build.call_args.kwargs['_initial_preparation']
+            self.assertIs(original._state_dir, selected)
+            original.require_current()
+            self.addCleanup(original.retire_input)
             client = failure.exception.cleanup_client
             self.assertIsInstance(client, Client)
             self.assertIs(client._client._local_host, host)
@@ -224,7 +232,10 @@ class SyncLocalFactoryTests(unittest.TestCase):
                 with Client.open() as client:
                     self.assertIs(client._client._local_host, host)
                     self.assertEqual(client.profile['mode'], 'local')
-                build.assert_called_once_with()
+                build.assert_called_once_with(_initial_preparation=ANY)
+                original = build.call_args.kwargs['_initial_preparation']
+                original.require_current()
+                self.addCleanup(original.retire_input)
             self.assertTrue(core._closed)
             self.assertFalse(any(name == 'cancel' for _, name in events))
 

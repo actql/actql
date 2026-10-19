@@ -16,7 +16,10 @@ import secrets
 from pathlib import Path
 import stat
 import time
-from typing import Any, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, TypeVar
+
+if TYPE_CHECKING:
+    from ._local_initial_preparation import _OriginalPythonPreparation
 
 import httpx
 
@@ -205,17 +208,22 @@ class InstalledLocalHost:
 
     @classmethod
     def installed(cls, *, state_dir: str | os.PathLike[str] | None = None,
-                  resources: LocalCoreResources | None = None) -> InstalledLocalHost:
+                  resources: LocalCoreResources | None = None,
+                  _initial_preparation: _OriginalPythonPreparation | None = None) -> InstalledLocalHost:
         """Resolve the selected cohort with no endpoint/token/internal paths."""
         if resources is None:
             from ._local_worker_funding import LocalWorkerFundingUnavailable
-            from ._local_initial_preparation import _OriginalPythonPreparation
-            initial: _OriginalPythonPreparation | None = None
+            from ._local_initial_preparation import _OriginalPythonPreparation, _capture_initial_preparation
+            initial = _initial_preparation
             try:
-                # Bind actual interpreter allocator controls before acquiring or
-                # encoding this input. Native/worker supply is still separate.
-                initial = _OriginalPythonPreparation()
-                initial.capture_state_dir(state_dir)
+                if initial is None:
+                    initial = _capture_initial_preparation(state_dir)
+                else:
+                    if type(initial) is not _OriginalPythonPreparation:
+                        raise ValueError('Foreign original Python preparation')
+                initial.adopt_captured_state_dir(state_dir)
+            except LocalWorkerFundingUnavailable:
+                raise
             except Exception as failure:
                 raise LocalWorkerFundingUnavailable(
                     'Original Python initial preparation is unavailable',
@@ -226,6 +234,8 @@ class InstalledLocalHost:
             raise LocalWorkerFundingUnavailable(
                 'Original installed Local worker funding is unavailable',
                 cleanup_preparation=initial)
+        if _initial_preparation is not None:
+            raise ValueError('Initial Python original cannot be transferred to diagnostic resources')
         components = installed_local_components()
         # This explicit-resource route is a private diagnostic. It is not the
         # ordinary product factory, pre-spawn funding or installed acceptance.

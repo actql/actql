@@ -2378,6 +2378,16 @@ discovery, loader work or a worker when their complete original supply and
 import/binding overlap are absent. The ordinary Host factory retains the same
 initial carrier on that unavailable outcome.
 
+The public Local method establishes this input original before importing the
+Local Host assembly. Its lightweight funding-error port does not import the
+concrete Core or distribution readers. The factory adopts the same captured
+input once, without recopying or constructing another baseline. A foreign input
+or repeated adoption refuses. A partial Host import retains its original cause
+on that carrier and spends normal preparation; cleanup-only input retirement
+does not acknowledge shared module or interpreter-pool retirement. This orders
+the initial-input-to-Host-assembly edge, not the whole public SDK import prelude
+or the separate Native/worker supplier.
+
 ### Python initial Native managed entrance
 
 The Python purpose uses a distinct opaque initial-platform original in the
