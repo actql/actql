@@ -40,9 +40,9 @@ Both delegate to the same installed Host and existing Client model. The sync
 entry rejects an application event loop before I/O; use the async entry there.
 
 This candidate is not a completed or published Local release. Its selected
-Host/root/bootstrap capacity original is still unadopted, so ordinary `open()`
-currently rejects with `LocalInstallationUnavailable` before module capture or
-VM/Store construction. Private resource fixtures are never its fallback.
+complete initial/worker physical supplier is not connected, so ordinary `open()`
+currently rejects with `LocalExecutionFundingUnavailable` before cohort discovery,
+module capture or VM/Store construction. Private resource fixtures are never its fallback.
 The verified installed SELECT1/Result/reread/recovery examples will replace this
 status only after actual wheel consumption succeeds. Factory/caller doubles,
 metadata and compiler checks do not establish that acceptance.

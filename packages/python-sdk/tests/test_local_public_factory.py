@@ -18,7 +18,14 @@ import test_local_product_operation_port as host_fixture
 
 
 class LocalFactoryResourcesTests(unittest.TestCase):
-    def test_unadopted_capacity_refuses_before_module_capture_vm_directory_or_fallback(self):
+    def test_missing_initial_funding_refuses_before_cohort_discovery(self):
+        with patch('actql_sdk._local_product.installed_local_components',
+                   side_effect=AssertionError('Discovery before initial funding')) as resolve:
+            with self.assertRaises(LocalWorkerFundingUnavailable):
+                InstalledLocalHost.installed(state_dir='.actql')
+        resolve.assert_not_called()
+
+    def test_missing_initial_funding_refuses_before_module_capture_vm_directory_or_fallback(self):
         case = components_fixture.LocalDistributionTests()
         case.setUp();self.addCleanup(case.doCleanups)
         components = case.inspect()
@@ -26,9 +33,9 @@ class LocalFactoryResourcesTests(unittest.TestCase):
              patch('actql_sdk._local_product.LocalCore._from_installed_image', side_effect=AssertionError('No module capture')) as capture, \
              patch('actql_sdk._local_product.LocalCore', side_effect=AssertionError('No VM')) as vm, \
              patch('actql_sdk._local_product._default_directory', side_effect=AssertionError('No Store')) as state:
-            with self.assertRaisesRegex(LocalInstallationError, 'capacity original is unavailable'):
+            with self.assertRaises(LocalWorkerFundingUnavailable):
                 InstalledLocalHost.installed()
-            self.assertEqual(resolve.call_count, 1)
+            resolve.assert_not_called()
             self.assertEqual((capture.call_count, vm.call_count, state.call_count), (0, 0, 0))
 
     def test_public_factories_allow_signer_without_host_token_path_or_capacity_arguments(self):
@@ -46,7 +53,7 @@ class LocalFactoryResourcesTests(unittest.TestCase):
         with patch('actql_sdk._local_product.installed_local_components', return_value=components), \
              patch('actql_sdk._local_product.LocalCore._from_installed_image', side_effect=AssertionError('No VM')) as vm, \
              patch('actql_sdk._local_product._private_state_directory', side_effect=AssertionError('No Store')) as state:
-            with self.assertRaises(LocalInstallationError):
+            with self.assertRaises(LocalWorkerFundingUnavailable):
                 InstalledLocalHost.installed(state_dir='.actql')
         vm.assert_not_called()
         state.assert_not_called()

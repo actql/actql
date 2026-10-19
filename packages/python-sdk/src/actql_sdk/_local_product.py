@@ -207,16 +207,14 @@ class InstalledLocalHost:
     def installed(cls, *, state_dir: str | os.PathLike[str] | None = None,
                   resources: LocalCoreResources | None = None) -> InstalledLocalHost:
         """Resolve the selected cohort with no endpoint/token/internal paths."""
-        components = installed_local_components()
         if resources is None:
-            from ._local_capacity_original import _selected_capacity_original
             from ._local_worker_funding import LocalWorkerFundingUnavailable
-            _selected_capacity_original(components)
-            # Release-bound numbers are necessary metadata, not original
-            # physical acquisition or execution-delegation custody. Ordinary
-            # Local must use the installed worker supplier when it is adopted;
-            # never fall through to a stock in-process Engine from numbers.
+            # Initial originals must precede even cohort discovery/verification.
+            # The installed supplier is not connected yet. Its eventual path
+            # must verify the source-bound cohort/capacity inside those actual
+            # facilities; metadata alone cannot supply them or start an Engine.
             raise LocalWorkerFundingUnavailable('Original installed Local worker funding is unavailable')
+        components = installed_local_components()
         # This explicit-resource route is a private diagnostic. It is not the
         # ordinary product factory, pre-spawn funding or installed acceptance.
         core = LocalCore._from_installed_image(components,

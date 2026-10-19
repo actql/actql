@@ -14,6 +14,7 @@ from actql_sdk._local_capacity_original import (_capacity_from_source,
 from actql_sdk._local_core import LocalCore
 from actql_sdk._local_distribution import LocalInstallationError
 from actql_sdk._local_product import InstalledLocalHost
+from actql_sdk._local_worker_funding import LocalWorkerFundingUnavailable
 import test_local_distribution as fixture
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -122,7 +123,7 @@ class CapacityOriginalTests(unittest.TestCase):
                 patch('actql_sdk._local_product._default_directory', return_value=self.directory), \
                 patch.object(InstalledLocalHost, '__init__', return_value=None):
             with self.assertRaises(LocalWorkerFundingUnavailable): InstalledLocalHost.installed()
-        self.assertEqual(resolve.call_count, 1)
+        resolve.assert_not_called()
         # Independently valid release-bound declaration, but no actual physical
         # supplier. No Engine/Root may be constructed from these numbers alone.
         original = _capacity_from_source(self.original(), self.components)
@@ -132,10 +133,12 @@ class CapacityOriginalTests(unittest.TestCase):
     def test_missing_or_foreign_original_refuses_before_vm_and_store(self):
         self.stage(); (self.directory / '_local_host_capacity.json').unlink()
         with patch('actql_sdk._local_capacity_original.resources.files', return_value=self.directory), \
-                patch('actql_sdk._local_product.installed_local_components', return_value=self.components), \
+                patch('actql_sdk._local_product.installed_local_components', return_value=self.components) as resolve, \
                 patch.object(LocalCore, '_from_installed_image', side_effect=AssertionError('VM')) as construct, \
                 patch('actql_sdk._local_product._default_directory', side_effect=AssertionError('Store')) as store:
-            with self.assertRaises(LocalInstallationError): InstalledLocalHost.installed()
+            with self.assertRaises(LocalInstallationError): _selected_capacity_original(self.components)
+            with self.assertRaises(LocalWorkerFundingUnavailable): InstalledLocalHost.installed()
+        resolve.assert_not_called()
         self.assertEqual((construct.call_count, store.call_count), (0, 0))
 
     def script(self):

@@ -44852,7 +44852,6 @@
       ],
       "imports": [
         ".",
-        "._local_capacity_original",
         "._local_commit_projection",
         "._local_core",
         "._local_distribution",
@@ -45827,7 +45826,7 @@
           ]
         }
       ],
-      "sha256": "f49d411c20971a7659b27ddeaba0677e1013705db92fb114dff354dded2fb25d",
+      "sha256": "f709e0b86558cc1470b556f6b5a1ece8cff191386ff1b71bc9c181f11fde4490",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
