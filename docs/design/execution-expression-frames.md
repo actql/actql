@@ -90,8 +90,8 @@ An instant one nanosecond before the epoch therefore has a zero public
 millisecond difference while still being earlier under exact comparison and
 internal event-clock classification. This public result does not replace the
 exact event-clock projection or broaden trusted-now, expiry, rollback or
-cleanup clocks. `date_add`, civil/offset domains and dynamic clock
-material remain separate existing implementation responsibilities.
+cleanup clocks. Civil/offset domains and dynamic clock material remain separate
+existing implementation responsibilities.
 
 
 Fixed `date_trunc` uses the existing eager binary event path with the original
