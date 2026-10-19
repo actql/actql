@@ -467,7 +467,8 @@ Closing the protocol does not prove physical retirement of any of them.
 A channel page is one admitted occurrence in an actual channel-list reader,
 not a workspace grant or a complete messages Source. The explicit
 `createSlackChannelListReaderForHistory` entrance retains the original reader,
-response/charge prefix and checked pages. A page token becomes selectable only
+request/grant/use/response/charge prefix and checked pages, including a failed
+or pending exchange. A page token becomes selectable only
 after its consumer and current check return, and only after the whole reader
 succeeds. `selectSlackOriginalChannel` selects one original page/index once;
 copied tokens, equal rows and another reader cannot substitute for that pair.
@@ -494,7 +495,8 @@ threads, under its actual bounds; the observed channel pair alone proves none
 of that coverage.
 
 The explicit reader additionally retains its page map, per-page records and
-selected-index sets, copied id references, success/failure prefix, selection
+selected-index sets, copied id references, every original request/authorization,
+pending or failed exchange, success/failure prefix, selection
 WeakMap keys/records, original callback/receiver and downstream history control.
 The Common history's optional page/index field has layout cost even when None.
 These overlap the page rows, checked contracts, raw responses, charges and
