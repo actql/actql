@@ -4,6 +4,9 @@ import {DatabaseSync, StatementSync} from 'node:sqlite';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+import facilityFields from './host-journal-facility-fields.cjs';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {inspectSqliteSnapshot} from '../host-common/sqlite-format-inspection.mjs';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody,
@@ -14,6 +17,10 @@ const limits = Object.freeze({maxDatabaseBytes: 1048576,
     maxSqlBytes: 8192, maxTotalSqlBytes: 262144},
   primaryExecutionLimits: {maxStatementCalls: 1000, maxParameters: 32,
     maxParameterBytes: 262144, maxResultRows: 128}});
+const nativeBindings = () => Object.freeze(Object.fromEntries(
+  [['fs',fs],['crypto',crypto],['constants',fs.constants]].map(([group,receiver]) =>
+    [group,Object.freeze(Object.fromEntries(facilityFields[group].map(name =>
+      [name,Object.getOwnPropertyDescriptor(receiver,name).value])))])));
 async function fixture() {
   const scratch = await createOwnedScratch({
     parent: fileURLToPath(new URL('../../_build/', import.meta.url)),
@@ -32,6 +39,30 @@ test('fixed Journal namespace accepts only the same native constructor pair', ()
       {code: 'ClientRequestJournalFacilityUnavailable'});
   }
   assert.equal(assertOriginalClientRequestJournalFacilityCurrent(DatabaseSync, StatementSync), undefined);
+});
+
+test('Journal namespace also checks the exact earlier filesystem and crypto operations', () => {
+  const held = nativeBindings();
+  assert.equal(assertOriginalClientRequestJournalFacilityCurrent(DatabaseSync, StatementSync, held), undefined);
+  for (const [group,name] of [['fs','opendirSync'],['crypto','randomBytes'],['constants','O_RDONLY']]) {
+    const foreign = {...held,[group]:{...held[group],[name]:group==='constants'?42:()=>{}}};
+    assert.throws(() => assertOriginalClientRequestJournalFacilityCurrent(DatabaseSync, StatementSync, foreign),
+      {code:'ClientRequestJournalFacilityUnavailable'});
+  }
+  assert.equal(assertOriginalClientRequestJournalFacilityCurrent(DatabaseSync, StatementSync, held), undefined);
+});
+
+test('foreign filesystem receipt accessors and proxies are refused without evaluating them', () => {
+  const held = nativeBindings();
+  let reads = 0;
+  const getters = {...held.fs};
+  Object.defineProperty(getters,'openSync',{get(){reads++;return fs.openSync;}});
+  assert.throws(() => assertOriginalClientRequestJournalFacilityCurrent(DatabaseSync, StatementSync,
+    {...held,fs:getters}), {code:'ClientRequestJournalFacilityUnavailable'});
+  const proxy = new Proxy(held,{getOwnPropertyDescriptor(){reads++;throw new Error('MustNotReadProxy');}});
+  assert.throws(() => assertOriginalClientRequestJournalFacilityCurrent(DatabaseSync, StatementSync, proxy),
+    {code:'ClientRequestJournalFacilityUnavailable'});
+  assert.equal(reads,0);
 });
 
 test('selected current refusal precedes the first Journal directory or database acquisition', async () => {
