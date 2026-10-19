@@ -62,6 +62,7 @@ import {
   "actql/actql/connectors/kintone/host" @kintone_host,
   "actql/actql/connectors/bigquery/catalog" @bigquery_catalog,
   "actql/actql/connectors/bigquery/read" @bigquery_read,
+  "actql/actql/connectors/notion/catalog" @notion_catalog,
   "actql/actql/stage_results" @effect_results,
   "actql/actql/source_frontend",
   "actql/actql/query_program",

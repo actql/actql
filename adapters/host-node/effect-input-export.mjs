@@ -3,6 +3,7 @@ import {createHash} from 'node:crypto';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 import {checkedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
+import {types} from 'node:util';
 import {advanceEffectCommandKey} from './effect-command-key.mjs';
 import {releasePreparedResults, retainCompletedEffectDependencyPayloads} from
   '../host-common/completed-run-publication.mjs';
@@ -651,28 +652,50 @@ export async function exportPinnedEffectLocalResult({resultIndex, ...options}) {
 
 async function exportPinnedResult({
   moon, execution, inputs, memberIndex, limits, onChunk,
-  onReceipt, onCanonicalRow, canonicalRowLimits,
+  onReceipt, onCanonicalRow, canonicalRowLimits, onOriginalRow, originalRowLimits,
   prepareProposal, commandWorkspace,
   signal, advanceQuantum = 256, localResultIndex,
 }) {
+  const originalRows = onOriginalRow !== undefined;
+  const selectedRowLimits = originalRows ? originalRowLimits : canonicalRowLimits;
   if (typeof onChunk !== 'function' ||
       (prepareProposal !== undefined && typeof prepareProposal !== 'function') ||
       (onReceipt !== undefined && typeof onReceipt !== 'function') ||
-      (onCanonicalRow !== undefined &&
-        (typeof onCanonicalRow !== 'function' ||
-          !Number.isSafeInteger(canonicalRowLimits?.maxNodes) ||
-          canonicalRowLimits.maxNodes < 1 ||
-          !Number.isSafeInteger(canonicalRowLimits?.maxDepth) ||
-          canonicalRowLimits.maxDepth < 1 ||
-          !Number.isSafeInteger(canonicalRowLimits?.maxUtf16Units) ||
-          canonicalRowLimits.maxUtf16Units < 0)) ||
+      (originalRows && (typeof onOriginalRow !== 'function' ||
+        onCanonicalRow !== undefined || localResultIndex === undefined)) ||
+      (onCanonicalRow !== undefined && typeof onCanonicalRow !== 'function') ||
+      ((originalRows || onCanonicalRow !== undefined) &&
+        (!Number.isSafeInteger(selectedRowLimits?.maxNodes) ||
+          selectedRowLimits.maxNodes < 1 ||
+          !Number.isSafeInteger(selectedRowLimits?.maxDepth) ||
+          selectedRowLimits.maxDepth < 1 ||
+          !Number.isSafeInteger(selectedRowLimits?.maxUtf16Units) ||
+          selectedRowLimits.maxUtf16Units < 0)) ||
       !Number.isSafeInteger(advanceQuantum) || advanceQuantum <= 0) {
     throw new TypeError('InvalidEffectInputExport');
   }
-  const rowLimits = onCanonicalRow === undefined ? undefined :
-    Object.freeze({maxNodes: canonicalRowLimits.maxNodes,
-      maxDepth: canonicalRowLimits.maxDepth,
-      maxUtf16Units: canonicalRowLimits.maxUtf16Units});
+  const rowLimits = !originalRows && onCanonicalRow === undefined ? undefined :
+    Object.freeze({maxNodes: selectedRowLimits.maxNodes,
+      maxDepth: selectedRowLimits.maxDepth,
+      maxUtf16Units: selectedRowLimits.maxUtf16Units});
+  let originalPorts;
+  if (originalRows) {
+    if (moon === null || typeof moon !== 'object' || types.isProxy(moon)) {
+      throw new TypeError('OriginalEffectRowRuntimeUnavailable');
+    }
+    originalPorts = Object.freeze(Object.fromEntries([
+      'clientProgramEffectInputExportNextOriginalRow',
+      'clientProgramEffectOriginalRowAvailable',
+      'clientProgramEffectOriginalRowRetire',
+    ].map(name => {
+      const descriptor = Object.getOwnPropertyDescriptor(moon, name);
+      if (descriptor === undefined || !Object.hasOwn(descriptor, 'value') ||
+          typeof descriptor.value !== 'function') {
+        throw new TypeError('OriginalEffectRowRuntimeUnavailable');
+      }
+      return [name, descriptor.value];
+    })));
+  }
   signal?.throwIfAborted();
   const local = localResultIndex !== undefined;
   const tableInput = local ? undefined :
@@ -759,7 +782,31 @@ async function exportPinnedResult({
       : moon.clientProgramEffectInputExportReady(preparation));
     for (;;) {
       signal?.throwIfAborted();
-      if (onCanonicalRow === undefined) {
+      if (originalRows) {
+        const row = checked(Reflect.apply(
+          originalPorts.clientProgramEffectInputExportNextOriginalRow, moon,
+          [stream, rowLimits.maxNodes, rowLimits.maxDepth, rowLimits.maxUtf16Units]));
+        if (row === undefined) break;
+        const original = runtimeField(row, 2);
+        const assertOriginal = () => {
+          signal?.throwIfAborted();
+          if (Reflect.apply(originalPorts.clientProgramEffectOriginalRowAvailable,
+            moon, [original]) !== true) {
+            throw new TypeError('UnavailableEffectOriginalRow');
+          }
+        };
+        try {
+          assertOriginal();
+          await onOriginalRow(runtimeField(row, 0), original, exportOwner);
+          // The callback can await or revoke the original preparation. Do not
+          // publish its row bytes after that original is no longer current.
+          assertOriginal();
+          await onChunk(runtimeField(row, 1));
+        } finally {
+          Reflect.apply(originalPorts.clientProgramEffectOriginalRowRetire,
+            moon, [original]);
+        }
+      } else if (onCanonicalRow === undefined) {
         const chunk = checked(moon.clientProgramEffectInputExportNext(stream));
         if (chunk === undefined) break;
         await onChunk(chunk);
