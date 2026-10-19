@@ -217,14 +217,17 @@ pub fn accept_gmail_thread(
   request : GmailThreadRequest,
   bytes : Bytes,
 ) -> Result[GmailThreadProjection, GmailThreadReadIssue] {
-  guard gmail_thread_request_matches(read, request) &&
-    request.kind is Get(page, index) else {
+  guard gmail_thread_request_matches(read, request) && request.kind is Get(_, _) else {
     return Err(ForeignRequest)
   }
   read.pending = None
   read.phase = Failed
   let thread = match
-    project_gmail_thread(bytes, page, index, read.thread_limits) {
+    project_gmail_thread_for_metadata_request(
+      bytes,
+      request,
+      read.thread_limits,
+    ) {
     Ok(thread) => thread
     Err(issue) => return Err(InvalidThread(issue))
   }
@@ -242,6 +245,10 @@ pub fn gmail_thread_projection_matches_request(
   match request.kind {
     List(_) => false
     Get(page, index) =>
+      (
+        thread.metadata_request is Some(original) &&
+        physical_equal(original, request)
+      ) &&
       physical_equal(thread.targets, page) &&
       thread.target_index == index &&
       request.read.threads.any(original => physical_equal(original, thread))

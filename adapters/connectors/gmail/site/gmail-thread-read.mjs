@@ -66,7 +66,9 @@ function prepareRead(options) {
   const selected = Object.freeze(names.slice());
   if (selected.length > columns.length || new Set(selected).size !== selected.length ||
       selected.some(name => typeof name !== 'string' || !columns.includes(name))) fail('InvalidGmailThreadRead');
-  return Object.freeze({provider, context, mailbox, names: selected, signal,
+  // The original RowRun admits the complete declared row (including key
+  // evidence). Query projection does not remove Source validation inputs.
+  return Object.freeze({provider, context, mailbox, names: columns, signal,
     basePath: `/gmail/v1/users/${component(mailbox)}/threads`});
 }
 

@@ -32,6 +32,7 @@ pub struct GmailThreadProjection {
   response_sha256 : String
   priv targets : GmailThreadListPage
   priv target_index : Int
+  priv metadata_request : GmailThreadRequest?
   priv values : Array[@admitted.CheckedValue]
 }
 
@@ -108,6 +109,29 @@ pub fn project_gmail_thread(
   targets : GmailThreadListPage,
   target_index : Int,
   limits : GmailThreadLimits,
+) -> Result[GmailThreadProjection, GmailThreadIssue] {
+  project_gmail_thread_original(bytes, targets, target_index, limits, None)
+}
+
+///|
+// Only this nominal dependent metadata-get selects omitted repeated fields.
+// Actual response/current/charge membership remains the physical Owner's.
+fn project_gmail_thread_for_metadata_request(
+  bytes : Bytes,
+  request : GmailThreadRequest,
+  limits : GmailThreadLimits,
+) -> Result[GmailThreadProjection, GmailThreadIssue] {
+  guard request.kind is Get(page, index) else { return Err(ForeignThread) }
+  project_gmail_thread_original(bytes, page, index, limits, Some(request))
+}
+
+///|
+fn project_gmail_thread_original(
+  bytes : Bytes,
+  targets : GmailThreadListPage,
+  target_index : Int,
+  limits : GmailThreadLimits,
+  metadata_request : GmailThreadRequest?,
 ) -> Result[GmailThreadProjection, GmailThreadIssue] {
   if !gmail_thread_limits_valid(limits) {
     return Err(InvalidLimits)
@@ -201,9 +225,18 @@ pub fn project_gmail_thread(
           Err(_) => return Err(InvalidCell("internalDate"))
         }
     }
-    guard @decode.field(message, "labelIds") is Present(message_labels) &&
-      @decode.array_length(message_labels) is Some(label_count) else {
-      return Err(InvalidCell("labelIds"))
+    let message_labels = match @decode.field(message, "labelIds") {
+      Present(value) => Some(value)
+      Missing if metadata_request is Some(_) => None
+      _ => return Err(InvalidCell("labelIds"))
+    }
+    let label_count = match message_labels {
+      None => 0
+      Some(value) =>
+        match @decode.array_length(value) {
+          Some(count) => count
+          None => return Err(InvalidCell("labelIds"))
+        }
     }
     if label_count > limits.max_labels - label_work {
       return Err(BudgetExceeded)
@@ -211,7 +244,7 @@ pub fn project_gmail_thread(
     label_work += label_count
     for label_index in 0..<label_count {
       guard @decode.text(
-          @decode.element_at(message_labels, label_index).unwrap(),
+          @decode.element_at(message_labels.unwrap(), label_index).unwrap(),
         )
         is Ok(label) &&
         !label.is_empty() else {
@@ -227,10 +260,21 @@ pub fn project_gmail_thread(
       }
     }
     guard @decode.field(message, "payload") is Present(payload) &&
-      @decode.open_object(payload) is Ok(payload) &&
-      @decode.field(payload, "headers") is Present(headers) &&
-      @decode.array_length(headers) is Some(header_count) else {
+      @decode.open_object(payload) is Ok(payload) else {
       return Err(InvalidCell("payload.headers"))
+    }
+    let headers = match @decode.field(payload, "headers") {
+      Present(value) => Some(value)
+      Missing if metadata_request is Some(_) => None
+      _ => return Err(InvalidCell("payload.headers"))
+    }
+    let header_count = match headers {
+      None => 0
+      Some(value) =>
+        match @decode.array_length(value) {
+          Some(count) => count
+          None => return Err(InvalidCell("payload.headers"))
+        }
     }
     if header_count > limits.max_headers - header_work {
       return Err(BudgetExceeded)
@@ -240,7 +284,7 @@ pub fn project_gmail_thread(
     let mut found_subject = false
     for header_index in 0..<header_count {
       guard @decode.open_object(
-          @decode.element_at(headers, header_index).unwrap(),
+          @decode.element_at(headers.unwrap(), header_index).unwrap(),
         )
         is Ok(header) else {
         return Err(InvalidCell("payload.headers"))
@@ -344,7 +388,13 @@ pub fn project_gmail_thread(
     text_bytes -= used_text
     values.push(checked)
   }
-  Ok({ response_sha256: @sha.hex(bytes), targets, target_index, values, })
+  Ok({
+    response_sha256: @sha.hex(bytes),
+    targets,
+    target_index,
+    metadata_request,
+    values,
+  })
 }
 
 ///|

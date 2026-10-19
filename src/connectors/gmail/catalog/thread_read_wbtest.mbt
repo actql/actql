@@ -10,6 +10,67 @@ fn thread_read() -> GmailThreadRead {
 }
 
 ///|
+fn metadata_thread(
+  body : Bytes,
+) -> Result[GmailThreadProjection, GmailThreadReadIssue] {
+  let read = thread_read()
+  let list = next_gmail_thread_request(read).unwrap().unwrap()
+  ignore(
+    accept_gmail_thread_list(read, list, b"{\"threads\":[{\"id\":\"t/+\"}]}").unwrap(),
+  )
+  let get = next_gmail_thread_request(read).unwrap().unwrap()
+  accept_gmail_thread(read, get, body)
+}
+
+///|
+test "Gmail omitted repeated metadata is empty only in the same selected original get grammar" {
+  let absent = b"{\"id\":\"t/+\",\"messages\":[{\"id\":\"m\",\"threadId\":\"t/+\",\"internalDate\":\"-1\",\"payload\":{}}]}"
+  let explicit = b"{\"id\":\"t/+\",\"messages\":[{\"id\":\"m\",\"threadId\":\"t/+\",\"internalDate\":\"-1\",\"labelIds\":[],\"payload\":{\"headers\":[]}}]}"
+  let a = metadata_thread(absent).unwrap()
+  let b = metadata_thread(explicit).unwrap()
+  assert_eq(
+    thread_values_wire(a),
+    (
+      #|["t/+",[],"1969-12-31T23:59:59.999Z","1",null]
+    ),
+  )
+  assert_eq(thread_values_wire(a), thread_values_wire(b))
+  assert_true(a.response_sha256 != b.response_sha256)
+  assert_eq(a.response_sha256, @sha.hex(absent))
+  assert_true(a.metadata_request is Some(_))
+  let targets = thread_list_page("{\"threads\":[{\"id\":\"t/+\"}]}").unwrap()
+  assert_true(
+    project_gmail_thread(absent, targets, 0, thread_limits())
+    is Err(InvalidCell("labelIds")),
+  )
+  assert_true(
+    project_gmail_thread(
+      b"{\"id\":\"t/+\",\"messages\":[{\"id\":\"m\",\"threadId\":\"t/+\",\"internalDate\":\"-1\",\"labelIds\":[],\"payload\":{}}]}",
+      targets,
+      0,
+      thread_limits(),
+    )
+    is Err(InvalidCell("payload.headers")),
+  )
+}
+
+///|
+test "Gmail selected metadata omissions do not repair null wrong type parent or message extent" {
+  for
+    body in [
+      b"{\"id\":\"t/+\",\"messages\":null}", b"{\"id\":\"t/+\"}", b"{\"id\":\"t/+\",\"messages\":[{\"id\":\"m\",\"threadId\":\"t/+\",\"internalDate\":\"1\"}]}",
+      b"{\"id\":\"t/+\",\"messages\":[{\"id\":\"m\",\"threadId\":\"t/+\",\"internalDate\":\"1\",\"payload\":null}]}",
+      b"{\"id\":\"t/+\",\"messages\":[{\"id\":\"m\",\"threadId\":\"t/+\",\"internalDate\":\"1\",\"labelIds\":null,\"payload\":{}}]}",
+      b"{\"id\":\"t/+\",\"messages\":[{\"id\":\"m\",\"threadId\":\"t/+\",\"internalDate\":\"1\",\"labelIds\":{},\"payload\":{}}]}",
+      b"{\"id\":\"t/+\",\"messages\":[{\"id\":\"m\",\"threadId\":\"t/+\",\"internalDate\":\"1\",\"payload\":{\"headers\":null}}]}",
+      b"{\"id\":\"t/+\",\"messages\":[{\"id\":\"m\",\"threadId\":\"t/+\",\"internalDate\":\"1\",\"payload\":{\"headers\":{}}}]}",
+      b"{\"id\":\"t/+\",\"messages\":[{\"id\":\"m\",\"threadId\":\"t/+\",\"payload\":{}}]}",
+    ] {
+    assert_true(metadata_thread(body) is Err(_))
+  }
+}
+
+///|
 test "Gmail list continuation and dependent gets preserve exact nominal request occurrences" {
   let read = thread_read()
   let first = next_gmail_thread_request(read).unwrap().unwrap()
