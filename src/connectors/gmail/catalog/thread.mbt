@@ -291,8 +291,18 @@ pub fn project_gmail_thread(
   let contracts = gmail_thread_contracts()
   let date_value = match latest {
     None => @admitted.null_value()
-    Some(utc) =>
-      @admitted.checked_timestamp_value(utc, contracts[2]).unwrap().value
+    Some(utc) => {
+      // The generated scalar constructor requires a non-null Timestamp.
+      // The ordinary final recheck below binds it to this nullable column.
+      guard @admitted.checked_timestamp_value(
+          utc,
+          @contract.primitive(@contract.TimestampType, nullable=false),
+        )
+        is Some(checked) else {
+        return Err(UnsupportedDate)
+      }
+      checked.value
+    }
   }
   let subject_value = match subject {
     None => @admitted.null_value()
