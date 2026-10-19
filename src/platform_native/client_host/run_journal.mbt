@@ -604,8 +604,10 @@ fn NativeClientRunJournal::bind_run_locked(
   request : @host.ClientRequestIdentity,
   definition : @publication.PublicationContract,
   run_observation_originals? : String? = None,
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
-  match self.retained(request) {
+  let reads = operations.map(value => value.reads)
+  match self.retained(request, reads~) {
     Err(issue) => return Err(issue)
     Ok(Some(retained)) => {
       if @publication.publication_contract_identity(definition) !=
@@ -617,7 +619,7 @@ fn NativeClientRunJournal::bind_run_locked(
     Ok(None) => ()
   }
   let (count, revision) = match
-    run_journal_custody(self.database, self.max_records) {
+    run_journal_custody(self.database, self.max_records, reads~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -626,7 +628,8 @@ fn NativeClientRunJournal::bind_run_locked(
   }
   let mut cursor = ""
   while true {
-    let row = match self.database.scan_after("client_runs", cursor) {
+    let row = match
+      scan_client_journal_value(self.database, "client_runs", cursor, reads) {
       Ok(value) => value
       Err(@sqlite.NotFound) => break
       Err(issue) => return Err(Physical(issue))
@@ -661,18 +664,22 @@ fn NativeClientRunJournal::bind_run_locked(
     Err(issue) => return Err(issue)
   }
   let revision = match
-    self.database.compare_exchange(
+    compare_exchange_client_journal_value(
+      self.database,
       "client_run_custody",
       "issued",
       revision,
       @utf8.encode((count + 1).to_string()),
+      operations,
     ) {
     Ok(_) =>
       match
-        self.database.insert(
+        insert_client_journal_value(
+          self.database,
           "client_runs",
           @host.client_request_scope_cid(request),
           body,
+          operations,
         ) {
         Ok(value) => value
         Err(issue) => return Err(Physical(issue))

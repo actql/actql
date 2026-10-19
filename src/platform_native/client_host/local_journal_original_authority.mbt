@@ -241,3 +241,48 @@ pub fn NativeLocalJournalCapture::submission_originals_in_original_read(
   }
   Ok((host.journal, host.epoch))
 }
+
+///|
+/// Admit the same original checked Run through its existing transaction and
+/// epoch/intent custody under this captured Read. No compilation, dispatch,
+/// replacement Run or caller authorization flag is manufactured here.
+pub fn NativeLocalJournalCapture::accept_submitted_run_in_original_read(
+  self : NativeLocalJournalCapture,
+  principal : String,
+  connection : String,
+  expected_scope : String,
+  reference : NativeClientSubmissionReference,
+  preparation : NativeClientSubmittedPreparation,
+  request : @host.ClientRequestIdentity,
+  compiled : @host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  now : Double,
+) -> Result[NativeClientSubmittedIntentRecord, NativeLocalAdoptionIssue] {
+  self.with_current_adoption_material_in_original_read((
+    host,
+    material,
+    operations,
+  ) => {
+    let allowed = match
+      self.original_submit_allowed(
+        host, material, principal, connection, expected_scope,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    host.journal
+    .accept_submitted_run_with_operations(
+      host.epoch,
+      reference,
+      preparation,
+      request,
+      compiled,
+      definition,
+      expected_scope,
+      allowed,
+      now,
+      operations=Some(operations),
+    )
+    .map_err(issue => Journal(issue))
+  })
+}

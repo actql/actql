@@ -424,19 +424,51 @@ fn local_submission_start(
       now,
       until,
     ).unwrap_or_else(() => stop("LocalRunDefinitionNotReady"))
-    let accepted = match policy_binding {
+    let accepted : Result[
+      @local_host.NativeClientSubmittedIntentRecord,
+      @local_host.NativeClientRunJournalIssue,
+    ] = match policy_binding {
       None =>
-        journal.accept_submitted_run(
-          epoch,
-          reference,
-          preparation,
-          request,
-          compiled,
-          definition,
-          scope,
-          current(),
-          @env.now().to_double(),
-        )
+        match business {
+          None =>
+            journal.accept_submitted_run(
+              epoch,
+              reference,
+              preparation,
+              request,
+              compiled,
+              definition,
+              scope,
+              current(),
+              @env.now().to_double(),
+            )
+          Some(original) =>
+            match
+              original.capture.accept_submitted_run_in_original_read(
+                settings.principal,
+                settings.connection,
+                scope,
+                reference,
+                preparation,
+                request,
+                compiled,
+                definition,
+                @env.now().to_double(),
+              ) {
+              Ok(value) => Ok(value)
+              Err(@local_host.Journal(issue)) => Err(issue)
+              Err(issue) => {
+                original.original.retain_primary(CommandAdoption(issue))
+                match issue {
+                  @local_host.InstallationReadTransactionFailure(
+                    _,
+                    TransactionUnknown
+                  ) => Err(@local_host.TransactionUnknown)
+                  _ => stop("LocalRunAdmissionUnavailable")
+                }
+              }
+            }
+        }
       Some(binding) =>
         binding.accept_issued_submitted_run_policy(
           reference,

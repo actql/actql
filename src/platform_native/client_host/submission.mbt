@@ -250,6 +250,7 @@ fn NativeClientRunJournal::verify_submission_locked(
 fn NativeClientRunJournal::retained_submission(
   self : NativeClientRunJournal,
   reference : NativeClientSubmissionReference,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeClientSubmittedIntentRecord?, NativeClientRunJournalIssue] {
   let original_reference = match
     @host.admit_client_submission_reference_record(reference.wire) {
@@ -258,7 +259,9 @@ fn NativeClientRunJournal::retained_submission(
   }
   @host.read_client_saved_submission(
     original_reference,
-    (table_name, key) => client_journal_read(self.database, table_name, key),
+    (table_name, key) => {
+      client_journal_read(self.database, table_name, key, reads~)
+    },
     row => {
       let record = match
         read_run_record({ body: row.body, revision: row.revision, }) {
