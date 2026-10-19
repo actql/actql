@@ -10,6 +10,11 @@ import {throwSqliteInitializationFailure} from './sqlite-transaction.mjs';
 import {snapshotSqliteSchemaReadLimits, snapshotSqliteSchemaSqlSupport, inspectBoundedSqliteSchema}
   from './sqlite-schema-resource-bounds.mjs';
 
+const originalRealpath = realpathSync;
+const originalNativeRealpath = Object.getOwnPropertyDescriptor(originalRealpath, 'native')?.value;
+const nativePathOptions = Object.freeze({__proto__: null, encoding: 'utf8'});
+const nativePathApply = Reflect.apply;
+
 const sameFile = (left, right) => ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']
   .every(key => left[key] === right[key]);
 
@@ -95,6 +100,9 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
   schemaReadLimits = snapshotSqliteSchemaReadLimits(schemaReadLimits);
   schemaSqlSupport = snapshotSqliteSchemaSqlSupport(schemaSqlSupport, schemaReadLimits);
   assertCurrent?.();
+  if (assertCurrent !== undefined && typeof originalNativeRealpath !== 'function') {
+    throw new TypeError('SqliteInspectionNativePathUnavailable');
+  }
   const fail = cause => {
     throw Object.assign(new Error(code, {cause}), {code, path: databasePath});
   };
@@ -169,8 +177,12 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
         throw Object.assign(new Error(unavailableCode), {code: unavailableCode});
       }
     }
-    const scratch = realpathSync(tmpdir());
-    const sourceDirectory = realpathSync(dirname(databasePath));
+    // The selected original avoids the JS symlink walk's growing managed
+    // path history. Native path/allocator/stack coverage is still required.
+    const scratch = assertCurrent === undefined ? realpathSync(tmpdir()) :
+      nativePathApply(originalNativeRealpath, originalRealpath, [tmpdir(), nativePathOptions]);
+    const sourceDirectory = assertCurrent === undefined ? realpathSync(dirname(databasePath)) :
+      nativePathApply(originalNativeRealpath, originalRealpath, [dirname(databasePath), nativePathOptions]);
     const withinSource = relative(sourceDirectory, scratch);
     if (withinSource === '' ||
         (withinSource !== '..' && !withinSource.startsWith(`..${sep}`) &&

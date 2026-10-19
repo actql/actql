@@ -10,6 +10,7 @@ module.exports = Object.freeze({
   crypto:Object.freeze(['Hash','Hmac','createHash','createHmac','randomBytes','randomUUID','timingSafeEqual']),
   constants:Object.freeze(['O_RDONLY','O_NOFOLLOW','O_NONBLOCK']),
   directory:Object.freeze(['readSync','closeSync']),
+  realpath:Object.freeze(['native']),
   hash:Object.freeze(['update','digest']),
   hmac:Object.freeze(['update','digest']),
 });

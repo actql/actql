@@ -277,6 +277,7 @@ function captureJournalNativeBindings(fsOriginal, cryptoOriginal) {
   for (const [group,receiver] of [['fs',fsOriginal],['crypto',cryptoOriginal],
     ['constants',field(fsOriginal,'constants')],
     ['directory',field(field(fsOriginal,'Dir'),'prototype')],
+    ['realpath',field(fsOriginal,'realpathSync')],
     ['hash',field(field(cryptoOriginal,'Hash'),'prototype')],
     ['hmac',field(field(cryptoOriginal,'Hmac'),'prototype')]]) {
     const values = Object.create(null);

@@ -20,7 +20,7 @@ const limits = Object.freeze({maxDatabaseBytes: 1048576,
     maxParameterBytes: 262144, maxResultRows: 128}});
 const nativeBindings = () => Object.freeze(Object.fromEntries(
   [['fs',fs],['crypto',crypto],['constants',fs.constants],['directory',fs.Dir.prototype],
-    ['hash',crypto.Hash.prototype],['hmac',crypto.Hmac.prototype]].map(([group,receiver]) =>
+    ['hash',crypto.Hash.prototype],['hmac',crypto.Hmac.prototype],['realpath',fs.realpathSync]].map(([group,receiver]) =>
     [group,Object.freeze(Object.fromEntries(facilityFields[group].map(name =>
       [name,Object.getOwnPropertyDescriptor(receiver,name).value])))])));
 async function fixture() {
@@ -67,7 +67,7 @@ test('foreign filesystem receipt accessors and proxies are refused without evalu
   assert.equal(reads,0);
 });
 
-for (const selected of ['crypto','directory']) {
+for (const selected of ['crypto','directory','realpath']) {
   test(`selected ${selected} operation replacement remains refused after restoration`, () => {
     const result = spawnSync(process.execPath,['--input-type=module','-e',`
       import assert from 'node:assert/strict';
@@ -79,12 +79,12 @@ for (const selected of ['crypto','directory']) {
         from ${JSON.stringify(new URL('./client-request-journal.mjs',import.meta.url).href)};
       const held=Object.freeze(Object.fromEntries([
         ['fs',fs],['crypto',crypto],['constants',fs.constants],['directory',fs.Dir.prototype],
-        ['hash',crypto.Hash.prototype],['hmac',crypto.Hmac.prototype]
+        ['hash',crypto.Hash.prototype],['hmac',crypto.Hmac.prototype],['realpath',fs.realpathSync]
       ].map(([group,receiver])=>[group,Object.freeze(Object.fromEntries(fields[group].map(name=>
         [name,Object.getOwnPropertyDescriptor(receiver,name).value])))])));
       current(DatabaseSync,StatementSync,held);
-      const receiver=${selected==='crypto'?'crypto':'fs.Dir.prototype'};
-      const name=${JSON.stringify(selected==='crypto'?'randomBytes':'readSync')};
+      const receiver=${selected==='crypto'?'crypto':selected==='directory'?'fs.Dir.prototype':'fs.realpathSync'};
+      const name=${JSON.stringify(selected==='crypto'?'randomBytes':selected==='directory'?'readSync':'native')};
       const original=Object.getOwnPropertyDescriptor(receiver,name);
       try {
         Object.defineProperty(receiver,name,{...original,value(){throw Error('MustNotDispatchReplacement');}});

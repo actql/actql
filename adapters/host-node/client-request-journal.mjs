@@ -52,6 +52,9 @@ const originalJournalCustodies = new WeakMap();
 const originalJournalCustodyGet = WeakMap.prototype.get;
 const originalJournalCustodySet = WeakMap.prototype.set;
 const facilityDescriptor = Object.getOwnPropertyDescriptor;
+const facilityRealpath = realpathSync;
+const facilityNativeRealpath = facilityDescriptor(facilityRealpath, 'native')?.value;
+const nativePathOptions = Object.freeze({__proto__: null, encoding: 'utf8'});
 const facilityHasOwn = Object.hasOwn, facilityIsProxy = utilTypes.isProxy;
 const facilityDatabase = DatabaseSync, facilityStatement = StatementSync;
 const facilityOperations = Object.freeze([
@@ -64,7 +67,7 @@ const facilityOperations = Object.freeze([
 const facilityPlatformOperations = Object.freeze([
   ['fs',facilityFs],['crypto',facilityCrypto],['constants',facilityFs.constants],
   ['directory',facilityFs.Dir.prototype],['hash',facilityCrypto.Hash.prototype],
-  ['hmac',facilityCrypto.Hmac.prototype],
+  ['hmac',facilityCrypto.Hmac.prototype],['realpath',facilityRealpath],
 ].flatMap(([group,receiver]) => facilityFields[group].map(name => Object.freeze({
   group,receiver,name,property:facilityDescriptor(receiver,name),
 }))));
@@ -1451,11 +1454,18 @@ export function openClientRequestJournal(directory, {
   // does not issue capacity; execute it before the first original directory,
   // copy or native acquisition, and again at each covered SQL boundary.
   primaryCurrent?.();
+  if (primaryCurrent !== undefined && typeof facilityNativeRealpath !== 'function') {
+    fail('ClientRequestJournalFacilityUnavailable');
+  }
   const current = admitJournalDirectory(directory, maxInspectionEntries, inspectionBytes,
     primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent,
     primaryDirectoryInspection);
   mkdirSync(directory, {recursive: true, mode: 0o700});
-  const root = realpathSync(directory);
+  // Avoid the stock JS symlink walk's intermediate path/Map/Set history in
+  // the selected recipe. Native libc/libuv path holdings remain distinct
+  // terms of that recipe; selecting this original does not supply them.
+  const root = primaryCurrent === undefined ? realpathSync(directory) :
+    applyOriginal(facilityNativeRealpath, facilityRealpath, [directory, nativePathOptions]);
   const path = join(root, 'client-requests.sqlite3');
   const existed = existsSync(path);
   if (current !== existed) fail('UnknownClientRequestJournalFormat');
