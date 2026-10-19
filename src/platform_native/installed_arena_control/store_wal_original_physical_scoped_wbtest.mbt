@@ -13,6 +13,8 @@ struct StoreWalReceiver {
   mut fail_cleanup_return : Bool
   mut fail_normal_return : Bool
   mut return_ack_pending : Bool
+  mut fail_cleanup_sql : Bool
+  mut cleanup_sql_recoveries : Int
 }
 
 ///|
@@ -82,6 +84,10 @@ fn store_wal_route(
       // the component performs each allocation in its original private heap.
       receiver.sql = true
       receiver.sql_entries += 1
+      if receiver.cleanup && receiver.fail_cleanup_sql {
+        receiver.fail_cleanup_sql = false
+        return 55
+      }
       0
     }
     2 => {
@@ -119,6 +125,21 @@ fn store_wal_route(
       0
     }
     4 => {
+      if receiver.cleanup &&
+        receiver.active &&
+        receiver.sql &&
+        !receiver.return_ack_pending &&
+        store_wal_entered(receiver) {
+        // This selected component's SQL heap is in the SAME entered Read.
+        // Reobserve that physical frame before returning its failed SQL flight.
+        receiver.cleanup_sql_recoveries += 1
+        if receiver.cleanup_sql_recoveries == 1 {
+          // A refused first recovery retains the same attempted SQL flight.
+          return 56
+        }
+        receiver.sql = false
+        return 0
+      }
       if receiver.active ||
         receiver.sql ||
         receiver.host.enter_domain_read_cleanup(receiver.domain) is Err(_) {
@@ -236,6 +257,8 @@ fn store_wal_original_work(
     fail_cleanup_return: !normal_probe,
     fail_normal_return: false,
     return_ack_pending: false,
+    fail_cleanup_sql: false,
+    cleanup_sql_recoveries: 0,
   }
   let original = store_wal_prepare_original(library, receiver, fn(
     receiver,
@@ -377,6 +400,8 @@ fn store_failed_open_original_work(
     fail_cleanup_return: false,
     fail_normal_return: probe == 1,
     return_ack_pending: false,
+    fail_cleanup_sql: false,
+    cleanup_sql_recoveries: 0,
   }
   let original = store_wal_prepare_original(library, receiver, fn(
     receiver,
@@ -414,7 +439,7 @@ fn store_failed_open_original_work(
     let no_replay = receiver.sql_entries == sql_count
     original.close_checked().unwrap()
     pending && held && no_replay && original.primary_code() == 33
-  } else {
+  } else if probe == 2 {
     // The generic Remote entrance preserves open-existing refusal. This is a
     // fresh missing path, not a replay or corruption of an earlier fixture.
     original.enter_store().unwrap()
@@ -443,6 +468,46 @@ fn store_failed_open_original_work(
     let unentered_close_refused = retained_database.close_checked() is Err(_)
     original.close_checked().unwrap()
     held_before && pending && held_after && unentered_close_refused
+  } else {
+    original.enter_store().unwrap()
+    let database = library
+      .open_original_remote_database_with_custody(
+        original,
+        path + "/cleanup-sql.sqlite3",
+        4096L,
+      )
+      .unwrap()
+    original.leave_store().unwrap()
+    original.enter_cleanup().unwrap()
+    receiver.fail_cleanup_sql = true
+    assert_true(
+      database.capacity_usage("cleanup")
+      is Err(@sqlite.OperationRoutingBefore(55)),
+    )
+    assert_true(original.pending_scope().unwrap())
+    assert_true(original.leave_store() is Err(_))
+    assert_true(original.enter_store() is Err(_))
+    // Only failed+SQL can reach the original recovery. It acknowledges no DB.
+    assert_true(original.enter_cleanup() is Err(@sqlite.Physical(_)))
+    assert_true(original.pending_scope().unwrap())
+    assert_true(receiver.active && receiver.sql)
+    assert_eq(original.cleanup_code(), 56)
+    original.enter_cleanup().unwrap()
+    assert_eq(receiver.cleanup_sql_recoveries, 2)
+    assert_eq(original.primary_code(), 55)
+    assert_true(original.enter_cleanup() is Err(_))
+    assert_true(original.close_checked() is Err(_))
+    database.close_checked().unwrap()
+    original.leave_store().unwrap()
+    // Keep the original Database DATA alias through the return ACK. Its last
+    // use before leave would correctly refuse finalization with flight=true.
+    let unentered_close_refused = database.close_checked() is Err(_)
+    assert_true(library.close_checked() is Err(_))
+    original.close_checked().unwrap()
+    receiver.cleanup_sql_recoveries == 2 &&
+    original.primary_code() == 55 &&
+    original.cleanup_code() == 56 &&
+    unentered_close_refused
   }
   result && !receiver.active && !receiver.sql && !receiver.return_ack_pending
 }
@@ -455,4 +520,9 @@ test "failed Store constructor retains DATA through original cleanup return ACK"
 ///|
 test "generic Remote failed open retains same DATA through physical and scope ACKs" {
   store_wal_physical_case(false, open_probe=2)
+}
+
+///|
+test "failed cleanup SQL entry reaches same-original cleanup recovery" {
+  store_wal_physical_case(false, open_probe=3)
 }

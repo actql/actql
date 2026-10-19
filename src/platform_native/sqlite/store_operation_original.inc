@@ -99,7 +99,11 @@ MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_enter(
   if (!cleanup && (value->failed || value->flight || value->sql)) return -1;
   /* Cleanup may recover the SAME failed flight only after its coordinator
    * confirms the actual old leave and entry; a missing ACK changes no latch. */
-  if (cleanup && value->cleanup_ready && value->flight) return -1;
+  if (cleanup && value->cleanup_ready && value->flight &&
+      !(value->failed && value->sql)) return -1;
+  /* A failed SQL switch inside cleanup retains its attempted SQL flight.
+   * The SAME coordinator's cleanup callback must reconcile that physical
+   * switch before any SQL latch is cleared. Healthy duplicate entry refuses. */
   /* An attempted switch remains outstanding even if its reply is lost. */
   value->flight = true;
   if (cleanup) { value->cleanup = true; value->cleanup_ready = false; }

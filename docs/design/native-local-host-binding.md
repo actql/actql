@@ -1987,6 +1987,14 @@ alias duty remains held. The generic Remote operation entrance preserves its
 existing open/restore policy; selecting an original route does not select the
 Local Journal's exclusive-WAL policy or supply a new physical scope.
 
+A failed SQL transition inside cleanup keeps its attempted SQL flight even
+when it never became ready. Only that failed original may reach the existing
+cleanup recovery while its Read cleanup flight is still active. The coordinator
+must reconcile the physical transition to the same cleanup Read before the
+SQL latch is cleared. A refused recovery retains both the flight and original
+failure; healthy duplicate entry still refuses and normal execution never
+resumes through this path.
+
 An in-process retained execution keeps its original delegated Ledger while its
 managed work uses the corresponding physical domain. Logical stop precedes
 physical retirement, and both remain distinct from the original usage report,
