@@ -232,7 +232,7 @@ test "complete template closure uses admitted defaults and refuses unsupported s
     )
     is TemplateOnly(Rejected(_)),
   )
-  for unsupported in [",{\"take\":1}", ",{\"sort\":[{\"n\":\"asc\"}]}"] {
+  for unsupported in [",{\"distinct\":true}", ",{\"take\":{\"$param\":\"x\"}}"] {
     let (program, environment, limits) = complete_template_fixture(
       suffix=unsupported,
     )
@@ -319,6 +319,37 @@ test "complete template closure verifies actual parameter-free SQL and AQL witho
         limits,
       )
       is InvalidRequest(BindingsInTemplateScope),
+    )
+  }
+}
+
+///|
+test "complete template closure retains original Sort and literal Take orders" {
+  for
+    suffix in [
+      ",{\"sort\":[{\"n\":\"desc\"}],\"as\":\"ordered\"}", ",{\"take\":1,\"as\":\"ordered\"}",
+      ",{\"sort\":[{\"n\":\"desc\"}]},{\"take\":{\"count\":1,\"offset\":0},\"as\":\"ordered\"}",
+    ] {
+    let (program, environment, limits) = complete_template_fixture(suffix~)
+    let result = @program_check.check_parsed_scoped(
+      program,
+      environment,
+      TemplateOnly,
+      None,
+      limits,
+    )
+    guard result is TemplateOnly(Verified(checked)) else {
+      fail(
+        "original ordered template must close through the existing order owner",
+      )
+    }
+    assert_true(
+      physical_equal(@program_check.template_checked_program(checked), program),
+    )
+    assert_eq(@program_check.template_checked_input_count(checked), 1)
+    assert_true(
+      @program_check.template_checked_input_at(checked, 0).unwrap().kind
+      is ParameterValue(_),
     )
   }
 }

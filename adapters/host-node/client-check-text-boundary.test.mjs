@@ -681,6 +681,38 @@ for (const entrance of ['local', 'http']) {
     }
   });
 
+  test(`${entrance}: ordered SQL and Pipe templates close original Sort and literal LIMIT obligations`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const [format, text] of [
+      ['sql', 'SELECT @x AS n ORDER BY n DESC LIMIT 1 OFFSET 0'],
+      ['aql-text', 'SELECT @x AS n |> ORDER BY n DESC |> LIMIT 1 OFFSET 0'],
+    ]) {
+      const options = {kind: 'text', scope: 'template_only', format,
+        parameterDeclarations: {x: {type: 'number'}}};
+      const outcome = await client.check(text, options);
+      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.report.verdict, 'verified');
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+      assert.deepEqual(outcome.report.reasons, []);
+      assert.equal(outcome.report.requirements.length, 1);
+      const requirement = outcome.report.requirements[0];
+      assert.equal(requirement.code, 'parameter_value_required');
+      assert.equal(requirement.facts.parameter, 'x');
+      assert.equal(resolveCheckLocation(outcome, requirement.location).pointer, '/x');
+      assert.deepEqual(outcome.report.runnable, {verdict: 'no', reasons: [{code: 'parameter_value_required'}]});
+      // A complete template is not bound input or an executable Run.
+      const bound = await client.check(text, {...options, scope: 'bound_input', parameters: {x: 2}});
+      assert.equal(bound.report.verdict, 'verified');
+      assert.deepEqual(bound.report.requirements, []);
+      assert.equal(resolveCheckLocation(structuredClone(outcome), requirement.location), undefined);
+    }
+    const conditional = await client.check('SELECT 1 AS n ORDER BY n LIMIT @count',
+      {kind: 'text', scope: 'template_only', format: 'sql', parameterDeclarations: {count: {type: 'int64'}}});
+    assert.equal(conditional.report.verdict, 'undetermined');
+    assert.ok(conditional.report.coverage.limits.some(limit => limit.code === 'implementation_limit'));
+    assert.equal(conditional.report.requirements[0].facts.parameter, 'count');
+  });
+
   test(`${entrance}: scoped SQL and AQL templates close complete obligations and retain runtime Requirements`, async t => {
     const {client} = await publicCheck(t, entrance);
     for (const format of ['sql', 'aql-text']) {

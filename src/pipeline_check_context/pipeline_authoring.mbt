@@ -17,12 +17,21 @@ pub struct AuthoringRuntimeRequirement {
 }
 
 ///|
+priv struct AuthoringOrderRequirement {
+  step : Int
+  owner : @pipeline.OperationObligations
+  index : Int
+  demand : @pipeline.OperationOrderDemand
+}
+
+///|
 struct PipelineAuthoringClosure {
   profiles : PipelineOperationProfileChecks
   capacity : @environment.Capacity
   expressions : @pipeline.ExpressionSlots
   runtime : Array[AuthoringRuntimeRequirement]
   resources : Array[AuthoringValuesPublicationCheck]
+  orders : Array[AuthoringOrderRequirement]
   work : Int
 }
 
@@ -91,6 +100,7 @@ pub fn close_pipeline_authoring(
     }
   }
   let runtime : Array[AuthoringRuntimeRequirement] = []
+  let orders : Array[AuthoringOrderRequirement] = []
   for step in 0..<@pipeline.step_count(pipeline) {
     if work == max_work {
       return Err(BudgetExceeded)
@@ -101,7 +111,7 @@ pub fn close_pipeline_authoring(
       @pipeline.Values(_) => ()
       @pipeline.Unary(value) =>
         match @relation.operation(value) {
-          Derive | Select | Filter | Rename | Drop => ()
+          Derive | Select | Filter | Rename | Drop | Sort | Take => ()
           _ => return Err(UnsupportedOperation(step))
         }
       _ => return Err(UnsupportedOperation(step))
@@ -114,12 +124,18 @@ pub fn close_pipeline_authoring(
     for group in 0..<count {
       let owner = @pipeline.operation_obligation_group_at(operation, group).unwrap()
       let n = @pipeline.operation_obligations_count(owner)
-      if n > max_work - work || n > max_requirements - runtime.length() {
+      if n > max_work - work ||
+        n > max_requirements - runtime.length() - orders.length() {
         return Err(BudgetExceeded)
       }
       work += n
       for index in 0..<n {
-        match @pipeline.operation_obligations_at(owner, index).unwrap() {
+        let requirement = @pipeline.operation_obligations_at(owner, index).unwrap()
+        if @pipeline.operation_order_demand(requirement) is Some(demand) {
+          orders.push({ step, owner, index, demand, })
+          continue
+        }
+        match requirement {
           @pipeline.ValuesRequirement(@values.BindCell(_)) =>
             runtime.push({ step, owner, index, })
           @pipeline.ValuesRequirement(@values.ResolvePublicationResources) =>
@@ -137,6 +153,7 @@ pub fn close_pipeline_authoring(
     expressions,
     runtime,
     resources: resources.copy(),
+    orders,
     work,
   })
 }
