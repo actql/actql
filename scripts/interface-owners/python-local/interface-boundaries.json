@@ -26774,6 +26774,7 @@
         "Any",
         "NoReturn",
         "POINTER",
+        "TYPE_CHECKING",
         "Thread",
         "annotations",
         "bind_native",
@@ -26788,6 +26789,7 @@
         "getpid"
       ],
       "imports": [
+        "._local_native_initial_custody",
         "._local_native_shim_abi",
         "._local_worker_slot",
         "__future__",
@@ -26801,75 +26803,76 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
+          "async": false,
           "name": "_OriginalArenaFact",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/__copy__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/__deepcopy__",
           "parameters": [
             "self",
             "memo"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/__reduce__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/_drop",
           "parameters": [
             "self",
             "slot"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/_empty_original",
           "parameters": [
             "cls",
             "functions"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/_enter",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/_fact",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/_mark_unknown",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/_prepare_original",
           "parameters": [
             "cls",
@@ -26884,76 +26887,76 @@
             "transfer",
             "retained",
             "execution",
-            "envelope"
-          ],
-          "async": false
+            "envelope",
+            "_python_initial"
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/_take_original_reply",
           "parameters": [
             "cls",
             "functions",
             "owning_reply"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/acquire_fd",
           "parameters": [
             "self",
             "descriptor"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/close",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/current",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlError",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_OriginalControlError/__init__",
           "parameters": [
             "self",
             "host",
             "unknown",
             "fact"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlFunctions",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_OriginalControlFunctions/__init__",
           "parameters": [
             "self",
             "library"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_new_control_slots",
-          "parameters": [],
-          "async": false
+          "parameters": []
         }
       ],
-      "sha256": "9e140b34327ea6b7bd297e1bcd58d6aacb4fc76716d95e0d68843a86eae0b5d6",
+      "sha256": "b6a699fb7d47c6d2ac038f2e65a40ab2eeabcb82e7be19964d6270d7b6ac70af",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -27166,6 +27169,10 @@
               {
                 "path": "packages/python-local-runtime/native/pre-root/README.md",
                 "anchor": "## Private compiler parent assembly"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
+                "anchor": "_python_initial: _OriginalPythonNativeInitial | None = None"
               }
             ],
             "identity": [
@@ -27202,6 +27209,10 @@
               {
                 "path": "packages/python-local-runtime/native/pre-root/README.md",
                 "anchor": "## Private compiler parent assembly"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
+                "anchor": "host._python_initial_original = _python_initial"
               }
             ],
             "synchronization": [
@@ -27266,6 +27277,10 @@
               {
                 "path": "packages/python-local-runtime/native/pre-root/README.md",
                 "anchor": "## Private compiler parent assembly"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "Declared Host limits still"
               }
             ],
             "extension": [
@@ -27310,6 +27325,10 @@
               {
                 "path": "scripts/fixtures/python-native-compiler-parent.py",
                 "anchor": "parent=compiler._acquire_compiler_parent(value,selected,fd)"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_control_custody.py",
+                "anchor": "test_python_host_keeps_initial_until_both_original_host_references_close"
               }
             ]
           }
@@ -27779,7 +27798,8 @@
             "c_void_p",
             "current_thread",
             "dataclass",
-            "getpid"
+            "getpid",
+            "TYPE_CHECKING"
           ],
           "attributes": {
             "responsibility": [
@@ -65211,6 +65231,7 @@
         "Callable",
         "NoReturn",
         "PyDLL",
+        "TYPE_CHECKING",
         "Thread",
         "annotations",
         "bind",
@@ -65222,6 +65243,7 @@
       ],
       "imports": [
         "._local_initial_preparation",
+        "._local_native_control_custody",
         "._local_native_initial_abi",
         "._local_native_shim_abi",
         "__future__",
@@ -65257,6 +65279,14 @@
           "name": "_OriginalPythonNativeInitial/__reduce__",
           "parameters": [
             "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/_bind_control_host",
+          "parameters": [
+            "self",
+            "host"
           ]
         },
         {
@@ -65330,7 +65360,7 @@
           ]
         }
       ],
-      "sha256": "b2b121ec8761ddc4fb5d73c86da80435246e2502e3a903ee2115789ef175e600",
+      "sha256": "9f1b98eefe1b989af94c536b015517568c007783841e1307474cf0b5a59492db",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "E / existing Python Local Host, Native Bootstrap and original Runtime custody Owners",
@@ -65342,6 +65372,7 @@
             "_OriginalPythonNativeInitial/__copy__",
             "_OriginalPythonNativeInitial/__deepcopy__",
             "_OriginalPythonNativeInitial/__reduce__",
+            "_OriginalPythonNativeInitial/_bind_control_host",
             "_OriginalPythonNativeInitial/_require_receiver",
             "_OriginalPythonNativeInitial/initialize_control",
             "_OriginalPythonNativeInitial/prepare",
@@ -65358,6 +65389,7 @@
             "Callable",
             "NoReturn",
             "PyDLL",
+            "TYPE_CHECKING",
             "Thread",
             "annotations",
             "bind",
@@ -65390,6 +65422,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
                 "anchor": "def require_control_current(self)"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "def _bind_control_host("
               }
             ],
             "identity": [
@@ -65404,6 +65440,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
                 "anchor": "self._thread is not current_thread()"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "host._functions.library is not self._functions.library"
               }
             ],
             "ownership": [
@@ -65418,6 +65458,10 @@
               {
                 "path": "docs/design/native-local-host-binding.md",
                 "anchor": "carrier retains those original references"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "self._control_host = host"
               }
             ],
             "synchronization": [
@@ -65446,6 +65490,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Reply loss never repeats"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "self._control_host is not None and not self._control_host._closed"
               }
             ],
             "cancellation": [
@@ -65474,6 +65522,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
                 "anchor": "self._functions.library"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "Declared Host limits still"
               }
             ],
             "extension": [
@@ -65498,6 +65550,22 @@
               {
                 "path": "packages/python-sdk/tests/test_local_native_initial_custody.py",
                 "anchor": "test_actual_same_python_original_and_native_custody"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_control_custody.py",
+                "anchor": "test_python_host_keeps_initial_until_both_original_host_references_close"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_control_custody.py",
+                "anchor": "test_python_lost_host_preparation_retains_initial_and_same_partial_reply"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_control_custody.py",
+                "anchor": "test_python_host_rejects_foreign_component_and_unavailable_current_before_prepare"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_control_custody.py",
+                "anchor": "test_python_normal_current_failure_keeps_same_host_cleanup"
               }
             ]
           }
