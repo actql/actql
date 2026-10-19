@@ -148,6 +148,28 @@ int64_t actql_bootstrap_component_domain_necessary_bytes(
 #endif
 }
 
+MOONBIT_FFI_EXPORT int64_t actql_bootstrap_execution_domain_necessary_bytes(
+    int64_t domain_bytes, int64_t payload_bytes) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR) && defined(ACTQL_SCOPED_READ_PROVIDER) && \
+    !defined(ACTQL_BOOTSTRAP_IMPORT_PROVIDER)
+    long selected_page = sysconf(_SC_PAGESIZE);
+    if (selected_page <= 0 || domain_bytes <= 0 || payload_bytes <= 0 ||
+        (uint64_t)domain_bytes > PTRDIFF_MAX ||
+        (uint64_t)payload_bytes > PTRDIFF_MAX) return -1;
+    size_t page = (size_t)selected_page, control, context, payload, total;
+    if (!component_domain_control((size_t)domain_bytes, page, &control) ||
+        !component_minimum_round(sizeof(actql_read_context), page, &context) ||
+        !component_minimum_round((size_t)payload_bytes, page, &payload) ||
+        !component_minimum_add(control, context, &total) ||
+        !component_minimum_add(total, payload, &total) || total > INT64_MAX)
+        return -1;
+    return (int64_t)total;
+#else
+    (void)domain_bytes; (void)payload_bytes;
+    return -1;
+#endif
+}
+
 MOONBIT_FFI_EXPORT void *actql_bootstrap_acquire(int64_t bytes,
                                                int64_t generation,
                                                const unsigned char *recipe) {
