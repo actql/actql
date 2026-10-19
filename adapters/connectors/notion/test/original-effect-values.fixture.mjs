@@ -48,7 +48,7 @@ export async function originalNotionEffectValuesFixture() {
   const targetSchema = {type: 'object', nullable: false, additional_properties: false, fields};
   const names = ['Amount', 'End', 'Plain', 'Start'];
   const mappingBody = {schema: 'actql.mapping_contract/0.1', version: 'fixture',
-    connector_manifest_cid: cid(manifest), conversions: [], mapping_ref: 'mapping:notion.fixture.v1',
+    connector_manifest_cid: cid(manifest.connectors[0]), conversions: [], mapping_ref: 'mapping:notion.fixture.v1',
     minimum_approval: 'none', primary_identity: 'Id', required_fields: [], required_permissions: [],
     resource_identity_cid: ref('b'), target_ref: 'connector://notion/pages',
     permission_rules: [{effect_kind: 'update', permissions: ['scope:write'], selector_class: 'id', write_fields: names}],
