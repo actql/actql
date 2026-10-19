@@ -50,6 +50,14 @@ __attribute__((constructor)) static void original_entry(void) {
   assert(argc == 2);
   mode = argv[1];
   receiver = actql_native_initial_managed_begin(&entry);
+  if (!strcmp(mode, "environment-refusal")) {
+    assert(receiver == NULL && init_calls == 0 && reserve_calls == 0 && heap_calls == 0);
+    /* Refuse before the later automatic allocator initializer can consume the
+     * deliberately supplied option. No acquired physical resource is ACKed. */
+    const char result[] = "initial managed environment refusal passed\n";
+    assert(write(STDOUT_FILENO, result, sizeof(result)-1) == sizeof(result)-1);
+    _exit(0);
+  }
 }
 
 extern size_t mi_usable_size(const void *);
@@ -66,6 +74,26 @@ static void *foreign_thread(void *unused) {
 }
 
 int main(void) {
+  if (!strcmp(mode, "environment-vectors")) {
+    char *ordinary[] = {"PATH=/usr/bin", "MIMALLOCX_RESERVE_OS_MEMORY=1G", NULL};
+    char *upper[] = {"MIMALLOC_RESERVE_OS_MEMORY=1G", NULL};
+    char *mixed[] = {"miMAlloC_unrecognized_option=0", NULL};
+    char *empty[] = {"mimalloc_=", NULL};
+    static char *many[10001];
+    assert(actql_initial_managed_environment_supported(NULL));
+    assert(actql_initial_managed_environment_supported(ordinary));
+    assert(!actql_initial_managed_environment_supported(upper));
+    assert(!actql_initial_managed_environment_supported(mixed));
+    assert(!actql_initial_managed_environment_supported(empty));
+    for (size_t i = 0; i < 10000; ++i) many[i] = "X=";
+    many[9999] = NULL;
+    assert(actql_initial_managed_environment_supported(many));
+    many[9999] = "X=";
+    assert(!actql_initial_managed_environment_supported(many));
+    assert(actql_native_initial_managed_restore(receiver) == 1);
+    puts("initial managed environment vectors passed");
+    return 0;
+  }
   if (!strcmp(mode, "missing") || !strcmp(mode, "invalid")) {
     assert(receiver == NULL);
     assert(init_calls == 0 && reserve_calls == 0 && heap_calls == 0);

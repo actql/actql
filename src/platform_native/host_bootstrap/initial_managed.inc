@@ -10,11 +10,35 @@
 #include <unistd.h>
 
 #if defined(__APPLE__) && defined(__aarch64__)
+#include <crt_externs.h>
 #include "initial_managed_mimalloc217.h"
 /* Actual selected 64-bit toolchain geometry. The entry recipe must qualify
  * this runtime object/ABI, not infer the granularity from a successful probe.
  * Preselect whole segments before reservation; reject any observed mismatch. */
 #define ACTQL_INITIAL_MI_SEGMENT_BYTES ((size_t)32 * 1024 * 1024)
+
+/* The selected allocator's startup options can reserve other arenas or alter
+ * process-lived cleanup. This profile selects its pinned defaults, not ambient
+ * allocator customization. Observe the actual startup vector without getenv,
+ * value parsing, copying or allocation. The selected Unix runtime examines at
+ * most 10000 entries case-insensitively; refuse an unterminated bounded census
+ * too. No unsupported option is silently rewritten or ignored. */
+static bool actql_initial_managed_environment_supported(char *const *environment) {
+  if (!environment) return true;
+  const char prefix[] = "mimalloc_";
+  for (size_t index = 0; index < 10000; ++index) {
+    const char *text = environment[index];
+    if (!text) return true;
+    size_t offset = 0;
+    for (; offset < sizeof(prefix)-1; ++offset) {
+      unsigned char value = (unsigned char)text[offset];
+      if (value >= 'A' && value <= 'Z') value += 'a'-'A';
+      if (value != (unsigned char)prefix[offset]) break;
+    }
+    if (offset == sizeof(prefix)-1) return false;
+  }
+  return false;
+}
 #endif
 
 enum {
@@ -66,7 +90,8 @@ actql_native_initial_managed_original *actql_native_initial_managed_begin(
   if (!entry || !actql_native_command_platform_managed_selection(entry, selection) ||
       selection[0] < ACTQL_INITIAL_MI_SEGMENT_BYTES ||
       selection[0] % ACTQL_INITIAL_MI_SEGMENT_BYTES != 0 || !selection[1] ||
-      !selection[2] || selection[2] > selection[0] || selection[3] != 1)
+      !selection[2] || selection[2] > selection[0] || selection[3] != 1 ||
+      !actql_initial_managed_environment_supported(*_NSGetEnviron()))
     return NULL;
   int expected = 0;
   if (!atomic_compare_exchange_strong_explicit(&actql_initial_managed_state,
@@ -124,7 +149,8 @@ bool actql_native_initial_managed_current(
       !actql_initial_managed_thread(original) || original->closing) return false;
 #if defined(__APPLE__) && defined(__aarch64__)
   size_t selection[4] = {0}, bytes = 0;
-  if (!actql_native_command_platform_managed_selection(original->entry, selection))
+  if (!actql_native_command_platform_managed_selection(original->entry, selection) ||
+      !actql_initial_managed_environment_supported(*_NSGetEnviron()))
     return false;
   for (size_t index = 0; index < 4; ++index)
     if (selection[index] != original->selection[index]) return false;
