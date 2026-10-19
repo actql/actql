@@ -88,9 +88,8 @@ fn load_holder_effect_host_operator(
   resources : HolderOutputResources,
   environment : SiteEnvironment,
   slot : @slot.NativeExecutorSlot,
-  // Supplied only by the trusted Host installer after its representation and
-  // baseline scope are established; no CLI value, wire or Account Allow can
-  // construct this selection. Absence keeps the original refusal before I/O.
+  // Optional explicit mapped-Read selection. The ordinary trusted Host instead
+  // acquires bounded platform resources at its documented entry.
   setup_profile? : HolderEffectHostSetupProfile? = None,
   preparation? : HolderEffectPreparationCapacity? = None,
   read_installation? : HolderEffectHostReadInstallation? = None,
@@ -105,12 +104,22 @@ fn load_holder_effect_host_operator(
   // Keep the same Site reservation in the existing output resources before
   // constructing Slot/runtime callback contexts. Selection proves neither
   // Account permission nor an installed Host baseline.
-  guard reserve_holder_effect_host_setup_scope(
+  let selected_scope = if setup_profile is None &&
+    read_installation is None &&
+    read_parent is None {
+    prepare_holder_effect_host_ordinary_scope(
+      environment.site,
+      required_int64(matches, "max-file-bytes"),
+      environment.runtime_catalog_record_bytes,
+    )
+  } else {
+    reserve_holder_effect_host_setup_scope(
       environment.site,
       setup_profile,
       environment.runtime_catalog_record_bytes,
     )
-    is Some(scope) else {
+  }
+  guard selected_scope is Some(scope) else {
     stop("Effect Host setup capacity unavailable")
   }
   resources.effect_host_setup.val = Some(scope)
@@ -120,13 +129,19 @@ fn load_holder_effect_host_operator(
   let active_runtime = environment.active_runtime
   // Use the same immutable selection admitted before reservation, and enforce
   // it at the physical Store read on every current check, never just in a quote.
-  let catalog_read_limit = holder_effect_host_catalog_read_limit(
-    setup_profile,
-    environment.runtime_catalog_record_bytes,
-  ).unwrap()
-  let catalog_json_limits = scope.profile.catalog_json_limits
-  let catalog_diagnostic_ceiling = scope.profile.diagnostic_ceiling
-  let catalog_sqlite_heap_bytes = scope.profile.catalog_sqlite_heap_bytes
+  let (selected_catalog_limit, catalog_json_limits) = holder_effect_host_scope_catalog_limits(
+    scope,
+  )
+  let catalog_read_limit = if selected_catalog_limit <
+    environment.runtime_catalog_record_bytes {
+    selected_catalog_limit
+  } else {
+    environment.runtime_catalog_record_bytes
+  }
+  let catalog_diagnostic_ceiling = holder_effect_host_scope_diagnostic_ceiling(
+    scope,
+  )
+  let scoped_profile = scope.profile
   let site = environment.site
   let site_key = resources.site_key
   let site_generation = resources.site_generation
@@ -153,12 +168,13 @@ fn load_holder_effect_host_operator(
       prepare_holder_effect_host_read_parent(scope, slot, selected)
     (value, None) => value
   }
-  if !install_holder_effect_host_read_domain(scope, slot, read_installation) {
+  if scope.ordinary is None &&
+    !install_holder_effect_host_read_domain(scope, slot, read_installation) {
     ignore(leave_holder_effect_host_read_scope(scope))
     stop("Effect Host original Native read installation unavailable")
   }
-  // Only the entered original domain may perform the first bounded Store
-  // revalidation. Its refusal may read that Store, but opens no Account/Provider.
+  // Revalidate the same actual Store. An explicit mapped selection additionally
+  // checks its entered domain; neither mode grants Account/Provider permission.
   if !install_holder_effect_host_store_current(
       scope,
       holder_effect_host_setup_binding(
@@ -168,9 +184,13 @@ fn load_holder_effect_host_operator(
         runtime_bundle_cid,
         () => slot.verify_current_hold() == Ok(()),
         () => {
-          bundles.current_sqlite_component_matches_heap(
-            catalog_sqlite_heap_bytes,
-          ) &&
+          (match scoped_profile {
+            Some(profile) =>
+              bundles.current_sqlite_component_matches_heap(
+                profile.catalog_sqlite_heap_bytes,
+              )
+            None => true
+          }) &&
           bundles.diagnostics_bounded_by(catalog_diagnostic_ceiling) &&
           bundles.verify_active_component_binding_with_body_limit(
             active_runtime,
@@ -178,9 +198,13 @@ fn load_holder_effect_host_operator(
             json_limits=Some(catalog_json_limits),
           )
           is Ok(_) &&
-          bundles.current_sqlite_component_matches_heap(
-            catalog_sqlite_heap_bytes,
-          )
+          (match scoped_profile {
+            Some(profile) =>
+              bundles.current_sqlite_component_matches_heap(
+                profile.catalog_sqlite_heap_bytes,
+              )
+            None => true
+          })
         },
       ),
     ) {
@@ -216,17 +240,27 @@ fn read_holder_effect_host_text(
   trim_newline? : Bool = false,
 ) -> String? {
   guard holder_effect_host_read_scope_current(scope) else { return None }
-  // A Site representation reservation is not an allocator-backed Native read
-  // context. The existing physical Owner must find the installer's original
-  // active context; absence must not fall back to the stock Root constructor.
-  match
+  let result = if scope.ordinary is Some(_) {
+    @bounded_files.read_bounded_text_file_with_custody(
+      root,
+      name,
+      limit,
+      diagnostic_ceiling=Some(
+        holder_effect_host_scope_diagnostic_ceiling(scope),
+      ),
+      trim_newline~,
+    )
+  } else {
+    // An explicitly selected native Read cannot fall back to ordinary I/O.
     @bounded_files.read_bounded_text_file_in_current_read_context_with_custody(
       root,
       name,
       limit,
-      scope.profile.diagnostic_ceiling,
+      holder_effect_host_scope_diagnostic_ceiling(scope),
       trim_newline~,
-    ) {
+    )
+  }
+  match result {
     Ok(text) =>
       if holder_effect_host_read_scope_current(scope) {
         Some(text)
@@ -249,24 +283,39 @@ fn prepare_holder_effect_host_operator(
   runtime_bundle_cid : String,
   preparation? : HolderEffectPreparationCapacity? = None,
 ) -> HolderEffectHostOperatorInstallation raise CommandStop {
-  // The same Site operation already funds setup. Refuse excessive retained
-  // original metadata before any physical file read; no admission grants access.
-  guard holder_effect_host_read_scope_current(scope) &&
-    holder_effect_host_control_representation_ready(
-      scope.profile,
+  // Bound configured inputs before physical reads. Ordinary managed values do
+  // not require a whole-runtime certificate; explicit mapped limits still apply.
+  guard holder_effect_host_read_scope_current(scope) else {
+    stop("Effect Host current binding unavailable")
+  }
+  let control_text_bytes = if scope.ordinary is Some(_) {
+    guard [
       resources.observation_url,
       resources.site_key,
       resources.coordinator_authority,
       runtime_bundle_cid,
-    )
-    is Some(control_text_bytes) else {
-    stop("Effect Host control representation capacity unavailable")
+    ].all(text => !text.is_empty() && text.length() <= 4096) else {
+      stop("Effect Host control input limit exceeded")
+    }
+    0L
+  } else {
+    guard holder_effect_host_control_representation_ready(
+        scope.profile.unwrap(),
+        resources.observation_url,
+        resources.site_key,
+        resources.coordinator_authority,
+        runtime_bundle_cid,
+      )
+      is Some(control_text_bytes) else {
+      stop("Effect Host control representation capacity unavailable")
+    }
+    control_text_bytes
   }
   let configured = required_int64(matches, "max-file-bytes")
   if configured <= 0L {
     stop("Effect Host Account file limit invalid")
   }
-  let ceiling = scope.profile.read_ceiling.to_int64()
+  let ceiling = holder_effect_host_scope_read_ceiling(scope).to_int64()
   let file_limit = if configured < ceiling { configured } else { ceiling }
   let subject_limit = if file_limit < 512L { file_limit } else { 512L }
   let names = [
@@ -308,8 +357,10 @@ fn prepare_holder_effect_host_operator(
       // Retain the same trusted operator ceiling for initial, current and final
       // physical reads. The clamped value fits Int; candidate wire cannot raise it.
       read_ceiling=file_limit.to_int(),
-      diagnostic_ceiling=Some(scope.profile.diagnostic_ceiling),
-      require_current_read_context=true,
+      diagnostic_ceiling=Some(
+        holder_effect_host_scope_diagnostic_ceiling(scope),
+      ),
+      require_current_read_context=scope.ordinary is None,
       on_read_failure=Some(failure => {
         observe_holder_effect_host_read_failure(scope, failure)
       }),

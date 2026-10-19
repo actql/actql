@@ -283,7 +283,7 @@ test "snapshot holding stays charged until actual caller retirement" {
   // Independent arithmetic: controls10 + array2 + root(2+2) +
   // slot2 + tuple2 + two Strings each(2+2) = 28.
   assert_eq(
-    holder_effect_host_snapshot_extent(scope.profile, "r", snapshot),
+    holder_effect_host_snapshot_extent(scope.profile.unwrap(), "r", snapshot),
     Some(28L),
   )
   assert_true(retain_holder_effect_host_snapshot(scope, "r", snapshot))
