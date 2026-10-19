@@ -5,6 +5,15 @@
 fn LocalCommandBusinessOriginal::close_result_children(
   self : LocalCommandBusinessOriginal,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
+  if self.store is Some(store) {
+    // A failed acquisition can retain a Delivery without creating a Session.
+    // This closes only that same unexposed child after its original return;
+    // false denotes no pending child and never substitutes for a close ACK.
+    match store.retry_pending_result_delivery_cleanup() {
+      Err(issue) => return Err(CommandBusinessStore(issue))
+      Ok(_) => ()
+    }
+  }
   if self.result_sink is Some(sink) {
     match sink.close() {
       Err(issue) => {

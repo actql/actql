@@ -169,6 +169,15 @@ fn LocalCommandPreparationOriginal::close_business_children(
   if self.journal_read_open || self.phase_open {
     return Err(CommandBusinessChildren)
   }
+  // The Store retains its own return mirror and any unexposed Result child.
+  // Recover through that same owner before lower-level scope recovery can
+  // consume the physical return without acknowledging the Store's duty.
+  if business.store is Some(store) {
+    match store.reconcile_original_return() {
+      Err(issue) => return Err(CommandBusinessStore(issue))
+      Ok(_) => ()
+    }
+  }
   // A Store open can fail before Work exists. Reconcile the same outstanding
   // route before either its publication children or failed DB are retired.
   if business.operation is Some(operation) {
