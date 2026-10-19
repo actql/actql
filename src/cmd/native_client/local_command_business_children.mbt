@@ -7,14 +7,30 @@ fn LocalCommandBusinessOriginal::enter_children_cleanup(
   guard business.execution is Some(execution) else {
     return Err(CommandBusinessChildren)
   }
-  let scope = match host.observe_domain_retained_execution_scope(execution) {
+  let observed = match host.observe_domain_retained_execution_scope(execution) {
     Ok(value) => Ok(value)
     Err(_) => host.observe_domain_retained_execution_cleanup_scope(execution)
   }
+  let scope = match observed {
+    Ok(value) => value
+    Err(primary) => {
+      // A failed original entry can retain nominal active while no child C
+      // frame was installed. Only its existing physical non-entry/unwind port
+      // may reconcile that state; an error alone never clears this duty.
+      match
+        host.finish_domain_retained_execution_failed_entry_cleanup(execution) {
+        Err(_) => return Err(CommandRetainedExecution(primary))
+        Ok(_) => business.active = false
+      }
+      match host.observe_domain_retained_execution_cleanup_scope(execution) {
+        Err(issue) => return Err(CommandRetainedExecution(issue))
+        Ok(value) => value
+      }
+    }
+  }
   match scope {
-    Err(issue) => return Err(CommandRetainedExecution(issue))
-    Ok(@initial_bootstrap.BackedReadEntered) => business.active = true
-    Ok(@initial_bootstrap.BackedReadUnentered) => {
+    @initial_bootstrap.BackedReadEntered => business.active = true
+    @initial_bootstrap.BackedReadUnentered => {
       // Retain the original attempted entry even if its acknowledgement is
       // lost. Cleanup entry monotonically retires normal business access.
       business.active = true
