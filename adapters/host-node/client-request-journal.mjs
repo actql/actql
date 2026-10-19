@@ -10,7 +10,7 @@ import {createHash, createHmac, randomBytes, timingSafeEqual} from 'node:crypto'
 import {closeSync, constants, existsSync, fstatSync, fsyncSync, lstatSync,
   mkdirSync, openSync, readSync,
   realpathSync, writeFileSync} from 'node:fs';
-import {join} from 'node:path';
+import {isAbsolute, join} from 'node:path';
 import {types as utilTypes} from 'node:util';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
@@ -1231,7 +1231,7 @@ function inspectCancellationStorage(database, enabled) {
 // Inspect a private copy and refuse a source that changes during inspection.
 function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries, maxInspectionBytes,
   primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent,
-  primaryDirectoryInspection) {
+  primaryDirectoryInspection, inspectionTemporaryDirectory) {
   const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);
   const featurePath = join(directory, cancellationMarkerName);
   const enabled = entries.includes(cancellationMarkerName);
@@ -1295,6 +1295,7 @@ function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspecti
     schemaReadLimits: primarySchemaLimits,
     schemaSqlSupport: primarySchemaSqlSupport,
     assertCurrent: primaryCurrent,
+    temporaryDirectory: inspectionTemporaryDirectory,
     validateSource: () => journalMarkerMatches(markerPath, journalMarker) &&
       (!enabled || journalMarkerMatches(featurePath, cancellationMarker)) &&
       (!submissionEnabled || journalMarkerMatches(submissionPath, submissionMarker)) &&
@@ -1340,7 +1341,7 @@ function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspecti
 
 function admitJournalDirectory(directory, maxInspectionEntries, maxInspectionBytes,
   primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent,
-  primaryDirectoryInspection) {
+  primaryDirectoryInspection, inspectionTemporaryDirectory) {
   if (!existsSync(directory)) return false;
   const state = lstatSync(directory);
   if (!state.isDirectory() || state.isSymbolicLink()) {
@@ -1366,7 +1367,7 @@ function admitJournalDirectory(directory, maxInspectionEntries, maxInspectionByt
   try {
     inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries, maxInspectionBytes,
       primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent,
-      primaryDirectoryInspection);
+      primaryDirectoryInspection, inspectionTemporaryDirectory);
   } catch (cause) {
     if (cause?.cleanupPending) throw cause;
     if (['HostJournalDirectoryUnavailable', 'HostJournalDirectoryCurrentUnavailable',
@@ -1395,6 +1396,7 @@ export function openClientRequestJournal(directory, {
   primarySchemaSqlSupport,
   primaryCurrent,
   primaryDirectoryInspection,
+  inspectionTemporaryDirectory,
   maxRunDefinitionWireBytes = 65_536,
   submissionEpochTtlMs = maxEpochTtlMs,
   submissionEpochNow = Date.now,
@@ -1418,6 +1420,12 @@ export function openClientRequestJournal(directory, {
   }
   sourceOperationLimits = snapshotClientSourceOperationLimits(sourceOperationLimits);
   if (primaryCurrent !== undefined && typeof primaryCurrent !== 'function') {
+    fail('InvalidClientRequestJournalConfiguration');
+  }
+  if (inspectionTemporaryDirectory !== undefined &&
+      (typeof inspectionTemporaryDirectory !== 'string' ||
+        inspectionTemporaryDirectory.length === 0 || inspectionTemporaryDirectory.length > 4096 ||
+        !isAbsolute(inspectionTemporaryDirectory) || inspectionTemporaryDirectory.includes('\0'))) {
     fail('InvalidClientRequestJournalConfiguration');
   }
   if (primaryDirectoryInspection !== undefined) {
@@ -1459,7 +1467,7 @@ export function openClientRequestJournal(directory, {
   }
   const current = admitJournalDirectory(directory, maxInspectionEntries, inspectionBytes,
     primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent,
-    primaryDirectoryInspection);
+    primaryDirectoryInspection, inspectionTemporaryDirectory);
   mkdirSync(directory, {recursive: true, mode: 0o700});
   // Avoid the stock JS symlink walk's intermediate path/Map/Set history in
   // the selected recipe. Native libc/libuv path holdings remain distinct

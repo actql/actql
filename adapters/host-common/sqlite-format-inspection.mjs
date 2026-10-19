@@ -90,10 +90,14 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
   schemaReadLimits,
   schemaSqlSupport,
   assertCurrent,
+  temporaryDirectory,
 } = {}) {
   if (!Number.isSafeInteger(maxSourceBytes) || maxSourceBytes < 1 ||
       typeof unavailableCode !== 'string' || unavailableCode.length === 0 ||
-      assertCurrent !== undefined && typeof assertCurrent !== 'function') {
+      assertCurrent !== undefined && typeof assertCurrent !== 'function' ||
+      temporaryDirectory !== undefined && (typeof temporaryDirectory !== 'string' ||
+        temporaryDirectory.length === 0 || temporaryDirectory.length > 4096 ||
+        !isAbsolute(temporaryDirectory) || temporaryDirectory.includes('\0'))) {
     throw Object.assign(new Error('InvalidSqliteSnapshotInspectionConfiguration'),
       {code: 'InvalidSqliteSnapshotInspectionConfiguration'});
   }
@@ -195,8 +199,12 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
     }
     // The selected original avoids the JS symlink walk's growing managed
     // path history. Native path/allocator/stack coverage is still required.
-    const scratch = assertCurrent === undefined ? realpathSync(tmpdir()) :
-      nativePathApply(originalNativeRealpath, originalRealpath, [tmpdir(), nativePathOptions]);
+    // A selected Root retains this original before native image acquisition.
+    // Do not reacquire ambient TMPDIR after that selection. The path itself
+    // is neither a filesystem supplier nor an operational admission.
+    const scratchOriginal = temporaryDirectory === undefined ? tmpdir() : temporaryDirectory;
+    const scratch = assertCurrent === undefined ? realpathSync(scratchOriginal) :
+      nativePathApply(originalNativeRealpath, originalRealpath, [scratchOriginal, nativePathOptions]);
     const sourceDirectory = assertCurrent === undefined ? realpathSync(dirname(databasePath)) :
       nativePathApply(originalNativeRealpath, originalRealpath, [dirname(databasePath), nativePathOptions]);
     const withinSource = relative(sourceDirectory, scratch);

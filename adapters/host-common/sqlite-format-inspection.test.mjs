@@ -88,6 +88,33 @@ test('inspection refuses scratch inside the source root before creating any file
   }
 });
 
+test('selected inspection uses its supplied temporary directory without reacquiring ambient TMPDIR', t => {
+  const temporaryDirectory = tmpdir();
+  const {root, path} = fixture(t);
+  const before = snapshot(root);
+  const previous = process.env.TMPDIR;
+  process.env.TMPDIR = root;
+  try {
+    assert.equal(inspectSqliteSnapshot(path, database =>
+      database.prepare('SELECT value FROM metadata').get().value,
+    {assertCurrent() {}, temporaryDirectory}), 'before-wal');
+    assert.deepEqual(snapshot(root), before);
+  } finally {
+    if (previous === undefined) delete process.env.TMPDIR;
+    else process.env.TMPDIR = previous;
+  }
+});
+
+test('supplied inspection scratch rejects unsupported paths without fallback or native acquisition', () => {
+  for (const temporaryDirectory of ['', '.', 'a'.repeat(4097), '/invalid\0path', null, {}]) {
+    let currents = 0;
+    assert.throws(() => inspectSqliteSnapshot('/must-not-be-opened', () => assert.fail(),
+      {temporaryDirectory, assertCurrent() { currents++; }}),
+    {code: 'InvalidSqliteSnapshotInspectionConfiguration'});
+    assert.equal(currents, 0);
+  }
+});
+
 test('format failure and isolated close failure keep one retryable cleanup owner', t => {
   const {root, path} = fixture(t);
   const before = snapshot(root);

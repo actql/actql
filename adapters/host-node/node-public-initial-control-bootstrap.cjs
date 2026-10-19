@@ -184,6 +184,7 @@ function closeJournal(entry) {
       entry.closed = true;
       entry.subject = entry.subjectCurrent = entry.paths = undefined;
       entry.directoryInspection = entry.ownershipDirectoryInspection = undefined;
+      entry.inspectionTemporaryDirectory = undefined;
       entry.nativeImage = entry.nativeImageCurrent = undefined;
       return journalStatus(entry);
     } catch (cause) {
@@ -218,7 +219,7 @@ function prepareJournal(held) {
   const entry = journalInstallation = {original, originals: held,
     disposition: state.journalDisposition, subject: undefined, subjectCurrent: undefined, paths: undefined,
     argumentsForJournal: undefined, nativeImage: undefined, nativeImageCurrent: undefined,
-    directoryInspection: undefined, directoryEntryBound: undefined,
+    directoryInspection: undefined, directoryEntryBound: undefined, inspectionTemporaryDirectory: undefined,
     ownershipDirectoryInspection: undefined,
     attempted: false, nativeAttempted: false, openFlight: undefined,
     ownership: undefined, ownershipForwarded: false, dependency: undefined,
@@ -238,6 +239,10 @@ function prepareJournal(held) {
       [state.journalNative.DatabaseSync, state.journalNative.StatementSync, state.journalNative.bindings]);
     const images = field(state.inventory, 'nativeImages');
     const limits = field(entry.disposition, 'directoryImageLimits');
+    entry.inspectionTemporaryDirectory = field(limits, 'temporaryDirectory');
+    if (typeof entry.inspectionTemporaryDirectory !== 'string' ||
+        entry.inspectionTemporaryDirectory.length === 0 ||
+        entry.inspectionTemporaryDirectory.length > 4096) journalUnavailable();
     if (!Array.isArray(images) || images.length !== 1 ||
         typeof state.directoryNativeImageLoader !== 'function') journalUnavailable();
     entry.nativeImage = apply(state.directoryNativeImageLoader, undefined,
@@ -299,9 +304,10 @@ function openJournal(original, held, directory, options) {
   let selected;
   try {
     selected = apply(entry.argumentsForJournal, entry.disposition,
-      [entry.subject, options, entry.directoryInspection]);
+      [entry.subject, options, entry.directoryInspection, entry.inspectionTemporaryDirectory]);
     if (field(selected, 'primaryDirectoryInspection') !== entry.directoryInspection ||
-        field(selected, 'maxInspectionEntries') !== entry.directoryEntryBound) journalUnavailable();
+        field(selected, 'maxInspectionEntries') !== entry.directoryEntryBound ||
+        field(selected, 'inspectionTemporaryDirectory') !== entry.inspectionTemporaryDirectory) journalUnavailable();
   } catch (cause) {
     try { journalCleanup(entry, cause); }
     catch (cleanupFailure) { journalFailure(entry, cleanupFailure); }

@@ -1135,6 +1135,14 @@ published during the load/unlink sequence. Actual startup ownership and the
 selected originals remain obligations; matching public DATA cannot supply them.
 The temporary directory is an explicit bounded input from that disposition,
 not an ambient environment read performed by the loader as its own supplier.
+The same Root retains that path before native-image acquisition and passes it
+through the original Journal argument selector into isolated format inspection.
+The selected Journal refuses a missing or substituted path before ownership or
+database acquisition; its copy uses that retained input rather than reacquiring
+ambient `TMPDIR`. Unsupported supplied paths refuse without fallback. Unselected
+inspection callers keep their existing temporary-directory behavior. The path
+alias coexists with the image, Journal, source and copy duties until their
+original close observations; alias retirement is not physical backing or ACK.
 
 The loader keeps the original native instance, captured operations and runtime
 current fence. Detected loader replacement does not revive after restoration.

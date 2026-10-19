@@ -144,9 +144,10 @@ async function fixture({covered = true, open, read, current, nativeCurrent, subj
       maxWork: 65536, maxInspections: 128}),
     directoryImageLimits: Object.freeze({maxImageBytes: imageFact.bytes, temporaryDirectory: tmpdir(),
       maxEntries: 100000, maxNameBytes: 1024, maxWork: 268435456, maxInspections: 4096}),
-    argumentsForOriginalJournal(actual, options, originalDirectoryInspection) {
+    argumentsForOriginalJournal(actual, options, originalDirectoryInspection, inspectionTemporaryDirectory) {
       assert.strictEqual(actual, subject);
-      return {...options, maxInspectionEntries: 100000, primaryDirectoryInspection: originalDirectoryInspection};
+      return {...options, maxInspectionEntries: 100000,
+        primaryDirectoryInspection: originalDirectoryInspection, inspectionTemporaryDirectory};
     },
   }) : undefined, journal: Object.freeze({
     read(actual) {assert.strictEqual(this, namespace); assert.strictEqual(actual, originals);
@@ -477,13 +478,77 @@ test('Root image current refusal precedes subject and DB acquisition', async () 
   f.scratch.passed();
 });
 
+test('Root forwards its same temporary directory before Journal acquisition', async () => {
+  let opens = 0;
+  const f = await fixture({open(path, options) {
+    opens++;
+    assert.equal(options.inspectionTemporaryDirectory,
+      f.state.journalDisposition.directoryImageLimits.temporaryDirectory);
+    return openClientRequestJournal(path, options);
+  }});
+  const disposition = f.state.journalDisposition;
+  f.state.journalDisposition = Object.freeze({...disposition,
+    argumentsForOriginalJournal(subject, options, inspection, temporaryDirectory) {
+      assert.equal(temporaryDirectory, disposition.directoryImageLimits.temporaryDirectory);
+      return {...options, maxInspectionEntries: 100000,
+        primaryDirectoryInspection: inspection, inspectionTemporaryDirectory: temporaryDirectory};
+    },
+  });
+  const original = f.root.prepare(f.originals);
+  await f.root.open(original, f.originals, f.directory, {});
+  assert.equal(opens, 1);
+  assert.equal((await f.root.close(original, f.originals)).pending, false);
+  f.scratch.passed();
+});
+
+test('same Root Journal cold inspection keeps the supplied scratch original', async () => {
+  const f = await fixture({open(path, options) {
+    // Both are fresh diagnostic originals. The first close is observed before
+    // this same constructor inspects its saved bytes, not historical replay.
+    openClientRequestJournal(path, options).close();
+    const previous = process.env.TMPDIR;
+    process.env.TMPDIR = path;
+    try { return openClientRequestJournal(path, options); }
+    finally {
+      if (previous === undefined) delete process.env.TMPDIR;
+      else process.env.TMPDIR = previous;
+    }
+  }});
+  const original = f.root.prepare(f.originals);
+  await f.root.open(original, f.originals, f.directory, {});
+  assert.equal((await f.root.close(original, f.originals)).pending, false);
+  f.scratch.passed();
+});
+
+test('Root refuses missing or substituted scratch before Store and Journal acquisition', async () => {
+  for (const inspectionTemporaryDirectory of [undefined, '/different-fixture-original']) {
+    let ownerships = 0, opens = 0;
+    const f = await fixture({prepareOwnership() { ownerships++; }, open() { opens++; }});
+    f.state.journalDisposition = Object.freeze({...f.state.journalDisposition,
+      argumentsForOriginalJournal(subject, options, inspection) {
+        return {...options, maxInspectionEntries: 100000,
+          primaryDirectoryInspection: inspection, inspectionTemporaryDirectory};
+      },
+    });
+    const original = f.root.prepare(f.originals);
+    let failure;
+    assert.throws(() => f.root.open(original, f.originals, f.directory, {}), error => {
+      failure = error; return error.cause?.code === 'HostJournalPreparationUnavailable';
+    });
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    assert.equal(ownerships, 0); assert.equal(opens, 0);
+    f.scratch.passed();
+  }
+});
+
 test('Root rejects a substituted directory inspector before Store ownership or native Journal', async () => {
   let ownerships = 0, opens = 0;
   const f = await fixture({prepareOwnership() { ownerships++; }, open() { opens++; }});
   f.state.journalDisposition = Object.freeze({...f.state.journalDisposition,
-    argumentsForOriginalJournal(subject, options, inspection) {
+    argumentsForOriginalJournal(subject, options, inspection, inspectionTemporaryDirectory) {
       assert.equal(typeof inspection, 'function');
-      return {...options, maxInspectionEntries: 100000, primaryDirectoryInspection() {}};
+      return {...options, maxInspectionEntries: 100000, primaryDirectoryInspection() {},
+        inspectionTemporaryDirectory};
     },
   });
   const original = f.root.prepare(f.originals);
