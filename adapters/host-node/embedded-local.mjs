@@ -1589,14 +1589,15 @@ async function openInstalledHost(originalInstallation, preparation) {
       : preparedSource === undefined ? {} : {acquisition: acquisitionDescriptor(preparedSource)}),
   });
   const planFor = ({preparedProgram, requestId},
-    retainedDefinitionWire) => {
+    retainedDefinitionWire, requestIdentity) => {
     prepareSubmit.assertOwned(preparedProgram);
     const restored = prepareSubmit.originalInferRun(preparedProgram);
     if (restored !== undefined) {
-      return restoreInferTaskRunAdmission({control, preparedProgram, restored});
+      return restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity});
     }
     const common = {moon, control, preparedProgram,
       authorityScopeCid, namespaceId, requestId, storeAuthorityCid, now,
+      ...(requestIdentity === undefined ? {} : {requestIdentity}),
       ...(retainedDefinitionWire === undefined ? {} :
         {retainedDefinitionWire})};
     const infer = inferSelections.get(preparedProgram);
@@ -1634,7 +1635,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       submission: submission.submission,
       resultNames, sourceInventory: sourceInventory(held.preparedSources, held.preparedSource, held.keyedSource),
       issueDefinition: () => {
-        held.plan = planFor(submission);
+        held.plan = planFor(submission, undefined, requested);
         if (held.plan.kind === 'infer') {
           // The existing codec currently represents one ordinary installed
           // graph. Other live profiles keep their existing admission path;
@@ -2206,7 +2207,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           const current = journal.lookupRunDefinition(accepted.ref, moon, control);
           if (current === undefined || current.cancellationRequested ||
               current.observedTerminalOutcome !== null) return;
-          const plan = planFor(submission, current.runDefinition.wire);
+          const plan = planFor(submission, current.runDefinition.wire, requested);
           let acquiredInfer;
           if (acquired) {
             // Reacquisition uses the current installed read admission. It
@@ -3055,7 +3056,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             }
             if (parentCheckpoint !== undefined) throw new Error('ModelReadParentRunMismatch');
             if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');
-            const plan = planFor(submission, current.runDefinition.wire);
+            const plan = planFor(submission, current.runDefinition.wire, requested.requested);
             if (originalModelRunWire(plan.compiled, plan.runDefinition) !== record.originals.originalRunWire) {
               throw new Error('ModelResumeOriginalAdmissionChanged');
             }

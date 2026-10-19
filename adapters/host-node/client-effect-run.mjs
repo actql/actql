@@ -9,6 +9,7 @@ import {issuedEffectSetReceiptWires} from
   '../host-common/effect-receipt-custody.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
+import {sampleOriginalQueryTime} from './query-evaluation-clock.mjs';
 
 const limits = Object.freeze({maxWireBytes: 1000000, maxNodes: 100000,
   maxDepth: 100});
@@ -18,13 +19,6 @@ const expired = ref => Object.assign(new Error('ClientEffectRunExpired'),
   {code: 'ClientEffectRunExpired', ref});
 const unsupported = () => Object.assign(new Error('ClientProgramUnsupported'),
   {code: 'ClientProgramUnsupported'});
-// The installed module retains its actual wall-clock constructor and receiver
-// operation before any invocation await. This is computation DATA only, not
-// an authorization clock, a resource issuer, or an extension of valid_until.
-const QueryClockDate = Date;
-const queryClockIso = Date.prototype.toISOString;
-const queryClockApply = Reflect.apply;
-const sampleOriginalQueryTime = () => queryClockApply(queryClockIso, new QueryClockDate(), []);
 
 export function installNodeClientEffectRun({moon,
   publicationControl: control = runtimeCore(moon).publicationControl,
