@@ -1223,7 +1223,7 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
-      "sha256": "c82423bc9ee3d19dd6d06dc4cbfcdc111ca7a999c0368c8233a8eee6a9c5843b",
+      "sha256": "421b163816f7420eeff00c6428eda2ce8582d4e8fa7af3324082c252e31b284f",
       "exports": [
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
@@ -1575,13 +1575,44 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#10",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#11",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#12",
           "parameters": [
             "task"
           ],
           "async": false
         },
         {
-          "name": "installNodeClientDispatchOwner/start/start/start/start#11",
+          "name": "installNodeClientDispatchOwner/start/start/start/start#13",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#14",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#15",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#16",
           "parameters": [
             "task"
           ],
@@ -1610,32 +1641,36 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#5",
-          "parameters": [],
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#6",
-          "parameters": [],
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#7",
           "parameters": [
-            "task"
+            "value"
           ],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#8",
           "parameters": [
-            "task"
+            "value"
           ],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#9",
           "parameters": [
-            "task"
+            "value"
           ],
           "async": false
         },
@@ -1825,7 +1860,12 @@
             "installNodeClientDispatchOwner/track/track/track#5",
             "observeNodeRestoredModelStop",
             "observeNodeRunStop",
-            "recordNodeRunPhysicalStop"
+            "recordNodeRunPhysicalStop",
+            "installNodeClientDispatchOwner/start/start/start/start#12",
+            "installNodeClientDispatchOwner/start/start/start/start#13",
+            "installNodeClientDispatchOwner/start/start/start/start#14",
+            "installNodeClientDispatchOwner/start/start/start/start#15",
+            "installNodeClientDispatchOwner/start/start/start/start#16"
           ],
           "exports": [
             "cancelNodeRunContinuation",
@@ -1859,12 +1899,20 @@
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "Equal CIDs do not establish ownership"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "capacities.some(value => value.managedRun !== managedRun)"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/client-dispatch-owner.mjs",
                 "anchor": "recoverable cleanup"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "clientProgramInstalledManagedRunPrepareLedger("
               }
             ],
             "synchronization": [
@@ -1889,18 +1937,30 @@
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "localOutputLimits"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "borrow that same Ledger internally. The existing physical Ledger equality at"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/acquired-effect-computation.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "throw new Error('InstalledMultiSourceOriginalRunUnavailable');"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/client-dispatch-owner.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "ordinary Source managed Run foreign reference refuses without consuming the original claim"
               }
             ]
           }

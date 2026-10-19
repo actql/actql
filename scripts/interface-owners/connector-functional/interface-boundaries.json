@@ -7567,7 +7567,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-source.mjs",
-      "sha256": "2b31e19c6c89c6c795c850ec943e6aa304cf775b9b274633fa5260dcc8b9b12b",
+      "sha256": "6592ce70191572ff073a9aacc8af95963bbbdfd1dedfed95ace11cdda9c99d9c",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
@@ -7636,7 +7636,10 @@
             "prepareRead",
             "grantBeforeBegin",
             "originalSourceAccess",
-            "providerReader"
+            "providerReader",
+            "prepareSourceRead",
+            "readAsset",
+            "originalPageLimits"
           ],
           "async": true
         },
@@ -7730,6 +7733,11 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSource/createInstalledRowSource#10",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/createInstalledRowSource#2",
           "parameters": [
             "name"
@@ -7746,12 +7754,33 @@
         {
           "name": "createInstalledRowSource/createInstalledRowSource#4",
           "parameters": [
-            "key"
+            "name"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/createInstalledRowSource#5",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#6",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#7",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#8",
           "parameters": [
             "resource",
             "operation"
@@ -7759,15 +7788,10 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/createInstalledRowSource#6",
+          "name": "createInstalledRowSource/createInstalledRowSource#9",
           "parameters": [
             "sourceRef"
           ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/createInstalledRowSource#7",
-          "parameters": [],
           "async": false
         },
         {
@@ -8786,8 +8810,6 @@
             "createInstalledRowSource/acquire/complete/complete",
             "createInstalledRowSource/acquire/complete/complete/verifyRead/verifyRead",
             "createInstalledRowSource/createInstalledRowSource",
-            "createInstalledRowSource/createInstalledRowSource#2",
-            "createInstalledRowSource/createInstalledRowSource#3",
             "createInstalledRowSource/createInstalledRowSource#4",
             "createInstalledRowSource/createInstalledRowSource#5",
             "createInstalledRowSource/currentRead/currentRead",
@@ -8864,7 +8886,6 @@
             "text/text",
             "valueCid/valueCid",
             "createInstalledRowSource/acquire/issueGrant/issueGrant",
-            "createInstalledRowSource/createInstalledRowSource#6",
             "createInstalledRowSource/ordinarySubject/ordinarySubject",
             "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
             "openRowSourceCredentialCustody",
@@ -8900,7 +8921,10 @@
             "openRowSourceCredentialCustody/captureRunCurrent/captureRunCurrent",
             "openRowSourceCredentialCustody/captureRunCurrent/observeCurrent/observeCurrent",
             "openRowSourceCredentialCustody/retainRunBinding",
-            "openRowSourceCredentialCustody/retainRunBinding/init:close/init:close"
+            "openRowSourceCredentialCustody/retainRunBinding/init:close/init:close",
+            "createInstalledRowSource/createInstalledRowSource#10",
+            "createInstalledRowSource/createInstalledRowSource#8",
+            "createInstalledRowSource/createInstalledRowSource#9"
           ],
           "exports": [
             "createInstalledRowSource",
@@ -9023,6 +9047,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "issuedRunAuthorizations.has(authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledSourceReadAttachAcquisition("
               }
             ],
             "ownership": [
@@ -9069,6 +9097,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "Retain the opening child before invoking a current callback"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement, occurrence}))"
               }
             ],
             "synchronization": [
@@ -9115,6 +9147,14 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "issued.state = 'opening'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "checked(moon.clientProgramInstalledSourceReadCheckCurrent(originalRead));"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const verifyRead = () => currentRead(prepared, access, signal);"
               }
             ],
             "failure": [
@@ -9249,6 +9289,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "Original issued-authorization membership also retains a private weak-map entry"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "one original Run Ledger. The two Source reads and the generated managed DAG"
               }
             ],
             "extension": [
@@ -9283,6 +9327,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "signing another grant. Its private issuer membership rejects a wrapper copy,"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const credentialRead = owner.originalRead === undefined;"
               }
             ],
             "verification": [
@@ -9361,6 +9409,10 @@
               {
                 "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
                 "anchor": "authorized run acquisition does not infer binding capacity from an existing grant"
+              },
+              {
+                "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
+                "anchor": "foreign or stale original Source Ledger refuses before every RowRun constructor"
               }
             ]
           }
@@ -9965,6 +10017,108 @@
               {
                 "path": "adapters/connectors/salesforce/test/installed-salesforce-site.test.mjs",
                 "anchor": "shared Site loading preserves Salesforce key and CA refusal before resolver or journal admission"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowSource/createInstalledRowSource#2",
+            "createInstalledRowSource/createInstalledRowSource#3",
+            "createInstalledRowSource/createInstalledRowSource#6"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const originalRead = prepareSourceRead === undefined ? undefined :"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement, occurrence}));"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const properties = Object.getOwnPropertyDescriptors(originalPageLimits);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": ".map(name => readAsset(`spec/contracts/${name}`));"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramInstalledSourceReadCheckLedger(originalRead, ledger)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledSourceReadAttachAcquisition("
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramInstalledSourceReadStartRows(originalRead, acquisition,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledSourceReadCheckCurrent(originalRead)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (originalRead === undefined || nodeTypes.isPromise(originalRead)) fail('InstalledSourceReadUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "if (originalRead !== undefined) checked(moon.clientProgramInstalledSourceReadRetire(originalRead));"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "occurrence, physicalBindingCid, providerCaptureCapacity, originalRead}));"
+              },
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "function declareSourceComputePhaseEnvelope(sourceDeclaration) {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// supplier; no local scalar/fallback Ledger or cleanup ACK is created."
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (readAsset !== undefined && (prepareSourceRead === undefined ||"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
+                "anchor": "original Source read checks the same Run Ledger before starting and retires only after capture cleanup"
+              },
+              {
+                "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
+                "anchor": "foreign or stale original Source Ledger refuses before every RowRun constructor"
+              },
+              {
+                "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
+                "anchor": "Source-only scope cannot replace a missing Run Ledger or rescue an unavailable typed consumer"
               }
             ]
           }
