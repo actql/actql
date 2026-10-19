@@ -10043,7 +10043,7 @@
     {
       "module": "adapters/host-node/acquired-effect-sources.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "75d5909ca3c60cc6afa83c31a58f01849d556728aa17d645f2c5248bbd8add8a",
+      "sha256": "ece102028e4cb25ead176f488b450f8d60001ffa4c80f48fffdc63ff35e70f0a",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -10104,7 +10104,9 @@
             "registry",
             "values",
             "fragment",
-            "ordered"
+            "ordered",
+            "queryTimePreparation",
+            "requestIdentity"
           ],
           "async": false
         }
@@ -10264,7 +10266,14 @@
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "../host-common/runtime-result.mjs",
+        "./installed-source.mjs",
+        "./original-query-preparation.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/authorization.mjs",
@@ -14072,7 +14081,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "54e792817cf0b315a7ed87e880b981d5eada984a72708916831e42e8b28b359e",
+      "sha256": "b09de2c9737301f8552594e1d1708a242eee59c60ad1af0503804de82bf654c3",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -14129,6 +14138,13 @@
           "name": "installNodeClientEffectRun/definitionToken/definitionToken",
           "parameters": [
             "definition"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientEffectRun/hasQueryTime/hasQueryTime",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -14218,6 +14234,46 @@
         {
           "name": "installNodeClientEffectRun/installNodeClientEffectRun",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeClientEffectRun/installNodeClientEffectRun#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientEffectRun/queryTimeCall/queryTimeCall",
+          "parameters": [
+            "index",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientEffectRun/queryTimePorts/queryTimePorts",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientEffectRun/queryTimeRequired/queryTimeRequired",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientEffectRun/restoreQueryTime/restoreQueryTime",
+          "parameters": [
+            "required",
+            "prepared",
+            "allowed",
+            "definition",
+            "identity"
+          ],
           "async": false
         },
         {
@@ -14508,9 +14564,94 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "installNodeClientEffectRun/hasQueryTime/hasQueryTime",
+            "installNodeClientEffectRun/installNodeClientEffectRun#2",
+            "installNodeClientEffectRun/queryTimeCall/queryTimeCall",
+            "installNodeClientEffectRun/queryTimePorts/queryTimePorts",
+            "installNodeClientEffectRun/queryTimeRequired/queryTimeRequired",
+            "installNodeClientEffectRun/restoreQueryTime/restoreQueryTime"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ]
+          }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "../host-common/effect-receipt-custody.mjs",
+        "../host-common/runtime-core.mjs",
+        "../host-common/runtime-result.mjs",
+        "./client-request-journal.mjs",
+        "./client-run-start.mjs",
+        "./installed-model-originals.mjs",
+        "./query-evaluation-clock.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/client-http.mjs",
@@ -16388,7 +16529,7 @@
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
               }
             ],
             "identity": [
@@ -16675,7 +16816,7 @@
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
               }
             ],
             "identity": [
@@ -37885,7 +38026,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2c7461eeb3df970d891398ad0bf39094baf517524e1273f48411e9590ed90253",
+      "sha256": "2ed12f80a8732b03e7fc2d899f20adadac50d90664f421654a7bbe70bc0f5bc7",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -37953,7 +38094,9 @@
             "ordered",
             "sourceAccess",
             "occurrence",
-            "requireImmediateReadAuthorization"
+            "requireImmediateReadAuthorization",
+            "queryTimePreparation",
+            "requestIdentity"
           ],
           "async": false
         },
