@@ -44,8 +44,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_stub.c",
-      "bytes": 33222,
-      "sha256": "d4916b2cd515dcc7f8aa15062355e3a330229d90a089f4234f90224c4ad188db"
+      "bytes": 33664,
+      "sha256": "dbfe8e2552148925d51360fd1769947dd4eb1aa6ff87c4e025cd034e13c1361a"
     },
     {
       "path": "src/platform_native/host_bootstrap/process_region.h",
@@ -109,8 +109,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/read_cleanup_observation_native.mbt",
-      "bytes": 3127,
-      "sha256": "498ec64f80d6f61677e10646ab7b269842848af7bab444d458083892837f8be4"
+      "bytes": 3415,
+      "sha256": "ef1b5bad9763b3ac375801311fbcd094e9e40c76e7dc26c651af5ca4009834ee"
     }
   ]
 }

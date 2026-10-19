@@ -564,6 +564,18 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_context_cleanup_scope(
 
 /* A closed metadata projection of the same retained original after failed
  * close. It does not enter/leave, return a user or acknowledge retirement. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_cleanup_thread_current(
+    actql_bootstrap_domain *record) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (record == NULL || !record->read_attempted || record->read_context == NULL ||
+        record->read_prepare_scope) return ACTQL_OWNED_INVALID;
+    return actql_read_context_cleanup_thread_current(record->read_context);
+#else
+    (void)record;
+    return ACTQL_OWNED_INVALID;
+#endif
+}
+
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_cleanup_snapshot(
     actql_bootstrap_domain *record, int64_t *output, int32_t count) {
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)

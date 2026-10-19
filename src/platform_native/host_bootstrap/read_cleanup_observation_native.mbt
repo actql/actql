@@ -32,6 +32,12 @@ extern "C" fn read_cleanup_snapshot_ffi(
 extern "C" fn cleanup_observation_control_clear_ffi() -> Int = "actql_bootstrap_control_scope_clear"
 
 ///|
+#borrow(domain)
+extern "C" fn cleanup_observation_thread_ffi(
+  domain : PhysicalExtentDomain,
+) -> Int = "actql_bootstrap_read_cleanup_thread_current"
+
+///|
 /// The trusted caller covers this fixed output/copy in its existing initial
 /// control before use. No child scope is entered to produce the observation.
 /// Original identity remains required after normal currentness has stopped.
@@ -50,6 +56,10 @@ pub fn[T, C] NativeHostBootstrap::observe_backed_read_cleanup(
   }
   if cleanup_observation_control_clear_ffi() != 1 {
     return Err(Bootstrap(ReadersPending))
+  }
+  let thread = cleanup_observation_thread_ffi(domain.physical)
+  if thread != 0 {
+    return Err(Bootstrap(Physical(thread)))
   }
   let values = FixedArray::make(16, 0L)
   let code = read_cleanup_snapshot_ffi(domain.physical, values, 16)
