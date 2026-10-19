@@ -770,10 +770,16 @@ int32_t actql_native_filesystem_root_ready(
   return root != NULL && root->fd >= 0;
 }
 
+#include "command_acl.inc"
+
 // Private Host state refuses access ACLs as well as broad POSIX mode bits.
 // Existing general Store-root opening retains its original behavior.
 static bool actql_private_root_acl(int fd) {
 #ifdef __APPLE__
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+  if (actql_native_command_platform_current() != NULL)
+    return actql_command_acl_bounded(fd, false);
+#endif
   acl_t acl = acl_get_fd_np(fd, ACL_TYPE_EXTENDED);
   // On a live descriptor Darwin reports an absent extended ACL as ENOENT.
   // Retrieval failures other than this explicit absence remain refusals.
@@ -995,6 +1001,10 @@ int32_t actql_native_filesystem_test_directory_replacement(actql_native_filesyst
 // mutation rights. Any allow entry or failed ACL observation remains a refusal.
 static bool actql_bootstrap_parent_acl(int fd) {
 #ifdef __APPLE__
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+  if (actql_native_command_platform_current() != NULL)
+    return actql_command_acl_bounded(fd, true);
+#endif
   acl_t acl = acl_get_fd_np(fd, ACL_TYPE_EXTENDED);
   if (acl == NULL) return errno == ENOENT;
   bool trusted = acl_valid(acl) == 0;

@@ -11,6 +11,10 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#ifdef __APPLE__
+#include <sys/attr.h>
+#include <sys/mount.h>
+#endif
 
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR
 #include "scoped_read.h"
@@ -55,6 +59,8 @@ typedef struct {
   int descriptor_close_errno[2];
   int output_descriptor;
   int output_close_errno;
+  int path_descriptor;
+  int path_close_errno;
   int private_index_attempted;
   int private_index_created;
   int private_index_identity_observed;
@@ -117,11 +123,72 @@ static int inspection_close_descriptor(int *descriptor, int *close_errno) {
   return 1;
 }
 
+/* The selected command resolves an existing directory through its original
+ * descriptor and a fixed kernel attribute buffer, not libc realpath/getcwd
+ * working storage. This descriptor has its own one-shot close responsibility. */
+static char *inspection_command_directory_path(
+    actql_journal_inspection *owner, const char *path) {
+#ifdef __APPLE__
+  if (owner->path_close_errno || owner->path_descriptor >= 0) return NULL;
+  owner->path_descriptor = open(path, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+  if (owner->path_descriptor < 0) return NULL;
+  struct statfs filesystem;
+  char *resolved = NULL;
+  if (fstatfs(owner->path_descriptor, &filesystem) == 0 &&
+      !(filesystem.f_flags & MNT_UNION) &&
+      memcmp(filesystem.f_fstypename, "apfs", sizeof("apfs")) == 0) {
+    struct attrlist attributes = {0};
+    attributes.bitmapcount = ATTR_BIT_MAP_COUNT;
+    attributes.commonattr = ATTR_CMN_FULLPATH;
+    unsigned char buffer[sizeof(uint32_t) + sizeof(attrreference_t) + PATH_MAX];
+    memset(buffer, 0, sizeof(buffer));
+    if (fgetattrlist(owner->path_descriptor, &attributes, buffer,
+        sizeof(buffer), FSOPT_REPORT_FULLSIZE) == 0) {
+      uint32_t bytes;
+      attrreference_t reference;
+      memcpy(&bytes, buffer, sizeof(bytes));
+      if (bytes >= sizeof(bytes) + sizeof(reference) && bytes <= sizeof(buffer)) {
+        memcpy(&reference, buffer + sizeof(bytes), sizeof(reference));
+        if (reference.attr_dataoffset >= (int32_t)sizeof(reference) &&
+            reference.attr_length > 1 && reference.attr_length <= PATH_MAX) {
+          size_t offset = sizeof(bytes) + (size_t)reference.attr_dataoffset;
+          if (offset <= bytes && reference.attr_length <= bytes - offset &&
+              buffer[offset] == '/' &&
+              buffer[offset + reference.attr_length - 1] == 0 &&
+              memchr(buffer + offset, 0, reference.attr_length - 1) == NULL) {
+            resolved = malloc(PATH_MAX);
+            if (resolved != NULL)
+              memcpy(resolved, buffer + offset, reference.attr_length);
+          }
+        }
+      }
+    }
+  }
+  if (!inspection_close_descriptor(&owner->path_descriptor,
+      &owner->path_close_errno)) {
+    free(resolved);
+    return NULL;
+  }
+  return resolved;
+#else
+  (void)owner;
+  (void)path;
+  return NULL;
+#endif
+}
+
 static int inspection_close(actql_journal_inspection *owner) {
   // A consumed close cannot be retried through a possibly reused number.
   if (owner->private_index_close_unknown || owner->output_close_errno != 0 ||
+      owner->path_close_errno != 0 ||
       owner->descriptor_close_errno[0] != 0 ||
       owner->descriptor_close_errno[1] != 0) return 0;
+  if (owner->path_descriptor >= 0 &&
+      !inspection_close_descriptor(&owner->path_descriptor,
+        &owner->path_close_errno)) {
+    inspection_error(owner, "close inspection path observation failed");
+    return 0;
+  }
   if (owner->output_descriptor >= 0) {
     if (!inspection_close_descriptor(&owner->output_descriptor,
                                      &owner->output_close_errno)) {
@@ -286,6 +353,7 @@ static void *inspection_open_bounded_original(
   memset(owner, 0, sizeof(*owner));
   owner->descriptors[0] = owner->descriptors[1] = -1;
   owner->output_descriptor = -1;
+  owner->path_descriptor = -1;
   owner->private_index_descriptor = -1;
   if (max_snapshot_bytes < 0 || length <= 0 ||
       memchr(path, 0, (size_t)length) != NULL) {
@@ -362,8 +430,12 @@ static void *inspection_open_bounded_original(
     else if (slash == parent) parent[1] = 0;
     else *slash = 0;
   }
-  char *source_directory = parent == NULL ? NULL : inspection_canonical_path(parent);
-  char *scratch_directory = inspection_canonical_path(temporary);
+  char *source_directory = parent == NULL ? NULL : command_selected
+    ? inspection_command_directory_path(owner, parent)
+    : inspection_canonical_path(parent);
+  char *scratch_directory = command_selected
+    ? inspection_command_directory_path(owner, temporary)
+    : inspection_canonical_path(temporary);
   free(parent);
   int safe_scratch = source_directory != NULL && scratch_directory != NULL;
   if (safe_scratch) {
