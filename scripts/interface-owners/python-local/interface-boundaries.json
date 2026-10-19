@@ -25953,7 +25953,8 @@
           "async": false,
           "name": "_OriginalBackingCustody/_enter",
           "parameters": [
-            "self"
+            "self",
+            "require_initial"
           ]
         },
         {
@@ -26034,7 +26035,7 @@
           "parameters": []
         }
       ],
-      "sha256": "f9e7076523b4b6d4bd8910e9face589f921b5fa3c6eadeadddac92981e206c2f",
+      "sha256": "218f9a5b7dad3ab2b520790f3e295029e91f43fda2602714698cedac25d3c407",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -26091,6 +26092,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_backing_custody.py",
+                "anchor": "require_initial: bool = False"
               }
             ],
             "identity": [
@@ -26105,6 +26110,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
+                "anchor": "self._python_initial_original.require_control_current()"
               }
             ],
             "ownership": [
@@ -26129,6 +26138,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_backing_custody.py",
                 "anchor": "class _OriginalBackingCustody:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
+                "anchor": "Keep the Host exclusion while observing this same Runtime."
               }
             ],
             "failure": [
@@ -26143,6 +26156,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "Leaving an already entered scope and returning the stopped original loan"
               }
             ],
             "cancellation": [
@@ -26167,6 +26184,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "The same Python-specific initial currentness also precedes original backing"
               }
             ],
             "extension": [
@@ -26195,6 +26216,18 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_backing_custody.py",
                 "anchor": "class _OriginalBackingCustody:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_backing_custody.py",
+                "anchor": "test_python_initial_refusal_precedes_original_backing_borrow"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_backing_custody.py",
+                "anchor": "test_python_initial_refusal_blocks_backing_use_but_not_original_return"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_backing_custody.py",
+                "anchor": "test_python_initial_refusal_keeps_entered_scope_leave_and_same_return"
               }
             ]
           }
@@ -26854,7 +26887,8 @@
           "async": false,
           "name": "_OriginalControlCustody/_enter",
           "parameters": [
-            "self"
+            "self",
+            "require_initial"
           ]
         },
         {
@@ -26956,7 +26990,7 @@
           "parameters": []
         }
       ],
-      "sha256": "b6a699fb7d47c6d2ac038f2e65a40ab2eeabcb82e7be19964d6270d7b6ac70af",
+      "sha256": "a271e57f4e1000fb371ae1baf425f19344dbd159a09360fc18b76978d849be83",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -27173,6 +27207,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
                 "anchor": "_python_initial: _OriginalPythonNativeInitial | None = None"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
+                "anchor": "require_initial: bool = False"
               }
             ],
             "identity": [
@@ -27191,6 +27229,10 @@
               {
                 "path": "packages/python-local-runtime/native/pre-root/README.md",
                 "anchor": "## Private compiler parent assembly"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
+                "anchor": "self._python_initial_original.require_control_current()"
               }
             ],
             "ownership": [
@@ -27227,6 +27269,10 @@
               {
                 "path": "packages/python-local-runtime/native/pre-root/README.md",
                 "anchor": "## Private compiler parent assembly"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
+                "anchor": "Keep the Host exclusion while observing this same Runtime."
               }
             ],
             "failure": [
@@ -27245,6 +27291,10 @@
               {
                 "path": "packages/python-local-runtime/native/pre-root/README.md",
                 "anchor": "## Private compiler parent assembly"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "Leaving an already entered scope and returning the stopped original loan"
               }
             ],
             "cancellation": [
@@ -27281,6 +27331,10 @@
               {
                 "path": "docs/design/native-local-host-binding.md",
                 "anchor": "Declared Host limits still"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "The same Python-specific initial currentness also precedes original backing"
               }
             ],
             "extension": [
@@ -27329,6 +27383,18 @@
               {
                 "path": "packages/python-sdk/tests/test_local_native_control_custody.py",
                 "anchor": "test_python_host_keeps_initial_until_both_original_host_references_close"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_backing_custody.py",
+                "anchor": "test_python_initial_refusal_precedes_original_backing_borrow"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_backing_custody.py",
+                "anchor": "test_python_initial_refusal_blocks_backing_use_but_not_original_return"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_backing_custody.py",
+                "anchor": "test_python_initial_refusal_keeps_entered_scope_leave_and_same_return"
               }
             ]
           }
