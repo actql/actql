@@ -1446,13 +1446,14 @@
     },
     {
       "module": "adapters/connectors/slack/site/channel-list-read.mjs",
-      "sha256": "3ef8e4daebe656205b988afe04151710245dad530d8b196f48c3a5fb89902907",
+      "sha256": "e088cbf210253cfe48246d2d7a8375662f7d3277f7498b2a13287f8472658027",
       "exports": [
         "SLACK_CHANNEL_LIST_OPERATION",
         "SLACK_WORKSPACE_IDENTITY_OPERATION",
         "SlackChannelListReadFailure",
         "createSlackChannelListReader",
         "createSlackChannelListReaderForHistory",
+        "createSlackConversationListReaderForHistory",
         "prepareSlackOriginalChannelHistory",
         "selectSlackOriginalChannel",
         "slackOriginalChannelName"
@@ -1462,7 +1463,8 @@
           "name": "createChannelReader",
           "parameters": [
             "options",
-            "retainOriginal"
+            "retainOriginal",
+            "allConversations"
           ],
           "async": false
         },
@@ -1513,6 +1515,13 @@
         },
         {
           "name": "createSlackChannelListReaderForHistory",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackConversationListReaderForHistory",
           "parameters": [
             "options"
           ],
@@ -1603,7 +1612,8 @@
             "consumeObservation",
             "consumePage",
             "signal",
-            "retainOriginal"
+            "retainOriginal",
+            "allConversations"
           ],
           "async": false
         },
@@ -1722,8 +1732,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
-            "SlackChannelListReadFailure/constructor:constructor/constructor:constructor",
             "createChannelReader",
             "createChannelReader/handle/init:observe/init:observe",
             "createChannelReader/handle/init:read/init:read",
@@ -1733,6 +1741,7 @@
             "createChannelReader/handle/init:requestStop/init:requestStop",
             "createSlackChannelListReader",
             "createSlackChannelListReaderForHistory",
+            "createSlackConversationListReaderForHistory",
             "executeRead",
             "executeRead/request/request",
             "executeRead/request/request/request",
@@ -1754,6 +1763,7 @@
             "prepareSlackOriginalChannelHistory/init:assertCurrent/init:assertCurrent",
             "prepareSlackOriginalChannelHistory/prepareSlackOriginalChannelHistory",
             "selectSlackOriginalChannel",
+            "SlackChannelListReadFailure/constructor:constructor/constructor:constructor",
             "slackOriginalChannelName"
           ],
           "exports": [
@@ -1762,6 +1772,7 @@
             "SlackChannelListReadFailure",
             "createSlackChannelListReader",
             "createSlackChannelListReaderForHistory",
+            "createSlackConversationListReaderForHistory",
             "prepareSlackOriginalChannelHistory",
             "selectSlackOriginalChannel",
             "slackOriginalChannelName"
@@ -1779,6 +1790,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Original channel-to-history preparation"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### History conversation enumeration"
               }
             ],
             "inputsOutputs": [
@@ -1797,6 +1812,14 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Original channel-to-history preparation"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### History conversation enumeration"
+              },
+              {
+                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "anchor": "export function createSlackConversationListReaderForHistory("
               }
             ],
             "identity": [
@@ -1815,6 +1838,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Original channel-to-history preparation"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### History conversation enumeration"
               }
             ],
             "ownership": [
@@ -1833,6 +1860,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Original channel-to-history preparation"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### History conversation enumeration"
               }
             ],
             "synchronization": [
@@ -1847,6 +1878,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Original channel-to-history preparation"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### History conversation enumeration"
               }
             ],
             "failure": [
@@ -1865,6 +1900,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Original channel-to-history preparation"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### History conversation enumeration"
               }
             ],
             "cancellation": [
@@ -1879,6 +1918,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Original channel-to-history preparation"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### History conversation enumeration"
               }
             ],
             "resources": [
@@ -1897,6 +1940,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Original channel-to-history preparation"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### History conversation enumeration"
               }
             ],
             "extension": [
@@ -1911,6 +1958,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Original channel-to-history preparation"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### History conversation enumeration"
               }
             ],
             "verification": [
@@ -1941,6 +1992,18 @@
               {
                 "path": "adapters/connectors/slack/test/message-history-original-channel.test.mjs",
                 "anchor": "test('Slack lost channel reply retains the original pending exchange and cannot issue a history selection'"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### History conversation enumeration"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-history-original-channel.test.mjs",
+                "anchor": "test('Slack history discovery selects all conversation kinds and binds original IM and MPIM history'"
+              },
+              {
+                "path": "src/connectors/slack/catalog/history_conversations_wbtest.mbt",
+                "anchor": "test \"Slack history conversations reject malformed discriminants and unselected known fields\""
               }
             ]
           }
