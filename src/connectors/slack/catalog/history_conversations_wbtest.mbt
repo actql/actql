@@ -49,13 +49,14 @@ test "Slack history conversations reject malformed discriminants and unselected 
         "\":" +
         value +
         "}]}"
-      assert_true(
+      match
         project_slack_history_conversation_list(
           @utf8.encode(raw),
           conversation_limits(),
-        )
-        is Err(InvalidCell(flag)),
-      )
+        ) {
+        Err(issue) => assert_eq(issue, InvalidCell(flag))
+        Ok(_) => fail("Malformed conversation discriminant: " + flag)
+      }
     }
   }
   for
