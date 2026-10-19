@@ -61693,7 +61693,7 @@
           ]
         }
       ],
-      "sha256": "9eab3ceccf681be118c4a88baf94bb6a9bcb40b27a5ed6976852446f3acdee9f",
+      "sha256": "2d4b008aacaddb970fd570c12b46f02557d14ed16724123e8d12fe9c57e400cf",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -61871,6 +61871,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Managed task custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "inputsOutputs": [
@@ -61881,6 +61885,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Managed task custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "identity": [
@@ -61895,6 +61903,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "ownership": [
@@ -61909,6 +61921,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "synchronization": [
@@ -61919,6 +61935,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_process.py",
                 "anchor": "class OriginalWorkerProcess:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "failure": [
@@ -61933,6 +61953,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "cancellation": [
@@ -61943,6 +61967,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_process.py",
                 "anchor": "class OriginalWorkerProcess:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "resources": [
@@ -61957,6 +61985,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "extension": [
@@ -61967,6 +61999,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_process.py",
                 "anchor": "class OriginalWorkerProcess:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "verification": [
@@ -61993,6 +62029,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_worker_process.py",
                 "anchor": "def test_spawn_current_callback_cannot_reenter_original_spawn_or_preparation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_worker_selection.py",
+                "anchor": "class WorkerSelectionTests(unittest.TestCase):"
               }
             ]
           }
@@ -62416,9 +62456,16 @@
           "parameters": [
             "self"
           ]
+        },
+        {
+          "async": false,
+          "name": "_bounded_original_path_text",
+          "parameters": [
+            "value"
+          ]
         }
       ],
-      "sha256": "a31b574158d48ea93fc3e4406950220a2cd3ad54cfb6530fd079782b4035518b",
+      "sha256": "ab96772fac91a807849a2acbe3ee33b9e29d7299271dc12466f9008aae97d71d",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -62584,6 +62631,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Managed task custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "inputsOutputs": [
@@ -62594,6 +62645,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Managed task custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "identity": [
@@ -62608,6 +62663,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "ownership": [
@@ -62622,6 +62681,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "synchronization": [
@@ -62632,6 +62695,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
                 "anchor": "class OriginalWorkerSlot:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "failure": [
@@ -62646,6 +62713,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "cancellation": [
@@ -62656,6 +62727,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
                 "anchor": "class OriginalWorkerSlot:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "resources": [
@@ -62670,6 +62745,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "extension": [
@@ -62680,6 +62759,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
                 "anchor": "class OriginalWorkerSlot:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "verification": [
@@ -62698,6 +62781,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
                 "anchor": "class OriginalWorkerSlot:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_worker_selection.py",
+                "anchor": "class WorkerSelectionTests(unittest.TestCase):"
               }
             ]
           }
@@ -62947,6 +63034,118 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
                 "anchor": "\"\"\"Native executor-slot physical primitives for an originally funded worker."
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "_bounded_original_path_text"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
+                "anchor": "def _bounded_original_path_text(value: object) -> str:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
+                "anchor": "def _bounded_original_path_text(value: object) -> str:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
+                "anchor": "def _bounded_original_path_text(value: object) -> str:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
+                "anchor": "def _bounded_original_path_text(value: object) -> str:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
+                "anchor": "def _bounded_original_path_text(value: object) -> str:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
+                "anchor": "def _bounded_original_path_text(value: object) -> str:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
+                "anchor": "def _bounded_original_path_text(value: object) -> str:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
+                "anchor": "def _bounded_original_path_text(value: object) -> str:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
+                "anchor": "def _bounded_original_path_text(value: object) -> str:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_worker_selection.py",
+                "anchor": "def test_path_objects_cannot_run_callbacks_during_selection("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_worker_selection.py",
+                "anchor": "def test_raw_path_bound_precedes_filesystem_encoding("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_worker_selection.py",
+                "anchor": "def test_encoded_path_boundary_preserves_exact_selected_bytes("
               }
             ]
           }
