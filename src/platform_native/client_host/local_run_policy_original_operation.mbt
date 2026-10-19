@@ -193,3 +193,60 @@ pub fn NativeLocalJournalCapture::accept_policy_run_in_original_read(
     .map_err(issue => Journal(issue))
   })
 }
+
+///|
+/// Bind the original candidate packet through its existing Policy Owner and
+/// accept it under this capture. This is not another issuance or dispatch.
+pub fn NativeLocalJournalCapture::accept_issued_policy_run_in_original_read(
+  self : NativeLocalJournalCapture,
+  binding : NativeLocalRunPolicyBinding,
+  reference : NativeClientSubmissionReference,
+  preparation : NativeClientSubmittedPreparation,
+  request : @host.ClientRequestIdentity,
+  compiled : @host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  issued_at : String,
+  now : Double,
+) -> Result[NativeClientSubmittedIntentRecord, NativeLocalAdoptionIssue] {
+  let original = match
+    binding.issued_policy_original(
+      reference, request, definition, retention, issued_at,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  self.accept_policy_run_in_original_read(
+    binding, reference, preparation, request, compiled, definition, original, now,
+  )
+}
+
+///|
+/// Restore only the saved original Policy packet under current read authority.
+/// Missing custody never becomes a fresh issuance candidate.
+pub fn NativeLocalJournalCapture::lookup_run_policy_in_original_read(
+  self : NativeLocalJournalCapture,
+  binding : NativeLocalRunPolicyBinding,
+  reference : NativeClientSubmissionReference,
+  request : @host.ClientRequestIdentity,
+  now : Double,
+) -> Result[@host.ClientLocalRunPolicyOriginal, NativeLocalAdoptionIssue] {
+  self.with_current_adoption_material_in_original_read((
+    host,
+    _material,
+    operations,
+  ) => {
+    if !physical_equal(host, binding.host) {
+      return Err(CustodyLost)
+    }
+    binding
+    .lookup_submitted_run_policy_with_operations(
+      reference,
+      request,
+      now,
+      () => binding.current_in_original_read(self, Some(request), false),
+      operations=Some(operations),
+    )
+    .map_err(issue => Journal(issue))
+  })
+}

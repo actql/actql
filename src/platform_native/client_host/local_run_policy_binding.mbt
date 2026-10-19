@@ -643,12 +643,33 @@ pub fn NativeLocalRunPolicyBinding::accept_issued_submitted_run_policy(
   issued_at : String,
   now : Double,
 ) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue] {
+  let original = match
+    self.issued_policy_original(
+      reference, request, definition, retention, issued_at,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  self.accept_submitted_run(
+    reference, preparation, request, compiled, definition, original, now,
+  )
+}
+
+///|
+fn NativeLocalRunPolicyBinding::issued_policy_original(
+  self : NativeLocalRunPolicyBinding,
+  reference : NativeClientSubmissionReference,
+  request : @host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  issued_at : String,
+) -> Result[@host.ClientLocalRunPolicyOriginal, NativeClientRunJournalIssue] {
   let ref_record = match
     @host.admit_client_submission_reference_record(reference.wire) {
     Ok(value) => value
     Err(_) => return Err(InvalidSubmission)
   }
-  let original = match
+  match
     @host.bind_client_local_run_policy_original(
       self.profile,
       ref_record,
@@ -659,12 +680,9 @@ pub fn NativeLocalRunPolicyBinding::accept_issued_submitted_run_policy(
       self.host.adoption_cid(),
       self.read_selection_cid,
     ) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
+    Ok(value) => Ok(value)
+    Err(_) => Err(CustodyLost)
   }
-  self.accept_submitted_run(
-    reference, preparation, request, compiled, definition, original, now,
-  )
 }
 
 ///|
@@ -676,14 +694,29 @@ pub fn NativeLocalRunPolicyBinding::lookup_submitted_run_policy(
   request : @host.ClientRequestIdentity,
   now : Double,
 ) -> Result[@host.ClientLocalRunPolicyOriginal, NativeClientRunJournalIssue] {
-  let current = () => self.current_for(self.host.journal, Some(request), false)
+  self.lookup_submitted_run_policy_with_operations(reference, request, now, () => {
+    self.current_for(self.host.journal, Some(request), false)
+  })
+}
+
+///|
+fn NativeLocalRunPolicyBinding::lookup_submitted_run_policy_with_operations(
+  self : NativeLocalRunPolicyBinding,
+  reference : NativeClientSubmissionReference,
+  request : @host.ClientRequestIdentity,
+  now : Double,
+  current : () -> Bool,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[@host.ClientLocalRunPolicyOriginal, NativeClientRunJournalIssue] {
+  let reads = operations.map(value => value.reads)
   let submission = match
-    self.host.journal.lookup_submitted_intent(
+    self.host.journal.lookup_submitted_intent_with_operations(
       self.host.epoch,
       reference,
       self.scope,
       current(),
       now,
+      operations~,
     ) {
     Ok(Submitted(value)) => value
     Ok(UnresolvedSubmissionHistory) => return Err(CustodyLost)
@@ -694,43 +727,46 @@ pub fn NativeLocalRunPolicyBinding::lookup_submitted_run_policy(
     @host.SameRequest else {
     return Err(CustodyLost)
   }
-  self.host.journal.transaction(() => {
-    if !current() {
-      return Err(AuthorizationDenied)
-    }
-    let record = match self.host.journal.retained(request) {
-      Ok(Some(value)) => value
-      Ok(None) => return Err(CustodyLost)
-      Err(issue) => return Err(issue)
-    }
-    guard record.local_run_policy_originals is Some(wire) &&
-      @publication.publication_contract_identity(record.definition) ==
-      admission.run_definition_cid else {
-      return Err(CustodyLost)
-    }
-    let ref_record = match
-      @host.admit_client_submission_reference_record(reference.wire) {
-      Ok(value) => value
-      Err(_) => return Err(CustodyLost)
-    }
-    let original = match
-      @host.admit_client_local_run_policy_original(
-        @utf8.encode(wire),
-        self.profile,
-        ref_record,
-        request,
-        record.definition,
-        self.host.adoption_cid(),
-        self.read_selection_cid,
-      ) {
-      Ok(value) => value
-      Err(_) => return Err(CustodyLost)
-    }
-    if !current() {
-      return Err(AuthorizationDenied)
-    }
-    Ok(original)
-  })
+  self.host.journal.transaction_with_reads(
+    () => {
+      if !current() {
+        return Err(AuthorizationDenied)
+      }
+      let record = match self.host.journal.retained(request, reads~) {
+        Ok(Some(value)) => value
+        Ok(None) => return Err(CustodyLost)
+        Err(issue) => return Err(issue)
+      }
+      guard record.local_run_policy_originals is Some(wire) &&
+        @publication.publication_contract_identity(record.definition) ==
+        admission.run_definition_cid else {
+        return Err(CustodyLost)
+      }
+      let ref_record = match
+        @host.admit_client_submission_reference_record(reference.wire) {
+        Ok(value) => value
+        Err(_) => return Err(CustodyLost)
+      }
+      let original = match
+        @host.admit_client_local_run_policy_original(
+          @utf8.encode(wire),
+          self.profile,
+          ref_record,
+          request,
+          record.definition,
+          self.host.adoption_cid(),
+          self.read_selection_cid,
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(CustodyLost)
+      }
+      if !current() {
+        return Err(AuthorizationDenied)
+      }
+      Ok(original)
+    },
+    reads~,
+  )
 }
 
 ///|
