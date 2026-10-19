@@ -7244,7 +7244,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-source.mjs",
-      "sha256": "2b31e19c6c89c6c795c850ec943e6aa304cf775b9b274633fa5260dcc8b9b12b",
+      "sha256": "367d274445ad9fe491aa49349493f346171f84723e0964b4c9a9c6065eb616cd",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
@@ -7736,6 +7736,8 @@
             "fragment",
             "ordered",
             "access",
+            "queryTimePreparation",
+            "requestIdentity",
             "occurrence"
           ],
           "async": true
@@ -9665,6 +9667,7 @@
         "./installed-source.mjs",
         "./local-account-config.mjs",
         "./ordinary-source-binding.mjs",
+        "./original-query-preparation.mjs",
         "./source-profile-json.mjs",
         "node:crypto",
         "node:fs/promises",
