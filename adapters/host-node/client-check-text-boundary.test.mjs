@@ -622,6 +622,59 @@ for (const entrance of ['local', 'http']) {
     assert.deepEqual(counts, {exchanges: 6, authorization: 6, analysis: 6});
   });
 
+  test(`${entrance}: Group templates retain original runtime checks and Parameter inputs`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        'SELECT COUNT(*) AS n',
+        'SELECT COUNT(1) AS n',
+        'SELECT COUNTIF(TRUE) AS n',
+        'SELECT MIN(1) AS n',
+        'SELECT MAX(1) AS n',
+        'SELECT 1 AS id |> AGGREGATE COUNT(*) AS n',
+      ]) {
+        for (const scope of ['template_only', 'bound_input']) {
+          const checked = await client.check(text, {kind: 'text', scope, format});
+          assert.equal(checked.outcome, 'completed');
+          assert.equal(checked.report.verdict, 'verified', text);
+          assert.deepEqual(checked.report.requirements, []);
+          assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+          assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+          assert.equal(getCheckInput(checked, 'source').text, text);
+        }
+      }
+      const text = 'SELECT COUNTIF(@flag) AS n';
+      const options = {kind: 'text', scope: 'template_only', format,
+        parameterDeclarations: {flag: {type: 'boolean'}}};
+      const template = await client.check(text, options);
+      assert.equal(template.report.verdict, 'verified');
+      assert.deepEqual(template.report.runnable, {verdict: 'no',
+        reasons: [{code: 'parameter_value_required'}]});
+      assert.equal(template.report.requirements[0].facts.parameter, 'flag');
+      assert.ok(resolveCheckLocation(template, template.report.requirements[0].location));
+      const missing = await client.check(text, {...options, scope: 'bound_input'});
+      assert.equal(missing.report.verdict, 'undetermined');
+      assert.equal(missing.report.requirements[0].code, 'parameter_value_required');
+      assert.equal(missing.report.runnable.verdict, 'no');
+      const defaulted = await client.check(text, {...options,
+        parameterDeclarations: {flag: {type: 'boolean', default: false}}});
+      assert.equal(defaulted.report.verdict, 'verified');
+      assert.deepEqual(defaulted.report.requirements, []);
+      const bound = await client.check(text,
+        {...options, scope: 'bound_input', parameters: {flag: false}});
+      assert.equal(bound.report.verdict, 'verified');
+      assert.deepEqual(bound.report.requirements, []);
+      const wrong = await client.check(text,
+        {...options, scope: 'bound_input', parameters: {flag: 0}});
+      assert.equal(wrong.report.verdict, 'invalid');
+      assert.equal(wrong.report.reasons[0].code, 'supplied_value_type_mismatch');
+      const numeric = await client.check('SELECT SUM(1) AS n',
+        {kind: 'text', scope: 'template_only', format});
+      assert.equal(numeric.report.verdict, 'undetermined');
+      assert.equal(numeric.report.runnable.verdict, 'no');
+    }
+  });
+
   test(`${entrance}: documented NUMBER casts use the original numeric checker`, async t => {
     const {client} = await publicCheck(t, entrance);
     for (const format of ['sql', 'aql-text']) {
