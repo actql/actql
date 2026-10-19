@@ -83,6 +83,7 @@ pub fn NativeLocalHostConnection::observe_publication_run_state(
       publisher.authority.connection,
       request,
       ReadRunMaterials,
+      capture=publisher.authority.capture,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))

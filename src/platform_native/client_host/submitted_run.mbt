@@ -115,10 +115,35 @@ pub fn NativeClientRunJournal::accept_submitted_run(
   current_authorization : Bool,
   now : Double,
 ) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue] {
+  self.accept_submitted_run_with_operations(
+    authority, reference, preparation, request, compiled, definition, authority_scope_cid,
+    current_authorization, now,
+  )
+}
+
+///|
+fn NativeClientRunJournal::accept_submitted_run_with_operations(
+  self : NativeClientRunJournal,
+  authority : NativeClientEpochAuthority,
+  reference : NativeClientSubmissionReference,
+  preparation : NativeClientSubmittedPreparation,
+  request : @host.ClientRequestIdentity,
+  compiled : @host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  authority_scope_cid : String,
+  current_authorization : Bool,
+  now : Double,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue] {
   match
     self.authorize_submitted_run(
-      authority, reference, request, authority_scope_cid, current_authorization,
+      authority,
+      reference,
+      request,
+      authority_scope_cid,
+      current_authorization,
       now,
+      operations~,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -145,6 +170,7 @@ pub fn NativeClientRunJournal::accept_submitted_run(
     authority_scope_cid,
     current_authorization,
     run_observation_originals=Some(observation),
+    operations~,
   )
 }
 
@@ -208,6 +234,7 @@ fn NativeClientRunJournal::authorize_submitted_run(
   authority_scope_cid : String,
   current_authorization : Bool,
   now : Double,
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   if !current_authorization {
     return Err(AuthorizationDenied)
@@ -218,11 +245,12 @@ fn NativeClientRunJournal::authorize_submitted_run(
     return Err(InvalidSubmission)
   }
   match
-    authority.verify_epoch(
+    authority.verify_epoch_with_operations(
       reference.epoch,
       authority_scope_cid,
       current_authorization,
       now,
+      operations~,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(Epoch(issue))
@@ -248,7 +276,9 @@ fn NativeClientRunJournal::accept_original_submitted_run(
   local_run_policy_original? : @host.ClientLocalRunPolicyOriginal? = None,
   run_observation_originals? : @host.ClientRunObservationOriginals? = None,
   current_fence? : (() -> Bool)? = None,
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue] {
+  let reads = operations.map(value => value.reads)
   if publication_policy_originals is Some(wire) {
     if current_fence is None {
       return Err(AuthorizationDenied)
@@ -287,196 +317,221 @@ fn NativeClientRunJournal::accept_original_submitted_run(
       Some(wire)
     }
   }
-  self.transaction(() => {
-    if current_fence is Some(current) && !current() {
-      return Err(AuthorizationDenied)
-    }
-    match
-      self.verify_submission_locked(
-        authority, reference, authority_scope_cid, current_authorization,
-      ) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-    match self.submitted_intent_custody() {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-    let original = match self.retained_submission(reference) {
-      Ok(Some(value)) => value
-      Ok(None) => return Err(CustodyLost)
-      Err(issue) => return Err(issue)
-    }
-    if @host.client_submitted_intent_cid(original.intent) != intent_cid {
-      return Err(ChangedIntent)
-    }
-    if original.run_admission is None && local_run_policy_originals is None {
-      match
-        self.database.read(
-          "client_local_installation_originals", local_policy_upgrade_key,
-        ) {
-        Ok(_) => return Err(CustodyLost)
-        Err(@sqlite.NotFound) => ()
-        Err(issue) => return Err(Physical(issue))
+  self.transaction_with_reads(
+    () => {
+      if current_fence is Some(current) && !current() {
+        return Err(AuthorizationDenied)
       }
-    }
-    let before = if original.run_admission is Some(_) {
-      "ready"
-    } else {
-      "preparing"
-    }
-    if !@host.client_submitted_intent_transition(before, "ready") {
-      return Err(CustodyLost)
-    }
-    // An original packet must enter with first admission, not as backfill of
-    // an accepted or merely pre-existing Run after custody was lost.
-    if (
-        effect_material_originals is Some(_) ||
-        publication_policy_originals is Some(_) ||
-        local_run_policy_originals is Some(_) ||
-        observation_wire is Some(_)
-      ) &&
-      original.run_admission is None {
-      match self.retained(request) {
-        Ok(None) => ()
-        Ok(Some(_)) =>
-          return Err(
-            if local_run_policy_originals is Some(_) ||
-              publication_policy_originals is Some(_) ||
-              observation_wire is Some(_) {
-              CustodyLost
-            } else {
-              MissingEffectMaterialOriginal
-            },
-          )
+      match
+        self.verify_submission_locked(
+          authority,
+          reference,
+          authority_scope_cid,
+          current_authorization,
+          reads~,
+        ) {
+        Ok(_) => ()
         Err(issue) => return Err(issue)
       }
-    }
-    let run = match
-      self.bind_run_locked(
-        request,
-        definition,
-        run_observation_originals=if original.run_admission is None {
-          observation_wire
-        } else {
-          None
-        },
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    if original.run_admission is Some(admission) {
-      if @host.client_request_identity_relation(admission.request, request) !=
-        @host.SameRequest ||
-        admission.run_definition_cid !=
-        @publication.publication_contract_identity(definition) {
+      match self.submitted_intent_custody(reads~) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      let original = match self.retained_submission(reference, reads~) {
+        Ok(Some(value)) => value
+        Ok(None) => return Err(CustodyLost)
+        Err(issue) => return Err(issue)
+      }
+      if @host.client_submitted_intent_cid(original.intent) != intent_cid {
         return Err(ChangedIntent)
       }
-      // Old accepted rows without originals remain accepted history, never
-      // repaired by a newly supplied compilation. Status will be unavailable.
-      if run.run_observation_originals is Some(saved) &&
-        observation_wire is Some(candidate) &&
-        saved != candidate {
-        return Err(ChangedIntent)
-      }
-      if effect_material_originals is Some(packet) {
-        match run.effect_material_originals {
-          None => return Err(MissingEffectMaterialOriginal)
-          Some(existing) if existing != packet =>
-            return Err(ChangedEffectMaterialOriginal)
-          Some(_) => ()
+      if original.run_admission is None && local_run_policy_originals is None {
+        match
+          read_client_journal_value(
+            self.database,
+            "client_local_installation_originals",
+            local_policy_upgrade_key,
+            reads,
+          ) {
+          Ok(_) => return Err(CustodyLost)
+          Err(@sqlite.NotFound) => ()
+          Err(issue) => return Err(Physical(issue))
         }
       }
-      if local_run_policy_originals is Some(packet) &&
-        run.local_run_policy_originals != Some(packet) {
+      let before = if original.run_admission is Some(_) {
+        "ready"
+      } else {
+        "preparing"
+      }
+      if !@host.client_submitted_intent_transition(before, "ready") {
         return Err(CustodyLost)
       }
-      if publication_policy_originals is Some(packet) &&
-        run.publication_policy_originals != Some(packet) {
-        // Missing accepted custody is not an unstarted Run or permission to
-        // add a policy selected from the current installation after the fact.
-        return Err(CustodyLost)
+      // An original packet must enter with first admission, not as backfill of
+      // an accepted or merely pre-existing Run after custody was lost.
+      if (
+          effect_material_originals is Some(_) ||
+          publication_policy_originals is Some(_) ||
+          local_run_policy_originals is Some(_) ||
+          observation_wire is Some(_)
+        ) &&
+        original.run_admission is None {
+        match self.retained(request, reads~) {
+          Ok(None) => ()
+          Ok(Some(_)) =>
+            return Err(
+              if local_run_policy_originals is Some(_) ||
+                publication_policy_originals is Some(_) ||
+                observation_wire is Some(_) {
+                CustodyLost
+              } else {
+                MissingEffectMaterialOriginal
+              },
+            )
+          Err(issue) => return Err(issue)
+        }
+      }
+      let run = match
+        self.bind_run_locked(
+          request,
+          definition,
+          operations~,
+          run_observation_originals=if original.run_admission is None {
+            observation_wire
+          } else {
+            None
+          },
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      if original.run_admission is Some(admission) {
+        if @host.client_request_identity_relation(admission.request, request) !=
+          @host.SameRequest ||
+          admission.run_definition_cid !=
+          @publication.publication_contract_identity(definition) {
+          return Err(ChangedIntent)
+        }
+        // Old accepted rows without originals remain accepted history, never
+        // repaired by a newly supplied compilation. Status will be unavailable.
+        if run.run_observation_originals is Some(saved) &&
+          observation_wire is Some(candidate) &&
+          saved != candidate {
+          return Err(ChangedIntent)
+        }
+        if effect_material_originals is Some(packet) {
+          match run.effect_material_originals {
+            None => return Err(MissingEffectMaterialOriginal)
+            Some(existing) if existing != packet =>
+              return Err(ChangedEffectMaterialOriginal)
+            Some(_) => ()
+          }
+        }
+        if local_run_policy_originals is Some(packet) &&
+          run.local_run_policy_originals != Some(packet) {
+          return Err(CustodyLost)
+        }
+        if publication_policy_originals is Some(packet) &&
+          run.publication_policy_originals != Some(packet) {
+          // Missing accepted custody is not an unstarted Run or permission to
+          // add a policy selected from the current installation after the fact.
+          return Err(CustodyLost)
+        }
+        if current_fence is Some(current) && !current() {
+          return Err(AuthorizationDenied)
+        }
+        return Ok(original)
+      }
+      let run = match effect_material_originals {
+        None => run
+        Some(packet) => {
+          if current_fence is Some(current) && !current() {
+            return Err(AuthorizationDenied)
+          }
+          match
+            self.save_with_operations(
+              { ..run, effect_material_originals: Some(packet), },
+              operations~,
+            ) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+        }
+      }
+      let run = match local_run_policy_originals {
+        None => run
+        Some(packet) => {
+          if current_fence is Some(current) && !current() {
+            return Err(AuthorizationDenied)
+          }
+          match
+            self.save_with_operations(
+              { ..run, local_run_policy_originals: Some(packet), },
+              operations~,
+            ) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+        }
+      }
+      let run = match publication_policy_originals {
+        None => run
+        Some(packet) => {
+          if current_fence is Some(current) && !current() {
+            return Err(AuthorizationDenied)
+          }
+          match
+            self.save_with_operations(
+              { ..run, publication_policy_originals: Some(packet), },
+              operations~,
+            ) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+        }
+      }
+      let run_admission : NativeClientSubmittedRunAdmission = {
+        request,
+        run_definition_cid: @publication.publication_contract_identity(
+          definition,
+        ),
+        revision: run.revision,
+      }
+      // Only this fresh acceptance has proved the original Run did not exist.
+      // Old accepted rows take the retained branch above, without initialization.
+      let run_state_observation = if observation_wire is Some(_) {
+        Some((0L, None))
+      } else {
+        None
+      }
+      let body = match
+        submitted_intent_body(
+          reference,
+          original.intent,
+          run_admission=Some(run_admission),
+          run_state_observation~,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
       }
       if current_fence is Some(current) && !current() {
         return Err(AuthorizationDenied)
       }
-      return Ok(original)
-    }
-    let run = match effect_material_originals {
-      None => run
-      Some(packet) => {
-        if current_fence is Some(current) && !current() {
-          return Err(AuthorizationDenied)
-        }
-        match self.save({ ..run, effect_material_originals: Some(packet), }) {
-          Ok(value) => value
-          Err(issue) => return Err(issue)
-        }
-      }
-    }
-    let run = match local_run_policy_originals {
-      None => run
-      Some(packet) => {
-        if current_fence is Some(current) && !current() {
-          return Err(AuthorizationDenied)
-        }
-        match self.save({ ..run, local_run_policy_originals: Some(packet), }) {
-          Ok(value) => value
-          Err(issue) => return Err(issue)
-        }
-      }
-    }
-    let run = match publication_policy_originals {
-      None => run
-      Some(packet) => {
-        if current_fence is Some(current) && !current() {
-          return Err(AuthorizationDenied)
-        }
-        match
-          self.save({ ..run, publication_policy_originals: Some(packet), }) {
-          Ok(value) => value
-          Err(issue) => return Err(issue)
-        }
-      }
-    }
-    let run_admission : NativeClientSubmittedRunAdmission = {
-      request,
-      run_definition_cid: @publication.publication_contract_identity(definition),
-      revision: run.revision,
-    }
-    // Only this fresh acceptance has proved the original Run did not exist.
-    // Old accepted rows take the retained branch above, without initialization.
-    let run_state_observation = if observation_wire is Some(_) {
-      Some((0L, None))
-    } else {
-      None
-    }
-    let body = match
-      submitted_intent_body(
-        reference,
-        original.intent,
-        run_admission=Some(run_admission),
-        run_state_observation~,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    if current_fence is Some(current) && !current() {
-      return Err(AuthorizationDenied)
-    }
-    self.database
-    .compare_exchange(
-      "client_submitted_intents",
-      reference.request_id,
-      original.revision,
-      body,
-    )
-    .map(revision => {
-      ..original,
-      run_admission: Some(run_admission),
-      run_state_observation,
-      revision,
-    })
-    .map_err(issue => Physical(issue))
-  })
+      compare_exchange_client_journal_value(
+        self.database,
+        "client_submitted_intents",
+        reference.request_id,
+        original.revision,
+        body,
+        operations,
+      )
+      .map(revision => {
+        ..original,
+        run_admission: Some(run_admission),
+        run_state_observation,
+        revision,
+      })
+      .map_err(issue => Physical(issue))
+    },
+    reads~,
+  )
 }

@@ -351,3 +351,109 @@ test "Native finite read evidence capacity refuses new attempts without changing
   assert_eq(after.revision, revision)
   host.close().unwrap()
 }
+
+///|
+// Real legacy Library/SQLite diagnostics for the routed transaction. These
+// callbacks do not supply an operational Read/SQL pair or a payload grant.
+test "Routed read evidence preserves reservation CAS rollback and complete custody" {
+  let (host, binding, original, facts, revision) = read_evidence_fixture(
+    "routed-read-evidence",
+  )
+  let policy = "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563"
+  let calls : Array[String] = []
+  let access = journal_test_operation_access(host.database, calls)
+  let failed : NativeClientJournalOperationAccess = {
+    ..access,
+    compare_exchange: (table, key, row_revision, body) => {
+      if table == "client_local_read_custody" {
+        calls.push("refuse-issued-cas")
+        Err(@sqlite.Collision)
+      } else {
+        (access.compare_exchange)(table, key, row_revision, body)
+      }
+    },
+  }
+  assert_true(
+    binding.retain_read_admission_with_operations(
+      original,
+      facts,
+      policy,
+      operations=Some(failed),
+    )
+    is Err(Journal(Physical(@sqlite.Collision))),
+  )
+  assert_true(calls.contains("refuse-issued-cas"))
+  assert_true(calls.contains("rollback"))
+  assert_true(
+    calls.any(value => value.has_prefix("insert:client_local_read_evidence:")),
+  )
+  assert_eq(
+    host.database.read("client_local_read_custody", "issued").unwrap().body,
+    b"0",
+  )
+  assert_true(
+    host.database.scan_after("client_local_read_evidence", "")
+    is Err(@sqlite.NotFound),
+  )
+  assert_eq(
+    host.database.capacity_usage("client_local_read_evidence").unwrap().reserved_objects,
+    0L,
+  )
+  calls.clear()
+  let admitted = binding
+    .retain_read_admission_with_operations(
+      original,
+      facts,
+      policy,
+      operations=Some(access),
+    )
+    .unwrap()
+  let repeated = binding
+    .retain_read_admission_with_operations(
+      original,
+      facts,
+      policy,
+      operations=Some(access),
+    )
+    .unwrap()
+  assert_eq(admitted.egress_admission_cid, repeated.egress_admission_cid)
+  assert_true(calls.contains("capacity:client_local_read_evidence"))
+  assert_true(calls.contains("scan:client_local_read_evidence:"))
+  assert_true(
+    calls.contains(
+      "read:client_runs:" + @host.client_request_scope_cid(original),
+    ),
+  )
+  assert_eq(
+    host.database.capacity_usage("client_local_read_evidence").unwrap().reserved_objects,
+    1L,
+  )
+  assert_eq(
+    host.database.read("client_local_read_custody", "issued").unwrap().body,
+    b"1",
+  )
+  assert_eq(
+    host.journal.retained(original).unwrap().unwrap().revision,
+    revision,
+  )
+  host.database.insert("client_local_read_evidence", "foreign", b"{}").unwrap()
+  |> ignore
+  assert_true(
+    binding.retained_read_admission_with_operations(
+      original,
+      facts,
+      policy,
+      operations=Some(access),
+    )
+    is Err(Journal(CustodyLost)),
+  )
+  assert_eq(
+    host.database.read("client_local_read_evidence", "foreign").unwrap().body,
+    b"{}",
+  )
+  assert_eq(
+    host.database.read("client_local_read_custody", "issued").unwrap().body,
+    b"1",
+  )
+  host.close().unwrap()
+}

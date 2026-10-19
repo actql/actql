@@ -43,6 +43,12 @@ fn command_preparation_cleanup_kind(
     CommandHost(_) => "host"
     CommandDomain(_) => "domain"
     CommandRead(_) => "read"
+    CommandRetainedExecution(_) => "business-execution"
+    CommandStoreOperation(_) => "business-operation"
+    CommandBusinessChildren => "business-children"
+    CommandBusinessPublication => "business-publication"
+    CommandBusinessStore(_) => "business-store"
+    CommandBusinessResult(_) => "business-result"
     CommandPair(value) =>
       match value {
         @initial_arena.Read(_) => "pair-read"
@@ -74,6 +80,41 @@ fn[T] command_preparation_result(
 }
 
 ///|
+// Selection only: the downstream original/current/Account admissions remain
+// mandatory. A private submission or an absent business original cannot select
+// the public Run's operational route.
+fn local_command_preparation_operation_selected(
+  matches : @argparse.Matches,
+  operation : String,
+  business_selected : Bool,
+) -> Bool raise ClientStop {
+  operation == "check" ||
+  operation == "explain" ||
+  operation == "adopt" ||
+  local_checkpoint_action_selected(matches, operation) ||
+  (
+    operation == "status" &&
+    matches.subcommand is Some(("status", child)) &&
+    (optional(child, "run") is Some(_) || optional(child, "run-id") is Some(_)) &&
+    optional(child, "ref-file") is None &&
+    optional(child, "submission-ref-file") is None
+  ) ||
+  (
+    operation == "result" &&
+    matches.subcommand is Some(("result", child)) &&
+    optional(child, "run") is Some(_) &&
+    business_selected &&
+    optional(child, "ref-file") is None &&
+    optional(child, "submission-ref-file") is None
+  ) ||
+  (
+    operation == local_run_original_operation() &&
+    matches.subcommand is Some(("run", _)) &&
+    business_selected
+  )
+}
+
+///|
 // The selected package and all of its original asset observations use the
 // Runtime's own full scopes. Only then enter the same consuming Read for the
 // retained Product/Host selection; do not nest Runtime acquisition inside it.
@@ -82,7 +123,11 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   matches : @argparse.Matches,
   operation : String,
 ) -> String raise ClientStop {
-  if operation != "check" && operation != "adopt" {
+  if !local_command_preparation_operation_selected(
+      matches,
+      operation,
+      self.business is Some(_),
+    ) {
     stop("LocalCommandPreparationOperationUnavailable")
   }
   if !(matches.sources.get("config-root") is Some(@argparse.Default)) {
@@ -175,6 +220,7 @@ fn LocalCommandPreparationOriginal::execute_product_command(
     child,
     packaged_runtime=Some(physical),
     preparation=Some(self),
+    preparation_runtime=Some(runtime),
   )
 }
 
@@ -195,6 +241,8 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
   selected_additional : Array[(String, Bytes)],
   input_root : String,
   child : @argparse.Matches,
+  public_run? : Bool = false,
+  preparation_runtime? : LocalPackagedRuntime? = None,
 ) -> String raise ClientStop {
   let session = command_preparation_result(
     self.prepare_adoption(
@@ -248,6 +296,80 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             input_root,
             child,
             capture=Some(capture),
+          )
+        } else if operation == "explain" {
+          local_check_context(host, crypto, name, capture=Some(capture)).explain(
+            input_root, child,
+          )
+        } else if operation == "approve" || operation == "reject" {
+          local_checkpoint_answer_by_id(
+            host,
+            settings,
+            crypto,
+            operation,
+            child,
+            capture=Some(capture),
+          )
+        } else if operation == "status" {
+          local_saved_run_status_command(
+            host,
+            settings,
+            crypto,
+            input_root,
+            child,
+            capture=Some(capture),
+          )
+        } else if operation == "result" {
+          let runtime = preparation_runtime.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let physical = self.host.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let pair = self.pair.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let sqlite = physical
+            .borrow_local_host_sqlite(pair)
+            .unwrap_or_else(() => stop("LocalBusinessOriginalUnavailable"))
+          let selected = self.prepare_original_result(
+            host, capture, settings, name, runtime, sqlite, child,
+          )
+          local_public_result(
+            host,
+            settings,
+            crypto,
+            sqlite,
+            child,
+            prepared=Some(selected),
+          )
+        } else if public_run && operation == local_run_original_operation() {
+          let runtime = preparation_runtime.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let selection = self.prepare_business_submission(
+            host, capture, name, runtime, input_root, operation, child,
+          )
+          let physical = self.host.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let pair = self.pair.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let sqlite = physical
+            .borrow_local_host_sqlite(pair)
+            .unwrap_or_else(() => stop("LocalBusinessOriginalUnavailable"))
+          local_submission_start(
+            host,
+            settings,
+            crypto,
+            sqlite,
+            selection.environment,
+            input_root,
+            operation,
+            child,
+            public_run=true,
+            business=Some(selection),
           )
         } else {
           let runtime = self.runtime.unwrap()

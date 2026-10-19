@@ -68,38 +68,57 @@ fn local_public_result(
   crypto : @local_crypto.Library,
   sqlite : @local_sqlite.Library,
   child : @argparse.Matches,
+  prepared? : LocalCommandResultOriginal? = None,
 ) -> String raise ClientStop {
   local_result_stdout_only(child)
   let format = local_result_format(child)
   let file = settings.read_file.unwrap_or_else(() => {
     stop("LocalReadPolicyOriginalNotSelected")
   })
-  let scope = local_host_result(
-    host.authority_scope_cid(settings.principal, settings.connection, crypto),
-  )
-  let original = match
-    host.lookup_submitted_run_original_by_id(
-      crypto,
-      settings.principal,
-      settings.connection,
-      required(child, "run"),
-    ) {
-    Ok(value) => value
-    Err(issue) => stop(local_saved_state_issue(issue))
-  }
-  // This existing opaque reader restores and validates the original succeeded
-  // observation. Missing state is not inferred from an index or repaired.
-  match
-    host.lookup_submitted_run_state(
-      crypto,
-      settings.principal,
-      settings.connection,
-      original.reference(),
-      original.request(),
-      @env.now().to_double(),
-    ) {
-    Ok(_) => ()
-    Err(issue) => stop(local_saved_state_issue(issue))
+  let (scope, original) = match prepared {
+    Some(actual) => {
+      if !physical_equal(actual.host, host) ||
+        !actual.owner.journal_read_open ||
+        actual.owner.closing ||
+        actual.owner.closed {
+        stop("LocalReadOriginalCustodyUnavailable")
+      }
+      local_host_result(actual.capture.check_current_in_original_read())
+      (actual.scope, actual.original)
+    }
+    None => {
+      let scope = local_host_result(
+        host.authority_scope_cid(
+          settings.principal,
+          settings.connection,
+          crypto,
+        ),
+      )
+      let original = match
+        host.lookup_submitted_run_original_by_id(
+          crypto,
+          settings.principal,
+          settings.connection,
+          required(child, "run"),
+        ) {
+        Ok(value) => value
+        Err(issue) => stop(local_saved_state_issue(issue))
+      }
+      // Missing saved state is not inferred from an index or repaired.
+      match
+        host.lookup_submitted_run_state(
+          crypto,
+          settings.principal,
+          settings.connection,
+          original.reference(),
+          original.request(),
+          @env.now().to_double(),
+        ) {
+        Ok(_) => ()
+        Err(issue) => stop(local_saved_state_issue(issue))
+      }
+      (scope, original)
+    }
   }
   let reference = local_original_run_reference(original.definition(), scope)
   guard reference is Object(fields) else { stop("LocalOriginalRunUnavailable") }
@@ -114,13 +133,17 @@ fn local_public_result(
       stop("LocalOriginalRunUnavailable")
     }),
   }
-  let binding = local_read_binding_for_original(
-    host~,
-    settings~,
-    crypto~,
-    file~,
-    selected~,
-  )
+  let binding = match prepared {
+    Some(actual) => actual.binding
+    None =>
+      local_read_binding_for_original(
+        host~,
+        settings~,
+        crypto~,
+        file~,
+        selected~,
+      )
+  }
   let parameters = match binding.disclosure_parameters() {
     Ok(value) => value
     Err(issue) => stop(local_read_issue(issue))
@@ -129,30 +152,53 @@ fn local_public_result(
   let max_output = parameters.max_output_bytes
   // One fresh correlation value for this invocation; never retry an attempt.
   let attempt_id = local_generation_cid(crypto)
-  let store = local_original_result_store(
-    host,
-    settings,
-    sqlite,
-    selected.namespace_id,
-  )
+  let store = match prepared {
+    Some(actual) => actual.store
+    None =>
+      local_original_result_store(host, settings, sqlite, selected.namespace_id)
+  }
   let reply = {
-    errdefer local_result_store_close(store, attempt_id)
-    let names = match
-      host.lookup_original_result_names_json(
-        crypto,
-        settings.principal,
-        settings.connection,
-        original,
-        store,
-        selected.namespace_id,
-      ) {
+    // A supplied Store stays with the original command carrier, including
+    // errors before a session exists. Only the legacy constructor closes here.
+    errdefer (if prepared is None {
+      local_result_store_close(store, attempt_id)
+    })
+    let names_result = match prepared {
+      None =>
+        host.lookup_original_result_names_json(
+          crypto,
+          settings.principal,
+          settings.connection,
+          original,
+          store,
+          selected.namespace_id,
+        )
+      Some(actual) =>
+        local_host_result(
+          actual.capture.lookup_original_result_names_json_in_original_read(
+            settings.principal,
+            settings.connection,
+            original,
+            store,
+            selected.namespace_id,
+          ),
+        )
+    }
+    let names = match names_result {
       Ok(Some(value)) => value
       Ok(None) => stop("LocalResultPublicationUnavailable")
       Err(issue) => stop(local_saved_state_issue(@local_host.Journal(issue)))
     }
     let result_name = local_result_name(names, optional(child, "result"))
     let current = () => {
-      local_delivery_lookup_allowed(host, settings, crypto, scope, result_name)
+      local_delivery_lookup_allowed(
+        host,
+        settings,
+        crypto,
+        scope,
+        result_name,
+        capture=prepared.map(value => value.capture),
+      )
     }
     if !current() {
       stop("LocalReadAuthorizationDenied")
@@ -191,9 +237,13 @@ fn local_public_result(
       max_output~,
       current~,
       store~,
+      retained=prepared.map(value => value.owner.business.unwrap()),
+      captured_selection=prepared.map(value => value.original),
     )
   }
-  local_result_store_close(store, attempt_id)
+  if prepared is None {
+    local_result_store_close(store, attempt_id)
+  }
   reply
 }
 

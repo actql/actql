@@ -70,6 +70,27 @@ pub fn NativeLocalHostConnection::lookup_submitted_checkpoint_metadata(
   NativeClientOriginalCheckpointMetadata?,
   NativeClientOriginalCheckpointLookupIssue,
 ] {
+  self.lookup_submitted_checkpoint_metadata_with_operations(
+    crypto, principal, connection, reference, request, now,
+  )
+}
+
+///|
+fn NativeLocalHostConnection::lookup_submitted_checkpoint_metadata_with_operations(
+  self : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  reference : NativeClientSubmissionReference,
+  request : @host.ClientRequestIdentity,
+  now : Double,
+  operations? : NativeClientJournalOperationAccess? = None,
+  capture? : NativeLocalJournalCapture? = None,
+) -> Result[
+  NativeClientOriginalCheckpointMetadata?,
+  NativeClientOriginalCheckpointLookupIssue,
+] {
+  let reads = operations.map(value => value.reads)
   let authority = match
     native_local_policy_authority_for(
       self,
@@ -78,17 +99,19 @@ pub fn NativeLocalHostConnection::lookup_submitted_checkpoint_metadata(
       connection,
       request,
       ReadRunMaterials,
+      capture~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
   }
   let original = match
-    self.journal.lookup_submitted_intent(
+    self.journal.lookup_submitted_intent_with_operations(
       self.epoch,
       reference,
       authority.scope,
       authority.current_for(self.journal, request),
       now,
+      operations~,
     ) {
     Ok(Submitted(value)) => value
     Ok(UnresolvedSubmissionHistory) => return Err(UnresolvedHistory)
@@ -102,46 +125,49 @@ pub fn NativeLocalHostConnection::lookup_submitted_checkpoint_metadata(
     return Err(Journal(ChangedIntent))
   }
   self.journal
-  .transaction(() => {
-    if !authority.current_for(self.journal, request) {
-      return Err(AuthorizationDenied)
-    }
-    let read = fn() -> Result[
-      NativeClientOriginalCheckpointMetadata?,
-      NativeClientRunJournalIssue,
-    ] {
-      let record = match self.journal.retained(request) {
-        Ok(Some(value)) => value
-        Ok(None) => return Err(CustodyLost)
-        Err(issue) => return Err(issue)
+  .transaction_with_reads(
+    () => {
+      if !authority.current_for(self.journal, request) {
+        return Err(AuthorizationDenied)
       }
-      let run_definition_cid = @publication.publication_contract_identity(
-        record.definition,
-      )
-      if run_definition_cid != admission.run_definition_cid {
-        return Err(ForeignRun)
+      let read = fn() -> Result[
+        NativeClientOriginalCheckpointMetadata?,
+        NativeClientRunJournalIssue,
+      ] {
+        let record = match self.journal.retained(request, reads~) {
+          Ok(Some(value)) => value
+          Ok(None) => return Err(CustodyLost)
+          Err(issue) => return Err(issue)
+        }
+        let run_definition_cid = @publication.publication_contract_identity(
+          record.definition,
+        )
+        if run_definition_cid != admission.run_definition_cid {
+          return Err(ForeignRun)
+        }
+        match record.checkpoint {
+          None => Ok(None)
+          Some(checkpoint) =>
+            Ok(
+              Some({
+                checkpoint_cid: checkpoint.artifact.checkpoint_cid,
+                run_definition_cid,
+                revision: record.revision,
+                cancellation_requested: record.cancellation_requested,
+                state: checkpoint.state,
+              }),
+            )
+        }
       }
-      match record.checkpoint {
-        None => Ok(None)
-        Some(checkpoint) =>
-          Ok(
-            Some({
-              checkpoint_cid: checkpoint.artifact.checkpoint_cid,
-              run_definition_cid,
-              revision: record.revision,
-              cancellation_requested: record.cancellation_requested,
-              state: checkpoint.state,
-            }),
-          )
+      let result = read()
+      // Current authorization also precedes disclosure of a custody refusal or
+      // an authenticated empty result. No journal revision is changed by lookup.
+      if !authority.current_for(self.journal, request) {
+        return Err(AuthorizationDenied)
       }
-    }
-    let result = read()
-    // Current authorization also precedes disclosure of a custody refusal or
-    // an authenticated empty result. No journal revision is changed by lookup.
-    if !authority.current_for(self.journal, request) {
-      return Err(AuthorizationDenied)
-    }
-    result
-  })
+      result
+    },
+    reads~,
+  )
   .map_err(issue => Journal(issue))
 }

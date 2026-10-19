@@ -178,6 +178,22 @@ pub fn Store::prepare_local_preparation_raw_observation(
   crypto : @signature.Library,
   key : Bytes,
 ) -> Result[LocalPreparationRawCustody, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.prepare_local_preparation_raw_observation_in_scope(
+      grant, original_use, client, crypto, key,
+    )
+  })
+}
+
+///|
+fn Store::prepare_local_preparation_raw_observation_in_scope(
+  self : Store,
+  grant : @credential.LocalPreparationCredentialGrant,
+  original_use : @credential.LocalPreparationCredentialUse,
+  client : @http.Client,
+  crypto : @signature.Library,
+  key : Bytes,
+) -> Result[LocalPreparationRawCustody, NativePublicationStoreIssue] {
   match require_store_open(self) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -203,6 +219,15 @@ pub fn Store::prepare_local_preparation_raw_observation(
 /// Prefund both retained records before physical entry. A retained/missing slot
 /// does not classify the original send. Only the credential use Owner can enter.
 pub fn LocalPreparationRawCustody::reserve(
+  self : LocalPreparationRawCustody,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  self.private_custody.store.with_original_read(false, false, fn() {
+    self.reserve_in_scope()
+  })
+}
+
+///|
+fn LocalPreparationRawCustody::reserve_in_scope(
   self : LocalPreparationRawCustody,
 ) -> Result[Unit, NativePublicationStoreIssue] {
   let owner = self.private_custody
@@ -367,6 +392,17 @@ pub fn LocalPreparationRawCustody::persist(
   status : Int,
   body : Bytes,
 ) -> Result[Unit, NativePublicationStoreIssue] {
+  self.private_custody.store.with_original_read(false, false, fn() {
+    self.persist_in_scope(status, body)
+  })
+}
+
+///|
+fn LocalPreparationRawCustody::persist_in_scope(
+  self : LocalPreparationRawCustody,
+  status : Int,
+  body : Bytes,
+) -> Result[Unit, NativePublicationStoreIssue] {
   match self.require_original_reservation() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -424,6 +460,15 @@ pub fn LocalPreparationRawCustody::persist(
 pub fn LocalPreparationRawCustody::confirm(
   self : LocalPreparationRawCustody,
 ) -> Result[NativeLocalPreparationRawObservation, NativePublicationStoreIssue] {
+  self.private_custody.store.with_original_read(false, false, fn() {
+    self.confirm_in_scope()
+  })
+}
+
+///|
+fn LocalPreparationRawCustody::confirm_in_scope(
+  self : LocalPreparationRawCustody,
+) -> Result[NativeLocalPreparationRawObservation, NativePublicationStoreIssue] {
   match self.require_original_reservation() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -450,6 +495,15 @@ pub fn LocalPreparationRawCustody::reserved_bytes(
 pub fn LocalPreparationRawCustody::retry_cleanup(
   self : LocalPreparationRawCustody,
 ) -> Result[Bool, NativePublicationStoreIssue] {
+  self.private_custody.store.with_original_read(true, false, fn() {
+    self.retry_cleanup_in_scope()
+  })
+}
+
+///|
+fn LocalPreparationRawCustody::retry_cleanup_in_scope(
+  self : LocalPreparationRawCustody,
+) -> Result[Bool, NativePublicationStoreIssue] {
   self.private_custody.retry_cleanup()
 }
 
@@ -457,6 +511,21 @@ pub fn LocalPreparationRawCustody::retry_cleanup(
 /// Restore an original slot from authenticated saved descriptor and opaque
 /// original grant/use. There is no HTTP Client, new ordinal or reserve here.
 pub fn Store::restore_local_preparation_raw_observation(
+  self : Store,
+  grant : @credential.LocalPreparationCredentialGrant,
+  original_use : @credential.LocalPreparationCredentialUse,
+  crypto : @signature.Library,
+  key : Bytes,
+) -> Result[LocalPreparationRawCustody, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.restore_local_preparation_raw_observation_in_scope(
+      grant, original_use, crypto, key,
+    )
+  })
+}
+
+///|
+fn Store::restore_local_preparation_raw_observation_in_scope(
   self : Store,
   grant : @credential.LocalPreparationCredentialGrant,
   original_use : @credential.LocalPreparationCredentialUse,

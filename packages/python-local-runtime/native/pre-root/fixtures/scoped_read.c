@@ -1,4 +1,6 @@
+#ifndef _DARWIN_C_SOURCE
 #define _DARWIN_C_SOURCE
+#endif
 #define _POSIX_C_SOURCE 200809L
 #include <assert.h>
 #include <errno.h>
@@ -515,6 +517,96 @@ static bool allocation_failure_observation(void) {
     return true;
 }
 
+/* Keep the original 64-page fixture. A real generic File prefix places the
+ * managed page after other original extents, as in command preparation. LLVM
+ * coverage observes the actual search work; no provider hook changes routing. */
+static bool managed_search_workload(void) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    context_enter(lease,context);
+    size_t stock=stock_mi_allocations;
+    void *prefix=actql_native_file_scoped_allocate(12*lease->page_size);
+    assert(prefix);
+    void *values[128],*replacement[64];
+    for(size_t i=0;i<128;i++) {
+        values[i]=actql_native_moon_scoped_allocate(32);assert(values[i]);
+        memset(values[i],(int)(i+1),32);
+    }
+    for(size_t i=0;i<128;i+=2) actql_native_moon_scoped_free(values[i]);
+    for(size_t i=0;i<64;i++) {
+        replacement[i]=actql_native_moon_scoped_allocate(32);assert(replacement[i]);
+        for(size_t j=1;j<128;j+=2) assert(replacement[i]!=values[j]);
+        memset(replacement[i],0x5a,32);
+    }
+    for(size_t i=1;i<128;i+=2) {
+        assert(((unsigned char *)values[i])[31]==(unsigned char)(i+1));
+        actql_native_moon_scoped_free(values[i]);
+    }
+    for(size_t i=0;i<64;i++) {
+        assert(((unsigned char *)replacement[i])[31]==0x5a);
+        actql_native_moon_scoped_free(replacement[i]);
+    }
+    /* A physically retired cached page must not become an allocation grant. */
+    void *last=actql_native_moon_scoped_allocate(32);assert(last);
+    assert(stock_mi_allocations==stock);
+    context_leave(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY);
+    actql_native_moon_scoped_free(last);
+    actql_native_file_scoped_free(prefix);
+    finish(&lease,&context);
+    return true;
+}
+
+static bool managed_search_fallback(void) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *a=context_new(lease),*b=context_new(lease);
+    assert(actql_read_context_retain(a)==0 && actql_read_context_retain(b)==0);
+    context_enter(lease,a);
+    size_t stock=stock_mi_allocations,half=lease->page_size/2;
+    void *large=actql_native_moon_scoped_allocate(half);assert(large);
+    void *small=actql_native_moon_scoped_allocate(32);assert(small);
+    memset(large,0x61,half);memset(small,0x62,32);
+    /* The current page cannot satisfy another half-page block. It must keep
+     * both live slots and acquire another original page rather than overlap. */
+    void *other=actql_native_moon_scoped_allocate(half);assert(other);
+    assert(other!=large && other!=small);memset(other,0x63,half);
+    actql_native_moon_scoped_free(large);
+    void *reused=actql_native_moon_scoped_allocate(half);assert(reused);
+    memset(reused,0x64,half);
+    assert(((unsigned char *)small)[31]==0x62);
+    assert(((unsigned char *)other)[half-1]==0x63);
+    context_leave(lease,a);
+    context_enter(lease,b);
+    void *foreign=actql_native_moon_scoped_allocate(32);assert(foreign);
+    memset(foreign,0x65,32);
+    /* Free follows a's original even while b is entered; b's allocations
+     * cannot inherit a's remaining live slots or its page hint. */
+    actql_native_moon_scoped_free(reused);
+    void *second=actql_native_moon_scoped_allocate(half);assert(second);
+    assert(second!=small && second!=other && second!=foreign);
+    memset(second,0x66,half);
+    assert(((unsigned char *)small)[31]==0x62 &&
+        ((unsigned char *)other)[half-1]==0x63 &&
+        ((unsigned char *)foreign)[31]==0x65);
+    assert(actql_native_owned_contains_live_span(lease,small,32)==0);
+    assert(actql_native_owned_contains_live_span(lease,foreign,33)==ACTQL_OWNED_INVALID);
+    context_leave(lease,b);
+    assert(actql_read_context_release_after_owner_ack(a)==0);
+    assert(actql_read_context_release_after_owner_ack(b)==0);
+    assert(actql_read_context_try_close(&a)==ACTQL_OWNED_BUSY);
+    assert(actql_read_context_try_close(&b)==ACTQL_OWNED_BUSY);
+    actql_native_moon_scoped_free(small);actql_native_moon_scoped_free(other);
+    assert(actql_read_context_try_close(&a)==0 && a==NULL);
+    assert(((unsigned char *)foreign)[31]==0x65 &&
+        ((unsigned char *)second)[half-1]==0x66);
+    actql_native_moon_scoped_free(foreign);actql_native_moon_scoped_free(second);
+    assert(stock_mi_allocations==stock);
+    finish(&lease,&b);
+    return true;
+}
+
 static bool managed_subpages(void) {
     actql_owned_capacity *lease=lease_new();
     actql_read_context *context=context_new(lease);
@@ -728,6 +820,16 @@ int main(int argc,char **argv) {
         bool ok=allocation_failure_observation();
         puts("{\"case\":\"same-original-allocation-failure-observation\",\"passed\":1,\"failed\":0}");
         return ok?0:1;
+    }
+    if(argc==2 && strcmp(argv[1],"--managed-search-fallback-only")==0) {
+        assert(managed_search_fallback());
+        puts("{\"case\":\"same-original-managed-search-fallback\",\"passed\":1,\"failed\":0}");
+        return 0;
+    }
+    if(argc==2 && strcmp(argv[1],"--managed-search-only")==0) {
+        assert(managed_search_workload());
+        puts("{\"case\":\"same-original-managed-search-and-cleanup\",\"passed\":1,\"failed\":0}");
+        return 0;
     }
     if(argc==2 && strcmp(argv[1],"--managed-subpage-only")==0) {
         assert(managed_subpages());

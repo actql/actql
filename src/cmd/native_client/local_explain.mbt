@@ -68,3 +68,84 @@ fn local_static_plan_view(
     }
   }
 }
+
+///|
+// Reuse the same static preparation for explicit configuration and the selected
+// operational command. The caller supplies the original admitted Environment;
+// this path does not issue a Run, acquire a Source or select an Engine.
+fn local_explain_for_environment(
+  environment : @checked.CheckEnvironment,
+  input_root : String,
+  child : @argparse.Matches,
+) -> String raise ClientStop {
+  let format = match @frontend.select_format(required(child, "format")) {
+    Ok(value) => value
+    Err(_) => stop("UnsupportedLocalSourceFormat")
+  }
+  let supplied = optional(child, "parameters-file").map(name => {
+    local_input_cursor(text_file(input_root, name, 65536L))
+  })
+  let declarations = match optional(child, "parameter-declarations-file") {
+    None => None
+    Some(name) => {
+      if format != Text && format != Sql {
+        stop("external declarations require aql-text or sql")
+      }
+      let source = local_input_cursor(text_file(input_root, name, 65536L))
+      match
+        @parameters.read_declarations(Some(source), {
+          max_parameters: 1024,
+          max_nodes: 8192,
+          max_depth: 64,
+          max_text_bytes: 65536,
+        }) {
+        Ok(value) => Some(value)
+        Err(_) => stop("LocalDeclarationsNotAdmitted")
+      }
+    }
+  }
+  let context = match
+    @frontend.bind_query_context(
+      [],
+      @checked.checking_environment_cid(environment),
+      parameter_declarations=declarations,
+      model_tasks=@checked.checking_environment_model_tasks(environment),
+    ) {
+    Ok(value) => value
+    Err(_) => stop("InvalidLocalQueryContext")
+  }
+  let prepared = match
+    @local_host.prepare_native_client_program(
+      text_file(input_root, required(child, "program-file"), 65536L),
+      format,
+      environment,
+      supplied,
+      Some(context),
+      [],
+      @run_host.client_standard_effect_computation_limits(),
+    ) {
+    Ok(value) => value
+    Err(_) => stop("LocalPreparationNotReady")
+  }
+  let wire = local_static_plan_view(prepared)
+  local_explain_reply(wire, child.flags.get("json").unwrap_or(false))
+}
+
+///|
+// The same selected Host/configuration/current observation used by Local check
+// remains live across input reading and static compilation. Its command-local
+// reporting key stays private and is never a signing or execution authority.
+fn LocalCheckContext::explain(
+  self : LocalCheckContext,
+  input_root : String,
+  child : @argparse.Matches,
+) -> String raise ClientStop {
+  if !self.current() {
+    stop("LocalCheckContextUnavailable")
+  }
+  let reply = local_explain_for_environment(self.environment, input_root, child)
+  if !self.current() {
+    stop("LocalCheckContextUnavailable")
+  }
+  reply
+}

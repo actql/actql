@@ -146,6 +146,22 @@ pub fn Store::prepare_effect_source_custody(
   physical_digest : String,
   physical_bytes : Int64,
 ) -> Result[EffectSourceCustody, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.prepare_effect_source_custody_in_scope(
+      run, source, request, physical_digest, physical_bytes,
+    )
+  })
+}
+
+///|
+fn Store::prepare_effect_source_custody_in_scope(
+  self : Store,
+  run : @publication.PublicationContract,
+  source : @publication.CapturedEffectSourceArtifact,
+  request : @payload.PublicationPayloadRequest,
+  physical_digest : String,
+  physical_bytes : Int64,
+) -> Result[EffectSourceCustody, NativePublicationStoreIssue] {
   match require_store_open(self) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -159,6 +175,13 @@ pub fn Store::prepare_effect_source_custody(
 /// Retain this exact prepared responsibility. The caller keeps the same owner
 /// on a failed or uncertain write and can retry it without another allocation.
 pub fn EffectSourceCustody::retain(
+  self : EffectSourceCustody,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  self.store.with_original_read(false, false, fn() { self.retain_in_scope() })
+}
+
+///|
+fn EffectSourceCustody::retain_in_scope(
   self : EffectSourceCustody,
 ) -> Result[Unit, NativePublicationStoreIssue] {
   if self.store.closed {
@@ -208,6 +231,22 @@ pub fn Store::restore_effect_source_custody(
   physical_digest : String,
   physical_bytes : Int64,
 ) -> Result[EffectSourceCustody, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.restore_effect_source_custody_in_scope(
+      run, source, request, physical_digest, physical_bytes,
+    )
+  })
+}
+
+///|
+fn Store::restore_effect_source_custody_in_scope(
+  self : Store,
+  run : @publication.PublicationContract,
+  source : @publication.CapturedEffectSourceArtifact,
+  request : @payload.PublicationPayloadRequest,
+  physical_digest : String,
+  physical_bytes : Int64,
+) -> Result[EffectSourceCustody, NativePublicationStoreIssue] {
   match require_store_open(self) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -229,8 +268,17 @@ pub fn Store::restore_effect_source_custody(
 pub fn EffectSourceCustody::begin_payload(
   self : EffectSourceCustody,
 ) -> Result[PayloadWriter, NativePublicationStoreIssue] {
+  self.store.with_original_read(false, false, fn() {
+    self.begin_payload_in_scope()
+  })
+}
+
+///|
+fn EffectSourceCustody::begin_payload_in_scope(
+  self : EffectSourceCustody,
+) -> Result[PayloadWriter, NativePublicationStoreIssue] {
   match self.record() {
-    Ok((_, false)) => self.store.begin_payload(self.request)
+    Ok((_, false)) => self.store.begin_payload_in_scope(self.request)
     Ok((_, true)) => Err(RecoveryRequired)
     Err(issue) => Err(issue)
   }
@@ -242,12 +290,21 @@ pub fn EffectSourceCustody::begin_payload(
 pub fn EffectSourceCustody::confirm_payload(
   self : EffectSourceCustody,
 ) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue] {
+  self.store.with_original_read(false, false, fn() {
+    self.confirm_payload_in_scope()
+  })
+}
+
+///|
+fn EffectSourceCustody::confirm_payload_in_scope(
+  self : EffectSourceCustody,
+) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue] {
   match self.record() {
     Ok((_, false)) => ()
     Ok((_, true)) => return Err(RecoveryRequired)
     Err(issue) => return Err(issue)
   }
-  let info = match self.store.reconcile_payload(self.request) {
+  let info = match self.store.reconcile_payload_in_scope(self.request) {
     Ok(Some(value)) => value
     Ok(None) => return Err(RecoveryRequired)
     Err(issue) => return Err(issue)
@@ -263,14 +320,32 @@ pub fn EffectSourceCustody::confirm_payload(
 pub fn EffectSourceCustody::open_reader(
   self : EffectSourceCustody,
 ) -> Result[PayloadReader, NativePublicationStoreIssue] {
-  match self.confirm_payload() {
-    Ok(_) => self.store.open_payload_reader(self.key)
+  self.store.with_original_read(false, false, fn() {
+    self.open_reader_in_scope()
+  })
+}
+
+///|
+fn EffectSourceCustody::open_reader_in_scope(
+  self : EffectSourceCustody,
+) -> Result[PayloadReader, NativePublicationStoreIssue] {
+  match self.confirm_payload_in_scope() {
+    Ok(_) => self.store.open_payload_reader_in_scope(self.key)
     Err(issue) => Err(issue)
   }
 }
 
 ///|
 pub fn EffectSourceCustody::cleanup_complete(
+  self : EffectSourceCustody,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  self.store.with_original_read(true, false, fn() {
+    self.cleanup_complete_in_scope()
+  })
+}
+
+///|
+fn EffectSourceCustody::cleanup_complete_in_scope(
   self : EffectSourceCustody,
 ) -> Result[Bool, NativePublicationStoreIssue] {
   self.record().map(value => value.1)
@@ -283,12 +358,21 @@ pub fn EffectSourceCustody::cleanup_complete(
 pub fn EffectSourceCustody::retry_cleanup(
   self : EffectSourceCustody,
 ) -> Result[Bool, NativePublicationStoreIssue] {
+  self.store.with_original_read(true, false, fn() {
+    self.retry_cleanup_in_scope()
+  })
+}
+
+///|
+fn EffectSourceCustody::retry_cleanup_in_scope(
+  self : EffectSourceCustody,
+) -> Result[Bool, NativePublicationStoreIssue] {
   let record = match self.record() {
     Ok((_, true)) => return Ok(false)
     Ok((value, false)) => value
     Err(issue) => return Err(issue)
   }
-  match self.store.acquire_payload_cleanup(self.request) {
+  match self.store.acquire_payload_cleanup_in_scope(self.request) {
     Ok(cleanup) =>
       match cleanup.retry() {
         Ok(_) => ()
