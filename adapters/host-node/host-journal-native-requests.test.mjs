@@ -284,7 +284,8 @@ test('included native sum keeps old/new originals without adding the retained ha
   assert.equal(n.pagerControls,6912n);
   assert.equal(n.connection,275375n);
   assert.equal(n.activeParserBackings,7405564n);
-  assert.equal(n.heapUsableUpper,4963513923465n);
+  assert.equal(n.activePrepareGraph,39978849038n);
+  assert.equal(n.heapUsableUpper,5003492772503n);
   assert.equal(n.sameInodeWalMappingBytes,32768n);
 });
 
@@ -391,4 +392,46 @@ test('selected parser growth retains old plus new separately from its inline eng
   assert.equal(p.nativeStackComplete,false);
   assert.equal(p.fixedSchemaReaderVmCountedSeparately,true);
   assert.equal(p.nativeFreeReturnsRegionCredit,false);
+});
+
+test('active prepare forest maps packed expression contributions by allocation count and summed requests', () => {
+  const g = calculate(input()).preparation.graph;
+  assert.equal(g.expressionNodes,47967n);
+  assert.equal(g.listItems,95934n);
+  assert.equal(g.expressionContributions.count,47967n);
+  assert.equal(g.expressionContributions.requestSum,1832n * 47967n);
+  assert.equal(g.expressionContributions.heapUsableSumUpper,1747533744n);
+  assert.equal(g.packedCloneTreatedAsOneBlock,true);
+  assert.equal(g.wholeSchemaClonesPerNode,0n);
+  assert.equal(g.wholeVmClonesPerNode,0n);
+  assert.equal(g.backingRetiredByParseReset,false);
+  assert(Object.isFrozen(g));
+});
+
+test('ExprList clone requests preserve original usable size and old growing arrays', () => {
+  const g = calculate(input()).preparation.graph;
+  assert.equal(g.originalLists.requestSum,12663288n);
+  assert.equal(g.oldGrowingLists.requestSum,12663288n);
+  assert.equal(g.clonedLists.requestSum,1597109232n);
+  assert.equal(g.clonedLists.heapUsableSumUpper,4766001120n);
+  assert.equal(g.cloneRequestsUseOriginalUsable,true);
+  assert.equal(g.identifierArrays.count,3n * 47967n);
+  assert.equal(g.identifierArrays.requestSum,1176n * 47967n);
+  assert.equal(g.sourceLists.requestSum,240n * 47967n);
+  assert.equal(g.selectRecords.requestSum,160n * 47967n);
+  assert.equal(g.copiedSqlAndNodeUtf8Covered,false);
+});
+
+test('prepare cleanup and control allocations remain alongside forests until original reset', () => {
+  const g = calculate(input()).preparation.graph;
+  assert.equal(g.cleanupNodes.count,306906n);
+  assert.equal(g.cleanupNodes.requestSum,7365744n);
+  assert.equal(g.labelGrowth.previousMaximum.request,103208n);
+  assert.equal(g.labelGrowth.nextMaximum.request,103208n);
+  assert.equal(g.tableLockGrowth.previousMaximum.request,928n);
+  assert.equal(g.tableLockGrowth.nextMaximum.request,928n);
+  assert.deepEqual(g.aggregateRequests,[112n,80n,128n,64n]);
+  assert.equal(g.updateMapRequest,113n);
+  assert.equal(g.insertIndexMapRequest,20n);
+  assert.equal(calculate(input()).includedNativeComponents.completeJournal,false);
 });

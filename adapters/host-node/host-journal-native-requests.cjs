@@ -117,10 +117,21 @@ function includedNativeComponents(value) {
   const parser = value.preparation.parser;
   const activeParserBackings = checked(parser.activeParsers *
     (parser.eachGrowth.previousMaximum.heapUsableUpper + parser.eachGrowth.nextMaximum.heapUsableUpper));
+  const graph = value.preparation.graph;
+  const activePrepareGraph = checked([
+    graph.expressionContributions, graph.originalLists, graph.oldGrowingLists,
+    graph.clonedLists, graph.listEntryNames, graph.sourceLists, graph.sourceCloneNames,
+    graph.selectRecords, graph.identifierArrays, graph.identifierNames, graph.cleanupNodes,
+  ].reduce((sum, group) => sum + group.heapUsableSumUpper, 0n) +
+    graph.labelGrowth.previousMaximum.heapUsableUpper + graph.labelGrowth.nextMaximum.heapUsableUpper +
+    graph.tableLockGrowth.previousMaximum.heapUsableUpper + graph.tableLockGrowth.nextMaximum.heapUsableUpper +
+    graph.aggregateRequests.reduce((sum, request) => sum + u(request), 0n) +
+    u(graph.updateMapRequest) + u(graph.insertIndexMapRequest) +
+    value.preparation.planner.heapUsableSubsetUpper);
   return freeze({qualification:'included-stock-usable-subtotal-only', completeJournal:false,
-    cache, wal, savepoint, workspaces, pagerControls, connection, activeParserBackings,
+    cache, wal, savepoint, workspaces, pagerControls, connection, activeParserBackings, activePrepareGraph,
     heapUsableUpper:checked(cache + wal + savepoint + workspaces + pagerControls +
-      connection + activeParserBackings),
+      connection + activeParserBackings + activePrepareGraph),
     // Same-inode WAL mappings are not heap malloc blocks and are not another
     // per-connection credit. Root must compose each real connection/copy and
     // the shared mapping once, together with all remaining facility terms.
@@ -196,6 +207,12 @@ function hostJournalNativeStructureRequests(input) {
   // planner20000+1000 budget. This is not a changed public work limit.
   const plannerLoopUsable = hostJournalNativeUsableUpper(208n);
   const plannerTermsUsable = hostJournalNativeUsableUpper(256n);
+  // Complete fixed-template forest argument: two parser contexts and their
+  // preserved constant/deferred copies, then virtual predicate/CHECK/trigger
+  // and aggregate extras. This is not an observed parser high-water mark.
+  const forestNodes = 47967n, forestItems = 95934n;
+  const forestListRequests = 12663288n;
+  const clonedListRequests = checked(2n * forestListRequests + 32768n * forestNodes);
 
   const value = freeze({
     qualification:'partial-native-request-vectors', completePhase:false,
@@ -305,6 +322,45 @@ function hostJournalNativeStructureRequests(input) {
         growingBackingUsesGlobalAllocator:true,
         fixedSchemaReaderVmCountedSeparately:true,
         nativeFreeReturnsRegionCredit:false,
+      }),
+      graph:freeze({
+        qualification:'closed-fixed-template-active-forest-subset',
+        expressionNodes:forestNodes, listItems:forestItems,
+        // ROUND8(80 +1751+1), deliberately using the entire supported SQL
+        // byte upper instead of assuming a smaller observed token spelling.
+        expressionContributions:allocationGroup(forestNodes,1832n * forestNodes),
+        // A reduced clone can pack many binary nodes into one allocation.
+        // Map the whole SUM with an allocation COUNT upper; U(perNode)*N
+        // need not cover a large packed block's cached-size alternative.
+        packedCloneTreatedAsOneBlock:true,
+        originalLists:allocationGroup(forestNodes,forestListRequests),
+        oldGrowingLists:allocationGroup(forestNodes,forestListRequests),
+        // ExprListDup requests ORIGINAL usable bytes, not logical nExpr.
+        // Compose the stock SUM upper once to bound clone REQUESTS, then
+        // map those separate clone allocations through the same upper.
+        clonedLists:allocationGroup(forestNodes,clonedListRequests),
+        cloneRequestsUseOriginalUsable:true,
+        listEntryNames:allocationGroup(forestItems,1752n * forestItems),
+        sourceLists:allocationGroup(forestNodes,240n * forestNodes),
+        sourceCloneNames:allocationGroup(3n * forestNodes,5256n * forestNodes),
+        selectRecords:allocationGroup(forestNodes,160n * forestNodes),
+        // Fixed authored INSERT/constraint lists have at most24 entries.
+        // Include old/new and cloned IdList arrays, not24 separately
+        // allocated records for the inline entries of each original array.
+        identifierArrays:allocationGroup(3n * forestNodes,1176n * forestNodes),
+        identifierNames:allocationGroup(forestItems,1752n * forestItems),
+        // Cover cleanup roots for the six allocated graph families plus
+        // emitted main/child P4 bookkeeping, retaining original reset duty.
+        cleanupNodes:allocationGroup(6n * forestNodes + p4Slots,
+          24n * (6n * forestNodes + p4Slots)),
+        labelGrowth:preservingGrowth(103208n,103208n),
+        tableLockGrowth:preservingGrowth(928n,928n),
+        aggregateRequests:freeze([112n,80n,128n,64n]),
+        updateMapRequest:113n, insertIndexMapRequest:20n,
+        // Source/Schema pointers borrow retained originals. No whole Table,
+        // schema, builtin FuncDef or Vdbe is copied per forest node here.
+        wholeSchemaClonesPerNode:0n, wholeVmClonesPerNode:0n,
+        copiedSqlAndNodeUtf8Covered:false, backingRetiredByParseReset:false,
       }),
       // Reprepare builds pNew while the old complete VM remains live, then
       // swaps/finalizes it. Fifty sequential retries are work/history, not
