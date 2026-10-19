@@ -9080,7 +9080,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "inputsOutputs": [
@@ -9098,7 +9098,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "identity": [
@@ -9116,7 +9116,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mjs",
@@ -9138,7 +9138,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "synchronization": [
@@ -9156,7 +9156,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mjs",
@@ -9178,7 +9178,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mjs",
@@ -9200,7 +9200,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "resources": [
@@ -9218,7 +9218,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mjs",
@@ -9240,7 +9240,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "verification": [
@@ -9254,7 +9254,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-common/sqlite-inspection-bounds.test.mjs",
@@ -18609,7 +18609,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "inputsOutputs": [
@@ -18651,7 +18651,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "identity": [
@@ -18697,7 +18697,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "ownership": [
@@ -18743,7 +18743,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "synchronization": [
@@ -18789,7 +18789,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "failure": [
@@ -18835,7 +18835,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "cancellation": [
@@ -18881,7 +18881,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "resources": [
@@ -18935,7 +18935,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -18981,7 +18981,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "verification": [
@@ -19035,7 +19035,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-node/client-request-journal-inspection-bounds.test.mjs",
@@ -24467,7 +24467,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The existing installed Host shutdown retains the issuer's original initial"
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
@@ -24475,7 +24475,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The same installed Host registry retains a preparation candidate under its"
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -24585,11 +24585,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "and original retry carrier. A successful sibling close cannot release the"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Project views share one original retirement record."
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
@@ -24631,7 +24631,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "lifetime after the await, before exposing another lease."
+                "anchor": "Synchronization snapshots each selected method and receiver"
               }
             ],
             "failure": [
@@ -24729,7 +24729,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "initial holding while another child remains uncertain."
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
@@ -24737,7 +24737,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -24767,7 +24767,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "cleanup consumers cannot issue an initial admission, establish its coverage,"
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
@@ -24775,7 +24775,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -24952,7 +24952,7 @@
             "responsibility": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The same installed Host registry retains a preparation candidate under its"
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -24982,7 +24982,7 @@
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Project views share one original retirement record."
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
@@ -24996,7 +24996,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "lifetime after the await, before exposing another lease."
+                "anchor": "Synchronization snapshots each selected method and receiver"
               }
             ],
             "failure": [
@@ -25022,7 +25022,7 @@
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -25032,7 +25032,7 @@
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -26141,7 +26141,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "inputsOutputs": [
@@ -26159,7 +26159,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "identity": [
@@ -26177,7 +26177,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "ownership": [
@@ -26195,7 +26195,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "synchronization": [
@@ -26213,7 +26213,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "failure": [
@@ -26231,7 +26231,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "cancellation": [
@@ -26249,7 +26249,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "resources": [
@@ -26267,7 +26267,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-node/host-root-format.mjs",
@@ -26289,7 +26289,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "verification": [
@@ -26303,7 +26303,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-node/host-root-format.test.mjs",
@@ -28166,7 +28166,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "inputsOutputs": [
@@ -28212,7 +28212,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "identity": [
@@ -28254,7 +28254,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Ancestor public preload wrappers publish their same immutable null-prototype"
+                "anchor": "Instance identity, original callback and receiver correspondence"
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.cjs",
@@ -28262,7 +28262,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Its generated facts identify its original public entry and dependencies, with"
+                "anchor": "Instance identity, original callback and receiver correspondence"
               },
               {
                 "path": "adapters/host-node/infer-trusted-node-preload.cjs",
@@ -28270,7 +28270,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-node/infer-trusted-node-preload.cjs",
@@ -28292,7 +28292,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -28300,15 +28300,15 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "An initialization failure preserves its original cause and cleanup duty;"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Callbacks and opaque handles remain original Owner borrows, not traversed or"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "synchronization": [
@@ -28354,7 +28354,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "table before nested loading. A later exports replacement or Node's circular-"
+                "anchor": "Synchronization snapshots each selected method and receiver"
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.cjs",
@@ -28362,7 +28362,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-node/infer-trusted-node-preload.cjs",
@@ -28404,7 +28404,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "cancellation": [
@@ -28442,7 +28442,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "resources": [
@@ -28460,7 +28460,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Escaped aliases remain the original envelope"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -28468,7 +28468,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The ordinary package builder derives a private image inventory"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -28480,11 +28480,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "overlap, captured reader and receiver, scope alias and partial-failure holdings"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The extra Source Strings, manifests, dependency paths, image/namespace records,"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/infer-trusted-node-preload.cjs",
@@ -28492,11 +28492,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The selected preparation path also retains the native `String.prototype.trimEnd`"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-node/infer-trusted-node-preload.cjs",
@@ -28518,19 +28518,19 @@
               },
               {
                 "path": "docs/spec/execution.md",
-                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+                "anchor": "<!-- requirement-block: ordinary-host.authorization-preservation -->"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Fixed control assets are projected from that same selected immutable Source"
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The selected startup may support an original producer-controlled preparation"
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "verification": [
@@ -28620,7 +28620,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-node/initial-control-finite-host.test.mjs",
@@ -29378,7 +29378,7 @@
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "even after deregistration. This observation does not cover an original native"
+                "anchor": "Cancellation requests stop and keeps unfinished tasks and shared native users"
               },
               {
                 "path": "adapters/host-node/initial-control-image-loader.test.mjs",
@@ -29392,7 +29392,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "cache-shaped object alone does not authenticate those originals."
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/initial-control-image-loader.cjs",
@@ -29414,7 +29414,7 @@
             "extension": [
               {
                 "path": "docs/spec/execution.md",
-                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+                "anchor": "<!-- requirement-block: ordinary-host.authorization-preservation -->"
               },
               {
                 "path": "adapters/host-node/initial-control-image-loader.cjs",
@@ -29606,7 +29606,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The owned release-cohort transformation may change only the packaged manifest"
+                "anchor": "Instance identity, original callback and receiver correspondence"
               }
             ],
             "ownership": [
@@ -29616,7 +29616,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "An initialization failure preserves its original cause and cleanup duty;"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -29668,11 +29668,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "byte backing, decoded String, hash and native decoder workspace overlap."
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The ordinary package builder derives a private image inventory"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -29680,17 +29680,17 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "the two bound manifest extents once before capture. Admitting this representation"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "byte custody alone does not establish the complete image loader, installation"
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "docs/spec/execution.md",
-                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+                "anchor": "<!-- requirement-block: ordinary-host.authorization-preservation -->"
               }
             ],
             "verification": [
@@ -30064,13 +30064,13 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Ancestor public preload wrappers publish their same immutable null-prototype"
+                "anchor": "Instance identity, original callback and receiver correspondence"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -30078,11 +30078,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "An initialization failure preserves its original cause and cleanup duty;"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Callbacks and opaque handles remain original Owner borrows, not traversed or"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -30108,7 +30108,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "table before nested loading. A later exports replacement or Node's circular-"
+                "anchor": "Synchronization snapshots each selected method and receiver"
               }
             ],
             "failure": [
@@ -30158,7 +30158,7 @@
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Escaped aliases remain the original envelope"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -30166,7 +30166,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The ordinary package builder derives a private image inventory"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -30178,21 +30178,21 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "overlap, captured reader and receiver, scope alias and partial-failure holdings"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
               {
                 "path": "docs/spec/execution.md",
-                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+                "anchor": "<!-- requirement-block: ordinary-host.authorization-preservation -->"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Fixed control assets are projected from that same selected immutable Source"
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The selected startup may support an original producer-controlled preparation"
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               }
             ],
             "verification": [
@@ -30419,11 +30419,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Its generated facts identify its original public entry and dependencies, with"
+                "anchor": "Instance identity, original callback and receiver correspondence"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The owned release-cohort transformation may change only the packaged manifest"
+                "anchor": "Instance identity, original callback and receiver correspondence"
               }
             ],
             "ownership": [
@@ -30439,7 +30439,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "original Local and resolved dependency package before optional SDK and Host"
+                "anchor": "Synchronization snapshots each selected method and receiver"
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.cjs",
@@ -30469,25 +30469,25 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The same-phase envelope includes raw read backing and lookahead, concatenation"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The extra Source Strings, manifests, dependency paths, image/namespace records,"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "the two bound manifest extents once before capture. Admitting this representation"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
               {
                 "path": "docs/spec/execution.md",
-                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+                "anchor": "<!-- requirement-block: ordinary-host.authorization-preservation -->"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "or the presence of that operation alone does not enable dispatch, and only the"
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               }
             ],
             "verification": [
@@ -30592,11 +30592,11 @@
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "This generated Source is correspondence DATA, not an operational issuer."
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "An initialization failure preserves its original cause and cleanup duty;"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -30626,7 +30626,7 @@
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "An initialization failure preserves its original cause and cleanup duty;"
+                "anchor": "Cancellation requests stop and keeps unfinished tasks and shared native users"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
@@ -30640,11 +30640,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "runtime internals and libraries remain explicit implementation domains"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The ordinary package builder derives a private image inventory"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -30654,7 +30654,7 @@
             "extension": [
               {
                 "path": "docs/spec/execution.md",
-                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+                "anchor": "<!-- requirement-block: ordinary-host.authorization-preservation -->"
               }
             ],
             "verification": [
@@ -30761,7 +30761,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "inputsOutputs": [
@@ -30781,11 +30781,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The owned release-cohort transformation may change only the packaged manifest"
+                "anchor": "Instance identity, original callback and receiver correspondence"
               }
             ],
             "ownership": [
@@ -30795,7 +30795,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "synchronization": [
@@ -30805,7 +30805,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "failure": [
@@ -30829,7 +30829,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "resources": [
@@ -30839,21 +30839,21 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "the two bound manifest extents once before capture. Admitting this representation"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
               {
                 "path": "docs/spec/execution.md",
-                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+                "anchor": "<!-- requirement-block: ordinary-host.authorization-preservation -->"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "verification": [
@@ -36023,7 +36023,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The existing installed Host shutdown retains the issuer's original initial"
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
@@ -36031,7 +36031,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The same installed Host registry retains a preparation candidate under its"
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -36129,11 +36129,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "and original retry carrier. A successful sibling close cannot release the"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Project views share one original retirement record."
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
@@ -36183,7 +36183,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "lifetime after the await, before exposing another lease."
+                "anchor": "Synchronization snapshots each selected method and receiver"
               }
             ],
             "failure": [
@@ -36281,7 +36281,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "initial holding while another child remains uncertain."
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
@@ -36289,7 +36289,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -36311,7 +36311,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "cleanup consumers cannot issue an initial admission, establish its coverage,"
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
@@ -36319,7 +36319,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -36587,7 +36587,7 @@
             "responsibility": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The existing installed Host shutdown retains the issuer's original initial"
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
@@ -36625,7 +36625,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "and original retry carrier. A successful sibling close cannot release the"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -36677,7 +36677,7 @@
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "initial holding while another child remains uncertain."
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
@@ -36687,7 +36687,7 @@
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "cleanup consumers cannot issue an initial admission, establish its coverage,"
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
@@ -36723,7 +36723,7 @@
             "responsibility": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The existing installed Host shutdown retains the issuer's original initial"
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
@@ -36761,7 +36761,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "and original retry carrier. A successful sibling close cannot release the"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -36813,7 +36813,7 @@
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "initial holding while another child remains uncertain."
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
@@ -36823,7 +36823,7 @@
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "cleanup consumers cannot issue an initial admission, establish its coverage,"
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
@@ -36859,7 +36859,7 @@
             "responsibility": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The same installed Host registry retains a preparation candidate under its"
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -36889,7 +36889,7 @@
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Project views share one original retirement record."
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
@@ -36903,7 +36903,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "lifetime after the await, before exposing another lease."
+                "anchor": "Synchronization snapshots each selected method and receiver"
               }
             ],
             "failure": [
@@ -36929,7 +36929,7 @@
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -36939,7 +36939,7 @@
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -42870,7 +42870,7 @@
             "responsibility": [
               {
                 "path": "docs/spec/execution.md",
-                "anchor": "<!-- requirement-block: initial-node-control.original-before-work -->"
+                "anchor": "<!-- requirement-block: ordinary-host.real-acquisition -->"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -42944,11 +42944,11 @@
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -42956,11 +42956,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "An initialization failure preserves its original cause and cleanup duty;"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Callbacks and opaque handles remain original Owner borrows, not traversed or"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -43030,7 +43030,7 @@
             "cancellation": [
               {
                 "path": "docs/spec/execution.md",
-                "anchor": "<!-- requirement-block: initial-node-control.retained-custody -->"
+                "anchor": "<!-- requirement-block: ordinary-host.resource-lifetimes -->"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -43056,11 +43056,11 @@
             "resources": [
               {
                 "path": "docs/spec/execution.md",
-                "anchor": "<!-- requirement-block: initial-node-control.complete-selected-envelope -->"
+                "anchor": "<!-- requirement-block: ordinary-host.managed-limits -->"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Escaped aliases remain the original envelope"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -43068,7 +43068,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The ordinary package builder derives a private image inventory"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -43080,7 +43080,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "overlap, captured reader and receiver, scope alias and partial-failure holdings"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
@@ -43090,19 +43090,19 @@
               },
               {
                 "path": "docs/spec/execution.md",
-                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+                "anchor": "<!-- requirement-block: ordinary-host.authorization-preservation -->"
               },
               {
                 "path": "docs/spec/execution.md",
-                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+                "anchor": "<!-- requirement-block: ordinary-host.authorization-preservation -->"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Fixed control assets are projected from that same selected immutable Source"
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The selected startup may support an original producer-controlled preparation"
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               }
             ],
             "verification": [
@@ -46184,7 +46184,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "External physical children are a distinct part of that phase"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
@@ -56741,7 +56741,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The same installed Host registry retains a preparation candidate under its"
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -56827,7 +56827,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Project views share one original retirement record."
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
@@ -56861,7 +56861,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "lifetime after the await, before exposing another lease."
+                "anchor": "Synchronization snapshots each selected method and receiver"
               }
             ],
             "failure": [
@@ -56939,7 +56939,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -56965,7 +56965,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -57024,7 +57024,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The same installed Host registry retains a preparation candidate under its"
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -57086,7 +57086,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Project views share one original retirement record."
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
@@ -57112,7 +57112,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "lifetime after the await, before exposing another lease."
+                "anchor": "Synchronization snapshots each selected method and receiver"
               }
             ],
             "failure": [
@@ -57166,7 +57166,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -57184,7 +57184,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -57228,7 +57228,7 @@
             "responsibility": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The same installed Host registry retains a preparation candidate under its"
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -57258,7 +57258,7 @@
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Project views share one original retirement record."
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
@@ -57272,7 +57272,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "lifetime after the await, before exposing another lease."
+                "anchor": "Synchronization snapshots each selected method and receiver"
               }
             ],
             "failure": [
@@ -57298,7 +57298,7 @@
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -57308,7 +57308,7 @@
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",

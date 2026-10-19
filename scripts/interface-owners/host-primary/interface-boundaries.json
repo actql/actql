@@ -5960,11 +5960,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The prepared embedded Host obtains its fixed check-environment source through"
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The embedded consumer passes its raw options to this synchronous begin and,"
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               }
             ],
             "inputsOutputs": [
@@ -6134,11 +6134,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "String remains in its selected module/preparation lifetime, including escaped"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "callbacks and non-DATA values retain exact identity for their existing Owners;"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -6354,11 +6354,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "aliases; this borrow is neither a new issuer nor a physical release acknowledgement."
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "allowances, not backing-byte amounts or a numerical profile. Explicit traversal"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
@@ -6404,11 +6404,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Independent Host entries without this preparation retain their own acquisition"
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "selected path, not an invalid general public option. Original Host handles,"
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               }
             ],
             "verification": [
@@ -6871,7 +6871,7 @@
             "responsibility": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The same installed Host registry retains a preparation candidate under its"
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -6901,7 +6901,7 @@
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Project views share one original retirement record."
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
@@ -6915,7 +6915,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "lifetime after the await, before exposing another lease."
+                "anchor": "Synchronization snapshots each selected method and receiver"
               }
             ],
             "failure": [
@@ -6941,7 +6941,7 @@
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -6951,7 +6951,7 @@
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -6979,7 +6979,7 @@
             "responsibility": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The prepared embedded Host obtains its fixed check-environment source through"
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               }
             ],
             "inputsOutputs": [
@@ -6997,7 +6997,7 @@
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "String remains in its selected module/preparation lifetime, including escaped"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -7021,13 +7021,13 @@
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "aliases; this borrow is neither a new issuer nor a physical release acknowledgement."
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Independent Host entries without this preparation retain their own acquisition"
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               }
             ],
             "verification": [
@@ -7051,7 +7051,7 @@
             "responsibility": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The embedded consumer passes its raw options to this synchronous begin and,"
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               }
             ],
             "inputsOutputs": [
@@ -7073,7 +7073,7 @@
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "callbacks and non-DATA values retain exact identity for their existing Owners;"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -7097,13 +7097,13 @@
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "allowances, not backing-byte amounts or a numerical profile. Explicit traversal"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "selected path, not an invalid general public option. Original Host handles,"
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               }
             ],
             "verification": [
@@ -7129,7 +7129,7 @@
             "responsibility": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The selected public-entry consumer initially supports omitted `open` input."
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               }
             ],
             "inputsOutputs": [
@@ -7151,7 +7151,7 @@
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The returned Client and `info.stateDir` describe that same registry Host and"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -7175,13 +7175,13 @@
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "envelope; its result or failure stays with the same preparation record through"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "validation remain necessary; unsupported selected inputs are unavailable."
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               }
             ],
             "verification": [
@@ -7205,7 +7205,7 @@
             "responsibility": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The prepared installed Host uses this same projection for its fixed numeric"
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               }
             ],
             "inputsOutputs": [
@@ -7223,13 +7223,13 @@
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The private preparation method, original String aliases, decoded trees and"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "scope, five references and currentness before and after the captured supplier"
+                "anchor": "Synchronization snapshots each selected method and receiver"
               }
             ],
             "failure": [
@@ -7247,13 +7247,13 @@
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "canonical encodings overlap the same preparation/image lifetime. Borrowing an"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "entrances retain their independent existing file-acquisition responsibility."
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               }
             ],
             "verification": [
@@ -8896,7 +8896,7 @@
             "responsibility": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The embedded consumer passes its raw options to this synchronous begin and,"
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               }
             ],
             "inputsOutputs": [
@@ -8918,7 +8918,7 @@
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "callbacks and non-DATA values retain exact identity for their existing Owners;"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -8942,13 +8942,13 @@
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "allowances, not backing-byte amounts or a numerical profile. Explicit traversal"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "selected path, not an invalid general public option. Original Host handles,"
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               }
             ],
             "verification": [
@@ -8972,7 +8972,7 @@
             "responsibility": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The embedded consumer passes its raw options to this synchronous begin and,"
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               }
             ],
             "inputsOutputs": [
@@ -8994,7 +8994,7 @@
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "callbacks and non-DATA values retain exact identity for their existing Owners;"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -9018,13 +9018,13 @@
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "allowances, not backing-byte amounts or a numerical profile. Explicit traversal"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "selected path, not an invalid general public option. Original Host handles,"
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               }
             ],
             "verification": [
