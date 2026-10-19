@@ -356,27 +356,44 @@ fn local_submission_start(
       scope,
       @local_host.native_client_submission_request_id(reference),
     ).unwrap_or_else(() => stop("LocalRequestIdentityUnavailable"))
-    let policy_binding = local_run_policy_binding(host, settings, crypto, business~)
+    let policy_binding = local_run_policy_binding(
+      host,
+      settings,
+      crypto,
+      business~,
+    )
     let (run, now) = match policy_binding {
       None => (run, local_utc_now())
-      Some(binding) =>
-        match
-          match business {
-            None => binding.prepare_submission_policy(
-              reference, preparation, request, local_utc_now(), @env.now().to_double(),
+      Some(binding) => {
+        let prepared_policy = match business {
+          None =>
+            binding.prepare_submission_policy(
+              reference,
+              preparation,
+              request,
+              local_utc_now(),
+              @env.now().to_double(),
             )
-            Some(original) => local_business_policy_result(
+          Some(original) =>
+            local_business_policy_result(
               original,
               original.capture.prepare_run_policy_in_original_read(
-                binding, reference, preparation, request, local_utc_now(), @env.now().to_double(),
+                binding,
+                reference,
+                preparation,
+                request,
+                local_utc_now(),
+                @env.now().to_double(),
               ),
             )
-          } {
+        }
+        match prepared_policy {
           Ok(Accepted(_)) => return observe_original()
           Ok(Pending(policy, issued_at)) =>
             ({ ..run, retention: policy, }, issued_at)
           Err(_) => stop("LocalRunPolicyPreparationUnavailable")
         }
+      }
     }
     if !@publication.result_retention_intervals_valid(run.retention) ||
       !(@publication.result_retention_interval_state(run.retention, now)
@@ -475,17 +492,32 @@ fn local_submission_start(
         }
       Some(binding) =>
         match business {
-          None => binding.accept_issued_submitted_run_policy(
-            reference, preparation, request, compiled, definition,
-            run.retention, now, @env.now().to_double(),
-          )
-          Some(original) => local_business_policy_result(
-            original,
-            original.capture.accept_issued_policy_run_in_original_read(
-              binding, reference, preparation, request, compiled, definition,
-              run.retention, now, @env.now().to_double(),
-            ),
-          )
+          None =>
+            binding.accept_issued_submitted_run_policy(
+              reference,
+              preparation,
+              request,
+              compiled,
+              definition,
+              run.retention,
+              now,
+              @env.now().to_double(),
+            )
+          Some(original) =>
+            local_business_policy_result(
+              original,
+              original.capture.accept_issued_policy_run_in_original_read(
+                binding,
+                reference,
+                preparation,
+                request,
+                compiled,
+                definition,
+                run.retention,
+                now,
+                @env.now().to_double(),
+              ),
+            )
         }
     }
     match accepted {
@@ -494,13 +526,22 @@ fn local_submission_start(
       // is the only result to return; this candidate never begins physical work.
       Err(ForeignRun | ChangedIntent) if policy_binding is Some(binding) => {
         let saved_policy = match business {
-          None => binding.lookup_submitted_run_policy(reference, request, @env.now().to_double())
-          Some(original) => local_business_policy_result(
-            original,
-            original.capture.lookup_run_policy_in_original_read(
-              binding, reference, request, @env.now().to_double(),
-            ),
-          )
+          None =>
+            binding.lookup_submitted_run_policy(
+              reference,
+              request,
+              @env.now().to_double(),
+            )
+          Some(original) =>
+            local_business_policy_result(
+              original,
+              original.capture.lookup_run_policy_in_original_read(
+                binding,
+                reference,
+                request,
+                @env.now().to_double(),
+              ),
+            )
         }
         saved_policy.unwrap_or_else(() => stop("LocalRunAdmissionUnavailable"))
         |> ignore
