@@ -10,10 +10,18 @@ test "Group authoring retains original execution rules without claiming observat
     let profiles = authoring_profile_proof(pipeline)
     let capacity = authoring_capacity()
     let resource = resolve_authoring_values_resources(
-      profiles, 0, capacity, values_publication_limits(),
+      profiles,
+      0,
+      capacity,
+      values_publication_limits(),
     ).unwrap()
     let closure = close_pipeline_authoring(
-      profiles, capacity, [resource], 100000, 100, 3,
+      profiles,
+      capacity,
+      [resource],
+      100000,
+      100,
+      3,
     ).unwrap()
     assert_eq(pipeline_authoring_runtime_count(closure), 3)
     guard @pipeline.step_at(pipeline, 3).unwrap().operation
@@ -39,7 +47,10 @@ test "Group authoring retains original execution rules without claiming observat
         PartitionGroups => assert_eq(pending.kind, @relation.GroupPartitioning)
         EvaluateAggregate(call) | ValidateResultContract(call) => {
           assert_true(
-            physical_equal(call, @relation.aggregate_for_validation(group, index).unwrap()),
+            physical_equal(
+              call,
+              @relation.aggregate_for_validation(group, index).unwrap(),
+            ),
           )
           assert_true(
             pending.kind is @relation.AggregateDemand ||
@@ -55,7 +66,14 @@ test "Group authoring retains original execution rules without claiming observat
       is Ok(_),
     )
     assert_true(
-      close_pipeline_authoring(profiles, capacity, [resource], exact - 1, 100, 3)
+      close_pipeline_authoring(
+        profiles,
+        capacity,
+        [resource],
+        exact - 1,
+        100,
+        3,
+      )
       is Err(BudgetExceeded),
     )
     assert_true(
@@ -69,8 +87,7 @@ test "Group authoring retains original execution rules without claiming observat
 test "Group authoring cannot defer missing numeric observations or collection limits" {
   for
     call in [
-      "{\"fn\":\"sum\",\"field\":\"n\"}",
-      "{\"fn\":\"array_agg\",\"field\":\"n\",\"order_by\":[{\"n\":\"asc\"}],\"max_items\":{\"$param\":\"x\"}}",
+      "{\"fn\":\"sum\",\"field\":\"n\"}", "{\"fn\":\"array_agg\",\"field\":\"n\",\"order_by\":[{\"n\":\"asc\"}],\"max_items\":{\"$param\":\"x\"}}",
     ] {
     let pipeline = unbound_profile_pipeline(
       true,
@@ -79,7 +96,10 @@ test "Group authoring cannot defer missing numeric observations or collection li
     let profiles = authoring_profile_proof(pipeline)
     let capacity = authoring_capacity()
     let resource = resolve_authoring_values_resources(
-      profiles, 0, capacity, values_publication_limits(),
+      profiles,
+      0,
+      capacity,
+      values_publication_limits(),
     ).unwrap()
     assert_true(
       close_pipeline_authoring(profiles, capacity, [resource], 100000, 100, 100)
