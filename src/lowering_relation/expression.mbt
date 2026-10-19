@@ -79,6 +79,7 @@ pub(all) enum UnaryOperator {
   Round
   Trunc
   SafeNegate
+  TryDecimal
 } derive(Eq, Debug)
 
 ///|
@@ -336,6 +337,7 @@ fn expression_tag(
     | "vector_score"
     | "vector_concat"
     | "cast"
+    | "try_decimal"
     | "if"
     | "case"
     | "date_diff"
@@ -385,7 +387,7 @@ fn expression_children(
       children
     }
     "empty_array" | "literal" | "typed_literal" | "field" | "$param" => []
-    "cast" => {
+    "cast" | "try_decimal" => {
       let obj = @decode.open_object(body).unwrap()
       [@decode.lookup(obj, "value").unwrap()]
     }
@@ -1046,6 +1048,7 @@ fn lower_typed_expression_measured(
         "chr" => Unary(Chr, args[0])
         "reverse" => Unary(Reverse, args[0])
         "cast" => Cast(args[0])
+        "try_decimal" => Unary(TryDecimal, args[0])
         "not" => Unary(Not, args[0])
         "is_null" => Unary(IsNull, args[0])
         "not_null" => Unary(NotNull, args[0])

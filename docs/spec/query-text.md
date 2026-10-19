@@ -345,6 +345,14 @@ operand and `decimal(precision, scale)` target, exactly as explicit
 retains exact coefficient/scale checks, NULL and failure laws; no frontend
 value conversion, rounding or numeric-domain promotion is introduced.
 
+`TRY_DECIMAL(value, precision, scale)` retains the same literal target roles
+and emits the existing `try_decimal` body with the original operand. Its
+nullable Decimal result uses the Common exact conversion boundary: only an
+invalid or unrepresentable conversion becomes NULL. A child evaluation failure,
+control limit or admission failure remains a failure. Immediate NULL receives
+the explicit target context and stays NULL. No omitted precision/scale is
+fabricated, and ordinary CAST retains its existing failure behavior.
+
 `TO_STRING(value)`, `TO_BOOLEAN(value)` and `TO_TIMESTAMP(value)` each take
 exactly one operand and lower to the existing Common `cast` node with target
 `{"type":"string"}`, `{"type":"boolean"}` or `{"type":"timestamp"}` respectively.

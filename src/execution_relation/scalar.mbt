@@ -65,7 +65,8 @@ pub fn unary(
     | ByteLength
     | Unicode
     | Chr
-    | Reverse => Err(InvalidOperand)
+    | Reverse
+    | TryDecimal => Err(InvalidOperand)
     Length =>
       match value {
         Null => Ok(Null)

@@ -791,6 +791,47 @@ for (const entrance of ['local', 'http']) {
     });
   }
 
+  test(`${entrance}: explicit TRY_DECIMAL retains the original nullable exact conversion`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        "SELECT CAST('19.99' AS DECIMAL(4,2)) AS amount",
+        "SELECT TRY_DECIMAL('not-a-decimal',4,2) AS amount",
+        "SELECT TRY_DECIMAL(1 / 0,4,2) AS amount",
+        "SELECT TRY_DECIMAL('19.99', 4, 2) AS amount",
+        "SELECT try_decimal(19, 4, 2) AS amount",
+        "SELECT `TrY_DeCiMaL`(NULL, 4, 2) AS amount",
+        "SELECT TRY_DECIMAL(@amount, (4), (2)) AS amount",
+        "SELECT TRY_DECIMAL(CAST('19.9900' AS DECIMAL(6,4)), 4, 2) AS amount",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@amount') ? {parameterDeclarations: {amount: {type: 'string'}}, parameters: {amount: '19.99'}} : {})});
+        assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+        assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+        assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      for (const text of [
+        "SELECT TRY_DECIMAL('19.99', 4) AS bad", "SELECT TRY_DECIMAL('19.99', 4, 2, 0) AS bad",
+        "SELECT TRY_DECIMAL('19.99', 0, 0) AS bad", "SELECT TRY_DECIMAL('19.99', 39, 0) AS bad",
+        "SELECT TRY_DECIMAL('19.99', 4, 5) AS bad", "SELECT TRY_DECIMAL('19.99', 4, -1) AS bad",
+        "SELECT TRY_DECIMAL('19.99', 1.5, 0) AS bad", "SELECT TRY_DECIMAL('19.99', 4, 1.5) AS bad",
+        "SELECT TRY_DECIMAL('19.99', @precision, 2) AS bad", "SELECT TRY_DECIMAL(TRUE, 4, 2) AS bad",
+        "SELECT TRY_DECIMAL(@whole, 18, 0) AS bad",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@precision') ? {parameterDeclarations: {precision: {type: 'number'}}, parameters: {precision: 4}} : {}),
+          ...(text.includes('@whole') ? {parameterDeclarations: {whole: {type: 'int64'}}, parameters: {whole: '9007199254740993'}} : {})});
+        assert.equal(checked.report.verdict, 'invalid', text);
+      }
+      for (const text of ["SELECT TRY_DECIMAL('19.99') AS amount", "SELECT ACTQL.TRY_DECIMAL('19.99', 4, 2) AS amount"]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format});
+        assert.equal(checked.report.verdict, 'undetermined');
+        assert.equal(checked.report.coverage.limits[0].code, 'implementation_limit');
+      }
+    }
+  });
+
   test(`${entrance}: explicit TO_DECIMAL uses the original checked Decimal CAST`, async t => {
     const {client} = await publicCheck(t, entrance);
     for (const format of ['sql', 'aql-text']) {

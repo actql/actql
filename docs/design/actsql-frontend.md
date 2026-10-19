@@ -95,5 +95,7 @@ explicit DECIMAL(P,S) syntax. Precision and scale retain literal semantic roles;
 only the original value subtree is an evaluated operand. The frontend checks
 the existing bounded target shape and never evaluates or rounds the value.
 The public lookup's omitted-target spelling is not resolved by fabricating
-precision/scale: it keeps its implementation limitation. TRY_DECIMAL, QUANTIZE
-and DECIMAL_DIVIDE remain separate existing conversion/rounding responsibilities.
+precision/scale: it keeps its implementation limitation. Explicit TRY_DECIMAL
+retains its existing distinct Common body and nullable target. The same target
+context resolves immediate NULL without changing its value. QUANTIZE and
+DECIMAL_DIVIDE remain separate existing conversion/rounding responsibilities.
