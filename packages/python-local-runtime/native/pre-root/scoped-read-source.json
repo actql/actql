@@ -10,8 +10,8 @@
   ],
   "patch": {
     "path": "scoped-read-review.patch",
-    "bytes": 44580,
-    "sha256": "45c859b433edacc986ae7000a15b9afd9390920d1d6c3664bbfdfb70f6be32aa"
+    "bytes": 44853,
+    "sha256": "e3fd13df41e7b1165be563e0a1f2953368b29f8ea6e6bcb5436b4ed4d746d160"
   },
   "inputs": [
     {
@@ -192,8 +192,8 @@
       "sha256": "c713a6a0f3f5f73508099bc5678ca3c1171ea988da01fb8463cfd98469a7fd8d"
     },
     "moonbit_runtime.h": {
-      "bytes": 14824,
-      "sha256": "a5545e79f443c04436989542ca20911be0c3488906b8a05eb1fc733ac2f637ac"
+      "bytes": 15094,
+      "sha256": "7d014982e8e81110f28dd492bfca52076bf8cb10c34fc278475fef2115e5785f"
     },
     "moonbit_simd.h": {
       "bytes": 78816,

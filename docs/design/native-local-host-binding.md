@@ -2041,8 +2041,18 @@ SQL latch is cleared. A refused recovery retains both the flight and original
 failure; healthy duplicate entry still refuses and normal execution never
 resumes through this path.
 
-An in-process retained execution keeps its original delegated Ledger while its
-managed work uses the corresponding physical domain. Logical stop precedes
+An in-process retained execution keeps its original delegated Ledger. Ordinary
+copied Moon values use the trusted runtime allocator even during an entered
+Read; the explicit `ACTQL_RUNTIME_MANAGED_VALUES` build selection must agree
+across generated Core, runtime and FFI objects. Their last Host reference can
+retire without claiming that process allocator caches have been returned.
+Native/File buffers, shared components and zero-copy aliases still use their
+actual original Read/domain and keep it busy until their real release. The
+separate scoped-managed diagnostic selection retains its original arena alias
+semantics; its objects cannot be mixed with ordinary-mode objects. Neither
+selection creates capacity, authority or a physical acknowledgement.
+
+Logical stop precedes
 physical retirement, and both remain distinct from the original usage report,
 parent loan, Host and descriptor acknowledgements. Entering another phase never
 creates a new Ledger or restores consumed capacity.
