@@ -2474,18 +2474,27 @@ are not admitted in 0.1. Their forms are
 `{date_diff: [{field: end_timestamp}, {field: start_timestamp}, {literal: unit}]}`. Timestamp
 inputs and `date_add` results use canonical UTC ISO-8601 strings; `date_diff`
 returns a finite numeric count in the authored fixed unit.
-For Timestamp `date_add`, first evaluate the original Number amount under the
-ordinary binary64 rounding laws, then interpret the resulting bits exactly as
-a duration in the authored fixed unit. Add that duration to the original exact
-instant without a rounded binary64 unit product or decimal-spelling
-reinterpretation. A nonintegral nanosecond result or calendar-range overflow
-fails with the existing ArithmeticFailure; no rounding or truncation is
-introduced. Thus 0.125 seconds and 0.5 milliseconds can succeed, while binary64
-0.1 seconds and binary64 1e-9 seconds fail rather than becoming ideal decimal
-rational durations. Signed carry preserves original nanoseconds. Date keeps
-integer-day-only arithmetic; this does not restrict Timestamp amounts to
-integers. NULL, eager original child demand, enclosing lazy demand, resource
-limits and cancellation retain their existing owners.
+
+<!-- requirement-block: scalar-expressions.exact-number-date-add-duration -->
+For Timestamp `date_add`, the Common temporal owner MUST first evaluate the
+original Number amount under ordinary binary64 rounding laws, then interpret
+the resulting bits exactly as a duration in the authored fixed unit, without a
+rounded binary64 unit product or decimal-spelling reinterpretation.
+
+<!-- requirement-block: scalar-expressions.exact-number-date-add-result -->
+The operation MUST add the exact duration to the original instant with signed
+carry preserving original nanoseconds, failing with the existing
+ArithmeticFailure for a nonintegral nanosecond result or calendar-range
+overflow rather than rounding or truncating. Thus 0.125 seconds and 0.5
+milliseconds can succeed, while binary64 0.1 seconds and binary64 1e-9 seconds
+fail rather than becoming ideal decimal rational durations. Date keeps
+integer-day-only arithmetic; Timestamp amounts are not restricted to integers.
+
+<!-- requirement-block: scalar-expressions.exact-number-date-add-demand -->
+DATE_ADD MUST retain strict NULL propagation after original eager child demand,
+enclosing lazy demand, resource limits and cancellation under their existing
+Common owners.
+
 The decoded unit is a `{literal: ms|s|m|h|d}`. Full-word units and
 day-specific helper names are not ActQL source vocabulary.
 The expression 0.1 contract retains the binary64 arithmetic laws of

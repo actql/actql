@@ -3116,6 +3116,39 @@
       }
     },
     {
+      "requirement_id": "actql.language/scalar-expressions.exact-number-date-add-duration",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the Common consumer and independent positive and negative evidence.",
+      "source": {
+        "anchor": "scalar-expressions",
+        "kind": "prose"
+      },
+      "statement_sha256": "9efa1260b41b8c224cece6b20c0cf0774e2a53012dfaabae714647671ca0a426"
+    },
+    {
+      "requirement_id": "actql.language/scalar-expressions.exact-number-date-add-result",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the Common consumer and independent positive and negative evidence.",
+      "source": {
+        "anchor": "scalar-expressions",
+        "kind": "prose"
+      },
+      "statement_sha256": "bd13e65f5bdcb0f0fc75f7b5f39c9a7d16b2e5995fba52c14bb98efd6e7ca1d2"
+    },
+    {
+      "requirement_id": "actql.language/scalar-expressions.exact-number-date-add-demand",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the Common consumer and independent positive and negative evidence.",
+      "source": {
+        "anchor": "scalar-expressions",
+        "kind": "prose"
+      },
+      "statement_sha256": "b4adf7eb75c82096e5ad799fe3d1e80cf8cf02b3dfe523c693c84726e8600ddf"
+    },
+    {
       "requirement_id": "actql.language/scalar-expressions.function-0-1-result-to-number-string-canonical",
       "statement_sha256": "36fcf2a924e1335676f6c4cb2812f1eedc780aa2e89c315ac4236d545e1206dd",
       "status": "pending",
