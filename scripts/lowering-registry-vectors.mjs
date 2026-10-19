@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync} from 'node:fs';
+import {machineCid} from './actql-spec-family.mjs';
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const contract = read('spec/contracts/actql-aoa.json');
 const registry = read(contract.pipeline_registry_file);
@@ -76,6 +77,32 @@ for (const [name, value] of [['registered_body', registry], ['registered_values'
 }
 // Refresh only execution-contract inputs; authored Programs, Source identities,
 // requests, rows and failure expectations remain independent fixture evidence.
+const nativeSourceFixture = 'src/platform_native/remote_resident_source_compute_tests/';
+const queryContracts = new Map(['actql-query-acquisition', 'actql-query-process-evidence',
+  'actql-query-two-receipt'].map(name => [name, read(`spec/contracts/${name}.json`)]));
+function nativeSourceEnvironment(text, name, advertisedContracts) {
+  const pattern = new RegExp(`(let ${name} : String =\\s*\\n\\s*#\\|)([^\\n]+)`, 'g');
+  const matches = [...text.matchAll(pattern)];
+  assert.equal(matches.length, 1, name);
+  const environment = JSON.parse(matches[0][2]);
+  const originalCid = environment.evidence_bundle_cid;
+  const {evidence_bundle_cid: ignored, ...preimage} = environment;
+  assert.equal(originalCid, machineCid(preimage), `${name}: original Environment identity`);
+  for (const capability of preimage.connector_capabilities) {
+    // These fixtures explicitly select the same query evidence roles. Refresh
+    // their normative bodies, not the Source subject or an issued observation.
+    assert.equal(capability.capability_contract_cids.length, advertisedContracts.length);
+    capability.capability_contract_cids = advertisedContracts.map(name => machineCid(queryContracts.get(name)));
+  }
+  const generatedCid = machineCid(preimage);
+  return {
+    text: text.replace(pattern, (_, declaration) => declaration +
+      JSON.stringify({...preimage, evidence_bundle_cid: generatedCid}))
+      .replaceAll(originalCid, generatedCid),
+    originalCid,
+    generatedCid,
+  };
+}
 function nativeSourceContracts(path, prefix) {
   let body = readFileSync(path, 'utf8');
   for (const [name, value] of [['registry', registry], ['values', values], ['fragment', fragment]]) {
@@ -83,7 +110,29 @@ function nativeSourceContracts(path, prefix) {
     assert.equal([...body.matchAll(pattern)].length, 1, `${path}: ${name}`);
     body = body.replace(pattern, (_, declaration) => declaration + JSON.stringify(value));
   }
+  if (path === nativeSourceFixture + 'source_fixture_wbtest.mbt' ||
+      path === 'src/client_local_host/resident_source_query_regression_wbtest.mbt') {
+    body = nativeSourceEnvironment(body, prefix + '_environment', ['actql-query-two-receipt']).text;
+  }
   return body;
+}
+function nativeSourceAcquisitionContracts() {
+  const path = nativeSourceFixture + 'source_compute_wbtest.mbt';
+  let body = readFileSync(path, 'utf8');
+  for (const [field, name] of [
+    ['resident_compute_query_contract', 'actql-query-acquisition'],
+    ['resident_compute_query_evidence_contract', 'actql-query-process-evidence'],
+    ['resident_compute_query_two_receipt_contract', 'actql-query-two-receipt'],
+  ]) {
+    const pattern = new RegExp(`(let ${field} : String =\\s*\\n\\s*#\\|)[^\\n]+`, 'g');
+    assert.equal([...body.matchAll(pattern)].length, 1, `${path}: ${field}`);
+    body = body.replace(pattern, (_, declaration) => declaration + JSON.stringify(queryContracts.get(name)));
+  }
+  const environment = nativeSourceEnvironment(
+    readFileSync(nativeSourceFixture + 'source_fixture_wbtest.mbt', 'utf8'),
+    'resident_effect_source_environment', ['actql-query-two-receipt']);
+  assert.equal(body.split(environment.originalCid).length, 2, `${path}: original Environment admission`);
+  return body.replace(environment.originalCid, environment.generatedCid);
 }
 for (const [path, body] of [
   ['src/client_local_host/resident_source_query_regression_wbtest.mbt',
@@ -92,6 +141,10 @@ for (const [path, body] of [
     nativeSourceContracts('src/platform_native/remote_resident_host/effect_source_fixture_wbtest.mbt', 'resident_effect_source')],
   ['src/platform_native/remote_resident_source_compute_tests/source_fixture_wbtest.mbt',
     nativeSourceContracts('src/platform_native/remote_resident_source_compute_tests/source_fixture_wbtest.mbt', 'resident_effect_source')],
+  [nativeSourceFixture + 'source_compute_wbtest.mbt', nativeSourceAcquisitionContracts()],
+  [nativeSourceFixture + 'effect_completion_free_wbtest.mbt', nativeSourceEnvironment(
+    readFileSync(nativeSourceFixture + 'effect_completion_free_wbtest.mbt', 'utf8'),
+    'native_completion_free_environment', ['actql-query-process-evidence', 'actql-query-two-receipt']).text],
   ['src/platform_native/remote_standard_host/retained_task_source_wbtest.mbt',
     nativeSourceContracts('src/platform_native/remote_standard_host/retained_task_source_wbtest.mbt', 'retained_source')],
   ['src/client_local_host/content_recovery_contracts_wbtest.mbt',
