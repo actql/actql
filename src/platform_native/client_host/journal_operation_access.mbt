@@ -9,6 +9,60 @@ priv struct NativeClientJournalOperationAccess {
     Int64,
     @sqlite.NativeSqliteIssue,
   ]
+  capacity_usage : (String) -> Result[
+    @sqlite.NativeCapacityUsage,
+    @sqlite.NativeSqliteIssue,
+  ]
+  reserve_capacity : (String, String, Int64, Int64, Int64, Int64) -> Result[
+    Bool,
+    @sqlite.NativeSqliteIssue,
+  ]
+}
+
+///|
+fn client_journal_capacity_usage(
+  database : @sqlite.Database,
+  table_name : String,
+  access : NativeClientJournalOperationAccess?,
+) -> Result[@sqlite.NativeCapacityUsage, @sqlite.NativeSqliteIssue] {
+  match access {
+    None => database.capacity_usage(table_name)
+    Some(original) => {
+      if !physical_equal(database, original.reads.database) {
+        return Err(@sqlite.Collision)
+      }
+      (original.capacity_usage)(table_name)
+    }
+  }
+}
+
+///|
+// This performs only the existing same-transaction metadata reservation.
+// Bounds and reservation rows do not issue physical backing or permission.
+fn reserve_client_journal_capacity(
+  database : @sqlite.Database,
+  table_name : String,
+  key : String,
+  bytes : Int64,
+  objects : Int64,
+  max_bytes : Int64,
+  max_objects : Int64,
+  access : NativeClientJournalOperationAccess?,
+) -> Result[Bool, @sqlite.NativeSqliteIssue] {
+  match access {
+    None =>
+      database.reserve_capacity_in_transaction(
+        table_name, key, bytes, objects, max_bytes, max_objects,
+      )
+    Some(original) => {
+      if !physical_equal(database, original.reads.database) {
+        return Err(@sqlite.Collision)
+      }
+      (original.reserve_capacity)(
+        table_name, key, bytes, objects, max_bytes, max_objects,
+      )
+    }
+  }
 }
 
 ///|

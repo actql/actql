@@ -146,6 +146,23 @@ fn NativeLocalJournalReadQueries::bootstrap_access(
 ) -> NativeClientJournalBootstrapAccess {
   {
     reads: self.access(),
+    capacity_usage: table => {
+      match self.query(() => self.database.capacity_usage(table)) {
+        Ok(value) => value
+        Err(issue) => Err(issue)
+      }
+    },
+    reserve_capacity: (table, key, bytes, objects, max_bytes, max_objects) => {
+      match
+        self.query(() => {
+          self.database.reserve_capacity_in_transaction(
+            table, key, bytes, objects, max_bytes, max_objects,
+          )
+        }) {
+        Ok(value) => value
+        Err(issue) => Err(issue)
+      }
+    },
     insert: (table_name, key, body) => {
       match self.query(() => self.database.insert(table_name, key, body)) {
         Ok(value) => value.map(_ => ())

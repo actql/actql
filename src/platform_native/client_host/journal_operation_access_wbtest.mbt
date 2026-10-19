@@ -7,6 +7,16 @@ fn journal_test_operation_access(
 ) -> NativeClientJournalOperationAccess {
   {
     reads: journal_test_read_access(database, calls),
+    capacity_usage: table => {
+      calls.push("capacity:" + table)
+      database.capacity_usage(table)
+    },
+    reserve_capacity: (table, key, bytes, objects, max_bytes, max_objects) => {
+      calls.push("reserve:" + table + ":" + key)
+      database.reserve_capacity_in_transaction(
+        table, key, bytes, objects, max_bytes, max_objects,
+      )
+    },
     insert: (table, key, body) => {
       calls.push("insert:" + table + ":" + key)
       database.insert(table, key, body)
@@ -16,6 +26,86 @@ fn journal_test_operation_access(
       database.compare_exchange(table, key, revision, body)
     },
   }
+}
+
+///|
+test "Original Journal capacity routing keeps the transaction and refuses foreign databases" {
+  let database = epoch_test_database("journal-capacity-route")
+  let foreign = epoch_test_database("journal-capacity-route-foreign")
+  let calls : Array[String] = []
+  let access = journal_test_operation_access(database, calls)
+  (access.reads.transaction)(JournalBegin).unwrap()
+  assert_true(
+    reserve_client_journal_capacity(
+      database,
+      "read-evidence",
+      "original",
+      512L,
+      1L,
+      512L,
+      1L,
+      Some(access),
+    ).unwrap(),
+  )
+  assert_false(
+    reserve_client_journal_capacity(
+      database,
+      "read-evidence",
+      "original",
+      512L,
+      1L,
+      512L,
+      1L,
+      Some(access),
+    ).unwrap(),
+  )
+  assert_true(
+    reserve_client_journal_capacity(
+      database,
+      "read-evidence",
+      "other",
+      1L,
+      1L,
+      512L,
+      1L,
+      Some(access),
+    )
+    is Err(@sqlite.CapacityExceeded),
+  )
+  let usage = client_journal_capacity_usage(
+    database,
+    "read-evidence",
+    Some(access),
+  ).unwrap()
+  assert_eq(usage.reserved_bytes, 512L)
+  assert_eq(usage.reserved_objects, 1L)
+  calls.clear()
+  assert_true(
+    client_journal_capacity_usage(foreign, "read-evidence", Some(access))
+    is Err(@sqlite.Collision),
+  )
+  assert_true(
+    reserve_client_journal_capacity(
+      foreign,
+      "read-evidence",
+      "foreign",
+      1L,
+      1L,
+      512L,
+      1L,
+      Some(access),
+    )
+    is Err(@sqlite.Collision),
+  )
+  assert_eq(calls, [])
+  (access.reads.transaction)(JournalRollback).unwrap()
+  assert_eq(
+    client_journal_capacity_usage(database, "read-evidence", Some(access)).unwrap().reserved_bytes,
+    0L,
+  )
+  assert_eq(foreign.capacity_usage("read-evidence").unwrap().reserved_bytes, 0L)
+  database.close_checked().unwrap()
+  foreign.close_checked().unwrap()
 }
 
 ///|
