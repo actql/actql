@@ -190,10 +190,29 @@ MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_database_has_store_operation(
     actql_native_sqlite_database *database) {
   return database != NULL && database->store_operation != NULL;
 }
+/* The cleanup writer must present the exact original already bound to this
+ * Database. This observation grants no new flight or scope; SQL entry below
+ * still requires the original coordinator's actual cleanup/current frame. */
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_database_matches_store_operation(
+    actql_native_sqlite_database *database,
+    actql_native_store_operation *original) {
+  return database != NULL && actql_store_operation_thread(original) &&
+    !original->closed && database->store_operation == original &&
+    original->bound_database == database &&
+    original->library == database->library;
+}
 MOONBIT_FFI_EXPORT void actql_native_sqlite_database_fence_original_store(
     actql_native_sqlite_database *database) {
   if (database == NULL) return;
   actql_native_store_operation *value = database->store_operation;
   if (actql_store_operation_thread(value) && value->bound_database == database &&
       value->library == database->library) database->transaction_fenced = 1;
+}
+
+/* Existing cleanup work uses normal current scope while healthy. A retained
+ * routing failure selects the same cleanup-only recovery, never a fresh use. */
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_enter_recovery(
+    actql_native_store_operation *value) {
+  if (!actql_store_operation_thread(value) || value->closed) return -1;
+  return actql_native_sqlite_store_operation_enter(value, value->failed ? 1 : 0);
 }

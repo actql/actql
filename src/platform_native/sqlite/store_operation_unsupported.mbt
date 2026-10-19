@@ -61,3 +61,21 @@ pub fn Library::open_original_local_store_database_with_custody(
   ignore(existing)
   Err({ original_issue: UnsupportedTarget, database: None, })
 }
+
+///|
+pub fn NativeStoreOperationOriginal::enter_cleanup_work(
+  _self : NativeStoreOperationOriginal,
+) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::insert_original_store_cleanup(
+  _self : Database,
+  _original : NativeStoreOperationOriginal,
+  _scope : String,
+  _key : String,
+  _body : Bytes,
+) -> Result[Int64, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}

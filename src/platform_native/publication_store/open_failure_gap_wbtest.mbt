@@ -3,6 +3,7 @@
 test "missing constructor custody is not an empty cleanup acknowledgement" {
   let failure : NativePublicationStoreOpenFailure = {
     original_issue: Filesystem(@filesystem.RootOpen("original refused open")),
+    operation_original: None,
     root: None,
     failed_root: None,
     lock: None,

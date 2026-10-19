@@ -536,3 +536,20 @@ pub fn open_existing_local_store_with_custody(
   }
   Err(RefusedBeforeAcquisition(UnsupportedTarget))
 }
+
+///|
+pub fn open_original_local_store_with_custody(
+  _library : @sqlite.Library,
+  _original : @sqlite.NativeStoreOperationOriginal,
+  _root_path : String,
+  _authority_cid : String,
+  _capacity_bytes : Int64,
+  _max_objects : Int64,
+  _max_record_bytes : Int64,
+  existing? : Bool = false,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Store, NativePublicationStoreOpenError] {
+  ignore(existing)
+  ignore(diagnostic_ceiling)
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
+}

@@ -22,6 +22,8 @@ pub fn open_existing_store_with_custody(@sqlite.Library, String, String, Int64, 
 
 pub fn open_local_store_with_custody(@sqlite.Library, String, String, Int64, Int64, Int64, diagnostic_ceiling? : Int?) -> Result[Store, NativePublicationStoreOpenError]
 
+pub fn open_original_local_store_with_custody(@sqlite.Library, @sqlite.NativeStoreOperationOriginal, String, String, Int64, Int64, Int64, existing? : Bool, diagnostic_ceiling? : Int?) -> Result[Store, NativePublicationStoreOpenError]
+
 pub fn open_store(@sqlite.Library, String, String, Int64, Int64, Int64) -> Result[Store, NativePublicationStoreIssue]
 
 pub fn open_store_with_custody(@sqlite.Library, String, String, Int64, Int64, Int64, diagnostic_ceiling? : Int?) -> Result[Store, NativePublicationStoreOpenError]
@@ -170,6 +172,7 @@ pub(all) enum NativePublicationStoreIssue {
   ReaderBusy
   ExistingDeliveryAttempt
   DeliveryAttemptUnresolved
+  OperationRouting(NativePublicationStoreIssue?, @sqlite.NativeSqliteIssue)
 }
 
 pub(all) enum NativePublicationStoreOpenError {
