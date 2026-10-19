@@ -1685,7 +1685,7 @@
               },
               {
                 "path": "docs/design/gmail-label-reader-custody.md",
-                "anchor": "response envelope is (P + T) × B"
+                "anchor": "response envelope is (P + T) \u00d7 B"
               }
             ],
             "extension": [
@@ -2464,7 +2464,7 @@
             "resources": [
               {
                 "path": "docs/design/gmail-label-reader-custody.md",
-                "anchor": "This factory does not register threads in the installed Source profile."
+                "anchor": "The installed Source profile explicitly selects"
               },
               {
                 "path": "adapters/connectors/gmail/host/thread-reader.mjs",
