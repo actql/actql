@@ -3,6 +3,8 @@ struct Store {
   root : @filesystem.Root
   lock : @filesystem.Lock
   database : @sqlite.Database
+  operation_original : @sqlite.NativeStoreOperationOriginal?
+  mut operation_body_active : Bool
   authority_cid : String
   journal_identity : @filesystem.NativeFileOwnership
   capacity_bytes : Int64
@@ -28,6 +30,7 @@ struct Store {
 /// wire, persistence, reservation, authority or substitute Store is issued.
 struct NativePublicationStoreOpenFailure {
   original_issue : NativePublicationStoreIssue
+  mut operation_original : @sqlite.NativeStoreOperationOriginal?
   mut root : @filesystem.Root?
   mut failed_root : @filesystem.NativeRootOpenFailure?
   mut lock : @filesystem.Lock?
@@ -50,7 +53,7 @@ pub fn NativePublicationStoreOpenFailure::issue(
 /// Re-observe only the original handles, in reverse preparation order. No
 /// reopen/schema repair and no capacity return are performed here. Missing
 /// opaque constructor custody remains pending, not a fabricated empty ACK.
-pub fn NativePublicationStoreOpenFailure::retry_cleanup(
+fn NativePublicationStoreOpenFailure::retry_cleanup_in_scope(
   self : NativePublicationStoreOpenFailure,
 ) -> Result[Unit, NativePublicationStoreIssue] {
   if self.failed_database is Some(original) {
@@ -98,6 +101,7 @@ pub fn NativePublicationStoreOpenFailure::retry_cleanup(
 ///|
 fn store_open_failure(
   original_issue : NativePublicationStoreIssue,
+  operation_original? : @sqlite.NativeStoreOperationOriginal? = None,
   root? : @filesystem.Root? = None,
   failed_root? : @filesystem.NativeRootOpenFailure? = None,
   lock? : @filesystem.Lock? = None,
@@ -108,6 +112,7 @@ fn store_open_failure(
 ) -> NativePublicationStoreOpenFailure {
   {
     original_issue,
+    operation_original,
     root,
     failed_root,
     lock,
@@ -115,6 +120,164 @@ fn store_open_failure(
     database,
     failed_database,
     cleanup_gap,
+  }
+}
+
+///|
+/// A failed open keeps the same routing carrier as well as every physical
+/// child. Scope cleanup cannot acknowledge any of those children in advance.
+pub fn NativePublicationStoreOpenFailure::retry_cleanup(
+  self : NativePublicationStoreOpenFailure,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  guard self.operation_original is Some(original) else {
+    return self.retry_cleanup_in_scope()
+  }
+  match original.enter_cleanup() {
+    Err(issue) => return Err(Database(issue))
+    Ok(_) => ()
+  }
+  let result = self.retry_cleanup_in_scope()
+  let after = original.leave_store()
+  match after {
+    Err(issue) =>
+      Err(
+        OperationRouting(
+          match result {
+            Ok(_) => None
+            Err(primary) => Some(primary)
+          },
+          issue,
+        ),
+      )
+    Ok(_) => {
+      if result is Ok(_) {
+        self.operation_original = None
+      }
+      result
+    }
+  }
+}
+
+///|
+/// The closure is package-private and comes only from the existing typed
+/// Store methods. It neither supplies an original nor grants a new operation.
+fn[T] Store::with_original_read(
+  self : Store,
+  cleanup_work : Bool,
+  final_close : Bool,
+  call : () -> Result[T, NativePublicationStoreIssue],
+) -> Result[T, NativePublicationStoreIssue] {
+  guard self.operation_original is Some(original) else { return call() }
+  if self.operation_body_active {
+    return Err(CleanupPending)
+  }
+  let before = if final_close {
+    original.enter_cleanup()
+  } else if cleanup_work {
+    original.enter_cleanup_work()
+  } else {
+    original.enter_store()
+  }
+  match before {
+    Err(issue) => return Err(Database(issue))
+    Ok(_) => ()
+  }
+  self.operation_body_active = true
+  let result = call()
+  self.operation_body_active = false
+  match original.leave_store() {
+    Err(issue) =>
+      Err(
+        OperationRouting(
+          match result {
+            Ok(_) => None
+            Err(primary) => Some(primary)
+          },
+          issue,
+        ),
+      )
+    Ok(_) => result
+  }
+}
+
+///|
+/// The fixed Native coordinator supplies this original before any Root or DB
+/// work. Absence is never projected into the generic unscoped open entrance.
+pub fn open_original_local_store_with_custody(
+  library : @sqlite.Library,
+  original : @sqlite.NativeStoreOperationOriginal,
+  root_path : String,
+  authority_cid : String,
+  capacity_bytes : Int64,
+  max_objects : Int64,
+  max_record_bytes : Int64,
+  existing? : Bool = false,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Store, NativePublicationStoreOpenError] {
+  if capacity_bytes < 0L ||
+    max_objects < 1L ||
+    max_record_bytes < 1L ||
+    max_record_bytes > 2147483647L {
+    return Err(RefusedBeforeAcquisition(InvalidConfiguration))
+  }
+  match original.enter_store() {
+    Err(issue) =>
+      return Err(
+        CleanupRequired(
+          store_open_failure(Database(issue), operation_original=Some(original)),
+        ),
+      )
+    Ok(_) => ()
+  }
+  let result = open_store_owned_with_custody(
+    library,
+    root_path,
+    authority_cid,
+    capacity_bytes,
+    max_objects,
+    max_record_bytes,
+    existing,
+    diagnostic_ceiling~,
+    local_facility=true,
+    operation_original=Some(original),
+  )
+  // Every failed constructor is retained before attempting the return scope.
+  if result is Err(CleanupRequired(failure)) {
+    failure.operation_original = Some(original)
+  }
+  match original.leave_store() {
+    Ok(_) => result
+    Err(issue) => {
+      let failure = match result {
+        Ok(store) =>
+          store_open_failure(
+            OperationRouting(None, issue),
+            operation_original=Some(original),
+            root=Some(store.root),
+            lock=Some(store.lock),
+            database=Some(store.database),
+          )
+        Err(RefusedBeforeAcquisition(primary)) =>
+          store_open_failure(
+            OperationRouting(Some(primary), issue),
+            operation_original=Some(original),
+          )
+        Err(CleanupRequired(failure)) =>
+          // Preserve the original primary, plus this separate return failure.
+          store_open_failure(
+            OperationRouting(Some(failure.issue()), issue),
+            operation_original=Some(original),
+            root=failure.root,
+            failed_root=failure.failed_root,
+            lock=failure.lock,
+            failed_lock=failure.failed_lock,
+            database=failure.database,
+            failed_database=failure.failed_database,
+            cleanup_gap=failure.cleanup_gap,
+          )
+      }
+      Err(CleanupRequired(failure))
+    }
   }
 }
 
@@ -289,14 +452,24 @@ fn record_allocation(
   store : Store,
   key : String,
   allocation : RecordedAllocation,
+  cleanup_owned? : Bool = false,
 ) -> Result[Unit, NativePublicationStoreIssue] {
   let body = allocation_body(allocation)
-  match
+  let inserted = if cleanup_owned {
+    insert_owned_cleanup_record(
+      store,
+      @payload.publication_payload_allocation_namespace(),
+      key,
+      body,
+    )
+  } else {
     store.database.insert(
       @payload.publication_payload_allocation_namespace(),
       key,
       body,
-    ) {
+    )
+  }
+  match inserted {
     Ok(_) => return Ok(())
     Err(@sqlite.Collision) => ()
     Err(issue) => return Err(Database(issue))
@@ -318,6 +491,22 @@ fn record_allocation(
     ) {
     Ok(_) => Ok(())
     Err(issue) => Err(Database(issue))
+  }
+}
+
+///|
+/// Called only by the existing ownership-checked cleanup paths. It records an
+/// already retained identity/tombstone; it cannot create a fresh reservation.
+fn insert_owned_cleanup_record(
+  store : Store,
+  table : String,
+  key : String,
+  body : Bytes,
+) -> Result[Int64, @sqlite.NativeSqliteIssue] {
+  match store.operation_original {
+    Some(original) =>
+      store.database.insert_original_store_cleanup(original, table, key, body)
+    None => store.database.insert(table, key, body)
   }
 }
 
@@ -695,8 +884,15 @@ pub fn open_local_store_with_custody(
   diagnostic_ceiling? : Int? = None,
 ) -> Result[Store, NativePublicationStoreOpenError] {
   open_store_owned_with_custody(
-    library, root_path, authority_cid, capacity_bytes, max_objects, max_record_bytes,
-    false, diagnostic_ceiling~, local_facility=true,
+    library,
+    root_path,
+    authority_cid,
+    capacity_bytes,
+    max_objects,
+    max_record_bytes,
+    false,
+    diagnostic_ceiling~,
+    local_facility=true,
   )
 }
 
@@ -711,8 +907,15 @@ pub fn open_existing_local_store_with_custody(
   diagnostic_ceiling? : Int? = None,
 ) -> Result[Store, NativePublicationStoreOpenError] {
   open_store_owned_with_custody(
-    library, root_path, authority_cid, capacity_bytes, max_objects, max_record_bytes,
-    true, diagnostic_ceiling~, local_facility=true,
+    library,
+    root_path,
+    authority_cid,
+    capacity_bytes,
+    max_objects,
+    max_record_bytes,
+    true,
+    diagnostic_ceiling~,
+    local_facility=true,
   )
 }
 
@@ -727,6 +930,7 @@ fn open_store_owned_with_custody(
   existing_only : Bool,
   diagnostic_ceiling? : Int? = None,
   local_facility? : Bool = false,
+  operation_original? : @sqlite.NativeStoreOperationOriginal? = None,
 ) -> Result[Store, NativePublicationStoreOpenError] {
   if capacity_bytes < 0L ||
     max_objects < 1L ||
@@ -778,11 +982,22 @@ fn open_store_owned_with_custody(
       )
   }
   let journal_path = root_path + "/.actql-publication.sqlite3"
-  let selected = if local_facility {
+  let selected = if operation_original is Some(original) {
+    library.open_original_local_store_database_with_custody(
+      original,
+      journal_path,
+      max_record_bytes,
+      existing=existing_only,
+    )
+  } else if local_facility {
     if existing_only {
-      library.open_existing_local_store_database_with_custody(journal_path, max_record_bytes)
+      library.open_existing_local_store_database_with_custody(
+        journal_path, max_record_bytes,
+      )
     } else {
-      library.open_local_store_database_with_custody(journal_path, max_record_bytes)
+      library.open_local_store_database_with_custody(
+        journal_path, max_record_bytes,
+      )
     }
   } else if existing_only {
     library.open_existing_database_with_custody(journal_path, max_record_bytes)
@@ -827,6 +1042,8 @@ fn open_store_owned_with_custody(
     root,
     lock,
     database,
+    operation_original,
+    operation_body_active: false,
     authority_cid,
     journal_identity,
     capacity_bytes,
@@ -1026,7 +1243,7 @@ fn reclaim_record_internal(
     // proceeds; failure keeps both this owner and its reservation.
     match
       allocation_prepare(store, "identity", fn() {
-        record_allocation(store, key, allocation)
+        record_allocation(store, key, allocation, cleanup_owned=true)
       }) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
@@ -1249,6 +1466,16 @@ pub fn Store::acquire_payload_cleanup(
   self : Store,
   request : @payload.PublicationPayloadRequest,
 ) -> Result[PayloadCleanupOwner, NativePublicationStoreIssue] {
+  self.with_original_read(true, false, fn() {
+    self.acquire_payload_cleanup_in_scope(request)
+  })
+}
+
+///|
+fn Store::acquire_payload_cleanup_in_scope(
+  self : Store,
+  request : @payload.PublicationPayloadRequest,
+) -> Result[PayloadCleanupOwner, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
   }
@@ -1284,6 +1511,13 @@ pub fn PayloadCleanupOwner::pending(self : PayloadCleanupOwner) -> Bool {
 pub fn PayloadCleanupOwner::retry(
   self : PayloadCleanupOwner,
 ) -> Result[Bool, NativePublicationStoreIssue] {
+  self.store.with_original_read(true, false, fn() { self.retry_in_scope() })
+}
+
+///|
+fn PayloadCleanupOwner::retry_in_scope(
+  self : PayloadCleanupOwner,
+) -> Result[Bool, NativePublicationStoreIssue] {
   if self.complete {
     return Ok(false)
   }
@@ -1313,6 +1547,16 @@ pub fn PayloadCleanupOwner::retry(
 
 ///|
 pub fn Store::begin_payload(
+  self : Store,
+  request : @payload.PublicationPayloadRequest,
+) -> Result[PayloadWriter, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.begin_payload_in_scope(request)
+  })
+}
+
+///|
+fn Store::begin_payload_in_scope(
   self : Store,
   request : @payload.PublicationPayloadRequest,
 ) -> Result[PayloadWriter, NativePublicationStoreIssue] {
@@ -1575,6 +1819,16 @@ pub fn PayloadWriter::append(
   self : PayloadWriter,
   chunk : Bytes,
 ) -> Result[Unit, NativePublicationStoreIssue] {
+  self.store.with_original_read(false, false, fn() {
+    self.append_in_scope(chunk)
+  })
+}
+
+///|
+fn PayloadWriter::append_in_scope(
+  self : PayloadWriter,
+  chunk : Bytes,
+) -> Result[Unit, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
   }
@@ -1627,6 +1881,13 @@ fn payload_info(
 pub fn PayloadWriter::seal(
   self : PayloadWriter,
 ) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue] {
+  self.store.with_original_read(false, false, fn() { self.seal_in_scope() })
+}
+
+///|
+fn PayloadWriter::seal_in_scope(
+  self : PayloadWriter,
+) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
   }
@@ -1671,6 +1932,13 @@ pub fn PayloadWriter::seal(
 pub fn PayloadWriter::cancel(
   self : PayloadWriter,
 ) -> Result[Unit, NativePublicationStoreIssue] {
+  self.store.with_original_read(true, false, fn() { self.cancel_in_scope() })
+}
+
+///|
+fn PayloadWriter::cancel_in_scope(
+  self : PayloadWriter,
+) -> Result[Unit, NativePublicationStoreIssue] {
   if self.closed {
     return Ok(())
   }
@@ -1708,6 +1976,16 @@ pub fn Store::inspect_payload(
   self : Store,
   material_generation_cid : String,
 ) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.inspect_payload_in_scope(material_generation_cid)
+  })
+}
+
+///|
+fn Store::inspect_payload_in_scope(
+  self : Store,
+  material_generation_cid : String,
+) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
   }
@@ -1735,6 +2013,16 @@ pub fn Store::inspect_payload(
 /// Reconcile one exact payload request without creating a second writer.
 /// Absence is distinct from an unresolved or conflicting durable occurrence.
 pub fn Store::reconcile_payload(
+  self : Store,
+  request : @payload.PublicationPayloadRequest,
+) -> Result[NativePublicationPayloadInfo?, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.reconcile_payload_in_scope(request)
+  })
+}
+
+///|
+fn Store::reconcile_payload_in_scope(
   self : Store,
   request : @payload.PublicationPayloadRequest,
 ) -> Result[NativePublicationPayloadInfo?, NativePublicationStoreIssue] {
@@ -1778,11 +2066,21 @@ pub fn Store::open_payload_reader(
   self : Store,
   material_generation_cid : String,
 ) -> Result[PayloadReader, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.open_payload_reader_in_scope(material_generation_cid)
+  })
+}
+
+///|
+fn Store::open_payload_reader_in_scope(
+  self : Store,
+  material_generation_cid : String,
+) -> Result[PayloadReader, NativePublicationStoreIssue] {
   match require_store_open(self) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let info = match self.inspect_payload(material_generation_cid) {
+  let info = match self.inspect_payload_in_scope(material_generation_cid) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -1807,6 +2105,16 @@ pub fn Store::open_payload_reader(
 
 ///|
 pub fn PayloadReader::next(
+  self : PayloadReader,
+  max_bytes : Int,
+) -> Result[@filesystem.NativeFileChunk, NativePublicationStoreIssue] {
+  self.store.with_original_read(false, false, fn() {
+    self.next_in_scope(max_bytes)
+  })
+}
+
+///|
+fn PayloadReader::next_in_scope(
   self : PayloadReader,
   max_bytes : Int,
 ) -> Result[@filesystem.NativeFileChunk, NativePublicationStoreIssue] {
@@ -1840,6 +2148,13 @@ fn PayloadReader::release_pin(self : PayloadReader) -> Unit {
 pub fn PayloadReader::finish(
   self : PayloadReader,
 ) -> Result[Unit, NativePublicationStoreIssue] {
+  self.store.with_original_read(false, false, fn() { self.finish_in_scope() })
+}
+
+///|
+fn PayloadReader::finish_in_scope(
+  self : PayloadReader,
+) -> Result[Unit, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
   }
@@ -1859,6 +2174,13 @@ pub fn PayloadReader::finish(
 
 ///|
 pub fn PayloadReader::close(
+  self : PayloadReader,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  self.store.with_original_read(true, false, fn() { self.close_in_scope() })
+}
+
+///|
+fn PayloadReader::close_in_scope(
   self : PayloadReader,
 ) -> Result[Unit, NativePublicationStoreIssue] {
   if self.closed {
@@ -1963,6 +2285,17 @@ pub fn Store::read_publication_contract(
   name : String,
   identity : String,
 ) -> Result[@publication.PublicationContract, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.read_publication_contract_in_scope(name, identity)
+  })
+}
+
+///|
+fn Store::read_publication_contract_in_scope(
+  self : Store,
+  name : String,
+  identity : String,
+) -> Result[@publication.PublicationContract, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
   }
@@ -2012,6 +2345,16 @@ fn put_result_schema(
 ///|
 /// Load and revalidate the canonical schema retained for a committed Result.
 pub fn Store::read_result_schema(
+  self : Store,
+  result_schema_cid : String,
+) -> Result[String, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.read_result_schema_in_scope(result_schema_cid)
+  })
+}
+
+///|
+fn Store::read_result_schema_in_scope(
   self : Store,
   result_schema_cid : String,
 ) -> Result[String, NativePublicationStoreIssue] {
@@ -2065,6 +2408,17 @@ fn publication_commit_key(
 /// Persist a monotonic observation for one admitted clock contract. A process
 /// restart or concurrent observer cannot move the durable lower bound back.
 pub fn Store::observe_trusted_clock(
+  self : Store,
+  clock_contract_cid : String,
+  observed_at : String,
+) -> Result[String, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.observe_trusted_clock_in_scope(clock_contract_cid, observed_at)
+  })
+}
+
+///|
+fn Store::observe_trusted_clock_in_scope(
   self : Store,
   clock_contract_cid : String,
   observed_at : String,
@@ -2146,6 +2500,37 @@ pub fn Store::commit_publication(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[NativePublicationCommit, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.commit_publication_in_scope(
+      run_definition, invocation, definitions, artifacts, derivations, orderings,
+      retentions, bindings, binding_schema_wires, manifest, receipt, captured_run,
+      request, attempt, index, max_wire_bytes, max_nodes, max_depth,
+    )
+  })
+}
+
+///|
+fn Store::commit_publication_in_scope(
+  self : Store,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  bindings : Array[@publication.PublicationContract],
+  binding_schema_wires : Array[String],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[NativePublicationCommit, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
   }
@@ -2167,7 +2552,7 @@ pub fn Store::commit_publication(
     Err(issue) => return Err(issue)
   }
   match
-    self.observe_publication_payload_facts(
+    self.observe_publication_payload_facts_in_scope(
       bindings, binding_schema_wires, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(_) => ()
@@ -2261,6 +2646,24 @@ pub fn Store::inspect_committed_publication(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[@publication.PublicationContract?, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.inspect_committed_publication_in_scope(
+      namespace_id, authority_scope_cid, run_definition_cid, max_wire_bytes, max_nodes,
+      max_depth,
+    )
+  })
+}
+
+///|
+fn Store::inspect_committed_publication_in_scope(
+  self : Store,
+  namespace_id : String,
+  authority_scope_cid : String,
+  run_definition_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.PublicationContract?, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
   }
@@ -2319,12 +2722,31 @@ pub fn Store::resolve_committed_result(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[NativeCommittedResult?, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.resolve_committed_result_in_scope(
+      namespace_id, authority_scope_cid, run_definition_cid, result_name, max_wire_bytes,
+      max_nodes, max_depth,
+    )
+  })
+}
+
+///|
+fn Store::resolve_committed_result_in_scope(
+  self : Store,
+  namespace_id : String,
+  authority_scope_cid : String,
+  run_definition_cid : String,
+  result_name : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[NativeCommittedResult?, NativePublicationStoreIssue] {
   match require_store_open(self) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   let index = match
-    self.inspect_committed_publication(
+    self.inspect_committed_publication_in_scope(
       namespace_id, authority_scope_cid, run_definition_cid, max_wire_bytes, max_nodes,
       max_depth,
     ) {
@@ -2588,6 +3010,27 @@ pub fn Store::open_payload_delivery(
   max_depth : Int,
   max_delivery_bytes : Int64,
 ) -> Result[PayloadDelivery, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.open_payload_delivery_in_scope(
+      material_generation_cid, format, schema_wire, fields, input_chunk_bytes, max_row_bytes,
+      max_nodes, max_depth, max_delivery_bytes,
+    )
+  })
+}
+
+///|
+fn Store::open_payload_delivery_in_scope(
+  self : Store,
+  material_generation_cid : String,
+  format : String,
+  schema_wire : String,
+  fields : Array[String],
+  input_chunk_bytes : Int,
+  max_row_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_delivery_bytes : Int64,
+) -> Result[PayloadDelivery, NativePublicationStoreIssue] {
   match require_store_open(self) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -2599,7 +3042,7 @@ pub fn Store::open_payload_delivery(
     max_delivery_bytes < 0L {
     return Err(InvalidConfiguration)
   }
-  let info = match self.inspect_payload(material_generation_cid) {
+  let info = match self.inspect_payload_in_scope(material_generation_cid) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -2635,7 +3078,8 @@ pub fn Store::open_payload_delivery(
   if prefix_bytes.length().to_int64() > max_delivery_bytes {
     return Err(DeliveryLimit)
   }
-  let reader = match self.open_payload_reader(material_generation_cid) {
+  let reader = match
+    self.open_payload_reader_in_scope(material_generation_cid) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -2680,12 +3124,33 @@ pub fn Store::open_confirmed_payload_delivery(
   max_depth : Int,
   max_delivery_bytes : Int64,
 ) -> Result[ConfirmedPayloadDelivery, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.open_confirmed_payload_delivery_in_scope(
+      material_generation_cid, format, schema_wire, fields, input_chunk_bytes, max_row_bytes,
+      max_nodes, max_depth, max_delivery_bytes,
+    )
+  })
+}
+
+///|
+fn Store::open_confirmed_payload_delivery_in_scope(
+  self : Store,
+  material_generation_cid : String,
+  format : String,
+  schema_wire : String,
+  fields : Array[String],
+  input_chunk_bytes : Int,
+  max_row_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_delivery_bytes : Int64,
+) -> Result[ConfirmedPayloadDelivery, NativePublicationStoreIssue] {
   match require_store_open(self) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   let source = match
-    self.open_payload_delivery(
+    self.open_payload_delivery_in_scope(
       material_generation_cid, format, schema_wire, fields, input_chunk_bytes, max_row_bytes,
       max_nodes, max_depth, max_delivery_bytes,
     ) {
@@ -2736,7 +3201,7 @@ fn fill_delivery_pending(
           Ok(value) => value
           Err(issue) => return Err(RowFrame(issue))
         }
-        match stream.reader.finish() {
+        match stream.reader.finish_in_scope() {
           Ok(_) => ()
           Err(issue) => return Err(issue)
         }
@@ -2765,7 +3230,7 @@ fn fill_delivery_pending(
       stream.terminal = true
       continue
     }
-    let physical = match stream.reader.next(stream.input_chunk_bytes) {
+    let physical = match stream.reader.next_in_scope(stream.input_chunk_bytes) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
@@ -2782,6 +3247,16 @@ fn fill_delivery_pending(
 
 ///|
 pub fn PayloadDelivery::next(
+  self : PayloadDelivery,
+  max_bytes : Int,
+) -> Result[NativePublicationDeliveryChunk, NativePublicationStoreIssue] {
+  self.reader.store.with_original_read(false, false, fn() {
+    self.next_in_scope(max_bytes)
+  })
+}
+
+///|
+fn PayloadDelivery::next_in_scope(
   self : PayloadDelivery,
   max_bytes : Int,
 ) -> Result[NativePublicationDeliveryChunk, NativePublicationStoreIssue] {
@@ -2815,6 +3290,15 @@ pub fn PayloadDelivery::next(
 pub fn PayloadDelivery::finish(
   self : PayloadDelivery,
 ) -> Result[NativePublicationDeliverySummary, NativePublicationStoreIssue] {
+  self.reader.store.with_original_read(false, false, fn() {
+    self.finish_in_scope()
+  })
+}
+
+///|
+fn PayloadDelivery::finish_in_scope(
+  self : PayloadDelivery,
+) -> Result[NativePublicationDeliverySummary, NativePublicationStoreIssue] {
   if self.closed ||
     !self.terminal ||
     self.pending_offset != self.pending.length() ||
@@ -2842,11 +3326,20 @@ pub fn PayloadDelivery::finish(
 pub fn PayloadDelivery::close(
   self : PayloadDelivery,
 ) -> Result[Unit, NativePublicationStoreIssue] {
+  self.reader.store.with_original_read(true, false, fn() {
+    self.close_in_scope()
+  })
+}
+
+///|
+fn PayloadDelivery::close_in_scope(
+  self : PayloadDelivery,
+) -> Result[Unit, NativePublicationStoreIssue] {
   if self.closed {
     return Ok(())
   }
   if !self.input_finished {
-    match self.reader.close() {
+    match self.reader.close_in_scope() {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
@@ -2861,6 +3354,16 @@ pub fn ConfirmedPayloadDelivery::next(
   self : ConfirmedPayloadDelivery,
   max_bytes : Int,
 ) -> Result[NativePublicationDeliveryChunk, NativePublicationStoreIssue] {
+  self.source.reader.store.with_original_read(false, false, fn() {
+    self.next_in_scope(max_bytes)
+  })
+}
+
+///|
+fn ConfirmedPayloadDelivery::next_in_scope(
+  self : ConfirmedPayloadDelivery,
+  max_bytes : Int,
+) -> Result[NativePublicationDeliveryChunk, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
   }
@@ -2868,7 +3371,7 @@ pub fn ConfirmedPayloadDelivery::next(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let chunk = match self.source.next(max_bytes) {
+  let chunk = match self.source.next_in_scope(max_bytes) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -2882,6 +3385,15 @@ pub fn ConfirmedPayloadDelivery::next(
 pub fn ConfirmedPayloadDelivery::confirm_chunk(
   self : ConfirmedPayloadDelivery,
 ) -> Result[Int64, NativePublicationStoreIssue] {
+  self.source.reader.store.with_original_read(false, false, fn() {
+    self.confirm_chunk_in_scope()
+  })
+}
+
+///|
+fn ConfirmedPayloadDelivery::confirm_chunk_in_scope(
+  self : ConfirmedPayloadDelivery,
+) -> Result[Int64, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
   }
@@ -2893,6 +3405,16 @@ pub fn ConfirmedPayloadDelivery::fail_chunk(
   self : ConfirmedPayloadDelivery,
   confirmed_prefix_bytes : Int,
 ) -> Result[Int64, NativePublicationStoreIssue] {
+  self.source.reader.store.with_original_read(true, false, fn() {
+    self.fail_chunk_in_scope(confirmed_prefix_bytes)
+  })
+}
+
+///|
+fn ConfirmedPayloadDelivery::fail_chunk_in_scope(
+  self : ConfirmedPayloadDelivery,
+  confirmed_prefix_bytes : Int,
+) -> Result[Int64, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
   }
@@ -2901,7 +3423,7 @@ pub fn ConfirmedPayloadDelivery::fail_chunk(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match self.source.close() {
+  match self.source.close_in_scope() {
     Ok(_) => {
       self.closed = true
       Ok(confirmed)
@@ -2914,6 +3436,15 @@ pub fn ConfirmedPayloadDelivery::fail_chunk(
 pub fn ConfirmedPayloadDelivery::fail(
   self : ConfirmedPayloadDelivery,
 ) -> Result[Int64, NativePublicationStoreIssue] {
+  self.source.reader.store.with_original_read(true, false, fn() {
+    self.fail_in_scope()
+  })
+}
+
+///|
+fn ConfirmedPayloadDelivery::fail_in_scope(
+  self : ConfirmedPayloadDelivery,
+) -> Result[Int64, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
   }
@@ -2921,7 +3452,7 @@ pub fn ConfirmedPayloadDelivery::fail(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match self.source.close() {
+  match self.source.close_in_scope() {
     Ok(_) => {
       self.closed = true
       Ok(confirmed)
@@ -2934,10 +3465,19 @@ pub fn ConfirmedPayloadDelivery::fail(
 pub fn ConfirmedPayloadDelivery::confirm_sink_finished(
   self : ConfirmedPayloadDelivery,
 ) -> Result[NativePublicationDeliverySummary, NativePublicationStoreIssue] {
+  self.source.reader.store.with_original_read(false, false, fn() {
+    self.confirm_sink_finished_in_scope()
+  })
+}
+
+///|
+fn ConfirmedPayloadDelivery::confirm_sink_finished_in_scope(
+  self : ConfirmedPayloadDelivery,
+) -> Result[NativePublicationDeliverySummary, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
   }
-  let source = match self.source.finish() {
+  let source = match self.source.finish_in_scope() {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -2957,10 +3497,19 @@ pub fn ConfirmedPayloadDelivery::confirm_sink_finished(
 pub fn ConfirmedPayloadDelivery::close(
   self : ConfirmedPayloadDelivery,
 ) -> Result[Unit, NativePublicationStoreIssue] {
+  self.source.reader.store.with_original_read(true, false, fn() {
+    self.close_in_scope()
+  })
+}
+
+///|
+fn ConfirmedPayloadDelivery::close_in_scope(
+  self : ConfirmedPayloadDelivery,
+) -> Result[Unit, NativePublicationStoreIssue] {
   if self.closed {
     return Ok(())
   }
-  match self.source.close() {
+  match self.source.close_in_scope() {
     Ok(_) => {
       self.closed = true
       Ok(())
@@ -2973,6 +3522,37 @@ pub fn ConfirmedPayloadDelivery::close(
 /// Begin one formally admitted Result delivery. The immutable attempt and its
 /// initial streaming record are durable before any payload byte is exposed.
 pub fn Store::begin_result_delivery(
+  self : Store,
+  index : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  grant : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  binding : @publication.PublicationContract,
+  material_generation_cid : String,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  requested_at : String,
+  schema_wire : String,
+  fields : Array[String],
+  input_chunk_bytes : Int,
+  max_row_bytes : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_delivery_bytes : Int64,
+) -> Result[ResultDelivery, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.begin_result_delivery_in_scope(
+      index, manifest, grant, retention, binding, material_generation_cid, result_name,
+      format, attempt_id, requested_at, schema_wire, fields, input_chunk_bytes, max_row_bytes,
+      max_wire_bytes, max_nodes, max_depth, max_delivery_bytes,
+    )
+  })
+}
+
+///|
+fn Store::begin_result_delivery_in_scope(
   self : Store,
   index : @publication.PublicationContract,
   manifest : @publication.PublicationContract,
@@ -3036,7 +3616,7 @@ pub fn Store::begin_result_delivery(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let info = match self.inspect_payload(material_generation_cid) {
+  let info = match self.inspect_payload_in_scope(material_generation_cid) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -3110,7 +3690,7 @@ pub fn Store::begin_result_delivery(
     Err(issue) => return Err(issue)
   }
   let source = match
-    self.open_confirmed_payload_delivery(
+    self.open_confirmed_payload_delivery_in_scope(
       material_generation_cid, format, schema_wire, fields, input_chunk_bytes, max_row_bytes,
       max_nodes, max_depth, max_delivery_bytes,
     ) {
@@ -3150,6 +3730,17 @@ pub fn ResultDelivery::next(
   max_bytes : Int,
   observed_at : String,
 ) -> Result[NativePublicationDeliveryChunk, NativePublicationStoreIssue] {
+  self.store.with_original_read(false, false, fn() {
+    self.next_in_scope(max_bytes, observed_at)
+  })
+}
+
+///|
+fn ResultDelivery::next_in_scope(
+  self : ResultDelivery,
+  max_bytes : Int,
+  observed_at : String,
+) -> Result[NativePublicationDeliveryChunk, NativePublicationStoreIssue] {
   if self.closed || self.succeeded is Some(_) {
     return Err(Closed)
   }
@@ -3171,21 +3762,40 @@ pub fn ResultDelivery::next(
   if availability != "available" {
     return Err(DeliveryLimit)
   }
-  self.source.next(max_bytes)
+  self.source.next_in_scope(max_bytes)
 }
 
 ///|
 pub fn ResultDelivery::confirm_chunk(
   self : ResultDelivery,
 ) -> Result[Int64, NativePublicationStoreIssue] {
+  self.store.with_original_read(false, false, fn() {
+    self.confirm_chunk_in_scope()
+  })
+}
+
+///|
+fn ResultDelivery::confirm_chunk_in_scope(
+  self : ResultDelivery,
+) -> Result[Int64, NativePublicationStoreIssue] {
   if self.closed || self.succeeded is Some(_) {
     return Err(Closed)
   }
-  self.source.confirm_chunk()
+  self.source.confirm_chunk_in_scope()
 }
 
 ///|
 pub fn ResultDelivery::confirm_sink_finished(
+  self : ResultDelivery,
+  observed_at : String,
+) -> Result[NativeResultDeliverySuccess, NativePublicationStoreIssue] {
+  self.store.with_original_read(false, false, fn() {
+    self.confirm_sink_finished_in_scope(observed_at)
+  })
+}
+
+///|
+fn ResultDelivery::confirm_sink_finished_in_scope(
   self : ResultDelivery,
   observed_at : String,
 ) -> Result[NativeResultDeliverySuccess, NativePublicationStoreIssue] {
@@ -3221,7 +3831,7 @@ pub fn ResultDelivery::confirm_sink_finished(
   let summary = match self.source_summary {
     Some(value) => value
     None => {
-      let value = match self.source.confirm_sink_finished() {
+      let value = match self.source.confirm_sink_finished_in_scope() {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -3336,6 +3946,24 @@ pub fn ResultDelivery::terminate(
   failure_cid : String?,
   observed_at : String,
 ) -> Result[NativeResultDeliveryFailure, NativePublicationStoreIssue] {
+  self.store.with_original_read(false, false, fn() {
+    self.terminate_in_scope(
+      confirmed_prefix_bytes, cancellation_observed, exposure, possible_unconfirmed_max_bytes,
+      failure_cid, observed_at,
+    )
+  })
+}
+
+///|
+fn ResultDelivery::terminate_in_scope(
+  self : ResultDelivery,
+  confirmed_prefix_bytes : Int?,
+  cancellation_observed : Bool,
+  exposure : String,
+  possible_unconfirmed_max_bytes : Int?,
+  failure_cid : String?,
+  observed_at : String,
+) -> Result[NativeResultDeliveryFailure, NativePublicationStoreIssue] {
   if self.succeeded is Some(_) || self.closed {
     return Err(Closed)
   }
@@ -3348,12 +3976,12 @@ pub fn ResultDelivery::terminate(
     None => {
       let value = match confirmed_prefix_bytes {
         Some(prefix) =>
-          match self.source.fail_chunk(prefix) {
+          match self.source.fail_chunk_in_scope(prefix) {
             Ok(value) => value
             Err(issue) => return Err(issue)
           }
         None =>
-          match self.source.fail() {
+          match self.source.fail_in_scope() {
             Ok(value) => value
             Err(issue) => return Err(issue)
           }
@@ -3419,10 +4047,17 @@ pub fn ResultDelivery::terminate(
 pub fn ResultDelivery::close(
   self : ResultDelivery,
 ) -> Result[Unit, NativePublicationStoreIssue] {
+  self.store.with_original_read(true, false, fn() { self.close_in_scope() })
+}
+
+///|
+fn ResultDelivery::close_in_scope(
+  self : ResultDelivery,
+) -> Result[Unit, NativePublicationStoreIssue] {
   if self.closed {
     return Ok(())
   }
-  match self.source.close() {
+  match self.source.close_in_scope() {
     Ok(_) => {
       self.closed = true
       Ok(())
@@ -3515,6 +4150,16 @@ pub fn Store::lookup_result_delivery(
   self : Store,
   scope : @publication.DeliveryAttemptLookupScope,
 ) -> Result[NativeResultDeliveryLookup?, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.lookup_result_delivery_in_scope(scope)
+  })
+}
+
+///|
+fn Store::lookup_result_delivery_in_scope(
+  self : Store,
+  scope : @publication.DeliveryAttemptLookupScope,
+) -> Result[NativeResultDeliveryLookup?, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
   }
@@ -3559,6 +4204,16 @@ pub fn Store::inspect_result_delivery(
   self : Store,
   attempt_id : String,
 ) -> Result[NativeResultDeliveryStatus, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.inspect_result_delivery_in_scope(attempt_id)
+  })
+}
+
+///|
+fn Store::inspect_result_delivery_in_scope(
+  self : Store,
+  attempt_id : String,
+) -> Result[NativeResultDeliveryStatus, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
   }
@@ -3595,6 +4250,16 @@ pub fn Store::reclaim_payload(
   self : Store,
   material_generation_cid : String,
 ) -> Result[Unit, NativePublicationStoreIssue] {
+  self.with_original_read(true, false, fn() {
+    self.reclaim_payload_in_scope(material_generation_cid)
+  })
+}
+
+///|
+fn Store::reclaim_payload_in_scope(
+  self : Store,
+  material_generation_cid : String,
+) -> Result[Unit, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
   }
@@ -3610,6 +4275,13 @@ pub fn Store::reclaim_payload(
 
 ///|
 pub fn Store::recover(
+  self : Store,
+) -> Result[NativePublicationRecovery, NativePublicationStoreIssue] {
+  self.with_original_read(true, false, fn() { self.recover_in_scope() })
+}
+
+///|
+fn Store::recover_in_scope(
   self : Store,
 ) -> Result[NativePublicationRecovery, NativePublicationStoreIssue] {
   if self.closed {
@@ -3656,7 +4328,7 @@ pub fn Store::recover(
     }
     match @payload.publication_payload_record_state(record) {
       @payload.Sealed => {
-        match self.inspect_payload(entry.key) {
+        match self.inspect_payload_in_scope(entry.key) {
           Ok(_) => ()
           Err(issue) => return Err(issue)
         }
@@ -3693,6 +4365,13 @@ pub fn Store::recover(
 pub fn Store::capacity_usage(
   self : Store,
 ) -> Result[@sqlite.NativeCapacityUsage, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() { self.capacity_usage_in_scope() })
+}
+
+///|
+fn Store::capacity_usage_in_scope(
+  self : Store,
+) -> Result[@sqlite.NativeCapacityUsage, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
   }
@@ -3704,6 +4383,21 @@ pub fn Store::capacity_usage(
 
 ///|
 pub fn Store::close(self : Store) -> Result[Bool, NativePublicationStoreIssue] {
+  // A rejected close must not spend the original Read while an existing
+  // writer or reader still needs that same normal operation to finish.
+  if self.closed {
+    return Ok(false)
+  }
+  if !self.active_writers.is_empty() || !self.active_readers.is_empty() {
+    return Err(CleanupPending)
+  }
+  self.with_original_read(true, true, fn() { self.close_in_scope() })
+}
+
+///|
+fn Store::close_in_scope(
+  self : Store,
+) -> Result[Bool, NativePublicationStoreIssue] {
   if self.closed {
     return Ok(false)
   }
@@ -3711,7 +4405,7 @@ pub fn Store::close(self : Store) -> Result[Bool, NativePublicationStoreIssue] {
     return Err(CleanupPending)
   }
   if !self.retiring {
-    match self.recover() {
+    match self.recover_in_scope() {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }

@@ -22,6 +22,26 @@ pub fn Store::prepare_effect_catalog_custody(
   crypto : @signature.Library,
   key : Bytes,
 ) -> Result[EffectCatalogCustody, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.prepare_effect_catalog_custody_in_scope(
+      catalog, binding, resource, use_cid, status, body, limits, crypto, key,
+    )
+  })
+}
+
+///|
+fn Store::prepare_effect_catalog_custody_in_scope(
+  self : Store,
+  catalog : @catalog.CatalogObservation,
+  binding : @catalog.CatalogObservationBinding,
+  resource : String,
+  use_cid : String,
+  status : Int,
+  body : Bytes,
+  limits : @catalog.DescribeLimits,
+  crypto : @signature.Library,
+  key : Bytes,
+) -> Result[EffectCatalogCustody, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
   }
@@ -89,6 +109,23 @@ pub fn Store::prepare_effect_catalog_custody(
 /// Read exact original encrypted bytes. No describe/read is repeated and no
 /// missing slot is created. A retired slot restores only capacity cleanup.
 pub fn Store::restore_effect_catalog_custody(
+  self : Store,
+  binding : @catalog.CatalogObservationBinding,
+  resource : String,
+  original_use_cid : String,
+  limits : @catalog.DescribeLimits,
+  crypto : @signature.Library,
+  key : Bytes,
+) -> Result[EffectCatalogCustody, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.restore_effect_catalog_custody_in_scope(
+      binding, resource, original_use_cid, limits, crypto, key,
+    )
+  })
+}
+
+///|
+fn Store::restore_effect_catalog_custody_in_scope(
   self : Store,
   binding : @catalog.CatalogObservationBinding,
   resource : String,
@@ -168,7 +205,7 @@ pub fn Store::restore_effect_catalog_custody(
     Err(issue) => return Err(issue)
   }
   let custody = match
-    self.prepare_effect_catalog_custody(
+    self.prepare_effect_catalog_custody_in_scope(
       response.catalog,
       binding,
       resource,
@@ -189,11 +226,29 @@ pub fn Store::restore_effect_catalog_custody(
 pub fn EffectCatalogCustody::persist(
   self : EffectCatalogCustody,
 ) -> Result[Unit, NativePublicationStoreIssue] {
+  self.private_custody.store.with_original_read(false, false, fn() {
+    self.persist_in_scope()
+  })
+}
+
+///|
+fn EffectCatalogCustody::persist_in_scope(
+  self : EffectCatalogCustody,
+) -> Result[Unit, NativePublicationStoreIssue] {
   self.private_custody.persist()
 }
 
 ///|
 pub fn EffectCatalogCustody::confirm(
+  self : EffectCatalogCustody,
+) -> Result[NativeEffectCatalogResponse, NativePublicationStoreIssue] {
+  self.private_custody.store.with_original_read(false, false, fn() {
+    self.confirm_in_scope()
+  })
+}
+
+///|
+fn EffectCatalogCustody::confirm_in_scope(
   self : EffectCatalogCustody,
 ) -> Result[NativeEffectCatalogResponse, NativePublicationStoreIssue] {
   match (self.private_custody.read(), self.response) {
@@ -206,6 +261,15 @@ pub fn EffectCatalogCustody::confirm(
 
 ///|
 pub fn EffectCatalogCustody::retry_cleanup(
+  self : EffectCatalogCustody,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  self.private_custody.store.with_original_read(true, false, fn() {
+    self.retry_cleanup_in_scope()
+  })
+}
+
+///|
+fn EffectCatalogCustody::retry_cleanup_in_scope(
   self : EffectCatalogCustody,
 ) -> Result[Bool, NativePublicationStoreIssue] {
   self.private_custody.retry_cleanup()

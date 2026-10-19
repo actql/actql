@@ -32,6 +32,7 @@ pub(all) enum NativePublicationStoreIssue {
   ReaderBusy
   ExistingDeliveryAttempt
   DeliveryAttemptUnresolved
+  OperationRouting(NativePublicationStoreIssue?, @sqlite.NativeSqliteIssue)
 }
 
 ///|

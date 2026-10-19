@@ -102,6 +102,18 @@ pub fn Store::prepare_effect_capture_custody(
   crypto : @signature.Library,
   key : Bytes,
 ) -> Result[EffectCaptureCustody, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.prepare_effect_capture_custody_in_scope(binding, crypto, key)
+  })
+}
+
+///|
+fn Store::prepare_effect_capture_custody_in_scope(
+  self : Store,
+  binding : @publication.EffectCaptureHoldingBinding,
+  crypto : @signature.Library,
+  key : Bytes,
+) -> Result[EffectCaptureCustody, NativePublicationStoreIssue] {
   match require_store_open(self) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -136,12 +148,30 @@ pub fn Store::prepare_effect_capture_custody(
 pub fn EffectCaptureCustody::persist(
   self : EffectCaptureCustody,
 ) -> Result[Unit, NativePublicationStoreIssue] {
+  self.private_custody.store.with_original_read(false, false, fn() {
+    self.persist_in_scope()
+  })
+}
+
+///|
+fn EffectCaptureCustody::persist_in_scope(
+  self : EffectCaptureCustody,
+) -> Result[Unit, NativePublicationStoreIssue] {
   self.private_custody.persist()
 }
 
 ///|
 /// Read only this original computation; terminal capture cannot be resumed.
 pub fn EffectCaptureCustody::confirm(
+  self : EffectCaptureCustody,
+) -> Result[@publication.PublicationContract, NativePublicationStoreIssue] {
+  self.private_custody.store.with_original_read(false, false, fn() {
+    self.confirm_in_scope()
+  })
+}
+
+///|
+fn EffectCaptureCustody::confirm_in_scope(
   self : EffectCaptureCustody,
 ) -> Result[@publication.PublicationContract, NativePublicationStoreIssue] {
   match self.private_custody.read() {
@@ -159,12 +189,24 @@ pub fn Store::restore_effect_capture_custody(
   crypto : @signature.Library,
   key : Bytes,
 ) -> Result[EffectCaptureCustody, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.restore_effect_capture_custody_in_scope(binding, crypto, key)
+  })
+}
+
+///|
+fn Store::restore_effect_capture_custody_in_scope(
+  self : Store,
+  binding : @publication.EffectCaptureHoldingBinding,
+  crypto : @signature.Library,
+  key : Bytes,
+) -> Result[EffectCaptureCustody, NativePublicationStoreIssue] {
   match require_store_open(self) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   let custody = match
-    self.prepare_effect_capture_custody(binding, crypto, key) {
+    self.prepare_effect_capture_custody_in_scope(binding, crypto, key) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -173,6 +215,15 @@ pub fn Store::restore_effect_capture_custody(
 
 ///|
 pub fn EffectCaptureCustody::retry_cleanup(
+  self : EffectCaptureCustody,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  self.private_custody.store.with_original_read(true, false, fn() {
+    self.retry_cleanup_in_scope()
+  })
+}
+
+///|
+fn EffectCaptureCustody::retry_cleanup_in_scope(
   self : EffectCaptureCustody,
 ) -> Result[Bool, NativePublicationStoreIssue] {
   self.private_custody.retry_cleanup()
@@ -206,6 +257,27 @@ struct EffectPreviewCustody {
 /// scope before encryption or allocation. Semantic equality cannot replace a
 /// different Run/authoring occurrence or overwrite different saved bytes.
 pub fn Store::prepare_effect_preview_custody(
+  self : Store,
+  identity : @publication.EffectPreviewIdentity,
+  wire : String,
+  authoring_cid : String,
+  store_authority : String,
+  crypto : @signature.Library,
+  key : Bytes,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[EffectPreviewCustody, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.prepare_effect_preview_custody_in_scope(
+      identity, wire, authoring_cid, store_authority, crypto, key, max_bytes, max_nodes,
+      max_depth,
+    )
+  })
+}
+
+///|
+fn Store::prepare_effect_preview_custody_in_scope(
   self : Store,
   identity : @publication.EffectPreviewIdentity,
   wire : String,
@@ -278,12 +350,33 @@ pub fn Store::restore_effect_preview_custody(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[EffectPreviewCustody, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.restore_effect_preview_custody_in_scope(
+      identity, wire, authoring_cid, store_authority, crypto, key, max_bytes, max_nodes,
+      max_depth,
+    )
+  })
+}
+
+///|
+fn Store::restore_effect_preview_custody_in_scope(
+  self : Store,
+  identity : @publication.EffectPreviewIdentity,
+  wire : String,
+  authoring_cid : String,
+  store_authority : String,
+  crypto : @signature.Library,
+  key : Bytes,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[EffectPreviewCustody, NativePublicationStoreIssue] {
   match require_store_open(self) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   let custody = match
-    self.prepare_effect_preview_custody(
+    self.prepare_effect_preview_custody_in_scope(
       identity, wire, authoring_cid, store_authority, crypto, key, max_bytes, max_nodes,
       max_depth,
     ) {
@@ -295,6 +388,15 @@ pub fn Store::restore_effect_preview_custody(
 
 ///|
 pub fn EffectPreviewCustody::persist(
+  self : EffectPreviewCustody,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  self.private_custody.store.with_original_read(false, false, fn() {
+    self.persist_in_scope()
+  })
+}
+
+///|
+fn EffectPreviewCustody::persist_in_scope(
   self : EffectPreviewCustody,
 ) -> Result[Unit, NativePublicationStoreIssue] {
   self.private_custody.persist()
@@ -309,6 +411,18 @@ pub fn EffectPreviewCustody::confirm(
   (@publication.EffectPreviewIdentity, String),
   NativePublicationStoreIssue,
 ] {
+  self.private_custody.store.with_original_read(false, false, fn() {
+    self.confirm_in_scope()
+  })
+}
+
+///|
+fn EffectPreviewCustody::confirm_in_scope(
+  self : EffectPreviewCustody,
+) -> Result[
+  (@publication.EffectPreviewIdentity, String),
+  NativePublicationStoreIssue,
+] {
   match self.private_custody.read() {
     Ok((_, false)) => Ok((self.identity, self.private_custody.wire))
     Ok((_, true)) => Err(RecoveryRequired)
@@ -318,6 +432,15 @@ pub fn EffectPreviewCustody::confirm(
 
 ///|
 pub fn EffectPreviewCustody::retry_cleanup(
+  self : EffectPreviewCustody,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  self.private_custody.store.with_original_read(true, false, fn() {
+    self.retry_cleanup_in_scope()
+  })
+}
+
+///|
+fn EffectPreviewCustody::retry_cleanup_in_scope(
   self : EffectPreviewCustody,
 ) -> Result[Bool, NativePublicationStoreIssue] {
   self.private_custody.retry_cleanup()
@@ -496,8 +619,12 @@ fn PrivateEffectEvidenceCustody::retry_cleanup(
       // If persistence won, read and retire that exact encrypted record below.
       match
         allocation_prepare(self.store, self.step_prefix + "-before-cleanup", () => {
-          self.store.database
-          .insert(self.table, self.holding, self.terminal)
+          insert_owned_cleanup_record(
+            self.store,
+            self.table,
+            self.holding,
+            self.terminal,
+          )
           .map(_ => ())
           .map_err(issue => Database(issue))
         }) {
@@ -579,6 +706,22 @@ pub fn Store::prepare_effect_checkpoint_custody(
   crypto : @signature.Library,
   key : Bytes,
 ) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.prepare_effect_checkpoint_custody_in_scope(
+      checkpoint, continuation_wire, store_authority, crypto, key,
+    )
+  })
+}
+
+///|
+fn Store::prepare_effect_checkpoint_custody_in_scope(
+  self : Store,
+  checkpoint : @checkpoint.SealedCheckpoint,
+  continuation_wire : String,
+  store_authority : String,
+  crypto : @signature.Library,
+  key : Bytes,
+) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue] {
   match require_store_open(self) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -644,6 +787,15 @@ pub fn Store::prepare_effect_checkpoint_custody(
 pub fn EffectCheckpointCustody::persist(
   self : EffectCheckpointCustody,
 ) -> Result[Unit, NativePublicationStoreIssue] {
+  self.checkpoint.store.with_original_read(false, false, fn() {
+    self.persist_in_scope()
+  })
+}
+
+///|
+fn EffectCheckpointCustody::persist_in_scope(
+  self : EffectCheckpointCustody,
+) -> Result[Unit, NativePublicationStoreIssue] {
   // Partial persistence is intentionally observable. The caller keeps both
   // handles/reservations until the exact pair is confirmed or retired.
   match self.continuation.persist() {
@@ -655,6 +807,18 @@ pub fn EffectCheckpointCustody::persist(
 
 ///|
 pub fn EffectCheckpointCustody::confirm(
+  self : EffectCheckpointCustody,
+) -> Result[
+  (@checkpoint.PersistedCheckpoint, String),
+  NativePublicationStoreIssue,
+] {
+  self.checkpoint.store.with_original_read(false, false, fn() {
+    self.confirm_in_scope()
+  })
+}
+
+///|
+fn EffectCheckpointCustody::confirm_in_scope(
   self : EffectCheckpointCustody,
 ) -> Result[
   (@checkpoint.PersistedCheckpoint, String),
@@ -690,12 +854,28 @@ pub fn Store::restore_effect_checkpoint_custody(
   crypto : @signature.Library,
   key : Bytes,
 ) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.restore_effect_checkpoint_custody_in_scope(
+      checkpoint, continuation_wire, store_authority, crypto, key,
+    )
+  })
+}
+
+///|
+fn Store::restore_effect_checkpoint_custody_in_scope(
+  self : Store,
+  checkpoint : @checkpoint.SealedCheckpoint,
+  continuation_wire : String,
+  store_authority : String,
+  crypto : @signature.Library,
+  key : Bytes,
+) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue] {
   match require_store_open(self) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   let custody = match
-    self.prepare_effect_checkpoint_custody(
+    self.prepare_effect_checkpoint_custody_in_scope(
       checkpoint, continuation_wire, store_authority, crypto, key,
     ) {
     Ok(value) => value
@@ -718,6 +898,21 @@ pub fn Store::restore_effect_checkpoint_custody(
 /// records cannot produce a confirmed handle. This grants no disclosure or
 /// resume permission and makes no Store write or capacity reservation.
 pub fn Store::restore_confirmed_effect_checkpoint_custody(
+  self : Store,
+  checkpoint : @checkpoint.SealedCheckpoint,
+  store_authority : String,
+  crypto : @signature.Library,
+  key : Bytes,
+) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.restore_confirmed_effect_checkpoint_custody_in_scope(
+      checkpoint, store_authority, crypto, key,
+    )
+  })
+}
+
+///|
+fn Store::restore_confirmed_effect_checkpoint_custody_in_scope(
   self : Store,
   checkpoint : @checkpoint.SealedCheckpoint,
   store_authority : String,
@@ -775,7 +970,7 @@ pub fn Store::restore_confirmed_effect_checkpoint_custody(
     Err(issue) => return Err(issue)
   }
   let custody = match
-    self.restore_effect_checkpoint_custody(
+    self.restore_effect_checkpoint_custody_in_scope(
       checkpoint, original_wire, store_authority, crypto, key,
     ) {
     Ok(value) => value
@@ -783,11 +978,20 @@ pub fn Store::restore_confirmed_effect_checkpoint_custody(
   }
   // Recheck both original records after decryption/preparation. Partial writes
   // and concurrent retirement stay unconfirmed; no replacement persist runs.
-  custody.confirm().map(_ => custody)
+  custody.confirm_in_scope().map(_ => custody)
 }
 
 ///|
 pub fn EffectCheckpointCustody::retry_cleanup(
+  self : EffectCheckpointCustody,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  self.checkpoint.store.with_original_read(true, false, fn() {
+    self.retry_cleanup_in_scope()
+  })
+}
+
+///|
+fn EffectCheckpointCustody::retry_cleanup_in_scope(
   self : EffectCheckpointCustody,
 ) -> Result[Bool, NativePublicationStoreIssue] {
   let checkpoint = match self.checkpoint.retry_cleanup() {

@@ -750,7 +750,12 @@ pub fn Library::open_local_store_database_with_custody(
   }
   let encoded = @utf8.encode(path)
   sqlite_open_result_with_custody(
-    open_local_store_database_ffi(self, encoded, encoded.length(), max_body_bytes),
+    open_local_store_database_ffi(
+      self,
+      encoded,
+      encoded.length(),
+      max_body_bytes,
+    ),
   )
 }
 
@@ -767,7 +772,12 @@ pub fn Library::open_existing_local_store_database_with_custody(
   }
   let encoded = @utf8.encode(path)
   sqlite_open_result_with_custody(
-    open_existing_local_store_database_ffi(self, encoded, encoded.length(), max_body_bytes),
+    open_existing_local_store_database_ffi(
+      self,
+      encoded,
+      encoded.length(),
+      max_body_bytes,
+    ),
   )
 }
 
@@ -884,26 +894,26 @@ pub fn Database::read(
   key : String,
 ) -> Result[NativeJournalValue, NativeSqliteIssue] {
   self.with_original_store_sql(true, fn() {
-  let scope_bytes = @utf8.encode(scope)
-  let key_bytes = @utf8.encode(key)
-  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
-    return Err(InvalidName)
-  }
-  let code = database_read_ffi(
-    self,
-    scope_bytes,
-    scope_bytes.length(),
-    key_bytes,
-    key_bytes.length(),
-  )
-  if code == 0 {
-    Ok({
-      revision: database_result_revision_ffi(self),
-      body: database_result_body_ffi(self),
-    })
-  } else {
-    Err(operation_issue(self, code))
-  }
+    let scope_bytes = @utf8.encode(scope)
+    let key_bytes = @utf8.encode(key)
+    if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+      return Err(InvalidName)
+    }
+    let code = database_read_ffi(
+      self,
+      scope_bytes,
+      scope_bytes.length(),
+      key_bytes,
+      key_bytes.length(),
+    )
+    if code == 0 {
+      Ok({
+        revision: database_result_revision_ffi(self),
+        body: database_result_body_ffi(self),
+      })
+    } else {
+      Err(operation_issue(self, code))
+    }
   })
 }
 
@@ -916,26 +926,26 @@ pub fn Database::read_header(
   key : String,
 ) -> Result[NativeJournalHeader, NativeSqliteIssue] {
   self.with_original_store_sql(true, fn() {
-  let scope_bytes = @utf8.encode(scope)
-  let key_bytes = @utf8.encode(key)
-  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
-    return Err(InvalidName)
-  }
-  let code = database_read_header_ffi(
-    self,
-    scope_bytes,
-    scope_bytes.length(),
-    key_bytes,
-    key_bytes.length(),
-  )
-  if code == 0 {
-    Ok({
-      revision: database_result_revision_ffi(self),
-      body_bytes: database_result_header_body_bytes_ffi(self),
-    })
-  } else {
-    Err(operation_issue(self, code))
-  }
+    let scope_bytes = @utf8.encode(scope)
+    let key_bytes = @utf8.encode(key)
+    if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+      return Err(InvalidName)
+    }
+    let code = database_read_header_ffi(
+      self,
+      scope_bytes,
+      scope_bytes.length(),
+      key_bytes,
+      key_bytes.length(),
+    )
+    if code == 0 {
+      Ok({
+        revision: database_result_revision_ffi(self),
+        body_bytes: database_result_header_body_bytes_ffi(self),
+      })
+    } else {
+      Err(operation_issue(self, code))
+    }
   })
 }
 
@@ -951,30 +961,30 @@ pub fn Database::read_with_body_limit(
   max_body_bytes : Int64,
 ) -> Result[NativeJournalValue, NativeSqliteIssue] {
   self.with_original_store_sql(true, fn() {
-  if max_body_bytes < 0L {
-    return Err(InvalidLimit)
-  }
-  let scope_bytes = @utf8.encode(scope)
-  let key_bytes = @utf8.encode(key)
-  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
-    return Err(InvalidName)
-  }
-  let code = database_read_with_body_limit_ffi(
-    self,
-    scope_bytes,
-    scope_bytes.length(),
-    key_bytes,
-    key_bytes.length(),
-    max_body_bytes,
-  )
-  if code == 0 {
-    Ok({
-      revision: database_result_revision_ffi(self),
-      body: database_result_body_ffi(self),
-    })
-  } else {
-    Err(operation_issue(self, code))
-  }
+    if max_body_bytes < 0L {
+      return Err(InvalidLimit)
+    }
+    let scope_bytes = @utf8.encode(scope)
+    let key_bytes = @utf8.encode(key)
+    if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+      return Err(InvalidName)
+    }
+    let code = database_read_with_body_limit_ffi(
+      self,
+      scope_bytes,
+      scope_bytes.length(),
+      key_bytes,
+      key_bytes.length(),
+      max_body_bytes,
+    )
+    if code == 0 {
+      Ok({
+        revision: database_result_revision_ffi(self),
+        body: database_result_body_ffi(self),
+      })
+    } else {
+      Err(operation_issue(self, code))
+    }
   })
 }
 
@@ -1014,11 +1024,11 @@ pub fn Database::inspection_status(
   self : Database,
 ) -> Result[Unit, NativeSqliteIssue] {
   self.with_original_store_sql(true, fn() {
-  if database_ready_ffi(self) && inspection_schema_ffi(self) {
-    Ok(())
-  } else {
-    Err(DatabaseOpen(decode_diagnostic(database_error_ffi(self))))
-  }
+    if database_ready_ffi(self) && inspection_schema_ffi(self) {
+      Ok(())
+    } else {
+      Err(DatabaseOpen(decode_diagnostic(database_error_ffi(self))))
+    }
   })
 }
 
@@ -1029,11 +1039,11 @@ pub fn Database::close_checked(
   self : Database,
 ) -> Result[Unit, NativeSqliteIssue] {
   self.with_original_store_sql(true, fn() {
-  if close_checked_ffi(self) {
-    Ok(())
-  } else {
-    Err(Physical(decode_diagnostic(database_error_ffi(self))))
-  }
+    if close_checked_ffi(self) {
+      Ok(())
+    } else {
+      Err(Physical(decode_diagnostic(database_error_ffi(self))))
+    }
   })
 }
 
@@ -1046,29 +1056,29 @@ pub fn Database::scan_after(
   after_key : String,
 ) -> Result[NativeJournalEntry, NativeSqliteIssue] {
   self.with_original_store_sql(true, fn() {
-  let scope_bytes = @utf8.encode(scope)
-  let after_key_bytes = @utf8.encode(after_key)
-  if !valid_name(scope_bytes) || after_key_bytes.length() > 512 {
-    return Err(InvalidName)
-  }
-  let code = database_scan_after_ffi(
-    self,
-    scope_bytes,
-    scope_bytes.length(),
-    after_key_bytes,
-    after_key_bytes.length(),
-  )
-  if code != 0 {
-    return Err(operation_issue(self, code))
-  }
-  let key = @utf8.decode(database_result_key_ffi(self)) catch {
-    _ => return Err(Physical("invalid stored journal key"))
-  }
-  Ok({
-    key,
-    revision: database_result_revision_ffi(self),
-    body: database_result_body_ffi(self),
-  })
+    let scope_bytes = @utf8.encode(scope)
+    let after_key_bytes = @utf8.encode(after_key)
+    if !valid_name(scope_bytes) || after_key_bytes.length() > 512 {
+      return Err(InvalidName)
+    }
+    let code = database_scan_after_ffi(
+      self,
+      scope_bytes,
+      scope_bytes.length(),
+      after_key_bytes,
+      after_key_bytes.length(),
+    )
+    if code != 0 {
+      return Err(operation_issue(self, code))
+    }
+    let key = @utf8.decode(database_result_key_ffi(self)) catch {
+      _ => return Err(Physical("invalid stored journal key"))
+    }
+    Ok({
+      key,
+      revision: database_result_revision_ffi(self),
+      body: database_result_body_ffi(self),
+    })
   })
 }
 
@@ -1084,33 +1094,33 @@ pub fn Database::scan_after_with_body_limit(
   max_body_bytes : Int64,
 ) -> Result[NativeJournalEntry, NativeSqliteIssue] {
   self.with_original_store_sql(true, fn() {
-  if max_body_bytes < 0L {
-    return Err(InvalidLimit)
-  }
-  let scope_bytes = @utf8.encode(scope)
-  let after_key_bytes = @utf8.encode(after_key)
-  if !valid_name(scope_bytes) || after_key_bytes.length() > 512 {
-    return Err(InvalidName)
-  }
-  let code = database_scan_after_with_body_limit_ffi(
-    self,
-    scope_bytes,
-    scope_bytes.length(),
-    after_key_bytes,
-    after_key_bytes.length(),
-    max_body_bytes,
-  )
-  if code != 0 {
-    return Err(operation_issue(self, code))
-  }
-  let key = @utf8.decode(database_result_key_ffi(self)) catch {
-    _ => return Err(Physical("invalid stored journal key"))
-  }
-  Ok({
-    key,
-    revision: database_result_revision_ffi(self),
-    body: database_result_body_ffi(self),
-  })
+    if max_body_bytes < 0L {
+      return Err(InvalidLimit)
+    }
+    let scope_bytes = @utf8.encode(scope)
+    let after_key_bytes = @utf8.encode(after_key)
+    if !valid_name(scope_bytes) || after_key_bytes.length() > 512 {
+      return Err(InvalidName)
+    }
+    let code = database_scan_after_with_body_limit_ffi(
+      self,
+      scope_bytes,
+      scope_bytes.length(),
+      after_key_bytes,
+      after_key_bytes.length(),
+      max_body_bytes,
+    )
+    if code != 0 {
+      return Err(operation_issue(self, code))
+    }
+    let key = @utf8.decode(database_result_key_ffi(self)) catch {
+      _ => return Err(Physical("invalid stored journal key"))
+    }
+    Ok({
+      key,
+      revision: database_result_revision_ffi(self),
+      body: database_result_body_ffi(self),
+    })
   })
 }
 
@@ -1122,6 +1132,17 @@ pub fn Database::insert(
   body : Bytes,
 ) -> Result[Int64, NativeSqliteIssue] {
   self.with_original_store_sql(false, fn() {
+    self.insert_in_scope(scope, key, body)
+  })
+}
+
+///|
+fn Database::insert_in_scope(
+  self : Database,
+  scope : String,
+  key : String,
+  body : Bytes,
+) -> Result[Int64, NativeSqliteIssue] {
   let scope_bytes = @utf8.encode(scope)
   let key_bytes = @utf8.encode(key)
   if !valid_name(scope_bytes) || !valid_name(key_bytes) {
@@ -1141,7 +1162,6 @@ pub fn Database::insert(
   } else {
     Err(operation_issue(self, code))
   }
-  })
 }
 
 ///|
@@ -1153,29 +1173,29 @@ pub fn Database::compare_exchange(
   body : Bytes,
 ) -> Result[Int64, NativeSqliteIssue] {
   self.with_original_store_sql(true, fn() {
-  let scope_bytes = @utf8.encode(scope)
-  let key_bytes = @utf8.encode(key)
-  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
-    return Err(InvalidName)
-  }
-  if expected_revision < 0L {
-    return Err(Collision)
-  }
-  let code = database_compare_exchange_ffi(
-    self,
-    scope_bytes,
-    scope_bytes.length(),
-    key_bytes,
-    key_bytes.length(),
-    expected_revision,
-    body,
-    body.length(),
-  )
-  if code == 0 {
-    Ok(database_result_revision_ffi(self))
-  } else {
-    Err(operation_issue(self, code))
-  }
+    let scope_bytes = @utf8.encode(scope)
+    let key_bytes = @utf8.encode(key)
+    if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+      return Err(InvalidName)
+    }
+    if expected_revision < 0L {
+      return Err(Collision)
+    }
+    let code = database_compare_exchange_ffi(
+      self,
+      scope_bytes,
+      scope_bytes.length(),
+      key_bytes,
+      key_bytes.length(),
+      expected_revision,
+      body,
+      body.length(),
+    )
+    if code == 0 {
+      Ok(database_result_revision_ffi(self))
+    } else {
+      Err(operation_issue(self, code))
+    }
   })
 }
 
@@ -1190,29 +1210,29 @@ pub fn Database::remove_exact(
   expected_body : Bytes,
 ) -> Result[Unit, NativeSqliteIssue] {
   self.with_original_store_sql(true, fn() {
-  let scope_bytes = @utf8.encode(scope)
-  let key_bytes = @utf8.encode(key)
-  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
-    return Err(InvalidName)
-  }
-  if expected_revision < 0L {
-    return Err(Collision)
-  }
-  let code = database_remove_exact_ffi(
-    self,
-    scope_bytes,
-    scope_bytes.length(),
-    key_bytes,
-    key_bytes.length(),
-    expected_revision,
-    expected_body,
-    expected_body.length(),
-  )
-  if code == 0 {
-    Ok(())
-  } else {
-    Err(operation_issue(self, code))
-  }
+    let scope_bytes = @utf8.encode(scope)
+    let key_bytes = @utf8.encode(key)
+    if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+      return Err(InvalidName)
+    }
+    if expected_revision < 0L {
+      return Err(Collision)
+    }
+    let code = database_remove_exact_ffi(
+      self,
+      scope_bytes,
+      scope_bytes.length(),
+      key_bytes,
+      key_bytes.length(),
+      expected_revision,
+      expected_body,
+      expected_body.length(),
+    )
+    if code == 0 {
+      Ok(())
+    } else {
+      Err(operation_issue(self, code))
+    }
   })
 }
 
@@ -1223,12 +1243,12 @@ pub fn Database::begin_deferred(
   self : Database,
 ) -> Result[Unit, NativeSqliteIssue] {
   self.with_original_store_sql(true, fn() {
-  let code = database_begin_deferred_ffi(self)
-  if code == 0 {
-    Ok(())
-  } else {
-    Err(operation_issue(self, code))
-  }
+    let code = database_begin_deferred_ffi(self)
+    if code == 0 {
+      Ok(())
+    } else {
+      Err(operation_issue(self, code))
+    }
   })
 }
 
@@ -1239,12 +1259,12 @@ pub fn Database::begin_immediate(
   self : Database,
 ) -> Result[Unit, NativeSqliteIssue] {
   self.with_original_store_sql(true, fn() {
-  let code = database_begin_immediate_ffi(self)
-  if code == 0 {
-    Ok(())
-  } else {
-    Err(operation_issue(self, code))
-  }
+    let code = database_begin_immediate_ffi(self)
+    if code == 0 {
+      Ok(())
+    } else {
+      Err(operation_issue(self, code))
+    }
   })
 }
 
@@ -1253,12 +1273,12 @@ pub fn Database::begin_immediate(
 /// committed separately by the portable owner after this succeeds.
 pub fn Database::commit(self : Database) -> Result[Unit, NativeSqliteIssue] {
   self.with_original_store_sql(true, fn() {
-  let code = database_commit_ffi(self)
-  if code == 0 {
-    Ok(())
-  } else {
-    Err(operation_issue(self, code))
-  }
+    let code = database_commit_ffi(self)
+    if code == 0 {
+      Ok(())
+    } else {
+      Err(operation_issue(self, code))
+    }
   })
 }
 
@@ -1278,7 +1298,9 @@ pub fn Database::fence_transactions(self : Database) -> Unit {
 ///|
 pub fn Database::transaction_fenced(self : Database) -> Bool {
   let before = database_enter_store_sql_ffi(self, 1)
-  if before != 0 { return true }
+  if before != 0 {
+    return true
+  }
   let fenced = database_transaction_fenced_ffi(self)
   let after = database_leave_store_sql_ffi(self)
   fenced || after != 0
@@ -1289,11 +1311,11 @@ pub fn Database::transaction_state(
   self : Database,
 ) -> Result[NativeSqliteTransactionState, NativeSqliteIssue] {
   self.with_original_store_sql(true, fn() {
-  match database_transaction_state_ffi(self) {
-    0 => Ok(NoActiveSqliteTransaction)
-    1 => Ok(ActiveSqliteTransaction)
-    _ => Err(DatabaseClosed)
-  }
+    match database_transaction_state_ffi(self) {
+      0 => Ok(NoActiveSqliteTransaction)
+      1 => Ok(ActiveSqliteTransaction)
+      _ => Err(DatabaseClosed)
+    }
   })
 }
 
@@ -1301,12 +1323,12 @@ pub fn Database::transaction_state(
 /// Roll back the current physical transaction after a failed adapter step.
 pub fn Database::rollback(self : Database) -> Result[Unit, NativeSqliteIssue] {
   self.with_original_store_sql(true, fn() {
-  let code = database_rollback_ffi(self)
-  if code == 0 {
-    Ok(())
-  } else {
-    Err(operation_issue(self, code))
-  }
+    let code = database_rollback_ffi(self)
+    if code == 0 {
+      Ok(())
+    } else {
+      Err(operation_issue(self, code))
+    }
   })
 }
 
@@ -1357,38 +1379,38 @@ fn Database::reserve_capacity_transaction(
   caller_transaction : Bool,
 ) -> Result[Bool, NativeSqliteIssue] {
   self.with_original_store_sql(false, fn() {
-  let scope_bytes = @utf8.encode(scope)
-  let key_bytes = @utf8.encode(key)
-  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
-    return Err(InvalidName)
-  }
-  if reserved_bytes < 0L ||
-    reserved_objects < 0L ||
-    max_bytes < 0L ||
-    max_objects < 0L {
-    return Err(InvalidLimit)
-  }
-  match
-    database_reserve_capacity_ffi(
-      self,
-      scope_bytes,
-      scope_bytes.length(),
-      key_bytes,
-      key_bytes.length(),
-      reserved_bytes,
-      reserved_objects,
-      max_bytes,
-      max_objects,
-      if caller_transaction {
-        1
-      } else {
-        0
-      },
-    ) {
-    0 => Ok(true)
-    7 => Ok(false)
-    code => Err(operation_issue(self, code))
-  }
+    let scope_bytes = @utf8.encode(scope)
+    let key_bytes = @utf8.encode(key)
+    if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+      return Err(InvalidName)
+    }
+    if reserved_bytes < 0L ||
+      reserved_objects < 0L ||
+      max_bytes < 0L ||
+      max_objects < 0L {
+      return Err(InvalidLimit)
+    }
+    match
+      database_reserve_capacity_ffi(
+        self,
+        scope_bytes,
+        scope_bytes.length(),
+        key_bytes,
+        key_bytes.length(),
+        reserved_bytes,
+        reserved_objects,
+        max_bytes,
+        max_objects,
+        if caller_transaction {
+          1
+        } else {
+          0
+        },
+      ) {
+      0 => Ok(true)
+      7 => Ok(false)
+      code => Err(operation_issue(self, code))
+    }
   })
 }
 
@@ -1432,33 +1454,33 @@ fn Database::release_capacity_transaction(
   caller_transaction : Bool,
 ) -> Result[Bool, NativeSqliteIssue] {
   self.with_original_store_sql(true, fn() {
-  let scope_bytes = @utf8.encode(scope)
-  let key_bytes = @utf8.encode(key)
-  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
-    return Err(InvalidName)
-  }
-  if reserved_bytes < 0L || reserved_objects < 0L {
-    return Err(InvalidLimit)
-  }
-  let release = if caller_transaction {
-    database_release_capacity_in_transaction_ffi
-  } else {
-    database_release_capacity_ffi
-  }
-  match
-    release(
-      self,
-      scope_bytes,
-      scope_bytes.length(),
-      key_bytes,
-      key_bytes.length(),
-      reserved_bytes,
-      reserved_objects,
-    ) {
-    0 => Ok(true)
-    7 => Ok(false)
-    code => Err(operation_issue(self, code))
-  }
+    let scope_bytes = @utf8.encode(scope)
+    let key_bytes = @utf8.encode(key)
+    if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+      return Err(InvalidName)
+    }
+    if reserved_bytes < 0L || reserved_objects < 0L {
+      return Err(InvalidLimit)
+    }
+    let release = if caller_transaction {
+      database_release_capacity_in_transaction_ffi
+    } else {
+      database_release_capacity_ffi
+    }
+    match
+      release(
+        self,
+        scope_bytes,
+        scope_bytes.length(),
+        key_bytes,
+        key_bytes.length(),
+        reserved_bytes,
+        reserved_objects,
+      ) {
+      0 => Ok(true)
+      7 => Ok(false)
+      code => Err(operation_issue(self, code))
+    }
   })
 }
 
@@ -1492,30 +1514,30 @@ pub fn Database::lookup_claim_ordinal(
   key : String,
 ) -> Result[Int64?, NativeSqliteIssue] {
   self.with_original_store_sql(true, fn() {
-  let scope_bytes = @utf8.encode(scope)
-  let key_bytes = @utf8.encode(key)
-  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
-    return Err(InvalidName)
-  }
-  match
-    database_lookup_claim_ordinal_ffi(
-      self,
-      scope_bytes,
-      scope_bytes.length(),
-      key_bytes,
-      key_bytes.length(),
-    ) {
-    0 => {
-      let ordinal = database_result_revision_ffi(self)
-      if ordinal <= 0L {
-        Err(Physical("invalid original claim ordinal"))
-      } else {
-        Ok(Some(ordinal))
-      }
+    let scope_bytes = @utf8.encode(scope)
+    let key_bytes = @utf8.encode(key)
+    if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+      return Err(InvalidName)
     }
-    1 => Ok(None)
-    code => Err(operation_issue(self, code))
-  }
+    match
+      database_lookup_claim_ordinal_ffi(
+        self,
+        scope_bytes,
+        scope_bytes.length(),
+        key_bytes,
+        key_bytes.length(),
+      ) {
+      0 => {
+        let ordinal = database_result_revision_ffi(self)
+        if ordinal <= 0L {
+          Err(Physical("invalid original claim ordinal"))
+        } else {
+          Ok(Some(ordinal))
+        }
+      }
+      1 => Ok(None)
+      code => Err(operation_issue(self, code))
+    }
   })
 }
 
@@ -1554,52 +1576,52 @@ fn Database::claim_ordinal_owned(
   caller_transaction : Bool,
 ) -> Result[NativeOrdinalClaim, NativeSqliteIssue] {
   self.with_original_store_sql(false, fn() {
-  let scope_bytes = @utf8.encode(scope)
-  let key_bytes = @utf8.encode(key)
-  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
-    return Err(InvalidName)
-  }
-  if max_claims <= 0L {
-    return Err(InvalidLimit)
-  }
-  let code = if caller_transaction {
-    database_claim_ordinal_in_transaction_ffi(
-      self,
-      scope_bytes,
-      scope_bytes.length(),
-      key_bytes,
-      key_bytes.length(),
-      max_claims,
-    )
-  } else {
-    database_claim_ordinal_ffi(
-      self,
-      scope_bytes,
-      scope_bytes.length(),
-      key_bytes,
-      key_bytes.length(),
-      max_claims,
-    )
-  }
-  match code {
-    0 => {
-      let ordinal = database_result_revision_ffi(self)
-      if ordinal <= 0L {
-        Err(Physical("invalid bounded claim ordinal"))
-      } else {
-        Ok(Fresh(ordinal))
-      }
+    let scope_bytes = @utf8.encode(scope)
+    let key_bytes = @utf8.encode(key)
+    if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+      return Err(InvalidName)
     }
-    7 => {
-      let ordinal = database_result_revision_ffi(self)
-      if ordinal <= 0L {
-        Err(Physical("invalid retained claim ordinal"))
-      } else {
-        Ok(Retained(ordinal))
-      }
+    if max_claims <= 0L {
+      return Err(InvalidLimit)
     }
-    code => Err(operation_issue(self, code))
-  }
+    let code = if caller_transaction {
+      database_claim_ordinal_in_transaction_ffi(
+        self,
+        scope_bytes,
+        scope_bytes.length(),
+        key_bytes,
+        key_bytes.length(),
+        max_claims,
+      )
+    } else {
+      database_claim_ordinal_ffi(
+        self,
+        scope_bytes,
+        scope_bytes.length(),
+        key_bytes,
+        key_bytes.length(),
+        max_claims,
+      )
+    }
+    match code {
+      0 => {
+        let ordinal = database_result_revision_ffi(self)
+        if ordinal <= 0L {
+          Err(Physical("invalid bounded claim ordinal"))
+        } else {
+          Ok(Fresh(ordinal))
+        }
+      }
+      7 => {
+        let ordinal = database_result_revision_ffi(self)
+        if ordinal <= 0L {
+          Err(Physical("invalid retained claim ordinal"))
+        } else {
+          Ok(Retained(ordinal))
+        }
+      }
+      code => Err(operation_issue(self, code))
+    }
   })
 }
 
@@ -1612,26 +1634,26 @@ pub fn Database::read_capacity(
   key : String,
 ) -> Result[NativeCapacityUsage, NativeSqliteIssue] {
   self.with_original_store_sql(true, fn() {
-  let scope_bytes = @utf8.encode(scope)
-  let key_bytes = @utf8.encode(key)
-  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
-    return Err(InvalidName)
-  }
-  let code = database_read_capacity_ffi(
-    self,
-    scope_bytes,
-    scope_bytes.length(),
-    key_bytes,
-    key_bytes.length(),
-  )
-  if code == 0 {
-    Ok({
-      reserved_bytes: database_result_capacity_bytes_ffi(self),
-      reserved_objects: database_result_capacity_objects_ffi(self),
-    })
-  } else {
-    Err(operation_issue(self, code))
-  }
+    let scope_bytes = @utf8.encode(scope)
+    let key_bytes = @utf8.encode(key)
+    if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+      return Err(InvalidName)
+    }
+    let code = database_read_capacity_ffi(
+      self,
+      scope_bytes,
+      scope_bytes.length(),
+      key_bytes,
+      key_bytes.length(),
+    )
+    if code == 0 {
+      Ok({
+        reserved_bytes: database_result_capacity_bytes_ffi(self),
+        reserved_objects: database_result_capacity_objects_ffi(self),
+      })
+    } else {
+      Err(operation_issue(self, code))
+    }
   })
 }
 
@@ -1643,16 +1665,16 @@ pub fn Database::database_usage(
   self : Database,
 ) -> Result[NativeDatabaseUsage, NativeSqliteIssue] {
   self.with_original_store_sql(true, fn() {
-  let code = database_usage_ffi(self)
-  if code == 0 {
-    Ok({
-      record_count: database_result_record_count_ffi(self),
-      body_bytes: database_result_record_body_bytes_ffi(self),
-      reservation_count: database_result_reservation_count_ffi(self),
-    })
-  } else {
-    Err(operation_issue(self, code))
-  }
+    let code = database_usage_ffi(self)
+    if code == 0 {
+      Ok({
+        record_count: database_result_record_count_ffi(self),
+        body_bytes: database_result_record_body_bytes_ffi(self),
+        reservation_count: database_result_reservation_count_ffi(self),
+      })
+    } else {
+      Err(operation_issue(self, code))
+    }
   })
 }
 
@@ -1662,23 +1684,23 @@ pub fn Database::capacity_usage(
   scope : String,
 ) -> Result[NativeCapacityUsage, NativeSqliteIssue] {
   self.with_original_store_sql(true, fn() {
-  let scope_bytes = @utf8.encode(scope)
-  if !valid_name(scope_bytes) {
-    return Err(InvalidName)
-  }
-  let code = database_capacity_usage_ffi(
-    self,
-    scope_bytes,
-    scope_bytes.length(),
-  )
-  if code == 0 {
-    Ok({
-      reserved_bytes: database_result_capacity_bytes_ffi(self),
-      reserved_objects: database_result_capacity_objects_ffi(self),
-    })
-  } else {
-    Err(operation_issue(self, code))
-  }
+    let scope_bytes = @utf8.encode(scope)
+    if !valid_name(scope_bytes) {
+      return Err(InvalidName)
+    }
+    let code = database_capacity_usage_ffi(
+      self,
+      scope_bytes,
+      scope_bytes.length(),
+    )
+    if code == 0 {
+      Ok({
+        reserved_bytes: database_result_capacity_bytes_ffi(self),
+        reserved_objects: database_result_capacity_objects_ffi(self),
+      })
+    } else {
+      Err(operation_issue(self, code))
+    }
   })
 }
 

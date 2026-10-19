@@ -31,6 +31,7 @@ pub fn Database::database_usage(Self) -> Result[NativeDatabaseUsage, NativeSqlit
 pub fn Database::diagnostic_ceiling(Self) -> Int?
 pub fn Database::fence_transactions(Self) -> Unit
 pub fn Database::insert(Self, String, String, Bytes) -> Result[Int64, NativeSqliteIssue]
+pub fn Database::insert_original_store_cleanup(Self, NativeStoreOperationOriginal, String, String, Bytes) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::inspection_status(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::lookup_claim_ordinal(Self, String, String) -> Result[Int64?, NativeSqliteIssue]
 pub fn Database::owns_lookup_read(Self, NativeLookupRead) -> Bool
@@ -156,6 +157,7 @@ pub fn NativeStoreOperationOriginal::activate(Self) -> Result[Unit, NativeSqlite
 pub fn NativeStoreOperationOriginal::cleanup_code(Self) -> Int
 pub fn NativeStoreOperationOriginal::close_checked(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn NativeStoreOperationOriginal::enter_cleanup(Self) -> Result[Unit, NativeSqliteIssue]
+pub fn NativeStoreOperationOriginal::enter_cleanup_work(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn NativeStoreOperationOriginal::enter_store(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn NativeStoreOperationOriginal::leave_store(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn NativeStoreOperationOriginal::primary_code(Self) -> Int
