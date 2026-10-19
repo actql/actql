@@ -74,7 +74,9 @@ export function launch(args) {
       expected: {...expected, platform: key}, metadata: metadata.localRuntime,
       platformFacts: {macOS, glibc}, environment});
   }
-  let selectedArguments = args;
+  // The documented command uses the same admitted Native version entrance.
+  // Native supplies the answer; no project, Host or second parser is created.
+  let selectedArguments = args.length === 1 && args[0] === 'version' ? ['--version'] : args;
   if (initialization) {
     // Preparation creates no state or key. Only the same admitted Native image
     // may adopt the explicit project Store through its existing installation
