@@ -116,8 +116,7 @@ class SQLiteSourceTests(unittest.TestCase):
             self.stage()
 
 
-if __name__ == '__main__':
-    unittest.main()
+
 
 
 class LinuxProcessSQLiteSourceTests(unittest.TestCase):
@@ -155,3 +154,7 @@ class LinuxProcessSQLiteSourceTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'target selection'):
                     self.stage(target)
                 self.assertFalse(self.destination.exists())
+
+
+if __name__ == '__main__':
+    unittest.main()
