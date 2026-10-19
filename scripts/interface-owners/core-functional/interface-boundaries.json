@@ -10343,6 +10343,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "codecInt/codecInt",
             "codecLimits/codecLimits",
             "codecLimits/codecLimits/codecLimits",
