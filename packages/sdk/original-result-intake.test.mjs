@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test, {mock} from 'node:test';
 import {connectInProcess} from './host-port.mjs';
 import {captureSourcePreparation, sourcePreparationPort} from './internal/private-source-preparation.mjs';
-import {captureQueryResultRead, collectCapturedResult} from './internal/result-read.mjs';
+import {captureQueryResultRead, collectCapturedResult, createResultFactory} from './internal/result-read.mjs';
 import {submissionEpoch, readySubmissionAttempt} from './submission-fixture.mjs';
 
 // Actual SDK entry points with explicit Host/resource ports, not operational
@@ -157,4 +157,20 @@ test('copied captures and another installation cannot consume a selected Result 
   assert.throws(() => collectCapturedResult(f.result, foreign), {code: 'InvalidResult'});
   assert.throws(() => collectCapturedResult(f.result, {...foreign}), {code: 'InvalidResult'});
   assert.equal(f.calls.includes('read'), false);
+});
+
+test('an original captured query continuation starts exactly one read', async () => {
+  let reads = 0;
+  const before = () => {}, current = () => {};
+  const result = createResultFactory({ref, limits: profile.limits, lookupContext: {},
+    typedRows: true, beforeResultRead: before, assertResultReadCurrent: current},
+  {runRequest() {reads++; return {kind: 'rows', frames: (async function* () {
+    yield {value: {n: 1}, byteLength: 8};
+  })()};}, responseValue() {}},
+  {activeReaders: new Set(), readerCleanups: new Set()}, () => undefined)('answer');
+  const token = captureQueryResultRead(before, current, 'all', undefined, undefined);
+  const collected = collectCapturedResult(result, token);
+  assert.throws(() => collectCapturedResult(result, token), {code: 'InvalidResult'});
+  assert.deepEqual(await collected, [{n: 1}]);
+  assert.equal(reads, 1);
 });
