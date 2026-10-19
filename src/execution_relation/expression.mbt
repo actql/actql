@@ -33,6 +33,7 @@ pub(all) enum EvalIssueKind {
   Scalar(ScalarIssue)
   LogicalEntry(LogicalBudgetIssue)
   LogicalValue(LogicalBudgetIssue)
+  QueryEvaluationTimeUnavailable
 } derive(Eq, Debug)
 
 ///|
@@ -51,6 +52,8 @@ priv enum Continuation {
   Array(ArrayExpressionState)
   Object(ObjectExpressionState)
   Cast(@lower.Expression, @lower.Expression)
+  TryDecimal(@lower.Expression, @lower.Expression)
+  Quantize(@lower.Expression, String)
   Left(@lower.Expression, @lower.BinaryOperator, @lower.Expression)
   Right(@lower.Expression, @lower.BinaryOperator, Value, ExpressionRootLease?)
   VectorLeft(@lower.Expression, @lower.VectorMetric, @lower.Expression)
@@ -86,6 +89,7 @@ priv enum Continuation {
   )
   BetweenArguments(BetweenArgumentsState)
   TextArguments(TextArgumentsState)
+  TemporalArguments(TemporalArgumentsState)
 }
 
 ///|
@@ -194,6 +198,7 @@ fn evaluate_expression_with_workspace(
   budget : ControlBudget,
   workspace : RowWorkspace,
   logical_work? : LogicalBudget? = None,
+  query_time? : @publication.QueryEvaluationTime? = None,
 ) -> Result[Value, EvalIssue] {
   release_expression_result(
     root,
@@ -204,6 +209,7 @@ fn evaluate_expression_with_workspace(
       budget,
       workspace,
       logical_work~,
+      query_time~,
     ),
   )
 }
@@ -235,10 +241,17 @@ fn evaluate_expression_retained(
   budget : ControlBudget,
   workspace : RowWorkspace,
   logical_work? : LogicalBudget? = None,
+  query_time? : @publication.QueryEvaluationTime? = None,
 ) -> Result[EvaluatedValue, EvalIssue] {
   let scope = logical_work.map(b => expression_roots(b, budget.max_frames))
   let result = evaluate_expression_impl(
-    root, input, slots, budget, workspace, scope,
+    root,
+    input,
+    slots,
+    budget,
+    workspace,
+    scope,
+    query_time~,
   )
   check_expression_result(root, result, logical_work)
 }
@@ -285,6 +298,7 @@ priv struct ExpressionFrame {
   budget : ControlBudget
   workspace : RowWorkspace
   scope : ExpressionRoots?
+  mut query_time : @publication.QueryEvaluationTime?
   stack : Array[Continuation]
   arrays : Array[@admitted.ArrayBuilder]
   objects : Array[@admitted.ObjectBuilder]
@@ -309,6 +323,7 @@ fn expression_frame(
   budget : ControlBudget,
   workspace : RowWorkspace,
   scope : ExpressionRoots?,
+  query_time? : @publication.QueryEvaluationTime? = None,
 ) -> Result[ExpressionFrame, EvalIssue] {
   expression_frame_with_input(
     root,
@@ -317,6 +332,7 @@ fn expression_frame(
     budget,
     workspace,
     scope,
+    query_time~,
   )
 }
 
@@ -328,6 +344,7 @@ fn expression_frame_with_input(
   budget : ControlBudget,
   workspace : RowWorkspace,
   scope : ExpressionRoots?,
+  query_time? : @publication.QueryEvaluationTime? = None,
 ) -> Result[ExpressionFrame, EvalIssue] {
   if budget.remaining < 0 ||
     budget.max_frames < 0 ||
@@ -336,6 +353,11 @@ fn expression_frame_with_input(
     workspace.live > workspace.limit {
     return Err({ kind: InvalidControlLimits, expression: root, })
   }
+  if query_time is Some(explicit) &&
+    scope.bind(s => s.query_time) is Some(original) &&
+    !physical_equal(explicit, original) {
+    return Err({ kind: QueryEvaluationTimeUnavailable, expression: root, })
+  }
   Ok({
     root,
     input,
@@ -343,6 +365,10 @@ fn expression_frame_with_input(
     budget,
     workspace,
     scope,
+    query_time: match query_time {
+      Some(time) => Some(time)
+      None => scope.bind(s => s.query_time)
+    },
     stack: [],
     arrays: [],
     objects: [],
@@ -379,6 +405,7 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
   frame.membership_context = 0
   frame.stack.clear()
   frame.current_root = None
+  frame.query_time = None
   frame.selection_root = None
   frame.selection_pending = false
   match frame.state {
@@ -441,9 +468,10 @@ fn evaluate_expression_impl(
   budget : ControlBudget,
   workspace : RowWorkspace,
   scope : ExpressionRoots?,
+  query_time? : @publication.QueryEvaluationTime? = None,
 ) -> Result[EvaluatedValue, EvalIssue] {
   let frame = match
-    expression_frame(root, input, slots, budget, workspace, scope) {
+    expression_frame(root, input, slots, budget, workspace, scope, query_time~) {
     Ok(frame) => frame
     Err(issue) => return Err(issue)
   }
@@ -527,7 +555,7 @@ fn advance_expression_frame_impl(
         }
         let body = @lower.expression_body(expr)
         let leaf = match body {
-          Field(_, _) | Literal(_) | TypedNull => true
+          Field(_, _) | Literal(_) | TypedNull | CurrentTimestamp => true
           Unary(_, _)
           | Array(_)
           | EmptyArray
@@ -585,6 +613,17 @@ fn advance_expression_frame_impl(
             frame.state = Return(value)
           }
           Literal(value) => frame.state = Return(capture(value.value))
+          CurrentTimestamp => {
+            guard frame.query_time is Some(original) else {
+              return Err({
+                kind: QueryEvaluationTimeUnavailable,
+                expression: expr,
+              })
+            }
+            frame.state = Return(
+              capture(@publication.query_evaluation_time_value(original).value),
+            )
+          }
           TypedNull => frame.state = Return(Null)
           Property(child, name, index) => {
             frame.object_context += 1
@@ -664,7 +703,13 @@ fn advance_expression_frame_impl(
             frame.state = Enter(child)
           }
           Unary(op, child) => {
-            frame.stack.push(Unary(expr, op))
+            if op is @lower.Quantize(rounding) {
+              frame.stack.push(Quantize(expr, rounding))
+            } else if op == @lower.TryDecimal {
+              frame.stack.push(TryDecimal(expr, child))
+            } else {
+              frame.stack.push(Unary(expr, op))
+            }
             frame.state = Enter(child)
           }
           Binary(op, left, right) => {
@@ -712,6 +757,29 @@ fn advance_expression_frame_impl(
           Many(op, children) => {
             guard children.get(0) is Some(first) else {
               return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+            }
+            if op == @lower.DateDifference ||
+              op == @lower.DateAddition ||
+              op == @lower.TimestampAddition ||
+              op == @lower.TimestampSubtraction {
+              if children.length() != 3 || !reserve_slots(workspace, 6) {
+                return Err({ kind: WorkspaceLimit, expression: expr, })
+              }
+              frame.stack.push(
+                TemporalArguments({
+                  expression: expr,
+                  addition: op != @lower.DateDifference,
+                  interval: op == @lower.TimestampAddition ||
+                  op == @lower.TimestampSubtraction,
+                  subtract: op == @lower.TimestampSubtraction,
+                  children,
+                  values: [],
+                  roots: [],
+                  index: 0,
+                }),
+              )
+              frame.state = Enter(first)
+              continue
             }
             if op == @lower.Between {
               if children.length() != 3 || !reserve_slots(workspace, 6) {
@@ -791,7 +859,14 @@ fn advance_expression_frame_impl(
             let initial = match op {
               And => Boolean(true)
               Or => Boolean(false)
-              Coalesce | Between | Greatest | Least => Null
+              Coalesce
+              | Between
+              | Greatest
+              | Least
+              | DateDifference
+              | DateAddition
+              | TimestampAddition
+              | TimestampSubtraction => Null
               Concat
               | ConcatStrict
               | Replace
@@ -945,6 +1020,93 @@ fn advance_expression_frame_impl(
             frame.selection_root = receiver_root
             frame.selection_pending = true
             frame.state = Return(selected)
+          }
+          TemporalArguments(args) => {
+            frame.active = args.expression
+            if charge_value(value, frame.current_root) is Some(issue) {
+              return Err({
+                kind: LogicalValue(issue),
+                expression: args.expression,
+              })
+            }
+            args.values.push(value)
+            args.roots.push(frame.current_root)
+            frame.current_root = None
+            args.index += 1
+            if args.children.get(args.index) is Some(next) {
+              frame.stack.push(TemporalArguments(args))
+              frame.state = Enter(next)
+            } else {
+              for operand in args.values {
+                match charge_comparison_operand(budget, operand) {
+                  Err(ComparisonChargeLimit) =>
+                    return Err({
+                      kind: ControlLimit,
+                      expression: args.expression,
+                    })
+                  Err(ComparisonChargeInvalidOperand) =>
+                    return Err({
+                      kind: Scalar(InvalidOperand),
+                      expression: args.expression,
+                    })
+                  Ok(_) => ()
+                }
+              }
+              guard args.values[2] is Text(unit) else {
+                return Err({
+                  kind: Scalar(InvalidOperand),
+                  expression: args.expression,
+                })
+              }
+              if args.addition && !reserve_slots(workspace, DATE_ADDITION_SLOTS) {
+                return Err({
+                  kind: WorkspaceLimit,
+                  expression: args.expression,
+                })
+              }
+              if args.addition && !spend_control(budget, 64) {
+                return Err({ kind: ControlLimit, expression: args.expression, })
+              }
+              let computed = if args.interval {
+                temporal_interval(
+                  args.expression,
+                  unit,
+                  args.values[0],
+                  args.values[1],
+                  args.subtract,
+                )
+              } else if args.addition {
+                temporal_addition(
+                  args.expression,
+                  unit,
+                  args.values[0],
+                  args.values[1],
+                )
+              } else {
+                temporal_difference(unit, args.values[0], args.values[1])
+              }
+              let result = match computed {
+                Ok(result) => result
+                Err(issue) =>
+                  return Err({
+                    kind: Scalar(issue),
+                    expression: args.expression,
+                  })
+              }
+              if args.addition {
+                release_slots(workspace, DATE_ADDITION_SLOTS)
+              }
+              for root in args.roots {
+                if release(root) is Some(issue) {
+                  return Err({
+                    kind: LogicalValue(issue),
+                    expression: args.expression,
+                  })
+                }
+              }
+              release_slots(workspace, args.children.length() + 7)
+              frame.state = Return(result)
+            }
           }
           BetweenArguments(args) => {
             frame.active = args.expression
@@ -1207,14 +1369,40 @@ fn advance_expression_frame_impl(
               Err(e) => return Err({ kind: Scalar(e), expression: expr, })
             }
           }
-          Cast(expr, child) => {
+          Quantize(expr, rounding) => {
             release_slots(workspace, 1)
             frame.active = expr
             if charge_value(value, frame.current_root) is Some(issue) {
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
             let converted = match
-              cast_expression_value(expr, child, value, budget) {
+              quantize_expression_value(
+                expr, value, rounding, budget, workspace,
+              ) {
+              Ok(value) => value
+              Err(issue) => return Err(issue)
+            }
+            if release(frame.current_root) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            frame.current_root = None
+            frame.state = Return(converted)
+          }
+          Cast(expr, child) | TryDecimal(expr, child) => {
+            let decimal_failure_null = continuation is TryDecimal(_, _)
+            release_slots(workspace, 1)
+            frame.active = expr
+            if charge_value(value, frame.current_root) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            let converted = match
+              cast_expression_value(
+                expr,
+                child,
+                value,
+                budget,
+                decimal_failure_null~,
+              ) {
               Ok(value) => value
               Err(issue) => return Err(issue)
             }
@@ -1281,7 +1469,8 @@ fn advance_expression_frame_impl(
               }
               continue
             }
-            if op == @lower.Strpos ||
+            if op == @lower.Contains ||
+              op == @lower.Strpos ||
               op == @lower.TrimSet ||
               op == @lower.LTrimSet ||
               op == @lower.RTrimSet {
@@ -1303,6 +1492,8 @@ fn advance_expression_frame_impl(
                     TextLTrim
                   } else if op == @lower.RTrimSet {
                     TextRTrim
+                  } else if op == @lower.Contains {
+                    TextContains
                   } else {
                     TextStrpos
                   },
@@ -1376,6 +1567,7 @@ fn advance_expression_frame_impl(
                 left_root,
                 value,
                 frame.current_root,
+                workspace=Some(workspace),
               ) {
               Ok(result) => result
               Err(issue) => return Err(issue)
@@ -1541,7 +1733,11 @@ fn advance_expression_frame_impl(
               | RightString
               | LPad
               | RPad
-              | Between =>
+              | Between
+              | DateDifference
+              | DateAddition
+              | TimestampAddition
+              | TimestampSubtraction =>
                 return Err({ kind: Scalar(InvalidOperand), expression: expr, })
               Coalesce => value
               Greatest | Least =>

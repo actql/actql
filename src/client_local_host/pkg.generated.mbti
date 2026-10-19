@@ -243,6 +243,8 @@ pub fn prepare_client_effect_keyed_local_join(@run_publication_host.PreparedClie
 
 pub fn prepare_client_effect_local_sequences(@run_publication_host.PreparedClientEffectComputation, String, String, String?, String?, task_count? : Int?) -> Array[@execution_relation.GeneratedSequence]?
 
+pub fn prepare_client_effect_local_sequences_at_query_time(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, String, String, String?, String?) -> Array[@execution_relation.GeneratedSequence]?
+
 pub fn prepare_client_effect_serialization_prefix(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String?) -> @execution_relation.GeneratedSequence?
 
 pub fn prepare_client_infer_prefix(@run_publication_host.PreparedClientProgram, Int, Int, String, String, fragment_body? : String?, ordered_body? : String?) -> @execution_relation.GeneratedSequence?
@@ -253,6 +255,8 @@ pub fn prepare_client_keyed_local_join(@run_publication_host.PreparedClientProgr
 
 pub fn prepare_client_local_sequences(@run_publication_host.PreparedClientProgram, String, String, String?, String?, task_count? : Int?) -> Array[@execution_relation.GeneratedSequence]?
 
+pub fn prepare_client_local_sequences_at_query_time(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, String, String, String?, String?) -> Array[@execution_relation.GeneratedSequence]?
+
 pub fn prepare_client_query_residual(@execution_query.QuerySequence, @execution_query.QueryReceipt, () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, Int, max_name_bytes~ : Int) -> Result[ClientQueryResidual, ClientQueryResidualIssue]
 
 pub fn prepare_client_retained_content_output(@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String, String, String, Array[String], () -> Bool) -> Result[ClientRetainedContentOutput, ClientInferRetainedInputIssue]
@@ -261,11 +265,15 @@ pub fn prepare_client_serialization_prefix(@run_publication_host.PreparedClientP
 
 pub fn prepare_effect_local_query_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, ClientLocalQueryIssue]
 
+pub fn prepare_effect_local_query_requirement_at_query_time(@run_publication_host.PreparedClientEffectComputation, Int, Int, @run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, ClientLocalQueryIssue]
+
 pub fn prepare_installed_managed_run_ledger(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Array[ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], String, String, String?, String?) -> Result[@physical_resources.Ledger, ClientInstalledManagedRunIssue]
 
 pub fn prepare_keyed_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, ClientInstalledCaptureCapacity, @run_publication_host.ClientKeyedAcquisition, @client_row_source_host.RowKeyedCapacity, Array[Int64], Array[Int64], Int, Int, String, String, String?, String?, serialization? : (Int, Int, Int64, Int64)?, infer? : (Int, Int, Int64, Int64)?, captured_content? : Bool) -> @physical_resources.Ledger?
 
 pub fn prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, ClientLocalQueryIssue]
+
+pub fn prepare_local_query_requirement_at_query_time(@run_publication_host.PreparedClientProgram, Int, Int, @run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, ClientLocalQueryIssue]
 
 pub fn prepare_multi_captured_effect_acquisition_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@host.CaptureConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 

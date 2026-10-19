@@ -10,37 +10,37 @@
   ],
   "patch": {
     "path": "scoped-read-review.patch",
-    "bytes": 32858,
-    "sha256": "1efe8461829d81a14ff86318a558cca7150dbd939765aaa245f7633781e7b9c6"
+    "bytes": 37718,
+    "sha256": "f22e6ac2a731683662e2ef00e6afb38958b6c9729bd0b2894d6ede72b3421a8d"
   },
   "inputs": [
     {
       "root": "provider",
       "path": "owned_capacity.c",
       "output": "owned_capacity.c",
-      "bytes": 22392,
-      "sha256": "12ed7bd55cea75d85a146da88528fac4810aa2773bf143498fe7058524bed0c9"
+      "bytes": 25264,
+      "sha256": "74d077db123fbb1ecb49ab9e8e5e08ecfdbdcf567e5360963aac16317749b24a"
     },
     {
       "root": "provider",
       "path": "owned_region.inc",
       "output": "owned_region.inc",
-      "bytes": 21541,
-      "sha256": "1d980cf798f7df52651cbed8639af2240e3b4cd87c4753b360f025ffa9279776"
+      "bytes": 21631,
+      "sha256": "aebd7984b3c8ec28ecc4507684a3bd11d438e4d05fcbe2151daf6085cc36d6fe"
     },
     {
       "root": "provider",
       "path": "owned_capacity.h",
       "output": "owned_capacity.h",
-      "bytes": 5212,
-      "sha256": "48bae3d28fc913d1eccf7b42487d9515d1935567c7aabc3ff8a2fa10b7065278"
+      "bytes": 5531,
+      "sha256": "0eff61d19679bbee232e6fc5089a24d3ab17a8f1ff46fb6ac49eb5a5ec1b6308"
     },
     {
       "root": "provider",
       "path": "owned_region.h",
       "output": "owned_region.h",
-      "bytes": 6275,
-      "sha256": "cdafe64f5a629e42bced6aea88443642bb8b75969a8258250ba7a66d39b500bc"
+      "bytes": 6617,
+      "sha256": "a9046c1ab6ba8c480dcb2f848e6e6d487ee4f86b9c0e46007da9d95f7eff13dc"
     },
     {
       "root": "provider",
@@ -200,12 +200,12 @@
       "sha256": "4995faa31ac633768430bad1b7ea28699ab601e216fb357739a092cbea455022"
     },
     "owned_capacity.c": {
-      "bytes": 23313,
-      "sha256": "5e8db5ad3455ef393bea2f8ce65c062fb17d3e42a4327d92ef39710e2939cfa9"
+      "bytes": 26185,
+      "sha256": "c0c4cabbac3a7c6ba064eefbd7986090b9716ba18f543b03da35a811084a1094"
     },
     "owned_capacity.h": {
-      "bytes": 5212,
-      "sha256": "48bae3d28fc913d1eccf7b42487d9515d1935567c7aabc3ff8a2fa10b7065278"
+      "bytes": 5531,
+      "sha256": "0eff61d19679bbee232e6fc5089a24d3ab17a8f1ff46fb6ac49eb5a5ec1b6308"
     },
     "owned_domain_borrow.h": {
       "bytes": 2573,
@@ -216,12 +216,12 @@
       "sha256": "e3914075758a265d18c3a6b075053d2fe31a3f35ee8cc8aee0548493ab814373"
     },
     "owned_region.h": {
-      "bytes": 6275,
-      "sha256": "cdafe64f5a629e42bced6aea88443642bb8b75969a8258250ba7a66d39b500bc"
+      "bytes": 6617,
+      "sha256": "a9046c1ab6ba8c480dcb2f848e6e6d487ee4f86b9c0e46007da9d95f7eff13dc"
     },
     "owned_region.inc": {
-      "bytes": 21583,
-      "sha256": "952fa3c95f46a41d9e276f59abb2a0b28ae60c8a2c5c1a73c1bf53620d74bb7d"
+      "bytes": 21673,
+      "sha256": "a88f90d073cad59e08dc527ca9c4d7ece15298079d3115cfbc3b7629a2136840"
     },
     "owned_rust_heap.inc": {
       "bytes": 12126,
@@ -244,8 +244,8 @@
       "sha256": "d54ff31b625ae64ca4366bde62fd2b42ec08a377ef15d33a748dc67744b8ee91"
     },
     "scoped_read.inc": {
-      "bytes": 26566,
-      "sha256": "72e37a05aaac4fe3629ca97a23adcb2eec97cb1f5ee21a139b289310b676f4ed"
+      "bytes": 31323,
+      "sha256": "639679f50afdb95a8a41510906e92a8e941db2f2b80ed0a7a74e866345dd887d"
     },
     "sync_io.c": {
       "bytes": 6246,
@@ -257,5 +257,29 @@
     }
   },
   "normal_profile": null,
-  "installed_supplier": false
+  "installed_supplier": false,
+  "source_targets": {
+    "aarch64-unknown-linux-gnu": {
+      "deployment_target": null,
+      "required_defines": [
+        "MOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC",
+        "ACTQL_SCOPED_READ_ALLOCATOR",
+        "_GNU_SOURCE",
+        "ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN"
+      ],
+      "binary_inputs": {
+        "lib/libmoonbitrun.o": {
+          "bytes": 173056,
+          "sha256": "d49d0147b3b414e8ae547a359500e5e480cb59c12636452d426892cc8fd9fafd"
+        },
+        "lib/libbacktrace.a": {
+          "bytes": 956034,
+          "sha256": "7ce3aedd32e1e08f3e32e1a6ef38398e8d6f943806ad1a617f69d8f25c8c5a17"
+        }
+      },
+      "required_source_parameters": [
+        "ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS"
+      ]
+    }
+  }
 }

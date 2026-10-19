@@ -14,6 +14,15 @@ pub struct AuthoringRuntimeRequirement {
   step : Int
   owner : @pipeline.OperationObligations
   index : Int
+  priv group_rule : GroupExecutionRule?
+}
+
+///|
+priv struct AuthoringOrderRequirement {
+  step : Int
+  owner : @pipeline.OperationObligations
+  index : Int
+  demand : @pipeline.OperationOrderDemand
 }
 
 ///|
@@ -23,6 +32,7 @@ struct PipelineAuthoringClosure {
   expressions : @pipeline.ExpressionSlots
   runtime : Array[AuthoringRuntimeRequirement]
   resources : Array[AuthoringValuesPublicationCheck]
+  orders : Array[AuthoringOrderRequirement]
   work : Int
 }
 
@@ -91,6 +101,7 @@ pub fn close_pipeline_authoring(
     }
   }
   let runtime : Array[AuthoringRuntimeRequirement] = []
+  let orders : Array[AuthoringOrderRequirement] = []
   for step in 0..<@pipeline.step_count(pipeline) {
     if work == max_work {
       return Err(BudgetExceeded)
@@ -101,7 +112,15 @@ pub fn close_pipeline_authoring(
       @pipeline.Values(_) => ()
       @pipeline.Unary(value) =>
         match @relation.operation(value) {
-          Derive | Select | Filter | Rename | Drop => ()
+          Derive
+          | Select
+          | Filter
+          | Rename
+          | Drop
+          | Sort
+          | Take
+          | Distinct
+          | Group => ()
           _ => return Err(UnsupportedOperation(step))
         }
       _ => return Err(UnsupportedOperation(step))
@@ -114,14 +133,47 @@ pub fn close_pipeline_authoring(
     for group in 0..<count {
       let owner = @pipeline.operation_obligation_group_at(operation, group).unwrap()
       let n = @pipeline.operation_obligations_count(owner)
-      if n > max_work - work || n > max_requirements - runtime.length() {
+      if n > max_work - work ||
+        n > max_requirements - runtime.length() - orders.length() {
         return Err(BudgetExceeded)
       }
       work += n
       for index in 0..<n {
-        match @pipeline.operation_obligations_at(owner, index).unwrap() {
+        let requirement = @pipeline.operation_obligations_at(owner, index).unwrap()
+        if @pipeline.operation_order_demand(requirement) is Some(demand) {
+          orders.push({ step, owner, index, demand, })
+          continue
+        }
+        // Only the existing Take binding demand can survive this authoring
+        // boundary. The exact obligation owner/index remains retained; no
+        // representative value or declaration default discharges it.
+        if operation is @pipeline.Unary(value) &&
+          @relation.operation(value) == Take &&
+          @pipeline.operation_scalar_demand(requirement)
+          is Some(@pipeline.SafeInteger(_, ..)) {
+          runtime.push({ step, owner, index, group_rule: None, })
+          continue
+        }
+        // Retain only checks selected by the same Group execution owner used
+        // during bound compilation. Their input observations and enforcement
+        // remain future work; a binding condition or resource limit is not an
+        // execution rule merely because it belongs to a Group operation.
+        if operation is @pipeline.Unary(value) &&
+          @relation.operation(value) == Group &&
+          @relation.group(value) is Some(group) &&
+          requirement is @pipeline.RelationRequirement(pending) {
+          match select_group_execution_rule(group, index, pending.kind, step) {
+            Ok(Some(rule)) => {
+              runtime.push({ step, owner, index, group_rule: Some(rule), })
+              continue
+            }
+            Err(_) => return Err(PendingOperation(step, owner, index))
+            Ok(None) => ()
+          }
+        }
+        match requirement {
           @pipeline.ValuesRequirement(@values.BindCell(_)) =>
-            runtime.push({ step, owner, index, })
+            runtime.push({ step, owner, index, group_rule: None, })
           @pipeline.ValuesRequirement(@values.ResolvePublicationResources) =>
             if !by_step.contains(step) {
               return Err(PendingOperation(step, owner, index))
@@ -137,6 +189,7 @@ pub fn close_pipeline_authoring(
     expressions,
     runtime,
     resources: resources.copy(),
+    orders,
     work,
   })
 }
@@ -168,6 +221,15 @@ pub fn pipeline_authoring_runtime_at(
   index : Int,
 ) -> AuthoringRuntimeRequirement? {
   value.runtime.get(index)
+}
+
+///|
+/// A retained Group rule is a static selection for this original requirement,
+/// not an observation of input rows or evidence that the rule was enforced.
+pub fn authoring_runtime_group_rule(
+  value : AuthoringRuntimeRequirement,
+) -> GroupExecutionRule? {
+  value.group_rule
 }
 
 ///|

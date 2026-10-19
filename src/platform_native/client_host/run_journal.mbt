@@ -216,19 +216,41 @@ fn read_run_record_in_mode(
 /// private so a caller cannot repair missing custody in an adopted journal.
 fn initialize_native_client_run_journal(
   database : @sqlite.Database,
+  bootstrap? : NativeClientJournalBootstrapAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
-  if database.transaction_fenced() {
+  if client_journal_transaction_fenced(
+      database,
+      bootstrap_journal_reads(bootstrap),
+    ) {
     return Err(Fenced)
   }
-  match database.scan_after("client_run_custody", "") {
+  match
+    scan_client_journal_value(
+      database,
+      "client_run_custody",
+      "",
+      bootstrap_journal_reads(bootstrap),
+    ) {
     Err(@sqlite.NotFound) => ()
     _ => return Err(CustodyLost)
   }
-  match database.scan_after("client_runs", "") {
+  match
+    scan_client_journal_value(
+      database,
+      "client_runs",
+      "",
+      bootstrap_journal_reads(bootstrap),
+    ) {
     Err(@sqlite.NotFound) => ()
     _ => return Err(CustodyLost)
   }
-  match database.scan_after("client_effect_custody", "") {
+  match
+    scan_client_journal_value(
+      database,
+      "client_effect_custody",
+      "",
+      bootstrap_journal_reads(bootstrap),
+    ) {
     Err(@sqlite.NotFound) => ()
     _ => return Err(CustodyLost)
   }
@@ -237,17 +259,27 @@ fn initialize_native_client_run_journal(
       "client_effect_response_meta", "client_effect_response_bytes", "client_effect_row_receipt",
       "client_cancellations", "client_cancel_custody", "client_cancel_originals",
     ] {
-    match database.scan_after(table, "") {
+    match
+      scan_client_journal_value(
+        database,
+        table,
+        "",
+        bootstrap_journal_reads(bootstrap),
+      ) {
       Err(@sqlite.NotFound) => ()
       _ => return Err(CustodyLost)
     }
   }
-  match database.insert("client_cancel_custody", "issued", b"0") {
+  match
+    insert_bootstrap_journal_value(
+      database, "client_cancel_custody", "issued", b"0", bootstrap,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
-  database
-  .insert("client_run_custody", "issued", b"0")
+  insert_bootstrap_journal_value(
+    database, "client_run_custody", "issued", b"0", bootstrap,
+  )
   .map(_ => ())
   .map_err(issue => Physical(issue))
 }

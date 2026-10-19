@@ -308,6 +308,130 @@ within the existing bounded String/finite Number domains. BYTES and distinct
 INT64 overloads remain coverage gaps. All spellings preserve one common child,
 operand nullability, lazy demand, failure, resources and cancellation.
 
+`CURRENT_TIMESTAMP()` selects the zero-argument Common
+`{current_timestamp: []}` operation and a non-null Timestamp type. Case-insensitive
+lookup and parentheses preserve this same node; arguments or foreign namespaces
+do not introduce an overload. Checking, explaining, emission and compilation
+retain its dependency without sampling time. Runtime evaluation reads the same
+admitted original query-invocation value across rows, fragments and recovery,
+as specified by [Query invocation time](language.md#query-invocation-time).
+It is not a frontend clock read, Timestamp literal, authored Parameter or
+authority for a Source/Effect or an operational clock. A missing original
+execution context remains an implementation limitation.
+
+SQL fixed intervals use `TIMESTAMP_ADD(value, INTERVAL amount UNIT)`,
+`TIMESTAMP_SUB(value, INTERVAL amount UNIT)` or Timestamp `+`/`-` that interval.
+The original integral token is retained exactly, and dynamic amounts require
+int64 fields or Parameters. The shared Common `timestamp_add`/`timestamp_sub`
+consumer uses fixed ns/us/ms/s/m/h/d durations without binary64 conversion,
+calendar-month or timezone interpretation. It preserves strict NULL, original
+child failure and enclosing lazy demand. This does not change DATE_ADD's
+existing Number-bit duration meaning or introduce a standalone Interval value.
+
+`DATE_TRUNC(value, literal_unit)` is the SQL/Pipe spelling for fixed UTC
+truncation. The unit is an original string literal in `ms`, `s`, `m`, `h`, `d`;
+parentheses may preserve that literal but a Parameter, expression, alternate
+case or reversed argument order is not a unit overload. Lowering emits the
+unchanged Common `{date_trunc: [literal_unit, value]}` body. The legacy
+expression-text `date_trunc(unit, value)` and structured Program representation
+retain their unit-first order and complete preimages. No frontend evaluation,
+type-guessed fallback, duplicated value or synthesized temporal value is used.
+
+Timestamp truncation returns the start of the containing fixed UTC bucket,
+using the existing exact seconds/nanoseconds and canonical Value domain. Thus
+an instant 1ns before the Unix epoch truncates to the preceding millisecond,
+second, minute, hour or UTC day, rather than toward epoch zero. Date admits only
+`d` and is unchanged. NULL, original demanded failure, enclosing lazy demand,
+value/work limits and cancellation retain their Common owners; operational
+clock domains and the separate quotient law of `date_diff` do not change.
+
+`DATE_ADD(value, amount, literal_unit)` preserves the three original Common
+children in that order. The literal unit is exactly `ms`, `s`, `m`, `h` or `d`;
+a Parameter or computed String cannot choose the operation unit. The existing
+Common temporal owner evaluates the original Number amount and interprets its
+binary64 bits exactly as a fixed-unit duration. A result not representable in
+nanoseconds or within the original calendar fails without rounding. Date allows
+only integral day amounts. No frontend temporal evaluator or decimal spelling
+reinterpretation is introduced. Existing structured Program and expression-text
+forms retain their bytes and meanings.
+
+`TO_DECIMAL(value, precision, scale)` uses the existing explicit Decimal target
+form. Precision and scale are original integral Number literals with
+`1 <= precision <= 38` and `0 <= scale <= precision`; transparent parentheses
+retain the literal role. A Parameter, field or computed Number cannot select
+the target contract. Lowering emits the existing `cast` with the original
+operand and `decimal(precision, scale)` target, exactly as explicit
+`CAST(value AS DECIMAL(precision, scale))`. The ordinary Common conversion
+retains exact coefficient/scale checks, NULL and failure laws; no frontend
+value conversion, rounding or numeric-domain promotion is introduced.
+
+`TRY_DECIMAL(value, precision, scale)` retains the same literal target roles
+and emits the existing `try_decimal` body with the original operand. Its
+nullable Decimal result uses the Common exact conversion boundary: only an
+invalid or unrepresentable conversion becomes NULL. A child evaluation failure,
+control limit or admission failure remains a failure. Immediate NULL receives
+the explicit target context and stays NULL. No omitted precision/scale is
+fabricated, and ordinary CAST retains its existing failure behavior.
+
+`QUANTIZE(value, precision, scale, rounding)` keeps the same literal target
+roles and additionally requires one original String literal from
+`half_even|half_up|toward_zero|floor|ceiling`. Lowering preserves the existing
+`quantize` body and evaluates only its original Decimal operand. The Common
+Decimal owner rounds the exact coefficient, rejects result overflow and
+preserves NULL and demanded-child failure. No frontend evaluator, binary64
+intermediate or implicit conversion is introduced.
+
+SQL and Pipe `QUANTIZE(value, scale)` MUST normalize to the existing complete
+`quantize(value, 38, scale, 'half_even')` body. The scale keeps its original
+integer-literal target role in `0..38`, including transparent parentheses; a
+Parameter, field or computed expression cannot choose it. The original value
+subtree remains the only evaluated operand and retains Decimal-only admission,
+NULL, demand, failure and overflow behavior. Structured and machine bodies still
+require every field, and the complete four-argument source path is unchanged.
+
+`DECIMAL_DIVIDE(left, right, precision, scale, rounding)` preserves both
+original operands in source order. The left is Decimal; the right is Decimal
+or an original Number whose evaluated value is a safe integer. Precision,
+scale and rounding retain the same literal target roles as `QUANTIZE`.
+Lowering emits the existing closed `decimal_divide` body. Common computes the
+exact coefficient ratio and rounds once at the explicit target scale; zero
+divisors, unrepresentable results and invalid Number divisors fail. Immediate
+NULL uses the explicit Decimal target and original peer context, remains NULL,
+and never suppresses a demanded child error. No default target, frontend
+arithmetic, implicit domain promotion or intermediate binary64 product is used.
+
+`TO_STRING(value)`, `TO_BOOLEAN(value)` and `TO_TIMESTAMP(value)` each take
+exactly one operand and lower to the existing Common `cast` node with target
+`{"type":"string"}`, `{"type":"boolean"}` or `{"type":"timestamp"}` respectively.
+Each is the same checked conversion as the corresponding scalar `CAST`, with
+one original operand and no frontend evaluation. Case-insensitive and quoted
+lookup, arity, nullable typing, invalid input, child failure, Parameter binding,
+lazy demand, work and value limits retain their existing owners. In particular,
+`TO_TIMESTAMP` does not broaden the admitted timestamp spellings, precision,
+offsets or operational clock domains. Foreign namespaces remain unsupported;
+no old CAST expression body or machine contract changes.
+
+`TO_NUMBER(value)` takes exactly one operand and lowers to the existing Common
+`cast` node with target `{"type":"number"}`, exactly as `CAST(value AS NUMBER)`.
+It preserves the original operand, Parameter binding, nullable type, evaluation
+failure and bounded conversion; the frontend neither parses numeric text nor
+converts a nonliteral Number, Decimal, Signed64 or String on the Host. Existing
+Common CAST typing determines which input domains are admitted. Ordinary
+case-insensitive and quoted function lookup applies; a foreign namespace does
+not select this conversion. This spelling does not add another machine node or
+change any previously admitted canonical expression body.
+
+`CONTAINS(value, part)` selects ActQL's existing ordered binary `contains`
+String predicate. It performs exact substring matching without normalization,
+case folding or collation; an empty part matches every non-NULL String.
+Both operands use ordinary String typing, are demanded once in authored order,
+and propagate child errors before strict NULL propagation. Source lowering does
+not replace the predicate with a position function, repeat an operand or add a
+frontend evaluator. The existing Common bounded text matcher retains the two
+original operand roots and charges each comparison until the Boolean result or
+an original control, workspace, cancellation or value limit. Function names use
+the ordinary case-insensitive/quoted lookup; argument count remains exactly two.
+
 `TRANSLATE(value, source, target)` selects the ordered ternary `translate`
 common expression for STRING only. Its simultaneous Unicode scalar mapping
 leaves absent scalars unchanged, deletes source scalars without corresponding
@@ -1382,12 +1506,26 @@ infer a second type system. The parser's existing work, node and depth limits
 also cover array children. An empty list needs unique type context.
 
 The explicit annotation subset is `ARRAY<BOOL>`, `ARRAY<BOOLEAN>`,
-`ARRAY<STRING>`, `ARRAY<FLOAT64>`, `ARRAY<DOUBLE>`, `ARRAY<TIMESTAMP>` and `ARRAY<JSON>`.
+`ARRAY<STRING>`, `ARRAY<NUMBER>`, `ARRAY<FLOAT64>`, `ARRAY<DOUBLE>`,
+`ARRAY<INT64>`, `ARRAY<TIMESTAMP>` and `ARRAY<JSON>`.
 Annotations use the existing typed `empty_array.items` evidence. A nonempty
 annotated array uses an ordinary constant-true lazy `if` with that empty-array
 peer, so the common checker checks the declared item type and evaluates the
 actual elements once. It does not add an element CAST. NULL elements retain
 their nullable contract even when the annotation provides a nonnullable peer.
+`INT64` selects the distinct exact signed64 domain. Neither the annotation nor
+ordinary constructor common typing promotes Number, Decimal or String elements
+into int64; full-range values can use typed int64 Parameters. Membership's
+immediate lossless integral comparison-literal context is a separate rule.
+
+`CAST(NULL AS ARRAY<T>)` uses the same closed annotation grammar. Parentheses
+around that immediate NULL are permitted. Source lowering preserves the NULL
+branch in `if(false, empty_array<T>, literal(null))`; the typed peer supplies
+context only. Common checking, typed-null emission and re-admission remain the
+sole type authority. This value remains distinct from `ARRAY<T>[]` under
+`IS NULL`. Other ARRAY CAST operands retain an implementation-limit result;
+they are not rewritten to NULL or silently converted. Parsing, original spans
+and bounded work apply equally to this context.
 
 After ordinary checking, source preparation rejects resolved ARRAY types whose
 immediate item type is ARRAY. This includes constructors, references to typed
@@ -1403,11 +1541,11 @@ the existing Unit, input/step and field without inventing an expression origin.
 
 The selected [GoogleSQL array reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#array_type)
 also supports `ARRAY<JSON>` and defaults otherwise untyped empty literals to
-`ARRAY<INT64>`. Those are coverage gaps here: the common constructor capability
-contract currently rejects JSON item types, and the selected finite Number
-profile does not establish exact INT64 semantics. Additional type annotations
-remain explicitly unsupported; an unresolved `[]` is not silently assigned
-Number or JSON. The source and independently authored Program rejection of
+`ARRAY<INT64>`. Those behaviors remain coverage gaps here: the common constructor
+capability contract currently rejects JSON item types, and an unresolved `[]`
+does not acquire a default item contract. Explicit `ARRAY<INT64>` is distinct
+from that defaulting rule. Other annotations retain their implementation gaps;
+an unresolved `[]` is not silently assigned Number, int64 or JSON. The source and independently authored Program rejection of
 JSON arrays are dependency evidence, not execution acceptance. ActQL's
 nullable-array Result serialization remains its existing delivery profile;
 it is not a claim about BigQuery's Result serialization.

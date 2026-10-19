@@ -171,6 +171,7 @@ fn window_factor(
 fn resolve_count(
   count : @relation.CountValue,
   bindings : CountBindings?,
+  allow_int64? : Bool = false,
 ) -> Result[Int64, Issue] {
   match count {
     @relation.Literal(n) => Ok(n)
@@ -178,6 +179,13 @@ fn resolve_count(
       guard bindings is Some(bound) else { return Err(UnresolvedCount) }
       guard bound.parameters.entries.get(name) is Some(entry) else {
         return Err(UnresolvedCount)
+      }
+      if allow_int64 && entry.value.value is Signed64(n) {
+        return if n > 0L && n <= 9007199254740991L {
+          Ok(n)
+        } else {
+          Err(InvalidBoundCount)
+        }
       }
       guard entry.value.value is Number(n) else {
         return Err(InvalidBoundCount)

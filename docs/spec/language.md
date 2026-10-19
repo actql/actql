@@ -979,12 +979,15 @@ domain supplies no type; two untyped NULL operands of `IS DISTINCT FROM`
 still require independent type evidence.
 
 <!-- requirement-block: value-contracts.decimal-output-target-is-not-input-evidence -->
-For `quantize` and `decimal_divide`, implementations MUST NOT use the output
-precision and scale to supply an input type: the decimal input domain has no
-unique precision/scale, and the divisor domain also permits `number`.
-Bare literal NULL operands remain
-unresolved; an explicit cast such as `CAST(NULL AS DECIMAL(8,2))` supplies
-the missing input type. Already-typed nullable operands still propagate null.
+Implementations MUST NOT infer a non-null Decimal input domain, unknown field
+or unresolved Parameter from the output precision/scale of `quantize`. As a
+scoped exception, a direct literal NULL receives the nullable declared result
+Decimal target and remains NULL; this establishes no non-null coefficient and
+converts no Number, Signed64 or String. `decimal_divide` retains its separate
+rule: output precision/scale supplies no input type, including its overloaded
+divisor domain, and bare literal NULL operands remain unresolved. An explicit
+cast such as `CAST(NULL AS DECIMAL(8,2))` supplies that missing input type.
+Already-typed nullable operands still propagate null.
 
 An empty array obtains its item type from an explicit `empty_array.items`
 contract or the unique common item type of independently typed peers in an
@@ -2474,8 +2477,58 @@ are not admitted in 0.1. Their forms are
 `{date_diff: [{field: end_timestamp}, {field: start_timestamp}, {literal: unit}]}`. Timestamp
 inputs and `date_add` results use canonical UTC ISO-8601 strings; `date_diff`
 returns a finite numeric count in the authored fixed unit.
-The decoded unit is a `{literal: ms|s|m|h|d}`. Full-word units and
-day-specific helper names are not ActQL source vocabulary.
+
+<!-- requirement-block: scalar-expressions.exact-number-date-add-duration -->
+For Timestamp `date_add`, the Common temporal owner MUST first evaluate the
+original Number amount under ordinary binary64 rounding laws, then interpret
+the resulting bits exactly as a duration in the authored fixed unit, without a
+rounded binary64 unit product or decimal-spelling reinterpretation.
+
+<!-- requirement-block: scalar-expressions.exact-number-date-add-result -->
+The operation MUST add the exact duration to the original instant with signed
+carry preserving original nanoseconds, failing with the existing
+ArithmeticFailure for a nonintegral nanosecond result or calendar-range
+overflow rather than rounding or truncating. Thus 0.125 seconds and 0.5
+milliseconds can succeed, while binary64 0.1 seconds and binary64 1e-9 seconds
+fail rather than becoming ideal decimal rational durations. Date keeps
+integer-day-only arithmetic; Timestamp amounts are not restricted to integers.
+
+<!-- requirement-block: scalar-expressions.exact-number-date-add-demand -->
+DATE_ADD MUST retain strict NULL propagation after original eager child demand,
+enclosing lazy demand, resource limits and cancellation under their existing
+Common owners.
+
+The decoded DATE_ADD/DATE_DIFF unit remains a `{literal: ms|s|m|h|d}`.
+This structured short-unit contract is distinct from the SQL fixed-interval
+spelling below; it does not reinterpret DATE_ADD Number operands.
+
+### Exact fixed SQL intervals
+
+<!-- requirement-block: scalar-expressions.fixed-interval-source -->
+SQL TIMESTAMP_ADD(value, INTERVAL amount UNIT), TIMESTAMP_SUB(value, INTERVAL
+amount UNIT), and Timestamp plus/minus INTERVAL amount UNIT MUST lower to the
+shared `timestamp_add`/`timestamp_sub` operation with three original children:
+Timestamp, exact integral amount, and literal fixed unit. The explicit mappings
+NANOSECOND/MICROSECOND/MILLISECOND/SECOND/MINUTE/HOUR/DAY are ns/us/ms/s/m/h/d;
+DAY is 24 hours, HOUR 60 minutes, and MINUTE 60 seconds. No timezone, DST,
+calendar-month or year adjustment is inferred.
+
+<!-- requirement-block: scalar-expressions.fixed-interval-exact-amount -->
+The interval consumer MUST retain an integral source token exactly and admit its
+canonical decimal String atom in signed64 context, including the full signed64
+range. Typed int64 fields and Parameters keep their original checked domain;
+nonliteral Number, Decimal or Text values never promote. Ordinary Number source
+meaning, DATE_ADD duration arithmetic and general int64 operation signatures
+remain unchanged. An interval is a source operand role, not a standalone value.
+
+<!-- requirement-block: scalar-expressions.fixed-interval-evaluation -->
+Timestamp interval arithmetic MUST multiply the signed integer by the fixed
+nanosecond factor exactly and preserve the original instant's nanoseconds with
+signed carry. Calendar/range overflow fails ArithmeticFailure. Subtraction of
+min_int64 must not overflow an intermediate Int64 negation. Preserve eager
+left-to-right child failure, strict NULL, surrounding lazy demand, original root
+lifetimes, resource bounds and cancellation; no binary64 coercion or rounding
+may replace these operations.
 The expression 0.1 contract retains the binary64 arithmetic laws of
 `actql-scalar-semantics/0.1`, with the conversion/concatenation rules below.
 Every binary64 arithmetic result rounds to
@@ -2996,6 +3049,7 @@ an optional final argument, not expression syntax.
 | `date_trunc(unit, value)`, `date_add(value, amount, unit)`, `date_diff(end_value, start_value, unit)` | `unit` is a string literal in `ms`, `s`, `m`, `h`, `d` |
 | `to_decimal(value, precision, scale)`, `try_decimal(value, precision, scale)` | [Decimal expressions](#decimal-expressions) fields; precision/scale are integer literals |
 | `quantize(value, precision, scale, rounding)` | [Decimal expressions](#decimal-expressions) fields; precision/scale are integer literals and rounding is a string literal naming an admitted mode |
+| `quantize(value, scale)` | the complete `quantize(value, 38, scale, 'half_even')` body, retaining the original value subtree and the same static scale role |
 | `decimal_divide(left, right, precision, scale, rounding)` | same literal constraints as `quantize` |
 | `left(value, length)`, `right(value, length)` | corresponding common scalar side slice |
 | `lpad(value, length[, pattern])`, `rpad(value, length[, pattern])` | corresponding common scalar padding; omitted pattern remains omitted |
@@ -3400,7 +3454,11 @@ including a null parameter and a missing CASE ELSE, uses
 `{op: typed_null, body: {contract: CheckedValueContract}}`, with `nullable: true`.
 Explicit casts retain their cast node around that typed child. There is no
 primitive-versus-structural alternative for implicit ELSE completion.
-This machine-only form is not an author conversion to object or array.
+This machine-only form is not an unchecked author conversion to object or array.
+The narrow source `CAST(NULL AS ARRAY<T>)` context uses an ordinary lazy
+conditional with a typed empty-array peer and the original NULL branch. Common
+checking supplies the nullable array contract; the selected value remains NULL.
+It does not introduce a new author typed-null node or a general array conversion.
 
 Canonical fragments bind the extension contract CID, roots at their semantic
 expression positions, and profile envelopes sorted by canonical expression
@@ -3597,12 +3655,27 @@ Target names are ASCII case-insensitive and normalize to lowercase type names.
 Decimal P/S are integer literal type arguments under [Exact decimal values](#decimal-values).
 `CAST(NULL AS target)` supplies that nullable target without evaluating a
 conversion. Other null operands propagate after input-type checking. No
-reference, object, array, json, or vector cast is supplied by this table.
+reference, object, array, json, or vector conversion is supplied by this scalar table.
 Same-type acceptance also applies to corresponding `to_*` calls, so equivalent
 spellings have the same tree. `DATE`, `::`, and arbitrary SQL type names are
 not cast targets in this revision. Decimal/binary64 fractional mixing remains
 invalid; `CAST('0.1' AS DECIMAL(2,1))` is exact, while casting binary64 `0.1`
 fails if evaluated. `quantize` remains the explicit rounding operation.
+
+<!-- requirement-block: casts.null-array-context -->
+The immediate NULL ARRAY source context MUST preserve the NULL value and the
+original checked item contract without element conversion.
+
+Source `CAST(NULL AS ARRAY<T>)`, with parentheses permitted around the
+immediate NULL, is a separate explicit nullable-array type context. It shares
+[ARRAY item annotations](query-text.md#array-constructors), including `INT64`.
+The result is NULL, not an empty array; `IS NULL` distinguishes those values.
+Membership and NOT membership retain their existing empty-set laws for both.
+An ordinary typed empty-array peer supplies the item contract through lazy
+conditional common typing; it is not evaluated in place of the NULL branch.
+No arbitrary expression is evaluated to decide whether it is syntactically
+NULL. General ARRAY conversion remains an implementation gap, not a new
+language prohibition or a claim of complete ARRAY CAST support.
 
 Conversion diagnostics distinguish static source/target incompatibility from
 evaluation-time domain failure. Repair candidates may suggest an explicit cast
@@ -3683,6 +3756,17 @@ rounding. `try_decimal` makes only invalid/unrepresentable conversion input
 null. Null inputs propagate. Only `quantize` and `decimal_divide` round, using
 `half_even|half_up|toward_zero|floor|ceiling`. Division by zero fails.
 
+<!-- requirement-block: decimal-expressions.quantize-public-shorthand -->
+SQL/Pipe and authored Common expression text `quantize(value, scale)` MUST
+normalize to the existing complete
+`quantize(value, 38, scale, 'half_even')` body, with integer-literal scale in
+`0..38`, the original Decimal operand and the same NULL, demand, failure and
+overflow rules. These are explicit authoring defaults, not fields inferred from
+the input value or omitted during structured/machine admission. No Number,
+Signed64 or String operand is implicitly converted to Decimal. Existing complete
+four-argument bodies, modes and canonical bytes remain unchanged; conversion and
+`decimal_divide` acquire no omitted-target defaults.
+
 `decimal_divide` requires a decimal left operand and a decimal or safe-integer
 `number` right operand. A number divisor is interpreted exactly as an integer;
 fractional or unsafe-integer numbers are rejected. This is an explicit function
@@ -3696,6 +3780,50 @@ precision `min(38,P1+P2)`. An unrepresentable scale or coefficient fails.
 Decimal `avg` is rejected: use `sum`, `count`, and explicit `decimal_divide`.
 Branches and array elements require one compatible closed decimal type;
 explicit `quantize` resolves different precision/scale choices.
+
+### Query invocation time
+
+<!-- requirement-block: scalar-expressions.query-time-signature -->
+`CURRENT_TIMESTAMP()` MUST select the zero-argument `current_timestamp`
+operation with non-null Timestamp result, preserving the closed authored
+`{current_timestamp: []}` and machine `{op: "current_timestamp", body: []}`
+forms without replacing the operation by a literal or hidden Parameter.
+
+<!-- requirement-block: scalar-expressions.query-time-original -->
+For an ordinary single-query-invocation Run, every demanded occurrence, row,
+fragment and continuation MUST use the same admitted Run definition's
+`created_at`, captured from the selected Host's actual original wall-clock
+sampler at new invocation admission before dependent Source requests or
+execution, retaining actual supported precision rather than a stale policy
+creation time, caller String, generic callback or manufactured finer digits.
+
+<!-- requirement-block: scalar-expressions.query-time-source-binding -->
+The existing Common preparation and request owners MUST bind that one
+original value to the same checked Program, request occurrence, Parameters,
+compilation and final Run definition before dispatch, retaining unresolved or
+foreign `UnboundRequest` refusal and using the same value in the physical
+predicate projection and downstream expression context without changing the
+authored graph or the meaning of resource-reference host bindings.
+
+<!-- requirement-block: scalar-expressions.query-time-recovery -->
+The same confirmed request Journal and Run materials MUST retain this
+original across pause, lookup, racing issuance and cold recovery; a winning
+saved Run supplies its saved value without resampling, replacing publication
+or issuing a second Run, while distinct query-invocation scopes remain distinct
+and old Runs without the operation retain their original bytes.
+
+<!-- requirement-block: scalar-expressions.query-time-demand -->
+Static checking, explaining, canonical emission and compilation MUST NOT
+sample a clock; a demanded operation without its original execution context
+remains unavailable, while surrounding lazy demand, original roots, logical
+value/control/workspace accounting, cancellation and child failures retain
+their existing laws.
+
+<!-- requirement-block: scalar-expressions.query-time-authority -->
+The stored query Timestamp MUST remain computation data, granting no
+Account, Source, Model, Effect, resource, expiry, retention or authorization
+authority and preserving the separate operational-clock purposes, currentness,
+rollback and deadline contracts even when a physical sampler is shared.
 
 <a id="value-construction"></a>
 
@@ -11255,7 +11383,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:899be6a80ef655f4460e4a0414ec2ef861110b63c19f257de7a5579efa09470c
+../../spec/contracts/actql-aoa.json# sha256:f5504e6c77e4408e51c3bd067a8fbf34e5238af9dcee0da08114ab21465b313a
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11264,13 +11392,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:5c7ab5c2189768003f4cc1cf5665b3c42ef1bc47497e606a46938fc1dfa40c77
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:c37306c98c772f79f11782503522843430c0867b0bf903248fe9933cb477fb6f
+../../spec/contracts/actql-expressions.json# sha256:92b558028f8a5091a33b8b6d6e3fa32344b1b43cf9281e4c8c187886c9b6f292
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:5158d84b45438357fa0e9672445eb0c11420f787628e535a7235e0a25083b828
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:2c8162832e673074c4278aa4ee2148de04862ee5f2d9fa502e2be6a780547f81
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:3f1929f52bc30393c75865d82bcec1d18afd76540dff3dc7786b253c0ce1487b
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:46609f6f81679938a14f2b79e6f750d242b841684f9a00d911568efded652905
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:e3b47a961be9b92970dd52c9415208821fbac6b9d7c3ea28e573e02603194fc9
+../../spec/contracts/actql-expressions.json#/laws sha256:b46de6f2e2a1a76fdce33125f841963305a4f1a6d4554c8c18fc0d27cd5807ba
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:038769263b23b02a37978b9ca11bbe1b052f530c0b91789bec9707af46b92955
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:2125b522470b07ed6dfc4dbe322b8c6fc3b9459acc80ea0e826b42e87f705896
 ```
 
 <!-- stage-contract-pins:start -->

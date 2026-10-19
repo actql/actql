@@ -11,6 +11,7 @@ pub enum TemplateConstructionIssue {
   Context(Int, @context.PipelineAuthoringContextIssue)
   Publication(Int, @context.AuthoringPublicationIssue)
   Contracts(@context.AuthoringCoreContractIssue)
+  ConsumerDeclaration(Int, Int)
 }
 
 ///|
@@ -24,6 +25,7 @@ struct TemplateCheckedProgram {
   definition : @references.ProgramDefinition
   contracts : @context.AuthoringCoreContracts
   inputs : Array[InputRequest]
+  conditions : Array[TemplateParameterCondition]
   work : Int
   bytes : Int
   nodes : Int
@@ -122,6 +124,7 @@ pub fn complete_template_check(
     template_artifacts(b, bytes, nodes)
     let publications : Array[@context.AuthoringPublicationChecks] = []
     let inputs : Array[InputRequest] = []
+    let conditions : Array[TemplateParameterCondition] = []
     let declarations = @stages.declarations(stages)
     let count = @parameters.declaration_count(declarations)
     template_charge(b, count)
@@ -242,6 +245,41 @@ pub fn complete_template_check(
         raise TemplateStop(BudgetExceeded)
       }
       remaining_requirements -= runtime
+      for index in 0..<runtime {
+        template_charge(b, 1)
+        let retained = @context.pipeline_authoring_runtime_at(authoring, index).unwrap()
+        let requirement = @pipeline.operation_obligations_at(
+          retained.owner,
+          retained.index,
+        ).unwrap()
+        if @pipeline.operation_scalar_demand(requirement)
+          is Some(@pipeline.SafeInteger(name, minimum~)) {
+          let mut selected = None
+          for declaration_index in 0..<count {
+            template_charge(b, 1)
+            let declaration = @parameters.declaration_at(
+              declarations, declaration_index,
+            ).unwrap()
+            if declaration.name == name {
+              selected = Some(declaration)
+              break
+            }
+          }
+          guard selected is Some(declaration) else {
+            raise TemplateStop(ConsumerDeclaration(stage, retained.step))
+          }
+          conditions.push({
+            program: prepared.program,
+            declaration,
+            stage,
+            step: retained.step,
+            owner: retained.owner,
+            index: retained.index,
+            minimum,
+            ordinal: conditions.length(),
+          })
+        }
+      }
       let orders = match
         @context.prepare_pipeline_orders(
           @publication.ports_orders(ports),
@@ -277,6 +315,11 @@ pub fn complete_template_check(
         Ok(value) => value
         Err(issue) => raise TemplateStop(Context(stage, issue))
       }
+      let order_count = @context.pipeline_authoring_context_order_count(context)
+      if order_count > remaining_requirements {
+        raise TemplateStop(BudgetExceeded)
+      }
+      remaining_requirements -= order_count
       let (_, bytes, nodes) = @context.pipeline_authoring_context_usage(context)
       template_artifacts(b, bytes, nodes)
       let port_prefix = @publication.ports_usage(ports).work
@@ -335,6 +378,7 @@ pub fn complete_template_check(
       definition,
       contracts,
       inputs,
+      conditions,
       work: limits.work - b.work,
       bytes: limits.artifacts.bytes - b.bytes,
       nodes: limits.artifacts.nodes - b.nodes,

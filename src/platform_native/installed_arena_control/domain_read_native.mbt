@@ -4,6 +4,7 @@
 pub fn InstalledArenaHost::prepare_domain_read(
   self : InstalledArenaHost,
   record : InstalledArenaDomain,
+  execution_ceiling? : Int64,
 ) -> Result[Unit, @bootstrap.NativeBackedExecutionIssue] {
   match self.require_domain_current(record) {
     Err(issue) => return Err(issue)
@@ -13,6 +14,7 @@ pub fn InstalledArenaHost::prepare_domain_read(
     self,
     record.domain.unwrap(),
     record,
+    execution_ceiling?,
   )
 }
 

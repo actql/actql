@@ -21,7 +21,7 @@ pub(all) enum SlackChannelListIssue {
 } derive(Eq, Debug)
 
 ///|
-// This is one checked public/private channel vendor page. It is not a workspace selection, token
+// This is one checked conversation vendor page. It is not a workspace selection, token
 // scope, complete paged Source, current authorization or custody receipt.
 pub struct SlackChannelListPage {
   response_sha256 : String
@@ -82,6 +82,27 @@ fn channel_original_integer(
 pub fn project_slack_channel_list(
   bytes : Bytes,
   limits : SlackChannelListLimits,
+) -> Result[SlackChannelListPage, SlackChannelListIssue] {
+  project_channel_list(bytes, limits, false)
+}
+
+///|
+// History enumeration explicitly requests channels, IMs and multi-party IMs.
+// The ordinary channels Source keeps its narrower response admission. Neither
+// reader infers conversation kinds from identifier prefixes or invents fields
+// that Slack omitted from a particular conversation kind.
+pub fn project_slack_history_conversation_list(
+  bytes : Bytes,
+  limits : SlackChannelListLimits,
+) -> Result[SlackChannelListPage, SlackChannelListIssue] {
+  project_channel_list(bytes, limits, true)
+}
+
+///|
+fn project_channel_list(
+  bytes : Bytes,
+  limits : SlackChannelListLimits,
+  allow_direct_messages : Bool,
 ) -> Result[SlackChannelListPage, SlackChannelListIssue] {
   if limits.max_bytes <= 0 ||
     limits.max_nodes <= 0 ||
@@ -186,13 +207,19 @@ pub fn project_slack_channel_list(
       is Ok(row) else {
       return Err(InvalidResponse)
     }
-    // The request selects public/private channels, not IM or multi-party IM.
-    // Reject an observed foreign/malformed discriminant rather than guessing
-    // from an identifier prefix or manufacturing a channel row.
+    // Always check present kind discriminants, even when the selected output
+    // omits every field except id. The broader history request admits actual
+    // IM/MPIM records; the ordinary channel request still refuses them.
     for flag in ["is_im", "is_mpim"] {
-      if @decode.lookup(row, flag) is Some(value) &&
-        @decode.boolean(value) != Ok(false) {
-        return Err(InvalidCell(flag))
+      if @decode.lookup(row, flag) is Some(value) {
+        match @decode.boolean(value) {
+          Ok(false) => ()
+          Ok(true) =>
+            if !allow_direct_messages {
+              return Err(InvalidCell(flag))
+            }
+          Err(_) => return Err(InvalidCell(flag))
+        }
       }
     }
     let values = []

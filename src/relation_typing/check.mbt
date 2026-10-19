@@ -450,9 +450,17 @@ fn check_impl(
               }
               _ => (body, None)
             }
-            let count = row_count(b, count_source, 1L, parameter_types, pending)
+            let count = row_count(
+              b,
+              count_source,
+              1L,
+              parameter_types,
+              pending,
+              allow_int64=true,
+            )
             let offset = match offset_source {
-              Some(s) => row_count(b, s, 0L, parameter_types, pending)
+              Some(s) =>
+                row_count(b, s, 0L, parameter_types, pending, allow_int64=true)
               None => Literal(0L)
             }
             pending.push({ kind: StableInputOrder, source: body, })

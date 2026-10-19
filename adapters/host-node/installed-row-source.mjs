@@ -17,6 +17,7 @@ import {validInstallationBinding} from './ordinary-source-binding.mjs';
 import {isAbsolute} from 'node:path';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {prepareOriginalSourceQuery} from './original-query-preparation.mjs';
 import {acquisitionFailure, acquisitionOutcome, AcquisitionOpenError} from
   '../host-common/acquisition-outcome.mjs';
 import {startInstalledRowRun} from './installed-row-run.mjs';
@@ -1260,6 +1261,7 @@ export async function createInstalledRowSource({moon, declaration,
 
   async function prepare({preparedProgram, preparedEffect, registry, values,
     fragment, ordered, sourceAccess: access = sourceAccess,
+    queryTimePreparation, requestIdentity,
     occurrence = {stage: 0, input: 0, task: 0}}) {
     if ((preparedProgram === undefined) === (preparedEffect === undefined)) {
       fail('InvalidInstalledSourcePreparation');
@@ -1273,17 +1275,9 @@ export async function createInstalledRowSource({moon, declaration,
     occurrence = Object.freeze({...occurrence});
     const effectful = preparedEffect !== undefined;
     const checkedOwner = preparedEffect ?? preparedProgram;
-    checked(effectful
-      ? moon.clientProgramEffectPrepareQueryAcquisition(checkedOwner,
-        occurrence.stage, occurrence.input)
-      : moon.clientProgramPrepareQueryAcquisition(checkedOwner,
-        occurrence.stage, occurrence.input));
-    const requirement = checked(effectful
-      ? moon.clientProgramEffectPrepareLocalQueryRequirement(checkedOwner,
-        occurrence.stage, occurrence.input, registry, values, fragment, ordered)
-      : moon.clientProgramPrepareLocalQueryRequirement(checkedOwner,
-        occurrence.stage, occurrence.input,
-        registry, values, fragment, ordered));
+    const {requirement} = prepareOriginalSourceQuery({moon,
+      preparedProgram, preparedEffect, stage: occurrence.stage, input: occurrence.input,
+      registry, values, fragment, ordered, queryTimePreparation, requestIdentity});
     const facts = checked(
       moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
     if (!Array.isArray(facts) || facts.length !== 6 ||

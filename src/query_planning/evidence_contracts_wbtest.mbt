@@ -14,7 +14,7 @@ test "verifier pins full acquisition and process evidence bodies, not digest cla
   let (bytes, nodes) = query_evidence_contract_usage(contracts)
   // Independent sorted-key JSON UTF-8 measurement and recursive node count of
   // the shared bodies, not values obtained from the product verifier.
-  assert_eq((bytes, nodes), (10369, 433))
+  assert_eq((bytes, nodes), (10721, 440))
   // Exact aggregate bounds, not a fresh allowance for each dependency body.
   assert_true(
     admit_query_evidence_contracts(query, evidence, {

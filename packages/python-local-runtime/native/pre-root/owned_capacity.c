@@ -1,5 +1,15 @@
-#if !defined(__APPLE__) || !defined(__aarch64__)
-#error "This unadopted candidate targets Darwin arm64 only"
+#if defined(__APPLE__) && defined(__aarch64__)
+/* Existing selected Darwin provider. */
+#elif defined(__linux__) && defined(__aarch64__) && \
+      defined(ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN)
+/* Only the selected local process-domain consumer enables this physical
+ * backend. Its actual private FD/mapping is still required independently of
+ * kernel process limits. This does not select image, Engine or Rust profiles. */
+#if !defined(_GNU_SOURCE)
+#error "The selected Linux provider requires _GNU_SOURCE before system headers"
+#endif
+#else
+#error "Owned backing requires Darwin arm64 or explicitly selected Linux arm64"
 #endif
 
 #include "owned_capacity.h"
@@ -37,6 +47,10 @@ struct actql_owned_capacity {
      * Neither value issues capacity or acknowledges physical cleanup. */
     size_t occupied_pages;
     size_t peak_occupied_pages;
+    /* Optional one-shot physical ceiling, including original control pages.
+     * It never changes mapping size, ownership, reservations or retirement. */
+    size_t allocation_ceiling_pages;
+    bool allocation_ceiling_attempted;
     size_t rust_available[8];
     uint64_t rust_serial;
     atomic_int rust_process;
@@ -131,6 +145,7 @@ int actql_native_owned_acquire(size_t capacity, uint64_t generation,
     lease->control_pages = control_pages;
     lease->first_free_page = control_pages;
     lease->occupied_pages = lease->peak_occupied_pages = control_pages;
+    lease->allocation_ceiling_pages = count;
     lease->backing_device = 0;
     lease->backing_inode = 0;
     lease->fd_backed = false;
@@ -223,6 +238,32 @@ int actql_native_owned_control_bytes(actql_owned_capacity *lease, uint64_t *out)
     return ACTQL_OWNED_OK;
 }
 
+/* Trusted same-original supplier only, before the first payload allocation.
+ * Failed selection is consumed too. Freeing an extent never changes this
+ * ceiling or discharges the mapping, domain, loan or descriptor responsibility. */
+int actql_native_owned_bound_allocations(actql_owned_capacity *lease,
+                                        size_t bytes) {
+    if (lease == NULL || current_capacity != lease || current_depth == 0 ||
+        foreign_domain_process(lease)) return ACTQL_OWNED_INVALID;
+    lock_capacity(lease);
+    int status = ACTQL_OWNED_INVALID;
+    if (!lease->allocation_ceiling_attempted && lease->extent_domain &&
+        lease->domain_origin_pid == getpid() && lease->transferred &&
+        !lease->closing && !foreign_domain_process(lease)) {
+        lease->allocation_ceiling_attempted = true;
+        lease->allocation_ceiling_pages = lease->control_pages;
+        if (bytes != 0 && bytes % lease->page_size == 0 &&
+            bytes <= lease->length && bytes / lease->page_size > lease->control_pages &&
+            lease->occupied_pages == lease->control_pages &&
+            lease->peak_occupied_pages == lease->control_pages) {
+            lease->allocation_ceiling_pages = bytes / lease->page_size;
+            status = ACTQL_OWNED_OK;
+        }
+    }
+    unlock_capacity(lease);
+    return status;
+}
+
 int actql_native_owned_rounded_bytes(actql_owned_capacity *lease, size_t bytes,
                                     uint64_t *out) {
     if (lease == NULL || out == NULL || *out != 0) return ACTQL_OWNED_INVALID;
@@ -268,6 +309,17 @@ int actql_native_owned_domain_has_child(actql_owned_capacity *lease,
     return ACTQL_OWNED_OK;
 }
 
+int actql_native_owned_domain_returned(actql_owned_capacity *lease,
+    const actql_owned_extent_view *view) {
+    if (current_capacity != NULL || view == NULL || view->domain_borrowed ||
+        actql_native_owned_domain_matches_view(lease, view,
+            (int64_t)getpid()) != ACTQL_OWNED_OK)
+        return ACTQL_OWNED_INVALID;
+    return atomic_load_explicit(&lease->domain_borrower_pid, memory_order_acquire) == 0 &&
+        lease->domain_borrow_attempted && lease->closing
+        ? ACTQL_OWNED_OK : ACTQL_OWNED_BUSY;
+}
+
 /* Existing generic placement, called under the original capacity lock. */
 static int allocate_locked(actql_owned_capacity *lease, size_t bytes,
                            size_t alignment, void **out) {
@@ -277,6 +329,9 @@ static int allocate_locked(actql_owned_capacity *lease, size_t bytes,
         lease->first_free_page > lease->page_count) {
         return ACTQL_OWNED_INVALID;
     }
+    if (lease->occupied_pages > lease->allocation_ceiling_pages ||
+        pages > lease->allocation_ceiling_pages - lease->occupied_pages)
+        return ACTQL_OWNED_EXHAUSTED;
     int status = ACTQL_OWNED_EXHAUSTED;
     size_t start = lease->first_free_page;
     while (start < lease->page_count && pages <= lease->page_count - start) {
@@ -490,7 +545,9 @@ int actql_native_owned_retire(actql_owned_capacity *lease, void *allocation) {
     return status;
 }
 
+#if defined(__APPLE__)
 #include "owned_rust_heap.inc"
+#endif
 
 static int prepare_capacity_close_locked(actql_owned_capacity *lease) {
     if (lease->active_scopes != 0) {

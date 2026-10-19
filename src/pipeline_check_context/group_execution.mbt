@@ -70,46 +70,11 @@ fn group_execution_check(
     !physical_equal(owned.source, pending.source) {
     return Err(ForeignOccurrence(site.step))
   }
-  let rule = if pending.kind is @relation.GroupPartitioning {
-    PartitionGroups
-  } else {
-    guard @relation.aggregate_for_validation(group, site.index) is Some(call) else {
-      return Err(ForeignOccurrence(site.step))
-    }
-    if pending.kind is @relation.StatisticalAggregateLaw {
-      let law = match @relation.aggregate_function(call) {
-        PercentileCont => PercentileInterpolation
-        VarPop => PopulationVariance
-        VarSamp => SampleVariance
-        StddevPop => PopulationStandardDeviation
-        StddevSamp => SampleStandardDeviation
-        _ => return Err(ForeignOccurrence(site.step))
-      }
-      EnforceStatisticalLaw(call, law)
-    } else if pending.kind is @relation.AggregateEnvelope {
-      // Collection-producing aggregates need separately selected resource
-      // limits. Other calls retain their exact output contract, including
-      // decimal precision and inherited bounds on selected values.
-      match @relation.aggregate_function(call) {
-        ArrayAgg | StringAgg => return Ok(None)
-        Count
-        | CountIf
-        | Sum
-        | Avg
-        | Min
-        | Max
-        | First
-        | Last
-        | PercentileDisc
-        | PercentileCont
-        | VarPop
-        | VarSamp
-        | StddevPop
-        | StddevSamp => ValidateResultContract(call)
-      }
-    } else {
-      EvaluateAggregate(call)
-    }
+  let rule = match
+    select_group_execution_rule(group, site.index, pending.kind, site.step) {
+    Ok(Some(value)) => value
+    Ok(None) => return Ok(None)
+    Err(issue) => return Err(issue)
   }
   Ok(Some(GroupExecution({ site, step, input, operation, group, rule, })))
 }

@@ -26,6 +26,7 @@ pub(all) enum ClientEffectComputationIssue {
 /// The ordinary checked computation and its exact static Effect inventory
 /// share one Program owner. This is not an executable Effect Run or permit.
 struct PreparedClientEffectComputation {
+  source_intent : ClientSubmittedIntent?
   target_selections : ClientEffectUpdateTargetSelections?
   command_targets : @update_targets.CommandTargetPublication?
   mut normalization : ClientEffectNormalization?
@@ -169,6 +170,7 @@ pub fn prepare_parsed_client_effect_computation(
     command_targets,
     normalization: None,
     normalization_custody: None,
+    source_intent: None,
     source: parsed,
     supplied,
     candidate,

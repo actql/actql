@@ -26,6 +26,7 @@ test('genuine checked generator outputs qualify original compiler and action pro
   assert(checked.checked.includes('compilation-manifests.mjs'));
   assert(checked.checked.includes('catalog-body-dependencies.mjs'));
   assert(checked.checked.includes('check-stage-semantics.mjs'));
+  assert(checked.checked.includes('current-timestamp-expression-contract.mjs'));
   for (const name of ['query-acquisition-contract.mjs', 'query-process-evidence.mjs',
     'query-two-receipt.mjs', 'query-resource-scopes.mjs', 'check-query-evidence-fixtures.mjs',
     'fixed-compute-capacity.mjs', 'managed-runtime-vectors.mjs']) {

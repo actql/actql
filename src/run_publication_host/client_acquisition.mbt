@@ -40,6 +40,30 @@ pub fn prepare_client_query_acquisition(
 }
 
 ///|
+/// Compiler-only shape selection retains query-time dependencies unresolved.
+/// It supplies no physical predicate material or execution context.
+fn prepare_client_query_acquisition_shape(
+  prepared : PreparedClientProgram,
+  stage : Int,
+  source_index : Int,
+) -> Result[@acquisition.QueryAcquisition, ClientAcquisitionIssue] {
+  let identity = @checked.source_identity(
+    @strategy.graph_program(prepared.graph),
+  )
+  guard @context.program_identity_stage_at(identity, stage) is Some(_) else {
+    return Err(MissingStage)
+  }
+  guard @context.program_identity_stage_requests(identity, stage)
+    is Some(requests) else {
+    return Err(MissingRequests)
+  }
+  @acquisition.derive_query_acquisition_shape(requests, source_index, 1000000).map_err(issue => {
+      UnsupportedAcquisition(issue)
+    },
+  )
+}
+
+///|
 /// Derive the same checked acquisition from an Effectful Program without
 /// exposing its private Effect-free graph view to an installed adapter.
 pub fn prepare_client_effect_query_acquisition(
@@ -70,6 +94,19 @@ pub fn prepare_client_query_requirement(
     Ok(value) => value
     Err(issue) => return Err(Acquisition(issue))
   }
+  prepare_client_query_requirement_from_acquisition(
+    prepared, generated, acquisition, guards, limits,
+  )
+}
+
+///|
+fn prepare_client_query_requirement_from_acquisition(
+  prepared : PreparedClientProgram,
+  generated : @execution.GeneratedSequence,
+  acquisition : @acquisition.QueryAcquisition,
+  guards : @planning.QueryLogicalGuards,
+  limits : @planning.QueryMaterialLimits,
+) -> Result[@planning.QueryRequirement, ClientQueryRequirementIssue] {
   let sequence = match
     @query.prepare_query_sequence(acquisition, generated, limits.max_work) {
     Ok(value) => value

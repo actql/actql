@@ -6,7 +6,9 @@ import {
 }
 
 // Values
-pub fn load_current_component_with_custody(String, Int64, Int) -> Result[Library, NativeSqliteLibraryLoadError]
+pub fn command_domain_necessary_bytes(Int64, Int64) -> Int64?
+
+pub fn load_current_component_with_custody(String, Int64, Int, command_member? : @filesystem.NativeObservedComponentMember?) -> Result[Library, NativeSqliteLibraryLoadError]
 
 pub fn load_library(String, diagnostic_ceiling? : Int?) -> Result[Library, NativeSqliteIssue]
 
@@ -53,11 +55,14 @@ pub fn Library::close_checked(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Library::diagnostic_ceiling(Self) -> Int?
 pub fn Library::initialize_owned_database(Self, String, @filesystem.NativeFileOwnership, Int64) -> Result[Database, NativeSqliteIssue]
 pub fn Library::initialize_owned_database_with_custody(Self, String, @filesystem.NativeFileOwnership, Int64) -> Result[Database, NativeSqliteOpenFailure]
+pub fn Library::initialize_owned_journal_database_with_custody(Self, String, @filesystem.NativeFileOwnership, Int64) -> Result[Database, NativeSqliteOpenFailure]
 pub fn Library::open_database(Self, String, Int64) -> Result[Database, NativeSqliteIssue]
 pub fn Library::open_database_with_custody(Self, String, Int64) -> Result[Database, NativeSqliteOpenFailure]
 pub fn Library::open_existing_database(Self, String, Int64) -> Result[Database, NativeSqliteIssue]
 pub fn Library::open_existing_database_with_custody(Self, String, Int64) -> Result[Database, NativeSqliteOpenFailure]
+pub fn Library::open_existing_journal_database_with_custody(Self, String, Int64) -> Result[Database, NativeSqliteOpenFailure]
 pub fn Library::open_inspection_database(Self, String, Int64) -> Database
+pub fn Library::open_journal_inspection_database(Self, String, Int64) -> Database
 pub fn Library::version(Self) -> String
 
 pub(all) struct NativeCapacityUsage {

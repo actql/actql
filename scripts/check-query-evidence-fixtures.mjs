@@ -1,6 +1,18 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {machineCid} from './actql-spec-family.mjs';
+import {queryTimeAcquisitionVectors} from './query-time-acquisition-vectors.mjs';
+import {generateQueryEvidenceVectors} from './query-evidence-vectors.mjs';
+
+// New bound-owner examples remain independent data preimages, not product
+// compiler outputs or issued capture evidence.
+const queryTimeVectors = queryTimeAcquisitionVectors(
+  JSON.parse(readFileSync('portability/corpus/query-acquisition-identities.json', 'utf8')),
+);
+assert.deepEqual(JSON.parse(readFileSync('portability/corpus/query-time-acquisition-identities.json', 'utf8')),
+  queryTimeVectors);
+assert.equal(readFileSync('src/canonical_json/query_time_acquisition.generated_test.mbt', 'utf8'),
+  generateQueryEvidenceVectors('query_time_acquisition', queryTimeVectors));
 
 // Fixture copies carry full shared bodies into filesystem-free target tests.
 // Pins and record expectations are independently fixed, never generated here.

@@ -11,12 +11,15 @@ struct NativeLocalPackagedRuntime {
   mut reader_open_failure : @filesystem.NativeReaderOpenFailure?
   mut root_open_failure : @filesystem.NativeRootOpenFailure?
   original_read : (@arena.InstalledArenaHost, @arena.InstalledArenaOriginalRead)?
-  original_resources : @arena.InstalledArenaLocalHostResources?
+  mut original_resources : @arena.InstalledArenaLocalHostResources?
+  command_preparation : Bool
   mut selection : (String, String, String, String)?
   mut product : NativeLocalPackagedProductObservation?
   mut read_scope_entered : Bool
   mut sqlite : String
   mut crypto : String
+  mut command_sqlite_member : @filesystem.NativeObservedComponentMember?
+  mut command_crypto_member : @filesystem.NativeObservedComponentMember?
   mut ready : Bool
   mut closed : Bool
 }
@@ -48,6 +51,11 @@ priv suberror LocalRuntimeStop {
 }
 
 ///|
+// Stronger command selection never issues coverage. The same entry must have
+// admitted its complete finite envelope before the first covered Root/helper.
+extern "C" fn local_runtime_command_original_available() -> Bool = "actql_native_command_platform_available"
+
+///|
 fn[T] local_runtime_stop(
   issue : NativeLocalPackagedRuntimeIssue,
 ) -> T raise LocalRuntimeStop {
@@ -72,6 +80,11 @@ fn local_runtime_read_begin(
   if !cleanup && runtime.closed {
     return Err(Changed)
   }
+  if !cleanup &&
+    runtime.command_preparation &&
+    !local_runtime_command_original_available() {
+    return Err(OriginalReadUnavailable)
+  }
   if runtime.read_scope_entered {
     return Err(CleanupPending)
   }
@@ -80,10 +93,12 @@ fn local_runtime_read_begin(
       return Err(OriginalReadUnavailable)
     }
     if !cleanup {
-      match
-        host.require_local_host_consuming_read_current(resources, original) {
+      match host.observe_local_host_consuming_read_scope(resources, original) {
         Err(issue) => return Err(OriginalHostResources(issue))
-        Ok(_) => ()
+        // The original Journal owns this already entered frame. Runtime
+        // observations neither reenter it nor acknowledge its eventual leave.
+        Ok(@arena.ReadEntered) => return Ok(())
+        Ok(@arena.ReadUnentered) => ()
       }
     }
     let entered = if cleanup {
@@ -151,6 +166,7 @@ fn[T] local_runtime_read_finish(
 fn local_runtime_empty(
   original_read : (@arena.InstalledArenaHost, @arena.InstalledArenaOriginalRead)?,
   original_resources? : @arena.InstalledArenaLocalHostResources? = None,
+  command_preparation? : Bool = false,
 ) -> NativeLocalPackagedRuntime {
   {
     manifest: None,
@@ -163,11 +179,14 @@ fn local_runtime_empty(
     root_open_failure: None,
     original_read,
     original_resources,
+    command_preparation,
     selection: None,
     product: None,
     read_scope_entered: false,
     sqlite: "",
     crypto: "",
+    command_sqlite_member: None,
+    command_crypto_member: None,
     ready: false,
     closed: false,
   }
@@ -310,6 +329,7 @@ pub fn open_native_local_packaged_runtime_in_original_read(
   platform : String,
   manifest_sha256 : String,
   diagnostic_ceiling : Int,
+  command_preparation? : Bool = false,
 ) -> Result[NativeLocalPackagedRuntime, NativeLocalPackagedRuntimeOpenIssue] {
   guard original_read is Some((host, original)) else {
     return Err(Refused(OriginalReadUnavailable))
@@ -317,13 +337,16 @@ pub fn open_native_local_packaged_runtime_in_original_read(
   if !local_runtime_path_valid(root_path) || diagnostic_ceiling <= 0 {
     return Err(Refused(InvalidInput))
   }
+  if command_preparation && !local_runtime_command_original_available() {
+    return Err(Refused(OriginalReadUnavailable))
+  }
   match host.enter_domain_original_read(original) {
     Err(issue) => return Err(Refused(OriginalRead(issue)))
     Ok(_) => ()
   }
   // The Runtime itself is managed by this context. Its close acknowledges its
   // Roots/readers, not its own last alias or the outer original-read carrier.
-  let runtime = local_runtime_empty(original_read)
+  let runtime = local_runtime_empty(original_read, command_preparation~)
   runtime.read_scope_entered = true
   let result = match
     @filesystem.open_root_in_current_read_context_with_custody(
@@ -460,6 +483,31 @@ fn local_runtime_capture(
       if collect {
         bodies[entry.role] = body
       }
+      if runtime.original_read is Some(_) &&
+        (entry.role == "sqlite" || entry.role == "crypto") {
+        let observation = runtime.witnesses[runtime.witnesses.length() - 1]
+        let component = observation
+          .command_component_member(
+            if entry.role == "sqlite" {
+              1
+            } else {
+              2
+            },
+            source_sha,
+            manifest_sha256,
+            entry.sha256,
+          )
+          .map_err(issue => Physical(issue))
+          |> local_runtime_result
+        if !local_runtime_bind_command_member(runtime, component) {
+          local_runtime_stop(Changed)
+        }
+        if entry.role == "sqlite" {
+          runtime.command_sqlite_member = Some(component)
+        } else {
+          runtime.command_crypto_member = Some(component)
+        }
+      }
       if entry.role == "sqlite" {
         runtime.sqlite = root_path + "/" + entry.path
       }
@@ -513,6 +561,37 @@ pub fn NativeLocalPackagedRuntime::check_current(
     Ok(_) => ()
   }
   local_runtime_read_finish(self, self.local_runtime_check_originals())
+}
+
+///|
+/// Join the same already admitted Runtime Read to its same-Host consuming pair.
+/// No Root, manifest, child, claim or byte allowance is recreated. The original
+/// available Read may have observed the selected SQLite path before its one
+/// consuming claim; every Runtime alias remains in that original inventory.
+/// This exchange is one-shot and retains the pair even if the following whole
+/// current check fails. Missing/foreign originals never select legacy reads.
+pub fn NativeLocalPackagedRuntime::bind_original_host_resources(
+  self : NativeLocalPackagedRuntime,
+  resources : @arena.InstalledArenaLocalHostResources,
+) -> Result[Unit, NativeLocalPackagedRuntimeIssue] {
+  if !self.ready ||
+    self.closed ||
+    self.read_scope_entered ||
+    self.original_resources is Some(_) ||
+    self.reader is Some(_) ||
+    self.reader_open_failure is Some(_) ||
+    self.root_open_failure is Some(_) {
+    return Err(Changed)
+  }
+  guard self.original_read is Some((host, read)) else {
+    return Err(OriginalReadUnavailable)
+  }
+  match host.require_local_host_consuming_read_current(resources, read) {
+    Err(issue) => return Err(OriginalHostResources(issue))
+    Ok(_) => ()
+  }
+  self.original_resources = Some(resources)
+  self.check_current()
 }
 
 ///|
@@ -710,4 +789,36 @@ fn NativeLocalPackagedRuntime::local_runtime_close_originals(
   self.sqlite = ""
   self.crypto = ""
   Ok(())
+}
+
+///|
+#borrow(runtime, component)
+extern "C" fn local_runtime_bind_command_member(
+  runtime : NativeLocalPackagedRuntime,
+  component : @filesystem.NativeObservedComponentMember,
+) -> Bool = "actql_native_client_bind_component_runtime"
+
+///|
+/// The exact two already hashed members of this same retained Runtime. These
+/// observations cannot issue initial control coverage or permit a load without
+/// the original trusted command bootstrap. Retain this Runtime through all
+/// component users; normal close/current rules remain unchanged.
+pub fn NativeLocalPackagedRuntime::command_library_members(
+  self : NativeLocalPackagedRuntime,
+) -> Result[
+  (
+    @filesystem.NativeObservedComponentMember,
+    @filesystem.NativeObservedComponentMember,
+  ),
+  NativeLocalPackagedRuntimeIssue,
+] {
+  match self.check_current() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard self.command_sqlite_member is Some(sqlite) &&
+    self.command_crypto_member is Some(crypto) else {
+    return Err(Changed)
+  }
+  Ok((sqlite, crypto))
 }

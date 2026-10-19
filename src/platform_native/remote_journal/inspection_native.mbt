@@ -8,6 +8,7 @@ struct CoordinatorInitializationCleanup {
   inspection : JournalInspection
   path : Result[String, NativeRemoteJournalIssue]
   max_record_bytes : Int64
+  journal_private_index : Bool
   mut database : @sqlite.Database?
   mut open_attempted : Bool
   mut closing : Bool
@@ -34,6 +35,14 @@ extern "C" fn inspection_open_bounded(
 ) -> JournalInspection = "actql_journal_inspection_open_bounded"
 
 ///|
+#borrow(path)
+extern "C" fn inspection_open_command_bounded(
+  path : Bytes,
+  length : Int,
+  max_snapshot_bytes : Int64,
+) -> JournalInspection = "actql_journal_inspection_open_command_bounded"
+
+///|
 #borrow(owner)
 extern "C" fn inspection_limit_exceeded(owner : JournalInspection) -> Bool = "actql_journal_inspection_limit_exceeded"
 
@@ -56,6 +65,16 @@ extern "C" fn inspection_validate(owner : JournalInspection) -> Bool = "actql_jo
 ///|
 #borrow(owner)
 extern "C" fn inspection_close(owner : JournalInspection) -> Bool = "actql_journal_inspection_close"
+
+///|
+#borrow(owner)
+extern "C" fn inspection_prepare_private_index(
+  owner : JournalInspection,
+) -> Bool = "actql_journal_inspection_prepare_private_index"
+
+///|
+#borrow(owner)
+extern "C" fn inspection_private_index_ready(owner : JournalInspection) -> Bool = "actql_journal_inspection_private_index_ready"
 
 ///|
 fn inspection_issue(owner : JournalInspection) -> NativeRemoteJournalIssue {
@@ -88,6 +107,7 @@ fn capture_sqlite_inspection(
     inspection,
     path,
     max_record_bytes,
+    journal_private_index: false,
     database: None,
     open_attempted: false,
     closing: false,
@@ -119,6 +139,38 @@ pub fn prepare_sqlite_source_inspection(
 }
 
 ///|
+/// Select only the private copied Journal's read-only heap-index route. The
+/// same snapshot owns the exclusively created empty SHM and every partial
+/// preparation failure. This does not admit the source or acquire its Lock.
+/// The trusted Native command caller must retain its original Session/Lock.
+pub fn prepare_sqlite_journal_source_inspection(
+  path : String,
+  max_record_bytes : Int64,
+  max_snapshot_bytes : Int64,
+) -> Result[CoordinatorInitializationCleanup, NativeRemoteJournalIssue] {
+  if max_record_bytes < 0L || max_snapshot_bytes < 0L {
+    return Err(Physical(@sqlite.InvalidLimit))
+  }
+  let bytes = @utf8.encode(path)
+  let inspection = inspection_open_command_bounded(
+    bytes,
+    bytes.length(),
+    max_snapshot_bytes,
+  )
+  let selected = inspection_prepare_private_index(inspection)
+  let captured = capture_sqlite_inspection(inspection, max_record_bytes)
+  Ok({
+    ..captured,
+    journal_private_index: true,
+    path: if selected {
+      captured.path
+    } else {
+      Err(inspection_issue(inspection))
+    },
+  })
+}
+
+///|
 /// Open this captured copy at most once. The same owner retains the actual DB
 /// before checking its inspection status. `None` is physical source absence,
 /// never permission to initialize. Retaining a DB alias does not retire it.
@@ -138,7 +190,14 @@ pub fn CoordinatorInitializationCleanup::open_database(
     Err(issue) => return Err(issue)
   }
   if !path.is_empty() {
-    let database = library.open_inspection_database(path, self.max_record_bytes)
+    let database = if self.journal_private_index {
+      if !inspection_private_index_ready(self.inspection) {
+        return Err(inspection_issue(self.inspection))
+      }
+      library.open_journal_inspection_database(path, self.max_record_bytes)
+    } else {
+      library.open_inspection_database(path, self.max_record_bytes)
+    }
     self.database = Some(database)
     match database.inspection_status() {
       Ok(_) => ()

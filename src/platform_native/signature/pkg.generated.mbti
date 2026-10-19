@@ -2,11 +2,12 @@
 package "actql/actql/platform_native/signature"
 
 import {
+  "actql/actql/platform_native/filesystem",
   "moonbitlang/core/debug",
 }
 
 // Values
-pub fn load_current_crypto_component(String, Int64, Int) -> Result[NativeCryptoComponentAcquisition, NativeSignatureIssue]
+pub fn load_current_crypto_component(String, Int64, Int, command_member? : @filesystem.NativeObservedComponentMember?) -> Result[NativeCryptoComponentAcquisition, NativeSignatureIssue]
 
 pub fn load_library(String, diagnostic_ceiling? : Int?) -> Result[Library, NativeSignatureIssue]
 

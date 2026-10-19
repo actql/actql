@@ -1,5 +1,5 @@
 ///|
-test "DOUBLE and FLOAT64 casts preserve the same checked numeric target" {
+test "NUMBER DOUBLE and FLOAT64 casts preserve the same checked numeric target" {
   let expected = @program.parse(
     (
       #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"as":"aql_source_free","values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]}},{"from":"aql_source_free","derive":{"aql_query_expr_0":{"cast":{"value":{"literal":1.25},"target":{"type":"number"}}},"aql_query_expr_1":{"cast":{"value":{"literal":null},"target":{"type":"number"}}}}},{"select":[{"value":"aql_query_expr_0"},{"missing":"aql_query_expr_1"}],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["value","missing"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
@@ -11,7 +11,7 @@ test "DOUBLE and FLOAT64 casts preserve the same checked numeric target" {
     @check.check_parsed(expected, check_environment(), None, check_limits())
     is Checked(_),
   )
-  for target in ["FLOAT64", "DOUBLE", "dOuBlE"] {
+  for target in ["NUMBER", "number", "NuMbEr", "FLOAT64", "DOUBLE", "dOuBlE"] {
     let actual = compile(
       @query.parse_query(
         "SELECT CAST(1.25 AS " +

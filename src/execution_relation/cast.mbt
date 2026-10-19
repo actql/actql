@@ -134,7 +134,13 @@ fn cast_expression_value(
   child : @lower.Expression,
   value : Value,
   budget : ControlBudget,
+  decimal_failure_null? : Bool = false,
 ) -> Result[Value, EvalIssue] {
+  if decimal_failure_null &&
+    !(@lower.expression_contract(expression).nullable &&
+    @lower.expression_contract(expression).shape is @contract.Decimal(..)) {
+    return Err({ kind: Scalar(InvalidOperand), expression, })
+  }
   if value is Null {
     return Ok(Null)
   }
@@ -242,6 +248,9 @@ fn cast_expression_value(
   }
   match converted {
     Some(v) => Ok(v)
+    // Only an invalid/unrepresentable conversion becomes NULL. Every earlier
+    // child, logical, control or cancellation failure remains an original Err.
+    None if decimal_failure_null => Ok(Null)
     None => Err({ kind: Scalar(InvalidOperand), expression, })
   }
 }

@@ -1,6 +1,8 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/source_frontend",
+  "actql/actql/client_source_publication" @source_publication,
   "actql/actql/effect_program_binding" @effect_binding,
   "actql/actql/publication_payload" @payload,
   "actql/actql/checkpoint_runtime" @checkpoint,
@@ -64,4 +66,5 @@ import {
   "actql/actql/bounded_execution" @bounded,
   "actql/actql/connectors/local",
   "actql/actql/physical_manifest" @cleanup_manifest,
+  "actql/actql/client_local_host" @local_query_time,
 } for "wbtest"

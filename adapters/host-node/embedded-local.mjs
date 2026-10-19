@@ -150,6 +150,7 @@ import {canonicalJson, contentCid, createLocalAuthorizationGate,
 import {localContractLimits, localOutputLimits,
   sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence, sourceFreePlanOriginal, sourceFreeTaskPlan,
   sourceFreeEffectPublicationPlan, acquiredEffectPublicationAdmission,
+  openSourceFreeEffectComputation,
   acquiredTaskRunAdmission, inferTaskRunAdmission, restoreInferTaskRunAdmission, serializationTaskRunAdmission,
   selectInstalledSerializationGraph} from
   './local-values-plan.mjs';
@@ -1857,7 +1858,13 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (count > 0) {
         if (sourceProfile === undefined) throw clientOperationError('ClientProgramNeedsInputs');
         try {
-          selectAcquiredEffectSources({moon, preparedEffect: preparedProgram,
+          const requiresQueryTime = typeof moon.clientProgramEffectRequiresQueryTime === 'function'
+            ? checked(moon.clientProgramEffectRequiresQueryTime(preparedProgram,
+              localContractLimits.maxNodes, localContractLimits.maxNodes)) : false;
+          if (typeof requiresQueryTime !== 'boolean') throw new Error('InvalidQueryTimeRequirement');
+          // Checking does not sample. A time-dependent physical requirement is
+          // sealed from the winning admitted Run before any Source preparation.
+          if (!requiresQueryTime) selectAcquiredEffectSources({moon, preparedEffect: preparedProgram,
             sourceProfile, registry, values, fragment, ordered});
         } catch (cause) {
           throw clientOperationError('ClientProgramUnsupported', cause);
@@ -2045,14 +2052,15 @@ async function openInstalledHost(originalInstallation, preparation) {
       : preparedSource === undefined ? {} : {acquisition: acquisitionDescriptor(preparedSource)}),
   });
   const planFor = ({preparedProgram, requestId},
-    retainedDefinitionWire) => {
+    retainedDefinitionWire, requestIdentity) => {
     prepareSubmit.assertOwned(preparedProgram);
     const restored = prepareSubmit.originalInferRun(preparedProgram);
     if (restored !== undefined) {
-      return restoreInferTaskRunAdmission({control, preparedProgram, restored});
+      return restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity});
     }
     const common = {moon, control, preparedProgram,
       authorityScopeCid, namespaceId, requestId, storeAuthorityCid, now,
+      ...(requestIdentity === undefined ? {} : {requestIdentity}),
       ...(retainedDefinitionWire === undefined ? {} :
         {retainedDefinitionWire})};
     const infer = inferSelections.get(preparedProgram);
@@ -2090,7 +2098,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       submission: submission.submission,
       resultNames, sourceInventory: sourceInventory(held.preparedSources, held.preparedSource, held.keyedSource),
       issueDefinition: () => {
-        held.plan = planFor(submission);
+        held.plan = planFor(submission, undefined, requested);
         if (held.plan.kind === 'infer') {
           // The existing codec currently represents one ordinary installed
           // graph. Other live profiles keep their existing admission path;
@@ -2318,8 +2326,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             openComputation: async ({retainComputationOwner} = {}) => {
               facts.assertUpdateSelectionCurrent?.();
               if (inferSelections.has(facts.prepared) ||
-                  runtimeIsOk(moon.clientProgramEffectPrepareQueryAcquisition(
-                facts.prepared, 0, 0))) {
+                  moon.clientProgramEffectAcquisitionCount(facts.prepared) > 0) {
                 let ownedModelToken;
                 try {
                   let retainedModel = modelResume;
@@ -2343,7 +2350,8 @@ async function openInstalledHost(originalInstallation, preparation) {
                   }
                   const selectedSources = selectAcquiredEffectSources({moon,
                     preparedEffect: facts.prepared, sourceProfile,
-                    registry, values, fragment, ordered});
+                    registry, values, fragment, ordered,
+                    queryTimePreparation: facts.queryTimePreparation, requestIdentity: facts.identity});
                   const observeSourceRun = journal.observeRunCancellation(facts.ref, moon, control);
                   const sourceContinuation = acquiredEffectContinuation({
                     checkpoints: (selectedSources.length === 0 ||
@@ -2387,9 +2395,8 @@ async function openInstalledHost(originalInstallation, preparation) {
                     parentResume, modelJournalPort: nextJournal});
                 } finally { modelController?.release(ownedModelToken); }
               }
-              const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
-                facts.owner, registry, values, 1n, 0n, 0n, 0n,
-                fragment, ordered);
+              const setup = openSourceFreeEffectComputation({moon, facts,
+                registry, values, fragment, ordered});
               if (setup === undefined) {
                 throw new Error('InstalledEffectProgramUnsupported');
               }
@@ -2447,7 +2454,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       authorizeRunStart: ({principalId: actual, connection, ref}) =>
         hostConnection({principalId: actual, connection, ref}),
       prepareExecution: ({prepared, compilation, allowed, definition,
-        resultPolicyOriginal}) => {
+        resultPolicyOriginal, queryTimePreparation, queryTime, identity}) => {
         const sourceFreeInfer = inferSelections.has(prepared) &&
           moon.clientProgramEffectAcquisitionCount(prepared) === 0;
         const retainedResultDataPolicy = sourceFreeInfer
@@ -2456,10 +2463,10 @@ async function openInstalledHost(originalInstallation, preparation) {
           : undefined;
         const options = {moon, control, prepared,
           compilation, allowed, definition, authorityScopeCid, namespaceId,
-          storeAuthorityCid, now, resultDataPolicy: retainedResultDataPolicy};
+          storeAuthorityCid, now, resultDataPolicy: retainedResultDataPolicy,
+          queryTimePreparation, queryTime, identity};
         return inferSelections.has(prepared) ||
-          runtimeIsOk(moon.clientProgramEffectPrepareQueryAcquisition(prepared,
-          0, 0))
+          moon.clientProgramEffectAcquisitionCount(prepared) > 0
           ? acquiredEffectPublicationAdmission(options)
           : sourceFreeEffectPublicationPlan(options);
       },
@@ -2673,7 +2680,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           const current = journal.lookupRunDefinition(accepted.ref, moon, control);
           if (current === undefined || current.cancellationRequested ||
               current.observedTerminalOutcome !== null) return;
-          const plan = planFor(submission, current.runDefinition.wire);
+          const plan = planFor(submission, current.runDefinition.wire, requested);
           let acquiredInfer;
           if (acquired) {
             // Reacquisition uses the current installed read admission. It
@@ -3528,7 +3535,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             }
             if (parentCheckpoint !== undefined) throw new Error('ModelReadParentRunMismatch');
             if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');
-            const plan = planFor(submission, current.runDefinition.wire);
+            const plan = planFor(submission, current.runDefinition.wire, requested.requested);
             if (originalModelRunWire(plan.compiled, plan.runDefinition) !== record.originals.originalRunWire) {
               throw new Error('ModelResumeOriginalAdmissionChanged');
             }

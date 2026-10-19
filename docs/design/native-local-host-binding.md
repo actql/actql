@@ -5,6 +5,26 @@ Native Local CLI. These are implementation requirements, not claims that Local
 execution or Provider approval has passed public acceptance. The existing
 Native Remote CLI, its wire contracts and distribution remain intact.
 
+## Ordinary product startup boundary
+
+The [ordinary Embedded Host contract](../spec/execution.md#initial-node-control-preparation)
+and its [decision rationale](embedded-host-trust-boundary.md) apply to the public
+Native CLI as well as Node and Python. A normal main entry, supported loader,
+standard libraries and OS are trusted. Public output uses supported write/flush
+APIs, bounded encoding and error handling; libc-private FILE fields, pristine
+stdio, pre-main allocation provenance and process-wide arena coverage are not
+command admission requirements.
+
+Actual shared native buffers, SQLite/crypto contexts, FDs and in-flight work
+retain their explicit ownership and release rules. In particular, do not
+convert a real busy arena/context with live users into a false release ACK.
+Legacy complete-process bootstrap descriptions below are selected implementation
+material, superseded as ordinary startup requirements. Preserve applicable
+per-resource containment rather than extending them to libc or runtime caches.
+Trusted explicit Mock initialization may perform the adopted limited setup
+through the existing adoption/signing Owners; retained reopen never regenerates
+missing adopted configuration, keys or authority.
+
 ## Explicit configuration adoption
 
 The operator explicitly selects the configuration, execution account and private
@@ -1515,3 +1535,450 @@ and ordinary dispatch retain their normal-current requirements. The Library's
 own acknowledgment precedes component retirement, and neither acknowledges the
 Read, domains, loan, Host or descriptor. Failed or unknown cleanup retains the
 same receiver and all outstanding aliases.
+
+
+### Serialized command-preparation Journal WAL
+
+The finite Native command-preparation Journal is selected only through its
+original adoption Session and retained Lock. Its writer selects EXCLUSIVE
+locking before schema, version or WAL access, then verifies the acquired
+heap-backed WAL index in the same selected SQLite component. The selection does
+not apply to generic SQLite, concurrent Journal users, Node or Cloud.
+
+Retained inspection precedes the writer. Its existing inspection Owner creates
+and retains a unique empty SHM alongside the exact committed DB-plus-WAL copy.
+The selected read-only constructor uses SQLite's `readonly_shm` recovery path
+and verifies the private heap index and absence of shared-memory mappings.
+It does not use immutable access, omit the copied WAL, write the copied database,
+change generic inspection, or substitute a mode string for physical custody.
+The original snapshot identity and cleanup remain with the inspection Owner.
+
+The component reserves each original VFS descriptor carrier within its existing
+heap before opening the descriptor. A failed or interrupted one-shot close
+retains that descriptor's consumed attempt and diagnosis; it prevents component
+retirement and the selected Journal's close acknowledgment. It is never retried
+by numeric descriptor. A successful SQLite close alone cannot discharge this
+physical responsibility. Database, Library, snapshot, domain and adoption Lock
+acknowledgments remain separate and child-first. Heap exhaustion, lock refusal,
+partial initialization and COMMIT uncertainty retain their original carriers;
+there is no NORMAL-mode fallback, fresh acquisition, replay or capacity increase.
+
+
+The command profile keeps its later Native storage inventory separate from the
+initial argv/Command/parser envelope. Its one configured Crypto heap serves
+both Signature Libraries; its one configured SQLite heap contains DB/schema,
+statement/cache, bindings/results, original descriptor metadata and the private
+WAL index. Recovery and old/new pointer-array overlap are included within that
+same heap. Heap capacity is not added again for each phase or borrower.
+
+The private quote distinguishes a derived demand bound from a selected finite
+SQLite facility. The latter supplies the same actual backed heap before first
+initialization; it does not promise that every bounded input fits. Known WAL,
+recovery, realloc and scan-copy coexistence remains a necessary minimum, not
+worst-case demand. Residual heap capacity cannot fill an unknown demand term.
+MEMSYS5 control and fragmentation are not usable payload. Exhaustion refuses
+under the original cleanup semantics without fallback, enlargement or a fresh
+open. This selection supplies neither external holdings nor input/work bounds;
+the complete external envelope and an actual ordinary command remain required.
+
+A snapshot bound constrains WAL frames, not the index to one region. The first
+region holds 4062 frames, later regions 4096; each region requests 32768 bytes.
+MEMSYS5 rounds requests within the selected heap and consumes its own control
+bytes. The original inspection connection and copy must acknowledge cleanup
+before the writer may use the serial phase bound. Pending cleanup retains the
+same profile, scope, original FD/errno and all aliases; it does not refill the
+Read or permit a second acquisition.
+
+The closed command's Read selection also distinguishes full managed/native
+demand bounds from finite supplied capacity. A facility candidate installs its
+one-shot occupied-page ceiling on the same original lease before context or
+payload allocation. Generic buffers, managed slabs, control metadata and pending
+allocations consume that same ceiling without fallback or phase reset. The
+whole backing remains charged once by its outer owner. The same H binds the
+existing one-shot consuming claim; bootstrap, workspace and read reservations
+remain distinct. Crypto heap and inspection coexistence are necessary subsets,
+not additional capacity or a guarantee that every input fits. An exhausted
+attempt keeps its original failure and cleanup duties. Default allocations
+outside the entered original Read remain outside this facility, and all initial
+and external holding requirements remain mandatory. This selection covers only
+static Native command preparation, never business Source/Compute/Model work.
+
+The profile validates the actual parsed Journal limits against its captured
+pre-acquisition inventory. Native managed graphs, same-domain native buffers,
+SQLite external receivers, shared control and process/platform holdings have
+separate source-bound terms. Loader, mapped-image, pthread/TLS and native stack
+storage outside the domain cannot be paid by that domain's unused capacity.
+Computing their byte requirement is distinct from acquiring their original
+process/installer holding. Until that existing Owner provides the actual
+platform entrance, positive bounds remain insufficient and command preparation
+refuses before physical acquisition. No scalar, source label or successful
+component test supplies that missing original.
+
+The selected private representation distinguishes a numerical platform-demand
+term from the closed initial OS-service facility. The latter retains no byte
+credit: its numerical demand field remains absent, and supplying a nominal
+number with that selection is invalid. It still requires the actual trusted
+startup original, supported platform/recipe, original lifetime and currentness
+before any covered call. This distinction does not replace Read, SQLite,
+Crypto or shared-control numerical requirements, nor satisfy a consumer that
+actually requires a byte demand or ceiling. It supplies no business capacity.
+
+The trusted early entry captures the original OS-created main-thread stack
+before argument/control work, retaining its complete reported extent with the
+original process and thread. Current use requires that same thread, process,
+OS extent and an actual current stack address within it. Foreign threads,
+fork-inherited records and changed extents cannot consume that original. This
+process-lived holding has no child-close or refill operation. Its size is
+supplied stack capacity, not a measured call-chain high-water mark, another
+allocator's backing or a guarantee that every possible call chain fits. The
+subordinate stack record does not admit the complete initial envelope: loader,
+TLS, FILE and all other external controls retain their separate requirements.
+
+
+The same early entry retains a source-bound managed allocation-volume sum for
+its captured argc, original byte total and four original allocator-class terms.
+The selected immutable Command grammar, its parser, help/error output and fixed
+module graph contribute separate terms. Constructor tuples/captures, reference
+Array carriers, builders and suggestion pairs are counted once. This volume is
+not a reservation or proof of allocator pages, fragmentation, metadata, stack,
+SIMDUTF internals, platform holdings or later command graphs. Recording it does
+not admit initial coverage or create a platform original.
+
+The selected command's trusted initial operational control covers the finite
+loader, dependency-image and TLS/synchronization lifetime of its pinned SQLite
+and Crypto components, together with the selected platform bookkeeping for
+directory, ACL and path operations. These are separate terms from each other
+and from actual Read-backed storage. Each helper requires its actual entry
+original and complete finite envelope before its first covered call. This
+includes the first `dlopen` and its initializers. The Runtime's
+hashed member observation retains its original Root/stat association; its path,
+digest and nominal Runtime association do not issue that initial original.
+A selected load consumes one original attempt, records even a failed load, and
+checks actual handle/symbol-image correspondence before initialization or use.
+Missing entry coverage cannot select a legacy diagnostic load instead.
+
+The selected initial OS service original is the actual trusted Native
+process/main-thread lifetime supplied by platform startup. It is not an
+additional byte reservation, a BackedExtent, measured RSS or a numerical demand
+estimate. The entry borrows it once through its private early-current port,
+before managed initialization or later Runtime registration. The same entry's
+actual executable, generation, stack, captured inputs and closed recipe remain
+conjunctive. A copied record, PID, quote or unrelated mapping cannot supply it.
+Later Runtime/member adoption keeps that same initial lifetime. Only the two
+existing one-shot SQLite/Crypto load records consume the fixed load sequence;
+their existing image/provider/symbol checks and partial cleanup remain intact.
+This service original cannot fill an unresolved numerical byte field or fund
+Read, component heaps, Source, Compute, Model or another runtime's startup.
+
+The fixed Darwin loader recipe excludes ambient `DYLD_*` options. Its private
+entry observation examines at most 10000 environment slots and five name bytes
+per entry without copying values or allocating. A missing or unterminated
+bounded vector refuses. The same entry rechecks this condition before normal
+covered work; an observed refusal is sticky and cannot be reset by removing an
+option. This observation is neither an OS-facility original nor proof that no
+image was injected before entry. Cleanup retains its existing original duty
+even after this normal-use condition fails.
+
+Normal currentness requires the same nominal initial observation and the same
+entry/process/main thread. A foreign thread or fork cannot consume its original
+cleanup; an observed original-parent/environment refusal is sticky for normal
+work. There is no release/refill operation on this process-lived service. In
+particular, the pinned OpenSSL master TLS key and its hooked per-thread table
+have different lifetimes: thread cleanup clears/frees the table without
+establishing retirement of the OS key. Component/module ACKs do not return that
+process-lived control or replace its callback-lifetime obligations.
+
+Normal component use keeps both the original domain-current fence and the
+selected load/member fence. Cleanup retains the same entered original child
+predicate after normal use is unavailable; it cannot reopen, sign or acquire a
+replacement. Library/component shutdown and module-reference release remain
+separate acknowledgements. Dropping a successfully released module's member
+alias does not replenish the once-counted process/thread-lived initial terms,
+acknowledge every image/TLS retirement, or release the parent Read or backing.
+
+The same initial control also covers the selected pinned allocator's finite
+bootstrap, arena-registration, heap-descriptor and process/thread metadata.
+These external parent/backing terms are distinct from the exclusive managed
+payload and from Read, SQLite and Crypto storage. Before allocator initialization,
+the actual entry retains its original process/thread and complete source-bound
+selection. Its one-shot physical binding acquires one actual mapping containing
+disjoint parent-metadata and exclusive-payload regions plus retained alignment
+space. It selects bounded allocator options before initialization: no automatic
+reservation, general arena growth, OS allocation fallback or destructive exit
+shortcut. It retains the previous values with the original and never restores
+them merely because a child or default heap closes. It then captures the actual
+parent default, registers the two non-overlapping regions and verifies that the
+new heap descriptor occupies the metadata region before selecting that heap
+for managed module initialization. Both registration records must fit the
+pinned allocator's existing static registration storage before use.
+An absent or incomplete selection cannot perform allocator setup.
+The profile selects pinned finite allocator options and refuses ambient allocator
+options before setup, including case variants and unsupported option names.
+Its bounded startup environment observation allocates no storage and rewrites
+no environment value. On refusal, the entry must stop before subsequent automatic allocator
+or module initializers; returning into those initializers cannot establish a
+pre-acquisition refusal.
+
+The trusted entry prepares its private four-slot managed candidate from the
+retained source-bound allocation volume using the same selected allocator's
+segment and registration geometry. Payload rounds to whole segments; the
+separate metadata/alignment holding and one setup are explicit. This candidate
+neither reserves storage nor proves that fragmentation and every bounded input
+fit. It cannot bypass complete initial admission, perform allocator setup or
+replace an exhausted original. Unselected compatibility keeps no candidate.
+
+The early startup getter borrows only that same actual entry generation before
+managed setup or later Runtime adoption. It checks original process, main
+thread, executable, source, retained raw input and stack correspondence. The
+default non-command entrance remains unavailable. This borrow is distinct from
+operational platform currentness and issues no OS facility or byte credit.
+
+Partial setup retains that same receiver and any acquired reservation or heap;
+a duplicate or refused receiver inherits none of its cleanup responsibility.
+Normal current checks require the original thread, unchanged entry selection,
+actual reservation, unchanged selected options and default heap. Cleanup may
+restore only its own previous default, never an unrelated replacement. This restoration has a separate
+acknowledgment: escaped managed aliases, heap descriptors, arena registration and
+their complete original mapping remain retained, without credit or another setup.
+No heap destruction, child close or process exit supplies their retirement ACK.
+
+A Runtime observation may borrow its same Host pair's already entered Read
+only after nominal Host/pair/read and consuming-current checks, the open consumer
+phase, and the actual backing's entered C context agree. That observation owns no
+leave: the Journal that entered the frame retains its scope and pending cleanup.
+An unentered Runtime keeps its original enter/leave path; SQLite, foreign and
+cleanup-only phases cannot select the borrowed path. Captured Runtime binding
+uses the original Journal's complete current fence and Read/SQLite query exchange
+for adopted material, selected originals and the existing Account read decision.
+The private synchronous access is not retained in the Host or Runtime binding.
+Historical operational witnesses remain unavailable through this entrance.
+
+The command Runtime retains its stronger filesystem selection through current
+checks. Its selected Darwin/APFS census uses `getattrlistbulk` with one fixed
+65536-byte buffer and the existing bounded expected-name bitmap, both allocated
+through the original Read. It does not construct a libc DIR or request its
+union-directory prefetch and sort. The same original directory is checked for
+APFS and absence of union stacking before enumeration; other selections and an
+unsupported bulk operation refuse without switching to the generic census.
+Existing generic census callers keep their original behavior. Exact names,
+no-follow file kinds and before/after directory identity remain mandatory.
+
+The selected census retains its separate descriptor before enumeration and
+consumes its close exactly once. Active enumeration prevents parent Root close.
+An unconfirmed descriptor close stays with that same Root, even after the Root
+descriptor itself closes; its numeric descriptor cannot be retried or inferred
+released from a sibling acknowledgment. Read/context/backing retirement remains
+separate from either descriptor close.
+
+Within the selected command entry, private Root and bootstrap-parent ACL
+observations use a fixed 4096-byte kernel attribute buffer on the same supported
+APFS selection. No libc filesec/ACL object or growing retrieval buffer is
+constructed. The complete external ACL representation is checked before the
+existing empty-ACL or deny-only rule is applied; malformed, truncated and
+unsupported observations refuse. Generic ACL callers retain their original
+platform path. The caller's bounded stack storage belongs to initial control,
+not unused Read capacity.
+
+Journal inspection uses the same entry's bounded original scratch selection,
+captured before physical acquisition. It never re-reads the current environment
+to choose another directory. The copied committed DB/WAL and scratch namespace
+retain their existing identity and cleanup responsibilities. Captured path text
+is input correspondence; it cannot issue the initial platform holding or pay for
+path-helper internals, ACL objects, Read buffers or other allocations.
+
+The executable entry retains its bounded raw argument bytes, runtime context
+and scratch selection before generated managed module initialization. The later
+parser entrance checks the same argument bytes and its requested bounds;
+changed arguments cannot replace that original observation. Context and scratch
+selection use retained bytes rather than later environment pointers. This
+static initial-control storage remains distinct from an admitted managed arena
+and from the physical Host, Read and component originals.
+The selected product caller consumes those same retained context bytes; an
+invalid or missing selected original cannot fall back to a replacement
+environment value. The explicitly unselected entrance retains its separate
+compatibility behavior.
+
+After the complete initial selection is current, the selected entry binds
+stdout and stderr before allocator setup can emit diagnostics. Both fixed
+buffers remain inside that same process-lived entry. The actual managed
+original remains a separate operational conjunct. The entry observes the
+supported libc's actual buffer address and length; an earlier successful status or equal FILE pointer
+cannot hide changed backing. Setup is one-shot, including partial failure,
+and preserves each original result and errno. These buffers do not supply libc
+FILE/lock/TLS bookkeeping, output permission or a retirement acknowledgement.
+The existing actual write and flush checks remain separate, and no covered
+caller reconfigures the streams or replenishes this initial storage.
+
+Before the first buffer setter, the selected entry checks both standard FILEs
+against the selected Darwin libc's original array, descriptors and pristine
+write-only state. Prior buffers, output or replacement FILEs refuse before
+either setter, rather than asking libc to release or rebind earlier storage.
+The entry retains their original auxiliary-record, cookie and operation
+bindings and checks them during current use, independently of buffer identity.
+The generic buffer-binding helper remains separate. These process-lived FILE
+observations cannot supply libc lock/TLS coverage or admit the whole initial
+envelope; those holdings remain mandatory before the selected setup.
+
+Selected inspection resolves its source and scratch directories with bounded
+descriptor-based kernel path observations. It keeps the original containment
+comparison, refuses unsupported filesystems without a realpath fallback and
+retains each temporary directory descriptor before observation. That
+descriptor's consumed close is separate from the DB/WAL, copy and private-index
+descriptors. An unconfirmed path close retains the same inspection receiver and
+prevents another path acquisition or successful cleanup; its number is never
+retried. Generic inspection keeps its existing canonical-path behavior.
+
+## Selected Linux mapped backing
+
+The selected local Linux arm64 process-domain consumer may compile the existing
+physical backing provider with `ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN` and
+`_GNU_SOURCE`. This is an explicit private backend selection, not a resource
+issuer or a numerical profile. The actual trusted supervisor/process-domain
+admission and the original mapped backing remain separate conjunctive inputs.
+A kernel limit cannot construct an extent or replace the private regular FD.
+
+The existing provider retains exact FD size, owner/mode, generation and recipe,
+first-initialization checks, relative allocation and payload bounds, original
+loan/view/domain identity, and child-first cleanup. Failed unmap or protection
+keeps the same original carrier; returning a view does not return its parent
+loan, and closing the provider does not close its caller-owned descriptor.
+Copied, foreign, retired and mismatched originals retain their existing refusals.
+
+This selection covers the same POSIX mapping/storage ownership mechanism only.
+It does not emit the Rust allocation entrypoints or select the Darwin
+compiled-image hashing path, a Linux compiler or
+Engine image, Rust/VM admission, an installed Python supplier, or normal funding.
+The existing Darwin selection and its physical semantics remain unchanged.
+
+## Command-preparation Read facility containment
+
+The selected Native command may distinguish a finite supplied Read facility
+from a complete input-graph demand bound. Existing managed and native demand
+fields retain their original meaning. The finite selection applies only to
+Runtime loading and static Project, Task and Journal preparation; it does not
+supply business Read, Source, Compute, Model, Effect or another Host.
+
+Before its first Read context or payload allocation, the original domain can
+consume one physical allocation-ceiling selection. The same allocator enforces
+that ceiling against all occupied pages, including its control table, managed
+slabs, generic extents and failed physical retirement. An invalid or late
+selection consumes the attempt and refuses further allocation. It cannot be
+replaced after exhaustion, scope leave or logical success. Releasing an actual
+extent may permit its ordinary reuse within that same ceiling; it neither
+changes the ceiling nor retires or replenishes the parent holding.
+
+The mapping itself retains its original full extent and physical cleanup duty.
+This ceiling is not another pool, reservation, domain, Ledger or capacity issuer.
+The existing claim, workspace, bootstrap and child reservations remain distinct
+and current. All earlier and later allocation routes outside the entered Read,
+external control, loader, TLS, stack and filesystem holdings still require their
+own actual coverage. Required primitive and inspection minima, input/work bounds
+and the original exhaustion and cleanup semantics remain mandatory. Component
+containment alone does not establish ordinary command success or normal funding.
+
+### Original process SQLite component assembly
+
+The command's necessary domain subset is queried from its actual compiled
+provider/receiver layouts. It includes page-rounded provider control for that
+domain size, the original Read context, managed external-object/slab metadata
+and the component heap. The pre-bind File path is freed before heap binding,
+so pre-bind Library/path storage and the later heap/Library/Database phase use
+their maximum, not a sum of mutually exclusive terms. The parent control query
+uses the same compiled provider's extent-table layout. Neither query allocates
+backing or proves full graph/SQL/cache adequacy. Missing/imported layout refuses
+instead of guessing a page count; all original post-acquisition comparisons,
+claims, external controls and cleanup obligations remain mandatory.
+
+The selected command's SQLite member uses the same pinned private component and
+its MEMSYS5, private WAL-index and descriptor-cleanup rules. A stock SQLite
+library with a compatible public SQLite API does not supply this private API.
+The existing maintainer component producer can assemble that same translation
+unit for the Native executable's original provider imports. It emits no second
+provider library, exports no public SQLite functions, and accepts no ambient
+library search path. The Native executable retains the existing closed provider
+export set; actual component binding still checks one original provider, Read
+context and physical heap before initialization.
+
+This assembly mode produces an image only. It cannot satisfy the separate
+Python bundle's provider receipt, relocation, physical or final installation
+checks. Those existing stronger checks remain required on their original route.
+Neither image construction nor its import census admits the command's initial
+control, external holdings, account authority or normal numerical profile.
+
+### Selected native resource facilities
+
+An ordinary command acquires the native facilities it actually uses through
+normal initialization. A selected exclusive mapping or arena can supply bounded
+ActQL computation or FFI storage. Its actual geometry, allocations, borrowers
+and release status remain explicit, without claiming that the mapping backs
+libc, prior process allocations, the language runtime or unrelated libraries.
+Normal argument parsing and supported I/O do not require a pristine-stream or
+pre-main constructor witness. Compatibility and integrity checks apply to the
+actual executable/component interfaces, not to an invented platform history.
+
+### Static command preparation facilities
+
+The trusted selected installer fixes a command-preparation candidate after the
+pinned original parser succeeds and before its first physical acquisition. The
+command-owned mappings and trusted runtime lifetime remain separate. Help,
+version, parser errors and unselected compatibility calls do not acquire the
+command Host, Journal, Root or Read.
+
+The selected static-check/explicit-initialization candidate has a 208 MiB
+original file-backed Host,
+with distinct 128 MiB Read and 64 MiB SQLite child mappings. The actual parent's
+control layout must fit alongside both children before acquisition. The Read
+occupied-page ceiling is 96 MiB; the SQLite-domain ceiling is 48 MiB and contains
+its 32 MiB SQLite heap. Crypto's 2 MiB heap is contained in the Read facility.
+These are capacities, not additive demand estimates or guarantees that every
+bounded input fits. Child mappings/loans share their original parent backing;
+neither their aliases nor embedded heaps issue independent capacity credit.
+
+Both domain ceilings are installed on their original leases before their first
+context allocation. The physical SQLite Owner derives its necessary total from
+its actual control, context and receiver layouts and the maximum of pre-bind
+path text versus post-bind heap/Library/DB coexistence. That total already
+includes the SQLite heap. The old demand branch remains explicit; no residual
+capacity fills its external-demand field. Unsupported layout queries refuse
+before backing acquisition. Runtime/configuration/Task/Common graphs, returned
+values and cleanup-only carriers must remain within the same actual facilities;
+exhaustion preserves the existing refusal/fail-stop and cleanup responsibilities.
+
+The invocation retains its exact compiled source and originally captured
+launcher context, then registers its original carrier before the first backing
+call. Runtime/member observations must independently confirm those originals.
+Project discovery uses that same entered Read. Matches and reply values retire
+before child-first physical cleanup; a parse, output or process result is not a
+Root, Reader, domain, Library, descriptor or Lock acknowledgement. This selection
+does not resolve Mock/Account/Source suppliers or permit business execution.
+
+Explicit initial adoption uses that same command carrier, Runtime observation,
+Read/SQLite pair and two original Crypto Library borrows. It does not create a
+second Crypto-only Host. The Product parent observation is retained before its
+first inspection, and the existing Product capture independently decides
+creation versus restore under its original Lock and durable intent. A missing
+intent with an existing child refuses; an existing intent never regenerates
+original expiry, material or keys. The original initialization Session still
+proves first-key eligibility and durable custody. Runtime binding, Account
+checks and reply-current fences remain in their existing owners and must use
+the same actual Read/SQLite phase exchange.
+
+The selected command copies at most one 1,048,576-code-unit metadata reply into
+its initial managed facility only after the original Read has left. The original
+Read body and the control copy coexist until their actual cleanup. Only after
+Journal, Libraries/component, contexts/domains, Host, backing descriptor and
+Lock cleanup acknowledge does main encode/write/flush that copy. Cleanup failure
+retains the original carrier and emits no staged success. The managed output
+text and UTF-8 encoding remain bounded, but libc's output
+buffer and process caches are not Host-owned physical release duties. Write and
+flush failures are reported using public APIs. A delivery failure does not erase
+a confirmed business outcome or authorize resending it. Streamed Result material
+retains its actual producer/buffer lifetime outside this static metadata path.
+
+A closed Journal can still retain its original managed Database alias. After
+Read-side Session, Root and Crypto Library cleanup has acknowledged, retire the
+closed Journal and Adoption aliases inside that same pair's original SQLite
+cleanup frame. The Database finalizer must observe that actual context before
+it can retire its Library child. Dropping a reference, leaving a frame or
+closing a descriptor alone is not that acknowledgement; the Library, both
+contexts and the original backing still retain their separate close duties.

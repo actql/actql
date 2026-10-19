@@ -6,6 +6,7 @@
 struct NativeLocalJournalOpenFailure {
   original_issue : NativeLocalAdoptionIssue
   mut database : @sqlite.Database?
+  physical_open_failure : @sqlite.NativeSqliteOpenFailure?
   initial_signing_failure : NativeLocalInitialSigningFailure?
   mut initial_signing_cleaned : Bool
   retained_read : NativeLocalAdoptionIssue?
@@ -79,6 +80,7 @@ fn NativeLocalAdoptionSession::retain_journal_open_failure_with_resources(
   self : NativeLocalAdoptionSession,
   issue : NativeLocalAdoptionIssue,
   original_resources : NativeLocalJournalOriginalResources?,
+  physical_open_failure? : @sqlite.NativeSqliteOpenFailure? = None,
 ) -> NativeLocalJournalOpenFailure {
   let (database, inner) = match issue {
     DatabasePending(database, original) => (Some(database), original)
@@ -98,6 +100,7 @@ fn NativeLocalAdoptionSession::retain_journal_open_failure_with_resources(
   let original : NativeLocalJournalOpenFailure = {
     original_issue: issue,
     database,
+    physical_open_failure,
     initial_signing_failure: self.initial_signing_failure.val,
     initial_signing_cleaned: false,
     retained_read: self.read_cleanup,
@@ -153,6 +156,12 @@ fn NativeLocalJournalOpenFailure::cleanup_database(
 fn NativeLocalJournalOpenFailure::close_original_database(
   self : NativeLocalJournalOpenFailure,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if self.physical_open_failure is Some(original) {
+    match original.retry_cleanup() {
+      Err(issue) => return Err(Physical(issue))
+      Ok(_) => ()
+    }
+  }
   if self.database is Some(database) {
     match database.close_checked() {
       Err(issue) => return Err(Physical(issue))

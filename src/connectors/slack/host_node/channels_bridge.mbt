@@ -22,6 +22,29 @@ pub fn slack_project_channel_list(
 }
 
 ///|
+#export_name("slackProjectHistoryConversationList")
+pub fn slack_project_history_conversation_list(
+  body : Bytes,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_rows : Int,
+  max_cursor_bytes : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+) -> Result[@catalog.SlackChannelListPage, @catalog.SlackChannelListIssue] {
+  @catalog.project_slack_history_conversation_list(body, {
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_rows,
+    max_cursor_bytes,
+    max_value_nodes,
+    max_value_text_bytes,
+  })
+}
+
+///|
 #export_name("slackChannelListRowsWire")
 pub fn slack_channel_list_rows_wire(
   page : @catalog.SlackChannelListPage,

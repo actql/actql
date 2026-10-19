@@ -18,7 +18,8 @@ This document owns capture, admission, run-identity-model, checkpoint-invariants
 
 - [Terms](#execution-terms)
 - [Run execution](#effects-and-execution)
-- [Scoped initial Node control preparation](#initial-node-control-preparation)
+- [Ordinary Embedded Host trust and resources](#initial-node-control-preparation)
+- [Initial Local Mock authorization](#initial-local-mock-authorization)
 - [Managed retained execution profile](#managed-retained-execution)
 - [Capture, execution, and replay](#capture-and-replay)
 - [Program and stage execution](#stage-execution)
@@ -102,47 +103,132 @@ against the materialized Results instead.
 
 <a id="initial-node-control-preparation"></a>
 
-### Scoped initial Node control preparation
+### Ordinary Embedded Host trust and resources
 
-The selected trusted Node startup may include bounded original Project,
-configuration and Task intake, normalization and Host preparation records in
-its finite initial control scope. This is an explicit scoped implementation
-assumption, not a universal V8/RSS lease or adoption of a Native arena.
-A separate per-object V8 physical lease is not required merely to initialize
-this declared scope. Numerical release profiles remain independently selected.
+Ordinary Node and Python embedding and the Native CLI trust the supported OS,
+language runtime, standard libraries and embedding application. Program text,
+Parameters, acquired data, Provider responses and persisted records remain
+untrusted inputs to their respective admissions. This boundary intentionally
+replaces the former startup-wide Node control-envelope requirements. It does
+not claim equivalent whole-runtime physical coverage.
 
-<!-- requirement-block: initial-node-control.original-before-work -->
-The existing Host/Resource installer MUST issue an installation-only nominal
-operational admission from the actual selected startup, source, backend,
-recipe, Host, installation and generation before the covered work, rather than
-issuing or reconstructing it from DATA, runtime references, a Boolean, a CID,
-a Ledger or a future Run reservation.
+<!-- requirement-block: ordinary-host.trusted-platform -->
+An ordinary Host MUST establish its instance through normal public
+initialization on a supported runtime, without requiring a special preload,
+proof of pre-entry execution history, pristine standard-stream internals,
+or physical provenance for every runtime allocation. Runtime compatibility
+checks must identify required APIs, ABI and supported platforms; reproducible
+build pins alone do not restrict all consumers to one runtime patch version.
 
-<!-- requirement-block: initial-node-control.complete-selected-envelope -->
-Admission MUST cover the complete same-phase simultaneous holdings and overlap
-of the selected raw and decoded inputs, parser and normalizer intermediates,
-original records, closures, actual module/runtime/library domains and partial
-failure custody, refusing an unbounded or unaccounted selected component and
-never retrospectively funding an earlier import, discovery or installation.
+<!-- requirement-block: ordinary-host.instance-lifecycle -->
+The Host MUST validate documented options and retain an internal configuration
+before asynchronous use, maintain instance-local active/closing/closed state,
+reject use of retired handles, and support reopening and independent Hosts
+within one process. State-directory locks and shared-resource ownership remain
+effective; opening another Host cannot reset an existing Run's cumulative
+budgets, send history or durable identity.
 
-<!-- requirement-block: initial-node-control.scope-separation -->
-This initial admission MUST NOT supply capacity or authority for metadata HTTP,
-Source acquisition, Result handling, a business Run, Model invocation, Content
-or its physical driver, or an external VM; each retains its independently
-admitted original supplier, scope and current authorization.
+<!-- requirement-block: ordinary-host.input-boundary -->
+The Host MUST bound untrusted encoded input before parsing and enforce the
+applicable type, depth, size and semantic contracts. Trusted embedding options
+and callbacks are not an adversarial same-process sandbox: their acquisition
+does not require a prior proof of the caller object's complete closure graph,
+nor does application code become untrusted wire data merely by passing options.
 
-<!-- requirement-block: initial-node-control.retained-custody -->
-Preparation aliases MUST remain accounted to the same original lifetime until
-real owning cleanup acknowledgement or an explicitly admitted transfer accounts
-for overlapping responsibility, preserving current checks, child-first cleanup
-and uncertain duties without treating close initiation, Promise settlement,
-reference retirement or garbage collection as physical acknowledgement.
+<!-- requirement-block: ordinary-host.managed-limits -->
+The existing execution Owners MUST enforce admitted limits on the units they
+control, including input and output sizes, rows, work, transfer, retained managed
+buffers, queues, concurrency, calls, tokens and deadlines where selected.
+Accounting must state its subject and coverage; a scalar reservation or declared
+envelope does not establish actual allocation, available capacity or a hard
+bound on process RSS, runtime heaps, JIT or library caches.
+
+<!-- requirement-block: ordinary-host.real-acquisition -->
+The normal product Host MUST supply its required resources through ordinary
+allocation, file, database, crypto and worker facilities, retaining partial
+acquisitions for cleanup and reporting actual failures. Missing diagnostic
+issuers cannot be replaced with fabricated capacity, successful ACKs or an
+unconditional fallback; ordinary initialization itself may create the real
+owned resources without an earlier process-wide physical-admission proof.
+
+<!-- requirement-block: ordinary-host.resource-lifetimes -->
+The Host MUST retain explicit duties for open databases, statements, FDs,
+sockets, active work and native or zero-copy shared buffers until their owning
+APIs establish the applicable completion or release. Ordinary copied managed
+values end the Host's retention duty when its owned references are released;
+their GC completion and process-wide caches are not Host-close conditions.
+An alias still accessing a native shared buffer is not an ordinary copied value.
+
+<!-- requirement-block: ordinary-host.outcome-separation -->
+The Host MUST distinguish confirmed business outcomes, pending cleanup and
+external-send uncertainty. Unobserved managed-memory reclamation cannot by
+itself turn a confirmed operation into an unknown external outcome, and
+cleanup failure or reopening cannot authorize replay of a possibly sent call.
+Live native users and unfinished physical cleanup retain their real duties.
+
+<!-- requirement-block: ordinary-host.authorization-preservation -->
+Ordinary initialization MUST preserve checked types, current Account and egress
+authority, exact Preview/Checkpoint/approval binding, key-purpose separation,
+durable Run/Result integrity and no-resend recovery. A trusted runtime,
+successful allocation or matching content CID grants none of that authority.
+
+<!-- requirement-block: ordinary-host.isolation -->
+A deployment accepting hostile executable extensions, arbitrary native code
+or mutually untrusted tenants MUST use an appropriate isolation boundary rather
+than treating SDK object checks as that boundary. An OS quota or worker limit
+must be described by its actual coverage and failure behavior; ordinary
+embedding does not promise a universal whole-process memory ceiling.
+
+<a id="initial-local-mock-authorization"></a>
+
+### Initial Local Mock authorization
+
+Explicit Mock selection by the trusted CLI or embedding application consents
+to the following initial Local profile. A Program value or a merely discovered
+untrusted Project setting is not that consent. The concrete shared profile body,
+identifier and CID belong to the existing Account/profile Owner.
+
+<!-- requirement-block: initial-mock.authority-scope -->
+The initial profile MUST grant only the selected Mock Sources' reads, selected
+Mock Task/answers' inference, and necessary Local Run/Result/control operations
+for that Project, installation and initialization principal. Its selected Mock
+UPDATE uses existing Delegate/Checkpoint approval before application. The
+profile grants no live service, arbitrary-file, external-egress or unselected
+operation authority and performs no live Credential or Provider fallback.
+
+<!-- requirement-block: initial-mock.installation-and-recovery -->
+The Host MUST bind those grants to the selected Mock backend, installation,
+Local principal, Project/managed area, resources and contracts, not aliases or
+a profile CID alone. Restart may reconstruct handles from the validated durable
+installation and current authority; it does not require persistent pointer
+identity. Existing Runs reuse their saved inputs, answers and Previews, while
+new Runs may use contract-compatible changed data without a new grant.
+
+<!-- requirement-block: initial-mock.exclusive-adoption -->
+Initial setup MUST exclusively create the selected new managed area, persist
+its initialization intent before non-transactional configuration creation,
+avoid overwriting operator configuration, and confirm adoption against the
+created configuration and installation. A concurrent or interrupted initializer
+observes or recovers that same intent rather than issuing a second adoption.
+Missing configuration, keys or Store after adoption cannot trigger automatic
+regrant, key replacement or a fresh Run; current Deny and restrictions remain
+effective without automatic policy expansion.
+
+<!-- requirement-block: initial-mock.reviewer-and-signing -->
+Fresh setup MUST prepare the initialization principal's scoped Local Reviewer
+registration and actual signing key through the existing distinct Account and
+signing Owners, without requiring external login or manual key registration.
+Only an explicit authorized approve action signs the same Checkpoint/Preview;
+setup and run cannot approve automatically. One valid approval may satisfy
+coincident review restrictions on that same Preview. Signer absence blocks
+approval and update, not otherwise authorized reads or Mock inference that
+need no Reviewer signature.
 
 <a id="managed-retained-execution"></a>
 
 ### Managed retained execution profile
 
-<!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json# sha256:1ad39c99eda23a60f45899ebfb0f6d960dc68cc48f7dd162cd85b4780d1a75c2 -->
+<!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json# sha256:3e2c23faee08d02b8944ccd94f92b3d34c95a4e7cd9d2cc94e2646d914e3474b -->
 <!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json#/schemas/identity_status sha256:6e7214696a897447a4e6210f97dfc60530ba98353fc7915082fb3a02c1a23352 -->
 <!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json#/schemas/physical_manifest sha256:335f62ce6abd4d68cc79130d3e2ca3af800d03ffc40d359f5af1d856e34fd850 -->
 
@@ -531,13 +617,14 @@ Successful retained upstream observations survive a downstream failure; failure
 does not authorize a replacement read.
 
 The closed machine contract is
-<!-- machine-import: ../../spec/contracts/actql-query-acquisition.json# sha256:ad68f7ceafeed528a29c05e726db799d0031ef46152c0385f64468d38094c606 -->
-<!-- machine-import: ../../spec/contracts/actql-query-acquisition.json#/schemas/requirement sha256:b6506c5d7b23c83c1ddc311b3c7d6766a6f3f5e2de92747e1d03f949e5df1dc1 -->
-<!-- machine-import: ../../spec/contracts/actql-query-acquisition.json#/schemas/completed_observation sha256:ec44c31bc821c4e1a1f3eafa7e519cd1d4fc9ba9458149aaa3577b6053934715 -->
+<!-- machine-import: ../../spec/contracts/actql-query-acquisition.json# sha256:5a95e60847276d02229eba9550dd9808a8a8c2764decd4dad667954f020db7cc -->
+<!-- machine-import: ../../spec/contracts/actql-query-acquisition.json#/schemas/requirement sha256:c8a3d1463c416bb75820bd6d83fcd2d79e6537efb651a107d117257752ea9433 -->
+<!-- machine-import: ../../spec/contracts/actql-query-acquisition.json#/schemas/completed_observation sha256:a1845bdcf3241fa1811784e3d5e6df4b38473db19f847fa9d820f76ec51204fe -->
 [`actql-query-acquisition.json`](../../spec/contracts/actql-query-acquisition.json):
 `/schemas/requirement` and `/schemas/completed_observation`. Its root CID is
-`sha256:37a581bc6b76d61d50527d58777343b655479356c6017ac41ff24ddaf5676bd2`.
-All listed properties are required, unknown properties are rejected, and explicit
+`sha256:5a95e60847276d02229eba9550dd9808a8a8c2764decd4dad667954f020db7cc`.
+All listed properties are required except the explicitly optional legacy
+`owner.run_definition_cid`; unknown properties are rejected, and explicit
 null is used only where the schema permits it. JSON Schema checks shape, not
 graph ownership, actual execution, admission, budget use or evidence authenticity.
 
@@ -571,6 +658,21 @@ defaulted values once, excluding unused declarations and origin metadata.
 `source_validation.fields` lists every known input field once in UTF-16 order.
 `source_order_cid` names applicable source order evidence, or is null; a physical
 enumeration order is not automatically logical order evidence.
+
+<!-- requirement-block: query-acquisition.original-query-time -->
+For a declared query-time-dependent acquisition, the requirement and completed
+observation MUST additionally retain `owner.run_definition_cid` from the same
+admitted original Run definition as the checked acquisition and generated
+execution context. Omission, a different Run or an equal-CID substitute is not
+sufficient evidence. This field is absent for legacy acquisitions without that
+dependency, preserving their complete preimages. It binds the existing Run's
+`created_at`, not a new clock sample or authored Parameter. Static derivation
+does not sample or fabricate this member; preparation may retain the original
+sample and checked shape before final Run binding, but dispatch requires that
+binding and the existing confirmed Journal and authority checks. Restoring the
+capture uses the winning saved Run and rejects a different Run's requirement,
+even when its Program, request, Parameters and rows are equal. The CID is data
+correspondence, never a grant or proof of the actual nominal binding.
 
 <!-- requirement-block: query-acquisition.binding -->
 Completion admission MUST match the exact requirement CID, source reference,
@@ -635,7 +737,7 @@ selected common contract. The initial scan/filter/select profile has no ordered
 derive step: `request.row_kernel_limits` is absent, not an invented set of
 filter/select limits or a zero-valued exemption.
 
-<!-- machine-import: ../../spec/contracts/actql-query-resource-scopes.json# sha256:56e041a5b85536be6f484de7762aac536f43a63d11c279275a5bba8ed19847dd -->
+<!-- machine-import: ../../spec/contracts/actql-query-resource-scopes.json# sha256:6ac5fbf52aad335a89442cd208c52c05b964c6ea72af00b313b9421ad446d702 -->
 The [pinned resource-scope contract](../../spec/contracts/actql-query-resource-scopes.json)
 distinguishes measurement, subject and binding at `/limits`. Acquisition `max_rows`
 counts complete select-output occurrences, not scanned or received rows.
@@ -703,7 +805,7 @@ two transfers are not hidden or conflated with logical output rows.
 
 ### Fixed-input filter/select Compute capacity
 
-<!-- machine-import: ../../spec/contracts/actql-fixed-compute-capacity.json# sha256:004e7821342816ca72b81cf6ae6d856c01bab7763eea3375bc59c2c182db823a -->
+<!-- machine-import: ../../spec/contracts/actql-fixed-compute-capacity.json# sha256:f0fd9d0e1c9aa9fb1873d835c7d3fa4523653d15a97fe5e7cb240e72551b055f -->
 The [fixed-input capacity profile](../../spec/contracts/actql-fixed-compute-capacity.json)
 applies to filter followed by select over one completed, retained ProducerRead.
 It clarifies the application of the existing consumer capacity law, and fixes
@@ -775,7 +877,7 @@ result test faulty output, not an additional admitted operation.
 
 #### Process-retained query evidence
 
-<!-- machine-import: ../../spec/contracts/actql-query-process-evidence.json# sha256:1127e59c08d7b7a780ec864e1040c2131366d96285b6f173f1629baaf75a7290 -->
+<!-- machine-import: ../../spec/contracts/actql-query-process-evidence.json# sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d -->
 <!-- machine-import: ../../spec/contracts/actql-query-process-evidence.json#/schemas/record sha256:758c9c4f1942890e73462776f3230400e7076c146af8eb3f7e39602715c7427e -->
 The initial process-evidence profile specializes the acquisition contract without
 changing its requirement or observation shapes. Its closed record schema is
@@ -916,10 +1018,10 @@ failure rules. Validation ordering never supplies missing source-order evidence.
 
 #### Host-local two-receipt query evidence
 
-<!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json# sha256:69c05b25a95a4cdff8e27e95974d65d07d12a72f04b6af498cd862c309b302bf -->
+<!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json# sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929 -->
 <!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json#/schemas/receipt sha256:d3994a9a48aab18e3d0c75e2ef2d549c6c6227536313c3d66c53b543f2868b6a -->
 <!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json#/schemas/record sha256:cd3c30fbe01c375642b42f7dac2391a5ea008d117a2489c8c646d78745f86334 -->
-<!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json#/schemas/completed_observation sha256:566fc1955ac77a2c074ddba0b8be22b75f18acdd6af8ca86e5f68443ab366af1 -->
+<!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json#/schemas/completed_observation sha256:e79e4ca5c8d35693b4cac789e872b10a23da8c749513186ffa7630a6570012af -->
 The separate [two-receipt contract](../../spec/contracts/actql-query-two-receipt.json)
 specializes the same canonical acquisition requirement for a Host-local adapter
 that exports the validation scan and independently exports the native query

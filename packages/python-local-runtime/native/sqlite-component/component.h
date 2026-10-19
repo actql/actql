@@ -22,6 +22,16 @@ int actql_sqlite_component_free(void *original);
 /* Refuses outstanding engine/adapter buffers. Releases only this Library's
  * retained context user; the original domain Owner still confirms retirement. */
 int actql_sqlite_component_close(void);
+/* Observation of this original connection after its first WAL access. This
+ * neither selects locking mode nor supplies a Journal claim or heap capacity. */
+int actql_sqlite_component_heap_wal(void *database);
+/* A failed one-shot original VFS descriptor close stays with this component.
+ * This observation cannot reclose it or release any parent responsibility. */
+int actql_sqlite_component_descriptor_ack(void *unused);
+/* Selected owned read-only inspection copy: no shared-memory mappings may
+ * substitute for the private recovery index. The copy Owner retains its
+ * unique empty SHM and original source/copy cleanup separately. */
+int actql_sqlite_component_readonly_heap_wal(void *database);
 const char *actql_sqlite_component_source_id(void);
 /* One Library borrow, refused before initialization or after close. The table
  * contains no Host permission and cannot be persisted/reconstructed on reopen. */

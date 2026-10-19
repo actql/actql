@@ -204,6 +204,21 @@ pub fn checked_timestamp_value(
 }
 
 ///|
+/// Bind a generated calendar date to its exact non-null Date contract.
+pub fn checked_date_value(
+  text : String,
+  contract : @contract.Contract,
+) -> CheckedValue? {
+  guard !contract.nullable &&
+    contract.shape is @contract.Date &&
+    text.length() == 10 &&
+    valid_date(text) else {
+    return None
+  }
+  Some({ contract, value: Date(text), })
+}
+
+///|
 fn timestamp_days_before_year(year : Int64) -> Int64 {
   365L * year + (year + 3L) / 4L - (year + 99L) / 100L + (year + 399L) / 400L
 }

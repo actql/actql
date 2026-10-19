@@ -7,6 +7,13 @@ extern "C" fn prepare_read_context_ffi(domain : PhysicalExtentDomain) -> Int = "
 
 ///|
 #borrow(domain)
+extern "C" fn prepare_bounded_read_context_ffi(
+  domain : PhysicalExtentDomain,
+  bytes : Int64,
+) -> Int = "actql_bootstrap_prepare_bounded_read_context"
+
+///|
+#borrow(domain)
 extern "C" fn read_context_status_ffi(domain : PhysicalExtentDomain) -> Int = "actql_bootstrap_read_context_status"
 
 ///|
@@ -37,6 +44,7 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_read_context(
   original : T,
   domain : NativeBackedExecutionDomain[T, C],
   child : C,
+  execution_ceiling? : Int64,
 ) -> Result[Unit, NativeBackedExecutionIssue] {
   match self.require_domain_current(original, domain, child) {
     Err(issue) => return Err(issue)
@@ -53,7 +61,10 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_read_context(
     Ok(_) => ()
   }
   domain.read_attempted = true
-  let status = prepare_read_context_ffi(domain.physical)
+  let status = match execution_ceiling {
+    None => prepare_read_context_ffi(domain.physical)
+    Some(bytes) => prepare_bounded_read_context_ffi(domain.physical, bytes)
+  }
   if status != 0 {
     return Err(Bootstrap(Physical(status)))
   }

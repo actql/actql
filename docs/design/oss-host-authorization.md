@@ -234,16 +234,61 @@ without overwriting existing content, and finalize adoption against the exact
 created config identity. Concurrent initializers must share the same fenced
 initialization claim. Interrupted/ambiguous initialization must not dispatch
 Connector work or restore deleted permissions while guessing what happened.
-Exact crash-recovery mechanics and the trusted fresh-environment marker are
-implementation prerequisites; a destroyed store cannot prove that it was never
-initialized. No install-time hooks, automatic profile reapplication or key
-replacement on decryption failure are implied.
+Freshness is established by the trusted initialization operation exclusively
+creating the selected managed area and recording its intent, with no conflicting
+existing or unfinished state. No earlier bootstrap marker, special preload or
+proof that a pathname has never existed is required. A destroyed Store in an
+existing environment still cannot prove freshness. Config creation and Store
+commit remain separate and interruption is recovered against the same intent.
+No install-time hooks, automatic profile reapplication or key replacement on
+decryption failure are implied.
 
 Registering a Connector establishes connectivity, not permission to delete or
 otherwise operate through it. The same setup flow may offer explicit grant
 selection and write those grants, but registration/authentication alone does
 not grant all operations. This preserves convenient one-flow onboarding without
 making connection success an authority decision.
+
+### Explicit Local Mock setup
+
+The adopted [initial Local Mock authorization](../spec/execution.md#initial-local-mock-authorization)
+uses the same Account, initialization, signing and Checkpoint Owners. An explicit
+Mock choice by the trusted CLI or SDK caller consents to its first restricted
+adoption; selecting a string inside a Program or merely discovering an untrusted
+repository's Mock setting does not. No second confirmation of that same setup
+or manual Reviewer/key preparation is required.
+
+The initial scope allows the selected Mock Sources, Task/answers and necessary
+Local control/Result operations. Its Mock UPDATE delegates to explicit signed
+approval for the same Preview; coincident minimum-approval and stop-before-commit
+restrictions need not create duplicate reviews. Host authentication establishes
+the Local principal through the OS user or embedding application's trusted
+context, with no mandatory Cloud identity service. Signer absence denies
+approval/update, not independently permitted reads and no-I/O Mock inference.
+
+Bind authority to the actual Mock backend, installation, Local principal,
+Project/managed area and resource contracts. Equal aliases or a CID cannot
+transfer it to live services. Avoid live Credential resolution and Provider
+initialization, and fail missing Mock data explicitly without live fallback.
+Contract-compatible row/answer edits need no regrant for new Runs. Existing
+Runs recover their saved inputs, answers and Preview. Restart reconstitutes
+handles from validated durable state instead of requiring the old pointer.
+
+Publish the shared profile's real ID, initial version and canonical content CID
+separately from each concrete installation's generated Account configuration.
+The current admitted operator configuration controls current permission; initial
+provenance is history. Deny/restriction remains effective, while expansion needs
+explicit authorized configuration change. Exclusive first setup may automatically
+register that Local Reviewer and generate its real purpose-confined key through
+the existing distinct Owners. It does not approve, reuse a Host attestation key
+as a Reviewer, or recover missing adopted keys by regeneration.
+
+The [ordinary Host trust boundary](embedded-host-trust-boundary.md) applies to
+setup and execution. Account adoption is not a physical-memory grant, but the
+normal Host may acquire its own real resources through trusted platform APIs.
+No startup-history or complete runtime-allocation proof is a prerequisite.
+The published profile and physical adapters remain implementation work until
+their ordinary package path passes; this decision alone is not execution evidence.
 
 ## CLI and embedded use
 
@@ -563,6 +608,43 @@ This profile has these limits:
   connected. `run_unit` Checkpoints on this Host are not connected here.
 - One Host process owns a state directory. A second one is refused by the
   Store owner.
+
+### Original source preparation in the portable Run Host
+
+SQL and AQL enter the same Run Host ABI as structured Programs through an
+original submitted intent and the installation's trusted query publication.
+The existing frontend binds that publication to the same checked Environment,
+retains the parsed Program and authored provenance, and selects the existing
+Pure or Effect preparation from the complete checked inventory. A publication
+is name-binding metadata, not acquisition, permission or physical capacity.
+Missing installed target originals remain unavailable.
+
+The preparation retains the original source, format, declarations and values
+separately from the lowerer's ordinary Program projection. Request identity
+uses that original submitted intent, never the source-free sentinel. The
+existing JSON Run material codec consumes only the Owner's retained Program
+projection; it does not replace the original submitted source. Legacy
+structured preparation and material bytes remain unchanged.
+
+A durable Host stores the original source metadata alongside the same Run's
+authenticated material record. Recovery re-admits that saved publication and
+Environment rather than rediscovering current aliases. It must retain the
+same request, checked identity, compiled plan, authorization and Run definition.
+Source Effect material admission additionally requires the typed original
+source preparation and the independently retained expected request, then
+checks the complete canonical material projection. Shape or CID equality
+alone does not supply this original binding, current authority or a cleanup ACK.
+
+Initial and retained-input task dispatch use that same original Source
+preparation when the request contains authored-source identity. Common checks
+the preparation's nominal checked computation and reconstructs the request
+from its admitted intent before comparing the independently retained request.
+The absent-Source path still requires the original source-free sentinel. A
+non-sentinel CID alone, another preparation of equal source, or another
+source request cannot select this branch. Existing Program/parameter, Run,
+task, attempt and retained-input/current-custody checks remain in force. The
+Run Host facade keeps this Source token private in its original preparation
+membership; callers do not provide a raw token or manufacture a replacement.
 
 ## Delegated-decision adapter
 

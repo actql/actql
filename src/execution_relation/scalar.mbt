@@ -65,7 +65,9 @@ pub fn unary(
     | ByteLength
     | Unicode
     | Chr
-    | Reverse => Err(InvalidOperand)
+    | Reverse
+    | TryDecimal
+    | Quantize(_) => Err(InvalidOperand)
     Length =>
       match value {
         Null => Ok(Null)
@@ -388,9 +390,16 @@ pub fn binary(
   right : Value,
 ) -> Result[Value, ScalarIssue] {
   match op {
+    DecimalDivide(_) => Err(InvalidOperand)
+    DateTruncate =>
+      if left is Null || right is Null {
+        Ok(Null)
+      } else {
+        Err(InvalidOperand)
+      }
     // Text operations run through their retained, bounded cursor.
     // This scalar fallback handles only its NULL and invalid-domain cases.
-    Strpos | StartsWith | EndsWith | TrimSet | LTrimSet | RTrimSet =>
+    Contains | Strpos | StartsWith | EndsWith | TrimSet | LTrimSet | RTrimSet =>
       if left is Null || right is Null {
         Ok(Null)
       } else {
@@ -489,7 +498,10 @@ pub fn binary(
         | RTrimSet
         | Strpos
         | StartsWith
-        | EndsWith => Err(InvalidOperand)
+        | EndsWith
+        | Contains
+        | DateTruncate
+        | DecimalDivide(_) => Err(InvalidOperand)
       }
       // Only this already-evaluated arithmetic operation is safe. Child,
       // operand-domain, control, cancellation and custody failures keep their
@@ -572,7 +584,10 @@ fn binary_comparison_result(
     | RTrimSet
     | Strpos
     | StartsWith
-    | EndsWith => Err(InvalidOperand)
+    | EndsWith
+    | Contains
+    | DateTruncate
+    | DecimalDivide(_) => Err(InvalidOperand)
   }
 }
 
@@ -622,6 +637,10 @@ pub fn boolean_pair(
     | LPad
     | RPad
     | Between
+    | DateDifference
+    | DateAddition
+    | TimestampAddition
+    | TimestampSubtraction
     | Greatest
     | Least => Err(InvalidOperand)
   }

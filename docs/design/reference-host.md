@@ -137,484 +137,152 @@ Replacing them with storage-independent transition guarantees requires a
 separately reviewed semantic change and failure/concurrency evidence.
 
 
-## Initial Node control and preparation
+## Original query evaluation time
 
-The selected Node startup may admit bounded original Project, configuration and
-Task intake and Host preparation records in its explicitly declared initial
-control lifetime. The [execution boundary](../spec/execution.md#initial-node-control-preparation)
-owns this scope. It is not confined to fixed preload wrappers, but it is also
-not a general V8/RSS lease, a Native arena adopted by JS, or a numerical release
-profile. A separate physical lease for each V8 object is not a prerequisite to
-initializing this declared trusted control scope.
+Query invocation time belongs to the admitted Run, not to policy metadata or
+the current observation clock. Checking, lowering and structural compilation
+do not read a clock. For a genuinely new time-dependent invocation, the Host
+retains its actual sampler and receiver and captures one value after request
+lookup, before dependent acquisition and compilation. The existing Run
+definition binds that exact value as `created_at`. An older policy creation
+time is not a fresh invocation sample, and selecting query time does not
+extend `valid_until` or establish current authorization.
 
-The first concrete selected recipe consumes one installation generation for the
-entire original process lifetime. It supports only the original omitted `open`
-input: no caller object, callback graph or key enumeration is acquired. The
-real early preload declares its full envelope before loading the generated
-inventory, capturing images or initializing the Host namespace. It then matches
-the selected Node/V8/OpenSSL/backend and every declared native library identity,
-captures the original namespace validator, and admits only the same private
-registry's Host, installation, generation, supplier and module lifetime. The
-same producer keeps one original empty packet across initialization; repeated
-or unsupported entries cannot replenish or reconstruct this admission.
+The existing invocation preparation retains the original checked Program,
+request and admitted Timestamp sample. Final binding checks the same nominal
+compilation and Run definition, verifies the unchanged sample, and retains one
+opaque evaluation context. Source predicate preparation and downstream frames
+consume that same context, including lazy expressions when demanded. A static
+acquisition shape keeps its query-time dependency unresolved; it cannot pass
+physical material admission. Missing or foreign request/preparation bindings
+remain unbound rather than becoming literal substitutions or hidden Parameters.
 
-This recipe makes the following finite implementation assumptions explicit;
-they are not measured RSS, an OS quota, a normal numerical profile or a theorem
-about arbitrary V8 workloads. The actual heap ceiling must fit 5 GiB. Native
-runtime/control backing is conservatively declared as 256 MiB plus 16 times the
-maximum selected 128 MiB source graph and 64 KiB for each of at most 2048 image
-modules. Captured source backing additionally includes the whole graph and
-16 KiB per image for small backing/lookahead overlap. A maximum 64 packages and
-512 dependency edges bound the retained module/manifest inventory. The selected
-managed heap includes decoded Strings, parser/normalizer trees, records,
-closures, indices, Promise/error referents and escaped aliases. The separate
-preparation encoding disposition retains 48 bounded 65536-byte encodings for
-each of 128 Tasks plus configuration and registry. None of these terms is
-reduced using a smaller observed source, low current heap usage or GC.
+The physical QueryRequirement and its completed observation retain the same
+admitted Run Definition CID in their existing owner when query time is required.
+The authored filter remains unchanged, so equal filter or request CIDs cannot
+substitute a different invocation's capture. Structural acquisition shapes do
+not contain this Run-dependent physical projection; it is never fed back into
+the Plan or Template that defines the same Run. Unrelated legacy requirements
+omit the member and retain their complete canonical preimages.
 
-The ordinary installed public import has a separate fixed package-prefix
-recipe. It does not broaden the preload selector, pretend to be `--no-lazy`,
-or recover earlier application work. Its original public delivery module enters
-the existing Host responsibility before the covered SDK/Host image graph and
-before acquiring a caller packet. The generated inventory retains distinct
-ordinary backend correspondence with `eager: false`; a matching label remains
-DATA, not the operational issuer. The actual prefix retains its own runtime,
-module, delivery and installed Local references, captured package Sources and
-Host namespace, and the same private registry's five preparation originals.
+The request Journal confirms the original definition before dependent
+dispatch. Lookup, a racing issuer, approval continuation and recovery consume
+the winning saved definition; none samples a replacement time or issues a
+second Run to resolve missing material. The existing materials codec retains
+`created_at`, so legacy absent-operation bytes need no new member. Query time
+is computation data only: expiry, retention, rollback, current Account policy,
+physical resources and cleanup acknowledgements keep their separate owners.
 
-The ordinary recipe retains lazy compilation, tiering and cache overlap for
-the bounded selected graph through process and escaped-function lifetime.
-Its separate conservative compiler disposition is 64 times the bounded source
-graph, replacing rather than adding a second eager compiler or whole VM. The
-managed heap, fixed native, module, source, encoding and physical-child terms
-remain simultaneously present. Neither this implementation assumption nor a
-successful package-image check supplies a general VM lease or business phase.
+## Ordinary Host initialization and preparation
 
-The initial ordinary caller recipe supports the documented own-DATA local
-Mock packet with an installation directory and no opaque callback graph.
-Its captured reader snapshots the same input before an initialization await;
-the mutable caller alias is cut after synchronous consumption while the
-original immutable packet and cleanup duty remain retained. Unknown fields
-are not silently discarded. An explicit connected-Local endpoint and Remote
-selection retain their existing SDK route without opening an embedded Host.
-The fixed selector invokes no getter or Proxy trap and issues no scope. Other
-valid but unsupported embedded inputs remain backend Unavailable, not a new
-public language restriction or permission to substitute live providers.
+The adopted [ordinary Embedded Host boundary](../spec/execution.md#initial-node-control-preparation)
+trusts the embedding application, supported runtime, standard libraries and OS.
+The [decision and migration rationale](embedded-host-trust-boundary.md) replaces
+the earlier startup-wide initial-control proof model. That model's special
+preload, process-once generation and runtime-internal envelope are not ordinary
+product prerequisites. Stronger explicit physical facilities keep their actual
+contracts when selected; their diagnostic implementation is not the public
+Host factory.
 
-The ordinary prefix preserves one process generation, sticky original image
-or namespace failures, and child-first retirement. A failed image's original
-FD carrier stays reachable without a second read. Scope closure acknowledges
-only its original preparation duty after retained children finish; captured
-images, compiled/lazy code, native/library domains and escaped aliases keep
-their actual lifetimes. Source, Compute, Model, Effect, transport and Result
-still require their separate original suppliers. Descriptor/currentness checks
-do not prove all loader registration history or authenticate arbitrary earlier
-application code; the selected actual prefix and loader responsibility remain
-independent of a published property fence.
+Normal public initialization validates the documented options, snapshots its
+internal configuration, loads the selected packaged Core, and acquires the
+state directory, Store, crypto and resources needed by that Host instance.
+Trusted callback acquisition needs no prior accounting of an arbitrary closure
+graph. Encoded configuration and external requests retain their bounded
+read/decode/parse/type checks. Package integrity and API/ABI compatibility remain
+relevant; one compiler pin, exact runtime patch, load-cache ancestry, pristine
+stdout or absent diagnostic options is not an ordinary initialization authority.
 
-External physical children are a distinct part of that phase, not resources
-issued by the declaration. Actual image, Project and Task readers retain their
-same file handles, bounded backing and lookahead through close failure. Journal
-classification retains at most 100000 complete names plus one original Dirent;
-fixed markers use one original FD and only their exact closed body plus one
-byte. Each isolated SQLite inspection pins a combined DB/WAL extent of at most
-64 MiB before making any copy; its same source, isolated copy, sequential 64 KiB
-buffer and actual SQLite connection coexist until that child's own cleanup.
-The whole memory declaration adds that 64 KiB copy buffer and a separate 1 MiB
-allowance for simultaneous and retained fixed-marker backing; pinned/copy file
-extents remain a distinct physical-storage vector, not reclaimed heap credit.
-Larger valid retained state is inspection Unavailable, not corrupt, truncated,
-deleted or permission to bypass classification. These work limits do not fund
-stored business records or authorize another database, Source or metadata read.
-Before selecting Coordinator metadata values, classification admits the known
-plain two-column STRICT metadata table from SQLite's schema table. A substituted
-view, virtual/generated column, expression or different DDL is refused before
-its value query can execute. The closed table spelling tolerates only whitespace
-differences between the existing generated and legacy layouts, so the original
-legacy observation-history refusal remains separate from schema admission.
+Each Host owns its active/closing/closed lifecycle. Independent Hosts and reopen
+are supported within the same process, subject to actual directory locks and
+resource limits. A shared module/runtime cache does not become a Host child
+that must be unloaded before close. A new Host cannot reset a retained Run's
+budget, request identity, send state or adoption history.
 
-The actual preload's private operational closure, not this accounting DATA,
-issues the nominal scope. Its persistent native/module/library/image domains
-remain charged for the real process and escaped-module lifetime, even after
-the Host closes. The existing Host first completes every original physical
-child, cuts only its managed preparation aliases, notifies the original retained
-record and calls the captured scope close. Only the original `pending:false`
-allows final retirement; a false/throwing FD close, replacement callback,
-settled Promise or successful sibling cannot supply that acknowledgement.
+The existing Host and Resource Owners acquire actual buffers, files, database
+connections and selected workers. They bind each operation to its checked Run,
+limits and current permissions, without claiming that a declared byte total
+funds the VM or that a foreign Native arena backs JS allocation. Runtime-owned
+parser values, closures and JIT allocations belong to the trusted platform.
+Managed data, queue, batch, retained-result and call limits still apply to their
+actual subjects; measurements and failure behavior describe the remaining
+runtime overhead instead of promising a whole-process RSS ceiling.
 
-The actual private bootstrap issues its installation-only nominal admission
-before the covered work. It retains the selected startup, source, backend,
-recipe and same Host/installation/generation originals. An eight-reference
-runtime view, parsed bounds, matching source digest, caller Boolean or Ledger
-cannot issue that admission. Earlier imports and Project discovery cannot be
-charged retrospectively when a Host is associated later.
+Partially acquired physical children retain their real owner, receiver and
+retry/status until close or stop completes. In-flight native and zero-copy users
+prevent release of their shared memory. Ordinary copied managed values can be
+retired by releasing Host references; no GC or return of runtime caches to the
+OS is required. A specific native arena's busy result cannot be hidden by
+calling its still-live values ordinary managed memory: either release those
+users correctly or allocate the values in an appropriate ordinary runtime
+domain. Do not manufacture a physical acknowledgement.
 
-The same-phase envelope includes raw read backing and lookahead, concatenation
-and strict decoding, retained text and parser cursors, normalization writers,
-preimages and hash workspace, original configuration/registry/Task/default
-records, indices, arrays, closures and escaped aliases. Selected module images,
-runtime internals and libraries remain explicit implementation domains, not
-zero-cost constants. A bound on input text alone does not cover these overlaps,
-and unselected callbacks or libraries do not inherit coverage.
+A confirmed business result, pending cleanup and uncertain external delivery
+remain separate. Cleanup problems do not erase durable success, grant a resend,
+or silently release an active physical child. Current Account, Preview,
+approval, key and saved-material checks remain in their existing Owners.
 
-Preparation material remains with that original lifetime through partial
-construction and uncertain cleanup. The existing Host shutdown retains each
-original child and its cleanup receiver; successful sibling cleanup cannot
-retire another child's duty. An explicit transfer accounts for simultaneous
-source and destination responsibility before cutting source aliases. A local
-view's retirement or Promise completion is not a physical acknowledgement.
+Mock follows those same normal facilities and execution Owners. Explicit
+trusted Mock selection adopts its restricted initial Account profile and
+prepares the Local Reviewer/key through the existing initialization paths.
+It never selects a live Credential/Provider fallback or automatically approves
+an Effect. The Host reconstructs restart handles from durable installation and
+current authority; it does not demand a pointer survive process termination.
 
-Private consumers authenticate an initial-control scope through the same
-preload Owner's nominal current check, not by invoking a method on a supplied
-object. That check binds the original Host, installation, generation, supplier
-and module lifetime, and rechecks closing after the original current callback.
-Copying a scope's methods or constructing another internal state-machine
-instance cannot add membership to the selected preload's instance.
+### Interface responsibilities during migration
 
-The prepared embedded Host obtains its fixed check-environment source through
-that same nominal scope and five originals. The private startup projects the
-already captured package image; the Host does not reread its pathname or fall
-back to current file contents when that projection is unavailable. The original
-String remains in its selected module/preparation lifetime, including escaped
-aliases; this borrow is neither a new issuer nor a physical release acknowledgement.
-Independent Host entries without this preparation retain their own acquisition
-obligations and do not inherit the embedded startup admission.
+These references describe the ordinary target and the remaining private helpers.
+Existing operation-specific source and test references retain their meaning;
+legacy startup helpers are not ordinary initialization prerequisites or a
+same-process security boundary. Migration is not established by this inventory.
 
-An eager original Host namespace may capture the startup's already-published
-immutable CJS forwarders through the same synchronous private receiver. This
-avoids a static CJS/ESM require cycle without deferring authentication to entry
-code or accepting a later cache-export replacement. It neither creates an
-operational original nor covers earlier module loading by itself.
+Preparation responsibility belongs to the existing Host instance and its
+selected packaged Core/assets. Optional legacy helper selection cannot confer
+additional authority or require a process-wide startup witness.
 
-The original Host candidate, empty installation, five-reference snapshot,
-existing registry entry and cleanup scaffolding precede begin under the actual
-bootstrap lifetime. They are not retrospectively charged to the installation
-scope. Project/configuration/Profile/Task body intake and Provider preparation
-remain after begin and the fixed nominal current check.
+Input/output admission snapshots the documented configuration and selected
+callbacks before asynchronous use; external encoded inputs keep bounded parsing
+and their existing semantic contracts. An internal helper's restricted input
+is not a new public options restriction.
 
-A preparation record is retained before fallible work. Repeating retention of
-that same record returns its original duty and may attach its original cleanup
-handle once; it cannot replace a pending handle. Managed-reference release is
-only a notice that the caller cut its own aliases. Captured cleanup methods and
-their original receiver remain held until their own status reports
-`pending: false`, independently of retry settlement. The scope closes only
-after every preparation duty and the original operational close acknowledge
-completion. Concurrent closes share one flight, completed siblings are not
-retried, and diagnostics retain the first and latest error records rather than
-an unbounded history. Escaped aliases remain the original envelope's duty.
+Instance identity, original callback and receiver correspondence prevent
+accidental substitution across Host, installation and Run operations. Durable
+restart validates stored installation/current authority and reconstructs handles;
+loaded-package integrity is not principal or operation authority.
 
-The original supplier may initialize its selected Host module namespace through
-one asynchronous flight. Begin snapshots all five original references and
-consumes the generation before that initialization; it checks original current
-afterward before returning the nominal scope. The caller awaits begin and uses
-the fixed Owner validator before importing Common or discovering the Project.
-An initialization failure preserves its original cause and cleanup duty; neither
-a provisional scope nor Promise settlement substitutes for that duty's ACK.
+Reference ownership follows the actual Host record and its real children.
+Registry leases for the same Host share its retirement record. Captured methods,
+receivers and opaque handles remain with their existing Owner; ordinary copied
+managed values end Host retention by releasing its references.
 
-The ordinary package builder derives a private image inventory from the exact
-rewritten adapter outputs, runtime images and selected dependency manifests.
-This generated Source is correspondence DATA, not an operational issuer. A
-same-FD image read checks its original extent, identity and complete digest,
-holds its immutable UTF-8 Source and closes that same descriptor before handing
-the Source onward. Close failure retains the original FD and close-only retry;
-it cannot return Source, reopen the image or retire a sibling. The temporary
-byte backing, decoded String, hash and native decoder workspace overlap. Such
-byte custody alone does not establish the complete image loader, installation
-admission, current Host or preparation envelope.
+Synchronization snapshots each selected method and receiver before asynchronous
+use and checks the applicable Host/resource current state after fallible awaits
+before exposing another lease or dispatch. It does not authenticate earlier
+imports or the interpreter's execution history.
 
-For a generated installed image inventory, the selected preload captures each
-original Local and resolved dependency package before optional SDK and Host
-namespace compilation. Each package's same-FD manifest and image bytes must
-match that inventory, while repeated dependency edges must resolve to the same
-original package, not an equal copy at another root. Those held Sources feed
-the private loader; the same synchronous receiver initializes the Host namespace
-and completes its Module handoff before entry. Source-only absence stays absent.
-The selected namespace and asset projection remain process/module holdings, not
-an operational intake issuer or a Host-level release acknowledgement. Stock
-resolver/bootstrap provenance and unselected library domains remain independent.
+Failure retains the primary error and each partially acquired resource's real
+cleanup duty. Missing optional compatibility startup selection does not prevent
+ordinary initialization; unavailable required resources fail explicitly without
+live fallback or fabricated allocation/release acknowledgements.
 
-The owned release-cohort transformation may change only the packaged manifest
-and license. The image generator binds the exact source manifest and the exact
-manifest produced by that existing transformation before acquisition, including
-the selected cohort version. It does not normalize installed JSON or ignore
-metadata fields. Local, the public Node facade and their owned cohort dependencies
-must all use the same source or release representation; all other image bytes
-retain their single original digest. The phase envelope charges the larger of
-the two bound manifest extents once before capture. Admitting this representation
-does not issue a startup original or extend control admission into business work.
+Cancellation requests stop and keeps unfinished tasks and shared native users
+with their original cleanup carrier. Cancellation, a settled Promise or logical
+retirement is not an acknowledgement that a live physical child was released.
 
-The standard Node facade is a separate image domain, not a dependency of Local.
-Its generated facts identify its original public entry and dependencies, with
-an explicit edge to the same actual Local installation. When that facade is
-selected, the preload captures its Sources and checks that edge before any Host
-namespace compilation. Both Local and Node public ESM entries are initialized
-from the held Sources before the final Module handoff; later entry imports
-reuse those same namespaces. Missing facade coverage refuses that selected
-route, without loading an uncovered parent for Local-only delivery. Optional
-dependency preparation failure cannot leave a dangling package index in another
-image domain. These package facts and namespace identities remain correspondence
-DATA, not operational admissions or coverage of caller-owned opaque backing.
-The extra Source Strings, manifests, dependency paths, image/namespace records,
-graph traversal, compiler and loader workspace overlap the original Host and
-library domains. Module-cache retention or a Host close does not release them.
+Resource coverage distinguishes managed work/data limits and actual owned
+buffer/file/DB/socket holdings from platform-owned module/runtime/library caches.
+Selected asset read/hash/decode buffers retain their real lifetime; scalar
+bounds, image metadata or content identity do not issue capacity or release.
 
-Ancestor public preload wrappers publish their same immutable null-prototype
-table before nested loading. A later exports replacement or Node's circular-
-require warning prototype cannot stand in for that original receiver. Eager
-ESM consumers use the original synchronous CJS receiver rather than creating a
-static CJS/ESM import cycle. Private preparation dispatch captures only the actual
-Host namespace's operation and receiver; it refuses a missing operational Owner
-before touching the raw input or constructing a candidate. Image correspondence
-or the presence of that operation alone does not enable dispatch, and only the
-existing Client result may escape, never a Scope, issuer or capacity handle.
+Extension keeps supported ordinary options and normal factory acquisition
+available independently of a private compatibility helper. Another backend,
+operation or authority still uses its existing explicit contracts and Owners;
+a helper restriction never becomes a language ban or an implicit grant.
 
-Each public package's private `initial-control-public-dispatch.cjs` is loaded
-by its actual wrapper before child loading. During that native preload only,
-it captures the same wrapper's original Client-only function and receiver.
-The actual fixed preload argv, `internal/preload` ancestor and same consumer's
-selected entry resolution are required together; forged Module/cache parent
-records in an unrelated preload cannot enroll a callback.
-Supported ordinary imports retain a fixed forwarding function without loading
-the Local bootstrap or Root. Only fixed own-DATA Local selection acquires that
-bootstrap; Remote and explicit-endpoint connected Local routes remain separate.
-Selection does not invoke getters or Proxy traps and is not packet admission.
-An original bootstrap failure remains retained rather than reexecuting a partial
-module after its cache entry disappears. Unsupported invocation selections stay
-undefined. Application-time cache metadata or a caller-supplied table cannot
-enroll a later dispatch. The wrapper retains its child function and
-receiver once the synchronous child load completes; namespace reentry before
-then refuses without observing raw input. Later exports/method replacement
-does not change either captured link. This source/module boundary still
-requires independent actual startup ownership and non-escape; it does not
-turn module metadata into operational admission.
-
-The two wrapper tables/functions, child receiver/function references, private
-delivery tables/closures and captured native descriptor/path/module controls
-remain in the selected module lifetime. Each call additionally retains its
-original kind/raw aliases and argument forwarding workspace. These holdings
-and partial child initialization overlap the original startup/preparation
-envelope. A frozen table, undefined selection or rejected call supplies no
-physical retirement acknowledgement or numerical capacity. Private root-level
-implementation files participate in the same ordinary package image inventory
-even though they are not public export subpaths.
-
-The Node facade's class-only SDK entry exports only the original `ClientError`
-and `RequestHeld` bindings, not classification writers. Its transitive errors
-module still evaluates and retains its WeakMap, refusal-code Set, helper bindings
-and module state. These are prefix holdings for the actual module lifetime;
-two exported classes do not imply evaluation of only two classes or retrospective
-Host coverage. The full SDK execution graph is acquired only after the selected
-Local prefix; unselected SDK routes retain their independent responsibilities.
-
-Selected image loading supplies immutable captured Source to the original Node
-compiler rather than delegating the body to a later pathname read. Uncaptured
-dependencies and additional query-identified images require their own selected
-domain; they cannot inherit this control coverage. Registration through the
-published `registerHooks`/`register` fences permanently invalidates this helper,
-even after deregistration. This observation does not cover an original native
-registration function retained before fence installation: it can install a
-short-circuit loader without changing the published property or this helper's
-currentness result. That result therefore is not an all-history certificate.
-Before operational adoption, the actual selected startup must independently
-establish the ownership and non-escape of those original registration functions
-and any earlier registrations. This component does not establish that boundary;
-without it, operational admission remains unavailable.
-
-The admission must also bind the actual post-load CJS cache/exports, original
-stock resolver, fixed asset reads and runtime-file identity to the loaded
-runtime. A Source-delivery marker, a stock-function identity check or a matching
-cache-shaped object alone does not authenticate those originals. These are
-selected implementation obligations, not restrictions on ActQL Programs or
-permission for unrelated Node callbacks, libraries or business work.
-
-After synchronous original namespace initialization, the actual preload captures
-its CJS/JSON Module records and exports descriptors once, before entry runs.
-Currentness checks retain that same record, exports reference and shallow own
-descriptor inventory without invoking exported getters. Changed or replaced
-records remain refused even if restored. An image not initialized at that
-handoff cannot acquire pre-entry provenance by compiling later. Preexisting
-bootstrap bodies, nested export referents, stock resolution and fixed asset
-reads still need their independent selected-domain correspondence; this cache
-handoff alone is neither a complete loader proof nor an operational issuer.
-
-For selected JSON compiler metadata, the preload compares the actual Module's
-tree against a separate parse of the same captured Source before sealing its
-own records and arrays. Changed values, accessors or substituted alias graphs
-refuse before any node is sealed. The held Source identity is unchanged, while
-stock JSON BOM handling and primitive values are preserved. This does not
-freeze language prototypes, arbitrary CJS exports or application data, and it
-does not authenticate nested library state or earlier registration history.
-The original Module/tree/Source overlaps the second parse, comparison pairs,
-key/descriptor walk, node array, weak membership and native freeze workspace;
-sealing or later GC is not physical cleanup, a reservation or funding.
-
-Completed native ESM JSON translation can publish the original two-field
-`exports`/`loaded` cache record without a CommonJS `filename`. Only already
-Source-delivered JSON may use that exact header, with the same full Source/tree
-check, sealing and retained record/exports identity. A matching cache preseed
-without delivery remains refused, and CommonJS images still require their
-filename-bearing Module. This Node interop distinction does not authenticate
-prior cache ownership, nested library state or loader registration history.
-
-The selected preparation path also retains the native `String.prototype.trimEnd`
-used between its original environment Source and the existing normalizer.
-Replacing that method must not introduce an application callback into this
-declared control step. Ordinary unselected imports do not fix that method.
-The retained descriptor and method reference, original Source, trimmed result
-and normalizer workspace overlap under the same control lifetime. This narrow
-implementation fence does not establish coverage for every String operation,
-the VM heap or an operational supplier, and Host-view retirement is not native
-implementation retirement or physical cleanup.
-
-The original startup publishes its same immutable forwarder table before
-synchronous Host namespace initialization can reenter that Module. A missing
-captured callback must not be confused with a refusal from the original Owner
-merely because both report unavailable. Early table capture neither admits an
-installation nor covers initialization work: the original unavailable Owner
-remains unavailable until the independent selected operational original exists.
-
-Fixed control assets are projected from that same selected immutable Source
-holding through the private nominal installation port. It checks the original
-scope, five references and currentness before and after the captured supplier
-callback, returning only its original String. It neither rereads a path nor
-parses, reconstructs or authenticates new DATA. An unavailable asset stays
-unavailable; callers cannot substitute a file, receiver, Promise or matching
-digest. Scope retirement does not collect escaped Strings or acknowledge the
-separate module/image holding.
-
-The prepared installed Host uses this same projection for its fixed numeric
-profile, graph laws, pipeline Registry and AoA contract body before parsing or
-checking them. It does not reopen those four pathnames after package capture,
-including on an unavailable or current-refused projection. Unprepared Host
-entrances retain their independent existing file-acquisition responsibility.
-The private preparation method, original String aliases, decoded trees and
-canonical encodings overlap the same preparation/image lifetime. Borrowing an
-asset does not retire that holding or issue business capacity or authority.
-
-This admission has no conversion to metadata HTTP, Source, Result, business Run,
-Model invocation, Content/driver or external-VM capacity or authority. Their
-existing Resource suppliers and current authorization remain separate. The
-initial trust boundary introduces no Owner, Ledger, queue or scheduler.
-
-The existing installed Host shutdown retains the issuer's original initial
-control receiver as its final control duty. It closes that duty only after
-dispatch, Checkpoint, journal, Source, Effect, Store, observation and retained
-owner-view cleanup have completed. Failed initialization uses the same ordering
-and original retry carrier. A successful sibling close cannot release the
-initial holding while another child remains uncertain.
-
-The Host captures that same receiver's close operation before its first child
-cleanup await, but invokes it only after those children complete. A getter
-failure retains the holding under the same cleanup Owner; only a still-unobserved
-getter may be retried. A successfully observed callback cannot be replaced
-before the first close request or during child cleanup. Only its
-explicit `pending: false` observation completes the control duty; a fulfilled
-Promise, absent/malformed observation or replacement close function does not.
-Final runtime-reference retirement remains behind that confirmed duty. These
-cleanup consumers cannot issue an initial admission, establish its coverage,
-prove garbage collection or supply business-Run capacity.
-
-Pending initialization retains each original cleanup phase's first and latest
-failure, rather than accumulating an unbounded in-memory retry history. This
-bounded diagnostic projection neither completes that phase nor changes its
-original cause, cleanup receiver or retry authority.
-
-The same installed Host registry retains a preparation candidate under its
-actual Host identity before Project discovery. This candidate has no root
-lease. Only the selected startup's original module operation can validate its
-same Host, installation and generation, original `connectEmbeddedLocal`
-function and module lifetime. A namespace, public function, caller callback,
-copied record or equal configuration cannot reconstruct this membership.
-The startup independently supplies the operational admission; registry
-membership is not capacity, authority or coverage of earlier imports.
-
-The Local preparation awaits that admission before snapshotting options,
-importing Common or reading Project originals. Its original scope is checked
-after awaits and between original file acquisitions and Common admission.
-The existing file Owner first closes or retains an acquired FD, so a current
-refusal cannot lose it before cleanup custody. Getter failures on a thrown
-initialization value likewise remain under the retained cleanup phase.
-
-The selected startup may support an original producer-controlled preparation
-packet without making every public option object data-only. Its actual intake
-coverage must precede the first raw acquisition, own-key enumeration, spread,
-descriptor copy or clone, including refusal and partial-construction workspace.
-Frozen shape, a packet label, bounds or an alias count do not prove that
-coverage. A general object without it remains unsupported by this selected
-supplier, not an invalid public API value; existing unknown-field, type and
-duplicate-consent checks and unselected entrances retain their responsibilities.
-
-The private begin port passes the same raw input unobserved to the captured
-operational preparation callback synchronously, before namespace initialization
-can await. That supplier first retains its original intake responsibility and
-then invokes only its original bounded reader. It keeps the same snapshot and
-cleanup through initialization and failure. A fixed nominal/current projection
-returns that original snapshot after begin; it cannot reconstruct one, adopt a
-replacement or infer admission from the preparation Promise's resolved DATA.
-Callbacks and opaque handles remain original Owner borrows, not traversed or
-cloned closure graphs. Their backing and extended lifetimes, the raw/snapshot
-overlap, captured reader and receiver, scope alias and partial-failure holdings
-all stay in the same declared envelope. Managed alias retirement is not their
-physical cleanup ACK. This port does not itself supply the missing operational
-original or a public consumer's earlier intake coverage.
-
-The embedded consumer passes its raw options to this synchronous begin and,
-after initialization, reads only that original nominal input projection. It
-retains the packet in the same preparation record through Host adoption or
-failed initialization; it never rereads the caller as an input fallback. The
-private selected namespace exposes a pure bounded snapshot reader so the
-actual startup can capture its exact Source, rather than accept an application
-callback as the reader. This operation cannot issue the operational admission.
-
-The selected public-entry consumer supports omitted and own-DATA `open` input.
-It forwards that same original to the existing candidate's begin exactly once.
-The operational supplier, not a public default argument or facade copy, owns
-the empty or explicit packet's acquisition. Call-time working-directory
-observation remains before initialization awaits, under the independently
-admitted prior startup envelope; its result or failure stays with the same
-preparation record through partial failure. After nominal/current admission,
-only the captured own DATA supplies stateDir, installation, durability and
-consent references. Existing closed-field and type validation remains intact.
-An inherited option added during initialization refuses without invoking its
-getter; freezing the captured record does not freeze its prototype. The Local
-mode/owner and installation projection have null prototypes and cannot borrow
-later inherited profile or authorization values. The captured stateDir is
-resolved against that original working directory, not a later process cwd.
-Omitted input still requires its original empty packet; a nonempty replacement
-refuses without dropping fields.
-The returned Client and `info.stateDir` describe that same registry Host and
-directory; no second open, candidate, installation or scope is issued. This
-finite producer support does not redefine other valid public option objects
-as invalid. Their complete before-copy supplier and original semantic
-validation remain necessary; unsupported selected inputs are unavailable.
-
-The reader preserves own data fields, enumerability, array holes, primitive
-String code units and shared immutable DATA without clamping, normalization or
-unknown-field dropping. Existing Owners still validate field meaning. Finite
-properties, nodes, depth, individual and aggregate String code units, array
-lengths, original-reference occurrences and traversal work are separate input
-allowances, not backing-byte amounts or a numerical profile. Explicit traversal
-frames, own-key arrays, paths, original and copied records and rejection overlap
-remain in the supplier's complete simultaneous envelope. Proxy/accessor/cyclic
-DATA without supported acquisition coverage remains unavailable on this
-selected path, not an invalid general public option. Original Host handles,
-callbacks and non-DATA values retain exact identity for their existing Owners;
-neither copying classifications nor original-reference counts authenticate
-those Owners, closure backing, current authority or physical retirement.
-
-On adoption, the candidate and root lease use the same registry entry and
-actual returned Host. A foreign returned child enters its acquired shutdown
-custody before the pair refusal. Reusing an existing Host first retires only
-the unused preparation, then rechecks that original entry and its nonclosing
-lifetime after the await, before exposing another lease. Pending preparation
-cleanup does not close or replace the existing Host.
-
-Project views share one original retirement record. Existing Host cleanup or
-an unadopted preparation cuts its managed configuration/registry references;
-captured getters and downstream lookups then refuse. This does not rewrite
-escaped canonical DATA or acknowledge its physical storage, GC or capacity.
-Managed preparation aliases are cut before the same control's close, while
-runtime-view retirement remains behind its explicit original completion.
+Verification separates private helper/source checks from fixed ordinary package
+acceptance. The latter exercises public options, SELECT/close, reopen and
+independent Hosts, actual limit/cleanup failures and protected Mock operations;
+no prior component check or retired startup proof establishes that acceptance.
 
 ## Installed Effect cleanup
 

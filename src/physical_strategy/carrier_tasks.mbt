@@ -843,7 +843,18 @@ fn captured_segment_prefix_end(
   let results = @ports.count(stage_results)
   carrier_work(work, amount=results)
   derivation_work += results
-  guard @acquisition.derive_query_acquisition(requests, source, derivation_work)
+  for index in 0..<2 {
+    guard @pipeline.step_at(pipeline, index) is Some(step) &&
+      step.operation is @pipeline.Unary(operation) else {
+      return None
+    }
+    let bindings = @relation.binding_count(operation)
+    carrier_work(work, amount=bindings)
+    derivation_work += bindings
+  }
+  guard @acquisition.derive_query_acquisition_shape(
+      requests, source, derivation_work,
+    )
     is Ok(acquisition) &&
     physical_equal(
       @acquisition.query_acquisition_pipeline(acquisition),

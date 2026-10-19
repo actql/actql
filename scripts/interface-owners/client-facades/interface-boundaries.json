@@ -2107,6 +2107,182 @@
       ]
     },
     {
+      "module": "packages/local-node/initial-control-public-dispatch.cjs",
+      "sha256": "bfc268cb88703ab4415088065b61a66b416ab5e58c9fed61bd39591e91d68d0d",
+      "exports": [
+        "commonjs:selectedInitialControlHostPreparation"
+      ],
+      "operations": [
+        {
+          "name": "<anonymous>",
+          "parameters": [
+            "kind",
+            "rawInput"
+          ],
+          "async": false
+        },
+        {
+          "name": "forwardOrdinary",
+          "parameters": [
+            "kind",
+            "raw"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./adapters/host-node/node-public-initial-control-bootstrap.cjs",
+        "node:module",
+        "node:path",
+        "node:process",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "existing public Client / installed Host port and Result reader boundary",
+      "rationale": "Private Client-only forwarding from the fixed preload original or supported ordinary Local selection; unselected import acquires no Local bootstrap, and no caller-created operational original, scope or byte authority is issued.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "<anonymous>",
+            "forwardOrdinary"
+          ],
+          "exports": [
+            "commonjs:selectedInitialControlHostPreparation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "// Private Client-only delivery, never an application-time admission factory."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "selectedInitialControlHostPreparation = function(kind, rawInput) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "if (parent?.filename === filename && require.cache[filename] === parent &&"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Instance identity, original callback and receiver correspondence"
+              },
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "// native preload ancestor and same consumer resolution together."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "const receiver = parent.exports;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Reference ownership follows the actual Host record and its real children."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "return apply(connect, receiver, [kind, rawInput]);"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Synchronization snapshots each selected method and receiver"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "let selectedInitialControlHostPreparation, ordinaryReceiver, ordinaryConnect, ordinaryFailure;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An original bootstrap failure remains retained rather than reexecuting a partial"
+              },
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "let selectedInitialControlHostPreparation;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Failure retains the primary error and each partially acquired resource"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Cancellation requests stop and keeps unfinished tasks and shared native users"
+              },
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "return apply(connect, receiver, [kind, rawInput]);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Resource coverage distinguishes managed work/data limits"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Resource coverage distinguishes managed work/data limits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              },
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "// selected before acquiring its bootstrap; an unselected import owns no loader."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              },
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "// normal facade import neither loads that wrapper nor discovers a later table."
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/initial-control-public-dispatch.test.mjs",
+                "anchor": "ordinary private dispatch import does not load a wrapper or Root"
+              },
+              {
+                "path": "scripts/initial-control-public-dispatch.test.mjs",
+                "anchor": "late native-looking cache or caller table cannot become the selected original"
+              },
+              {
+                "path": "scripts/initial-control-public-dispatch.test.mjs",
+                "anchor": "another real preload cannot supply the private wrapper-parent original"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "a mismatched captured package image refuses before Host and entry compilation"
+              },
+              {
+                "path": "scripts/initial-control-public-dispatch.test.mjs",
+                "anchor": "// A real but unrelated preload can forge a cache entry and Module parent."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "packages/local-node/observation.d.ts",
       "responsibilityFacet": "primary",
       "sha256": "cba3fadd9f35ff2029079b2c1f2ed5fb44d5bb4cca22d7f2a240e7610a7ba5ca",
@@ -2333,11 +2509,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Ancestor public preload wrappers publish their same immutable null-prototype"
+                "anchor": "Instance identity, original callback and receiver correspondence"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Instance identity, original callback and receiver correspondence"
               }
             ],
             "ownership": [
@@ -2351,7 +2527,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -2365,11 +2541,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "table before nested loading. A later exports replacement or Node's circular-"
+                "anchor": "Synchronization snapshots each selected method and receiver"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Synchronization snapshots each selected method and receiver"
               }
             ],
             "failure": [
@@ -2383,7 +2559,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Failure retains the primary error and each partially acquired resource"
               }
             ],
             "cancellation": [
@@ -2407,7 +2583,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
@@ -2982,6 +3158,182 @@
       ]
     },
     {
+      "module": "packages/node/initial-control-public-dispatch.cjs",
+      "sha256": "17c17311f229fdde83a014a15df0f6af78e941f633dd6fa0c95e3ba69a304807",
+      "exports": [
+        "commonjs:selectedInitialControlHostPreparation"
+      ],
+      "operations": [
+        {
+          "name": "<anonymous>",
+          "parameters": [
+            "kind",
+            "rawInput"
+          ],
+          "async": false
+        },
+        {
+          "name": "forwardOrdinary",
+          "parameters": [
+            "kind",
+            "raw"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "@actql/local-node/_internal/initial-control-public-dispatch",
+        "node:module",
+        "node:path",
+        "node:process",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "existing public Client / installed Host port and Result reader boundary",
+      "rationale": "Private Client-only forwarding from the fixed preload original or supported ordinary Local selection; unselected import acquires no Local bootstrap, and no caller-created operational original, scope or byte authority is issued.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "<anonymous>",
+            "forwardOrdinary"
+          ],
+          "exports": [
+            "commonjs:selectedInitialControlHostPreparation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "// Private Client-only delivery, never an application-time admission factory."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "selectedInitialControlHostPreparation = function(kind, rawInput) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "if (parent?.filename === filename && require.cache[filename] === parent &&"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Instance identity, original callback and receiver correspondence"
+              },
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "// native preload ancestor and same consumer resolution together."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "const receiver = parent.exports;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Reference ownership follows the actual Host record and its real children."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "return apply(connect, receiver, [kind, rawInput]);"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Synchronization snapshots each selected method and receiver"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "let selectedInitialControlHostPreparation, ordinaryReceiver, ordinaryConnect, ordinaryFailure;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An original bootstrap failure remains retained rather than reexecuting a partial"
+              },
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "let selectedInitialControlHostPreparation;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Failure retains the primary error and each partially acquired resource"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Cancellation requests stop and keeps unfinished tasks and shared native users"
+              },
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "return apply(connect, receiver, [kind, rawInput]);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Resource coverage distinguishes managed work/data limits"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Resource coverage distinguishes managed work/data limits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              },
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "// selected before acquiring its bootstrap; an unselected import owns no loader."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              },
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "// normal facade import neither loads that wrapper nor discovers a later table."
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/initial-control-public-dispatch.test.mjs",
+                "anchor": "ordinary private dispatch import does not load a wrapper or Root"
+              },
+              {
+                "path": "scripts/initial-control-public-dispatch.test.mjs",
+                "anchor": "late native-looking cache or caller table cannot become the selected original"
+              },
+              {
+                "path": "scripts/initial-control-public-dispatch.test.mjs",
+                "anchor": "another real preload cannot supply the private wrapper-parent original"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "a mismatched captured package image refuses before Host and entry compilation"
+              },
+              {
+                "path": "scripts/initial-control-public-dispatch.test.mjs",
+                "anchor": "// A real but unrelated preload can forge a cache entry and Module parent."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "packages/node/selected-infer-startup.cjs",
       "responsibilityFacet": "primary",
       "sha256": "47cdd74832803f6f6fcac3e11c8f713d43493009ea0a488397b44c3b1d66b7cb",
@@ -3041,11 +3393,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Ancestor public preload wrappers publish their same immutable null-prototype"
+                "anchor": "Instance identity, original callback and receiver correspondence"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Instance identity, original callback and receiver correspondence"
               }
             ],
             "ownership": [
@@ -3059,7 +3411,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -3073,11 +3425,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "table before nested loading. A later exports replacement or Node's circular-"
+                "anchor": "Synchronization snapshots each selected method and receiver"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Synchronization snapshots each selected method and receiver"
               }
             ],
             "failure": [
@@ -3091,7 +3443,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Failure retains the primary error and each partially acquired resource"
               }
             ],
             "cancellation": [
@@ -3115,7 +3467,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
@@ -3478,7 +3830,7 @@
     {
       "module": "packages/sdk/check-reason-catalog.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "3f0f6b9d38b3824e0b7e2302974976842c5fae85d315535cfa5be89e88785298",
+      "sha256": "e75c223ab0356d1c8ea860c2fe3359a1a218f5875c1abd19af2e0fac14b1731e",
       "exports": [
         "CheckReasonCatalogEntry",
         "CheckReasonCatalogInfo",
@@ -3534,12 +3886,20 @@
               {
                 "path": "packages/sdk/check-reason-catalog.generated.d.ts",
                 "anchor": "// Generated by scripts/generate-check-reason-catalog.mjs --write."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Take count and offset demands additionally retain"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/sdk/check-reason-catalog.generated.d.ts",
                 "anchor": "// Generated by scripts/generate-check-reason-catalog.mjs --write."
+              },
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "Requirement for an original Take Parameter demand."
               }
             ],
             "identity": [
@@ -3550,6 +3910,10 @@
               {
                 "path": "packages/sdk/check-reason-catalog.generated.d.ts",
                 "anchor": "// Generated by scripts/generate-check-reason-catalog.mjs --write."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Program, declaration and operation obligation."
               }
             ],
             "ownership": [
@@ -3560,6 +3924,10 @@
               {
                 "path": "packages/sdk/check-reason-catalog.generated.d.ts",
                 "anchor": "// Generated by scripts/generate-check-reason-catalog.mjs --write."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Runtime resource/publication binding and"
               }
             ],
             "synchronization": [
@@ -3570,6 +3938,10 @@
               {
                 "path": "packages/sdk/check-reason-catalog.generated.d.ts",
                 "anchor": "// Generated by scripts/generate-check-reason-catalog.mjs --write."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "a fresh bound-input check and execution still requires an explicit request."
               }
             ],
             "failure": [
@@ -3580,6 +3952,10 @@
               {
                 "path": "packages/sdk/check-reason-catalog.generated.d.ts",
                 "anchor": "// Generated by scripts/generate-check-reason-catalog.mjs --write."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "truncated reports cannot verify or become runnable."
               }
             ],
             "cancellation": [
@@ -3590,6 +3966,10 @@
               {
                 "path": "packages/sdk/check-reason-catalog.generated.d.ts",
                 "anchor": "// Generated by scripts/generate-check-reason-catalog.mjs --write."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "observations, or trigger automatic execution/resending."
               }
             ],
             "resources": [
@@ -3600,6 +3980,10 @@
               {
                 "path": "packages/sdk/check-reason-catalog.generated.d.ts",
                 "anchor": "// Generated by scripts/generate-check-reason-catalog.mjs --write."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Every condition is counted in the same requirement budget;"
               }
             ],
             "extension": [
@@ -3610,12 +3994,20 @@
               {
                 "path": "packages/sdk/check-reason-catalog.generated.d.ts",
                 "anchor": "// Generated by scripts/generate-check-reason-catalog.mjs --write."
+              },
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "This is not a generic predicate language."
               }
             ],
             "verification": [
               {
                 "path": "packages/sdk/check-reason-catalog.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "scripts/check-consumer-condition.test.mjs",
+                "anchor": "test('Take binding conditions are closed template Requirements"
               }
             ]
           }
@@ -3625,7 +4017,7 @@
     {
       "module": "packages/sdk/check-reason-catalog.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "201e52c324fb4f8407d2d128b261a786bea1e9c7a30b366a91e0da83ff3bdae8",
+      "sha256": "d1d5e77d0c600c7309d5a572c493b524f9e5c76db6365c74aa27193b9d87a49c",
       "exports": [
         "getCheckReasonCatalogEntry",
         "getCheckReasonCatalogInfo",
@@ -3701,6 +4093,10 @@
               {
                 "path": "packages/sdk/check-reason-catalog.generated.js",
                 "anchor": "// Generated by scripts/generate-check-reason-catalog.mjs --write."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Take count and offset demands additionally retain"
               }
             ],
             "inputsOutputs": [
@@ -3719,6 +4115,10 @@
               {
                 "path": "docs/design/value-contracts.md",
                 "anchor": "## Distinct signed64 contracts"
+              },
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "Requirement for an original Take Parameter demand."
               }
             ],
             "identity": [
@@ -3737,6 +4137,10 @@
               {
                 "path": "docs/design/value-contracts.md",
                 "anchor": "## Distinct signed64 contracts"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Program, declaration and operation obligation."
               }
             ],
             "ownership": [
@@ -3747,6 +4151,10 @@
               {
                 "path": "packages/sdk/check-reason-catalog.generated.js",
                 "anchor": "// Generated by scripts/generate-check-reason-catalog.mjs --write."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Runtime resource/publication binding and"
               }
             ],
             "synchronization": [
@@ -3757,6 +4165,10 @@
               {
                 "path": "packages/sdk/check-reason-catalog.generated.js",
                 "anchor": "// Generated by scripts/generate-check-reason-catalog.mjs --write."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "a fresh bound-input check and execution still requires an explicit request."
               }
             ],
             "failure": [
@@ -3767,6 +4179,10 @@
               {
                 "path": "packages/sdk/check-reason-catalog.generated.js",
                 "anchor": "// Generated by scripts/generate-check-reason-catalog.mjs --write."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "truncated reports cannot verify or become runnable."
               }
             ],
             "cancellation": [
@@ -3777,6 +4193,10 @@
               {
                 "path": "packages/sdk/check-reason-catalog.generated.js",
                 "anchor": "// Generated by scripts/generate-check-reason-catalog.mjs --write."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "observations, or trigger automatic execution/resending."
               }
             ],
             "resources": [
@@ -3787,6 +4207,10 @@
               {
                 "path": "packages/sdk/check-reason-catalog.generated.js",
                 "anchor": "// Generated by scripts/generate-check-reason-catalog.mjs --write."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Every condition is counted in the same requirement budget;"
               }
             ],
             "extension": [
@@ -3805,6 +4229,10 @@
               {
                 "path": "docs/design/value-contracts.md",
                 "anchor": "## Distinct signed64 contracts"
+              },
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "This is not a generic predicate language."
               }
             ],
             "verification": [
@@ -3819,6 +4247,10 @@
               {
                 "path": "scripts/signed64-contract.test.mjs",
                 "anchor": "test('Signed64 check facts extend exactly"
+              },
+              {
+                "path": "scripts/check-consumer-condition.test.mjs",
+                "anchor": "test('Take binding conditions are closed template Requirements"
               }
             ]
           }
@@ -7350,6 +7782,269 @@
       ]
     },
     {
+      "module": "packages/sdk/internal/checkpoint-answer-contract.generated.mjs",
+      "sha256": "170e71af07cdbcb99ac43625ce42bf0c958f588ae4c22a02fc80c340b64a70a2",
+      "exports": [
+        "validAnswerEvidence",
+        "validAnswerResolution"
+      ],
+      "operations": [
+        {
+          "name": "finiteWireNumber",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameConstant",
+          "parameters": [
+            "value",
+            "expected"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameConstant/sameConstant",
+          "parameters": [
+            "item",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameConstant/sameConstant#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid",
+          "parameters": [
+            "value",
+            "schema"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#2",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#3",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#4",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#5",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#6",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#7",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#8",
+          "parameters": [
+            "key",
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#9",
+          "parameters": [
+            "key",
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "validAnswerEvidence/validAnswerEvidence",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "validAnswerResolution/validAnswerResolution",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "public-wire-codec",
+      "owner": "existing SDK Checkpoint action correspondence over registered Common artifact contracts",
+      "rationale": "Generated structural DATA admission, not a signing authority or second Checkpoint state machine",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "finiteWireNumber",
+            "sameConstant",
+            "sameConstant/sameConstant",
+            "sameConstant/sameConstant#2",
+            "valid",
+            "valid/valid",
+            "valid/valid#2",
+            "valid/valid#3",
+            "valid/valid#4",
+            "valid/valid#5",
+            "valid/valid#6",
+            "valid/valid#7",
+            "valid/valid#8",
+            "valid/valid#9",
+            "validAnswerEvidence/validAnswerEvidence",
+            "validAnswerResolution/validAnswerResolution"
+          ],
+          "exports": [
+            "validAnswerEvidence",
+            "validAnswerResolution"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An original-answer callback remains responsible for key custody and current"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "const answerMatches = async (answer, summary, decision, signer) =>"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const answerSchemas = {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "resolution.decision !== decision"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "resolution.run_definition_cid !== summary.subject.runDefinitionCid"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "contentCid(without(resolution, 'resolution_cid'))"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Self-addressed identities are checked without changing the signed"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "new ClientError('InvalidCheckpointAnswer', {signed: Object.freeze([answer])})"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "current(signal);"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "if (!await answerMatches(answer, summary, decision, selectedSigner))"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "throw new ClientError('InvalidCheckpointAnswer'"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "resolution; it neither signs again nor treats the bytes as a retry permission."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "exact response-loss items overlap within the original Client/Host inventory."
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "protocol.artifact_schemas.checkpoint_resolution"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Wire bytes, canonical preimages, signed"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "refuses an original-port answer for the opposite decision"
+              },
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "valid signatures for another original Summary refuse"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.test.mjs",
+                "anchor": "SDK answer grammar projects existing Resolution and Evidence"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "packages/sdk/internal/checkpoint-operations.mjs",
       "responsibilityFacet": "primary",
       "sha256": "4d29820be9b89aa5f45e7524b499ed51e24bf209d42d1c33d664173fc5a7a5cf",
@@ -7923,6 +8618,123 @@
               {
                 "path": "scripts/generate-client-host-wire.test.mjs",
                 "anchor": "SDK answer grammar projects existing Resolution and Evidence"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/sdk/internal/client-errors.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "e98bafe5e785d026f9890383e556870edad076165f45bc7c0389678b6e1806da",
+      "exports": [
+        "ClientError",
+        "RequestHeld"
+      ],
+      "operations": [],
+      "imports": [
+        "./errors.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "observation-presentation",
+      "owner": "existing public Client / installed Host port and Result reader boundary",
+      "rationale": "Deliver only the existing SDK error class originals before connection selection. This re-export issues no owned-failure classification, request, transport, permission or capacity; the SDK implementation retains its classification writers and state.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "ClientError",
+            "RequestHeld"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/internal/client-errors.mjs",
+                "anchor": "// Class-only delivery for the Node facade."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/client-errors.mjs",
+                "anchor": "export {ClientError, RequestHeld} from './errors.mjs';"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/internal/errors.mjs",
+                "anchor": "export class RequestHeld extends ClientError"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "test('SDK class delivery exports only the original two classes without the execution graph'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/internal/errors.mjs",
+                "anchor": "const ownedClientFailures = new WeakMap();"
+              },
+              {
+                "path": "packages/sdk/internal/client-errors.mjs",
+                "anchor": "// refusal state remain private to the SDK implementation module."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This module only re-exports the same ESM class bindings. It has no callback, mutable classifier, asynchronous initialization, currentness assertion or synchronization operation; existing SDK methods retain those responsibilities."
+            },
+            "failure": [
+              {
+                "path": "packages/sdk/internal/errors.mjs",
+                "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "test('SDK class delivery cannot brand a borrowed options exception as SDK-owned'"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Delivery of existing error classes has no cancellation, cleanup, resend or recovery operation. RequestHeld remains the original held observation, never a retry or physical acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "packages/sdk/internal/errors.mjs",
+                "anchor": "Object.assign(this, details);"
+              },
+              {
+                "path": "packages/node/index.mjs",
+                "anchor": "// Only the SDK's original error classes belong to this Client-only prefix."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "module still evaluates and retains its WeakMap, refusal-code Set, helper bindings"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/sdk/internal/client-errors.mjs",
+                "anchor": "export {ClientError, RequestHeld} from './errors.mjs';"
+              },
+              {
+                "path": "packages/sdk/package.json",
+                "anchor": "\"./_internal/client-errors\": \"./internal/client-errors.mjs\""
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "test('SDK class delivery exports only the original two classes without the execution graph'"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "test('SDK class delivery cannot brand a borrowed options exception as SDK-owned'"
+              },
+              {
+                "path": "packages/sdk/connection-options-diagnostics.test.mjs",
+                "anchor": "test('public option getter failures discard secret-bearing borrowed errors'"
               }
             ]
           }
@@ -8818,65 +9630,6 @@
       ]
     },
     {
-      "module": "packages/sdk/internal/client-errors.mjs",
-      "responsibilityFacet": "primary",
-      "sha256": "e98bafe5e785d026f9890383e556870edad076165f45bc7c0389678b6e1806da",
-      "exports": ["ClientError", "RequestHeld"],
-      "operations": [],
-      "imports": ["./errors.mjs"],
-      "compilerFields": [],
-      "unresolvedSyntax": [],
-      "role": "observation-presentation",
-      "owner": "existing public Client / installed Host port and Result reader boundary",
-      "rationale": "Deliver only the existing SDK error class originals before connection selection. This re-export issues no owned-failure classification, request, transport, permission or capacity; the SDK implementation retains its classification writers and state.",
-      "contracts": [
-        {
-          "operations": ["<module>"],
-          "exports": ["ClientError", "RequestHeld"],
-          "attributes": {
-            "responsibility": [
-              {"path": "packages/sdk/internal/client-errors.mjs", "anchor": "// Class-only delivery for the Node facade."}
-            ],
-            "inputsOutputs": [
-              {"path": "packages/sdk/internal/client-errors.mjs", "anchor": "export {ClientError, RequestHeld} from './errors.mjs';"}
-            ],
-            "identity": [
-              {"path": "packages/sdk/internal/errors.mjs", "anchor": "export class RequestHeld extends ClientError"},
-              {"path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs", "anchor": "test('SDK class delivery exports only the original two classes without the execution graph'"}
-            ],
-            "ownership": [
-              {"path": "packages/sdk/internal/errors.mjs", "anchor": "const ownedClientFailures = new WeakMap();"},
-              {"path": "packages/sdk/internal/client-errors.mjs", "anchor": "// refusal state remain private to the SDK implementation module."}
-            ],
-            "synchronization": {
-              "notApplicable": "This module only re-exports the same ESM class bindings. It has no callback, mutable classifier, asynchronous initialization, currentness assertion or synchronization operation; existing SDK methods retain those responsibilities."
-            },
-            "failure": [
-              {"path": "packages/sdk/internal/errors.mjs", "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."},
-              {"path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs", "anchor": "test('SDK class delivery cannot brand a borrowed options exception as SDK-owned'"}
-            ],
-            "cancellation": {
-              "notApplicable": "Delivery of existing error classes has no cancellation, cleanup, resend or recovery operation. RequestHeld remains the original held observation, never a retry or physical acknowledgement."
-            },
-            "resources": [
-              {"path": "packages/sdk/internal/errors.mjs", "anchor": "Object.assign(this, details);"},
-              {"path": "packages/node/index.mjs", "anchor": "// Only the SDK's original error classes belong to this Client-only prefix."},
-              {"path": "docs/design/reference-host.md", "anchor": "module still evaluates and retains its WeakMap, refusal-code Set, helper bindings"}
-            ],
-            "extension": [
-              {"path": "packages/sdk/internal/client-errors.mjs", "anchor": "export {ClientError, RequestHeld} from './errors.mjs';"},
-              {"path": "packages/sdk/package.json", "anchor": "\"./_internal/client-errors\": \"./internal/client-errors.mjs\""}
-            ],
-            "verification": [
-              {"path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs", "anchor": "test('SDK class delivery exports only the original two classes without the execution graph'"},
-              {"path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs", "anchor": "test('SDK class delivery cannot brand a borrowed options exception as SDK-owned'"},
-              {"path": "packages/sdk/connection-options-diagnostics.test.mjs", "anchor": "test('public option getter failures discard secret-bearing borrowed errors'"}
-            ]
-          }
-        }
-      ]
-    },
-    {
       "module": "packages/sdk/internal/errors.mjs",
       "responsibilityFacet": "primary",
       "sha256": "c3ca3de47a0fe4d01f903e48352701cd1092d7b0ee25abedc796a9858520d130",
@@ -9210,6 +9963,381 @@
               {
                 "path": "packages/sdk/index.test.mjs",
                 "anchor": "test("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/sdk/internal/private-source-preparation.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "75fba262bf412ebb5f6165cee11a73907cf7036ca011013796c78ad8252d584a",
+      "exports": [
+        "captureSourcePreparation",
+        "sourcePreparationPort"
+      ],
+      "operations": [
+        {
+          "name": "captureSourcePreparation",
+          "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:assertResultReadCurrent/init:assertResultReadCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:beforeResultRead/init:beforeResultRead",
+          "parameters": [
+            "schemaOrOptions",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:beforeSourceQuery/init:beforeSourceQuery",
+          "parameters": [
+            "format",
+            "text",
+            "parameters",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:beforeSourceQuery/init:beforeSourceQuery/init:beforeSourceQuery",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+          "parameters": [
+            "kind",
+            "input",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:beforeSourceSnapshot/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:bindSourceRequest/init:bindSourceRequest",
+          "parameters": [
+            "receipt",
+            "originalBody",
+            "actualClonedRequest"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:bindSourceSnapshot/init:bindSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "originalFrozenBody"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:finishSourceProducer/init:finishSourceProducer",
+          "parameters": [
+            "receipt",
+            "terminal"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:intentCid/init:intentCid",
+          "parameters": [
+            "receipt",
+            "originalBody"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:intentCid/init:intentCid/init:intentCid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/resultVoid/resultVoid",
+          "parameters": [
+            "method",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/resultVoid/resultVoid/resultVoid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing SDK submission transport and original Host/Resource intake boundary",
+      "contracts": [
+        {
+          "operations": [
+            "captureSourcePreparation/init:beforeSourceQuery/init:beforeSourceQuery",
+            "captureSourcePreparation/init:beforeSourceQuery/init:beforeSourceQuery/init:beforeSourceQuery"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The selected query entry acquires the same Source/Compute producer before its"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "representations: AQL input becomes `{text, format, parameterDeclarations?}`,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function currentSourceSubmission(entry, producer, body) {"
+              },
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "query intake refuses unsupported raw originals before getters and reuses its one receipt"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "private synchronous continuation consumes that receipt once; SDK-owned query"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "uses one original receipt for capture, request, identity and terminal before wait"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "a selected missing or accessor query method refuses without invoking raw inputs"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "capture rejection finishes only its original producer and retains failed cleanup for close"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Snapshot, projection copies and traversal workspace coexist"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "without getters or enumeration, while unselected public grammar stays unchanged."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "actual SDK query and all retain one Root producer and its separate Result read original"
+              },
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "submission uncertainty retains the same query receipt and never resends"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "captureSourcePreparation/init:assertResultReadCurrent/init:assertResultReadCurrent",
+            "captureSourcePreparation/init:beforeResultRead/init:beforeResultRead",
+            "captureSourcePreparation/resultVoid/resultVoid",
+            "captureSourcePreparation/resultVoid/resultVoid/resultVoid"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "raw argument capture, not only a later Host request. The private SDK captures"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "beforeResultRead(schemaOrOptions, options)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/internal/result-read.mjs",
+                "anchor": "target.before !== original.before ||"
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "copied captures and another installation cannot consume a selected Result continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/internal/result-read.mjs",
+                "anchor": "capturedQueryReads.delete(token);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "selected omitted Result inputs stay omitted across all internal defaults"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "missing, accessor and nonvoid Result callbacks refuse only at the read boundary"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "query read refuses changed current original after await without sending a read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "payloads, Result readers/frames, actual native/managed controls, failed"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "options stay backend Unavailable before traversal, not invalid public input."
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "an original captured query continuation starts exactly one read"
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "Result callback retains its original receiver and does not acquire a replacement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>",
+            "captureSourcePreparation",
+            "captureSourcePreparation/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+            "captureSourcePreparation/init:beforeSourceSnapshot/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+            "captureSourcePreparation/init:bindSourceRequest/init:bindSourceRequest",
+            "captureSourcePreparation/init:bindSourceSnapshot/init:bindSourceSnapshot",
+            "captureSourcePreparation/init:finishSourceProducer/init:finishSourceProducer",
+            "captureSourcePreparation/init:intentCid/init:intentCid",
+            "captureSourcePreparation/init:intentCid/init:intentCid/init:intentCid",
+            "captureSourcePreparation/methods/methods",
+            "unavailable/unavailable"
+          ],
+          "exports": [
+            "captureSourcePreparation",
+            "sourcePreparationPort"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "// Private in-process transport connection, not a wire field, receipt issuer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "export function captureSourcePreparation(port) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "return apply(request, receiver, [receipt, originalBody, actualClonedRequest]);"
+              },
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "const value = apply(intent, receiver, [receipt, originalBody]);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "// connection. A generic Host port implementing these methods gains no grant."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "// Do not defer the original synchronous SDK capture until an await."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "{code: 'NodeSourceManagedAdmissionUnavailable'});"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/source-preparation-submission.test.mjs",
+                "anchor": "failed producer cleanup retains original Unknown and retries only alias retirement on close"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "// or proof of capacity. Only the selected Host/Resource owner authenticates"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source, Compute, Model, Effect, transport and Result"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/private-source-preparation.test.mjs",
+                "anchor": "private Source forwarding retains the same receiver and original arguments"
+              },
+              {
+                "path": "packages/sdk/private-source-preparation.test.mjs",
+                "anchor": "Source intent identity refuses asynchronous or malformed observations without assimilation"
               }
             ]
           }
@@ -13535,964 +14663,6 @@
               {
                 "path": "packages/sdk/typed-results.test.mjs",
                 "anchor": "test("
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "module": "packages/sdk/internal/checkpoint-answer-contract.generated.mjs",
-      "sha256": "170e71af07cdbcb99ac43625ce42bf0c958f588ae4c22a02fc80c340b64a70a2",
-      "exports": [
-        "validAnswerEvidence",
-        "validAnswerResolution"
-      ],
-      "operations": [
-        {
-          "name": "finiteWireNumber",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "sameConstant",
-          "parameters": [
-            "value",
-            "expected"
-          ],
-          "async": false
-        },
-        {
-          "name": "sameConstant/sameConstant",
-          "parameters": [
-            "item",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "sameConstant/sameConstant#2",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "valid",
-          "parameters": [
-            "value",
-            "schema"
-          ],
-          "async": false
-        },
-        {
-          "name": "valid/valid",
-          "parameters": [
-            "rule"
-          ],
-          "async": false
-        },
-        {
-          "name": "valid/valid#2",
-          "parameters": [
-            "rule"
-          ],
-          "async": false
-        },
-        {
-          "name": "valid/valid#3",
-          "parameters": [
-            "rule"
-          ],
-          "async": false
-        },
-        {
-          "name": "valid/valid#4",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "valid/valid#5",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "valid/valid#6",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "valid/valid#7",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "valid/valid#8",
-          "parameters": [
-            "key",
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "valid/valid#9",
-          "parameters": [
-            "key",
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "validAnswerEvidence/validAnswerEvidence",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "validAnswerResolution/validAnswerResolution",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        }
-      ],
-      "imports": [],
-      "compilerFields": [],
-      "unresolvedSyntax": [],
-      "responsibilityFacet": "primary",
-      "role": "public-wire-codec",
-      "owner": "existing SDK Checkpoint action correspondence over registered Common artifact contracts",
-      "rationale": "Generated structural DATA admission, not a signing authority or second Checkpoint state machine",
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "finiteWireNumber",
-            "sameConstant",
-            "sameConstant/sameConstant",
-            "sameConstant/sameConstant#2",
-            "valid",
-            "valid/valid",
-            "valid/valid#2",
-            "valid/valid#3",
-            "valid/valid#4",
-            "valid/valid#5",
-            "valid/valid#6",
-            "valid/valid#7",
-            "valid/valid#8",
-            "valid/valid#9",
-            "validAnswerEvidence/validAnswerEvidence",
-            "validAnswerResolution/validAnswerResolution"
-          ],
-          "exports": [
-            "validAnswerEvidence",
-            "validAnswerResolution"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "An original-answer callback remains responsible for key custody and current"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerMatches = async (answer, summary, decision, signer) =>"
-              },
-              {
-                "path": "scripts/generate-client-host-wire.mjs",
-                "anchor": "const answerSchemas = {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "resolution.decision !== decision"
-              },
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "resolution.run_definition_cid !== summary.subject.runDefinitionCid"
-              },
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "contentCid(without(resolution, 'resolution_cid'))"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "Self-addressed identities are checked without changing the signed"
-              },
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "new ClientError('InvalidCheckpointAnswer', {signed: Object.freeze([answer])})"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "current(signal);"
-              },
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "if (!await answerMatches(answer, summary, decision, selectedSigner))"
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "throw new ClientError('InvalidCheckpointAnswer'"
-              },
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "resolution; it neither signs again nor treats the bytes as a retry permission."
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "signal?.throwIfAborted();"
-              },
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "exact response-loss items overlap within the original Client/Host inventory."
-              }
-            ],
-            "extension": [
-              {
-                "path": "scripts/generate-client-host-wire.mjs",
-                "anchor": "protocol.artifact_schemas.checkpoint_resolution"
-              },
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "Wire bytes, canonical preimages, signed"
-              }
-            ],
-            "verification": [
-              {
-                "path": "packages/sdk/checkpoint-actions.test.mjs",
-                "anchor": "refuses an original-port answer for the opposite decision"
-              },
-              {
-                "path": "packages/sdk/checkpoint-actions.test.mjs",
-                "anchor": "valid signatures for another original Summary refuse"
-              },
-              {
-                "path": "scripts/generate-client-host-wire.test.mjs",
-                "anchor": "SDK answer grammar projects existing Resolution and Evidence"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "module": "packages/local-node/initial-control-public-dispatch.cjs",
-      "sha256": "bfc268cb88703ab4415088065b61a66b416ab5e58c9fed61bd39591e91d68d0d",
-      "exports": [
-        "commonjs:selectedInitialControlHostPreparation"
-      ],
-      "operations": [
-        {
-          "name": "<anonymous>",
-          "parameters": [
-            "kind",
-            "rawInput"
-          ],
-          "async": false
-        },
-        {
-          "name": "forwardOrdinary",
-          "parameters": [
-            "kind",
-            "raw"
-          ],
-          "async": false
-        }
-      ],
-      "imports": [
-        "./adapters/host-node/node-public-initial-control-bootstrap.cjs",
-        "node:module",
-        "node:path",
-        "node:process",
-        "node:util"
-      ],
-      "compilerFields": [],
-      "unresolvedSyntax": [],
-      "responsibilityFacet": "primary",
-      "role": "physical-io",
-      "owner": "existing public Client / installed Host port and Result reader boundary",
-      "rationale": "Private Client-only forwarding from the fixed preload original or supported ordinary Local selection; unselected import acquires no Local bootstrap, and no caller-created operational original, scope or byte authority is issued.",
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "<anonymous>",
-            "forwardOrdinary"
-          ],
-          "exports": [
-            "commonjs:selectedInitialControlHostPreparation"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "packages/local-node/initial-control-public-dispatch.cjs",
-                "anchor": "// Private Client-only delivery, never an application-time admission factory."
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "packages/local-node/initial-control-public-dispatch.cjs",
-                "anchor": "selectedInitialControlHostPreparation = function(kind, rawInput) {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "packages/local-node/initial-control-public-dispatch.cjs",
-                "anchor": "if (parent?.filename === filename && require.cache[filename] === parent &&"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "it captures the same wrapper's original Client-only function and receiver."
-              },
-              {
-                "path": "packages/local-node/initial-control-public-dispatch.cjs",
-                "anchor": "// native preload ancestor and same consumer resolution together."
-              }
-            ],
-            "ownership": [
-              {
-                "path": "packages/local-node/initial-control-public-dispatch.cjs",
-                "anchor": "const receiver = parent.exports;"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "The two wrapper tables/functions, child receiver/function references, private"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/local-node/initial-control-public-dispatch.cjs",
-                "anchor": "return apply(connect, receiver, [kind, rawInput]);"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "The wrapper retains its child function and"
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/local-node/initial-control-public-dispatch.cjs",
-                "anchor": "let selectedInitialControlHostPreparation, ordinaryReceiver, ordinaryConnect, ordinaryFailure;"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "An original bootstrap failure remains retained rather than reexecuting a partial"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "physical retirement acknowledgement or numerical capacity. Private root-level"
-              },
-              {
-                "path": "packages/local-node/initial-control-public-dispatch.cjs",
-                "anchor": "return apply(connect, receiver, [kind, rawInput]);"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "delivery tables/closures and captured native descriptor/path/module controls"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "original kind/raw aliases and argument forwarding workspace. These holdings"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "even though they are not public export subpaths."
-              },
-              {
-                "path": "packages/local-node/initial-control-public-dispatch.cjs",
-                "anchor": "// selected before acquiring its bootstrap; an unselected import owns no loader."
-              }
-            ],
-            "verification": [
-              {
-                "path": "scripts/initial-control-public-dispatch.test.mjs",
-                "anchor": "ordinary private dispatch import does not load a wrapper or Root"
-              },
-              {
-                "path": "scripts/initial-control-public-dispatch.test.mjs",
-                "anchor": "late native-looking cache or caller table cannot become the selected original"
-              },
-              {
-                "path": "scripts/initial-control-public-dispatch.test.mjs",
-                "anchor": "another real preload cannot supply the private wrapper-parent original"
-              },
-              {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "a mismatched captured package image refuses before Host and entry compilation"
-              },
-              {
-                "path": "scripts/initial-control-public-dispatch.test.mjs",
-                "anchor": "// A real but unrelated preload can forge a cache entry and Module parent."
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "module": "packages/node/initial-control-public-dispatch.cjs",
-      "sha256": "17c17311f229fdde83a014a15df0f6af78e941f633dd6fa0c95e3ba69a304807",
-      "exports": [
-        "commonjs:selectedInitialControlHostPreparation"
-      ],
-      "operations": [
-        {
-          "name": "<anonymous>",
-          "parameters": [
-            "kind",
-            "rawInput"
-          ],
-          "async": false
-        },
-        {
-          "name": "forwardOrdinary",
-          "parameters": [
-            "kind",
-            "raw"
-          ],
-          "async": false
-        }
-      ],
-      "imports": [
-        "@actql/local-node/_internal/initial-control-public-dispatch",
-        "node:module",
-        "node:path",
-        "node:process",
-        "node:util"
-      ],
-      "compilerFields": [],
-      "unresolvedSyntax": [],
-      "responsibilityFacet": "primary",
-      "role": "physical-io",
-      "owner": "existing public Client / installed Host port and Result reader boundary",
-      "rationale": "Private Client-only forwarding from the fixed preload original or supported ordinary Local selection; unselected import acquires no Local bootstrap, and no caller-created operational original, scope or byte authority is issued.",
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "<anonymous>",
-            "forwardOrdinary"
-          ],
-          "exports": [
-            "commonjs:selectedInitialControlHostPreparation"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "packages/node/initial-control-public-dispatch.cjs",
-                "anchor": "// Private Client-only delivery, never an application-time admission factory."
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "packages/node/initial-control-public-dispatch.cjs",
-                "anchor": "selectedInitialControlHostPreparation = function(kind, rawInput) {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "packages/node/initial-control-public-dispatch.cjs",
-                "anchor": "if (parent?.filename === filename && require.cache[filename] === parent &&"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "it captures the same wrapper's original Client-only function and receiver."
-              },
-              {
-                "path": "packages/node/initial-control-public-dispatch.cjs",
-                "anchor": "// native preload ancestor and same consumer resolution together."
-              }
-            ],
-            "ownership": [
-              {
-                "path": "packages/node/initial-control-public-dispatch.cjs",
-                "anchor": "const receiver = parent.exports;"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "The two wrapper tables/functions, child receiver/function references, private"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/node/initial-control-public-dispatch.cjs",
-                "anchor": "return apply(connect, receiver, [kind, rawInput]);"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "The wrapper retains its child function and"
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/node/initial-control-public-dispatch.cjs",
-                "anchor": "let selectedInitialControlHostPreparation, ordinaryReceiver, ordinaryConnect, ordinaryFailure;"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "An original bootstrap failure remains retained rather than reexecuting a partial"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "physical retirement acknowledgement or numerical capacity. Private root-level"
-              },
-              {
-                "path": "packages/node/initial-control-public-dispatch.cjs",
-                "anchor": "return apply(connect, receiver, [kind, rawInput]);"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "delivery tables/closures and captured native descriptor/path/module controls"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "original kind/raw aliases and argument forwarding workspace. These holdings"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "even though they are not public export subpaths."
-              },
-              {
-                "path": "packages/node/initial-control-public-dispatch.cjs",
-                "anchor": "// selected before acquiring its bootstrap; an unselected import owns no loader."
-              }
-            ],
-            "verification": [
-              {
-                "path": "scripts/initial-control-public-dispatch.test.mjs",
-                "anchor": "ordinary private dispatch import does not load a wrapper or Root"
-              },
-              {
-                "path": "scripts/initial-control-public-dispatch.test.mjs",
-                "anchor": "late native-looking cache or caller table cannot become the selected original"
-              },
-              {
-                "path": "scripts/initial-control-public-dispatch.test.mjs",
-                "anchor": "another real preload cannot supply the private wrapper-parent original"
-              },
-              {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "a mismatched captured package image refuses before Host and entry compilation"
-              },
-              {
-                "path": "scripts/initial-control-public-dispatch.test.mjs",
-                "anchor": "// A real but unrelated preload can forge a cache entry and Module parent."
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "module": "packages/sdk/internal/private-source-preparation.mjs",
-      "responsibilityFacet": "primary",
-      "sha256": "75fba262bf412ebb5f6165cee11a73907cf7036ca011013796c78ad8252d584a",
-      "exports": [
-        "captureSourcePreparation",
-        "sourcePreparationPort"
-      ],
-      "operations": [
-        {
-          "name": "captureSourcePreparation",
-          "parameters": [
-            "port"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureSourcePreparation/init:assertResultReadCurrent/init:assertResultReadCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "captureSourcePreparation/init:beforeResultRead/init:beforeResultRead",
-          "parameters": [
-            "schemaOrOptions",
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureSourcePreparation/init:beforeSourceQuery/init:beforeSourceQuery",
-          "parameters": [
-            "format",
-            "text",
-            "parameters",
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureSourcePreparation/init:beforeSourceQuery/init:beforeSourceQuery/init:beforeSourceQuery",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "captureSourcePreparation/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
-          "parameters": [
-            "kind",
-            "input",
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureSourcePreparation/init:beforeSourceSnapshot/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "captureSourcePreparation/init:bindSourceRequest/init:bindSourceRequest",
-          "parameters": [
-            "receipt",
-            "originalBody",
-            "actualClonedRequest"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureSourcePreparation/init:bindSourceSnapshot/init:bindSourceSnapshot",
-          "parameters": [
-            "receipt",
-            "originalFrozenBody"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureSourcePreparation/init:finishSourceProducer/init:finishSourceProducer",
-          "parameters": [
-            "receipt",
-            "terminal"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureSourcePreparation/init:intentCid/init:intentCid",
-          "parameters": [
-            "receipt",
-            "originalBody"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureSourcePreparation/init:intentCid/init:intentCid/init:intentCid",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "captureSourcePreparation/methods/methods",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureSourcePreparation/resultVoid/resultVoid",
-          "parameters": [
-            "method",
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureSourcePreparation/resultVoid/resultVoid/resultVoid",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "unavailable/unavailable",
-          "parameters": [],
-          "async": false
-        }
-      ],
-      "imports": [],
-      "compilerFields": [],
-      "unresolvedSyntax": [],
-      "role": "physical-io",
-      "owner": "Existing SDK submission transport and original Host/Resource intake boundary",
-      "contracts": [
-        {
-          "operations": [
-            "captureSourcePreparation/init:beforeSourceQuery/init:beforeSourceQuery",
-            "captureSourcePreparation/init:beforeSourceQuery/init:beforeSourceQuery/init:beforeSourceQuery"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "The selected query entry acquires the same Source/Compute producer before its"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "representations: AQL input becomes `{text, format, parameterDeclarations?}`,"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "function currentSourceSubmission(entry, producer, body) {"
-              },
-              {
-                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
-                "anchor": "query intake refuses unsupported raw originals before getters and reuses its one receipt"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "private synchronous continuation consumes that receipt once; SDK-owned query"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/sdk/original-query-intake.test.mjs",
-                "anchor": "uses one original receipt for capture, request, identity and terminal before wait"
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/sdk/original-query-intake.test.mjs",
-                "anchor": "a selected missing or accessor query method refuses without invoking raw inputs"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "packages/sdk/original-query-intake.test.mjs",
-                "anchor": "capture rejection finishes only its original producer and retains failed cleanup for close"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Snapshot, projection copies and traversal workspace coexist"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "without getters or enumeration, while unselected public grammar stays unchanged."
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
-                "anchor": "actual SDK query and all retain one Root producer and its separate Result read original"
-              },
-              {
-                "path": "packages/sdk/original-query-intake.test.mjs",
-                "anchor": "submission uncertainty retains the same query receipt and never resends"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "captureSourcePreparation/init:assertResultReadCurrent/init:assertResultReadCurrent",
-            "captureSourcePreparation/init:beforeResultRead/init:beforeResultRead",
-            "captureSourcePreparation/resultVoid/resultVoid",
-            "captureSourcePreparation/resultVoid/resultVoid/resultVoid"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "raw argument capture, not only a later Host request. The private SDK captures"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
-                "anchor": "beforeResultRead(schemaOrOptions, options)"
-              }
-            ],
-            "identity": [
-              {
-                "path": "packages/sdk/internal/result-read.mjs",
-                "anchor": "target.before !== original.before ||"
-              },
-              {
-                "path": "packages/sdk/original-result-intake.test.mjs",
-                "anchor": "copied captures and another installation cannot consume a selected Result continuation"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "packages/sdk/internal/result-read.mjs",
-                "anchor": "capturedQueryReads.delete(token);"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/sdk/original-result-intake.test.mjs",
-                "anchor": "selected omitted Result inputs stay omitted across all internal defaults"
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/sdk/original-result-intake.test.mjs",
-                "anchor": "missing, accessor and nonvoid Result callbacks refuse only at the read boundary"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "packages/sdk/original-result-intake.test.mjs",
-                "anchor": "query read refuses changed current original after await without sending a read"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "payloads, Result readers/frames, actual native/managed controls, failed"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "options stay backend Unavailable before traversal, not invalid public input."
-              }
-            ],
-            "verification": [
-              {
-                "path": "packages/sdk/original-result-intake.test.mjs",
-                "anchor": "an original captured query continuation starts exactly one read"
-              },
-              {
-                "path": "packages/sdk/original-result-intake.test.mjs",
-                "anchor": "Result callback retains its original receiver and does not acquire a replacement"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "<module>",
-            "captureSourcePreparation",
-            "captureSourcePreparation/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
-            "captureSourcePreparation/init:beforeSourceSnapshot/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
-            "captureSourcePreparation/init:bindSourceRequest/init:bindSourceRequest",
-            "captureSourcePreparation/init:bindSourceSnapshot/init:bindSourceSnapshot",
-            "captureSourcePreparation/init:finishSourceProducer/init:finishSourceProducer",
-            "captureSourcePreparation/init:intentCid/init:intentCid",
-            "captureSourcePreparation/init:intentCid/init:intentCid/init:intentCid",
-            "captureSourcePreparation/methods/methods",
-            "unavailable/unavailable"
-          ],
-          "exports": [
-            "captureSourcePreparation",
-            "sourcePreparationPort"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
-                "anchor": "// Private in-process transport connection, not a wire field, receipt issuer"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
-                "anchor": "export function captureSourcePreparation(port) {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
-                "anchor": "return apply(request, receiver, [receipt, originalBody, actualClonedRequest]);"
-              },
-              {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
-                "anchor": "const value = apply(intent, receiver, [receipt, originalBody]);"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
-                "anchor": "// connection. A generic Host port implementing these methods gains no grant."
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
-                "anchor": "// Do not defer the original synchronous SDK capture until an await."
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
-                "anchor": "{code: 'NodeSourceManagedAdmissionUnavailable'});"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "packages/sdk/source-preparation-submission.test.mjs",
-                "anchor": "failed producer cleanup retains original Unknown and retries only alias retirement on close"
-              }
-            ],
-            "resources": [
-              {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
-                "anchor": "// or proof of capacity. Only the selected Host/Resource owner authenticates"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Source, Compute, Model, Effect, transport and Result"
-              }
-            ],
-            "verification": [
-              {
-                "path": "packages/sdk/private-source-preparation.test.mjs",
-                "anchor": "private Source forwarding retains the same receiver and original arguments"
-              },
-              {
-                "path": "packages/sdk/private-source-preparation.test.mjs",
-                "anchor": "Source intent identity refuses asynchronous or malformed observations without assimilation"
               }
             ]
           }

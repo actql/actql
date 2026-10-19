@@ -2,10 +2,17 @@
 package "actql/actql/connectors/gmail/catalog"
 
 import {
+  "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn accept_gmail_thread(GmailThreadRead, GmailThreadRequest, Bytes) -> Result[GmailThreadProjection, GmailThreadReadIssue]
+
+pub fn accept_gmail_thread_list(GmailThreadRead, GmailThreadRequest, Bytes) -> Result[GmailThreadListPage, GmailThreadReadIssue]
+
+pub fn close_gmail_thread_read(GmailThreadRead) -> Unit
+
 pub fn gmail_label_list_column_names() -> Array[String]
 
 pub fn gmail_label_list_facts_wire() -> String
@@ -18,7 +25,45 @@ pub fn gmail_label_list_rows_wire(GmailLabelListPage, Array[String], Int, Int, I
 
 pub fn gmail_label_list_schema_wire(Int, Int, Int) -> Result[String, GmailLabelListIssue]
 
+pub fn gmail_thread_column_names() -> Array[String]
+
+pub fn gmail_thread_list_count(GmailThreadListPage) -> Int
+
+pub fn gmail_thread_list_id_at(GmailThreadListPage, Int) -> String?
+
+pub fn gmail_thread_list_next_page_token(GmailThreadListPage) -> String?
+
+pub fn gmail_thread_projection_matches_request(GmailThreadProjection, GmailThreadRequest) -> Bool
+
+pub fn gmail_thread_read_completed(GmailThreadRead) -> Bool
+
+pub fn gmail_thread_request_is_list(GmailThreadRequest) -> Bool
+
+pub fn gmail_thread_request_mailbox(GmailThreadRequest) -> String
+
+pub fn gmail_thread_request_matches(GmailThreadRead, GmailThreadRequest) -> Bool
+
+pub fn gmail_thread_request_ordinal(GmailThreadRequest) -> Int
+
+pub fn gmail_thread_request_page_token(GmailThreadRequest) -> String?
+
+pub fn gmail_thread_request_target_id(GmailThreadRequest) -> String?
+
+pub fn gmail_thread_rows_wire(GmailThreadProjection, Array[String], Int, Int, Int) -> Result[String, GmailThreadIssue]
+
+pub fn gmail_thread_schema_wire(Int, Int, Int) -> Result[String, GmailThreadIssue]
+
+pub fn gmail_thread_value_at(GmailThreadProjection, Int) -> @value_admission.CheckedValue?
+
+pub fn next_gmail_thread_request(GmailThreadRead) -> Result[GmailThreadRequest?, GmailThreadReadIssue]
+
+pub fn prepare_gmail_thread_read(String, GmailThreadListLimits, GmailThreadLimits, Int, Int) -> Result[GmailThreadRead, GmailThreadReadIssue]
+
 pub fn project_gmail_label_list(Bytes, GmailLabelListLimits) -> Result[GmailLabelListPage, GmailLabelListIssue]
+
+pub fn project_gmail_thread(Bytes, GmailThreadListPage, Int, GmailThreadLimits) -> Result[GmailThreadProjection, GmailThreadIssue]
+
+pub fn project_gmail_thread_list(Bytes, GmailThreadListLimits) -> Result[GmailThreadListPage, GmailThreadListIssue]
 
 // Errors
 
@@ -43,6 +88,74 @@ pub(all) struct GmailLabelListLimits {
 
 pub struct GmailLabelListPage {
   response_sha256 : String
+  // private fields
+}
+
+pub(all) enum GmailThreadIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  InvalidCell(String)
+  ForeignThread
+  DuplicateMessage
+  UnsupportedDate
+  InvalidSelection(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct GmailThreadLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_messages : Int
+  max_labels : Int
+  max_headers : Int
+  max_header_units : Int
+  max_comment_depth : Int
+  max_value_nodes : Int
+  max_value_text_bytes : Int
+}
+
+pub(all) enum GmailThreadListIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  DuplicateThread
+} derive(Eq, @debug.Debug)
+
+pub(all) struct GmailThreadListLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_rows : Int
+  max_id_bytes : Int
+  max_token_bytes : Int
+}
+
+pub struct GmailThreadListPage {
+  response_sha256 : String
+  // private fields
+}
+
+pub struct GmailThreadProjection {
+  response_sha256 : String
+  // private fields
+}
+
+pub struct GmailThreadRead {
+  // private fields
+}
+
+pub(all) enum GmailThreadReadIssue {
+  InvalidLimits
+  ForeignRequest
+  BudgetExceeded
+  InvalidPagination
+  DuplicateThread
+  InvalidList(GmailThreadListIssue)
+  InvalidThread(GmailThreadIssue)
+} derive(Eq, @debug.Debug)
+
+pub struct GmailThreadRequest {
   // private fields
 }
 

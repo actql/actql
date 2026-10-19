@@ -14,6 +14,7 @@ import {
   "actql/actql/relation_evidence",
   "actql/actql/relation_results",
   "actql/actql/relation_schema",
+  "actql/actql/run_publication",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
@@ -230,6 +231,8 @@ pub fn bind_completed_output_export(CompletedOutputExportReceipt, RetainedOutput
 pub fn bind_completed_relation_export(CompletedRelationExportReceipt, RetainedOutputMaterial) -> Result[CompletedOutput, CompletedExportIssue]
 
 pub fn bind_generated_numeric_execution(GeneratedSequence, NumericAggregateExecution) -> GeneratedSequence
+
+pub fn bind_generated_sequence_query_time(GeneratedSequence, @run_publication.QueryEvaluationTime, Int, Int) -> Result[GeneratedSequence, SequenceRunIssue]
 
 pub fn bind_infer_captured_input(@lowering_relation.PreparedInferInputs, @lowering_relation.BoundPrepared, @pipeline_typing.Target, CapturedRows) -> Result[InferRowInput, InferPreparationIssue]
 
@@ -487,6 +490,16 @@ pub fn completed_output(CompletedSequence, @pipeline_typing.Target) -> Completed
 
 pub fn completed_output_available(CompletedOutput) -> Bool
 
+pub fn completed_output_export_original_row_available(CompletedOutputExportOriginalRow) -> Bool
+
+pub fn completed_output_export_original_row_canonical(CompletedOutputExportOriginalRow) -> @canonical_json.CanonicalValue?
+
+pub fn completed_output_export_original_row_checked_field(CompletedOutputExportOriginalRow, String, Int, Int, @value_admission.Limits) -> Result[@value_admission.CheckedValue, CompletedExportOriginalRowIssue]
+
+pub fn completed_output_export_original_row_checked_field_usage(CompletedOutputExportOriginalRow, String, Int, Int, @value_admission.Limits) -> Result[(@value_admission.CheckedValue, Int, Int, Int), CompletedExportOriginalRowIssue]
+
+pub fn completed_output_export_original_row_index(CompletedOutputExportOriginalRow) -> Int
+
 pub fn completed_output_export_poll_steps(CompletedOutputExport) -> Int
 
 pub fn completed_output_export_rows_complete(CompletedOutputExport) -> Result[Bool, CompletedExportIssue]
@@ -543,9 +556,13 @@ pub fn completed_relation_export_snapshot(CompletedOutputExport, CompletedRelati
 
 pub fn completed_relation_identity_scan_work(CompletedRelationIdentityScan) -> Int64
 
+pub fn completed_result_export_preparation_matches_original_row(CompletedResultRelationExportPreparation, CompletedOutputExportOriginalRow) -> Bool
+
 pub fn completed_result_export_preparation_matches_owner(CompletedResultRelationExportPreparation, ManagedResultOccurrence, CompletedOutput) -> Bool
 
 pub fn completed_result_export_preparation_matches_receipt(CompletedResultRelationExportPreparation, CompletedRelationExportReceipt) -> Bool
+
+pub fn completed_result_export_preparation_retains_original_row(CompletedResultRelationExportPreparation, CompletedOutputExportOriginalRow) -> Bool
 
 pub fn completed_result_key_validation_matches(CompletedResultKeyValidation, CompletedResultRelationExportPreparation, @relation_schema.Field) -> Bool
 
@@ -744,6 +761,8 @@ pub fn generated_sequence_is_projection_only(GeneratedSequence) -> Bool
 pub fn generated_sequence_match_limits(GeneratedSequence, Int) -> (Int64, Int64)?
 
 pub fn generated_sequence_owner(GeneratedSequence) -> @lowering_relation.BoundPrepared
+
+pub fn generated_sequence_query_time(GeneratedSequence) -> @run_publication.QueryEvaluationTime?
 
 pub fn generated_sequence_requirements(GeneratedSequence, Int) -> Result[@lowering_relation.SequenceRequirements, @lowering_relation.SequenceRequirementsIssue]
 
@@ -968,6 +987,8 @@ pub fn nest_grouped_bytes_output_unit() -> AggregateOutputUnit
 pub fn next_completed_output_export(CompletedOutputExport) -> Result[String?, CompletedExportIssue]
 
 pub fn next_completed_output_export_canonical_row(CompletedOutputExport, Int, Int, Int) -> Result[(Int, String, @canonical_json.CanonicalValue)?, CompletedExportIssue]
+
+pub fn next_completed_output_export_original_row(CompletedOutputExport, Int, Int, Int) -> Result[(String, CompletedOutputExportOriginalRow)?, CompletedExportIssue]
 
 pub fn numeric_aggregate_execution((Int, String, Int, Array[Double], Int, Int) -> Result[@numeric_reduction.Outcome, @numeric_reduction.ReductionIssue]?) -> NumericAggregateExecution
 
@@ -1263,6 +1284,8 @@ pub fn retained_producer_scan_schema(RetainedProducerScan) -> @relation_schema.S
 
 pub fn retained_storage_canonical_copy_matches(ProducerStorage, String, Int, Int) -> Bool
 
+pub fn retire_completed_output_export_original_row(CompletedOutputExportOriginalRow) -> Unit
+
 pub fn reuse_retained_scan_identity(RetainedProducerScan, RetainedScanReuse) -> Bool
 
 pub fn reuse_retained_scan_values(RetainedProducerScan) -> Bool
@@ -1367,11 +1390,11 @@ pub fn start_completed_result_relation_export(CompletedOutput, ManagedResultOccu
 
 pub fn start_completed_table_input_relation_export(CompletedOutput, ManagedTableInputOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedTableInputRelationExportPreparation, CompletedExportIssue]
 
-pub fn start_expression_execution(@lowering_relation.Expression, Map[String, Value], Array[Value], Int, Int, Int) -> Result[ExpressionExecution, EvalIssue]
+pub fn start_expression_execution(@lowering_relation.Expression, Map[String, Value], Array[Value], Int, Int, Int, query_time? : @run_publication.QueryEvaluationTime?) -> Result[ExpressionExecution, EvalIssue]
 
 pub fn start_infer_rows_preparation(@bounded_execution.Control, InferRowInput, InferPreparationLimits) -> Result[InferRowsPreparation, InferPreparationIssue]
 
-pub fn start_predicate_expression(@lowering_relation.Expression, Map[String, Value], Int, Int, Int) -> Result[PredicateExpressionExecution, EvalIssue]
+pub fn start_predicate_expression(@lowering_relation.Expression, Map[String, Value], Int, Int, Int, query_time? : @run_publication.QueryEvaluationTime?) -> Result[PredicateExpressionExecution, EvalIssue]
 
 pub fn start_prepare_producer_read(@lowering_relation.BoundPrepared, BoundProducerInput, Int, Int) -> Result[ProducerReadPreparation, ProducerReadIssue]
 
@@ -1827,6 +1850,15 @@ pub(all) enum CompletedExportIssue {
   CanonicalRow
 }
 
+pub(all) enum CompletedExportOriginalRowIssue {
+  InvalidLimits
+  Unavailable
+  FieldLimit
+  WorkLimit
+  MissingField
+  InvalidValue
+} derive(Eq, @debug.Debug)
+
 pub(all) enum CompletedImportIssue {
   Unavailable
   NotRetainedRepresentation
@@ -1848,6 +1880,8 @@ pub(all) struct CompletedOutputExportAdvance {
   complete : Bool
   steps : Int
 }
+
+type CompletedOutputExportOriginalRow
 
 type CompletedOutputExportPreparation
 
@@ -1922,6 +1956,7 @@ pub(all) enum EvalIssueKind {
   Scalar(ScalarIssue)
   LogicalEntry(LogicalBudgetIssue)
   LogicalValue(LogicalBudgetIssue)
+  QueryEvaluationTimeUnavailable
 } derive(Eq, @debug.Debug)
 
 pub struct ExecutionCapacity {

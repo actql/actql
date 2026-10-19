@@ -4,6 +4,24 @@ import {runtimeField, runtimeOptionalField} from '../host-common/compiler-bindin
 import {createHash, randomUUID} from 'node:crypto';
 import {checked} from '../host-common/runtime-result.mjs';
 import {valuesHostPolicyOriginal, valuesExecutionContextCid} from './local-values-capacity.mjs';
+import {sampleOriginalQueryTime} from './query-evaluation-clock.mjs';
+
+function prepareQueryInvocation(control, prepared, request, retained) {
+  if (control.clientRequiresQueryTime?.(prepared) !== true) return undefined;
+  if (request === undefined) throw new TypeError('OriginalClientQueryRequestRequired');
+  if (retained !== undefined) return {request};
+  const createdAt=sampleOriginalQueryTime();
+  return {request,createdAt,preparation:control.prepareClientQueryTime(prepared,request,createdAt)};
+}
+
+function bindQueryInvocation(control, original, prepared, compiled, definition) {
+  if (original === undefined) return {};
+  if (original.preparation === undefined) {
+    return control.restoreClientQueryTime(prepared,compiled,definition,original.request);
+  }
+  return Object.freeze({queryTimePreparation:original.preparation,
+    queryTime:control.bindClientQueryTime(original.preparation,prepared,compiled,definition,original.request)});
+}
 
 // Contract and evidence issuance bounds. A captured Run's Named Result
 // snapshot is admitted under them too, so they hold what one captured Run can
@@ -140,7 +158,7 @@ function buildLocalPublicationPlan({control, admission, runDefinition, invocatio
 // waiting, so retention covers the admitted Run's validity window.
 function effectPublicationAdmission({moon, control, prepared,
   compilation, allowed, definition, authorityScopeCid, namespaceId,
-  storeAuthorityCid, now, resultDataPolicy}) {
+  storeAuthorityCid, now, resultDataPolicy, queryTimePreparation, queryTime, identity}) {
   const template = control.admitRunEvidence('bound_invocation_template',
     moon.clientProgramEffectCompilationTemplateWire(compilation), limits);
   const preparedEvidence = control.admitRunEvidence('prepared_invocation',
@@ -159,7 +177,26 @@ function effectPublicationAdmission({moon, control, prepared,
   return Object.freeze({moon, control, prepared, compilation, allowed,
     definition, authorityScopeCid, namespaceId, storeAuthorityCid, now,
     admission, runDefinition, compiledPlan, dataPolicyCid, resultDataPolicy,
+    queryTimePreparation, queryTime, requestIdentity: identity,
     resultDataPolicyLimits: limits});
+}
+
+// This is the existing admitted Effect Run, not a second preparation or a
+// replacement timestamp. Common checks its exact Run/request correspondence.
+export function openSourceFreeEffectComputation({moon, facts,
+  registry, values, fragment, ordered}) {
+  if (facts.queryTimePreparation !== undefined || facts.queryTime !== undefined) {
+    if (facts.queryTimePreparation === undefined || facts.queryTime === undefined ||
+        facts.identity === undefined ||
+        typeof moon.clientProgramOpenSourceFreeLocalEffectHostAtQueryTime !== 'function') {
+      throw new Error('OriginalQueryTimeUnavailable');
+    }
+    return moon.clientProgramOpenSourceFreeLocalEffectHostAtQueryTime(
+      facts.owner, facts.queryTimePreparation, facts.identity,
+      registry, values, 1n, 0n, 0n, 0n, fragment, ordered);
+  }
+  return moon.clientProgramOpenSourceFreeLocalEffectHost(
+    facts.owner, registry, values, 1n, 0n, 0n, 0n, fragment, ordered);
 }
 
 export function sourceFreeEffectPublicationPlan(options) {
@@ -423,12 +460,13 @@ export function acquiredInferEffectPublicationPlan({acquired, sources,
 
 export function sourceFreeValuesPlan({moon, control, preparedProgram,
   authorityScopeCid, namespaceId, storeAuthorityCid, now,
-  retainedDefinitionWire}) {
+  retainedDefinitionWire, requestIdentity}) {
   const at = Date.parse(now());
   if (!Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
   const retained = retainedDefinitionWire === undefined ? undefined :
     JSON.parse(retainedDefinitionWire);
-  const createdAt = retained?.created_at ?? instant(at);
+  const queryInvocation=prepareQueryInvocation(control,preparedProgram,requestIdentity,retained);
+  const createdAt = retained?.created_at ?? queryInvocation?.createdAt ?? instant(at);
   const validUntil = retained?.valid_until ??
     instant(at + 24 * 60 * 60 * 1000);
   const maxRows = moon.clientProgramValuesMaxRows(preparedProgram);
@@ -443,6 +481,7 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
     namespaceId, runId: randomUUID(), createdAt, validUntil,
     retainedDefinitionWire,
   });
+  const queryTime=bindQueryInvocation(control,queryInvocation,preparedProgram,compiled,runDefinition);
   const dataPolicyCid = policyCid('local-result-data');
   const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
     compiled, runDefinition, {dataPolicyCid}, limits);
@@ -460,12 +499,13 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
     outputLimits: Object.freeze({...localOutputLimits,
       maxResultWorkspaceEntries: Math.max(localOutputLimits.maxResultWorkspaceEntries, maxRows)}),
   });
-  valuesAdmissions.set(plan, Object.freeze({
+  const selectedPlan=Object.keys(queryTime).length===0?plan:Object.freeze({...plan,...queryTime});
+  valuesAdmissions.set(selectedPlan, Object.freeze({
     prepared: compiled.preparedEvidence.wire,
     authorization: compiled.authorization.wire,
     ...(originalPolicy === undefined ? {} : {valuesHostPolicyOriginal: originalPolicy}),
   }));
-  return retainOriginalPlan(plan, compiled, preparedProgram, control);
+  return retainOriginalPlan(selectedPlan, compiled, preparedProgram, control);
 }
 
 // Admit the complete checked task graph, including acquired sources, to the
@@ -488,7 +528,7 @@ export function inferTaskRunAdmission(options) {
 
 // Reuse the admitted original Run and its compiler-owned graph. This is not
 // fresh authorization, a new expiry, a replacement execution or a new Ledger.
-export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {
+export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {
   control.checkRestoredClientInferRunOwner(restored, preparedProgram);
   if (restored.compiled.kind !== 'infer') {
     throw new TypeError('ForeignInstalledInferOriginalRun');
@@ -496,7 +536,11 @@ export function restoreInferTaskRunAdmission({control, preparedProgram, restored
   const {compiled, runDefinition} = restored;
   const original = control.checkedClientCompiledInferOriginal(compiled, preparedProgram, runDefinition);
   if (original.graph !== restored.graph) throw new TypeError('ForeignInstalledInferOriginalGraph');
+  const queryInvocation=prepareQueryInvocation(control,preparedProgram,requestIdentity,
+    JSON.parse(runDefinition.wire));
+  const queryTime=bindQueryInvocation(control,queryInvocation,preparedProgram,compiled,runDefinition);
   return Object.freeze({...compiled, compiled, runDefinition,
+    ...queryTime,
     createdAt: JSON.parse(runDefinition.wire).created_at, inferGraph: original.graph});
 }
 
@@ -600,12 +644,13 @@ export function inferTaskPublicationPlan({moon, control, preparedProgram,
 }
 
 function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializationGraph,
-  authorityScopeCid, namespaceId, now, retainedDefinitionWire, resultDataPolicy}, kind) {
+  authorityScopeCid, namespaceId, now, retainedDefinitionWire, resultDataPolicy, requestIdentity}, kind) {
   const at = Date.parse(now());
   if (!Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
   const retained = retainedDefinitionWire === undefined ? undefined :
     JSON.parse(retainedDefinitionWire);
-  const createdAt = retained?.created_at ?? instant(at);
+  const queryInvocation=prepareQueryInvocation(control,preparedProgram,requestIdentity,retained);
+  const createdAt = retained?.created_at ?? queryInvocation?.createdAt ?? instant(at);
   const validUntil = retained?.valid_until ??
     instant(at + 24 * 60 * 60 * 1000);
   const contextCid = cid({version: 'actql-installed-local-context/0.1',
@@ -622,7 +667,9 @@ function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializ
     namespaceId, runId: randomUUID(), createdAt, validUntil,
     retainedDefinitionWire,
   });
+  const queryTime=bindQueryInvocation(control,queryInvocation,preparedProgram,compiled,runDefinition);
   const admitted = Object.freeze({...compiled, compiled, runDefinition, createdAt,
+    ...queryTime,
     ...(kind === 'infer' ? {inferGraph} : {}),
     ...(kind === 'serialization' ? {serializationGraph} : {})});
   return kind === 'tasks' ? retainOriginalPlan(admitted, compiled, preparedProgram, control) : admitted;
@@ -645,10 +692,12 @@ export function sourceFreeTaskPlan(options) {
     storeAuthorityCid, dataPolicyCid, createdAt: acquired.createdAt, now,
     resultCount: moon.clientProgramResultCount(preparedProgram),
     compiled: acquired.compiled, preparedProgram});
-  valuesAdmissions.set(plan, Object.freeze({prepared: acquired.preparedEvidence.wire,
+  const selectedPlan=acquired.queryTime===undefined?plan:Object.freeze({...plan,
+    queryTimePreparation:acquired.queryTimePreparation,queryTime:acquired.queryTime});
+  valuesAdmissions.set(selectedPlan, Object.freeze({prepared: acquired.preparedEvidence.wire,
     authorization: acquired.authorization.wire}));
-  originalPlans.set(plan, sourceFreePlanOriginal(acquired));
-  return plan;
+  originalPlans.set(selectedPlan, sourceFreePlanOriginal(acquired));
+  return selectedPlan;
 }
 
 // The connector/Acquisition owner supplies Source Evidence after completing

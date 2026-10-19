@@ -33,6 +33,7 @@ priv enum TextFunctionKind {
   TextTrim
   TextLTrim
   TextRTrim
+  TextContains
 } derive(Eq)
 
 ///|
@@ -241,6 +242,7 @@ fn start_text_function(
     kind != TextByteLength &&
     kind != TextUnicode &&
     kind != TextStrpos &&
+    kind != TextContains &&
     kind != TextInstr &&
     !null_result &&
     scope is Some(scope) {
@@ -291,6 +293,7 @@ fn start_text_function(
       }
     } else if kind == TextReplace ||
       kind == TextStrpos ||
+      kind == TextContains ||
       kind == TextTranslate ||
       kind == TextInstr ||
       (is_trim_text_function(kind) && values.length() == 2) {
@@ -662,12 +665,28 @@ fn advance_text_function(
     state.position = 1
     return Ok(None)
   }
-  if state.kind == TextStrpos {
+  if state.kind == TextStrpos || state.kind == TextContains {
     if state.search.length() == 0 {
-      return Ok(Some(Number(1.0)))
+      return Ok(
+        Some(
+          if state.kind == TextContains {
+            Boolean(true)
+          } else {
+            Number(1.0)
+          },
+        ),
+      )
     }
     if state.search.length() > state.input.length() - state.position {
-      return Ok(Some(Number(0.0)))
+      return Ok(
+        Some(
+          if state.kind == TextContains {
+            Boolean(false)
+          } else {
+            Number(0.0)
+          },
+        ),
+      )
     }
     // TextFunction pays one control unit before every poll. Repeated-prefix
     // candidates therefore cannot hide quadratic work in an uncharged scan.
@@ -675,7 +694,15 @@ fn advance_text_function(
       state.search[state.matched] {
       state.matched += 1
       if state.matched == state.search.length() {
-        return Ok(Some(Number((state.count + 1).to_double())))
+        return Ok(
+          Some(
+            if state.kind == TextContains {
+              Boolean(true)
+            } else {
+              Number((state.count + 1).to_double())
+            },
+          ),
+        )
       }
       return Ok(None)
     }

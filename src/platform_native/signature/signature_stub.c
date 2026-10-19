@@ -1,3 +1,4 @@
+#define _DARWIN_C_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
 #include "moonbit.h"
@@ -12,6 +13,7 @@
 typedef struct actql_original_crypto_component actql_original_crypto_component;
 static bool actql_crypto_original_thread(actql_original_crypto_component *);
 static bool actql_crypto_original_current(actql_original_crypto_component *);
+static bool actql_crypto_original_operational_current(actql_original_crypto_component *);
 static bool actql_crypto_original_enter(actql_original_crypto_component *);
 static void actql_crypto_original_leave(actql_original_crypto_component *);
 static int actql_crypto_original_release_library(actql_original_crypto_component *);
@@ -95,7 +97,7 @@ static bool actql_signature_library_available(
   const actql_native_signature_library *library
 ) {
   if (library == NULL) return false;
-  if (library->component && !actql_crypto_original_current(library->component)) return false;
+  if (library->component && !actql_crypto_original_operational_current(library->component)) return false;
   return library->dynamic_library != NULL && !library->closing &&
     (library->component == NULL || library->component_borrowed);
 }

@@ -15,6 +15,7 @@ pub(all) enum Issue {
   InvalidNumber
   Construction(@builder.Issue)
   Admission(@expression.Issue)
+  UnsupportedCast
 } derive(Debug)
 
 ///|
@@ -67,6 +68,33 @@ fn Lowering::add(
     Ok(node) => node
     Err(issue) => raise Abort(Construction(issue))
   }
+}
+
+///|
+fn Lowering::empty_array_peer(
+  self : Lowering,
+  target : @query.ArrayElementType,
+) -> @builder.Node raise Abort {
+  let name = match target {
+    Boolean => "boolean"
+    String => "string"
+    Number => "number"
+    Timestamp => "timestamp"
+    Json => "json"
+    Signed64 => "int64"
+  }
+  self.form(
+    "empty_array",
+    self.object([
+      (
+        "items",
+        self.object([
+          ("type", self.add(String(name))),
+          ("nullable", self.add(Bool(false))),
+        ]),
+      ),
+    ]),
+  )
 }
 
 ///|
@@ -197,6 +225,7 @@ fn scalar_call(
     raise Abort(UnsupportedFunction)
   }
   match upper(path[0].value) {
+    "CURRENT_TIMESTAMP" => ("CURRENT_TIMESTAMP", "current_timestamp", 0, 0)
     "VECTOR_SCORE" => ("VECTOR_SCORE", "vector_score", 3, 3)
     "VECTOR_COSINE_SIMILARITY" =>
       ("VECTOR_COSINE_SIMILARITY", "vector_score", 2, 2)
@@ -242,12 +271,26 @@ fn scalar_call(
     "SAFE_SUBTRACT" => ("SAFE_SUBTRACT", "safe_subtract", 2, 2)
     "SAFE_MULTIPLY" => ("SAFE_MULTIPLY", "safe_multiply", 2, 2)
     "STRPOS" => ("STRPOS", "strpos", 2, 2)
+    "DATE_DIFF" => ("DATE_DIFF", "date_diff", 3, 3)
+    "DATE_ADD" => ("DATE_ADD", "date_add", 3, 3)
+    "TIMESTAMP_ADD" => ("TIMESTAMP_ADD", "timestamp_add", 2, 2)
+    "TIMESTAMP_SUB" => ("TIMESTAMP_SUB", "timestamp_sub", 2, 2)
+    "DATE_TRUNC" => ("DATE_TRUNC", "date_trunc", 2, 2)
+    "TO_NUMBER" => ("TO_NUMBER", "to_number", 1, 1)
+    "TO_STRING" => ("TO_STRING", "to_string", 1, 1)
+    "TO_BOOLEAN" => ("TO_BOOLEAN", "to_boolean", 1, 1)
+    "TO_TIMESTAMP" => ("TO_TIMESTAMP", "to_timestamp", 1, 1)
+    "TO_DECIMAL" => ("TO_DECIMAL", "to_decimal", 1, 3)
+    "TRY_DECIMAL" => ("TRY_DECIMAL", "try_decimal", 1, 3)
+    "QUANTIZE" => ("QUANTIZE", "quantize", 2, 4)
+    "DECIMAL_DIVIDE" => ("DECIMAL_DIVIDE", "decimal_divide", 2, 5)
     "SPLIT" => ("SPLIT", "split", 1, 2)
     "SUBSTR" | "SUBSTRING" => ("SUBSTR", "substring", 2, 3)
     "LEFT" => ("LEFT", "left", 2, 2)
     "RIGHT" => ("RIGHT", "right", 2, 2)
     "LPAD" => ("LPAD", "lpad", 2, 3)
     "RPAD" => ("RPAD", "rpad", 2, 3)
+    "CONTAINS" => ("CONTAINS", "contains", 2, 2)
     "STARTS_WITH" => ("STARTS_WITH", "starts_with", 2, 2)
     "ENDS_WITH" => ("ENDS_WITH", "ends_with", 2, 2)
     "FLOOR" => ("FLOOR", "floor", 1, 1)
@@ -414,8 +457,25 @@ fn append_resolved(
   // binding's role; other expressions never become macro arguments. This
   // avoids rescanning a nested argument for every enclosing call.
   let references : Array[Int?] = Array::make(count, None)
+  let interval_roots : Array[Int?] = Array::make(count, None)
+  let allowed_intervals = Array::make(count, false)
   for i in 0..<count {
     let node = @query.expression_node(ast, i).unwrap()
+    match node.kind {
+      Interval(_, _) => interval_roots[i] = Some(i)
+      Parenthesized(child) => interval_roots[i] = interval_roots[child]
+      _ => ()
+    }
+    let selected_interval = match node.kind {
+      Binary("+" | "-", _, right) => interval_roots[right]
+      Call(path, args) if path.length() == 1 &&
+        ["TIMESTAMP_ADD", "TIMESTAMP_SUB"].contains(upper(path[0].value)) &&
+        args.length() == 2 => interval_roots[args[1]]
+      _ => None
+    }
+    if selected_interval is Some(interval) {
+      allowed_intervals[interval] = true
+    }
     match node.kind {
       Reference(_) => references[i] = Some(i)
       Parenthesized(child) => references[i] = references[child]
@@ -441,6 +501,7 @@ fn append_resolved(
   // Grouping preserves an atom's role in the common IN literal array. Keep
   // this classification in the bounded postorder pass rather than reopening
   // the AST or treating arbitrary expression nodes as parameter holes.
+  let intervals : Array[String?] = []
   let numbers : Array[Double?] = []
   let strings : Array[String?] = []
   let parameters : Array[Bool] = []
@@ -460,6 +521,7 @@ fn append_resolved(
       let mut numeric : Double? = None
       let mut text_literal : String? = None
       let mut parameter = false
+      let mut interval : String? = None
       let result = match node.kind {
         Null | Boolean(_) | Number(_) | StringLiteral(_) => {
           let raw = lowering.add(
@@ -577,6 +639,7 @@ fn append_resolved(
           lowering.form("$param", lowering.add(String(name)))
         }
         Parenthesized(child) => {
+          interval = intervals[child]
           literal = literals[child]
           numeric = numbers[child]
           text_literal = strings[child]
@@ -591,25 +654,7 @@ fn append_resolved(
           match target {
             None => value
             Some(target) => {
-              let type_name = match target {
-                Boolean => "boolean"
-                String => "string"
-                Number => "number"
-                Timestamp => "timestamp"
-                Json => "json"
-              }
-              let empty = lowering.form(
-                "empty_array",
-                lowering.object([
-                  (
-                    "items",
-                    lowering.object([
-                      ("type", lowering.add(String(type_name))),
-                      ("nullable", lowering.add(Bool(false))),
-                    ]),
-                  ),
-                ]),
-              )
+              let empty = lowering.empty_array_peer(target)
               if items.is_empty() {
                 empty
               } else {
@@ -650,9 +695,32 @@ fn append_resolved(
               }
             _ => raise Abort(InvalidArguments)
           }
+        Interval(child, unit) => {
+          if !allowed_intervals[i] {
+            raise Abort(InvalidArguments)
+          }
+          interval = Some(unit)
+          nodes[child]
+        }
         Binary(op, left, right) => {
           let (name, inverted) = binary_call(op)
-          let value = lowering.arguments(name, [nodes[left], nodes[right]])
+          let value = if intervals[right] is Some(unit) &&
+            ["+", "-"].contains(op) {
+            lowering.arguments(
+              if op == "+" {
+                "timestamp_add"
+              } else {
+                "timestamp_sub"
+              },
+              [
+                nodes[left],
+                nodes[right],
+                lowering.form("literal", lowering.add(String(unit))),
+              ],
+            )
+          } else {
+            lowering.arguments(name, [nodes[left], nodes[right]])
+          }
           if inverted {
             lowering.form("not", value)
           } else {
@@ -667,7 +735,184 @@ fn append_resolved(
               if args.length() < minimum || args.length() > maximum {
                 raise Abort(InvalidArguments)
               }
-              if name == "vector_score" {
+              if ["timestamp_add", "timestamp_sub"].contains(name) &&
+                intervals[args[1]] is None {
+                raise Abort(InvalidArguments)
+              }
+              if ["to_decimal", "try_decimal"].contains(name) &&
+                args.length() == 1 {
+                // The public lookup also lists an omitted-target spelling.
+                // This explicit-target connection cannot invent its P/S.
+                // Keep that existing implementation frontier, not a new ban.
+                raise Abort(UnsupportedFunction)
+              }
+              if ["to_decimal", "try_decimal"].contains(name) &&
+                args.length() != 3 {
+                raise Abort(InvalidArguments)
+              }
+              if name == "quantize" && args.length() != 2 && args.length() != 4 {
+                raise Abort(InvalidArguments)
+              }
+              if name == "decimal_divide" && args.length() < 4 {
+                raise Abort(UnsupportedFunction)
+              }
+              if name == "decimal_divide" && args.length() != 5 {
+                raise Abort(InvalidArguments)
+              }
+              if name == "date_trunc" &&
+                !(strings[args[1]] is Some("ms" | "s" | "m" | "h" | "d")) {
+                current = @query.expression_origin(ast, args[1])
+                raise Abort(InvalidArguments)
+              }
+              if (name == "date_diff" || name == "date_add") &&
+                !(strings[args[2]] is Some("ms" | "s" | "m" | "h" | "d")) {
+                current = @query.expression_origin(ast, args[2])
+                raise Abort(InvalidArguments)
+              }
+              if ["timestamp_add", "timestamp_sub"].contains(name) {
+                let unit = intervals[args[1]].unwrap()
+                lowering.arguments(name, [
+                  nodes[args[0]],
+                  nodes[args[1]],
+                  lowering.form("literal", lowering.add(String(unit))),
+                ])
+              } else if ["to_number", "to_string", "to_boolean", "to_timestamp"].contains(
+                  name,
+                ) {
+                // These public spellings use the existing Common CAST contract.
+                // Preserve the operand subtree and its original Parameter role.
+                let target = match name {
+                  "to_number" => "number"
+                  "to_string" => "string"
+                  "to_boolean" => "boolean"
+                  "to_timestamp" => "timestamp"
+                  _ => raise Abort(UnsupportedFunction)
+                }
+                lowering.form(
+                  "cast",
+                  lowering.object([
+                    ("value", nodes[args[0]]),
+                    (
+                      "target",
+                      lowering.object([("type", lowering.add(String(target)))]),
+                    ),
+                  ]),
+                )
+              } else if name == "decimal_divide" {
+                guard numbers[args[2]] is Some(precision) &&
+                  precision >= 1.0 &&
+                  precision <= 38.0 &&
+                  precision.trunc() == precision else {
+                  current = @query.expression_origin(ast, args[2])
+                  raise Abort(InvalidArguments)
+                }
+                guard numbers[args[3]] is Some(scale) &&
+                  scale >= 0.0 &&
+                  scale <= precision &&
+                  scale.trunc() == scale else {
+                  current = @query.expression_origin(ast, args[3])
+                  raise Abort(InvalidArguments)
+                }
+                guard strings[args[4]] is Some(rounding) &&
+                  ["half_even", "half_up", "toward_zero", "floor", "ceiling"].contains(
+                    rounding,
+                  ) else {
+                  current = @query.expression_origin(ast, args[4])
+                  raise Abort(InvalidArguments)
+                }
+                lowering.form(
+                  "decimal_divide",
+                  lowering.object([
+                    ("left", nodes[args[0]]),
+                    ("right", nodes[args[1]]),
+                    ("precision", lowering.add(Number(precision))),
+                    ("scale", lowering.add(Number(scale))),
+                    ("rounding", lowering.add(String(rounding))),
+                  ]),
+                )
+              } else if name == "quantize" && args.length() == 2 {
+                // These are adopted authoring defaults, not a partial machine
+                // body or precision inferred by evaluating the operand.
+                guard numbers[args[1]] is Some(scale) &&
+                  scale >= 0.0 &&
+                  scale <= 38.0 &&
+                  scale.trunc() == scale else {
+                  current = @query.expression_origin(ast, args[1])
+                  raise Abort(InvalidArguments)
+                }
+                lowering.form(
+                  "quantize",
+                  lowering.object([
+                    ("value", nodes[args[0]]),
+                    ("precision", lowering.add(Number(38.0))),
+                    ("scale", lowering.add(Number(scale))),
+                    ("rounding", lowering.add(String("half_even"))),
+                  ]),
+                )
+              } else if ["to_decimal", "try_decimal", "quantize"].contains(name) {
+                // Precision/scale are the existing literal target role, not
+                // evaluated operands or inferred properties of the input.
+                guard numbers[args[1]] is Some(precision) &&
+                  precision >= 1.0 &&
+                  precision <= 38.0 &&
+                  precision.trunc() == precision else {
+                  current = @query.expression_origin(ast, args[1])
+                  raise Abort(InvalidArguments)
+                }
+                guard numbers[args[2]] is Some(scale) &&
+                  scale >= 0.0 &&
+                  scale <= precision &&
+                  scale.trunc() == scale else {
+                  current = @query.expression_origin(ast, args[2])
+                  raise Abort(InvalidArguments)
+                }
+                if name == "quantize" {
+                  guard strings[args[3]] is Some(rounding) &&
+                    ["half_even", "half_up", "toward_zero", "floor", "ceiling"].contains(
+                      rounding,
+                    ) else {
+                    current = @query.expression_origin(ast, args[3])
+                    raise Abort(InvalidArguments)
+                  }
+                  lowering.form(
+                    "quantize",
+                    lowering.object([
+                      ("value", nodes[args[0]]),
+                      ("precision", lowering.add(Number(precision))),
+                      ("scale", lowering.add(Number(scale))),
+                      ("rounding", lowering.add(String(rounding))),
+                    ]),
+                  )
+                } else if name == "try_decimal" {
+                  lowering.form(
+                    "try_decimal",
+                    lowering.object([
+                      ("value", nodes[args[0]]),
+                      ("precision", lowering.add(Number(precision))),
+                      ("scale", lowering.add(Number(scale))),
+                    ]),
+                  )
+                } else {
+                  lowering.form(
+                    "cast",
+                    lowering.object([
+                      ("value", nodes[args[0]]),
+                      (
+                        "target",
+                        lowering.object([
+                          ("type", lowering.add(String("decimal"))),
+                          ("precision", lowering.add(Number(precision))),
+                          ("scale", lowering.add(Number(scale))),
+                        ]),
+                      ),
+                    ]),
+                  )
+                }
+              } else if name == "date_trunc" {
+                // SQL/Pipe has value-first spelling. Only the admitted literal
+                // unit moves into the unchanged Common unit-first body.
+                lowering.arguments(name, [nodes[args[1]], nodes[args[0]]])
+              } else if name == "vector_score" {
                 let metric = if public_name == "VECTOR_SCORE" {
                   // Literal role follows transparent grouping in this bounded
                   // postorder pass. Never evaluate a Parameter, field or CASE
@@ -840,32 +1085,59 @@ fn append_resolved(
             ]),
           )
         }
-        Cast(child, target) => {
-          let fields = match target {
-            Boolean => [("type", lowering.add(String("boolean")))]
-            String => [("type", lowering.add(String("string")))]
-            Number => [("type", lowering.add(String("number")))]
-            Timestamp => [("type", lowering.add(String("timestamp")))]
-            Decimal(precision, scale) =>
-              [
-                ("type", lowering.add(String("decimal"))),
-                ("precision", lowering.add(Number(precision.to_double()))),
-                ("scale", lowering.add(Number(scale.to_double()))),
-              ]
+        Cast(child, target) =>
+          match target {
+            Array(item) => {
+              let mut original = child
+              let mut inspecting = true
+              while inspecting {
+                if work >= max_work {
+                  raise Abort(WorkLimit)
+                }
+                work += 1
+                match @query.expression_node(ast, original).unwrap().kind {
+                  Parenthesized(inner) => original = inner
+                  Null => inspecting = false
+                  _ => raise Abort(UnsupportedCast)
+                }
+              }
+              // Common IF supplies a nullable item contract. The selected
+              // original NULL branch remains NULL; the empty peer is not run.
+              lowering.arguments("if", [
+                lowering.form("literal", lowering.add(Bool(false))),
+                lowering.empty_array_peer(item),
+                nodes[child],
+              ])
+            }
+            _ => {
+              let fields = match target {
+                Array(_) => raise Abort(UnsupportedCast)
+                Boolean => [("type", lowering.add(String("boolean")))]
+                String => [("type", lowering.add(String("string")))]
+                Number => [("type", lowering.add(String("number")))]
+                Timestamp => [("type", lowering.add(String("timestamp")))]
+                Decimal(precision, scale) =>
+                  [
+                    ("type", lowering.add(String("decimal"))),
+                    ("precision", lowering.add(Number(precision.to_double()))),
+                    ("scale", lowering.add(Number(scale.to_double()))),
+                  ]
+              }
+              lowering.form(
+                "cast",
+                lowering.object([
+                  ("value", nodes[child]),
+                  ("target", lowering.object(fields)),
+                ]),
+              )
+            }
           }
-          lowering.form(
-            "cast",
-            lowering.object([
-              ("value", nodes[child]),
-              ("target", lowering.object(fields)),
-            ]),
-          )
-        }
       }
       nodes.push(result)
       literals.push(literal)
       numbers.push(numeric)
       strings.push(text_literal)
+      intervals.push(interval)
       parameters.push(parameter)
     }
     Ok(nodes[@query.expression_root(ast)])

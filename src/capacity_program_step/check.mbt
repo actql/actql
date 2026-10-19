@@ -312,7 +312,12 @@ fn operation_rule(
       ("actql.bound.top-k", @relation.top_k_count(operation).unwrap())
     _ => return Err(UnsupportedOperation)
   }
-  let n = match resolve_count(value, bindings) {
+  let n = match
+    resolve_count(
+      value,
+      bindings,
+      allow_int64=@relation.operation(operation) == @relation.Take,
+    ) {
     Ok(n) => n
     Err(e) => return Err(e)
   }

@@ -1724,6 +1724,54 @@ pub fn client_values_host_prepare_task_dispatch(
 }
 
 ///|
+#export_name("clientValuesHostPrepareTaskDispatchWithSource")
+pub fn client_values_host_prepare_task_dispatch_with_source(
+  prepared : @host.PreparedClientProgram,
+  compilation : @host.ClientTaskCompilation,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  request : @host.ClientRequestIdentity,
+  task : Int,
+  task_attempt : Int,
+  dispatch_id : String,
+  site_key : String,
+  site_generation : Int,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  strategy_revision : String,
+  obligations_cid : String,
+  budget_cid : String,
+  evidence_issuer_capability_cid : String,
+  grant_cid : String,
+  source : @host.ClientSourcePreparation,
+) -> Result[@remote.DispatchRequest, @host.ClientTaskDispatchIssue] {
+  @host.prepare_client_task_dispatch(
+    prepared,
+    compilation,
+    admission,
+    definition,
+    request,
+    task,
+    task_attempt,
+    dispatch_id,
+    {
+      site_key,
+      site_generation,
+      runtime_bundle_cid,
+      connector_registration,
+      connector_revision,
+      strategy_revision,
+      obligations_cid,
+      budget_cid,
+      evidence_issuer_capability_cid,
+      grant_cid,
+    },
+    source=Some(source),
+  )
+}
+
+///|
 /// Portable publication contract admission for a Host or Store adapter.
 /// Admission checks the canonical body and self identity; it grants no read
 /// or publication authority.

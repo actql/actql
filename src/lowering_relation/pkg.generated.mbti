@@ -132,6 +132,10 @@ pub fn bindings_ordered(PreparedBindings) -> Bool
 
 pub fn bound_preparation(BoundPrepared) -> Prepared
 
+pub fn bound_prepared_query_time_requirement_usage(BoundPrepared, max_work~ : Int, max_expressions~ : Int) -> Result[(Bool, Int), QueryTimeRequirementIssue]
+
+pub fn bound_prepared_requires_query_time(BoundPrepared, max_work~ : Int, max_expressions~ : Int) -> Result[Bool, QueryTimeRequirementIssue]
+
 pub fn bound_values_cell(BoundPrepared, Int, Int, Int) -> Result[@value_admission.CheckedValue, ValuesIssue]
 
 pub fn calendar_checked(PreparedCalendar) -> @calendar_typing.CheckedCalendar
@@ -1173,6 +1177,9 @@ pub(all) enum BinaryOperator {
   NullIf
   In
   NotIn
+  Contains
+  DateTruncate
+  DecimalDivide(String)
 } derive(Eq, @debug.Debug)
 
 pub struct BindingIssue {
@@ -1298,6 +1305,7 @@ pub enum ExpressionBody {
   Many(ManyOperator, Array[Expression])
   Conditional(Expression, Expression, Expression)
   Case(Array[(Expression, Expression)], Expression)
+  CurrentTimestamp
 }
 
 pub struct ExpressionIssue {
@@ -1566,6 +1574,10 @@ pub(all) enum ManyOperator {
   LPad
   RPad
   Between
+  DateDifference
+  DateAddition
+  TimestampAddition
+  TimestampSubtraction
 } derive(Eq, @debug.Debug)
 
 pub(all) enum NestIssue {
@@ -1859,6 +1871,11 @@ pub enum PreparedWatermarkThreshold {
 
 type PreparedWindow
 
+pub(all) enum QueryTimeRequirementIssue {
+  Slots(@pipeline_typing.ExpressionSlotIssue)
+  WorkLimit
+}
+
 type RootEvidence
 
 pub(all) enum RootEvidenceIssue {
@@ -2025,6 +2042,8 @@ pub(all) enum UnaryOperator {
   Round
   Trunc
   SafeNegate
+  TryDecimal
+  Quantize(String)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

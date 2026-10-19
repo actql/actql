@@ -13,6 +13,8 @@ import {SLACK_USER_LIST_OPERATION} from '../site/user-list-read.mjs';
 import {createSlackUserSourceReaderFactory} from './user-source-reader.mjs';
 import {SLACK_CHANNEL_LIST_OPERATION} from '../site/channel-list-read.mjs';
 import {createSlackChannelSourceReaderFactory} from './channel-source-reader.mjs';
+import {SLACK_MESSAGE_HISTORY_OPERATION} from '../site/message-history-read.mjs';
+import {createSlackMessageSourceReaderFactory} from './message-source-reader.mjs';
 
 export const INSTALLED_SLACK_SOURCE_VERSION='actql-installed-slack-source/0.1';
 export const INSTALLED_SLACK_SITE_VERSION='actql-installed-slack-site/0.1';
@@ -100,13 +102,15 @@ export async function loadInstalledSlackSource(profile,{root,principalId,moon,pr
   const{limits}=installed;
   if(provider===null||typeof provider!=='object'||types.isProxy(provider))fail('InvalidInstalledSlackProvider');
   const declarationPorts=Object.freeze(Object.fromEntries(['slackUserListSchemaWire',
-    'slackUserListRelationFactsWire','slackChannelListSchemaWire','slackChannelListRelationFactsWire'].map(name=>{
+    'slackUserListRelationFactsWire','slackChannelListSchemaWire','slackChannelListRelationFactsWire',
+    'slackMessageSchemaWire','slackMessageRelationFactsWire'].map(name=>{
     const descriptor=Object.getOwnPropertyDescriptor(provider,name);
     if(!descriptor||!Object.hasOwn(descriptor,'value')||typeof descriptor.value!=='function')fail('InvalidInstalledSlackProvider');
     return [name,descriptor.value];
   })));
   const views=[['users','slack_users','slackUserListSchemaWire','slackUserListRelationFactsWire'],
-    ['channels','slack_channels','slackChannelListSchemaWire','slackChannelListRelationFactsWire']].map(
+    ['channels','slack_channels','slackChannelListSchemaWire','slackChannelListRelationFactsWire'],
+    ['messages','slack_messages','slackMessageSchemaWire','slackMessageRelationFactsWire']].map(
     ([resource,resource_kind,schema,facts])=>{
       const wire=checked(Reflect.apply(declarationPorts[schema],provider,[limits.maxDeclarationBytes,
         limits.maxDeclarationNodes,limits.maxDepth]));
@@ -121,7 +125,8 @@ export async function loadInstalledSlackSource(profile,{root,principalId,moon,pr
     accountConfiguration:installed.accountConfigurationWire});
   const connection=`slack:${installed.connectorId}`;
   const target=(selected,fields)=>Object.freeze({version:selected==='users'
-    ?'actql-installed-slack-users-target/0.1':'actql-installed-slack-channels-target/0.1',
+    ?'actql-installed-slack-users-target/0.1':selected==='channels'
+      ?'actql-installed-slack-channels-target/0.1':'actql-installed-slack-messages-target/0.1',
     apiOrigin:siteProfile.apiOrigin,workspaceId:installed.workspaceId,workspaceBytesCid:binding.workspaceBytesCid,
     resource:selected,fields:Object.freeze([...fields])});
   const admitsApprovalTarget=(value,selected)=>declared.views.some(view=>view.resource===selected)&&value?.workspaceId===installed.workspaceId&&
@@ -134,7 +139,8 @@ export async function loadInstalledSlackSource(profile,{root,principalId,moon,pr
   try{
     return await createInstalledRowSource({moon,declaration,declared,environmentWire:environment.wire,
       connectorId:installed.connectorId,connectorRegistration:registration,connectorRevision:revision,
-      authorization,site,readOperation:{users:SLACK_USER_LIST_OPERATION,channels:SLACK_CHANNEL_LIST_OPERATION},physicalTarget:target,
+      authorization,site,readOperation:{users:SLACK_USER_LIST_OPERATION,channels:SLACK_CHANNEL_LIST_OPERATION,
+        messages:SLACK_MESSAGE_HISTORY_OPERATION},physicalTarget:target,
       bindingCid:cid({version:'actql-installed-slack-source-binding/0.1',connectorId:installed.connectorId,
         connectorRegistration:registration,connectorRevision:revision,contextCid:authorization.context.contextCid,
         runtimeBundleCid,workspaceId:installed.workspaceId,...binding,site:siteProfile}),
@@ -142,6 +148,7 @@ export async function loadInstalledSlackSource(profile,{root,principalId,moon,pr
       providerReader:(()=>{
         const selected=new Map([
           ['users',createSlackUserSourceReaderFactory],['channels',createSlackChannelSourceReaderFactory],
+          ['messages',createSlackMessageSourceReaderFactory],
         ].map(([name,factory])=>[name,factory({provider,site,capacity:readerCapacity,
           workspaceId:installed.workspaceId,limits,maxSecretBytes:limits.maxSecretBytes})]));
         const reader=Object.freeze({capacity:readerCapacity,prepare(options){

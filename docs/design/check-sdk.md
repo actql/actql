@@ -68,6 +68,16 @@ the exact retained owners once; semantic/definition hashes, Values payloads and
 resource metadata use the original cumulative artifact allowance.
 
 Only fully connected static paths produce `Verified` in template scope.
+Source-free Group pipelines use the existing bound Group rule selector for
+partitioning, aggregate demand and result-contract checks. Authoring retains the
+same original operation, validation occurrence and checked aggregate together
+with its selected rule. These are future execution checks, not observations of
+rows or evidence that a result has been produced. They consume the ordinary
+requirement budget; missing Parameter values remain separate original inputs.
+Numeric-observation requirements and collection bounds without their selected
+owners stay unresolved. A Group name alone never permits deferring them, and
+neither declaration defaults nor invented rows discharge them.
+
 Unconnected operations, incoming gates, Source/Local/Table inputs, missing resource
 material and exhausted budgets retain the original scope as `Unresolved`.
 These are implementation/preparation limits, not new language restrictions or
@@ -76,7 +86,18 @@ violations remain rejections with their original typed causes.
 
 Typed execution-value Requirements retain the original Parameter declarations.
 Defaults are admitted by the existing declaration owner; invented values do
-not stand in for missing input. Runtime resource/publication binding and
+not stand in for missing input. Take count and offset demands additionally retain
+private, constructor-closed conditions tied to the same complete template,
+Program, declaration and operation obligation. Indexed nominal membership makes
+the projection constant-time without equating copied descriptors. A condition
+survives even a valid default because a later override still requires ordinary
+bound admission. Default zero is an admitted declaration value, not a missing
+value or template type failure; its positive-count use fails only when bound.
+The public `parameter_consumer_condition` projects the existing safe-integer
+minimum/range and count/offset role, with an optional original declaration
+location. It does not disclose an executable predicate or fabricate a SQL
+operation span. Every condition is counted in the same requirement budget;
+truncated reports cannot verify or become runnable. Runtime resource/publication binding and
 enforcement owners remain retained separately. Template verification cannot
 construct executable Units, authorize a Run or Submission, validate runtime
 observations, or trigger automatic execution/resending. Supplementation enters
