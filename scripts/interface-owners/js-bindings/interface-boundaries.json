@@ -36494,7 +36494,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "9ddcaa9a6900ea12098287d6d46662b37a5699e4f0e2e6eae4c0f067d0be17ee",
+      "sha256": "fd676d6ab1b2562eb442f11af3209a445f1b10461264a588492c952f4003efc7",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -40815,6 +40815,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Independent Host entries without this preparation retain their own acquisition"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Every prepared selected Host defers Publication services, including an ordinary"
               }
             ],
             "verification": [
@@ -40881,6 +40885,10 @@
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
                 "anchor": "test('foreign or copied scope and each changed original refuse before environment selection'"
+              },
+              {
+                "path": "adapters/host-node/host-deferred-publication-startup.test.mjs",
+                "anchor": "selected ordinary Host cannot borrow Journal coverage for Publication activation"
               }
             ]
           }

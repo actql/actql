@@ -3859,7 +3859,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "9ddcaa9a6900ea12098287d6d46662b37a5699e4f0e2e6eae4c0f067d0be17ee",
+      "sha256": "fd676d6ab1b2562eb442f11af3209a445f1b10461264a588492c952f4003efc7",
       "exports": [
         "assertInitialControlHostPreparation",
         "assertOriginalHostPublicationOwnershipCurrent",
@@ -6607,6 +6607,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "selected path, not an invalid general public option. Original Host handles,"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Every prepared selected Host defers Publication services, including an ordinary"
               }
             ],
             "verification": [
@@ -6697,6 +6701,10 @@
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
                 "anchor": "test('Host passes raw input before awaiting and consumes only the same captured packet afterwards'"
+              },
+              {
+                "path": "adapters/host-node/host-deferred-publication-startup.test.mjs",
+                "anchor": "selected ordinary Host cannot borrow Journal coverage for Publication activation"
               }
             ]
           }

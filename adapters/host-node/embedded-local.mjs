@@ -1015,7 +1015,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       }});
     const initializePublicationServices = async () => {
     try {
-    if (originalSourcePreparation !== undefined) {
+    if (preparation !== undefined) {
       // The selected writable Journal facility does not cover Publication
       // Store/key/Result payload construction. Keep this precise missing
       // operational boundary before its first constructor or I/O; do not
@@ -3682,13 +3682,16 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       return activationFlight;
     };
-    if (originalSourcePreparation === undefined) return await activate();
+    // Every selected Host defers these services, including ordinary open
+    // without a Source profile. Only the legacy unprepared entry is eager.
+    if (preparation === undefined) return await activate();
     const bootstrapIngress = createNodeInProcessClientHost({
       authenticate: () => principalId,
       authorizeConnection: hostConnection,
       workspaceForPrincipal: () => workspaceId,
       negotiate, maxRowBytes: 1024 * 1024, observe: diagnostic,
-      bindOwnedRequest: (parent,derived) => preparation.bindSourceRequest(parent,derived),
+      bindOwnedRequest: originalSourcePreparation === undefined ? undefined :
+        (parent,derived) => preparation.bindSourceRequest(parent,derived),
       async performInstalledRequest(operation,request,signal) {
         const opened = await activate();
         if (opened !== host) throw clientOperationError('InstalledHostPreparationChanged');
@@ -3697,7 +3700,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       },
     });
     const bootstrapPort = Object.freeze({
-      [sourcePreparationPort]: originalSourcePreparation,
+      ...(originalSourcePreparation === undefined ? {} :
+        {[sourcePreparationPort]: originalSourcePreparation}),
       async perform(operation, request, signal) {
         if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
         return bootstrapIngress.perform(operation,request,signal);
