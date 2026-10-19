@@ -819,6 +819,13 @@ function connectInitialControlHostPreparation(kind,raw) {
     apply(state.reader,state.namespace,[raw,inputLimits]);
   const packet = snapshot.packet;
   if (snapshot.originalReferences.length !== 0) inputUnavailable();
+  if (kind === 'open') {
+    // This selected recipe covers own DATA, not inherited option getters.
+    // Refuse that unsupported backing without invoking or silently dropping it.
+    for (const name of ['stateDir', 'installation', 'durability', 'consentRefs']) {
+      if (!own(packet,name) && name in packet) inputUnavailable();
+    }
+  }
   if (kind === 'connect') {
     const keys = Reflect.ownKeys(packet);
     if (keys.length !== 3 || !keys.includes('mode') || !keys.includes('installation') || !keys.includes('profile') ||

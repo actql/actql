@@ -246,6 +246,15 @@ test('actual public open forwards Explorer stateDir through the original bounded
   assert.equal(result.status,0,result.stderr);
 });
 
+test('actual public open refuses unsupported inherited stateDir without calling its getter',t=>{
+  const f=fixture(t,{publicNode:true,actualFacade:true});const result=f.run(
+    'import assert from"node:assert/strict";import{open}from"@actql/node";let reads=0;'+
+    'Object.defineProperty(Object.prototype,"stateDir",{configurable:true,get(){reads++;throw Error("UnownedGetter");}});'+
+    'try{await assert.rejects(open({}),{code:"NodeInitialControlInputUnavailable"});assert.equal(reads,0);}'+
+    'finally{delete Object.prototype.stateDir;}');
+  assert.equal(result.status,0,result.stderr);
+});
+
 test('ordinary connected Local HTTP selection stays unselected without traversing Host fields',t=>{
   const f=fixture(t,{publicNode:true});const result=f.run(
     'import assert from"node:assert/strict";import{connect}from"@actql/node";'+
