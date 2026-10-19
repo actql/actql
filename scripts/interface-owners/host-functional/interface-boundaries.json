@@ -16970,7 +16970,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "33c531f79fc95d709ccf065e51a766a8333ccef4c123432036731b4e0900e9e9",
+      "sha256": "236ad5854e3f8fa4d90ec3a9a82b519057008f77be2d21f241203087ef137853",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -17190,7 +17190,9 @@
           "name": "boundJournalDatabaseExtent",
           "parameters": [
             "database",
-            "maxDatabaseBytes"
+            "maxDatabaseBytes",
+            "executionLimits",
+            "walFrames"
           ],
           "async": false
         },
@@ -19811,6 +19813,10 @@
               {
                 "path": "adapters/host-node/client-request-journal-observation-extent.test.mjs",
                 "anchor": "both execution-bounded Journal connections select original in-memory temporary storage"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-schema-temporary-order.test.mjs",
+                "anchor": "temporary storage precedes the schema-loading Pager pragma"
               },
               {
                 "path": "adapters/host-node/client-request-journal-execution-bounds.test.mjs",

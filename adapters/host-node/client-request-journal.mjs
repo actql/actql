@@ -198,8 +198,8 @@ function boundedJournalWalFrames(maxFrames, sourceBytes, maxDatabaseBytes) {
     },
     beforePrepare() { check(1); },
     beforeStatement() {
-      // Only the two fixed extent PRAGMA probes precede configuration. They
-      // inspect page geometry and set the local Pager ceiling, not WAL rows.
+      // Only the fixed page-size probe precedes configuration. Later extent
+      // and temporary-storage operations keep their conservative charges.
       reserved += check(1);
     },
     beforeExec(sql) {
@@ -354,7 +354,7 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
   }), retireClosedNativeAliases() { statements.length = cursors.length = 0; }});
 }
 
-function boundJournalDatabaseExtent(database, maxDatabaseBytes) {
+function boundJournalDatabaseExtent(database, maxDatabaseBytes, executionLimits, walFrames) {
   if (maxDatabaseBytes === undefined) return;
   const page = database.prepare('PRAGMA page_size').get().page_size;
   if (!Number.isSafeInteger(page) || page < 512 || page > 65536 ||
@@ -363,6 +363,12 @@ function boundJournalDatabaseExtent(database, maxDatabaseBytes) {
   }
   const pages = Math.floor(maxDatabaseBytes / page);
   if (pages < 1 || pages > 4294967294) fail('ClientRequestJournalDatabaseUnavailable');
+  // max_page_count has PragFlg_NeedSchema in the selected SQLite. Configure
+  // this same non-refilling WAL counter from the observed page geometry, then
+  // select MEMORY before that pragma can load schema and its internal reader.
+  // Neither operation supplies backing or acknowledges another connection.
+  walFrames?.configure(page);
+  selectJournalTemporaryStorage(database, executionLimits);
   const observed = database.prepare(`PRAGMA max_page_count = ${pages}`).get().max_page_count;
   if (!Number.isSafeInteger(observed) || observed < 1 || observed > pages) {
     fail('ClientRequestJournalDatabaseUnavailable');
@@ -1413,9 +1419,7 @@ export function openClientRequestJournal(directory, {
         applyOriginal(originalDatabaseIsOpen, connection, []) !== true) {
       throw new TypeError('ClientRequestJournalConnectionOpenUnavailable');
     }
-    const page = boundJournalDatabaseExtent(database, maxDatabaseBytes);
-    walFrames?.configure(page);
-    selectJournalTemporaryStorage(database, primaryExecutionLimits);
+    boundJournalDatabaseExtent(database, maxDatabaseBytes, primaryExecutionLimits, walFrames);
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
     database.exec(`
@@ -2379,9 +2383,7 @@ export function openClientRequestJournal(directory, {
       // The primary connection's Pager setting cannot constrain this new
       // original connection. Select the same finite extent before its first
       // schema/control write, retaining its existing separate close duty.
-      const page = boundJournalDatabaseExtent(selectedObservation, maxDatabaseBytes);
-      walFrames?.configure(page);
-      selectJournalTemporaryStorage(selectedObservation, primaryExecutionLimits);
+      boundJournalDatabaseExtent(selectedObservation, maxDatabaseBytes, primaryExecutionLimits, walFrames);
       selectedObservation.exec('PRAGMA busy_timeout = 0');
       const storage = openClientObservationStorage(selectedObservation,
         createSqliteTransaction(selectedObservation, 'ClientObservation'));

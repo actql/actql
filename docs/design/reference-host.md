@@ -988,7 +988,10 @@ facility or acknowledge process-lived native backing.
 
 For its execution-bounded SQLite recipe, each original connection selects
 connection-local memory temporary storage before the Journal's schema/control
-statements. The pinned `TEMP_STORE=1` compile choice and effective `temp_store`
+statements, including the schema-loading `max_page_count` pragma. The observed
+page geometry configures the same non-refilling WAL counter first; subsequent
+temporary and extent operations retain their conservative charges. The pinned
+`TEMP_STORE=1` compile choice and effective `temp_store`
 selection are both checked; unsupported or ineffective selection refuses with
 the acquired original connection still owned by its existing cleanup. An
 unselected connection keeps its prior temporary-storage behavior. The selected
