@@ -1790,3 +1790,21 @@ external control, loader, TLS, stack and filesystem holdings still require their
 own actual coverage. Required primitive and inspection minima, input/work bounds
 and the original exhaustion and cleanup semantics remain mandatory. Component
 containment alone does not establish ordinary command success or normal funding.
+
+### Original process SQLite component assembly
+
+The selected command's SQLite member uses the same pinned private component and
+its MEMSYS5, private WAL-index and descriptor-cleanup rules. A stock SQLite
+library with a compatible public SQLite API does not supply this private API.
+The existing maintainer component producer can assemble that same translation
+unit for the Native executable's original provider imports. It emits no second
+provider library, exports no public SQLite functions, and accepts no ambient
+library search path. The Native executable retains the existing closed provider
+export set; actual component binding still checks one original provider, Read
+context and physical heap before initialization.
+
+This assembly mode produces an image only. It cannot satisfy the separate
+Python bundle's provider receipt, relocation, physical or final installation
+checks. Those existing stronger checks remain required on their original route.
+Neither image construction nor its import census admits the command's initial
+control, external holdings, account authority or normal numerical profile.
