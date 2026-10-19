@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import platform
 import shlex
+import struct
 import subprocess
 import sys
 import time
@@ -43,6 +44,70 @@ FOREIGN_SOURCES = (
     ('connectors/duckdb/adapters/native/duckdb_stub.c', 'duckdb'),
     ('platform_native/remote_transfer_client/retry_wait_stub.c', 'transfer'),
 )
+
+# The Python operational entrance must be able to refuse before the first
+# allocator initialization. Keep the command/toolchain object unchanged; this
+# private derived object defers its one automatic initializer to that entrance.
+# It selects neither an initial original nor a capacity/envelope by itself.
+PYTHON_INITIAL_RUNTIME_SHA256 = (
+    'd9db2413e755c00ab374901211a03a9551222fe779022bc3648235747ed2bd96')
+
+
+def python_initial_runtime_bytes(raw: bytes) -> bytes:
+    """Defer only the exact selected object's MI constructor registration.
+
+    Preserve every instruction, symbol, relocation, TLS record and data byte.
+    The registration remains ordinary private data, with its relocation intact.
+    A selected Python link must additionally require -no_inits, and its actual
+    operational entrance must establish the original before explicit MI init.
+    This is a derived recipe, never a modification of the pinned toolchain.
+    """
+    if hashlib.sha256(raw).hexdigest() != PYTHON_INITIAL_RUNTIME_SHA256:
+        raise ValueError('Selected Python initial runtime object changed')
+    magic, cpu, subtype, kind, count, commands, flags, reserved = struct.unpack_from(
+        '<8I', raw)
+    if (magic, cpu, subtype, kind, reserved) != (0xfeedfacf, 0x100000c, 0, 1, 0):
+        raise ValueError('Selected Python initial runtime target changed')
+    offset, sections, symbols = 32, [], None
+    for _ in range(count):
+        command, length = struct.unpack_from('<II', raw, offset)
+        if length < 8 or offset + length > 32 + commands:
+            raise ValueError('Selected Python initial load command changed')
+        if command == 0x19:
+            number = struct.unpack_from('<I', raw, offset + 64)[0]
+            if length != 72 + 80 * number:
+                raise ValueError('Selected Python initial segment changed')
+            sections.extend(offset + 72 + 80 * index for index in range(number))
+        elif command == 2:
+            symbols = struct.unpack_from('<4I', raw, offset + 8)
+        offset += length
+    constructors = [position for position in sections
+                    if struct.unpack_from('<I', raw, position + 64)[0] & 0xff == 9]
+    if offset != 32 + commands or len(constructors) != 1 or symbols is None:
+        raise ValueError('Selected Python initial constructor inventory changed')
+    position = constructors[0]
+    name, segment = struct.unpack_from('<16s16s', raw, position)
+    size, location, alignment, relocations, number, attributes = struct.unpack_from(
+        '<Q5I', raw, position + 40)
+    if (name.rstrip(b'\0'), segment.rstrip(b'\0'), size, alignment, number,
+            attributes, raw[location:location + size]) != (
+                b'__mod_init_func', b'__DATA', 8, 3, 1, 9, b'\0' * 8):
+        raise ValueError('Selected Python initial registration changed')
+    address, relocation = struct.unpack_from('<II', raw, relocations)
+    symbol = relocation & 0xffffff
+    symbol_offset, symbol_count, strings, strings_size = symbols
+    if address != 0 or relocation >> 24 != 0x0e or symbol >= symbol_count:
+        raise ValueError('Selected Python initial relocation changed')
+    string_index = struct.unpack_from('<I', raw, symbol_offset + 16 * symbol)[0]
+    if string_index >= strings_size:
+        raise ValueError('Selected Python initial symbol changed')
+    end = raw.index(b'\0', strings + string_index, strings + strings_size)
+    if raw[strings + string_index:end] != b'__mi_process_init':
+        raise ValueError('Selected Python initial constructor changed')
+    derived = bytearray(raw)
+    derived[position:position + 16] = b'__actql_mi_init'.ljust(16, b'\0')
+    struct.pack_into('<I', derived, position + 64, 0)  # S_REGULAR, not S_MOD_INIT_FUNC_POINTERS.
+    return bytes(derived)
 
 
 def original(path: Path) -> dict[str, object]:
