@@ -14072,6 +14072,61 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/catalog-and-lock.gmail-original-thread-projection",
+      "statement_sha256": "a3ca13f23fdb23245c8cd9ffec3c246ebc6bc804253ecba408ded300708fd7f2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "catalog-and-lock",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/catalog-and-lock.gmail-selected-metadata-repeated-fields",
+      "statement_sha256": "26414f870a6499841a170f8a0adeb031dd3724db4845f98ad2e08421badb8ab4",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "catalog-and-lock",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/catalog-and-lock.gmail-message-date-projection",
+      "statement_sha256": "1f994668a32e461544fb73007d03a2bcd5d9ed8da3912b76b4693fd16f6ca695",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "catalog-and-lock",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/catalog-and-lock.gmail-message-date-no-loss",
+      "statement_sha256": "0ab4cebca84c309d9aeeffd1bdd523e02402a955bdc06eae3500189535882905",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "catalog-and-lock",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/catalog-and-lock.gmail-original-thread-acquisition",
+      "statement_sha256": "8a3776c17ffbba9fb49837b5f9a2a1ee5d3554ad60c36ee22a5631c8df67af27",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "catalog-and-lock",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/catalog-and-lock.canonical-preimage",
       "statement_sha256": "a81f2b7e12f78eae763b1e327deb5ae0ba4124754d4b4542c13cf284f38f5ba7",
       "status": "pending",
