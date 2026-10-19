@@ -11,11 +11,12 @@ const canonical = value => Array.isArray(value) ? '[' + value.map(canonical).joi
     .map(key => JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}' : JSON.stringify(value);
 const cid = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
 const hasPin = (path, expected) => assert.ok(read(path).includes('"' + expected + '"'), path);
-const fixtureBody = (path, name) => {
+const fixtureWire = (path, name) => {
   const match = read(path).match(new RegExp('let ' + name + ' : String =\\s*\\n\\s*#\\|([^\\n]+)'));
   assert.ok(match, name);
-  return JSON.parse(match[1]);
+  return match[1];
 };
+const fixtureBody = (path, name) => JSON.parse(fixtureWire(path, name));
 
 test('resident physical acquisition fixtures retain complete normative query dependencies', () => {
   const path = 'src/platform_native/remote_resident_source_compute_tests/source_compute_wbtest.mbt';
@@ -37,7 +38,11 @@ test('resident physical Source environments advertise their exact normative two-
     ['source_fixture_wbtest.mbt', 'resident_effect_source_environment'],
     ['effect_completion_free_wbtest.mbt', 'native_completion_free_environment'],
   ]) {
-    const body = fixtureBody('src/platform_native/remote_resident_source_compute_tests/' + file, name);
+    const wire = fixtureWire('src/platform_native/remote_resident_source_compute_tests/' + file, name);
+    const body = JSON.parse(wire);
+    assert.equal(wire, canonical(body));
+    const memberCids = body.connector_capabilities.map(cid);
+    assert.deepEqual(memberCids, [...memberCids].sort());
     const {evidence_bundle_cid: original, ...preimage} = body;
     assert.equal(original, cid(preimage));
     for (const capability of body.connector_capabilities) {
