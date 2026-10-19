@@ -132,7 +132,7 @@ static bool runtime_managed_values(void) {
     assert(native && actql_native_owned_contains_live_span(lease,native,37)==0);
     memset(native,42,37);
     context_leave(lease,context);
-    int64_t values[16]={0};
+    uint64_t values[16]={0};
     assert(actql_read_context_cleanup_snapshot(context,values,16)==0);
     assert(values[2]==1 && values[4]==0 && values[5]==0);
     assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY);
