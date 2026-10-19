@@ -9,7 +9,7 @@ test "Gmail bridge retains original Common list and get occurrences without raw 
   assert_eq(
     gmail_thread_request_json(list),
     (
-      #|{"isList":true,"mailbox":"operator@example.com","ordinal":0,"pageToken":null,"threadId":null}
+      #|{"mailbox":"operator@example.com","ordinal":0,"isList":true,"pageToken":null,"threadId":null}
     ),
   )
   ignore(
@@ -21,7 +21,7 @@ test "Gmail bridge retains original Common list and get occurrences without raw 
   assert_eq(
     gmail_thread_request_json(get),
     (
-      #|{"isList":false,"mailbox":"operator@example.com","ordinal":1,"pageToken":null,"threadId":"exact/+"}
+      #|{"mailbox":"operator@example.com","ordinal":1,"isList":false,"pageToken":null,"threadId":"exact/+"}
     ),
   )
   let thread = gmail_accept_thread(
