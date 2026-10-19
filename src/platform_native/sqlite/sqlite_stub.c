@@ -5,6 +5,7 @@
 
 #include <dlfcn.h>
 #include "../filesystem/observed_component_member.h"
+#include "../host_bootstrap/component_domain_minimum.h"
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -131,6 +132,20 @@ typedef struct {
   bool journal_pin_close_unknown;
   int journal_pin_descriptor;
 } actql_native_sqlite_database;
+
+/* Read-only necessary subset for the selected command's actual compiled
+ * receiver ABI. Later SQL/cache/graph demand and all outside-domain holdings
+ * remain separate; a positive result supplies no domain or claim. */
+MOONBIT_FFI_EXPORT int64_t actql_native_sqlite_command_domain_necessary_bytes(
+    int64_t domain_bytes, int64_t heap_bytes) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+  return actql_bootstrap_component_domain_necessary_bytes(domain_bytes, heap_bytes,
+    sizeof(actql_native_sqlite_library), sizeof(actql_native_sqlite_database), 4097);
+#else
+  (void)domain_bytes; (void)heap_bytes;
+  return -1;
+#endif
+}
 
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR
 static bool actql_component_origin(const void *, void *);

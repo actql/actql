@@ -32,10 +32,12 @@ int main(int argc, char **argv) {
     assert(strcmp(name, "wal-copy") == 0 || strcmp(name, "missing-index") == 0 ||
         strcmp(name, "exclusive-conflict") == 0 ||
         strcmp(name, "command-record-bounds") == 0 ||
+        strcmp(name, "domain-facility-minimum") == 0 ||
         strcmp(name, "domain-facility-exhaustion") == 0 ||
         strcmp(name, "finite-facility-exhaustion") == 0);
     const bool facility_exhaustion = strcmp(name, "finite-facility-exhaustion") == 0;
-    const bool domain_exhaustion = strcmp(name, "domain-facility-exhaustion") == 0;
+    const bool domain_minimum = strcmp(name, "domain-facility-minimum") == 0;
+    const bool domain_exhaustion = domain_minimum || strcmp(name, "domain-facility-exhaustion") == 0;
     const bool command_bounds = strcmp(name, "command-record-bounds") == 0;
     /* A predeclared component-only capacity candidate, not an installed entry
      * profile. Exercise the normal command's original 8-row/131072-byte inputs;
@@ -84,7 +86,27 @@ int main(int argc, char **argv) {
     /* One diagnostic whole-domain ceiling before its first context/receiver.
      * It includes controls, managed slabs and the separate contained heap;
      * it is not residual demand, another backing or an ordinary profile. */
-    const size_t domain_ceiling = 48 * (size_t)sysconf(_SC_PAGESIZE);
+    int64_t minimum = -1;
+    if (domain_minimum) {
+        uint64_t before_query[16] = {0}, after_query[16] = {0}, actual_control = 0;
+        assert(actql_native_owned_inventory(lease, before_query, 16) == 0);
+        minimum = actql_native_sqlite_command_domain_necessary_bytes(domain_bytes, heap_bytes);
+        assert(minimum > 0 && (uint64_t)minimum <= domain_bytes);
+        assert(actql_native_sqlite_command_domain_necessary_bytes(0, heap_bytes) == -1);
+        assert(actql_native_sqlite_command_domain_necessary_bytes(domain_bytes-1, heap_bytes) == -1);
+        assert(actql_native_sqlite_command_domain_necessary_bytes(domain_bytes, 4095) == -1);
+        assert(actql_native_sqlite_command_domain_necessary_bytes(INT64_MAX, INT64_MAX) == -1);
+        assert(actql_bootstrap_command_backing_control_necessary_bytes(0) == -1);
+        assert(actql_bootstrap_command_backing_control_necessary_bytes(INT64_MAX) == -1);
+        assert(actql_native_owned_control_bytes(parent, &actual_control) == 0);
+        assert(actql_bootstrap_command_backing_control_necessary_bytes(
+            128 * (int64_t)sysconf(_SC_PAGESIZE)) == (int64_t)actual_control);
+        assert(actql_native_owned_inventory(lease, after_query, 16) == 0);
+        assert(memcmp(before_query, after_query, sizeof(before_query)) == 0);
+        assert(actql_read_context_current() == NULL);
+    }
+    const size_t domain_ceiling = domain_minimum ? (size_t)minimum
+        : 48 * (size_t)sysconf(_SC_PAGESIZE);
     if (domain_exhaustion)
         assert(actql_native_owned_bound_allocations(lease, domain_ceiling) == 0);
     assert(actql_read_context_create(lease, &context) == 0);
@@ -106,7 +128,14 @@ int main(int argc, char **argv) {
         (moonbit_bytes_t)"ns", 2, (moonbit_bytes_t)"key", 3,
         (moonbit_bytes_t)"original", 8) == 0);
 
-    if (domain_exhaustion) {
+    if (domain_minimum) {
+        uint64_t observed[16] = {0};
+        assert(actql_native_owned_inventory(lease, observed, 16) == 0);
+        assert(observed[3] <= domain_ceiling && observed[4] <= domain_ceiling);
+        /* Actual first context, Library, component bind and Database fit this
+         * compiled necessary subset. No later input-graph adequacy follows. */
+        assert(library->selected_heap_bytes == (int64_t)heap_bytes);
+    } else if (domain_exhaustion) {
         const actql_sqlite_component_api *original_api = library->selected_api;
         sqlite3 *original_database = writer->database;
         void *original_module = library->dynamic_library;
@@ -283,7 +312,7 @@ int main(int argc, char **argv) {
     }
     assert(actql_native_sqlite_library_close_checked(library) == 1);
     moonbit_decref(library);
-    if (domain_exhaustion) {
+    if (escaped_file) {
         /* The actual child Library/module has acknowledged retirement, but
          * the SAME domain still owns this independent File alias. */
         assert(escaped_file != NULL);
@@ -293,7 +322,7 @@ int main(int argc, char **argv) {
     assert(actql_read_context_leave(context) == 0);
     assert(actql_native_owned_leave(lease) == 0);
     assert(actql_read_context_release_after_owner_ack(context) == 0);
-    if (domain_exhaustion) {
+    if (escaped_file) {
         assert(actql_read_context_try_close(&context) == ACTQL_OWNED_BUSY && context != NULL);
         assert(actql_native_owned_close_extent_view(&view) == ACTQL_OWNED_BUSY);
         /* Free through the original provider AFTER scope leave, without

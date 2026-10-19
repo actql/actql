@@ -5,6 +5,27 @@ type Library
 type Database
 
 ///|
+extern "C" fn command_domain_necessary_bytes_ffi(
+  domain_bytes : Int64,
+  heap_bytes : Int64,
+) -> Int64 = "actql_native_sqlite_command_domain_necessary_bytes"
+
+///|
+/// Actual compiled control/context/receiver geometry, not a domain issuer or
+/// a promise that every bounded Journal input fits the supplied facility.
+pub fn command_domain_necessary_bytes(
+  domain_bytes : Int64,
+  heap_bytes : Int64,
+) -> Int64? {
+  let bytes = command_domain_necessary_bytes_ffi(domain_bytes, heap_bytes)
+  if bytes > 0L {
+    Some(bytes)
+  } else {
+    None
+  }
+}
+
+///|
 #borrow(path)
 extern "C" fn load_library_ffi(
   path : Bytes,
@@ -500,12 +521,21 @@ pub fn load_current_component_with_custody(
     return Err(RefusedBeforeAcquisition(InvalidName))
   }
   let library = match command_member {
-    Some(component) => load_command_component_ffi(
-      encoded, encoded.length(), diagnostic_ceiling, heap_bytes, component,
-    )
-    None => load_current_component_ffi(
-      encoded, encoded.length(), diagnostic_ceiling, heap_bytes,
-    )
+    Some(component) =>
+      load_command_component_ffi(
+        encoded,
+        encoded.length(),
+        diagnostic_ceiling,
+        heap_bytes,
+        component,
+      )
+    None =>
+      load_current_component_ffi(
+        encoded,
+        encoded.length(),
+        diagnostic_ceiling,
+        heap_bytes,
+      )
   }
   if !library_acquired_ffi(library) {
     return Err(

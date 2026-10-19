@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn command_domain_necessary_bytes(Int64, Int64) -> Int64?
+
 pub fn load_current_component_with_custody(String, Int64, Int, command_member? : @filesystem.NativeObservedComponentMember?) -> Result[Library, NativeSqliteLibraryLoadError]
 
 pub fn load_library(String, diagnostic_ceiling? : Int?) -> Result[Library, NativeSqliteIssue]
