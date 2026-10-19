@@ -1,7 +1,7 @@
 ///|
 test "Result material rechecks original contracts and preserves signed64 presentation" {
   let schema = prepare_result_material_schema(
-    "{\"id\":{\"type\":\"integer\",\"nullable\":false},\"name\":{\"type\":\"string\",\"nullable\":false},\"large\":{\"type\":\"signed64\",\"nullable\":false}}",
+    "{\"id\":{\"type\":\"number\",\"nullable\":false},\"name\":{\"type\":\"string\",\"nullable\":false},\"large\":{\"type\":\"int64\",\"nullable\":false}}",
     ["id", "name", "large"],
     4096,
     256,
