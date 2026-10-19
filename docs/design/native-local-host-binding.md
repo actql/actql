@@ -1968,3 +1968,17 @@ cleanup frame. The Database finalizer must observe that actual context before
 it can retire its Library child. Dropping a reference, leaving a frame or
 closing a descriptor alone is not that acknowledgement; the Library, both
 contexts and the original backing still retain their separate close duties.
+
+An in-process retained execution keeps its original delegated Ledger while its
+managed work uses the corresponding physical domain. Logical stop precedes
+physical retirement, and both remain distinct from the original usage report,
+parent loan, Host and descriptor acknowledgements. Entering another phase never
+creates a new Ledger or restores consumed capacity.
+
+The Ledger's immutable usage snapshots can themselves have been allocated in
+that child domain. After confirmed logical stop and outside every child
+allocation scope, cleanup may copy those scalar snapshots into the existing
+outer control lifetime. This preserves the same nominal Ledger, exact charges,
+quantity limits, serials and report state. An uncertain report or stop refuses
+this operation. It retires no physical allocation: an escaped old snapshot or
+output still keeps its original domain busy until its actual alias is released.
