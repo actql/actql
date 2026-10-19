@@ -167,7 +167,8 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
             # same derived header first. There is exactly one provider below.
             parts[0] = str(clang)
             parts[1:1] = ['-isysroot', str(sdk), '-mmacosx-version-min=11.0',
-                          '-I' + str(allocator), '-DACTQL_SCOPED_READ_ALLOCATOR']
+                          '-I' + str(allocator), '-DACTQL_SCOPED_READ_ALLOCATOR',
+                          *(['-DACTQL_RUNTIME_MANAGED_VALUES=1'] if entry == LOCAL_ENTRY else [])]
         elif ar_driver is not None and parts[0] == str(ar_driver):
             outside = [Path(p) for p in archive_files if not under(Path(p), emission)]
             if outside:

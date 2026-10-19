@@ -43,7 +43,7 @@ test('unselected bootstrap has no CLI or filesystem dependency', () => {
 for (const name of ['capture', 'used-streams', 'one-shot', 'partial-current', 'thread-fork', 'runtime']) {
   test(`original command entry record ${name}`, () => {
     const run = spawnSync(executable, [name], {cwd:root,
-      env:{...process.env, TMPDIR:'/original/command-scratch',
+      env:{...process.env, TMPDIR:name === 'used-streams' ? scratch : '/original/command-scratch',
         ACTQL_NATIVE_LOCAL_RUNTIME:'{"controlled":"record protocol only"}'},
       encoding:'utf8', timeout:10_000});
     assert.equal(run.status, 0, `${run.error ?? ''}\n${run.stdout}\n${run.stderr}`);

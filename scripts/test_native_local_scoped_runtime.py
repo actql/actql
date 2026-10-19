@@ -92,7 +92,7 @@ class LocalScopedComposition(unittest.TestCase):
         self.assertEqual(planned[2][1:], self.commands[2][1:])
         for before, after in zip(self.commands[3:], planned[3:]):
             original = [p.replace('$MOON_HOME', str(self.home)) for p in before[1:]]
-            selected = after[6:]  # Only the common header/SDK/allocator prefix is inserted.
+            selected = after[7:]  # Common prefix plus the ordinary managed-value mode.
             if before == self.commands[-1]:
                 exports = ['-Wl,-exported_symbol,_' + symbol
                            for symbol in MODULE.LOCAL_COMPONENT_PROVIDER_EXPORTS]
