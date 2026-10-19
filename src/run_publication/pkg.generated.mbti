@@ -106,6 +106,8 @@ pub fn bind_model_slot_attempt_evidence(BoundModelSlotCapture, RunEvidenceValue,
 
 pub fn bind_model_slot_capture(RunEvidenceValue, RunEvidenceValue) -> Result[BoundModelSlotCapture, RunEvidenceValueIssue]
 
+pub fn bind_query_evaluation_time(RunPublicationAdmission, PublicationContract, String, String, String) -> Result[QueryEvaluationTime, RunProgramBindingIssue]
+
 pub fn bound_content_generation_availability(BoundContentGeneration) -> String?
 
 pub fn bound_content_generation_derivation(BoundContentGeneration) -> RunEvidenceValue?
@@ -765,6 +767,12 @@ pub fn publication_snapshot_state(PublicationSnapshot) -> PublicationSnapshotSta
 pub fn publication_snapshot_state_text(PublicationSnapshot) -> String
 
 pub fn publication_unknown_retry_action_code(PublicationUnknownRetryAction) -> Int
+
+pub fn query_evaluation_time_definition(QueryEvaluationTime) -> PublicationContract
+
+pub fn query_evaluation_time_matches(QueryEvaluationTime, RunPublicationAdmission, PublicationContract) -> Bool
+
+pub fn query_evaluation_time_value(QueryEvaluationTime) -> @value_admission.CheckedValue
 
 pub fn read_installation_publication_storage_binding(String, String, Int, Int, Int) -> Result[InstallationPublicationStorageBinding, PublicationContractIssue]
 
@@ -1887,6 +1895,8 @@ pub(all) enum PublicationUnknownRetryAction {
   PublicationUnknownRetryFinished
   PublicationUnknownRetryInvalid
 } derive(Eq, @debug.Debug)
+
+type QueryEvaluationTime
 
 type RecordedRunPublication
 
