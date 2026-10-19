@@ -209,11 +209,23 @@ class InstalledLocalHost:
         """Resolve the selected cohort with no endpoint/token/internal paths."""
         if resources is None:
             from ._local_worker_funding import LocalWorkerFundingUnavailable
-            # Initial originals must precede even cohort discovery/verification.
-            # The installed supplier is not connected yet. Its eventual path
-            # must verify the source-bound cohort/capacity inside those actual
-            # facilities; metadata alone cannot supply them or start an Engine.
-            raise LocalWorkerFundingUnavailable('Original installed Local worker funding is unavailable')
+            from ._local_initial_preparation import _OriginalPythonPreparation
+            initial: _OriginalPythonPreparation | None = None
+            try:
+                # Bind actual interpreter allocator controls before acquiring or
+                # encoding this input. Native/worker supply is still separate.
+                initial = _OriginalPythonPreparation()
+                initial.capture_state_dir(state_dir)
+            except Exception as failure:
+                raise LocalWorkerFundingUnavailable(
+                    'Original Python initial preparation is unavailable',
+                    cleanup_preparation=initial) from failure
+            # This actual initial input service supplies neither the absent
+            # worker originals nor the larger discovery/import/loader envelope.
+            # Keep the same initial carrier; never treat it as reserved bytes.
+            raise LocalWorkerFundingUnavailable(
+                'Original installed Local worker funding is unavailable',
+                cleanup_preparation=initial)
         components = installed_local_components()
         # This explicit-resource route is a private diagnostic. It is not the
         # ordinary product factory, pre-spawn funding or installed acceptance.

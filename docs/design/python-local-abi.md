@@ -2355,6 +2355,27 @@ is no initialization-record close that could acknowledge process-global Runtime
 storage on Engine deletion or arena retirement. That storage remains the
 existing process/runtime Owner's responsibility through actual process stop.
 
+### Original interpreter startup input service
+
+The Python Host's selected initial input service binds the actual CPython
+3.12.12 interpreter and its RAW, MEM and OBJ allocator callbacks and contexts.
+It observes those original services without replacing an allocator or calling
+raw allocation/free callbacks on Python objects. The selected filesystem codec
+is UTF-8 with surrogateescape. Same-process, original-thread, interpreter,
+build and allocator correspondence is checked before and after the bounded
+state-directory encoding. Exact text is retained alongside its encoded bytes;
+PathLike callbacks and unbounded input copies are not part of this entrance.
+
+An attempted copy is not retried after failure. The same error retains the
+input carrier. Retiring this bounded input only spends that carrier; retained
+byte aliases, interpreter pools, shared modules and process-lived controls do
+not acquire a physical retirement acknowledgment or reusable byte credit.
+These controls remain separate from backed Native/worker/VM resources and
+execution delegation. Initial input service admission cannot authorize cohort
+discovery, loader work or a worker when their complete original supply and
+import/binding overlap are absent. The ordinary Host factory retains the same
+initial carrier on that unavailable outcome.
+
 ### Bounded private worker selections
 
 The installed worker preparation ports accept exact path text, rather than

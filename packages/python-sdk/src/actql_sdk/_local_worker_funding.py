@@ -16,6 +16,10 @@ from ._local_distribution import LocalComponents
 class LocalWorkerFundingUnavailable(RuntimeError):
     """No complete original funding; spawn/DLL/Config/Engine must not start."""
 
+    def __init__(self, message: str, *, cleanup_preparation: object | None = None) -> None:
+        self.cleanup_preparation = cleanup_preparation
+        super().__init__(message)
+
 
 class LocalWorkerFundingPending(RuntimeError):
     """Keep this original carrier; uncertainty does not permit a new reserve."""
