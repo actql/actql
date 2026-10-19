@@ -16896,7 +16896,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7b2c873e2abab2600d47510865db478d78ea57161dbe1a8cf89dc92c49751028",
+      "sha256": "33c531f79fc95d709ccf065e51a766a8333ccef4c123432036731b4e0900e9e9",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -17118,6 +17118,30 @@
             "database",
             "maxDatabaseBytes"
           ],
+          "async": false
+        },
+        {
+          "name": "boundJournalOperations",
+          "parameters": [
+            "journal",
+            "maximum",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundJournalOperations/boundJournalOperations",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "boundJournalOperations/boundJournalOperations#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundJournalOperations/enter/enter",
+          "parameters": [],
           "async": false
         },
         {
@@ -17452,6 +17476,7 @@
             "maxInspectionBytes",
             "maxDatabaseBytes",
             "maxWalFrames",
+            "maxJournalOperations",
             "primarySqlLimits",
             "primaryExecutionLimits",
             "primarySchemaLimits",
@@ -19720,6 +19745,105 @@
               {
                 "path": "adapters/host-node/client-request-journal-wal-bounds.test.mjs",
                 "anchor": "both writable connections share one non-refilling WAL lifetime before native calls"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "boundJournalOperations",
+            "boundJournalOperations/boundJournalOperations",
+            "boundJournalOperations/boundJournalOperations#2",
+            "boundJournalOperations/enter/enter"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "SQL and native-statement counters do not bound an operation that refuses"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function boundJournalOperations(journal, maximum, assertCurrent) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "return applyOriginal(original, journal, arguments);"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const deliveredJournal = boundJournalOperations(journal, maxJournalOperations, primaryCurrent);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const descriptors = operationDescriptors(journal);"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "return operationFreeze(operationDefineProperties({}, descriptors));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "attempts++;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "assertCurrent?.();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (attempts >= maximum) throw failure;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const failure = new OperationError('ClientRequestJournalOperationUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "name === 'close' || name === 'closeObservationStorage'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "operations, available without operation credit or currentness."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "record, forwarding closures/receivers, operation count, retained refusal and"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "must combine it with the original per-operation input/cardinality/SQL limits"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-request-journal-operation-bounds.test.mjs",
+                "anchor": "failed pre-SQL operations consume the original lifetime before another argument read"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-operation-bounds.test.mjs",
+                "anchor": "exhausted operations retain both original connections through pending close and same-receiver retry"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-operation-bounds.test.mjs",
+                "anchor": "failed original currentness consumes its operation before argument access without blocking close"
               }
             ]
           }
