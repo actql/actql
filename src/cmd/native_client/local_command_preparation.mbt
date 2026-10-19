@@ -303,10 +303,16 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
       host.return_backing_borrow(scope).map_err(issue => CommandHost(issue)),
     )
     self.backing_scope = None
+    // The facility ceiling belongs to this same original lease BEFORE its
+    // first context/control allocation. It cannot be installed at a later
+    // consuming phase or inferred from the domain's remaining allowance.
+    let read_preparation = match self.native_storage.read_facility_ceiling {
+      Some(ceiling) =>
+        host.prepare_domain_read(read_domain, execution_ceiling=ceiling)
+      None => host.prepare_domain_read(read_domain)
+    }
     command_preparation_value(
-      host
-      .prepare_domain_read(read_domain)
-      .map_err(issue => CommandDomain(issue)),
+      read_preparation.map_err(issue => CommandDomain(issue)),
     )
     command_preparation_value(
       host
@@ -413,12 +419,18 @@ fn LocalCommandPreparationOriginal::acquire_runtime(
       .map_err(issue => CommandPair(issue)),
     )
     self.pair = Some(pair)
+    // The same H is both the physical occupied-page ceiling and the original
+    // consuming claim. Generic demand-based claims retain their old argument.
+    let consumer_execution = match self.native_storage.read_facility_ceiling {
+      Some(ceiling) => ceiling
+      None => profile.consumer_execution_bytes
+    }
     let consumer = command_preparation_value(
       host
       .prepare_local_host_read_consumer(
         pair,
         profile.consumer_retained_bytes,
-        profile.consumer_execution_bytes,
+        consumer_execution,
       )
       .map_err(issue => CommandPair(issue)),
     )

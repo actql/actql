@@ -1569,6 +1569,20 @@ before the writer may use the serial phase bound. Pending cleanup retains the
 same profile, scope, original FD/errno and all aliases; it does not refill the
 Read or permit a second acquisition.
 
+The closed command's Read selection also distinguishes full managed/native
+demand bounds from finite supplied capacity. A facility candidate installs its
+one-shot occupied-page ceiling on the same original lease before context or
+payload allocation. Generic buffers, managed slabs, control metadata and pending
+allocations consume that same ceiling without fallback or phase reset. The
+whole backing remains charged once by its outer owner. The same H binds the
+existing one-shot consuming claim; bootstrap, workspace and read reservations
+remain distinct. Crypto heap and inspection coexistence are necessary subsets,
+not additional capacity or a guarantee that every input fits. An exhausted
+attempt keeps its original failure and cleanup duties. Default allocations
+outside the entered original Read remain outside this facility, and all initial
+and external holding requirements remain mandatory. This selection covers only
+static Native command preparation, never business Source/Compute/Model work.
+
 The profile validates the actual parsed Journal limits against its captured
 pre-acquisition inventory. Native managed graphs, same-domain native buffers,
 SQLite external receivers, shared control and process/platform holdings have

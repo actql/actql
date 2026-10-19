@@ -8,8 +8,10 @@ priv struct LocalCommandNativeStorageBounds {
   source : String
   max_snapshot_bytes : Int64
   max_records : Int
+  read_selection : LocalCommandReadStorageSelection
   // Full retained Runtime/configuration/Journal/Common managed graphs,
   // including copies, decoding, callbacks and escaped diagnostics.
+  // Demand selection only; never a residual facility capacity.
   managed_read_execution_bytes : Int64?
   // Mapped images and loader/pthread/TLS/OS/stack holdings outside component heaps.
   // One original shared term, retained through its own actual retirement.
@@ -25,6 +27,21 @@ priv struct LocalCommandNativeStorageBounds {
   // The shared outer registration/controller lifetime, counted once in the
   // existing actual control envelope, not once per Library or phase.
   shared_control_bytes : Int64?
+}
+
+///|
+// Closed Native command preparation only. Facility bytes are a pre-acquisition
+// candidate for the same physical Read's occupied-page ceiling, never residual
+// managed/native demand or a general business Read allowance.
+priv enum LocalCommandReadStorageSelection {
+  CommandReadDemand
+  CommandReadFiniteFacility(Int64)
+}
+
+///|
+priv enum LocalCommandReadPayloadRequirement {
+  CommandReadDemandPayload(Int64)
+  CommandReadNecessaryPayload(Int64)
 }
 
 ///|
@@ -71,6 +88,8 @@ priv struct LocalCommandNativeStorageQuote {
   sqlite_payload_requirement : LocalCommandSqlitePayloadRequirement
   sqlite_execution_bytes : Int64
   read_execution_bytes : Int64
+  read_payload_requirement : LocalCommandReadPayloadRequirement
+  read_facility_ceiling : Int64?
   platform_required_bytes : Int64
   shared_control_bytes : Int64
 }
@@ -231,15 +250,28 @@ fn quote_local_command_native_storage(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
-  guard bounds.managed_read_execution_bytes is Some(managed) && managed > 0L else {
-    return Err(NativeStorageManagedMissing)
+  // Preserve the original demand branch's missing-term refusal order.
+  let managed_demand = match bounds.read_selection {
+    CommandReadDemand => {
+      guard bounds.managed_read_execution_bytes is Some(managed) && managed > 0L else {
+        return Err(NativeStorageManagedMissing)
+      }
+      Some(managed)
+    }
+    CommandReadFiniteFacility(_) => None
   }
   guard bounds.loader_platform_execution_bytes is Some(platform) &&
     platform > 0L else {
     return Err(NativeStoragePlatformMissing)
   }
-  guard bounds.native_read_execution_bytes is Some(native) && native > 0L else {
-    return Err(NativeStorageReadMissing)
+  let read_demand = match bounds.read_selection {
+    CommandReadDemand => {
+      guard bounds.native_read_execution_bytes is Some(native) && native > 0L else {
+        return Err(NativeStorageReadMissing)
+      }
+      Some((managed_demand.unwrap(), native))
+    }
+    CommandReadFiniteFacility(_) => None
   }
   guard bounds.sqlite_heap_selection is Some(selection) else {
     return Err(NativeStorageSqliteHeapMissing)
@@ -286,7 +318,7 @@ fn quote_local_command_native_storage(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if native < inspection {
+  if read_demand is Some((_, native)) && native < inspection {
     return Err(NativeStorageInsufficient)
   }
   let array = match native_storage_mem5_block(8L * regions) {
@@ -336,9 +368,47 @@ fn quote_local_command_native_storage(
   }
   // The one Crypto heap serves both original Libraries, all hooked OpenSSL
   // allocations, realloc overlap and cleanup. Native buffers remain separate.
-  let read = match native_storage_sum([crypto_extent, managed, native]) {
-    Err(issue) => return Err(issue)
-    Ok(value) => value
+  let (read, read_requirement, read_ceiling) = match bounds.read_selection {
+    CommandReadDemand => {
+      guard read_demand is Some((managed, native)) else {
+        return Err(NativeStorageReadMissing)
+      }
+      let bytes = match native_storage_sum([crypto_extent, managed, native]) {
+        Err(issue) => return Err(issue)
+        Ok(value) => value
+      }
+      (bytes, CommandReadDemandPayload(bytes), None)
+    }
+    CommandReadFiniteFacility(bytes) => {
+      let page = native_storage_page_bytes()
+      if bytes <= 0L || page <= 0L || bytes % page != 0L {
+        return Err(NativeStorageInvalidInput)
+      }
+      let minimum = match native_storage_sum([crypto_extent, inspection]) {
+        Err(issue) => return Err(issue)
+        Ok(value) => value
+      }
+      // This is necessary coexistence, not a complete managed/native demand
+      // estimate. Crypto's contained heap is not charged a second time.
+      if bytes < minimum || bytes > profile.read_budget.read_execution {
+        return Err(NativeStorageInsufficient)
+      }
+      // Generic original bootstrap/workspace/read reservations remain separate.
+      // No claim is enlarged or weakened to make the facility selection fit.
+      let reserved = match
+        native_storage_sum([
+          profile.read_budget.bootstrap_execution,
+          profile.read_budget.workspace_execution,
+          profile.read_budget.read_execution,
+        ]) {
+        Err(issue) => return Err(issue)
+        Ok(value) => value
+      }
+      if reserved > profile.read_domain_limits.execution_bytes {
+        return Err(NativeStorageInsufficient)
+      }
+      (bytes, CommandReadNecessaryPayload(minimum), Some(bytes))
+    }
   }
   if read > profile.consumer_execution_bytes ||
     read > profile.read_domain_limits.execution_bytes ||
@@ -359,6 +429,8 @@ fn quote_local_command_native_storage(
     },
     sqlite_execution_bytes: sqlite,
     read_execution_bytes: read,
+    read_payload_requirement: read_requirement,
+    read_facility_ceiling: read_ceiling,
     platform_required_bytes: platform,
     shared_control_bytes: control,
   })

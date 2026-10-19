@@ -38,6 +38,7 @@ fn native_storage_arithmetic_profile() -> LocalCommandPreparationProfile {
       source,
       max_snapshot_bytes: 32L,
       max_records: 8,
+      read_selection: CommandReadDemand,
       managed_read_execution_bytes: Some(11L),
       loader_platform_execution_bytes: Some(19L),
       native_read_execution_bytes: Some(131072L),
@@ -126,6 +127,8 @@ test "Native storage shared heaps count once and platform never charges Read" {
   let profile = native_storage_arithmetic_profile()
   let quote = quote_local_command_native_storage(profile).unwrap()
   assert_eq(quote.read_execution_bytes, profile.crypto_heap_bytes + 131083L)
+  assert_true(quote.read_payload_requirement is CommandReadDemandPayload(_))
+  assert_eq(quote.read_facility_ceiling, None)
   assert_eq(quote.platform_required_bytes, 19L)
   assert_eq(quote.sqlite_execution_bytes, profile.sqlite_heap_bytes + 17L)
   assert_true(quote.sqlite_payload_requirement is SqliteDemandPayload(295456L))
@@ -338,6 +341,86 @@ test "Native SQLite finite capacity is distinct from derived demand" {
     quote_local_command_native_storage({
       ..profile,
       native_storage: missing_platform,
+    })
+    is Err(NativeStoragePlatformMissing),
+  )
+}
+
+///|
+test "Native command Read facility separates capacity from complete demand" {
+  let profile = native_storage_arithmetic_profile()
+  let page = native_storage_page_bytes()
+  let ceiling = profile.crypto_heap_bytes + 16L * page
+  let bounds = {
+    ..profile.native_storage,
+    read_selection: CommandReadFiniteFacility(ceiling),
+    managed_read_execution_bytes: None,
+    native_read_execution_bytes: None,
+  }
+  let selected = { ..profile, native_storage: bounds, }
+  let quote = quote_local_command_native_storage(selected).unwrap()
+  assert_eq(quote.read_execution_bytes, ceiling)
+  assert_eq(quote.read_facility_ceiling, Some(ceiling))
+  assert_true(quote.read_payload_requirement is CommandReadNecessaryPayload(_))
+  // Positive DATA still cannot supply the actual initial/platform original.
+  assert_true(
+    prepare_local_command_preparation_original(selected)
+    is Err(CommandNativeStorage(NativeStoragePlatformUnadmitted)),
+  )
+  let demand = { ..bounds, read_selection: CommandReadDemand, }
+  assert_true(
+    quote_local_command_native_storage({ ..profile, native_storage: demand, })
+    is Err(NativeStorageManagedMissing),
+  )
+}
+
+///|
+test "Native command Read facility retains minima and independent reservations" {
+  let profile = native_storage_arithmetic_profile()
+  let page = native_storage_page_bytes()
+  let minimum = profile.crypto_heap_bytes +
+    native_storage_inspection_minimum(page).unwrap()
+  let bounds = {
+    ..profile.native_storage,
+    read_selection: CommandReadFiniteFacility(minimum - page),
+    managed_read_execution_bytes: None,
+    native_read_execution_bytes: None,
+  }
+  assert_true(
+    quote_local_command_native_storage({ ..profile, native_storage: bounds, })
+    is Err(NativeStorageInsufficient),
+  )
+  let exact = { ..bounds, read_selection: CommandReadFiniteFacility(minimum), }
+  let quote = quote_local_command_native_storage({
+    ..profile,
+    native_storage: exact,
+  }).unwrap()
+  assert_true(quote.read_payload_requirement is CommandReadNecessaryPayload(_))
+  assert_eq(quote.read_execution_bytes, minimum)
+  assert_true(
+    quote_local_command_native_storage({
+      ..profile,
+      native_storage: exact,
+      read_budget: { ..profile.read_budget, read_execution: minimum - 1L, },
+    })
+    is Err(NativeStorageInsufficient),
+  )
+  assert_true(
+    quote_local_command_native_storage({
+      ..profile,
+      native_storage: exact,
+      read_budget: {
+        ..profile.read_budget,
+        bootstrap_execution: profile.read_domain_limits.execution_bytes,
+      },
+    })
+    is Err(NativeStorageInsufficient),
+  )
+  let missing_external = { ..exact, loader_platform_execution_bytes: None, }
+  assert_true(
+    quote_local_command_native_storage({
+      ..profile,
+      native_storage: missing_external,
     })
     is Err(NativeStoragePlatformMissing),
   )
