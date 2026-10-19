@@ -262,13 +262,46 @@ test('original UPDATE selection custody preserves prior combined identity', () =
   const currentManifest = read('spec/manifests/actql-grammar-0.1.json');
   const expression = JSON.parse(gunzipSync(readFileSync(
     'scripts/fixtures/composite-vector-bridge/signed64-identities.json.gz'))).expressionContract;
-  assert.deepEqual(read('spec/contracts/actql-expressions.json'), expression.body);
+  const currentExpression = read('spec/contracts/actql-expressions.json');
+  const comparisonHistory = JSON.parse(gunzipSync(readFileSync(
+    'scripts/fixtures/pre-int64-comparison-literal-identities.json.gz')));
+  const comparisonVectors = read('portability/corpus/int64-comparison-literals.json');
+  const comparisonPrior = comparisonHistory.records['spec/contracts/actql-expressions.json'];
+  assert.deepEqual(comparisonPrior, expression.body);
+  const queryTimePrior = read('scripts/fixtures/query-time-source/predecessor.json')
+    .contracts.find(record => record.id === 'expression_contract');
+  assert.equal(machineCid(queryTimePrior.body), queryTimePrior.cid);
+  assert.equal(queryTimePrior.cid, comparisonVectors.current_expression_contract_cid);
+  const temporalNames = ['current_timestamp', 'timestamp_add', 'timestamp_sub'];
+  const stripTime = value => {
+    if (Array.isArray(value)) return value.map(stripTime);
+    if (!value || typeof value !== 'object') return value;
+    const result = Object.fromEntries(Object.entries(value).map(([key, child]) => [key, stripTime(child)]));
+    if (result.oneOf) result.oneOf = result.oneOf.filter(shape =>
+      !temporalNames.includes(shape.properties?.op?.const) &&
+      !temporalNames.some(name => shape.required?.includes(name)));
+    return result;
+  };
+  const withoutTime = stripTime(currentExpression);
+  for (const name of temporalNames) delete withoutTime.laws[name];
+  withoutTime.grammar_sha256 = queryTimePrior.body.grammar_sha256;
+  assert.deepEqual(withoutTime, queryTimePrior.body);
+  // The admitted comparison extension changes exactly these two law positions.
+  // Keep the complete earlier body and its identity rather than retargeting it.
+  const priorAligned = structuredClone(queryTimePrior.body);
+  delete priorAligned.laws.signed64_comparison_context;
+  priorAligned.laws.lowering = comparisonPrior.laws.lowering;
+  assert.deepEqual(priorAligned, comparisonPrior);
   assert.equal(canonicalText(expression.body), expression.canonicalPreimage);
   assert.equal(machineCid(expression.body), expression.cid);
-  assert.equal(currentManifest.expression_contract_cid, expression.cid);
+  assert.equal(currentManifest.expression_contract_cid, machineCid(currentExpression));
+  assert.equal(currentManifest.expression_text_grammar_sha256, currentExpression.grammar_sha256);
+  assert.equal(sha(readFileSync(currentExpression.grammar)).slice(7), currentExpression.grammar_sha256);
   const currentAligned = {...currentManifest};
   for (const key of ['grammar_manifest_cid', 'query_text_grammar_sha256',
-    'query_text_rules_sha256', 'source_grammar_cid', 'expression_contract_cid']) currentAligned[key] = integrated.after[key];
+    'query_text_rules_sha256', 'expression_text_rules_sha256',
+    'source_grammar_cid', 'expression_contract_cid',
+    'expression_text_grammar_sha256']) currentAligned[key] = integrated.after[key];
   assert.deepEqual(currentAligned, integrated.after);
   for (const value of [integrated.frozen_before, integrated.main_before, integrated.after]) {
     const {grammar_manifest_cid: expected, ...body} = value;

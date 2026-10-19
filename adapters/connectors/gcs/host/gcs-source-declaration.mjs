@@ -80,10 +80,10 @@ export function restoreGcsSourceDeclaration(moon, profile, expectedCatalogCid,
         identity: ['resource', 'version'], cardinality: 'one'}}),
   ];
   if (includeObjects) {
-    // Exact provider Int64 values enter the existing Decimal carrier. The GCS
-    // parser retains its narrower signed Int64 range check; this does not
-    // advertise a wider decimal domain or round through a JS Number.
-    const integer = {type: 'decimal', precision: 19, scale: 0, nullable: false};
+    // Exact provider integers enter the existing nominal signed64 domain.
+    // Canonical decimal transport text does not make them Decimal or String;
+    // the provider's nonnegative signed64 range check remains unchanged.
+    const integer = {type: 'int64', nullable: false};
     const optionalText = {type: 'string', nullable: true};
     views.push(view('objects', {resource, version, name: {type: 'string', nullable: false},
       size: integer, content_type: optionalText, generation: integer, metageneration: integer,

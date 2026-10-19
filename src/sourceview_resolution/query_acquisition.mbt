@@ -17,6 +17,8 @@ struct QueryAcquisition {
   select_index : Int
   filter : @relation.CheckedOperation
   select : @relation.CheckedOperation
+  query_time_required : Bool
+  query_time : @publication.QueryEvaluationTime?
   work : Int
 }
 
@@ -28,6 +30,52 @@ pub fn derive_query_acquisition(
   requests : PipelineRequests,
   source_index : Int,
   max_work : Int,
+) -> Result[QueryAcquisition, QueryAcquisitionIssue] {
+  derive_query_acquisition_context(
+    requests,
+    source_index,
+    max_work,
+    None,
+    false,
+  )
+}
+
+///|
+/// Structural compilation retains the declared dependency without reading a
+/// clock or discharging it. Physical material admission still refuses it.
+pub fn derive_query_acquisition_shape(
+  requests : PipelineRequests,
+  source_index : Int,
+  max_work : Int,
+) -> Result[QueryAcquisition, QueryAcquisitionIssue] {
+  derive_query_acquisition_context(requests, source_index, max_work, None, true)
+}
+
+///|
+/// The enclosing checked Program/Run owner must bind this same original to
+/// its request before calling. This entry accepts no Timestamp or clock port.
+pub fn derive_query_acquisition_with_query_time(
+  requests : PipelineRequests,
+  source_index : Int,
+  max_work : Int,
+  query_time : @publication.QueryEvaluationTime,
+) -> Result[QueryAcquisition, QueryAcquisitionIssue] {
+  derive_query_acquisition_context(
+    requests,
+    source_index,
+    max_work,
+    Some(query_time),
+    false,
+  )
+}
+
+///|
+fn derive_query_acquisition_context(
+  requests : PipelineRequests,
+  source_index : Int,
+  max_work : Int,
+  query_time : @publication.QueryEvaluationTime?,
+  structural : Bool,
 ) -> Result[QueryAcquisition, QueryAcquisitionIssue] {
   if max_work < 0 {
     return Err(InvalidLimits)
@@ -106,6 +154,24 @@ pub fn derive_query_acquisition(
   guard selection is Some((select_index, select)) else {
     return Err(UnsupportedShape)
   }
+  let mut query_time_required = false
+  for operation in [filter, select] {
+    for index in 0..<@relation.binding_count(operation) {
+      if remaining == 0 {
+        return Err(WorkLimit)
+      }
+      remaining -= 1
+      guard @relation.binding_expression_at(operation, index)
+        is Some(expression) else {
+        return Err(UnsupportedShape)
+      }
+      query_time_required = query_time_required ||
+        @typing.requires_query_time(expression)
+    }
+  }
+  if query_time_required && query_time is None && !structural {
+    return Err(UnboundRequest)
+  }
   Ok({
     owner: requests,
     pipeline,
@@ -115,8 +181,22 @@ pub fn derive_query_acquisition(
     select_index,
     filter,
     select,
+    query_time_required,
+    query_time,
     work: max_work - remaining,
   })
+}
+
+///|
+pub fn query_acquisition_query_time_required(value : QueryAcquisition) -> Bool {
+  value.query_time_required
+}
+
+///|
+pub fn query_acquisition_query_time(
+  value : QueryAcquisition,
+) -> @publication.QueryEvaluationTime? {
+  value.query_time
 }
 
 ///|
@@ -209,5 +289,5 @@ pub fn query_acquisition_requirement_at(
 
 ///|
 pub fn query_acquisition_contract_cid() -> String {
-  "sha256:ad68f7ceafeed528a29c05e726db799d0031ef46152c0385f64468d38094c606"
+  "sha256:5a95e60847276d02229eba9550dd9808a8a8c2764decd4dad667954f020db7cc"
 }

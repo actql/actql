@@ -144,6 +144,8 @@ pub fn authoring_publication_row_host(AuthoringPublicationSelection) -> @capacit
 
 pub fn authoring_publication_work(AuthoringPublicationChecks) -> Int
 
+pub fn authoring_runtime_group_rule(AuthoringRuntimeRequirement) -> GroupExecutionRule?
+
 pub fn authoring_values_capacity(AuthoringValuesPublicationCheck) -> @check_environment.Capacity
 
 pub fn authoring_values_metadata_usage(AuthoringValuesPublicationCheck) -> (Int, Int)
@@ -1445,6 +1447,7 @@ pub struct AuthoringRuntimeRequirement {
   step : Int
   owner : @pipeline_typing.OperationObligations
   index : Int
+  // private fields
 }
 
 type AuthoringValuesPublicationCheck

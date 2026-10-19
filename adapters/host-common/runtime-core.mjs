@@ -2810,6 +2810,35 @@ function publicationControl(moon) {
         moon.clientProgramCompiledRunResultTransformation(
           value, checkedProgram, result), 'RunHostResultSelectionRejected');
     },
+    clientRequiresQueryTime(prepared) {
+      if (typeof moon.clientProgramRequiresQueryTime !== 'function') return false;
+      const value = checked(moon.clientProgramRequiresQueryTime(prepared, 100000, 100000));
+      if (typeof value !== 'boolean') throw new TypeError('Invalid Client query-time requirement');
+      return value;
+    },
+    prepareClientQueryTime(prepared, request, createdAt) {
+      if (typeof moon.clientProgramPrepareQueryTime !== 'function') {
+        throw new TypeError('Client query-time preparation unavailable');
+      }
+      return checked(moon.clientProgramPrepareQueryTime(prepared, request, createdAt));
+    },
+    bindClientQueryTime(original, prepared, compiled, definition, request) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || typeof moon.clientProgramBindQueryTime !== 'function') {
+        throw new TypeError('Foreign Client query-time compilation');
+      }
+      return checked(moon.clientProgramBindQueryTime(original, prepared, value, token(definition), request));
+    },
+    restoreClientQueryTime(prepared, compiled, definition, request) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || typeof moon.clientProgramRestoreQueryTimePreparation !== 'function') {
+        throw new TypeError('Foreign Client query-time compilation');
+      }
+      const preparation = checked(moon.clientProgramRestoreQueryTimePreparation(prepared, value, token(definition), request));
+      const context = moon.clientProgramQueryTimeContext(preparation);
+      if (context === undefined) throw new TypeError('Client query-time context unavailable');
+      return Object.freeze({queryTimePreparation:preparation,queryTime:context});
+    },
     defineCheckedClientCompiledRun(compiled, {namespaceId, runId,
       createdAt, validUntil, retainedDefinitionWire}) {
       const value = compiledRunTokens.get(compiled);

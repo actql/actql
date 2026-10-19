@@ -1,0 +1,19 @@
+[
+  {
+    "kind": "source",
+    "body": {
+      "current_timestamp": []
+    },
+    "canonical": "{\"current_timestamp\":[]}",
+    "data_cid": "sha256:d71fd1b9268cd4d6691f2c71ee4aabb9a5b46ffd8bbedcae67192f14e7262fc6"
+  },
+  {
+    "kind": "machine",
+    "body": {
+      "body": [],
+      "op": "current_timestamp"
+    },
+    "canonical": "{\"body\":[],\"op\":\"current_timestamp\"}",
+    "data_cid": "sha256:94590ff8c11585929ea58da625d052bd96f871fce308d17c48eba8b28363fe34"
+  }
+]

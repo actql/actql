@@ -89,7 +89,40 @@
     "event_clock": "same_original_Timestamp_to_exact_rational_UTC_epoch_milliseconds_not_public_Number_or_truncating_date_diff_preserve_payload_and_numeric_clock_domain",
     "millisecond_only_projection": "refuse_nonrepresentable_fraction_without_rounding_or_truncation",
     "operational_clocks": "trusted_now_expiry_deadline_rollback_provenance_keep_original_millisecond_contracts_and_issuers",
-    "conformance_boundary": "legacy_millisecond_conformance_does_not_prove_extended_fractional_consumers"
+    "conformance_boundary": "legacy_millisecond_conformance_does_not_prove_extended_fractional_consumers",
+    "date_add": {
+      "amount": "evaluate_original_Number_expression_then_interpret_resulting_finite_binary64_bits_exactly",
+      "duration": "exact_evaluated_Number_times_declared_fixed_unit_no_intermediate_binary64_unit_product_or_decimal_spelling_reinterpretation",
+      "representability": "nonintegral_nanosecond_result_fails_ArithmeticFailure_without_rounding_or_truncation",
+      "range": "exact_signed_carry_preserves_original_nanoseconds_calendar_overflow_fails",
+      "date": "integer_amount_and_d_only",
+      "examples": {
+        "aligned_seconds_0_125": "success",
+        "aligned_milliseconds_0_5": "success",
+        "binary64_seconds_0_1": "ArithmeticFailure",
+        "binary64_seconds_1e_minus_9": "ArithmeticFailure"
+      }
+    },
+    "query_time": {
+      "signature": "Zero operands and a non-null Timestamp result. CURRENT_TIMESTAMP() and {current_timestamp:[]} select one canonical computation operation; static checking and compilation never sample a clock.",
+      "value": "For one original query invocation, every demanded occurrence, row, fragment and continuation reads the same admitted Run definition created_at. Keep the actual canonical UTC precision without manufacturing finer digits.",
+      "binding": "The same selected Host captures a fresh original wall-clock observation at new invocation admission, before dependent Source requests and execution. Existing preparation may retain that original before compilation; the final admitted Run definition must bind exactly the same created_at and checked Program, requests, compilation and invocation. A stale policy creation time, caller String, copied identity, generic callback or user flag is not that original.",
+      "source": "Discharge declared query-time dependencies only from the same original invocation preparation and final Run binding. Preserve unresolved or foreign UnboundRequest refusal; resource_ref host_bindings retain their original meaning. The physical predicate projection and downstream evaluator use the same original without rewriting the authored graph, introducing a hidden Parameter or evaluating SQL in a Host.",
+      "recovery": "Persist the admitted original through the same confirmed request Journal before dependent dispatch. Lookup, racing issuers and cold recovery use the winning saved Run, never a replacement sample or second Run. Distinct query-invocation scopes are not collapsed into one Run-level field. Old Runs without this operation retain their bytes.",
+      "evaluation": "Preserve surrounding lazy demand, original root lifetimes, logical value charges, control/workspace limits and cancellation. A demanded expression without its original execution context is unavailable; do not fabricate a value. An undemanded branch performs no clock read.",
+      "authority": "Query time is computation data only. It grants no Account, Source, Model, Effect, resource, expiry, retention or authorization-clock authority; operational clock contracts remain unchanged.",
+      "identity": "The closed source is {current_timestamp:[]} and the closed machine node is {op:current_timestamp,body:[]}. Retain that zero-argument node in canonical emission; never fold it to an authored Timestamp literal. Earlier complete contract bodies keep their original identities.",
+      "proof_status": "implementation-required-same-Run-Host-Source-and-recovery"
+    },
+    "fixed_interval": {
+      "signature": "Timestamp and exact signed64 amount with a fixed literal unit ns|us|ms|s|m|h|d; result is Timestamp with strict operand nullability.",
+      "source": "TIMESTAMP_ADD(value, INTERVAL amount UNIT), TIMESTAMP_SUB(value, INTERVAL amount UNIT), and Timestamp +/- INTERVAL amount UNIT lower to timestamp_add/sub(value, amount, literal_unit). DAY=24 hours; HOUR=60 minutes; MINUTE=60 seconds. No timezone, DST, month or year adjustment.",
+      "amount": "The original integral source token is retained exactly, not parsed through Number. The immediate canonical decimal String atom receives signed64 context at this consumer; int64 fields and Parameters keep their nominal checked domain. Nonliteral Number, Decimal and Text do not promote. Full min/max remain exact and subtraction does not negate min_int64 in Int64.",
+      "duration": "Multiply the exact signed integer by the fixed nanosecond factor without binary64 conversion; add/subtract with exact signed carry and preserve original fractional nanoseconds. Calendar/range overflow fails existing ArithmeticFailure.",
+      "demand": "Preserve original left-to-right eager child evaluation, strict NULL, surrounding lazy demand, root leases, logical value/work accounting, bounded workspace and cancellation. No first-class unbounded Interval value or general int64 arithmetic overload.",
+      "compatibility": "Existing date_add Number-bit duration law, short structured units, all former value/clock shapes and operational clock purposes are unchanged.",
+      "proof_status": "implementation-required-original-context-and-supported-backend-consumers"
+    }
   },
   "unicode": {
     "data_version": "16.0",

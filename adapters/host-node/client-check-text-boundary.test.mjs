@@ -622,6 +622,594 @@ for (const entrance of ['local', 'http']) {
     assert.deepEqual(counts, {exchanges: 6, authorization: 6, analysis: 6});
   });
 
+  test(`${entrance}: Group templates retain original runtime checks and Parameter inputs`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        'SELECT COUNT(*) AS n',
+        'SELECT COUNT(1) AS n',
+        'SELECT COUNTIF(TRUE) AS n',
+        'SELECT MIN(1) AS n',
+        'SELECT MAX(1) AS n',
+        'SELECT 1 AS id |> AGGREGATE COUNT(*) AS n',
+      ]) {
+        for (const scope of ['template_only', 'bound_input']) {
+          const checked = await client.check(text, {kind: 'text', scope, format});
+          assert.equal(checked.outcome, 'completed');
+          assert.equal(checked.report.verdict, 'verified', text);
+          assert.deepEqual(checked.report.requirements, []);
+          assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+          assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+          assert.equal(getCheckInput(checked, 'source').text, text);
+        }
+      }
+      const text = 'SELECT COUNTIF(@flag) AS n';
+      const options = {kind: 'text', scope: 'template_only', format,
+        parameterDeclarations: {flag: {type: 'boolean'}}};
+      const template = await client.check(text, options);
+      assert.equal(template.report.verdict, 'verified');
+      assert.deepEqual(template.report.runnable, {verdict: 'no',
+        reasons: [{code: 'parameter_value_required'}]});
+      assert.equal(template.report.requirements[0].facts.parameter, 'flag');
+      assert.ok(resolveCheckLocation(template, template.report.requirements[0].location));
+      const missing = await client.check(text, {...options, scope: 'bound_input'});
+      assert.equal(missing.report.verdict, 'undetermined');
+      assert.equal(missing.report.requirements[0].code, 'parameter_value_required');
+      assert.equal(missing.report.runnable.verdict, 'no');
+      const defaulted = await client.check(text, {...options,
+        parameterDeclarations: {flag: {type: 'boolean', default: false}}});
+      assert.equal(defaulted.report.verdict, 'verified');
+      assert.deepEqual(defaulted.report.requirements, []);
+      const bound = await client.check(text,
+        {...options, scope: 'bound_input', parameters: {flag: false}});
+      assert.equal(bound.report.verdict, 'verified');
+      assert.deepEqual(bound.report.requirements, []);
+      const wrong = await client.check(text,
+        {...options, scope: 'bound_input', parameters: {flag: 0}});
+      assert.equal(wrong.report.verdict, 'invalid');
+      assert.equal(wrong.report.reasons[0].code, 'supplied_value_type_mismatch');
+      const numeric = await client.check('SELECT SUM(1) AS n',
+        {kind: 'text', scope: 'template_only', format});
+      assert.equal(numeric.report.verdict, 'undetermined');
+      assert.equal(numeric.report.runnable.verdict, 'no');
+    }
+  });
+
+  test(`${entrance}: documented NUMBER casts use the original numeric checker`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const target of ['NUMBER', 'number', 'NuMbEr', 'FLOAT64', 'DOUBLE']) {
+        for (const text of [
+          `SELECT CAST('1.25' AS ${target}) AS n, CAST(NULL AS ${target}) AS missing`,
+          `SELECT '1.25' AS raw |> SELECT CAST(raw AS ${target}) AS n`,
+          `SELECT CAST(@value AS ${target}) AS n`,
+        ]) {
+          const options = {kind: 'text', scope: 'bound_input', format,
+            ...(text.includes('@value') ? {
+              parameterDeclarations: {value: {type: 'string'}}, parameters: {value: '1.25'},
+            } : {})};
+          const checked = await client.check(text, options);
+          assert.equal(checked.outcome, 'completed');
+          assert.equal(checked.report.verdict, 'verified', text);
+          assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+          assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+          assert.deepEqual(checked.report.requirements, []);
+          assert.equal(getCheckInput(checked, 'source').text, text);
+        }
+      }
+      const wrongType = await client.check('SELECT CAST(TRUE AS NUMBER) AS n',
+        {kind: 'text', scope: 'bound_input', format});
+      assert.equal(wrongType.report.verdict, 'invalid');
+      for (const target of ['`NUMBER`', 'NUMBERISH']) {
+        const invalid = await client.check(`SELECT CAST('1.25' AS ${target}) AS n`,
+          {kind: 'text', scope: 'bound_input', format});
+        assert.equal(invalid.report.verdict, 'invalid');
+        assert.equal(invalid.report.reasons[0].code, 'query_syntax_invalid');
+      }
+    }
+  });
+
+  test(`${entrance}: documented NULL ARRAY context preserves checked membership domains`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      const options = {kind: 'text', scope: 'bound_input', format};
+      for (const text of [
+        'SELECT 1 IN UNNEST(CAST(NULL AS ARRAY<INT64>)) AS found',
+        'SELECT 1 NOT IN UNNEST(CAST(((NULL)) AS ARRAY<INT64>)) AS absent',
+        'SELECT CAST(NULL AS ARRAY<INT64>) IS NULL AS missing, ARRAY<INT64>[] IS NULL AS empty',
+        'SELECT 9007199254740992.0 IN UNNEST(ARRAY<INT64>[]) AS found',
+        'SELECT NULL IN UNNEST(CAST(NULL AS ARRAY<INT64>)) AS found',
+        'SELECT ARRAY<INT64>[NULL] AS nullable_items',
+      ]) {
+        const checked = await client.check(text, options);
+        assert.equal(checked.report.verdict, 'verified', text);
+        assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      for (const text of [
+        'SELECT 9007199254740992 IN UNNEST(ARRAY<INT64>[]) AS found',
+        'SELECT 1.5 IN UNNEST(CAST(NULL AS ARRAY<INT64>)) AS found',
+        'SELECT 9223372036854775808.0 IN UNNEST(CAST(NULL AS ARRAY<INT64>)) AS found',
+        "SELECT '1' IN UNNEST(CAST(NULL AS ARRAY<INT64>)) AS found",
+        'SELECT ARRAY<INT64>[1] AS no_constructor_promotion',
+        'SELECT @value IN UNNEST(CAST(NULL AS ARRAY<INT64>)) AS no_parameter_promotion',
+      ]) {
+        const checked = await client.check(text, {...options,
+          ...(text.includes('@value') ? {parameterDeclarations: {value: {type: 'number'}}, parameters: {value: 1}} : {})});
+        assert.equal(checked.report.verdict, 'invalid', text);
+      }
+      for (const value of ['-9223372036854775808', '9223372036854775807', '9007199254740993', null]) {
+        const checked = await client.check('SELECT ARRAY<INT64>[@value] AS exact', {...options,
+          parameterDeclarations: {value: {type: 'int64', nullable: value === null}}, parameters: {value}});
+        assert.equal(checked.report.verdict, 'verified');
+      }
+      const unsupported = await client.check('SELECT CAST(ARRAY<INT64>[] AS ARRAY<INT64>) AS items', options);
+      assert.equal(unsupported.report.verdict, 'undetermined');
+      assert.equal(unsupported.report.coverage.limits[0].code, 'implementation_limit');
+      assert.deepEqual(unsupported.report.runnable, {verdict: 'no', reasons: [{code: 'implementation_limit'}]});
+    }
+  });
+
+  for (const {name, target, argument, invalid, value, contract, identity} of [
+    {name: 'to_string', target: 'STRING', argument: '12.5', invalid: 'ARRAY[1]', value: 12.5,
+      contract: {type: 'number'}, identity: "'12.5'"},
+    {name: 'to_boolean', target: 'BOOLEAN', argument: "'true'", invalid: '12.5', value: 'true',
+      contract: {type: 'string'}, identity: 'TRUE'},
+    {name: 'to_timestamp', target: 'TIMESTAMP', argument: "'2026-10-19T00:00:00.000Z'", invalid: 'TRUE',
+      value: '2026-10-19T00:00:00.000Z', contract: {type: 'string'},
+      identity: "CAST('2026-10-19T00:00:00.000Z' AS TIMESTAMP)"},
+  ]) {
+    test(`${entrance}: documented ${name} shares the original scalar CAST`, async t => {
+      const {client} = await publicCheck(t, entrance);
+      for (const format of ['sql', 'aql-text']) {
+        for (const text of [
+          `SELECT CAST(${argument} AS ${target}) AS value`,
+          `SELECT ${name}(${argument}) AS value`,
+          `SELECT ${name.toUpperCase()}(${identity}) AS value`,
+          `SELECT \`${name}\`(@input) AS value`,
+          `SELECT ${name}((NULL)) AS value`,
+        ]) {
+          const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+            ...(text.includes('@input') ? {parameterDeclarations: {input: contract},
+              parameters: {input: value}} : {})});
+          assert.equal(checked.outcome, 'completed');
+          assert.equal(checked.report.verdict, 'verified', text);
+          assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+          assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+          assert.equal(getCheckInput(checked, 'source').text, text);
+        }
+        for (const text of [`SELECT ${name}() AS bad`, `SELECT ${name}(${argument}, ${argument}) AS bad`,
+          `SELECT ${name}(${invalid}) AS bad`]) {
+          const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format});
+          assert.equal(checked.report.verdict, 'invalid', text);
+        }
+        const foreign = await client.check(`SELECT ACTQL.${name}(${argument}) AS value`,
+          {kind: 'text', scope: 'bound_input', format});
+        assert.equal(foreign.report.verdict, 'undetermined');
+        assert.equal(foreign.report.coverage.limits[0].code, 'implementation_limit');
+      }
+    });
+  }
+
+  test(`${entrance}: Decimal arithmetic retains original checked result contracts`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        "SELECT CAST('12.50' AS DECIMAL(6,2)) + CAST('0.125' AS DECIMAL(4,3)) AS total",
+        "SELECT CAST('12.50' AS DECIMAL(6,2)) - CAST('0.125' AS DECIMAL(4,3)) AS total",
+        "SELECT CAST('-12.50' AS DECIMAL(6,2)) * CAST('0.125' AS DECIMAL(4,3)) AS total",
+        'SELECT @a + @b AS total',
+        "SELECT CAST('12.50' AS DECIMAL(6,2)) AS a |> SELECT a + CAST('0.125' AS DECIMAL(4,3)) AS total",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@a') ? {parameterDeclarations: {
+            a: {type: 'decimal', precision: 6, scale: 2},
+            b: {type: 'decimal', precision: 4, scale: 3},
+          }, parameters: {a: '12.50', b: '0.125'}} : {})});
+        assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+        assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      for (const text of [
+        "SELECT CAST('12.50' AS DECIMAL(6,2)) + 1 AS bad",
+        "SELECT 1 - CAST('12.50' AS DECIMAL(6,2)) AS bad",
+        "SELECT CAST('0.00000000000000000001' AS DECIMAL(20,20)) * CAST('0.00000000000000000001' AS DECIMAL(20,20)) AS bad",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format});
+        assert.equal(checked.report.verdict, 'invalid', text);
+      }
+    }
+  });
+
+  test(`${entrance}: explicit DECIMAL_DIVIDE retains exact original operand domains`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql','aql-text']) {
+      for (const mode of ['half_even','half_up','toward_zero','floor','ceiling']) {
+        for (const text of [
+          `SELECT DECIMAL_DIVIDE(CAST('12.50' AS DECIMAL(6,2)),2,6,2,'${mode}') AS quotient`,
+          `SELECT DECIMAL_DIVIDE(CAST('1' AS DECIMAL(6,2)),CAST('0.8' AS DECIMAL(4,1)),6,2,'${mode}') AS quotient`,
+          `SELECT DECIMAL_DIVIDE(@amount,@divisor,(6),(2),'${mode}') AS quotient`,
+          `SELECT DECIMAL_DIVIDE(NULL,NULL,6,2,'${mode}') AS quotient`,
+          `SELECT CAST('12.50' AS DECIMAL(6,2)) AS amount |> SELECT DECIMAL_DIVIDE(amount,2,6,2,'${mode}') AS quotient`,
+        ]) {
+          const checked = await client.check(text,{kind:'text',scope:'bound_input',format,
+            ...(text.includes('@amount') ? {parameterDeclarations:{amount:{type:'decimal',precision:6,scale:2},divisor:{type:'number'}},parameters:{amount:'12.50',divisor:2}} : {})});
+          assert.equal(checked.report.verdict,'verified',JSON.stringify(checked.report));
+          assert.deepEqual(checked.report.runnable,{verdict:'yes',reasons:[]});
+          assert.deepEqual(checked.report.coverage,{limits:[],unresolved:[]});
+          assert.equal(getCheckInput(checked,'source').text,text);
+        }
+      }
+      for (const text of [
+        "SELECT DECIMAL_DIVIDE(12.5,2,6,2,'floor') AS bad",
+        "SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),'2',6,2,'floor') AS bad",
+        "SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2,@p,2,'floor') AS bad",
+        "SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2,6,2,@mode) AS bad",
+        "SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2,6,2,'nearest') AS bad",
+        "SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),@whole,6,2,'floor') AS bad",
+      ]) {
+        const checked = await client.check(text,{kind:'text',scope:'bound_input',format,
+          ...(text.includes('@p') ? {parameterDeclarations:{p:{type:'number'}},parameters:{p:6}} : {}),
+          ...(text.includes('@mode') ? {parameterDeclarations:{mode:{type:'string'}},parameters:{mode:'floor'}} : {}),
+          ...(text.includes('@whole') ? {parameterDeclarations:{whole:{type:'int64'}},parameters:{whole:'9007199254740993'}} : {})});
+        assert.equal(checked.report.verdict,'invalid',text);
+      }
+      for (const text of ["SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2) AS quotient","SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2,2) AS quotient","SELECT ACTQL.DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2,6,2,'floor') AS quotient"]) {
+        const checked = await client.check(text,{kind:'text',scope:'bound_input',format});
+        assert.equal(checked.report.verdict,'undetermined');
+        assert.equal(checked.report.coverage.limits[0].code,'implementation_limit');
+      }
+    }
+  });
+
+  test(`${entrance}: explicit QUANTIZE retains original Decimal target and rounding`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql','aql-text']) {
+      for (const mode of ['half_even','half_up','toward_zero','floor','ceiling']) {
+        for (const text of [
+          `SELECT QUANTIZE(CAST('1.235' AS DECIMAL(6,3)),4,2,'${mode}') AS amount`,
+          `SELECT QUANTIZE(@amount,(4),(2),'${mode}') AS rounded`,
+          `SELECT QUANTIZE(NULL,4,2,'${mode}') AS amount`,
+          `SELECT CAST('1.235' AS DECIMAL(6,3)) AS amount |> SELECT QUANTIZE(amount,4,2,'${mode}') AS rounded`,
+        ]) {
+          const checked = await client.check(text,{kind:'text',scope:'bound_input',format,
+            ...(text.includes('@amount') ? {parameterDeclarations:{amount:{type:'decimal',precision:6,scale:3}},parameters:{amount:'1.235'}} : {})});
+          assert.equal(checked.report.verdict,'verified',JSON.stringify(checked.report));
+          assert.deepEqual(checked.report.runnable,{verdict:'yes',reasons:[]});
+          assert.deepEqual(checked.report.coverage,{limits:[],unresolved:[]});
+          assert.equal(getCheckInput(checked,'source').text,text);
+        }
+      }
+      for (const text of [
+        "SELECT QUANTIZE(1.235,4,2,'half_even') AS bad",
+        "SELECT QUANTIZE('1.235',4,2,'half_even') AS bad",
+        "SELECT QUANTIZE(CAST('1.235' AS DECIMAL(6,3)),4,2,'nearest') AS bad",
+        "SELECT QUANTIZE(CAST('1.235' AS DECIMAL(6,3)),4,2,@mode) AS bad",
+        "SELECT QUANTIZE(CAST('1.235' AS DECIMAL(6,3)),@p,2,'floor') AS bad",
+        "SELECT QUANTIZE(CAST('1.235' AS DECIMAL(6,3)),4,2+0,'floor') AS bad",
+        "SELECT QUANTIZE(CAST('1.235' AS DECIMAL(6,3)),0,0,'floor') AS bad",
+        "SELECT QUANTIZE(@whole,18,0,'floor') AS bad",
+      ]) {
+        const checked = await client.check(text,{kind:'text',scope:'bound_input',format,
+          ...(text.includes('@mode') ? {parameterDeclarations:{mode:{type:'string'}},parameters:{mode:'floor'}} : {}),
+          ...(text.includes('@p') ? {parameterDeclarations:{p:{type:'number'}},parameters:{p:4}} : {}),
+          ...(text.includes('@whole') ? {parameterDeclarations:{whole:{type:'int64'}},parameters:{whole:'9007199254740993'}} : {})});
+        assert.equal(checked.report.verdict,'invalid',text);
+      }
+      for (const text of ["SELECT ACTQL.QUANTIZE(CAST('1.235' AS DECIMAL(6,3)),4,2,'floor') AS amount"]) {
+        const checked = await client.check(text,{kind:'text',scope:'bound_input',format});
+        assert.equal(checked.report.verdict,'undetermined');
+        assert.equal(checked.report.coverage.limits[0].code,'implementation_limit');
+      }
+    }
+  });
+
+  test(`${entrance}: public QUANTIZE shorthand keeps complete defaults and original Decimal domain`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        "SELECT QUANTIZE(CAST('2.345' AS DECIMAL(6,3)),2) AS amount",
+        "SELECT QUANTIZE(CAST('-2.355' AS DECIMAL(6,3)),(0)) AS amount",
+        "SELECT QUANTIZE(CAST('0' AS DECIMAL(1,0)),38) AS amount",
+        "SELECT QUANTIZE(NULL,2) AS amount",
+        "SELECT QUANTIZE(@amount,2) AS rounded",
+        "SELECT CAST('2.345' AS DECIMAL(6,3)) AS amount |> SELECT QUANTIZE(amount,2) AS rounded",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@amount') ? {parameterDeclarations: {amount: {type: 'decimal', precision: 6, scale: 3}},
+            parameters: {amount: '2.345'}} : {})});
+        assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+        assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+        assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      for (const text of [
+        'SELECT QUANTIZE(2.345,2) AS bad', "SELECT QUANTIZE('2.345',2) AS bad",
+        'SELECT QUANTIZE(@whole,2) AS bad',
+        "SELECT QUANTIZE(CAST('2.345' AS DECIMAL(6,3)),-1) AS bad",
+        "SELECT QUANTIZE(CAST('2.345' AS DECIMAL(6,3)),39) AS bad",
+        "SELECT QUANTIZE(CAST('2.345' AS DECIMAL(6,3)),@scale) AS bad",
+        "SELECT QUANTIZE(CAST('2.345' AS DECIMAL(6,3)),1+1) AS bad",
+        "SELECT QUANTIZE(CAST('2.345' AS DECIMAL(6,3)),38,2) AS bad",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@whole') ? {parameterDeclarations: {whole: {type: 'int64'}},
+            parameters: {whole: '9007199254740993'}} : {}),
+          ...(text.includes('@scale') ? {parameterDeclarations: {scale: {type: 'number'}}, parameters: {scale: 2}} : {})});
+        assert.equal(checked.report.verdict, 'invalid', text);
+      }
+    }
+  });
+
+  test(`${entrance}: explicit TRY_DECIMAL retains the original nullable exact conversion`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        "SELECT CAST('19.99' AS DECIMAL(4,2)) AS amount",
+        "SELECT TRY_DECIMAL('not-a-decimal',4,2) AS amount",
+        "SELECT TRY_DECIMAL(1 / 0,4,2) AS amount",
+        "SELECT TRY_DECIMAL('19.99', 4, 2) AS amount",
+        "SELECT try_decimal(19, 4, 2) AS amount",
+        "SELECT `TrY_DeCiMaL`(NULL, 4, 2) AS amount",
+        "SELECT TRY_DECIMAL(@amount, (4), (2)) AS amount",
+        "SELECT TRY_DECIMAL(CAST('19.9900' AS DECIMAL(6,4)), 4, 2) AS amount",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@amount') ? {parameterDeclarations: {amount: {type: 'string'}}, parameters: {amount: '19.99'}} : {})});
+        assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+        assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+        assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      for (const text of [
+        "SELECT TRY_DECIMAL('19.99', 4) AS bad", "SELECT TRY_DECIMAL('19.99', 4, 2, 0) AS bad",
+        "SELECT TRY_DECIMAL('19.99', 0, 0) AS bad", "SELECT TRY_DECIMAL('19.99', 39, 0) AS bad",
+        "SELECT TRY_DECIMAL('19.99', 4, 5) AS bad", "SELECT TRY_DECIMAL('19.99', 4, -1) AS bad",
+        "SELECT TRY_DECIMAL('19.99', 1.5, 0) AS bad", "SELECT TRY_DECIMAL('19.99', 4, 1.5) AS bad",
+        "SELECT TRY_DECIMAL('19.99', @precision, 2) AS bad", "SELECT TRY_DECIMAL(TRUE, 4, 2) AS bad",
+        "SELECT TRY_DECIMAL(@whole, 18, 0) AS bad",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@precision') ? {parameterDeclarations: {precision: {type: 'number'}}, parameters: {precision: 4}} : {}),
+          ...(text.includes('@whole') ? {parameterDeclarations: {whole: {type: 'int64'}}, parameters: {whole: '9007199254740993'}} : {})});
+        assert.equal(checked.report.verdict, 'invalid', text);
+      }
+      for (const text of ["SELECT TRY_DECIMAL('19.99') AS amount", "SELECT ACTQL.TRY_DECIMAL('19.99', 4, 2) AS amount"]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format});
+        assert.equal(checked.report.verdict, 'undetermined');
+        assert.equal(checked.report.coverage.limits[0].code, 'implementation_limit');
+      }
+    }
+  });
+
+  test(`${entrance}: explicit TO_DECIMAL uses the original checked Decimal CAST`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        "SELECT CAST('19.99' AS DECIMAL(4,2)) AS amount",
+        "SELECT TO_DECIMAL('19.99', 4, 2) AS amount",
+        "SELECT to_decimal(19, 4, 2) AS amount",
+        "SELECT `To_DeCiMaL`(NULL, 4, 2) AS amount",
+        "SELECT TO_DECIMAL(@amount, (4), (2)) AS amount",
+        "SELECT TO_DECIMAL(CAST('19.9900' AS DECIMAL(6,4)), 4, 2) AS amount",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@amount') ? {parameterDeclarations: {amount: {type: 'string'}}, parameters: {amount: '19.99'}} : {})});
+        assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+        assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+        assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      for (const text of [
+        "SELECT TO_DECIMAL('19.99', 4) AS bad", "SELECT TO_DECIMAL('19.99', 4, 2, 0) AS bad",
+        "SELECT TO_DECIMAL('19.99', 0, 0) AS bad", "SELECT TO_DECIMAL('19.99', 39, 0) AS bad",
+        "SELECT TO_DECIMAL('19.99', 4, 5) AS bad", "SELECT TO_DECIMAL('19.99', 4, -1) AS bad",
+        "SELECT TO_DECIMAL('19.99', 1.5, 0) AS bad", "SELECT TO_DECIMAL('19.99', 4, 1.5) AS bad",
+        "SELECT TO_DECIMAL('19.99', @precision, 2) AS bad", "SELECT TO_DECIMAL(TRUE, 4, 2) AS bad",
+        "SELECT TO_DECIMAL(@whole, 18, 0) AS bad",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@precision') ? {parameterDeclarations: {precision: {type: 'number'}}, parameters: {precision: 4}} : {}),
+          ...(text.includes('@whole') ? {parameterDeclarations: {whole: {type: 'int64'}}, parameters: {whole: '9007199254740993'}} : {})});
+        assert.equal(checked.report.verdict, 'invalid', text);
+      }
+      for (const text of ["SELECT TO_DECIMAL('19.99') AS amount", "SELECT ACTQL.TO_DECIMAL('19.99', 4, 2) AS amount"]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format});
+        assert.equal(checked.report.verdict, 'undetermined');
+        assert.equal(checked.report.coverage.limits[0].code, 'implementation_limit');
+      }
+    }
+  });
+
+  test(`${entrance}: public query time and fixed intervals retain the checked source contract`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    const clock = "CAST('1970-01-01T00:00:00.000Z' AS TIMESTAMP)";
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        'SELECT CURRENT_TIMESTAMP() AS now',
+        'SELECT TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 1 DAY) AS since',
+        `SELECT TIMESTAMP_ADD(${clock}, INTERVAL 9007199254740993 NANOSECOND) AS shifted`,
+        `SELECT ${clock} - INTERVAL -0x8000000000000000 NANOSECOND AS shifted`,
+        `SELECT ${clock} + INTERVAL @amount NANOSECOND AS shifted`,
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@amount') ? {parameterDeclarations: {amount: {type: 'int64', nullable: false}},
+            parameters: {amount: '9007199254740993'}} : {})});
+        assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+        assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      const wrong = await client.check(`SELECT ${clock} + INTERVAL @amount SECOND AS shifted`,
+        {kind: 'text', scope: 'bound_input', format,
+          parameterDeclarations: {amount: {type: 'number'}}, parameters: {amount: 1}});
+      assert.equal(wrong.report.verdict, 'invalid');
+      // The existing report owner discloses only number/boolean/string type tags.
+      // The unchanged int64 rejection therefore retains its program-invalid code.
+      assert.equal(wrong.report.reasons[0].code, 'program_invalid');
+      const arity = await client.check('SELECT CURRENT_TIMESTAMP(1) AS now',
+        {kind: 'text', scope: 'bound_input', format});
+      assert.equal(arity.report.verdict, 'invalid');
+    }
+    // Checking proves no execution-time value, new Run, permission or dispatch.
+  });
+
+  test(`${entrance}: public DATE_ADD retains the original fixed-unit operation`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    const clock = "CAST('1969-12-31T23:59:59.999999999Z' AS TIMESTAMP)";
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        ...['ms', 's', 'm', 'h', 'd'].map(unit => `SELECT DATE_ADD(${clock}, 1, '${unit}') AS shifted`),
+        `SELECT DATE_ADD(${clock}, 0.125, 's') AS shifted`,
+        `SELECT ${clock} AS clock |> SELECT DATE_ADD(clock, 0.5, ('ms')) AS shifted`,
+        "SELECT `DaTe_AdD`(CAST(NULL AS TIMESTAMP), 1, 's') AS shifted",
+        "SELECT DATE_ADD(@clock, @amount, 's') AS shifted",
+        "SELECT DATE_ADD(@day, 2, 'd') AS shifted",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@clock') ? {parameterDeclarations: {clock: {type: 'timestamp'}, amount: {type: 'number'}},
+            parameters: {clock: '1969-12-31T23:59:59.999999999Z', amount: 0.125}} : {}),
+          ...(text.includes('@day') ? {parameterDeclarations: {day: {type: 'date'}}, parameters: {day: '2000-02-28'}} : {})});
+        assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+        assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+        assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      for (const text of [
+        `SELECT DATE_ADD(${clock}, 1) AS bad`, `SELECT DATE_ADD(${clock}, 1, 's', 'ms') AS bad`,
+        `SELECT DATE_ADD(${clock}, 1, 'MS') AS bad`, `SELECT DATE_ADD(${clock}, 1, @unit) AS bad`,
+        `SELECT DATE_ADD(${clock}, 1, 'm' || 's') AS bad`, `SELECT DATE_ADD(${clock}, '1', 's') AS bad`,
+        `SELECT DATE_ADD(1, 1, 's') AS bad`, "SELECT DATE_ADD(@day, 1, 's') AS bad",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@unit') ? {parameterDeclarations: {unit: {type: 'string'}}, parameters: {unit: 'ms'}} : {}),
+          ...(text.includes('@day') ? {parameterDeclarations: {day: {type: 'date'}}, parameters: {day: '2000-02-28'}} : {})});
+        assert.equal(checked.report.verdict, 'invalid', text);
+      }
+      const foreign = await client.check(`SELECT ACTQL.DATE_ADD(${clock}, 1, 's') AS shifted`,
+        {kind: 'text', scope: 'bound_input', format});
+      assert.equal(foreign.report.verdict, 'undetermined');
+      assert.equal(foreign.report.coverage.limits[0].code, 'implementation_limit');
+    }
+  });
+
+  test(`${entrance}: public DATE_TRUNC uses value then original literal unit`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    const clock = "CAST('1969-12-31T23:59:59.999999999Z' AS TIMESTAMP)";
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        ...['ms', 's', 'm', 'h', 'd'].map(unit => `SELECT DATE_TRUNC(${clock}, '${unit}') AS truncated`),
+        `SELECT ${clock} AS clock |> SELECT date_trunc(clock, ('m')) AS truncated`,
+        "SELECT `DaTe_TrUnC`(CAST(NULL AS TIMESTAMP), 's') AS truncated",
+        "SELECT DATE_TRUNC(@clock, 'ms') AS truncated",
+        "SELECT DATE_TRUNC(@day, 'd') AS truncated",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@clock') ? {parameterDeclarations: {clock: {type: 'timestamp'}},
+            parameters: {clock: '1969-12-31T23:59:59.999999999Z'}} : {}),
+          ...(text.includes('@day') ? {parameterDeclarations: {day: {type: 'date'}},
+            parameters: {day: '2000-02-29'}} : {})});
+        assert.equal(checked.report.verdict, 'verified', text);
+        assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+        assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      for (const text of [
+        `SELECT DATE_TRUNC(${clock}) AS bad`, `SELECT DATE_TRUNC(${clock}, 's', 'ms') AS bad`,
+        `SELECT DATE_TRUNC('s', ${clock}) AS bad`, `SELECT DATE_TRUNC(${clock}, 'MS') AS bad`,
+        `SELECT DATE_TRUNC(${clock}, 'month') AS bad`, `SELECT DATE_TRUNC(${clock}, NULL) AS bad`,
+        `SELECT DATE_TRUNC(${clock}, @unit) AS bad`, `SELECT DATE_TRUNC(${clock}, 'm' || 's') AS bad`,
+        "SELECT DATE_TRUNC(1, 's') AS bad", "SELECT DATE_TRUNC(@day, 's') AS bad",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@unit') ? {parameterDeclarations: {unit: {type: 'string'}}, parameters: {unit: 'ms'}} : {}),
+          ...(text.includes('@day') ? {parameterDeclarations: {day: {type: 'date'}}, parameters: {day: '2000-02-29'}} : {})});
+        assert.equal(checked.report.verdict, 'invalid', text);
+      }
+      const foreign = await client.check(`SELECT ACTQL.DATE_TRUNC(${clock}, 'ms') AS truncated`,
+        {kind: 'text', scope: 'bound_input', format});
+      assert.equal(foreign.report.verdict, 'undetermined');
+      assert.equal(foreign.report.coverage.limits[0].code, 'implementation_limit');
+    }
+  });
+
+  test(`${entrance}: original date_trunc Program uses the existing fixed UTC owner`, async t => {
+    const {client} = await publicCheck(t, entrance, {program: true});
+    const program = authoringProgram();
+    delete program.params;
+    program.stages[0].steps[0].values = {schema: {id: {type: 'timestamp', nullable: false}},
+      rows: [{id: '1969-12-31T23:59:59.999999999Z'}]};
+    program.stages[0].steps[1].derive = {n: {field: 'id'}};
+    const control = await client.check(program, {kind: 'program', scope: 'bound_input', parameters: {}});
+    assert.equal(control.report.verdict, 'verified', JSON.stringify(control.report));
+    assert.deepEqual(control.report.runnable, {verdict: 'yes', reasons: []});
+    program.stages[0].steps[1].derive = {n: {date_trunc: [{literal: 'ms'}, {field: 'id'}]}};
+    const checked = await client.check(program, {kind: 'program', scope: 'bound_input', parameters: {}});
+    assert.equal(checked.outcome, 'completed');
+    assert.equal(checked.report.verdict, 'verified');
+    assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+    assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+  });
+
+  test(`${entrance}: documented to_number uses the existing CAST owner`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        "SELECT CAST('12.5' AS NUMBER) AS value",
+        "SELECT to_number('12.5') AS value",
+        "SELECT To_NuMbEr(12.5) AS value",
+        "SELECT `to_number`(@input) AS value",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@input') ? {parameterDeclarations: {input: {type: 'string'}},
+            parameters: {input: '12.5'}} : {})});
+        assert.equal(checked.outcome, 'completed');
+        assert.equal(checked.report.verdict, 'verified', text);
+        assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+        assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      for (const text of ["SELECT to_number() AS bad", "SELECT to_number('1', '2') AS bad",
+        "SELECT to_number(TRUE) AS bad"]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format});
+        assert.equal(checked.report.verdict, 'invalid', text);
+      }
+      const foreign = await client.check("SELECT ACTQL.to_number('1') AS value",
+        {kind: 'text', scope: 'bound_input', format});
+      assert.equal(foreign.report.verdict, 'undetermined');
+      assert.equal(foreign.report.coverage.limits[0].code, 'implementation_limit');
+    }
+  });
+
+  test(`${entrance}: documented CONTAINS uses the original exact string checker`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        "SELECT CONTAINS('a😀b', '😀') AS found",
+        "SELECT cOnTaInS('abc', '') AS found",
+        "SELECT `CoNtAiNs`(NULL, 'a') AS found",
+        "SELECT 'a😀b' AS label |> SELECT CONTAINS(label, @part) AS found",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@part') ? {parameterDeclarations: {part: {type: 'string'}}, parameters: {part: '😀'}} : {})});
+        assert.equal(checked.outcome, 'completed');
+        assert.equal(checked.report.verdict, 'verified', text);
+        assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+        assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      for (const text of ["SELECT CONTAINS('a') AS bad", "SELECT CONTAINS('a', 'b', 'c') AS bad",
+        "SELECT CONTAINS(1, 'a') AS bad", "SELECT CONTAINS('a', @part) AS bad"]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@part') ? {parameterDeclarations: {part: {type: 'number'}}, parameters: {part: 1}} : {})});
+        assert.equal(checked.report.verdict, 'invalid', text);
+      }
+      const unknown = await client.check("SELECT ACTQL.CONTAINS('a', 'a') AS value",
+        {kind: 'text', scope: 'bound_input', format});
+      assert.equal(unknown.report.verdict, 'undetermined');
+      assert.equal(unknown.report.coverage.limits[0].code, 'implementation_limit');
+    }
+  });
+
   test(`${entrance}: runnable uses the same structured Program Owner and original inputs`, async t => {
     const {client, counts} = await publicCheck(t, entrance, {program: true});
     const program = authoringProgram();
@@ -708,9 +1296,71 @@ for (const entrance of ['local', 'http']) {
     }
     const conditional = await client.check('SELECT 1 AS n ORDER BY n LIMIT @count',
       {kind: 'text', scope: 'template_only', format: 'sql', parameterDeclarations: {count: {type: 'int64'}}});
-    assert.equal(conditional.report.verdict, 'undetermined');
-    assert.ok(conditional.report.coverage.limits.some(limit => limit.code === 'implementation_limit'));
+    assert.equal(conditional.report.verdict, 'verified');
+    assert.deepEqual(conditional.report.coverage, {limits: [], unresolved: []});
+    assert.equal(conditional.report.requirements[1].code, 'parameter_consumer_condition');
     assert.equal(conditional.report.requirements[0].facts.parameter, 'count');
+  });
+
+  test(`${entrance}: Take defaults and overrides retain separate binding conditions`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const type of ['number', 'int64']) {
+      const value = n => type === 'int64' ? String(n) : n;
+      for (const format of ['sql', 'aql-text']) {
+        const text = format === 'sql'
+          ? 'SELECT 1 AS n ORDER BY n LIMIT @count OFFSET @offset'
+          : 'SELECT 1 AS n |> ORDER BY n |> LIMIT @count OFFSET @offset';
+        for (const countDefault of [undefined, value(0), value(1)]) {
+          const count = countDefault === undefined ? {type} : {type, default: countDefault};
+          const options = {kind: 'text', format, scope: 'template_only',
+            parameterDeclarations: {count, offset: {type, default: value(0)}}};
+          const template = await client.check(text, options);
+          assert.equal(template.report.verdict, 'verified');
+          assert.deepEqual(template.report.coverage, {limits: [], unresolved: []});
+          const conditions = template.report.requirements.filter(r => r.code === 'parameter_consumer_condition');
+          assert.deepEqual(conditions.map(r => r.facts), [
+            {parameter: 'count', expected_type: type, operation: 'take', argument: 'count',
+              constraint: 'safe_integer', minimum: 1, maximum: 9007199254740991, stage: 'binding'},
+            {parameter: 'offset', expected_type: type, operation: 'take', argument: 'offset',
+              constraint: 'safe_integer', minimum: 0, maximum: 9007199254740991, stage: 'binding'},
+          ]);
+          for (const condition of conditions) {
+            assert.equal(resolveCheckLocation(template, condition.location).pointer, '/' + condition.facts.parameter);
+            assert.equal(resolveCheckLocation(structuredClone(template), condition.location), undefined);
+          }
+          assert.equal(template.report.runnable.verdict, 'no');
+          assert.ok(template.report.runnable.reasons.some(r => r.code === 'parameter_consumer_condition'));
+          assert.equal(template.report.requirements.some(r => r.code === 'parameter_value_required'), countDefault === undefined);
+          const bound = {...options, scope: 'bound_input'};
+          const valid = await client.check(text, {...bound, parameters: {count: value(1)}});
+          assert.equal(valid.report.verdict, 'verified');
+          assert.deepEqual(valid.report.requirements, []);
+          const maximum = await client.check(text, {...bound,
+            parameters: {count: value(9007199254740991), offset: value(9007199254740991)}});
+          assert.equal(maximum.report.verdict, 'verified');
+          const foreignType = await client.check(text, {...bound,
+            parameters: {count: type === 'int64' ? 1 : '1'}});
+          assert.equal(foreignType.report.verdict, 'invalid');
+          assert.ok(foreignType.report.reasons.some(r => r.code === 'supplied_value_type_mismatch'));
+          for (const parameters of [{count: value(0)}, {count: value(-1)},
+            {count: value(9007199254740992)}, {count: value(1), offset: value(-1)},
+            {count: value(1), offset: value(9007199254740992)},
+            ...(type === 'number' ? [{count: 1.5}, {count: 1, offset: 0.5}] : [])]) {
+            const invalid = await client.check(text, {...bound, parameters});
+            assert.equal(invalid.report.verdict, 'invalid');
+            assert.ok(invalid.report.reasons.some(r => r.code === 'operation_parameter_invalid'));
+          }
+          if (countDefault !== undefined) {
+            const omitted = await client.check(text, bound);
+            assert.equal(omitted.report.verdict, countDefault === value(0) ? 'invalid' : 'verified');
+            if (countDefault === value(0)) {
+              assert.equal(omitted.report.reasons[0].code, 'operation_parameter_invalid');
+              assert.equal(omitted.report.requirements.some(r => r.code === 'parameter_value_required'), false);
+            }
+          }
+        }
+      }
+    }
   });
 
   test(`${entrance}: SQL and Pipe DISTINCT templates retain typed Parameter and Result obligations`, async t => {

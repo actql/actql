@@ -1,0 +1,57 @@
+{
+  "schema": {
+    "id": {
+      "nullable": false,
+      "type": "string"
+    },
+    "labels": {
+      "items": {
+        "nullable": false,
+        "type": "string"
+      },
+      "nullable": false,
+      "type": "array"
+    },
+    "last_message_date": {
+      "nullable": true,
+      "type": "timestamp"
+    },
+    "message_count": {
+      "nullable": false,
+      "type": "int64"
+    },
+    "subject": {
+      "nullable": true,
+      "type": "string"
+    }
+  },
+  "schema_preimage": "{\"id\":{\"nullable\":false,\"type\":\"string\"},\"labels\":{\"items\":{\"nullable\":false,\"type\":\"string\"},\"nullable\":false,\"type\":\"array\"},\"last_message_date\":{\"nullable\":true,\"type\":\"timestamp\"},\"message_count\":{\"nullable\":false,\"type\":\"int64\"},\"subject\":{\"nullable\":true,\"type\":\"string\"}}",
+  "schema_cid": "sha256:9451d88b84599921421aef2c379291a189320f64a38d3a6f190f76666fef5a3e",
+  "labels_predecessor_schema_preimage": "{\"id\":{\"nullable\":false,\"type\":\"string\"},\"name\":{\"nullable\":false,\"type\":\"string\"},\"type\":{\"nullable\":false,\"type\":\"string\"}}",
+  "labels_predecessor_schema_cid": "sha256:ac9bb02c75b13c2531a96377306394c1011940945d62128be7bc4b82c5d87c7d",
+  "empty_thread_row": {
+    "id": "t/+",
+    "labels": [],
+    "last_message_date": null,
+    "message_count": "0",
+    "subject": null
+  },
+  "one_message_without_subject": {
+    "id": "t/+",
+    "labels": [],
+    "last_message_date": "1969-12-31T23:59:59.999Z",
+    "message_count": "1",
+    "subject": null
+  },
+  "retained_first_message_and_maximum_date": {
+    "id": "t/+",
+    "labels": [
+      "INBOX",
+      "Label_1",
+      "inbox"
+    ],
+    "last_message_date": "2000-01-01T00:00:00.000Z",
+    "message_count": "2",
+    "subject": "Original é"
+  }
+}

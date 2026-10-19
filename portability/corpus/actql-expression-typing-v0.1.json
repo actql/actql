@@ -310,6 +310,12 @@
           "nullable": true
         }
       }
+    },
+    "decimal38_2?": {
+      "type": "decimal",
+      "nullable": true,
+      "precision": 38,
+      "scale": 2
     }
   },
   "positive": [
@@ -1800,6 +1806,14 @@
         ]
       },
       "type": "number?"
+    },
+    {
+      "source": "quantize(NULL,8,2,'half_even')",
+      "type": "decimal8_2?"
+    },
+    {
+      "source": "quantize(NULL,2)",
+      "type": "decimal38_2?"
     }
   ],
   "negative": [
@@ -1878,10 +1892,6 @@
     {
       "source": "quantize(n,8,2,'half_up')",
       "issue": "TypeMismatch"
-    },
-    {
-      "source": "quantize(NULL,8,2,'half_even')",
-      "issue": "NullTypeUnresolved"
     },
     {
       "source": "decimal_divide(NULL,n,8,2,'half_even')",
@@ -4106,6 +4116,14 @@
         ]
       },
       "issue": "TypeMismatch"
+    },
+    {
+      "source": "quantize(unknown_quantize_value,2)",
+      "issue": "UnknownField"
+    },
+    {
+      "source": "quantize($missing_quantize,2)",
+      "issue": "UnknownParameter"
     }
   ]
 }

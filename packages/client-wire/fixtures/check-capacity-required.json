@@ -1,7 +1,7 @@
 {
   "version": "actql-check-outcome/0.1",
-  "reason_schema_cid": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf",
-  "outcome_schema_cid": "sha256:ee1c0c7799d2dd30aa084ec5699078cf14ada0687ac6bb9e48e1f714789a8535",
+  "reason_schema_cid": "sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5",
+  "outcome_schema_cid": "sha256:abc1f9da9c6394f61d780139fe10ce220a25f6579ef80ed043a46c5704cf5f3b",
   "outcome": "completed",
   "report": {
     "context_ref": "ctx:independent-capacity-obligation",

@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "866cd4909fc7074f5373c918e426492c3adfcfaadd8ee5eddc68663747ef1587",
+      "sha256": "f44a5bcceae97f13b602ffbc0fcd3d4bd4b9badcb54cd852d592929026815b6e",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -161,6 +161,13 @@
           "async": false
         },
         {
+          "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#13",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#2",
           "parameters": [
             "slot"
@@ -212,7 +219,7 @@
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#9",
           "parameters": [
-            "task"
+            "value"
           ],
           "async": false
         },
@@ -480,8 +487,91 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#13"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/acquisition-outcome.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/diagnostic-observer.mjs",
+        "../host-common/effect-preparation-result.mjs",
+        "../host-common/runtime-result.mjs",
+        "./acquired-effect-sources.mjs",
+        "./captured-duckdb-source.mjs",
+        "./entry.mjs",
+        "./infer-capture-custody.mjs",
+        "./infer-operation.mjs",
+        "./local-values-plan.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/acquired-effect-continuation.mjs",
@@ -931,7 +1021,7 @@
     },
     {
       "module": "adapters/host-node/captured-duckdb-source.mjs",
-      "sha256": "996754e5df36d91037dc045b8f344931dfd2d363d519c418e1549d9a3e678c98",
+      "sha256": "2964f7d4be3dec0b91d00107c03580bcb0577442c6b101ee18e782d763ec3c11",
       "exports": [
         "capturedDuckDBConfiguration",
         "capturedDuckDBNativeConfiguration",
@@ -1074,6 +1164,8 @@
             "moon",
             "preparedProgram",
             "preparedEffect",
+            "queryTimePreparation",
+            "requestIdentity",
             "registry",
             "values",
             "fragment",
@@ -1219,7 +1311,22 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../connectors/duckdb/node/acquisition-planning.mjs",
+        "../connectors/duckdb/node/configuration.mjs",
+        "../connectors/duckdb/node/native-runtime.mjs",
+        "../connectors/duckdb/node/physical-capacity.mjs",
+        "../host-common/acquisition-outcome.mjs",
+        "../host-common/authorization-gate.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./duckdb-physical-target.mjs",
+        "./original-query-preparation.mjs",
+        "node:fs/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
@@ -2164,7 +2271,7 @@
     },
     {
       "module": "adapters/host-node/effect-input-export.mjs",
-      "sha256": "149e6e2e2cf3ec205c0aeab74ff63e4b760d95e035ac301d2e9b21aa65f5fb70",
+      "sha256": "0f1d54c80af0efe5b7638c76008c2b8f3d202b52c4a81e7d218666e47f3e3d63",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -2225,6 +2332,8 @@
             "onReceipt",
             "onCanonicalRow",
             "canonicalRowLimits",
+            "onOriginalRow",
+            "originalRowLimits",
             "prepareProposal",
             "commandWorkspace",
             "signal",
@@ -2234,14 +2343,26 @@
           "async": true
         },
         {
+          "name": "exportPinnedResult/assertOriginal/assertOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "exportPinnedResult/exportPinnedResult",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "exportPinnedResult/exportPinnedResult#2",
           "parameters": [
             "row"
           ],
           "async": false
         },
         {
-          "name": "exportPinnedResult/exportPinnedResult#2",
+          "name": "exportPinnedResult/exportPinnedResult#3",
           "parameters": [],
           "async": false
         },
@@ -2720,8 +2841,10 @@
             "exportPinnedEffectInput",
             "exportPinnedEffectLocalResult",
             "exportPinnedResult",
+            "exportPinnedResult/assertOriginal/assertOriginal",
             "exportPinnedResult/exportPinnedResult",
             "exportPinnedResult/exportPinnedResult#2",
+            "exportPinnedResult/exportPinnedResult#3",
             "prepareDependentEffectSourceSet",
             "prepareDependentEffectSourceSet/orderedUnits/orderedUnits",
             "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet",
@@ -2739,8 +2862,8 @@
             "preparePinnedEffectSourceHoldings/holdings/holdings",
             "preparePinnedEffectSourceHoldings/init:commit/init:commit",
             "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit",
-            "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit#2",
             "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit/init:commit",
+            "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit#2",
             "preparePinnedEffectSourceHoldings/inventory/inventory",
             "preparePinnedEffectSourceHoldings/memberPayloads/memberPayloads",
             "preparePinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings",
@@ -2749,6 +2872,7 @@
             "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry",
             "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry/init:retry",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
+            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#10",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#2",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#3",
@@ -2758,7 +2882,6 @@
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#7",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#8",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#9",
-            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
             "preparePinnedEffectSourcePayloadOwned/retainText/retainText",
             "preparePinnedEffectSourcePayloadOwned/summary/init:onChunk/init:onChunk",
             "preparePinnedEffectSourcePayloadOwned/summary/init:prepareProposal/init:prepareProposal",
@@ -2814,6 +2937,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Original typed projection belongs to the existing Result export"
               }
             ],
             "inputsOutputs": [
@@ -2840,6 +2967,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Inputs retain the original proposal Plan"
               }
             ],
             "identity": [
@@ -2862,6 +2993,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Identity follows the exact checked Result occurrence"
               }
             ],
             "ownership": [
@@ -2884,6 +3019,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Ownership remains with the original export and Effect pins"
               }
             ],
             "synchronization": [
@@ -2906,6 +3045,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Synchronization checks both the original stream and original Effect/export"
               }
             ],
             "failure": [
@@ -2928,6 +3071,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Failure retains the existing typed refusal or original callback error"
               }
             ],
             "cancellation": [
@@ -2950,6 +3097,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Cancellation stops publication after the same awaited consumer"
               }
             ],
             "resources": [
@@ -2976,6 +3127,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Resources cover one shared Mapping work/node/text ceiling"
               }
             ],
             "extension": [
@@ -2998,6 +3153,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Extension uses the same original Captured/Mapping reader"
               }
             ],
             "verification": [
@@ -3040,6 +3199,10 @@
               {
                 "path": "adapters/host-node/effect-command-target-callers.test.mjs",
                 "anchor": "original target refusal happens before physical rows"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Verification separates actual Result/Captured and typed Notion codec counters"
               }
             ]
           }
@@ -3052,7 +3215,8 @@
         "../host-common/runtime-result.mjs",
         "./effect-command-key.mjs",
         "node:crypto",
-        "node:timers/promises"
+        "node:timers/promises",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -3799,7 +3963,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "accd94117639b8575f8229725afe4bf0abc664e53964362045ffbe3aba0b4b48",
+      "sha256": "7b5d65299f6f73767baba1945e9a9e88f15c4d8cc2c6a8bac1cd73cb5711df96",
       "exports": [
         "assertInitialControlHostPreparation",
         "connectEmbeddedLocal",
@@ -4216,7 +4380,10 @@
             "compilation",
             "allowed",
             "definition",
-            "resultPolicyOriginal"
+            "resultPolicyOriginal",
+            "queryTimePreparation",
+            "queryTime",
+            "identity"
           ],
           "async": false
         },
@@ -4600,7 +4767,8 @@
           "parameters": [
             "preparedProgram",
             "requestId",
-            "retainedDefinitionWire"
+            "retainedDefinitionWire",
+            "requestIdentity"
           ],
           "async": false
         },
@@ -5842,7 +6010,7 @@
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -6601,7 +6769,7 @@
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
               }
             ],
             "identity": [
@@ -7632,7 +7800,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "1012f8e39bfc04bd0a9db034ca9e2852f541ea72c28d7ebabe87e7f884183640",
+      "sha256": "3d3e84932758e6c931fd4398323bdb30dc3bd197ffcd04bc4100a4a844b748e6",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -7646,6 +7814,7 @@
         "inferTaskRunAdmission",
         "localContractLimits",
         "localOutputLimits",
+        "openSourceFreeEffectComputation",
         "restoreInferTaskRunAdmission",
         "selectInstalledSerializationGraph",
         "serializationTaskPublicationPlan",
@@ -7848,6 +8017,17 @@
           "async": false
         },
         {
+          "name": "bindQueryInvocation",
+          "parameters": [
+            "control",
+            "original",
+            "prepared",
+            "compiled",
+            "definition"
+          ],
+          "async": false
+        },
+        {
           "name": "buildLocalPublicationPlan",
           "parameters": [
             "control",
@@ -7897,6 +8077,7 @@
             "now",
             "retainedDefinitionWire",
             "resultDataPolicy",
+            "requestIdentity",
             "kind"
           ],
           "async": false
@@ -7921,7 +8102,10 @@
             "namespaceId",
             "storeAuthorityCid",
             "now",
-            "resultDataPolicy"
+            "resultDataPolicy",
+            "queryTimePreparation",
+            "queryTime",
+            "identity"
           ],
           "async": false
         },
@@ -7965,9 +8149,31 @@
           "async": false
         },
         {
+          "name": "openSourceFreeEffectComputation",
+          "parameters": [
+            "moon",
+            "facts",
+            "registry",
+            "values",
+            "fragment",
+            "ordered"
+          ],
+          "async": false
+        },
+        {
           "name": "policyCid/policyCid",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareQueryInvocation",
+          "parameters": [
+            "control",
+            "prepared",
+            "request",
+            "retained"
           ],
           "async": false
         },
@@ -7976,7 +8182,8 @@
           "parameters": [
             "control",
             "preparedProgram",
-            "restored"
+            "restored",
+            "requestIdentity"
           ],
           "async": false
         },
@@ -8086,7 +8293,8 @@
             "namespaceId",
             "storeAuthorityCid",
             "now",
-            "retainedDefinitionWire"
+            "retainedDefinitionWire",
+            "requestIdentity"
           ],
           "async": false
         }
@@ -8189,7 +8397,7 @@
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
               }
             ],
             "identity": [
@@ -8335,7 +8543,7 @@
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
               }
             ],
             "identity": [
@@ -8419,12 +8627,85 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "bindQueryInvocation",
+            "openSourceFreeEffectComputation",
+            "prepareQueryInvocation"
+          ],
+          "exports": [
+            "openSourceFreeEffectComputation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ]
+          }
         }
       ],
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
         "./local-values-capacity.mjs",
+        "./query-evaluation-clock.mjs",
         "node:crypto"
       ],
       "compilerFields": [],
@@ -8822,6 +9103,206 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/query-evaluation-clock.mjs",
+      "sha256": "ebb1f49649022b24b847460f88d3fc8ded4b64618bb4f4b0f16958ce2770158b",
+      "exports": [
+        "sampleOriginalQueryTime"
+      ],
+      "operations": [
+        {
+          "name": "sampleOriginalQueryTime/sampleOriginalQueryTime",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing original query invocation and Common Run preparation; no independent clock, resource or permission authority",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "sampleOriginalQueryTime/sampleOriginalQueryTime"
+          ],
+          "exports": [
+            "sampleOriginalQueryTime"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/original-query-preparation.mjs",
+      "sha256": "4db9380c7369339c5dd04ffd2775f73dc60333dc915aad04b3e227898a4bb420",
+      "exports": [
+        "prepareOriginalSourceQuery"
+      ],
+      "operations": [
+        {
+          "name": "prepareOriginalSourceQuery",
+          "parameters": [
+            "moon",
+            "preparedProgram",
+            "preparedEffect",
+            "stage",
+            "input",
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "queryTimePreparation",
+            "requestIdentity"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original query invocation and Common Run preparation; no independent clock, resource or permission authority",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepareOriginalSourceQuery"
+          ],
+          "exports": [
+            "prepareOriginalSourceQuery"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

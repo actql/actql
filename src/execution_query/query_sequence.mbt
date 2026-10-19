@@ -54,6 +54,13 @@ pub fn prepare_query_sequence(
     return Err(Limit)
   }
   remaining -= 1
+  if @acquisition.query_acquisition_query_time_required(query) {
+    guard @acquisition.query_acquisition_query_time(query) is Some(original) &&
+      @execution.generated_sequence_query_time(generated) is Some(bound) &&
+      physical_equal(original, bound) else {
+      return Err(UnsupportedExecutionShape)
+    }
+  }
   let owner = @execution.generated_sequence_owner(generated)
   let prepared = @lower.bound_preparation(owner)
   let pipeline = @lower.pipeline(prepared)

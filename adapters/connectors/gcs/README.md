@@ -60,8 +60,8 @@ reservation or installed/live-service acceptance.
 
 The portable parser checks every item and preserves exact Int64 generation,
 metageneration and size before projection. `objects` declares these fields with
-the existing Decimal(19,0) carrier, not Number or String: the provider's narrower
-signed Int64 check remains authoritative. Ordinary Source DATA contains an
+the existing `int64` logical contract, not a Decimal, Number or String alias.
+The provider's nonnegative signed Int64 check remains authoritative. Ordinary Source DATA contains an
 unwrapped metadata object; only the Value Owner emits the `$json` wire envelope.
 User keys literally named `$json`, decomposed text and CR/LF values stay DATA.
 Only the exact reserved `actql-request` key is hidden from logical reads; the
@@ -639,18 +639,20 @@ metadata array. They are not single-object `ObjectMetadata` observations for
 mutation, issued Resource references, scan completion or apply receipts.
 An individual member is not reserialized into a supposed original GET response.
 
-The existing Decimal(19,0) carrier can preserve each checked Int64 coefficient
-and emits its specified decimal wire as JSON text without binary64 conversion.
-This is not a public String alias or permission to widen the GCS integer domain:
-GCS rejects Int64 overflow even when the wider Decimal contract could represent
-the coefficient. The current installed `files` view and its seven-column
+The existing signed64 Value Owner admits canonical decimal String transport
+under the distinct `int64` contract and emits it without binary64 conversion.
+Matching Decimal or String wire text does not establish the same logical type.
+GCS still rejects negative values and signed64 overflow. The corrected ordinary
+`objects` schema and enclosing Catalog acquire their genuine new identities;
+saved originals with the old Decimal schema are not reinterpreted on restore.
+The current installed `files` view and its seven-column
 LIST_FILES projection are unchanged. The separately documented `gcs.objects`
 field set still needs its full original Source schema, physical page receiver
 and SDK/installed matching acceptance; this primitive does not claim them.
 
 The physical raw page, strict parser/decode trees, item array, per-item records,
 exact strings and metadata arrays, detached logical views, digest workspace,
-decimal admission/emission and pending physical callbacks can overlap. The
+signed64 admission/emission and pending physical callbacks can overlap. The
 same Source reservation must cover their actual lifetime before acquisition;
 page clamps do not establish that aggregate funding or retire an outstanding
 read/cleanup responsibility. No normal numerical profile is introduced.

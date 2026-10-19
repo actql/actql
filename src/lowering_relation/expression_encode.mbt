@@ -14,6 +14,8 @@ priv enum ExpressionFrame {
   VectorScoreRest(VectorMetric, Expression)
   ObjectExpressions(Array[(String, Expression)], Int)
   PropertyValue(Expression)
+  DecimalDivisionRight(Expression, String, Int, Int)
+  DecimalDivisionTail(String, Int)
 }
 
 ///|
@@ -37,6 +39,9 @@ fn binary_name(op : BinaryOperator) -> String {
     TrimSet => "trim"
     LTrimSet => "ltrim"
     RTrimSet => "rtrim"
+    Contains => "contains"
+    DateTruncate => "date_trunc"
+    DecimalDivide(_) => "decimal_divide"
     StartsWith => "starts_with"
     EndsWith => "ends_with"
     Equal => "eq"
@@ -111,6 +116,11 @@ fn emit_frames(
         @encode.key(output, "body")
         pending.push(EndObject)
         match expr.body {
+          CurrentTimestamp => {
+            pending.push(Op("current_timestamp"))
+            @encode.begin_array(output)
+            @encode.end_array(output)
+          }
           Field(name, _) => {
             pending.push(Op("field"))
             @encode.string_value(output, name)
@@ -179,6 +189,41 @@ fn emit_frames(
             pending.push(EndObject)
             pending.push(Expr(child))
           }
+          Unary(Quantize(rounding), arg) => {
+            guard expr.contract.shape is @contract.Decimal(precision~, scale~) &&
+              ["half_even", "half_up", "toward_zero", "floor", "ceiling"].contains(
+                rounding,
+              ) else {
+              raise @encode.InvalidStructure
+            }
+            pending.push(Op("quantize"))
+            @encode.begin_object(output)
+            @encode.key(output, "precision")
+            @encode.number_value(output, precision.to_double())
+            @encode.key(output, "rounding")
+            @encode.string_value(output, rounding)
+            @encode.key(output, "scale")
+            @encode.number_value(output, scale.to_double())
+            @encode.key(output, "value")
+            pending.push(EndObject)
+            pending.push(Expr(arg))
+          }
+          Unary(TryDecimal, arg) => {
+            // Preserve the existing distinct closed operation shape. P/S are
+            // projected from the original checked result, not caller data.
+            guard expr.contract.shape is @contract.Decimal(precision~, scale~) else {
+              raise @encode.InvalidStructure
+            }
+            pending.push(Op("try_decimal"))
+            @encode.begin_object(output)
+            @encode.key(output, "precision")
+            @encode.number_value(output, precision.to_double())
+            @encode.key(output, "scale")
+            @encode.number_value(output, scale.to_double())
+            @encode.key(output, "value")
+            pending.push(EndObject)
+            pending.push(Expr(arg))
+          }
           Unary(op, arg) => {
             pending.push(
               Op(
@@ -212,6 +257,7 @@ fn emit_frames(
                   Round => "round"
                   Trunc => "trunc"
                   SafeNegate => "safe_negate"
+                  TryDecimal | Quantize(_) => raise @encode.InvalidStructure
                   Not => "not"
                   IsNull => "is_null"
                   NotNull => "not_null"
@@ -227,6 +273,20 @@ fn emit_frames(
               ),
             )
             pending.push(Expr(arg))
+          }
+          Binary(DecimalDivide(mode), left, right) => {
+            guard expr.contract.shape is @contract.Decimal(precision~, scale~) &&
+              ["half_even", "half_up", "toward_zero", "floor", "ceiling"].contains(
+                mode,
+              ) else {
+              raise @encode.InvalidStructure
+            }
+            pending.push(Op("decimal_divide"))
+            @encode.begin_object(output)
+            @encode.key(output, "left")
+            pending.push(EndObject)
+            pending.push(DecimalDivisionRight(right, mode, precision, scale))
+            pending.push(Expr(left))
           }
           Binary(op, left, right) => {
             pending.push(Op(binary_name(op)))
@@ -280,6 +340,9 @@ fn emit_frames(
                   RPad => "rpad"
                   Between => "between"
                   DateDifference => "date_diff"
+                  DateAddition => "date_add"
+                  TimestampAddition => "timestamp_add"
+                  TimestampSubtraction => "timestamp_sub"
                 },
               ),
             )
@@ -390,6 +453,19 @@ fn emit_frames(
         } else {
           @encode.end_array(output)
         }
+      DecimalDivisionRight(right, mode, precision, scale) => {
+        @encode.key(output, "precision")
+        @encode.number_value(output, precision.to_double())
+        @encode.key(output, "right")
+        pending.push(DecimalDivisionTail(mode, scale))
+        pending.push(Expr(right))
+      }
+      DecimalDivisionTail(mode, scale) => {
+        @encode.key(output, "rounding")
+        @encode.string_value(output, mode)
+        @encode.key(output, "scale")
+        @encode.number_value(output, scale.to_double())
+      }
       Fields(fields, index) =>
         if @value.element_at(fields, index) is Some((name, value)) {
           @encode.key(output, name)

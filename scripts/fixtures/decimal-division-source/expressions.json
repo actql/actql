@@ -1,0 +1,87 @@
+[
+  {
+    "value": {
+      "decimal_divide": {
+        "left": {
+          "$param": "amount"
+        },
+        "right": {
+          "$param": "divisor"
+        },
+        "precision": 18,
+        "scale": 2,
+        "rounding": "half_even"
+      }
+    },
+    "preimage": "{\"decimal_divide\":{\"left\":{\"$param\":\"amount\"},\"precision\":18,\"right\":{\"$param\":\"divisor\"},\"rounding\":\"half_even\",\"scale\":2}}",
+    "cid": "sha256:dcd213a79e5ae4b14b2caf5b7373ce47bdb1b682a4cf1182f522f01cc6f7698d"
+  },
+  {
+    "value": {
+      "decimal_divide": {
+        "left": {
+          "$param": "amount"
+        },
+        "right": {
+          "$param": "divisor"
+        },
+        "precision": 18,
+        "scale": 2,
+        "rounding": "half_up"
+      }
+    },
+    "preimage": "{\"decimal_divide\":{\"left\":{\"$param\":\"amount\"},\"precision\":18,\"right\":{\"$param\":\"divisor\"},\"rounding\":\"half_up\",\"scale\":2}}",
+    "cid": "sha256:4dc0976f44b5d60c314964953fa1e6ccdc87d85f7391723f9c348c4938812b03"
+  },
+  {
+    "value": {
+      "decimal_divide": {
+        "left": {
+          "$param": "amount"
+        },
+        "right": {
+          "$param": "divisor"
+        },
+        "precision": 18,
+        "scale": 2,
+        "rounding": "toward_zero"
+      }
+    },
+    "preimage": "{\"decimal_divide\":{\"left\":{\"$param\":\"amount\"},\"precision\":18,\"right\":{\"$param\":\"divisor\"},\"rounding\":\"toward_zero\",\"scale\":2}}",
+    "cid": "sha256:26ad34258aa92bc6c996dbb24b85cbb62812f70d09b0880468b1f487ce98b1c9"
+  },
+  {
+    "value": {
+      "decimal_divide": {
+        "left": {
+          "$param": "amount"
+        },
+        "right": {
+          "$param": "divisor"
+        },
+        "precision": 18,
+        "scale": 2,
+        "rounding": "floor"
+      }
+    },
+    "preimage": "{\"decimal_divide\":{\"left\":{\"$param\":\"amount\"},\"precision\":18,\"right\":{\"$param\":\"divisor\"},\"rounding\":\"floor\",\"scale\":2}}",
+    "cid": "sha256:5b3fdcaf6252a6fe8438c92e8fe04cc620bd7450b90a9083f3ce1d27d61c972a"
+  },
+  {
+    "value": {
+      "decimal_divide": {
+        "left": {
+          "$param": "amount"
+        },
+        "right": {
+          "$param": "divisor"
+        },
+        "precision": 18,
+        "scale": 2,
+        "rounding": "ceiling"
+      }
+    },
+    "preimage": "{\"decimal_divide\":{\"left\":{\"$param\":\"amount\"},\"precision\":18,\"right\":{\"$param\":\"divisor\"},\"rounding\":\"ceiling\",\"scale\":2}}",
+    "cid": "sha256:ee20e76db83f0b0498b9c1461a13d4b197c8372ac838b2544a1385bff7dfe163"
+  }
+]

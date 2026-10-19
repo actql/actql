@@ -8,6 +8,7 @@ fn attach_fragment_budgets(
   budgets : Map[Int, LogicalBudget],
   control : ControlBudget,
   metadata : RowWorkspace,
+  query_times? : Map[Int, @publication.QueryEvaluationTime]? = None,
 ) -> Result[Unit, SequenceRunIssue] {
   if contexts.length() > @lower.sequence_count(sequence) ||
     !reserve_slots(metadata, contexts.length()) {
@@ -30,6 +31,12 @@ fn attach_fragment_budgets(
     let budget = match fragment_runtime_for_kernel(context, kernel) {
       Ok(budget) => budget
       Err(issue) => return Err(FragmentContext(i, issue))
+    }
+    if query_times is Some(times) && context.query_time is Some(time) {
+      if !reserve_slots(metadata, 1) || !spend_control(control, 1) {
+        return Err(InputLimit)
+      }
+      times[i] = time
     }
     budgets[i] = budget
   }

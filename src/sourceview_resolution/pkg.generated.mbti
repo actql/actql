@@ -11,6 +11,7 @@ import {
   "actql/actql/pipeline_typing",
   "actql/actql/relation_join_shape",
   "actql/actql/relation_typing",
+  "actql/actql/run_publication",
   "actql/actql/source_request_slots",
   "actql/actql/sourceview_input",
   "actql/actql/stage_parameters",
@@ -74,6 +75,10 @@ pub fn count(Resolved) -> Int
 pub fn declaration(ResolvedInput) -> @sourceview_input.Declaration
 
 pub fn derive_query_acquisition(PipelineRequests, Int, Int) -> Result[QueryAcquisition, QueryAcquisitionIssue]
+
+pub fn derive_query_acquisition_shape(PipelineRequests, Int, Int) -> Result[QueryAcquisition, QueryAcquisitionIssue]
+
+pub fn derive_query_acquisition_with_query_time(PipelineRequests, Int, Int, @run_publication.QueryEvaluationTime) -> Result[QueryAcquisition, QueryAcquisitionIssue]
 
 pub fn direct_request_bindings(ParameterizedRequest, Int, Int) -> Result[RequestBindings, RequestBindingsIssue]
 
@@ -268,6 +273,10 @@ pub fn query_acquisition_input(QueryAcquisition) -> @pipeline_typing.Target
 pub fn query_acquisition_owner(QueryAcquisition) -> PipelineRequests
 
 pub fn query_acquisition_pipeline(QueryAcquisition) -> @pipeline_typing.CheckedPipeline
+
+pub fn query_acquisition_query_time(QueryAcquisition) -> @run_publication.QueryEvaluationTime?
+
+pub fn query_acquisition_query_time_required(QueryAcquisition) -> Bool
 
 pub fn query_acquisition_requirement_at(QueryAcquisition, Int) -> QueryAcquisitionRequirement?
 

@@ -596,6 +596,10 @@ pub fn source_requests_diagnostic(@pipeline_check_context.PrepareSourcesIssue) -
 
 pub fn template_checked_capacity(TemplateCheckedProgram) -> @check_environment.Capacity
 
+pub fn template_checked_condition_at(TemplateCheckedProgram, Int) -> TemplateParameterCondition?
+
+pub fn template_checked_condition_count(TemplateCheckedProgram) -> Int
+
 pub fn template_checked_contracts(TemplateCheckedProgram) -> @pipeline_check_context.AuthoringCoreContracts
 
 pub fn template_checked_declarations(TemplateCheckedProgram) -> TemplateDeclarationPreparation
@@ -611,6 +615,10 @@ pub fn template_checked_input_count(TemplateCheckedProgram) -> Int
 pub fn template_checked_program(TemplateCheckedProgram) -> @stage_syntax.Program
 
 pub fn template_checked_usage(TemplateCheckedProgram) -> (Int, Int, Int)
+
+pub fn template_condition_matches(TemplateCheckedProgram, TemplateParameterCondition) -> Bool
+
+pub fn template_condition_source(TemplateParameterCondition) -> @decode_core.Cursor
 
 pub fn template_declarations_catalog(TemplateDeclarationPreparation) -> @check_environment.SourceRequestContracts
 
@@ -1416,9 +1424,21 @@ pub enum TemplateConstructionIssue {
   Context(Int, @pipeline_check_context.PipelineAuthoringContextIssue)
   Publication(Int, @pipeline_check_context.AuthoringPublicationIssue)
   Contracts(@pipeline_check_context.AuthoringCoreContractIssue)
+  ConsumerDeclaration(Int, Int)
 }
 
 type TemplateDeclarationPreparation
+
+pub struct TemplateParameterCondition {
+  program : @stage_syntax.Program
+  declaration : @parameter_binding.Declaration
+  stage : Int
+  step : Int
+  owner : @pipeline_typing.OperationObligations
+  index : Int
+  minimum : Int64
+  // private fields
+}
 
 type TraversalLimit
 

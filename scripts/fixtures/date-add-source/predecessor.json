@@ -1,0 +1,5410 @@
+{
+  "scalar": {
+    "version": "aoa-rela-scalar-laws/0.1",
+    "law_id": "aoa.rela.scalar.portability.v0.1",
+    "proof_status": "conformance-backed",
+    "decimal": {
+      "version": "aoa-rela-exact-decimal/0.1",
+      "proof_status": "conformance-backed",
+      "conformance_cases": [
+        "packages/rela/test/exact-decimal.spec.ts"
+      ],
+      "max_precision": 38,
+      "coefficient": "signed-base10-integer-no-leading-zero-no-negative-zero",
+      "input_grammar": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$",
+      "binary64_interop": "explicit-safe-integer-conversion-only",
+      "arithmetic": "exact-coefficient-arithmetic-overflow-fails",
+      "add_subtract_type": "scale=max(s1,s2);precision=min(38,max(p1-s1,p2-s2)+scale+1)",
+      "multiply_type": "scale=s1+s2;precision=min(38,p1+p2);scale-over-38-fails",
+      "sum_type": "precision=38;scale=input-scale",
+      "average": "unsupported-use-sum-count-and-explicit-decimal-divide",
+      "rounding": [
+        "half_even",
+        "half_up",
+        "toward_zero",
+        "floor",
+        "ceiling"
+      ],
+      "generic_json": "fixed-scale-string",
+      "value_identity": "domain-separated-version-precision-scale-coefficient"
+    },
+    "construction": {
+      "version": "aoa-rela-closed-construction/0.1",
+      "object": "non-empty-static-fields-all-present-canonical-key-order",
+      "array": "non-empty-finite-elements-one-unifiable-value-contract",
+      "missing": "failure",
+      "null": "present-value-never-an-optional-field",
+      "value_identity": "canonical-recursive-value-with-typed-decimal-domain",
+      "atomicity": "failure-publishes-no-relation",
+      "proof_status": "conformance-backed",
+      "conformance_cases": [
+        "packages/rela/test/closed-values-assertions.spec.ts"
+      ]
+    },
+    "number": {
+      "representation": "finite-ieee754-binary64",
+      "rounding": "round-after-each-operation",
+      "negative_zero_result": "canonical-positive-zero",
+      "non_finite_result": "failure",
+      "divide_by_zero": "failure",
+      "safe_divide_by_zero": "null",
+      "aggregate_fold": "canonical-value-cid-order-left-fold",
+      "modulo": "truncating-remainder-sign-of-dividend-zero-divisor-failure",
+      "sqrt_negative": "failure",
+      "safe_arithmetic": {
+        "domain": "finite-ieee754-binary64-only",
+        "safe_add": "overflow-null",
+        "safe_subtract": "overflow-null",
+        "safe_multiply": "overflow-null",
+        "safe_divide": "zero-divisor-or-overflow-null",
+        "safe_negate": "finite-negation-cannot-overflow",
+        "legacy_safe_div": "zero-divisor-null-overflow-failure",
+        "underflow": "finite-rounded-result-including-canonical-positive-zero",
+        "boundary": "only-own-arithmetic-errors-after-once-only-eager-children"
+      }
+    },
+    "time": {
+      "timestamp": "canonical-exact-utc-iso8601-three-to-nine-fractional-digits-Z",
+      "date": "iso8601-calendar-date-day-arithmetic-only",
+      "arithmetic": "exact-instants-with-declared-fixed-utc-ms-s-m-h-d-units",
+      "units": [
+        "ms",
+        "s",
+        "m",
+        "h",
+        "d"
+      ],
+      "timezone_offsets": "invalid",
+      "leap_seconds": "invalid",
+      "timestamp_date_diff": "fixed-unit-quotient-truncate-toward-zero",
+      "date_only_diff": "whole-days-only",
+      "canonical_fraction": {
+        "minimum_digits": 3,
+        "maximum_digits": 9,
+        "millisecond_aligned": "exactly_three_digits",
+        "finer": "remove_only_trailing_zeros_beyond_three_digits",
+        "unrelated_authored_spellings": "unchanged_refusal"
+      },
+      "comparison_and_key": "exact_instant_order_not_variable_fraction_UTF16_order_canonical_equality_and_key_correspondence",
+      "legacy_value_identity": "all_previously_canonical_millisecond_Value_bytes_and_CIDs_unchanged_internal_sort_representation_is_separate",
+      "event_clock": "same_original_Timestamp_to_exact_rational_UTC_epoch_milliseconds_not_public_Number_or_truncating_date_diff_preserve_payload_and_numeric_clock_domain",
+      "millisecond_only_projection": "refuse_nonrepresentable_fraction_without_rounding_or_truncation",
+      "operational_clocks": "trusted_now_expiry_deadline_rollback_provenance_keep_original_millisecond_contracts_and_issuers",
+      "conformance_boundary": "legacy_millisecond_conformance_does_not_prove_extended_fractional_consumers"
+    },
+    "unicode": {
+      "data_version": "16.0",
+      "normalization": "none_for_string_values",
+      "ordering": "preserved-value-utf16-code-unit",
+      "length": "unicode-scalar-count",
+      "trim": "unicode-white-space",
+      "contains": "case-sensitive",
+      "like": "case-sensitive-percent-underscore-backslash-escape",
+      "replace": "non-overlapping-left-to-right-empty-pattern-no-op",
+      "identifier_normalization": "NFC_then_CRLF_or_CR_to_LF",
+      "trim_white_space_code_points": [
+        "0009..000D",
+        "0020",
+        "0085",
+        "00A0",
+        "1680",
+        "2000..200A",
+        "2028",
+        "2029",
+        "202F",
+        "205F",
+        "3000"
+      ],
+      "ltrim": "unicode-white-space-leading",
+      "rtrim": "unicode-white-space-trailing",
+      "trim_character_set": "unicode-code-point-membership",
+      "trim_empty_character_set": "preserve-value"
+    },
+    "conversion_truth_table": {
+      "to_number": {
+        "input": "canonical-decimal-string-only",
+        "grammar": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+        "trims_whitespace": false,
+        "boolean_coercion": false,
+        "invalid": "failure",
+        "null": "null"
+      },
+      "to_boolean": {
+        "input": "boolean-or-exact-lowercase-true-false-string",
+        "trims_whitespace": false,
+        "case_folding": false,
+        "numeric_coercion": false,
+        "invalid": "failure",
+        "null": "null"
+      },
+      "to_timestamp": {
+        "input": "canonical-YYYY-MM-DDTHH:mm:ss-with-three-to-nine-fractional-digits-Z-no-redundant-extra-trailing-zeros",
+        "trims_whitespace": false,
+        "date_only_coercion": false,
+        "timezone_offsets": false,
+        "invalid": "failure",
+        "null": "null"
+      }
+    },
+    "predicate_scalar_boundary": {
+      "predicate_result": "true-false-or-three-valued-unknown-sentinel",
+      "scalar_result": "true-false-or-null",
+      "unknown_scalar_mapping": "null",
+      "rationale": "the predicate sentinel is an evaluator control value and never appears in relation data or expression-valued function arguments"
+    },
+    "pivot_aggregate": {
+      "count": "non-null-values",
+      "numeric_fold": "canonical-value-cid-order-left-fold",
+      "first": "stable-input-order-first-non-null"
+    }
+  },
+  "aoa": {
+    "version": "actql-aoa-contract/0.1",
+    "kernel_law_manifest": "aoa-kernel-laws/0.1",
+    "kernel_law_manifest_cid": "sha256:62c052d6afb178a08620019253b091c83fc54f7c6d0f32c05b269a06c194a264",
+    "pipeline_ir_version": "aoa-pipeline/0.1",
+    "event_identity_contract": {
+      "domain": "complete_non_null_KeyComparable",
+      "representation": "preserve_semantic_type_and_value",
+      "uniqueness": "separate_data_validation",
+      "equal_time_order": {
+        "scalar": "existing_type_specific_order",
+        "reference": "existing_internal_identity_order"
+      },
+      "authored_reference_order_keys": false,
+      "unsupported_lowering": "reject",
+      "implicit_stringification": false,
+      "implicit_cid_substitution": false
+    },
+    "expression_contract_cid": "sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35",
+    "pipeline_law_manifest": "aoa-pipeline-laws/0.1",
+    "pipeline_law_manifest_cid": "sha256:587ab651a11c93172b597234f849d732319f61490fbb59d3d8841436e1e842dc",
+    "rela_scalar_law_manifest_cid": "sha256:65e19916636e8d7dcf3bc7a1f8640762ef2dee048105c7b869878bd0fdf4d8fe",
+    "rela_primitive_law_manifest_cid": "sha256:a4ab8487ef731512c3daefa5bed078703336dc52ca268ef4cb7127145f0f2ade",
+    "veca_numeric_law_manifest_cid": "sha256:926c086c2ea57e49102ca5dfb724c851fa7fc148370a0bdf8363457fe5fcd004",
+    "sga_structural_law_manifest_cid": "sha256:1426ea2ceaffc511c0540eba706a5ece132a3df5ee3948702edce7e833fc60df",
+    "sga_identity_law_manifest_cid": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
+    "graph_law_manifest_cid": "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34",
+    "pipeline_registry_file": "spec/dependencies/aoa-pipeline-registry.json",
+    "pipeline_registry_cid": "sha256:6ac022c095afc96bbdd2ae54f97a48c75f243f169cbb6c9785425b887a0afa1f",
+    "target_module_contract_cid": "sha256:ae21e53e9cd0727435f707f49efb2ffc9fa1665abda9adde0ff57312265e06e1",
+    "local_family_execution_profile": {
+      "version": "actql-local-family-execution/0.1",
+      "source_contract": "actql-protocol-schema-registry/0.1",
+      "registry_operations": [
+        "SGA.normalize",
+        "SGA.match_nodes",
+        "SGA.match_edges",
+        "SGA.traverse",
+        "SGA.shortest_path",
+        "SGA.components",
+        "SGA.reachable",
+        "SGA.bounds_check",
+        "SGA.degree_metrics",
+        "SGA.diff",
+        "SGA.graft",
+        "SGA.union_structural",
+        "SGA.diff_structural",
+        "SGA.subgraph",
+        "SGA.equal",
+        "SGA.apply_delta",
+        "SGA.mean_structural",
+        "TEA.window.fixed_label",
+        "TEA.window.sliding_assign",
+        "TEA.watermark.label",
+        "TEA.window.session_assign",
+        "TEA.time_series",
+        "TEA.join.interval",
+        "TEA.dedupe",
+        "TEA.join.asof",
+        "TEA.sequence.match",
+        "VEC.normalize_l2",
+        "VEC.score_sort",
+        "VEC.knn_join",
+        "VEC.pool",
+        "VEC.merge_rankings",
+        "BRIDGE.rows.to_graph",
+        "BRIDGE.graph.to_node_rows",
+        "BRIDGE.graph.to_edge_rows",
+        "BRIDGE.rows.to_events",
+        "BRIDGE.events.to_rows",
+        "BRIDGE.rows.to_vectors",
+        "BRIDGE.vectors.to_rows"
+      ],
+      "input_contract": {
+        "ordered": true,
+        "retain_repeated_positions": true,
+        "finite_list_is_one_occurrence": true,
+        "input_position_is_not_producer_port": true
+      },
+      "parameter_contract": {
+        "closed_checked_source_bodies": true,
+        "remove_bound_input_references": true,
+        "preserve_authored_list_order": true,
+        "no_runtime_layout_members": true
+      },
+      "required_obligations": [
+        "typed_carrier_admission",
+        "exact_input_binding",
+        "operation_parameter_admission",
+        "semantic_failure_order",
+        "logical_resource_accounting",
+        "physical_capacity_admission",
+        "managed_generation_lifetime"
+      ],
+      "law_manifest_cids": {
+        "pipeline": "sha256:587ab651a11c93172b597234f849d732319f61490fbb59d3d8841436e1e842dc",
+        "relation": "sha256:a4ab8487ef731512c3daefa5bed078703336dc52ca268ef4cb7127145f0f2ade",
+        "vector_numeric": "sha256:926c086c2ea57e49102ca5dfb724c851fa7fc148370a0bdf8363457fe5fcd004",
+        "graph_structural": "sha256:1426ea2ceaffc511c0540eba706a5ece132a3df5ee3948702edce7e833fc60df",
+        "graph_identity": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4"
+      }
+    },
+    "target_registry_requirements": {
+      "REL.values": {
+        "inputs": [],
+        "output": "relation",
+        "execution_contract": {
+          "pointer": "/execution_contracts/REL.values",
+          "cid": "sha256:96c7925a693801dcb3bce9f3e2da9b4fd9ed39e517af90cbac0e1adbee5ad2ae"
+        }
+      },
+      "REL.except_rows": {
+        "inputs": [
+          "relation",
+          "relation"
+        ],
+        "output": "relation"
+      },
+      "REL.intersect_rows": {
+        "inputs": [
+          "relation",
+          "relation"
+        ],
+        "output": "relation"
+      },
+      "REL.cross_join": {
+        "inputs": [
+          "relation",
+          "relation"
+        ],
+        "output": "relation"
+      },
+      "REL.topk_partitioned": {
+        "inputs": [
+          "relation"
+        ],
+        "output": "relation"
+      },
+      "REL.analytic": {
+        "inputs": [
+          "relation"
+        ],
+        "output": "relation"
+      },
+      "SGA.match_nodes": {
+        "inputs": [
+          "graph"
+        ],
+        "output": "relation"
+      },
+      "SGA.match_edges": {
+        "inputs": [
+          "graph"
+        ],
+        "output": "relation"
+      },
+      "SGA.traverse": {
+        "input_alternatives": [
+          [
+            "graph"
+          ],
+          [
+            "graph",
+            "relation"
+          ]
+        ],
+        "output": "relation"
+      },
+      "SGA.shortest_path": {
+        "input_alternatives": [
+          [
+            "graph"
+          ],
+          [
+            "graph",
+            "relation"
+          ],
+          [
+            "graph",
+            "relation",
+            "relation"
+          ]
+        ],
+        "output": "relation"
+      },
+      "SGA.components": {
+        "inputs": [
+          "graph"
+        ],
+        "output": "relation"
+      },
+      "SGA.union_structural": {
+        "finite_inputs": {
+          "repeated_input": "graph",
+          "minimum_inputs": 2
+        },
+        "output": "graph"
+      },
+      "SGA.subgraph": {
+        "input_alternatives": [
+          [
+            "graph"
+          ],
+          [
+            "graph",
+            "relation"
+          ]
+        ],
+        "output": "graph"
+      },
+      "SGA.equal": {
+        "inputs": [
+          "graph",
+          "graph"
+        ],
+        "output": "relation"
+      },
+      "SGA.mean_structural": {
+        "finite_inputs": {
+          "repeated_input": "graph",
+          "minimum_inputs": 1
+        },
+        "output": "graph"
+      },
+      "TEA.window.session_assign": {
+        "inputs": [
+          "event_stream"
+        ],
+        "output": "event_stream"
+      },
+      "TEA.dedupe": {
+        "inputs": [
+          "event_stream"
+        ],
+        "output": "event_stream"
+      },
+      "TEA.join.asof": {
+        "inputs": [
+          "event_stream",
+          "relation"
+        ],
+        "output": "relation"
+      },
+      "TEA.sequence.match": {
+        "inputs": [
+          "event_stream"
+        ],
+        "output": "relation"
+      },
+      "TEA.time_series": {
+        "inputs": [],
+        "output": "relation"
+      },
+      "TEA.join.interval": {
+        "inputs": [
+          "relation",
+          "relation"
+        ],
+        "output": "relation"
+      },
+      "VEC.pool": {
+        "inputs": [
+          "vector_set"
+        ],
+        "output": "vector_set"
+      },
+      "VEC.merge_rankings": {
+        "policy_inputs": {
+          "max": {
+            "inputs": [
+              "relation",
+              "relation"
+            ]
+          },
+          "weighted_sum": {
+            "inputs": [
+              "relation",
+              "relation"
+            ]
+          },
+          "rrf": {
+            "repeated_input": "relation",
+            "minimum_inputs": 2
+          }
+        },
+        "output": "relation"
+      },
+      "SGA.apply_delta": {
+        "inputs": [
+          "graph",
+          "relation"
+        ],
+        "output": "graph"
+      },
+      "ACTQL.expression_fragment/0.1": {
+        "inputs": [
+          "relation"
+        ],
+        "output": "relation",
+        "execution_contract": {
+          "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
+          "cid": "sha256:d1cbb2bfcb6c82bdd44da631a79777db09b7e0746bb064fa817afb58a953b115"
+        }
+      },
+      "REL.derive": {
+        "inputs": [
+          "relation"
+        ],
+        "output": "relation",
+        "execution_extensions": {
+          "ordered_bindings": {
+            "file": "spec/contracts/actql-aoa.json",
+            "pointer": "/execution_contracts/REL.derive.ordered",
+            "cid": "sha256:ca0efbfa9f05c7ea971834e451291575fac9706e079dfa069bbfa311b520a2d3"
+          }
+        }
+      },
+      "BRIDGE.rows.to_graph": {
+        "finite_inputs": {
+          "repeated_input": "relation",
+          "minimum_inputs": 0
+        },
+        "output": "graph",
+        "execution_contract": {
+          "pointer": "/execution_contracts/BRIDGE.rows.to_graph",
+          "cid": "sha256:0979999a64bb47f7fcb0d113c0bbcab592ad0a268b548a8776f8fac4fd6f6d84"
+        }
+      },
+      "TEA.calendar.bucket": {
+        "inputs": [
+          "relation"
+        ],
+        "output": "relation",
+        "execution_contract": {
+          "pointer": "/execution_contracts/TEA.calendar.bucket",
+          "cid": "sha256:8cbb70e4edcd1dd29deee777b44b3f09b9cee337b5495944ca895fa3065b6227"
+        }
+      },
+      "TEA.calendar.series": {
+        "inputs": [],
+        "output": "relation",
+        "execution_contract": {
+          "pointer": "/execution_contracts/TEA.calendar.series",
+          "cid": "sha256:040129c2ff63394a6b4804daf3a7c0641e2bdae4b524389d3c8c362e7e4dc13f"
+        }
+      }
+    },
+    "non_authoring_registry_operations": [
+      "EFFECT.plan"
+    ],
+    "effect_plan_law": "aoa.pipeline.effect-plan.terminal-boundary.v0.1",
+    "execution_contracts": {
+      "REL.values": {
+        "version": "actql-rel-values-execution/0.1",
+        "operation": "REL.values",
+        "inputs": [],
+        "output": "relation",
+        "dependencies": {
+          "canonical_value_contract": {
+            "path": "spec/contracts/actql-protocol-schemas.json",
+            "pointer": "/schemas/canonical_value_contract",
+            "cid": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
+          }
+        },
+        "params_schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://smooth.dev/schemas/actql/rel-values-params-0.1.json",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema",
+            "rows"
+          ],
+          "properties": {
+            "schema": {
+              "type": "object",
+              "minProperties": 1,
+              "propertyNames": {
+                "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/value_contract"
+              }
+            },
+            "rows": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/$defs/wire_value"
+                }
+              }
+            }
+          },
+          "$defs": {
+            "value_contract": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "nullable",
+                    "precision",
+                    "scale"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "decimal"
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    },
+                    "precision": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 38
+                    },
+                    "scale": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 38
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 1
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 1
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 2
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 2
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 3
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 3
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 4
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 4
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 5
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 5
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 6
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 6
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 7
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 7
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 8
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 8
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 9
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 9
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 10
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 10
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 11
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 11
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 12
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 12
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 13
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 13
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 14
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 14
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 15
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 15
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 16
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 16
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 17
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 17
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 18
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 18
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 19
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 19
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 20
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 20
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 21
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 21
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 22
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 22
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 23
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 23
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 24
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 24
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 25
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 25
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 26
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 26
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 27
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 27
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 28
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 28
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 29
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 29
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 30
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 30
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 31
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 31
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 32
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 32
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 33
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 33
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 34
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 34
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 35
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 35
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 36
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 36
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 37
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 37
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 38
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 38
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "nullable"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "string"
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    },
+                    "min_length": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "max_codepoints": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "max_utf8_bytes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "enum": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "nullable"
+                  ],
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "number",
+                        "boolean",
+                        "timestamp",
+                        "date"
+                      ]
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "nullable",
+                    "items"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "array"
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    },
+                    "items": {
+                      "$ref": "#/$defs/value_contract"
+                    },
+                    "max_items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "nullable",
+                    "additional_properties",
+                    "fields"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "object"
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    },
+                    "additional_properties": {
+                      "const": false
+                    },
+                    "fields": {
+                      "type": "object",
+                      "propertyNames": {
+                        "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+                      },
+                      "additionalProperties": {
+                        "$ref": "#/$defs/value_contract"
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "nullable",
+                    "dimensions",
+                    "element_type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "vector"
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    },
+                    "dimensions": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "element_type": {
+                      "const": "f32"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "nullable"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": {
+                      "const": "int64"
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              ]
+            },
+            "wire_value": {
+              "oneOf": [
+                {
+                  "type": [
+                    "null",
+                    "boolean",
+                    "number",
+                    "string"
+                  ]
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/wire_value"
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/$defs/wire_value"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "semantics": {
+          "schema_form": "nonempty_field_map_of_complete_checked_constructible_contracts",
+          "cells": "bound_typed_wire_values_without_cell_wrappers",
+          "quotation": "remove_exact_singleton_literal_once_before_execution_params",
+          "parameter_resolution": "resolve_only_authored_cell_root_holes_before_execution_params",
+          "business_objects": "never_reinterpret_param_or_literal_members",
+          "row_fields": "exact_declared_set_including_nullable_fields",
+          "values": "recursive_declared_type_admission_without_cast_repair_or_rounding",
+          "strings": "preserve_well_formed_unicode_scalar_sequence_without_NFC_or_line_break_repair",
+          "object_member_names": "NFC_then_LF_reject_noncanonical_names_and_collisions",
+          "string_extents": "retained_unicode_scalars_and_UTF8_bytes",
+          "text_enumeration": "exact_original_vector_membership_intersected_with_retained_extents_preserve_nullable_and_empty_duplicates_order_no_constraint_stripping_or_authority",
+          "decimal": "canonical_fixed_scale_string_under_declared_precision_and_scale",
+          "int64": "canonical_signed_decimal_String_in_full_signed64_range_distinct_logical_type_no_JSON_Number_or_implicit_coercion",
+          "empty_rows": "retain_declared_schema",
+          "row_order": "retain_occurrence_order",
+          "row_multiplicity": "retain_all_occurrences",
+          "object_key_order": "canonical_utf16_order_not_row_order",
+          "publication": "validate_all_rows_and_resolved_limits_before_publication",
+          "recursive_resources": {
+            "selected_root_types": [
+              "array",
+              "object",
+              "vector"
+            ],
+            "bytes": "sum_canonical_typed_wire_cell_bytes_across_all_occurrences_including_null_without_double_counting_nested_containers",
+            "byte_exclusions": [
+              "scalar_typed_cells",
+              "row_keys",
+              "row_wrappers",
+              "rows_wrapper",
+              "schema"
+            ],
+            "host_byte_ceiling": "max_nested_value_bytes",
+            "depth": "declared_cell_type_scalar_0_vector_1_array_1_plus_items_object_1_plus_max_fields",
+            "depth_excludes": [
+              "row_wrapper",
+              "rows_wrapper"
+            ],
+            "host_depth_ceiling": "max_nested_value_depth",
+            "empty_or_null": "type_depth_still_checked_zero_selected_cells_have_zero_bytes",
+            "failure": "atomic_before_any_consumer_without_truncation"
+          },
+          "unsupported_backend": "reject_runnable_plan_without_exact_registered_contract_support"
+        }
+      },
+      "ACTQL.expression_fragment/0.1": {
+        "version": "actql-expression-fragment-execution/0.1",
+        "operation": "ACTQL.expression_fragment/0.1",
+        "inputs": [
+          "relation"
+        ],
+        "output": "relation",
+        "dependencies": {
+          "expression_contract": {
+            "file": "spec/contracts/actql-expressions.json",
+            "pointer": "",
+            "cid": "sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35"
+          },
+          "fragment_schema": {
+            "file": "spec/contracts/actql-expressions.json",
+            "pointer": "/schemas/fragment",
+            "cid": "sha256:46609f6f81679938a14f2b79e6f750d242b841684f9a00d911568efded652905"
+          }
+        },
+        "params_schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "urn:actql:expression-fragment-params:0.1",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fragment"
+          ],
+          "properties": {
+            "fragment": {
+              "$ref": "urn:actql:expression-fragment:0.1"
+            }
+          }
+        },
+        "semantics": {
+          "schema_resolution": "resolve_fragment_schema_from_exact_pinned_dependency_without_network_lookup",
+          "local_source": "exactly_one_request_pipeline_source_named_input",
+          "admission": "regenerate_and_compare_sealed_fragment_under_pinned_expression_contract_before_evaluation",
+          "fragment_identity": "hash_complete_canonical_fragment_excluding_only_root_fragment_cid",
+          "retained_material": "retain_opcode_and_complete_fragment_in_canonical_composition",
+          "inner_graph": "not_a_standalone_execution_artifact",
+          "carrier_projection": "validation_witness_only_never_hashed_executed_or_used_as_type_evidence",
+          "obligations": "enforce_fragment_input_root_output_limits_demands_and_runtime_checks",
+          "backend": "reject_execution_without_support_for_exact_contract_and_all_used_extensions",
+          "authority": "registration_does_not_establish_program_completion_or_execution_permission"
+        }
+      },
+      "REL.derive.ordered": {
+        "version": "actql-ordered-derive-execution/0.1",
+        "operation": "REL.derive",
+        "inputs": [
+          "relation"
+        ],
+        "output": "relation",
+        "applies_to": "ordered_parameters_only",
+        "dependencies": {
+          "expression_contract": {
+            "file": "spec/contracts/actql-expressions.json",
+            "pointer": "",
+            "cid": "sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35"
+          },
+          "expression_node": {
+            "file": "spec/contracts/actql-expressions.json",
+            "pointer": "/schemas/expression_node",
+            "cid": "sha256:c37306c98c772f79f11782503522843430c0867b0bf903248fe9933cb477fb6f"
+          },
+          "source_expression": {
+            "file": "spec/contracts/actql-expressions.json",
+            "pointer": "/schemas/expression",
+            "cid": "sha256:5c7ab5c2189768003f4cc1cf5665b3c42ef1bc47497e606a46938fc1dfa40c77"
+          },
+          "derive_binding": {
+            "file": "spec/contracts/actql-stage-contracts.json",
+            "pointer": "/schemas/derive_binding",
+            "cid": "sha256:d74bb697d91a2daf2c51e0d6c492f4bb35fdea5e542d606318683b1c9c5f06f9"
+          },
+          "value_contract": {
+            "file": "spec/contracts/actql-protocol-schemas.json",
+            "pointer": "/schemas/canonical_value_contract",
+            "cid": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
+          }
+        },
+        "schemas": {
+          "params": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "urn:actql:ordered-derive-params:0.1",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "row_kernel_contract_cid",
+              "bindings",
+              "references"
+            ],
+            "properties": {
+              "row_kernel_contract_cid": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "bindings": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "name",
+                    "expr"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "expr": {
+                      "$ref": "urn:actql:expression-node:0.1"
+                    }
+                  }
+                },
+                "minItems": 1
+              },
+              "references": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "at",
+                    "target"
+                  ],
+                  "properties": {
+                    "at": {
+                      "type": "string",
+                      "pattern": "^/bindings/(0|[1-9][0-9]*)/expr(?:/.*)?$"
+                    },
+                    "target": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "input_field"
+                          ],
+                          "properties": {
+                            "input_field": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "prior_slot"
+                          ],
+                          "properties": {
+                            "prior_slot": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "source_params": {
+            "$id": "urn:actql:ordered-derive-source-params:0.1",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "bindings"
+            ],
+            "properties": {
+              "bindings": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "name",
+                    "expr"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "expr": {
+                      "$ref": "urn:actql:expression:0.1"
+                    }
+                  }
+                },
+                "minItems": 1
+              }
+            }
+          },
+          "node_preimage": {
+            "$id": "urn:actql:ordered-derive-node-preimage:0.1",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "in",
+              "op",
+              "params"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "in": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1,
+                "maxItems": 1
+              },
+              "op": {
+                "const": "REL.derive"
+              },
+              "params": {
+                "$ref": "urn:actql:ordered-derive-params:0.1"
+              }
+            }
+          },
+          "context": {
+            "$id": "urn:actql:derive-row-context:0.1",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "version",
+              "input_contract_cid",
+              "prior_slots",
+              "self_cid"
+            ],
+            "properties": {
+              "version": {
+                "const": "actql-derive-row-context/0.1"
+              },
+              "input_contract_cid": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "prior_slots": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "name",
+                    "contract"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "contract": {
+                      "$ref": "#/$defs/value_contract"
+                    }
+                  }
+                }
+              },
+              "self_cid": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              }
+            },
+            "$defs": {
+              "value_contract": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "type",
+                      "nullable",
+                      "precision",
+                      "scale"
+                    ],
+                    "properties": {
+                      "type": {
+                        "const": "decimal"
+                      },
+                      "nullable": {
+                        "type": "boolean"
+                      },
+                      "precision": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 38
+                      },
+                      "scale": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 38
+                      }
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 1
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 1
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 2
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 2
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 3
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 3
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 4
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 4
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 5
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 5
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 6
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 6
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 7
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 7
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 8
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 8
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 9
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 9
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 10
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 10
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 11
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 11
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 12
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 12
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 13
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 13
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 14
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 14
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 15
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 15
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 16
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 16
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 17
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 17
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 18
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 18
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 19
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 19
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 20
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 20
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 21
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 21
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 22
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 22
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 23
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 23
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 24
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 24
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 25
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 25
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 26
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 26
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 27
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 27
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 28
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 28
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 29
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 29
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 30
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 30
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 31
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 31
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 32
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 32
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 33
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 33
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 34
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 34
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 35
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 35
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 36
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 36
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 37
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 37
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 38
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 38
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "type",
+                      "nullable"
+                    ],
+                    "properties": {
+                      "type": {
+                        "const": "string"
+                      },
+                      "nullable": {
+                        "type": "boolean"
+                      },
+                      "min_length": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "max_codepoints": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "max_utf8_bytes": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "enum": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "type",
+                      "nullable"
+                    ],
+                    "properties": {
+                      "type": {
+                        "enum": [
+                          "number",
+                          "boolean",
+                          "timestamp",
+                          "date",
+                          "json"
+                        ]
+                      },
+                      "nullable": {
+                        "type": "boolean"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "type",
+                      "nullable",
+                      "items"
+                    ],
+                    "properties": {
+                      "type": {
+                        "const": "array"
+                      },
+                      "nullable": {
+                        "type": "boolean"
+                      },
+                      "items": {
+                        "$ref": "#/$defs/value_contract"
+                      },
+                      "max_items": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "type",
+                      "nullable",
+                      "additional_properties",
+                      "fields"
+                    ],
+                    "properties": {
+                      "type": {
+                        "const": "object"
+                      },
+                      "nullable": {
+                        "type": "boolean"
+                      },
+                      "additional_properties": {
+                        "const": false
+                      },
+                      "fields": {
+                        "type": "object",
+                        "propertyNames": {
+                          "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+                        },
+                        "additionalProperties": {
+                          "$ref": "#/$defs/value_contract"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "type",
+                      "nullable",
+                      "dimensions",
+                      "element_type"
+                    ],
+                    "properties": {
+                      "type": {
+                        "const": "vector"
+                      },
+                      "nullable": {
+                        "type": "boolean"
+                      },
+                      "dimensions": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "element_type": {
+                        "const": "f32"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "type",
+                      "nullable",
+                      "resource_kind"
+                    ],
+                    "properties": {
+                      "type": {
+                        "const": "resource_ref"
+                      },
+                      "nullable": {
+                        "type": "boolean"
+                      },
+                      "resource_kind": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "type",
+                      "nullable"
+                    ],
+                    "properties": {
+                      "type": {
+                        "const": "content_ref"
+                      },
+                      "nullable": {
+                        "type": "boolean"
+                      },
+                      "media_type": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "type",
+                      "nullable"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "type": {
+                        "const": "int64"
+                      },
+                      "nullable": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "limits": {
+            "$id": "urn:actql:derive-row-limits:0.1",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "version",
+              "max_input_rows",
+              "max_value_bytes",
+              "max_live_value_bytes",
+              "max_work",
+              "self_cid"
+            ],
+            "properties": {
+              "version": {
+                "const": "actql-derive-row-limits/0.1"
+              },
+              "max_input_rows": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "max_value_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "max_live_value_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "max_work": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "self_cid": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              }
+            }
+          },
+          "shape": {
+            "$id": "urn:actql:derive-row-shape:0.1",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "version",
+              "fields",
+              "required_fields",
+              "additional_fields",
+              "self_cid"
+            ],
+            "properties": {
+              "version": {
+                "const": "actql-derive-row-shape/0.1"
+              },
+              "fields": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/$defs/value_contract"
+                }
+              },
+              "required_fields": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "additional_fields": {
+                "type": "boolean"
+              },
+              "self_cid": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              }
+            },
+            "$defs": {
+              "value_contract": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "type",
+                      "nullable",
+                      "precision",
+                      "scale"
+                    ],
+                    "properties": {
+                      "type": {
+                        "const": "decimal"
+                      },
+                      "nullable": {
+                        "type": "boolean"
+                      },
+                      "precision": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 38
+                      },
+                      "scale": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 38
+                      }
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 1
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 1
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 2
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 2
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 3
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 3
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 4
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 4
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 5
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 5
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 6
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 6
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 7
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 7
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 8
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 8
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 9
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 9
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 10
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 10
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 11
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 11
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 12
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 12
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 13
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 13
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 14
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 14
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 15
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 15
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 16
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 16
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 17
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 17
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 18
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 18
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 19
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 19
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 20
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 20
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 21
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 21
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 22
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 22
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 23
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 23
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 24
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 24
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 25
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 25
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 26
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 26
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 27
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 27
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 28
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 28
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 29
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 29
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 30
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 30
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 31
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 31
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 32
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 32
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 33
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 33
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 34
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 34
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 35
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 35
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 36
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 36
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 37
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 37
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "precision": {
+                              "const": 38
+                            }
+                          },
+                          "required": [
+                            "precision"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "scale": {
+                              "maximum": 38
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "type",
+                      "nullable"
+                    ],
+                    "properties": {
+                      "type": {
+                        "const": "string"
+                      },
+                      "nullable": {
+                        "type": "boolean"
+                      },
+                      "min_length": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "max_codepoints": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "max_utf8_bytes": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "enum": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "type",
+                      "nullable"
+                    ],
+                    "properties": {
+                      "type": {
+                        "enum": [
+                          "number",
+                          "boolean",
+                          "timestamp",
+                          "date",
+                          "json"
+                        ]
+                      },
+                      "nullable": {
+                        "type": "boolean"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "type",
+                      "nullable",
+                      "items"
+                    ],
+                    "properties": {
+                      "type": {
+                        "const": "array"
+                      },
+                      "nullable": {
+                        "type": "boolean"
+                      },
+                      "items": {
+                        "$ref": "#/$defs/value_contract"
+                      },
+                      "max_items": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "type",
+                      "nullable",
+                      "additional_properties",
+                      "fields"
+                    ],
+                    "properties": {
+                      "type": {
+                        "const": "object"
+                      },
+                      "nullable": {
+                        "type": "boolean"
+                      },
+                      "additional_properties": {
+                        "const": false
+                      },
+                      "fields": {
+                        "type": "object",
+                        "propertyNames": {
+                          "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+                        },
+                        "additionalProperties": {
+                          "$ref": "#/$defs/value_contract"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "type",
+                      "nullable",
+                      "dimensions",
+                      "element_type"
+                    ],
+                    "properties": {
+                      "type": {
+                        "const": "vector"
+                      },
+                      "nullable": {
+                        "type": "boolean"
+                      },
+                      "dimensions": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "element_type": {
+                        "const": "f32"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "type",
+                      "nullable",
+                      "resource_kind"
+                    ],
+                    "properties": {
+                      "type": {
+                        "const": "resource_ref"
+                      },
+                      "nullable": {
+                        "type": "boolean"
+                      },
+                      "resource_kind": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "type",
+                      "nullable"
+                    ],
+                    "properties": {
+                      "type": {
+                        "const": "content_ref"
+                      },
+                      "nullable": {
+                        "type": "boolean"
+                      },
+                      "media_type": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "type",
+                      "nullable"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "type": {
+                        "const": "int64"
+                      },
+                      "nullable": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "semantics": {
+          "dispatch": "exact_registered_extension_cid_and_closed_ordered_params_no_legacy_fallback",
+          "legacy": "snapshot_map_exprs_node_representation_unchanged",
+          "source_params": "exactly_bindings_name_and_canonical_source_expr_preserve_parameter_references_no_reference_table_extension_pin_machine_nodes_or_evidence",
+          "source_binding": "request_pipeline_and_graph_preserve_exact_step_ids_input_edges_and_binding_names_order_replace_only_expression_payloads_and_add_registered_pin_and_regenerated_references",
+          "node_identity": "canonical_CID_of_complete_corresponding_graph_steps_entry_id_in_op_params_no_wrapper_or_omissions_includes_extension_pin_references_and_lowered_expressions_excludes_external_evidence",
+          "names": "canonical_AuthoredFieldName_unique_in_authored_binding_order",
+          "references": "binding_order_then_expression_semantic_preorder_exact_field_occurrences_no_literal_traversal",
+          "targets": "latest_prior_slot_with_same_name_else_original_input_never_self_or_future",
+          "field_spelling": "field_body_matches_target_field_or_prior_slot_name_and_checked_type",
+          "context": "input_contract_cid_matches_derive_evidence_prior_slots_equal_exact_checked_prefix",
+          "evidence": "one_derive_binding_per_ordered_graph_node_with_exact_node_input_output_expression_context_limits_ownership",
+          "expression_identity": "checked_expression_cid_hashes_complete_corresponding_fragment_root_including_step_id_parameter_pointer_source_node_contract_demand_paths",
+          "row_shape_identity": "input_and_output_contract_cids_resolve_row_shape_self_cids_excluding_only_self_cid",
+          "row_shape": "required_fields_unique_UTF16_sorted_fields_known_subset_required_additional_fields_controls_unknown_names_no_invented_types",
+          "admission": "all_required_input_values_before_shadowing_preserve_admitted_unknown_fields",
+          "evaluation": "logical_row_then_authored_binding_then_common_expression_order_with_existing_lazy_demands",
+          "failure": "first_demanded_failure_no_partial_operation_publication_or_slot_elimination",
+          "output": "retain_input_fields_replace_only_shadowed_fields_using_rhs_type_no_coercion",
+          "identity": "authored_order_reference_multiplicity_and_full_params_are_semantic_no_source_spans",
+          "acyclic": "node_includes_extension_pin_not_evidence_self_cid_evidence_then_names_node",
+          "limits_identity": "limits_cid_resolves_exact_request_row_kernel_limits_for_same_step_self_cid_excluding_only_self_cid",
+          "limits_owner": "request_row_kernel_limits_names_exact_ordered_steps_value_and_row_caps_do_not_exceed_enclosing_request_caps_selected_host_limits_remain_required",
+          "context_identity": "context_contract_cid_resolves_row_context_self_cid_excluding_only_self_cid",
+          "rows": "max_input_rows_counts_all_input_row_occurrences_before_evaluation",
+          "value_bytes": "canonical_JSON_UTF8_of_typed_wire_value_for_each_input_value_demanded_root_and_complete_retained_output_row",
+          "live_bytes": "sum_typed_wire_bytes_of_live_input_slot_temporary_and_pending_output_value_roots_count_alias_roots_separately_release_after_last_use",
+          "work": "one_per_row_and_binding_and_demanded_expression_entry_plus_value_weight_for_input_admission_each_consumed_operand_each_produced_value_and_retained_output",
+          "value_weight": "one_per_scalar_or_container_plus_raw_UTF8_octets_of_string_values_and_object_keys_count_every_logical_occurrence_including_shared_values",
+          "work_scope": "logical_workload_not_instruction_count_or_heap_visits_no_discount_for_caching_or_short_circuit_scalar_comparison_additional_backend_algorithm_limits_remain_separate",
+          "charging": "preflight_before_traversal_or_construction_check_arithmetic_overflow_exact_caps_accepted_no_per_slot_or_row_reset",
+          "physical_memory": "logical_measures_not_heap_ceiling_backend_may_apply_additional_host_resource_limits",
+          "bounds": "no_static_capacity_proof_fabrication_no_early_projection_waiver",
+          "unsupported": "reject_executable_plan_if_contract_expression_or_measure_cannot_be_enforced"
+        }
+      },
+      "BRIDGE.rows.to_graph": {
+        "version": "actql-graph-construction-execution/0.1",
+        "operation": "BRIDGE.rows.to_graph",
+        "finite_inputs": {
+          "repeated_input": "relation",
+          "minimum_inputs": 0
+        },
+        "output": "graph",
+        "dependencies": {
+          "graph_law": {
+            "file": "spec/dependencies/actql-graph-laws.json",
+            "pointer": "",
+            "cid": "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34"
+          },
+          "canonical_value_contract": {
+            "file": "spec/contracts/actql-protocol-schemas.json",
+            "pointer": "/schemas/canonical_value_contract",
+            "cid": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
+          }
+        },
+        "params_schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "urn:actql:graph-construction-params:0.1",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "contract",
+            "edges",
+            "nodes"
+          ],
+          "properties": {
+            "contract": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "domain",
+                "edge_definitions",
+                "identity_law_cid",
+                "node_definitions",
+                "value_law_cid",
+                "version"
+              ],
+              "properties": {
+                "domain": {
+                  "type": "string",
+                  "pattern": "^sha256:[a-f0-9]{64}$"
+                },
+                "edge_definitions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "key_columns",
+                      "key_contracts",
+                      "labels",
+                      "name",
+                      "properties",
+                      "source_definition",
+                      "target_definition"
+                    ],
+                    "properties": {
+                      "key_columns": {
+                        "type": "array",
+                        "items": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "minLength": 1
+                        },
+                        "minItems": 1
+                      },
+                      "key_contracts": {
+                        "type": "array",
+                        "items": {
+                          "allOf": [
+                            {
+                              "$ref": "#/$defs/value_contract"
+                            },
+                            {
+                              "properties": {
+                                "nullable": {
+                                  "const": false
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "minItems": 1
+                      },
+                      "labels": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "uniqueItems": true
+                        }
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "properties": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "$ref": "#/$defs/value_contract"
+                        }
+                      },
+                      "source_definition": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "target_definition": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                },
+                "identity_law_cid": {
+                  "const": "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34"
+                },
+                "node_definitions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "key_columns",
+                      "key_contracts",
+                      "labels",
+                      "name",
+                      "properties"
+                    ],
+                    "properties": {
+                      "key_columns": {
+                        "type": "array",
+                        "items": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "minLength": 1
+                        },
+                        "minItems": 1
+                      },
+                      "key_contracts": {
+                        "type": "array",
+                        "items": {
+                          "allOf": [
+                            {
+                              "$ref": "#/$defs/value_contract"
+                            },
+                            {
+                              "properties": {
+                                "nullable": {
+                                  "const": false
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "minItems": 1
+                      },
+                      "labels": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "uniqueItems": true
+                        }
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "properties": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "$ref": "#/$defs/value_contract"
+                        }
+                      }
+                    }
+                  }
+                },
+                "value_law_cid": {
+                  "const": "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34"
+                },
+                "version": {
+                  "const": "actql-graph-contract/0.1"
+                }
+              }
+            },
+            "edges": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "element",
+                  "source",
+                  "target"
+                ],
+                "properties": {
+                  "element": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "definition",
+                      "input",
+                      "keys",
+                      "properties"
+                    ],
+                    "properties": {
+                      "definition": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "input": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "keys": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "minItems": 1,
+                        "uniqueItems": true
+                      },
+                      "properties": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      }
+                    }
+                  },
+                  "source": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true
+                  },
+                  "target": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true
+                  }
+                }
+              }
+            },
+            "nodes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "definition",
+                  "input",
+                  "keys",
+                  "properties"
+                ],
+                "properties": {
+                  "definition": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "input": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "keys": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true
+                  },
+                  "properties": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "$defs": {
+            "value_contract": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "nullable",
+                    "precision",
+                    "scale"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "decimal"
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    },
+                    "precision": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 38
+                    },
+                    "scale": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 38
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 1
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 1
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 2
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 2
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 3
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 3
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 4
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 4
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 5
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 5
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 6
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 6
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 7
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 7
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 8
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 8
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 9
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 9
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 10
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 10
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 11
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 11
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 12
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 12
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 13
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 13
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 14
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 14
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 15
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 15
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 16
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 16
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 17
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 17
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 18
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 18
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 19
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 19
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 20
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 20
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 21
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 21
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 22
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 22
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 23
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 23
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 24
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 24
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 25
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 25
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 26
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 26
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 27
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 27
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 28
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 28
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 29
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 29
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 30
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 30
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 31
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 31
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 32
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 32
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 33
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 33
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 34
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 34
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 35
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 35
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 36
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 36
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 37
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 37
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "precision": {
+                            "const": 38
+                          }
+                        },
+                        "required": [
+                          "precision"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "scale": {
+                            "maximum": 38
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "nullable"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "string"
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    },
+                    "min_length": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "max_codepoints": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "max_utf8_bytes": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "enum": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "nullable"
+                  ],
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "number",
+                        "boolean",
+                        "timestamp",
+                        "date",
+                        "json"
+                      ]
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "nullable",
+                    "items"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "array"
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    },
+                    "items": {
+                      "$ref": "#/$defs/value_contract"
+                    },
+                    "max_items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "nullable",
+                    "additional_properties",
+                    "fields"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "object"
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    },
+                    "additional_properties": {
+                      "const": false
+                    },
+                    "fields": {
+                      "type": "object",
+                      "propertyNames": {
+                        "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+                      },
+                      "additionalProperties": {
+                        "$ref": "#/$defs/value_contract"
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "nullable",
+                    "dimensions",
+                    "element_type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "vector"
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    },
+                    "dimensions": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "element_type": {
+                      "const": "f32"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "nullable",
+                    "resource_kind"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "resource_ref"
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    },
+                    "resource_kind": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "nullable"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "content_ref"
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    },
+                    "media_type": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "nullable"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": {
+                      "const": "int64"
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "semantics": {
+          "admission": "use_existing_checked_constructor_and_typed_contract_owner_before_execution_schema_validation_alone_is_not_admission",
+          "profile": "distinct_graph_contract_no_legacy_graph_reading_conversion_or_fallback",
+          "inputs": "one_ordered_relation_occurrence_per_node_then_edge_definition_preserve_repeated_producers_exact_input_count_equals_nodes_plus_edges_zero_only_for_empty_definition_set",
+          "correspondence": "each_binding_names_exact_admitted_definition_once_keys_and_properties_are_checked_producer_column_coordinates_endpoint_coordinates_match_referenced_node_key_types_key_columns_has_exact_key_contract_count_all_named_or_all_anonymous_null_and_preserves_original_component_name_position_type_for_snapshot_and_rows",
+          "identity": "definition_domain_and_complete_nonnull_typed_key_independent_of_properties_labels_endpoints_input_artifact_parameter_values_run_invocation_and_current_content_CIDs",
+          "domain": "existing_checker_issues_domain_from_admitted_constructor_definition_and_producer_provenance_not_caller_claimed_current_data",
+          "null_keys": "exclude_rows_with_null_element_key_before_uniqueness_and_endpoint_resolution",
+          "duplicates": "reject_duplicate_complete_definition_keys_even_identical_edges_before_missing_endpoint_exclusion_no_partial_graph_publication",
+          "endpoints": "exclude_missing_endpoints_without_synthesized_nodes_preserve_independently_keyed_parallel_edges",
+          "labels": "static_per_definition_label_sets_and_exposed_property_subsets_not_data_properties",
+          "resources": "existing_Graph_storage_builder_output_builder_retention_capacity_cancel_and_cleanup_owners_no_second_engine_or_accounting_owner",
+          "unsupported": "reject_unimplemented_property_profile_operations_without_fallback_to_legacy_SGA",
+          "authority": "registration_is_not_execution_authorization_or_a_claim_of_all_SGA_support"
+        }
+      },
+      "TEA.calendar.bucket": {
+        "operation": "TEA.calendar.bucket",
+        "inputs": [
+          "relation"
+        ],
+        "output": "relation",
+        "params_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "time",
+            "into",
+            "unit",
+            "timezone",
+            "profile"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "unit": {
+                    "const": "week"
+                  }
+                },
+                "required": [
+                  "unit"
+                ]
+              },
+              "then": {
+                "required": [
+                  "week_start"
+                ]
+              },
+              "else": {
+                "not": {
+                  "required": [
+                    "week_start"
+                  ]
+                }
+              }
+            }
+          ],
+          "properties": {
+            "unit": {
+              "enum": [
+                "day",
+                "week",
+                "month",
+                "quarter",
+                "year"
+              ]
+            },
+            "timezone": {
+              "type": "string",
+              "minLength": 1
+            },
+            "week_start": {
+              "enum": [
+                "monday",
+                "sunday"
+              ]
+            },
+            "time": {
+              "type": "string",
+              "pattern": "^(?:(?:left|right)\\.)?(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+            },
+            "into": {
+              "type": "string",
+              "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+            },
+            "profile": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "conversion_law",
+                "table_bytes_cid",
+                "tzdb_version"
+              ],
+              "properties": {
+                "conversion_law": {
+                  "const": "actql-calendar-boundaries/0.1"
+                },
+                "table_bytes_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[a-f0-9]{64}$"
+                },
+                "tzdb_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "urn:actql:calendar-bucket-params:0.1"
+        },
+        "semantics": {
+          "profile": "exact_selected_CalendarProfile_original_table_bytes_CID_tzdb_version_and_conversion_law_for_same_checked_occurrence_and_timezone",
+          "endpoints": "bind_original_non_null_timestamp_Parameters_then_validate_canonical_years_0001_to_9999_and_start_not_after_end",
+          "boundaries": "original_selected_timezone_table_earliest_exact_fold_earliest_forward_gap_greatest_distinct_UTC_start_not_after_timestamp_and_least_distinct_UTC_end_after_timestamp",
+          "output": "retain_original_input_fields_and_append_non_null_start_end_interval_for_original_time_field",
+          "authority": "registration_and_lowering_are_not_executable_Plan_authorization_or_Runtime_support",
+          "runtime": "existing_selected_TEA_input_output_control_work_retention_capacity_cancellation_and_cleanup_owners_no_ambient_timezone_or_fixed_milliseconds_substitution",
+          "unsupported": "reject_before_execution_when_original_profile_or_required_runtime_obligation_cannot_be_enforced"
+        }
+      },
+      "TEA.calendar.series": {
+        "operation": "TEA.calendar.series",
+        "inputs": [],
+        "output": "relation",
+        "params_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "start",
+            "end",
+            "unit",
+            "timezone",
+            "profile"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "unit": {
+                    "const": "week"
+                  }
+                },
+                "required": [
+                  "unit"
+                ]
+              },
+              "then": {
+                "required": [
+                  "week_start"
+                ]
+              },
+              "else": {
+                "not": {
+                  "required": [
+                    "week_start"
+                  ]
+                }
+              }
+            }
+          ],
+          "properties": {
+            "unit": {
+              "enum": [
+                "day",
+                "week",
+                "month",
+                "quarter",
+                "year"
+              ]
+            },
+            "timezone": {
+              "type": "string",
+              "minLength": 1
+            },
+            "week_start": {
+              "enum": [
+                "monday",
+                "sunday"
+              ]
+            },
+            "start": {
+              "type": "string",
+              "pattern": "^(?!0000-)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])"
+            },
+            "end": {
+              "type": "string",
+              "pattern": "^(?!0000-)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])"
+            },
+            "profile": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "conversion_law",
+                "table_bytes_cid",
+                "tzdb_version"
+              ],
+              "properties": {
+                "conversion_law": {
+                  "const": "actql-calendar-boundaries/0.1"
+                },
+                "table_bytes_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[a-f0-9]{64}$"
+                },
+                "tzdb_version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "urn:actql:calendar-series-params:0.1"
+        },
+        "semantics": {
+          "profile": "exact_selected_CalendarProfile_original_table_bytes_CID_tzdb_version_and_conversion_law_for_same_checked_occurrence_and_timezone",
+          "endpoints": "bind_original_non_null_timestamp_Parameters_then_validate_canonical_years_0001_to_9999_and_start_not_after_end",
+          "boundaries": "original_selected_timezone_table_earliest_exact_fold_earliest_forward_gap_greatest_distinct_UTC_start_not_after_timestamp_and_least_distinct_UTC_end_after_timestamp",
+          "output": "complete_unclipped_intersecting_intervals_in_UTC_order_equal_range_empty_coincident_boundaries_collapse",
+          "authority": "registration_and_lowering_are_not_executable_Plan_authorization_or_Runtime_support",
+          "runtime": "existing_selected_TEA_input_output_control_work_retention_capacity_cancellation_and_cleanup_owners_no_ambient_timezone_or_fixed_milliseconds_substitution",
+          "unsupported": "reject_before_execution_when_original_profile_or_required_runtime_obligation_cannot_be_enforced"
+        }
+      }
+    }
+  },
+  "grammar": {
+    "version": "actql-grammar-manifest/0.1",
+    "source_grammar_cid": "sha256:e5394b831e775d5d51c72a35f06615cd11869f309003cd49a6b8c99315fdee1e",
+    "operations": [
+      "analytic",
+      "append",
+      "apply_graph_delta",
+      "asof_join",
+      "assert_rows",
+      "calendar_bucket",
+      "calendar_series",
+      "components",
+      "cross_join",
+      "dedupe_events",
+      "dedupe_rows",
+      "degree",
+      "derive",
+      "distinct",
+      "drop",
+      "edge_rows",
+      "events",
+      "except",
+      "filter",
+      "graft_graph",
+      "graph",
+      "graph_bounds",
+      "graph_diff",
+      "graphs_equal",
+      "group",
+      "infer",
+      "intersect",
+      "interval_join",
+      "join",
+      "json_pick",
+      "lag",
+      "match_edges",
+      "match_nodes",
+      "mean_graphs",
+      "merge_rankings",
+      "nearest",
+      "nest",
+      "node_rows",
+      "normalize_graph",
+      "normalize_vectors",
+      "pivot",
+      "pool_vectors",
+      "reach",
+      "rename",
+      "row_window",
+      "score_vectors",
+      "search_candidates",
+      "select",
+      "sequence",
+      "serialize",
+      "session",
+      "shortest_path",
+      "sort",
+      "subgraph",
+      "subtract_graphs",
+      "take",
+      "text_rank",
+      "time_series",
+      "to_events",
+      "to_vectors",
+      "top_k",
+      "top_k_by",
+      "traverse",
+      "union_graphs",
+      "unnest",
+      "unpivot",
+      "values",
+      "vectors",
+      "watermark_events",
+      "watermark_rows",
+      "window_events",
+      "window_group"
+    ],
+    "expression_contract_cid": "sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35",
+    "expression_text_grammar_sha256": "3138560ad7c029b23bee2d7446f1ee8155520ead50281aae1493f0219db7bc5c",
+    "expression_text_rules_sha256": "e08d5c75a99f543682e965fa3cd3c5778ecd8482c540d98ead562ad33303dd86",
+    "structural_text_grammar_sha256": "0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56",
+    "structural_text_rules_sha256": "5d2f2432181664678b364fc97c3545d1740b004cd7b073c4bf0d8181c30dcaae",
+    "query_text_grammar_sha256": "754e53e8797e6ed5b6cd0e19387cdefcc12b6b2dbfc29f85183a3a4df556acea",
+    "query_text_rules_sha256": "2f8c1bb74af189d5e7f7bba196deae15c27e4de91ab41fc8bf82f6cbccdefa96",
+    "grammar_manifest_cid": "sha256:e70ae323705e78676277aacacec2766d2b807e936229bc35df100c8f78f015ef"
+  }
+}

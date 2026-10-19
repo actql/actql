@@ -4,12 +4,12 @@
     "acquisition": {
       "path": "spec/contracts/actql-query-acquisition.json",
       "pointer": "",
-      "cid": "sha256:ad68f7ceafeed528a29c05e726db799d0031ef46152c0385f64468d38094c606"
+      "cid": "sha256:5a95e60847276d02229eba9550dd9808a8a8c2764decd4dad667954f020db7cc"
     },
     "fragment": {
       "path": "spec/contracts/actql-expressions.json",
       "pointer": "/schemas/fragment",
-      "cid": "sha256:46609f6f81679938a14f2b79e6f750d242b841684f9a00d911568efded652905"
+      "cid": "sha256:038769263b23b02a37978b9ca11bbe1b052f530c0b91789bec9707af46b92955"
     }
   },
   "limits": {

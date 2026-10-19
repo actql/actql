@@ -193,6 +193,7 @@ priv struct SequenceInvocation[T] {
   input_budget : ValueBudget
   output_budget : ValueBudget
   input_rows : Int
+  query_times : Map[Int, @publication.QueryEvaluationTime]
   ordered_budgets : Map[Int, LogicalBudget]
   store : TableStore[T]
 }
@@ -314,11 +315,13 @@ fn[T : RelationRows] prepare_sequence_with_importers(
       Map([])
     }
   }
+  let query_times : Map[Int, @publication.QueryEvaluationTime] = Map([])
   match fragments {
     Some(contexts) =>
       match
         attach_fragment_budgets(
           contracts, sequence, contexts, ordered_budgets, control, metadata,
+          query_times=Some(query_times),
         ) {
         Ok(_) => ()
         Err(issue) => return Err(issue)
@@ -467,6 +470,7 @@ fn[T : RelationRows] prepare_sequence_with_importers(
     input_budget,
     output_budget,
     input_rows,
+    query_times,
     ordered_budgets,
     store,
   })
@@ -507,6 +511,7 @@ fn run_sequence_invocation(
           invocation.output_budget,
           workspace,
           ordered_budget=logical,
+          query_time=invocation.query_times.get(@lower.kernel_step(kernel)),
           aggregate_outputs=selected_aggregate_outputs_at(
             aggregate_outputs,
             @lower.kernel_step(kernel),

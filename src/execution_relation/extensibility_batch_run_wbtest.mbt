@@ -205,6 +205,7 @@ fn ext_run_batch(
     return Err(RowLimit)
   }
   let scope : ExpressionRoots = {
+    query_time: None,
     budget: logical,
     slots: [],
     free: [],

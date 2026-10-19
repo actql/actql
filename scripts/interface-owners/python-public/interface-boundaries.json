@@ -8010,6 +8010,7 @@
         "CheckOutcome0ReportReasonsItemFacts12",
         "CheckOutcome0ReportReasonsItemFacts13",
         "CheckOutcome0ReportReasonsItemFacts13ReferenceItem",
+        "CheckOutcome0ReportReasonsItemFacts14",
         "CheckOutcome0ReportReasonsItemFacts2",
         "CheckOutcome0ReportReasonsItemFacts2Admission",
         "CheckOutcome0ReportReasonsItemFacts2AdmissionConstraintsItem0",
@@ -8041,6 +8042,7 @@
         "CheckOutcome0ReportRequirementsItemFacts12",
         "CheckOutcome0ReportRequirementsItemFacts13",
         "CheckOutcome0ReportRequirementsItemFacts13ReferenceItem",
+        "CheckOutcome0ReportRequirementsItemFacts14",
         "CheckOutcome0ReportRequirementsItemFacts2",
         "CheckOutcome0ReportRequirementsItemFacts2Admission",
         "CheckOutcome0ReportRequirementsItemFacts2AdmissionConstraintsItem0",
@@ -8087,6 +8089,7 @@
         "CheckOutcome1PartialReportReasonsItemFacts12",
         "CheckOutcome1PartialReportReasonsItemFacts13",
         "CheckOutcome1PartialReportReasonsItemFacts13ReferenceItem",
+        "CheckOutcome1PartialReportReasonsItemFacts14",
         "CheckOutcome1PartialReportReasonsItemFacts2",
         "CheckOutcome1PartialReportReasonsItemFacts2Admission",
         "CheckOutcome1PartialReportReasonsItemFacts2AdmissionConstraintsItem0",
@@ -8118,6 +8121,7 @@
         "CheckOutcome1PartialReportRequirementsItemFacts12",
         "CheckOutcome1PartialReportRequirementsItemFacts13",
         "CheckOutcome1PartialReportRequirementsItemFacts13ReferenceItem",
+        "CheckOutcome1PartialReportRequirementsItemFacts14",
         "CheckOutcome1PartialReportRequirementsItemFacts2",
         "CheckOutcome1PartialReportRequirementsItemFacts2Admission",
         "CheckOutcome1PartialReportRequirementsItemFacts2AdmissionConstraintsItem0",
@@ -8476,7 +8480,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_types.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "713b579e14cf40c5d0c4644fa674a250dfddf09d6e62c1deac63d9e6428cbc1b",
+      "sha256": "9636d363cce5713be505f2c0e8f031bd35ded3e4bf66d382536bce4e1c59e701",
       "role": "public-wire-codec",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -8538,6 +8542,7 @@
             "CheckOutcome0ReportReasonsItemFacts12",
             "CheckOutcome0ReportReasonsItemFacts13",
             "CheckOutcome0ReportReasonsItemFacts13ReferenceItem",
+            "CheckOutcome0ReportReasonsItemFacts14",
             "CheckOutcome0ReportReasonsItemFacts2",
             "CheckOutcome0ReportReasonsItemFacts2Admission",
             "CheckOutcome0ReportReasonsItemFacts2AdmissionConstraintsItem0",
@@ -8569,6 +8574,7 @@
             "CheckOutcome0ReportRequirementsItemFacts12",
             "CheckOutcome0ReportRequirementsItemFacts13",
             "CheckOutcome0ReportRequirementsItemFacts13ReferenceItem",
+            "CheckOutcome0ReportRequirementsItemFacts14",
             "CheckOutcome0ReportRequirementsItemFacts2",
             "CheckOutcome0ReportRequirementsItemFacts2Admission",
             "CheckOutcome0ReportRequirementsItemFacts2AdmissionConstraintsItem0",
@@ -8615,6 +8621,7 @@
             "CheckOutcome1PartialReportReasonsItemFacts12",
             "CheckOutcome1PartialReportReasonsItemFacts13",
             "CheckOutcome1PartialReportReasonsItemFacts13ReferenceItem",
+            "CheckOutcome1PartialReportReasonsItemFacts14",
             "CheckOutcome1PartialReportReasonsItemFacts2",
             "CheckOutcome1PartialReportReasonsItemFacts2Admission",
             "CheckOutcome1PartialReportReasonsItemFacts2AdmissionConstraintsItem0",
@@ -8646,6 +8653,7 @@
             "CheckOutcome1PartialReportRequirementsItemFacts12",
             "CheckOutcome1PartialReportRequirementsItemFacts13",
             "CheckOutcome1PartialReportRequirementsItemFacts13ReferenceItem",
+            "CheckOutcome1PartialReportRequirementsItemFacts14",
             "CheckOutcome1PartialReportRequirementsItemFacts2",
             "CheckOutcome1PartialReportRequirementsItemFacts2Admission",
             "CheckOutcome1PartialReportRequirementsItemFacts2AdmissionConstraintsItem0",
@@ -8943,8 +8951,8 @@
             "ValueContract5",
             "ValueContract6",
             "ValueContract7",
-            "annotations",
-            "ValueContract8"
+            "ValueContract8",
+            "annotations"
           ],
           "attributes": {
             "responsibility": [
@@ -8959,6 +8967,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "### Original short-query continuation"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Take count and offset demands additionally retain"
               }
             ],
             "inputsOutputs": [
@@ -8989,6 +9001,10 @@
               {
                 "path": "docs/design/value-contracts.md",
                 "anchor": "## Distinct signed64 contracts"
+              },
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "Requirement for an original Take Parameter demand."
               }
             ],
             "identity": [
@@ -9015,6 +9031,10 @@
               {
                 "path": "docs/design/value-contracts.md",
                 "anchor": "## Distinct signed64 contracts"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Program, declaration and operation obligation."
               }
             ],
             "ownership": [
@@ -9029,6 +9049,10 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "assertSubmittedIntent(prepared, intent)"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Runtime resource/publication binding and"
               }
             ],
             "synchronization": [
@@ -9043,6 +9067,10 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "a fresh bound-input check and execution still requires an explicit request."
               }
             ],
             "failure": [
@@ -9057,6 +9085,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "truncated reports cannot verify or become runnable."
               }
             ],
             "cancellation": [
@@ -9071,6 +9103,10 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "observations, or trigger automatic execution/resending."
               }
             ],
             "resources": [
@@ -9085,6 +9121,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "max_bytes > 1048576"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Every condition is counted in the same requirement budget;"
               }
             ],
             "extension": [
@@ -9111,6 +9151,10 @@
               {
                 "path": "docs/design/value-contracts.md",
                 "anchor": "## Distinct signed64 contracts"
+              },
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "This is not a generic predicate language."
               }
             ],
             "verification": [
@@ -9145,6 +9189,10 @@
               {
                 "path": "scripts/signed64-contract.test.mjs",
                 "anchor": "test('Signed64 check facts extend exactly"
+              },
+              {
+                "path": "scripts/check-consumer-condition.test.mjs",
+                "anchor": "test('Take binding conditions are closed template Requirements"
               }
             ]
           }
