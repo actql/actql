@@ -21,6 +21,7 @@ struct GeneratedSequence {
   nest_item_ceilings : Array[(Int, Int64)]
   nest_grouped_byte_ceilings : Array[(Int, Int64)]
   nest_attached_byte_ceilings : Array[(Int, Int64)]
+  query_time : @publication.QueryEvaluationTime?
   numeric : NumericAggregateExecution?
 }
 
@@ -117,6 +118,7 @@ pub fn prepare_generated_sequence(
         nest_item_ceilings: [],
         nest_grouped_byte_ceilings: [],
         nest_attached_byte_ceilings: [],
+        query_time: None,
         numeric: None,
       })
     Err(issue) => Err(issue)
@@ -903,4 +905,40 @@ pub fn generated_retained_at(
   } else {
     Some(generated.retained_ids[index])
   }
+}
+
+///|
+/// Bind computation data to one invocation without mutating reusable compiled
+/// fragments. The caller must already have matched the original Prepared,
+/// admitted Run and query request; this grants no execution authority.
+pub fn bind_generated_sequence_query_time(
+  generated : GeneratedSequence,
+  query_time : @publication.QueryEvaluationTime,
+  max_work : Int,
+  max_entries : Int,
+) -> Result[GeneratedSequence, SequenceRunIssue] {
+  if max_work < 0 || max_entries < 0 {
+    return Err(InvalidLimits)
+  }
+  if generated.query_time is Some(prior) {
+    return if physical_equal(prior, query_time) {
+      Ok(generated)
+    } else {
+      Err(InputSet)
+    }
+  }
+  let count = generated.contexts.length()
+  // One returned record, its context array, and one copied context per entry.
+  // This is a bounded workspace inventory, not physical capacity admission.
+  if count > (max_entries - 2) / 2 || max_entries < 2 || count > max_work {
+    return Err(InputLimit)
+  }
+  let contexts = []
+  for context in generated.contexts {
+    if context.query_time is Some(prior) && !physical_equal(prior, query_time) {
+      return Err(InputSet)
+    }
+    contexts.push({ ..context, query_time: Some(query_time), })
+  }
+  Ok({ ..generated, contexts, query_time: Some(query_time), })
 }

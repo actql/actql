@@ -353,6 +353,11 @@ fn expression_frame_with_input(
     workspace.live > workspace.limit {
     return Err({ kind: InvalidControlLimits, expression: root, })
   }
+  if query_time is Some(explicit) &&
+    scope.bind(s => s.query_time) is Some(original) &&
+    !physical_equal(explicit, original) {
+    return Err({ kind: QueryEvaluationTimeUnavailable, expression: root, })
+  }
   Ok({
     root,
     input,
@@ -360,7 +365,10 @@ fn expression_frame_with_input(
     budget,
     workspace,
     scope,
-    query_time,
+    query_time: match query_time {
+      Some(time) => Some(time)
+      None => scope.bind(s => s.query_time)
+    },
     stack: [],
     arrays: [],
     objects: [],

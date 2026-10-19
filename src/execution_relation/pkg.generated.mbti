@@ -232,6 +232,8 @@ pub fn bind_completed_relation_export(CompletedRelationExportReceipt, RetainedOu
 
 pub fn bind_generated_numeric_execution(GeneratedSequence, NumericAggregateExecution) -> GeneratedSequence
 
+pub fn bind_generated_sequence_query_time(GeneratedSequence, @run_publication.QueryEvaluationTime, Int, Int) -> Result[GeneratedSequence, SequenceRunIssue]
+
 pub fn bind_infer_captured_input(@lowering_relation.PreparedInferInputs, @lowering_relation.BoundPrepared, @pipeline_typing.Target, CapturedRows) -> Result[InferRowInput, InferPreparationIssue]
 
 pub fn bind_infer_completed_input(@lowering_relation.PreparedInferInputs, @lowering_relation.BoundPrepared, @pipeline_typing.Target, CompletedOutput) -> Result[InferRowInput, InferPreparationIssue]

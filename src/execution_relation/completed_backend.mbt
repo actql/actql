@@ -14,6 +14,7 @@ fn evaluate_completed_body(
   analytic_envelope? : SelectedAnalyticEnvelope? = None,
   identity_limits? : ValueLimits? = None,
   numeric? : NumericAggregateExecution? = None,
+  query_time? : @publication.QueryEvaluationTime? = None,
 ) -> Result[CompletedTable, RowIssue] {
   let projection = match body {
     Projection(_) => true
@@ -46,6 +47,7 @@ fn evaluate_completed_body(
         workspace,
         fn(_row, _source, _names, _selected) { Err(InvalidRows) },
         ordered_budget=logical,
+        query_time~,
         preserve_filter_rows=true,
         accept_presence_row=Some(fn(cells, _names, usage) {
           if @schema.all_fields_required(schema) {
@@ -88,6 +90,7 @@ fn evaluate_completed_body(
       analytic_envelope~,
       identity_limits~,
       numeric~,
+      query_time~,
     ).map(table => RowTable(table))
   }
   if input is AdmittedTable(_) || input is PresenceTable(_) {
@@ -308,6 +311,7 @@ fn evaluate_completed_rows(
   analytic_envelope? : SelectedAnalyticEnvelope? = None,
   identity_limits? : ValueLimits? = None,
   numeric? : NumericAggregateExecution? = None,
+  query_time? : @publication.QueryEvaluationTime? = None,
 ) -> Result[CompletedTable, RowIssue] {
   evaluate_rows_dispatch(
     kernel,
@@ -434,6 +438,7 @@ fn evaluate_completed_rows(
           analytic_envelope~,
           identity_limits~,
           numeric~,
+          query_time~,
         )
       },
     },
