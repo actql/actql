@@ -20,6 +20,14 @@ const checked = value => {
   if (value < 0n || value > maximum) unavailable();
   return value;
 };
+// A sum over distinct requests/originals is not one native request or a
+// backed numerical capacity. Keep it exact even above a native size bound.
+// Inputs, individual requests and SQLite representation checks below remain
+// bounded. Their fixed finite arithmetic does not introduce unbounded work.
+const requestDemand = value => {
+  if (typeof value !== 'bigint' || value < 0n) unavailable();
+  return value;
+};
 const ceil = (value, divisor) => value / divisor + (value % divisor === 0n ? 0n : 1n);
 const rounded = (value, quantum) => ceil(value, quantum) * quantum;
 const greater = (a, b) => a > b ? a : b;
@@ -61,7 +69,7 @@ const preservingGrowth = (previousPeak, next) => freeze({
 // Keep this conservative form where the fixed source inventory records a
 // request sum but not every individual size class. This is not region backing.
 const allocationGroup = (count, requestSum) => freeze({count, requestSum,
-  heapUsableSumUpper:checked(2n * requestSum + 32768n * count)});
+  heapUsableSumUpper:requestDemand(2n * requestSum + 32768n * count)});
 
 function bitvecTree(size) {
   // LP64 source layout: 512-byte node,496 usable bytes,62 child pointers,
@@ -82,26 +90,26 @@ function includedNativeComponents(value) {
   // Compose distinct original allocations. In particular the retained hash
   // is already the new growth member, and the embedded Pager wrappers are
   // not three more allocations. This remains one selected page geometry.
-  const cache = checked(c.peakKeys * a.cachePage.heapUsableUpper +
+  const cache = requestDemand(c.peakKeys * a.cachePage.heapUsableUpper +
     a.cacheBulk.heapUsableUpper + a.cacheControl.heapUsableUpper +
     (a.cacheHashGrowth.previousMaximum?.heapUsableUpper ?? 0n) +
     a.cacheHashGrowth.nextMaximum.heapUsableUpper);
-  const wal = checked(w.perConnectionPrivateIndexPages * a.privateWalIndexPage.heapUsableUpper +
+  const wal = requestDemand(w.perConnectionPrivateIndexPages * a.privateWalIndexPage.heapUsableUpper +
     u(w.perWalVectorRequest) + u(w.sharedVectorRequest) +
     u(w.checkpointIteratorRequest) + u(w.recoveryFrameAndPrivateHashRequest) +
     u(w.unreliableReadFrameRequest));
-  const savepoint = checked(s.treeCount * s.treeNodes * a.bitvecNode.heapUsableUpper +
+  const savepoint = requestDemand(s.treeCount * s.treeNodes * a.bitvecNode.heapUsableUpper +
     a.savedPointArrayGrowth.previousMaximum.heapUsableUpper +
     a.savedPointArrayGrowth.nextMaximum.heapUsableUpper +
     s.rehashDepth * a.bitvecRehash.heapUsableUpper +
     s.subjournalChunks * a.subjournalChunk.heapUsableUpper);
-  const workspaces = checked(2n * a.pagerTemporary.heapUsableUpper +
+  const workspaces = requestDemand(2n * a.pagerTemporary.heapUsableUpper +
     a.btreeTemporary.heapUsableUpper + a.balanceScratch.heapUsableUpper +
     2n * u(work.btreeTemporaryRequest));
-  const pagerControls = checked(a.combinedPager.heapUsableUpper + a.temporaryPath.heapUsableUpper +
+  const pagerControls = requestDemand(a.combinedPager.heapUsableUpper + a.temporaryPath.heapUsableUpper +
     a.btree.heapUsableUpper + a.sharedBtree.heapUsableUpper + a.walAndFile.heapUsableUpper);
   const init = value.connectionInitialization, f3 = init.fts3, f5 = init.fts5;
-  const connection = checked(init.sqliteRecord.heapUsableUpper +
+  const connection = requestDemand(init.sqliteRecord.heapUsableUpper +
     init.recursiveMutex.heapUsableUpper + init.lookaside.heapUsableUpper +
     init.collationBlocks * u(init.eachCollationBlockRequestUpper) +
     init.moduleRegistrations * u(init.eachModuleAndNameRequestUpper) +
@@ -115,10 +123,10 @@ function includedNativeComponents(value) {
     u(f5.globalRequest) + f5.auxiliaryRecords * u(f5.eachAuxiliaryAndNameRequestUpper) +
     f5.tokenizerRecords * u(f5.eachTokenizerAndNameRequestUpper));
   const parser = value.preparation.parser;
-  const activeParserBackings = checked(parser.activeParsers *
+  const activeParserBackings = requestDemand(parser.activeParsers *
     (parser.eachGrowth.previousMaximum.heapUsableUpper + parser.eachGrowth.nextMaximum.heapUsableUpper));
   const graph = value.preparation.graph;
-  const activePrepareGraph = checked([
+  const activePrepareGraph = requestDemand([
     graph.expressionContributions, graph.originalLists, graph.oldGrowingLists,
     graph.clonedLists, graph.listEntryNames, graph.sourceLists, graph.sourceCloneNames,
     graph.selectRecords, graph.identifierArrays, graph.identifierNames, graph.cleanupNodes,
@@ -131,7 +139,7 @@ function includedNativeComponents(value) {
   const fixed = value.fixedSchema, internal = value.internalSchema;
   // The own-schema and whole-schema hash catalogues are overlapping views.
   // Use the whole30 once, not own28+whole30 or another copy per statement.
-  const retainedSchema = checked([
+  const retainedSchema = requestDemand([
     fixed.tables, fixed.tableNames, fixed.finalColumnArrays, fixed.columnNames,
     fixed.indexesIncludingNames, fixed.checkNodes, fixed.checkNames,
     fixed.checkLists, fixed.checkInnerLists, fixed.defaultLists,
@@ -150,14 +158,14 @@ function includedNativeComponents(value) {
     internal.growingHashOriginals * (internal.eachHashGrowth.previousMaximum.heapUsableUpper +
       internal.eachHashGrowth.nextMaximum.heapUsableUpper));
   const statement = value.statements, bind = value.bindings, vm = value.activeVm;
-  const eachRetainedStatement = checked(u(statement.vdbeRecordRequest) +
+  const eachRetainedStatement = requestDemand(u(statement.vdbeRecordRequest) +
     u(statement.mainArraysRequest) + u(statement.mainOpRequest) +
     statement.childPrograms * (u(statement.eachChildOpRequest) + u(statement.eachChildSubprogramRequest)) +
     statement.p4UsablePerStatement + u(statement.metadataArrayRequest) +
     statement.metadataTextBlocks * u(statement.metadataTextRequest) + u(statement.savedSqlRequest));
-  const retainedStatements = checked(statement.count * eachRetainedStatement);
+  const retainedStatements = requestDemand(statement.count * eachRetainedStatement);
   const retainedBindings = bind.retainedHeapUsableSum;
-  const activePrepare = checked(activeParserBackings + activePrepareGraph + eachRetainedStatement +
+  const activePrepare = requestDemand(activeParserBackings + activePrepareGraph + eachRetainedStatement +
     u(statement.mainGrowingOldOpRequest) + u(statement.vdbeRecordRequest) +
     u(24n * statement.childEmittedSlots) + u(internal.activeOldColumnArrayRequestUpper) +
     // Node keeps the SQL Utf8Value through native prepare/exec. The copied
@@ -165,13 +173,13 @@ function includedNativeComponents(value) {
     u(3n * value.preparation.parser.sqlBytesUpper + 1n));
   const translated = vm.eachTranslatedDataPayloadRequestUpper;
   const result = value.nodeResults;
-  const activeResultVectors = checked(2n * result.eachColumnVector.heapUsableUpper +
+  const activeResultVectors = requestDemand(2n * result.eachColumnVector.heapUsableUpper +
     2n * result.eachPairVector.heapUsableUpper +
     4n * result.eachStrongRootEntry.heapUsableUpper);
   // Each DATA Mem may retain a previous large payload while scalar/static.
   // At most one currently executing growth/translation adds its old/new
   // overlap. Do not double every Mem, or give cursor-storage Mem DATA payload.
-  const activeExecution = checked(vm.dataRegisters * u(translated) + u(translated) +
+  const activeExecution = requestDemand(vm.dataRegisters * u(translated) + u(translated) +
     vm.uniqueRcStringBlocks * u(vm.eachRcStringRequestUpper) +
     vm.cursorStorageBlocks * (u(vm.eachCursorStorageRequest) + u(vm.eachCursorCacheControlRequest) +
       vm.eachCursorOverflowGrowth.previousMaximum.heapUsableUpper +
@@ -181,9 +189,9 @@ function includedNativeComponents(value) {
   // A positional call clears the old binding set BEFORE constructing its
   // values. At most14 current slots plus one translating copy coexist, then
   // the separate Node Utf8Value. Map each block sum, never U(sum requests).
-  const activeBindingCopies = checked((bind.boundStatements - 1n) * bind.retainedHeapUsableSumPerStatement +
+  const activeBindingCopies = requestDemand((bind.boundStatements - 1n) * bind.retainedHeapUsableSumPerStatement +
     allocationGroup(statement.variableSlots + 1n, bind.activeRequestSumPerStatement).heapUsableSumUpper);
-  const activeBinding = checked((activeBindingCopies > retainedBindings
+  const activeBinding = requestDemand((activeBindingCopies > retainedBindings
     ? activeBindingCopies - retainedBindings : 0n) +
     (bind.activeUtf8HeapRequest === 0n ? 0n : u(bind.activeUtf8HeapRequest)));
   // The selected synchronous wrapper fences reentry before callbacks and
@@ -193,7 +201,7 @@ function includedNativeComponents(value) {
   // separate co-phase originals; this is not a max across their whole heaps.
   const activeAlternative = greater(activePrepare, greater(activeExecution, activeBinding));
   const node = value.nodeWrappers;
-  const nodeWrapperSubset = checked(node.database.heapUsableUpper +
+  const nodeWrapperSubset = requestDemand(node.database.heapUsableUpper +
     node.statementAttempts * node.eachStatement.heapUsableUpper +
     node.iteratorAttempts * node.eachIterator.heapUsableUpper +
     node.pointerDataOriginals * node.eachPointerData.heapUsableUpper +
@@ -204,16 +212,18 @@ function includedNativeComponents(value) {
   // borrow the same SQLite Mem. Returned/escaped output and failed lookahead
   // can remain live beside subsequent rows; cursor return/DB close is no
   // physical acknowledgement for those copies or their native controls.
-  const retainedNodeResults = checked(result.maximumValueCopies *
+  const retainedNodeResults = requestDemand(result.maximumValueCopies *
     (result.eachBlobPayload.heapUsableUpper + result.eachBackingStore.heapUsableUpper +
       result.eachSharedControl.heapUsableUpper + result.eachArrayBufferExtension.heapUsableUpper));
   return freeze({qualification:'included-stock-usable-subtotal-only', completeJournal:false,
+    quantityKind:'conditional-request-demand', numericalBackingClaim:false,
+    allocationSuccessGuaranteed:false,
     cache, wal, savepoint, workspaces, pagerControls, connection, activeParserBackings, activePrepareGraph,
     retainedSchema, eachRetainedStatement, retainedStatements, retainedBindings,
     activePrepare, activeExecution, activeBinding, activeAlternative, nodeWrapperSubset,
     activeResultVectors, retainedNodeResults,
     activePhaseCombination:'maximum-of-same-connection-alternatives',
-    heapUsableUpper:checked(cache + wal + savepoint + workspaces + pagerControls +
+    heapUsableUpper:requestDemand(cache + wal + savepoint + workspaces + pagerControls +
       connection + retainedSchema + retainedStatements + retainedBindings + activeAlternative +
       nodeWrapperSubset + retainedNodeResults),
     // Same-inode WAL mappings are not heap malloc blocks and are not another
@@ -275,12 +285,12 @@ function hostJournalNativeStructureRequests(input) {
   const metadataTextRequest = 3377n;
   const p4UsableEach = hostJournalNativeUsableUpper(metadataTextRequest);
   const boundStatements = P < X ? P : X;
-  const retainedBindRequests = checked(2n * B + 32n * 14n);
-  const activeBindRequests = checked(3n * B + 34n * 14n);
+  const retainedBindRequests = requestDemand(2n * B + 32n * 14n);
+  const activeBindRequests = requestDemand(3n * B + 34n * 14n);
   // U(r)<=2r+32768 for each selected stock allocation. Apply the resulting
   // SUM inequality to at most14 distinct payload blocks, never U(sum r).
-  const retainedBindUsable = checked(2n * retainedBindRequests + 32768n * 14n);
-  const bindBeforeActive = checked((boundStatements - 1n) * retainedBindRequests);
+  const retainedBindUsable = requestDemand(2n * retainedBindRequests + 32768n * 14n);
+  const bindBeforeActive = requestDemand((boundStatements - 1n) * retainedBindRequests);
   const generatedPayload = checked(D + B + 19644n);
   // A V-byte original may contain malformed UTF8 before semantic admission.
   // Replacement can produce2*V logical UTF16 bytes, then3*V UTF8 bytes. A
@@ -302,7 +312,7 @@ function hostJournalNativeStructureRequests(input) {
   // and aggregate extras. This is not an observed parser high-water mark.
   const forestNodes = 47967n, forestItems = 95934n;
   const forestListRequests = 12663288n;
-  const clonedListRequests = checked(2n * forestListRequests + 32768n * forestNodes);
+  const clonedListRequests = requestDemand(2n * forestListRequests + 32768n * forestNodes);
   // Fixed admitted SQL uses only scalar literal IN lists of at most5 items;
   // each ASCII literal is shorter than64 bytes. Cover even the two-item
   // NOOP alternative as a Btree, without relying on planner optimization.
@@ -313,13 +323,13 @@ function hostJournalNativeStructureRequests(input) {
   // population and root transition, plus one failed cache-acquisition key.
   // These are new memory Btree/Pager/cache originals, NOT main Pager aliases.
   const temporaryPage = 65536n, temporaryCursors = 8n;
-  const temporaryCache = checked(17n * hostJournalNativeUsableUpper(temporaryPage + 272n) +
+  const temporaryCache = requestDemand(17n * hostJournalNativeUsableUpper(temporaryPage + 272n) +
     hostJournalNativeUsableUpper(20n * (temporaryPage + 272n)) +
     hostJournalNativeUsableUpper(168n) + hostJournalNativeUsableUpper(2048n));
-  const temporaryControls = checked(hostJournalNativeUsableUpper(3751n) +
+  const temporaryControls = requestDemand(hostJournalNativeUsableUpper(3751n) +
     hostJournalNativeUsableUpper(1026n) + hostJournalNativeUsableUpper(128n) +
     hostJournalNativeUsableUpper(240n));
-  const temporaryWork = checked(2n * hostJournalNativeUsableUpper(temporaryPage + 8n) +
+  const temporaryWork = requestDemand(2n * hostJournalNativeUsableUpper(temporaryPage + 8n) +
     3n * hostJournalNativeUsableUpper(temporaryPage) +
     hostJournalNativeUsableUpper(7n * temporaryPage));
   // Conditional ordinary LP64 Node/libc++ object-layout uppers, NOT observed
@@ -494,7 +504,7 @@ function hostJournalNativeStructureRequests(input) {
       retainedChildVdbeCopies:0n,
       eachChildFrameRequest:912n + ceil(childH, 8n),
       p4SlotsPerStatement:p4Slots, eachP4UsableUpper:p4UsableEach,
-      p4UsablePerStatement:checked(p4Slots * p4UsableEach),
+      p4UsablePerStatement:requestDemand(p4Slots * p4UsableEach),
       metadataArrayRequest:6720n, metadataTextBlocks:120n, metadataTextRequest,
       savedSqlRequest:1625n}),
     preparation:freeze({completePrepare:false,
@@ -575,7 +585,7 @@ function hostJournalNativeStructureRequests(input) {
         combinedInfoRequestUpper:2080n, solverRequestUpper:176n,
         grown16TermRequest:1680n, grown32TermRequest:3344n,
         retainedGrownTermRequestSum:5024n,
-        heapUsableSubsetUpper:checked(21000n * (plannerLoopUsable + plannerTermsUsable) +
+        heapUsableSubsetUpper:requestDemand(21000n * (plannerLoopUsable + plannerTermsUsable) +
           plannerTermsUsable + hostJournalNativeUsableUpper(2080n) +
           hostJournalNativeUsableUpper(176n) + hostJournalNativeUsableUpper(1680n) +
           hostJournalNativeUsableUpper(3344n)),
@@ -586,9 +596,9 @@ function hostJournalNativeStructureRequests(input) {
       retainedRequestSumPerStatement:retainedBindRequests,
       activeRequestSumPerStatement:activeBindRequests,
       retainedHeapUsableSumPerStatement:retainedBindUsable,
-      retainedHeapUsableSum:checked(boundStatements * retainedBindUsable),
-      peakRequestSum:greater(checked(boundStatements * retainedBindRequests),
-        checked(bindBeforeActive + activeBindRequests)),
+      retainedHeapUsableSum:requestDemand(boundStatements * retainedBindUsable),
+      peakRequestSum:greater(requestDemand(boundStatements * retainedBindRequests),
+        requestDemand(bindBeforeActive + activeBindRequests)),
       // Inline1048-byte Utf8Value/control remains in native stack coverage.
       activeUtf8HeapRequest:B <= 341n ? 0n : checked(3n * B + 1n),
       resetReleasesBindingPayload:false}),
@@ -615,7 +625,7 @@ function hostJournalNativeStructureRequests(input) {
       pageBytesUpper:temporaryPage,
       eachCacheSubsetUpper:temporaryCache, eachControlSubsetUpper:temporaryControls,
       eachWorkSubsetUpper:temporaryWork,
-      heapUsableSubsetUpper:checked(temporaryCursors *
+      heapUsableSubsetUpper:requestDemand(temporaryCursors *
         (temporaryCache + temporaryControls + temporaryWork)),
       mainPagerAlias:false, separateWalMapping:false,
       // OP_OpenEphemeral selects OMIT_JOURNAL|SINGLE, while the selected

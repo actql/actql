@@ -1054,6 +1054,16 @@ once for their process lifetime, not refilled by a connection or Host close.
 This is the finite Journal facility, not a universal allocator lease or another
 business, Model or Effect allowance.
 
+Its supported request/history envelope is distinct from backed numerical
+capacity. A demand sum over separate original allocations can exceed the size
+of any single native request; the private request vector retains that sum as
+exact BigInt demand, not as a reserved heap or a successful allocation. Native
+request and SQLite representation bounds still apply to their individual
+operations. The actual same-startup service must cover the complete selected
+co-phase before use, including allocator controls and failed attempts; request
+arithmetic does not issue that service. Allocation failure retains the same
+original cleanup, and neither failure nor close refills process-lived terms.
+
 The actual selected public prefix also retains its filesystem/crypto bindings
 before Host namespace initialization. The existing Journal facility-current
 operation compares those same functions, used filesystem constants, directory

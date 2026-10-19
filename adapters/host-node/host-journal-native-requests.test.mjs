@@ -57,6 +57,54 @@ test('incomplete vectors are immutable DATA and never claim complete phase or re
   assert.equal(typeof requests.prepareHostJournalInstallation,'undefined');
 });
 
+test('distinct retained request demand need not fit one native allocation or a reserved heap', () => {
+  const value = calculate(input({preparedStatements:1000000000000n}));
+  const demand = value.includedNativeComponents;
+  assert.equal(demand.quantityKind,'conditional-request-demand');
+  assert.equal(demand.numericalBackingClaim,false);
+  assert.equal(demand.allocationSuccessGuaranteed,false);
+  assert.equal(demand.retainedStatements,
+    value.statements.count * demand.eachRetainedStatement);
+  assert(demand.retainedStatements > 9223372036854775807n);
+  assert(demand.nodeWrapperSubset > demand.retainedStatements);
+  assert(demand.heapUsableUpper > demand.nodeWrapperSubset);
+  assert.equal(demand.completeJournal,false);
+  assert.equal(demand.returnsCreditOnNativeObjectFree,false);
+});
+
+test('retained result demand is not a same-sized allocation or successful backing observation', () => {
+  const value = calculate(input({parameterBytes:1000000000000000n}));
+  const result = value.nodeResults, demand = value.includedNativeComponents;
+  const each = result.eachBlobPayload.heapUsableUpper + result.eachBackingStore.heapUsableUpper +
+    result.eachSharedControl.heapUsableUpper + result.eachArrayBufferExtension.heapUsableUpper;
+  assert(each < 9223372036854775807n);
+  assert.equal(demand.retainedNodeResults,result.maximumValueCopies * each);
+  assert(demand.retainedNodeResults > 9223372036854775807n);
+  assert.equal(demand.quantityKind,'conditional-request-demand');
+  assert.equal(demand.numericalBackingClaim,false);
+  assert.equal(demand.allocationSuccessGuaranteed,false);
+  // Individual request representation still refuses. A huge total is not
+  // permission to pass that total to a native allocator or Resource capacity.
+  assert.throws(() => usable(demand.retainedNodeResults),unavailable);
+  assert.throws(() => usable(9223372036854775807n),unavailable);
+  assert.equal(value.completePhase,false);
+});
+
+test('distinct positional binding payloads keep demand separate from each original request', () => {
+  const value = calculate(input({preparedStatements:10000n, statementCalls:10000n,
+    parameterBytes:1000000000000000n}));
+  const bindings = value.bindings;
+  assert(bindings.retainedRequestSumPerStatement < 9223372036854775807n);
+  assert(bindings.retainedHeapUsableSumPerStatement < 9223372036854775807n);
+  assert(bindings.activeUtf8HeapRequest < 9223372036854775807n);
+  assert(bindings.retainedHeapUsableSum > 9223372036854775807n);
+  assert.equal(bindings.retainedHeapUsableSum,
+    bindings.boundStatements * bindings.retainedHeapUsableSumPerStatement);
+  assert.equal(value.includedNativeComponents.retainedBindings,bindings.retainedHeapUsableSum);
+  assert.equal(value.includedNativeComponents.numericalBackingClaim,false);
+  assert.equal(bindings.resetReleasesBindingPayload,false);
+});
+
 test('proxy/accessor/inherited input is refused without invoking caller traps or coercion', () => {
   let reads = 0;
   const proxy = new Proxy(input(),{get(){reads++;},ownKeys(){reads++;},getOwnPropertyDescriptor(){reads++;}});
