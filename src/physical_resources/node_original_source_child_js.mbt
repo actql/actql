@@ -33,10 +33,11 @@ extern "js" fn capture_original_node_source_child_supplier(
   loader : OriginalNodeSourceModuleLoader,
 ) -> OriginalNodeSourceChildSupplier =
   #|loader => {
-  #|  const ordinary = process.execArgv.length === 0 && process.env.NODE_OPTIONS === undefined;
-  #|  const root = ordinary
-  #|    ? loader('../../../../../adapters/host-node/node-public-initial-control-bootstrap.cjs')
-  #|    : loader('../../../../../adapters/host-node/infer-trusted-node-preload.cjs');
+  #|  const explicitStartup = process.execArgv.some(value =>
+  #|    value === '@actql/node/selected-infer-startup' || value === '@actql/local-node/selected-infer-startup');
+  #|  const root = explicitStartup
+  #|    ? loader('../../../../../adapters/host-node/infer-trusted-node-preload.cjs')
+  #|    : loader('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs');
   #|  const method = Object.getOwnPropertyDescriptor(root, 'prepareOriginalSourceChildPorts');
   #|  if (method === undefined || !Object.hasOwn(method, 'value') || typeof method.value !== 'function') return () => null;
   #|  const callback = method.value, apply = Reflect.apply;

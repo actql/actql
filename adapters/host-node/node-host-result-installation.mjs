@@ -1,11 +1,14 @@
 import {createRequire} from 'node:module';
+import {prepareOrdinaryHostResult} from './ordinary-host-result.mjs';
+import {readHostResultPublicationPreparation, readHostResultPublicationRunRequirements}
+  from './embedded-local.mjs';
 
 // Capture only the actual selected startup's fixed Result purpose. Neither
 // this forwarding view nor an object's current method can issue that purpose.
 const require = createRequire(import.meta.url);
-const ordinary = process.execArgv.length === 0 && process.env.NODE_OPTIONS === undefined;
-const owner = ordinary ? require('./node-public-initial-control-bootstrap.cjs') :
-  require('./infer-trusted-node-preload.cjs');
+const explicitStartup = process.execArgv.some(value =>
+  value === '@actql/node/selected-infer-startup' || value === '@actql/local-node/selected-infer-startup');
+const owner = explicitStartup ? require('./infer-trusted-node-preload.cjs') : Object.freeze({});
 const apply = Reflect.apply, descriptor = Object.getOwnPropertyDescriptor;
 const own = Object.hasOwn, freeze = Object.freeze, NativePromise = Promise;
 const names = ['prepareHostResultPublicationInstallation', 'assertHostResultPublicationInstallationCurrent',
@@ -44,6 +47,8 @@ function close(state) {
   return flight;
 }
 export async function prepareHostResultPublicationInstallation(originals) {
+  if (!explicitStartup) return prepareOrdinaryHostResult(originals,
+    readHostResultPublicationPreparation(originals), readHostResultPublicationRunRequirements);
   const original = await invoke(0, [originals]);
   if (original === undefined) unavailable();
   const state = {original, originals, closing: false, closed: false, flight: undefined};

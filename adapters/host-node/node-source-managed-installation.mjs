@@ -1,14 +1,20 @@
 import {createRequire} from 'node:module';
 import {types} from 'node:util';
+import {prepareOrdinarySourceManagedInstallation, assertOrdinarySourcePreparationCurrent}
+  from './ordinary-source-managed.mjs';
+import {assertSourceManagedHostPreparation, prepareInstalledMockSourcePreparation,
+  readInstalledMockPreparation, originalSourceManagedHostRequest, sourceManagedSubmittedIntentCid,
+  managedComputeSubmittedIntentCid, readSourceManagedRunRequirements, readManagedComputeRunRequirements}
+  from './embedded-local.mjs';
 
 // The actual ordinary prefix or the unchanged preload initializes this ESM
 // namespace. Capture that SAME published receiver before application entry;
 // never discover a later callback table or use one entrance's original to
 // rescue another entrance. Selection alone supplies no Source admission.
 const require = createRequire(import.meta.url);
-const ordinary = process.execArgv.length === 0 && process.env.NODE_OPTIONS === undefined;
-const originalOwner = ordinary ? require('./node-public-initial-control-bootstrap.cjs') :
-  require('./infer-trusted-node-preload.cjs');
+const explicitStartup = process.execArgv.some(value =>
+  value === '@actql/node/selected-infer-startup' || value === '@actql/local-node/selected-infer-startup');
+const originalOwner = explicitStartup ? require('./infer-trusted-node-preload.cjs') : Object.freeze({});
 
 // Fixed private startup receiver only. A shape, callback supplied by a Client,
 // scalar quota or initial-control scope cannot create a Source installation.
@@ -98,19 +104,30 @@ function synchronousReceipt(state, index, args) {
 // view early, issuing a child or treating a callback/Boolean as admission.
 // Its constructor keeps partial cleanup if this observation refuses.
 export function assertSourceManagedPreparationCurrent(originalInstallation, sameOriginals) {
+  if (!explicitStartup) return assertOrdinarySourcePreparationCurrent(originalInstallation, sameOriginals, true);
   if (invoke(1, [originalInstallation, sameOriginals]) !== undefined) unavailable();
 }
 
 export function assertManagedComputePreparationCurrent(originalInstallation, sameOriginals) {
+  if (!explicitStartup) return assertOrdinarySourcePreparationCurrent(originalInstallation, sameOriginals, false);
   if (invoke(1, [originalInstallation, sameOriginals], computeCallbacks) !== undefined) unavailable();
 }
 
 // Selection is private and fixed by these two exported consumer entries,
 // never a callback table or purpose Boolean supplied by an application.
 export function prepareSourceManagedInstallation(originals) {
+  if (!explicitStartup) return prepareOrdinarySourceManagedInstallation(originals, {
+    validator: assertSourceManagedHostPreparation, prepare: prepareInstalledMockSourcePreparation,
+    read: readInstalledMockPreparation, request: originalSourceManagedHostRequest,
+    intent: sourceManagedSubmittedIntentCid, requirements: readSourceManagedRunRequirements,
+  }, true);
   return prepareInstallation(originals, callbacks);
 }
 export function prepareManagedComputeInstallation(originals) {
+  if (!explicitStartup) return prepareOrdinarySourceManagedInstallation(originals, {
+    validator: assertSourceManagedHostPreparation, request: originalSourceManagedHostRequest,
+    intent: managedComputeSubmittedIntentCid, requirements: readManagedComputeRunRequirements,
+  }, false);
   return prepareInstallation(originals, computeCallbacks);
 }
 
@@ -199,12 +216,14 @@ async function prepareInstallation(originals, selectedCallbacks) {
 }
 
 export function assertSourceManagedInstallationCurrent(view, sameOriginals) {
+  if (!explicitStartup) return assertOrdinarySourcePreparationCurrent(view, sameOriginals, true);
   const state = original(view, sameOriginals);
   if (state.callbacks !== callbacks) unavailable();
   current(state);
 }
 
 export function assertManagedComputeInstallationCurrent(view, sameOriginals) {
+  if (!explicitStartup) return assertOrdinarySourcePreparationCurrent(view, sameOriginals, false);
   const state = original(view, sameOriginals);
   if (state.callbacks !== computeCallbacks) unavailable();
   current(state);

@@ -1,4 +1,6 @@
 import {createRequire} from 'node:module';
+import {beginOrdinaryHostControl, isOrdinaryHostControl, assertOrdinaryHostControlCurrent,
+  ordinaryHostControlInput, readOrdinaryHostAsset} from './ordinary-host-control.mjs';
 
 // The actual CJS startup may synchronously capture this ESM namespace before
 // entry. Read its already-published original forwarders through that SAME CJS
@@ -8,9 +10,12 @@ const require = createRequire(import.meta.url);
 // Ordinary public delivery initializes its separate installed-prefix instance
 // before the Host graph. The old preload path keeps its exact original table;
 // this routing does not reinterpret a label or callback as an admission.
-const ordinary = process.execArgv.length === 0 && process.env.NODE_OPTIONS === undefined;
-const startup = ordinary ? require('./node-public-initial-control-bootstrap.cjs') :
-  require('./infer-trusted-node-preload.cjs');
+// The historical explicit startup remains a private diagnostic entrance.
+// Ordinary initialization is legitimate after arbitrary trusted app imports,
+// with normal options, multiple Hosts and later reopen in the same process.
+const explicitStartup = process.execArgv.some(value =>
+  value === '@actql/node/selected-infer-startup' || value === '@actql/local-node/selected-infer-startup');
+const startup = explicitStartup ? require('./infer-trusted-node-preload.cjs') : Object.freeze({});
 
 const ownDescriptor = Object.getOwnPropertyDescriptor;
 const hasOwn = Object.hasOwn, apply = Reflect.apply;
@@ -54,6 +59,7 @@ const readInput = inputDescriptor !== undefined && hasOwn(inputDescriptor, 'valu
 // callers await begin and check fixed nominal current before covered work. Its
 // original initialization failure/cleanupHandle is not replaced by this port.
 export function beginInitialControlInstallation(originals, rawInput) {
+  if (!explicitStartup) return beginOrdinaryHostControl(originals, rawInput);
   if (begin === undefined) {
     const error = new NativeError('NodeInitialControlAdmissionUnavailable');
     error.code = 'NodeInitialControlAdmissionUnavailable';
@@ -65,6 +71,7 @@ export function beginInitialControlInstallation(originals, rawInput) {
 // Membership is checked in the SAME private preload instance. In particular,
 // calling a caller-supplied scope.assertCurrent() cannot authenticate a scope.
 export function assertInitialControlInstallationCurrent(scope, sameOriginals) {
+  if (isOrdinaryHostControl(scope)) return assertOrdinaryHostControlCurrent(scope, sameOriginals);
   if (current === undefined) {
     const error = new NativeError('NodeInitialControlAdmissionUnavailable');
     error.code = 'NodeInitialControlAdmissionUnavailable';
@@ -77,6 +84,7 @@ export function assertInitialControlInstallationCurrent(scope, sameOriginals) {
 // actual preload. No caller file/data/receiver is admitted or reread here.
 // Escaped original Strings retain their own original envelope/lifetime.
 export function readInitialControlInstallationAsset(scope, sameOriginals, path) {
+  if (isOrdinaryHostControl(scope)) return readOrdinaryHostAsset(scope, sameOriginals, path);
   if (readAsset === undefined) {
     const error = new NativeError('NodeInitialControlAdmissionUnavailable');
     error.code = 'NodeInitialControlAdmissionUnavailable';
@@ -90,6 +98,7 @@ export function readInitialControlInstallationAsset(scope, sameOriginals, path) 
 // producer occurs here. Coverage must precede the raw packet's first ownKeys;
 // this port and a returned object cannot retroactively supply it.
 export function readInitialControlInstallationInput(scope, sameOriginals) {
+  if (isOrdinaryHostControl(scope)) return ordinaryHostControlInput(scope, sameOriginals);
   if (readInput === undefined) {
     const error = new NativeError('NodeInitialControlAdmissionUnavailable');
     error.code = 'NodeInitialControlAdmissionUnavailable';

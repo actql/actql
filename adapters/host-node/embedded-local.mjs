@@ -4092,8 +4092,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       sourceManaged = sourceManagedClose = undefined;
     }
     if (computeManaged !== undefined) {
-      const run = record.computeRun;
-      if (run !== undefined && !run.closed) {
+      for (const run of record.computeRuns?.values() ?? []) if (!run.closed) {
         // Dispatch has stopped/reclaimed its DAG before this initial duty.
         // A failed begin still owns its SAME Resource admission without Run.
         if (run.value !== undefined) checked(Reflect.apply(run.retire, run.runtime, [run.value]));
@@ -4313,7 +4312,8 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         throw clientOperationError('ForeignInstalledComputePreparation');
       }
       assertManagedComputeInstallationCurrent(computeManaged, originals);
-      let run = record.computeRun;
+      const runs = record.computeRuns ??= new Map();
+      let run = runs.get(prepared);
       if (run !== undefined) {
         if (run.failure !== undefined) throw run.failure;
         if (run.closed || run.runtime !== runtime || run.prepared !== prepared) {
@@ -4324,7 +4324,8 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       }
       run = {runtime, prepared, request, original: undefined, admission: undefined,
         value: undefined, failure: undefined, closed: false};
-      record.computeRun = run;
+      if (runs.size === 4096) throw clientOperationError('InstalledComputeRunLimit');
+      runs.set(prepared, run);
       try {
         // Capture cleanup before acquiring the original. Failure after start
         // cannot be repaired by issuing another admission or a zero report.
@@ -4460,7 +4461,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       throw clientOperationError('InvalidOpenOptions');
     }
     for (const key of Object.keys(options)) {
-      if (!['stateDir', 'installation', 'durability', 'consentRefs'].includes(key)) {
+      if (!['stateDir', 'installation', 'durability', 'consentRefs', 'profile'].includes(key)) {
         throw clientOperationError('InvalidOpenOptions');
       }
     }
@@ -4468,7 +4469,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     // Read only original own DATA after the await; an inherited option added
     // meanwhile is unsupported backing, never a getter this Host may invoke.
     const openFields = Object.create(null);
-    for (const name of ['stateDir', 'installation', 'durability', 'consentRefs']) {
+    for (const name of ['stateDir', 'installation', 'durability', 'consentRefs', 'profile']) {
       const field = Object.getOwnPropertyDescriptor(options, name);
       if (field === undefined) {
         if (name in options) throw clientOperationError('NodeInitialControlInputUnavailable');
@@ -4490,6 +4491,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     options = Object.assign(Object.create(null), {mode: 'local', owner: 'local',
       ...(openFields.durability === undefined ? {} : {durability: openFields.durability}),
       ...(openFields.consentRefs === undefined ? {} : {consentRefs: openFields.consentRefs}),
+      ...(openFields.profile === undefined ? {} : {profile: openFields.profile}),
       installation: Object.assign(Object.create(null), openFields.installation,
         {directory: record.openStateDirectory})});
     record.openOptions = options;
@@ -4508,6 +4510,9 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   // both once before awaits; selecting a profile is not silently ignoring it.
   const {installation: suppliedInstallation, profile: requestedProfile,
     ...clientOptions} = options;
+  // Only an explicit trusted caller selection consents to initial limited
+  // Mock setup. A profile discovered later in Project data is not consent.
+  record.explicitMockSelection = Object.hasOwn(options, 'profile') && requestedProfile === 'mock';
   let installation = suppliedInstallation;
   if (requestedProfile !== undefined && (typeof requestedProfile !== 'string' ||
       !requestedProfile || !requestedProfile.isWellFormed() ||

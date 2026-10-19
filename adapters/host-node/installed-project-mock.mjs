@@ -129,7 +129,8 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       typeof sourceManaged?.prepareRead !== 'function') fail('NodeManagedRunAdmissionUnavailable');
   const bundle = mockPreparation.originalsForRuntime(moon);
   if (bundle.sources.length !== 2) fail('InstalledMockCatalogueUnavailable');
-  let closing = false, record;
+  let closing = false;
+  const records = new Map(), originalReads = new WeakMap();
   const sources = [], closedSources = new Set();
   const current = () => {
     if (closing) fail('InstalledMockSourceClosed');
@@ -138,12 +139,14 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
   };
   const sameRun = prepared => {
     current();
-    if (record?.prepared !== prepared || record.value === undefined) fail('NodeManagedRunAdmissionUnavailable');
+    const record = records.get(prepared);
+    if (record === undefined || record.value === undefined) fail('NodeManagedRunAdmissionUnavailable');
     checked(moon.clientProgramInstalledManagedRunCheck(record.value, prepared, record.request));
     return record;
   };
   function prepareManagedRun(prepared, request) {
     current();
+    let record = records.get(prepared);
     if (record !== undefined) {
       if (record.failure !== undefined) throw record.failure;
       sameRun(prepared);
@@ -154,6 +157,8 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     // failed start is sticky; another caller cannot replace the original Run.
     record = {prepared, request, original: undefined, admission: undefined,
       value: undefined, reads: [undefined, undefined], failure: undefined};
+    if (records.size === 4096) fail('InstalledMockRunLimit');
+    records.set(prepared, record);
     try {
       record.original = sourceManaged.prepareRun(prepared);
       sourceManaged.assertCurrent();
@@ -163,7 +168,9 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     } catch (error) { record.failure = error; throw error; }
   }
   async function closeSource(index) {
-    const read = record?.reads[index];
+    for (const record of records.values()) await closeRead(record.reads[index]);
+  }
+  async function closeRead(read) {
     if (read === undefined || read.closed) return;
     if (read.value !== undefined) checked(moon.clientProgramInstalledSourceReadRetire(read.value));
     // The actual FD/backing owner retains its own observation. A logical
@@ -183,7 +190,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       if (closedSources.has(source)) continue;
       try {await source.close(); closedSources.add(source);} catch (error) {failures.push(error);}
     }
-    if (failures.length === 0 && record !== undefined) {
+    if (failures.length === 0) for (const record of records.values()) {
       try {
         if (record.value !== undefined) checked(moon.clientProgramInstalledManagedRunRetire(record.value));
         else if (record.admission !== undefined) {
@@ -227,10 +234,13 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           }
           sourceManaged.assertCurrent();
           read.value = checked(moon.clientProgramInstalledManagedRunSourceRead(run.value, index));
+          originalReads.set(read.value, run);
           return read.value;
         },
         async readPages({rowRun, chargePage, verifyRead, signal}) {
-          const run = sameRun(record?.prepared), read = run.reads[index];
+          const held = originalReads.get(rowRun.originalRead);
+          if (held === undefined) fail('InstalledSourcePreparationMismatch');
+          const run = sameRun(held.prepared), read = run.reads[index];
           if (read?.value !== rowRun.originalRead || read.closed) fail('InstalledSourcePreparationMismatch');
           signal?.throwIfAborted();
           await verifyRead();
@@ -266,7 +276,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         },
         ledgerCapacity(prepared) {
           const run = preparedReads.get(prepared);
-          if (run !== sameRun(record?.prepared)) fail('InstalledSourcePreparationMismatch');
+          if (run === undefined || run !== sameRun(run.prepared)) fail('InstalledSourcePreparationMismatch');
           return Object.freeze({...adapter.ledgerCapacity(prepared), managedRun: run.value});
         }}));
     }

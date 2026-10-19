@@ -202,9 +202,7 @@ test('actual preparation binds one original Run and closes it before its same Ro
   assert.strictEqual(value, p.value);
   assert.strictEqual(f.preparation.prepareManagedComputeRun(p.runtime, prepared, request), value);
   assert.equal(preparations, 1);
-  assert.strictEqual(f.record.computeRun.original, original);
-  assert.throws(() => f.preparation.prepareManagedComputeRun(p.runtime, {}, request),
-    error => error.code === 'ForeignInstalledComputeRun');
+  assert.strictEqual(f.record.computeRuns.get(prepared).original, original);
   assert.throws(() => f.preparation.prepareManagedComputeRun({}, prepared, request),
     error => error.code === 'ForeignInstalledComputePreparation');
   // Cleanup is the captured original, not the later property value.
@@ -226,13 +224,36 @@ test('failed begin retains the admission and original cleanup through Unknown wi
   await f.preparation.prepareManagedCompute();
   const prepared = {}, request = {};
   assert.throws(() => f.preparation.prepareManagedComputeRun(p.runtime, prepared, request), error => error === marker);
-  assert.strictEqual(f.record.computeRun.admission, p.admission);
+  assert.strictEqual(f.record.computeRuns.get(prepared).admission, p.admission);
   assert.throws(() => f.preparation.prepareManagedComputeRun(p.runtime, prepared, request), error => error === marker);
   p.runtime.clientProgramNodeManagedRunCleanup = () => assert.fail('replacement cleanup');
   await assert.rejects(f.initialControl.close(), error => error === pending);
   assert.equal(rootCloses, 0); assert.equal(preparations, 1);
   await f.initialControl.close();
   assert.equal(rootCloses, 1); assert.equal(preparations, 1); assert.equal(cleanups, 2);
+});
+
+test('same ordinary Host retains separate Run records for successive prepared requests', async () => {
+  const a = {}, b = {}, requests = new Map([[a, {}], [b, {}]]), retired = [];
+  const runtime = {
+    clientProgramNodeManagedRunPrepare(original, prepared) {assert.strictEqual(original, prepared); return prepared;},
+    clientProgramInstalledManagedRunBegin(admission, prepared, request) {
+      assert.strictEqual(admission, prepared); assert.strictEqual(request, requests.get(prepared)); return prepared;
+    },
+    clientProgramInstalledManagedRunCheck(run, prepared, request) {
+      assert.strictEqual(run, prepared); assert.strictEqual(request, requests.get(prepared));
+    },
+    clientProgramInstalledManagedRunRetire(run) {retired.push(run);},
+    clientProgramNodeManagedRunCleanup() {assert.fail('No failed admission');},
+  };
+  const raw = {prepareRun: prepared => prepared, close: () => ({pending: false})};
+  const f = lifecycle({runtime, factory: async () => raw});
+  await f.preparation.prepareManagedCompute();
+  for (const prepared of [a, b, a]) assert.strictEqual(
+    f.preparation.prepareManagedComputeRun(runtime, prepared, requests.get(prepared)), prepared);
+  assert.equal(f.record.computeRuns.size, 2);
+  await f.initialControl.close();
+  assert.deepEqual(retired, [a, b]);
 });
 
 const dispatchSource = readFileSync(new URL('./client-dispatch-owner.mjs', import.meta.url), 'utf8');

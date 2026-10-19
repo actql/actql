@@ -1,12 +1,13 @@
 import {createRequire} from 'node:module';
+import {prepareOrdinaryHostJournal} from './ordinary-host-journal.mjs';
 
 // Capture the same already-selected startup receiver while its namespace
 // loads. A late import, preload label or caller constructor cannot issue the
 // separate writable Host/Journal facility. No initial/Source credit is used.
 const require = createRequire(import.meta.url);
-const ordinary = process.execArgv.length === 0 && process.env.NODE_OPTIONS === undefined;
-const owner = ordinary ? require('./node-public-initial-control-bootstrap.cjs') :
-  require('./infer-trusted-node-preload.cjs');
+const explicitStartup = process.execArgv.some(value =>
+  value === '@actql/node/selected-infer-startup' || value === '@actql/local-node/selected-infer-startup');
+const owner = explicitStartup ? require('./infer-trusted-node-preload.cjs') : Object.freeze({});
 const apply = Reflect.apply, descriptor = Object.getOwnPropertyDescriptor;
 const own = Object.hasOwn, freeze = Object.freeze, NativePromise = Promise;
 const names = ['prepareHostJournalInstallation', 'assertHostJournalInstallationCurrent',
@@ -56,6 +57,7 @@ function close(state) {
 }
 
 export async function prepareHostJournalInstallation(sameOriginals) {
+  if (!explicitStartup) return prepareOrdinaryHostJournal(sameOriginals);
   // Root retains any partially acquired original and forwards its own error /
   // cleanupHandle if this await fails. Never retry by issuing a replacement.
   const original = await invoke(0, [sameOriginals]);
