@@ -123,6 +123,7 @@ static bool fork_stock(void) {
 static bool runtime_managed_values(void) {
     actql_owned_capacity *lease=lease_new();
     actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
     context_enter(lease,context);
     moonbit_bytes_t bytes=moonbit_make_bytes_raw(9);
     memcpy(bytes,"original!",9); moonbit_incref(bytes);
@@ -132,6 +133,7 @@ static bool runtime_managed_values(void) {
     assert(native && actql_native_owned_contains_live_span(lease,native,37)==0);
     memset(native,42,37);
     context_leave(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
     uint64_t values[16]={0};
     assert(actql_read_context_cleanup_snapshot(context,values,16)==0);
     assert(values[2]==1 && values[4]==0 && values[5]==0);
@@ -142,10 +144,12 @@ static bool runtime_managed_values(void) {
     assert(memcmp(bytes,"original!",9)==0 && text[1]==0x03bb && text[2]==0x4e2d);
     // Another actual arena can close while these independent copies remain.
     lease=lease_new(); context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
     context_enter(lease,context);
     moonbit_bytes_t second=moonbit_make_bytes_raw(5);
     memcpy(second,"again",5);
     context_leave(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
     finish(&lease,&context);
     assert(memcmp(second,"again",5)==0 && memcmp(bytes,"original!",9)==0);
     moonbit_decref(second); moonbit_decref(text);
