@@ -69,7 +69,7 @@ pub fn fixture_gcs_object_data_wire(
         _ => return Err("FixtureObjectWrongCarrier")
       }
     } else {
-      guard checked.value is Decimal(_) else {
+      guard checked.value is Signed64(_) else {
         return Err("FixtureObjectWrongCarrier")
       }
     }
