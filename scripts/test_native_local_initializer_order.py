@@ -49,7 +49,7 @@ class LocalInitializerOrder(unittest.TestCase):
         directory = emission / 'native/release/build/cmd/native_client'
         directory.mkdir(parents=True)
         clang = '/Library/Developer/CommandLineTools/usr/bin/clang'
-        flags = ['-std=c11', '-O0', '-isysroot', str(sdk),
+        flags = ['-std=c11', '-O0', '-isysroot', str(sdk), '-mmacosx-version-min=11.0',
                  '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC', '-I' + str(home / 'include')]
         commands = []
 
