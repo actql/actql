@@ -1006,7 +1006,9 @@ for (const entrance of ['local', 'http']) {
         {kind: 'text', scope: 'bound_input', format,
           parameterDeclarations: {amount: {type: 'number'}}, parameters: {amount: 1}});
       assert.equal(wrong.report.verdict, 'invalid');
-      assert.equal(wrong.report.reasons[0].code, 'type_mismatch');
+      // The existing report owner discloses only number/boolean/string type tags.
+      // The unchanged int64 rejection therefore retains its program-invalid code.
+      assert.equal(wrong.report.reasons[0].code, 'program_invalid');
       const arity = await client.check('SELECT CURRENT_TIMESTAMP(1) AS now',
         {kind: 'text', scope: 'bound_input', format});
       assert.equal(arity.report.verdict, 'invalid');
