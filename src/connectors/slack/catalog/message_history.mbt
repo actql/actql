@@ -14,6 +14,7 @@ priv enum SlackMessageHistoryPhase {
 // complete Source capture, custody acknowledgement or Resource capacity.
 pub struct SlackMessageHistory {
   priv channel : String
+  priv mut channel_origin : (SlackChannelListPage, Int)?
   priv oldest : String?
   priv oldest_instant : String?
   priv latest : String?
@@ -103,6 +104,7 @@ pub fn prepare_slack_message_history_window(
   }
   Ok({
     channel,
+    channel_origin: None,
     oldest,
     oldest_instant,
     latest,
@@ -319,4 +321,41 @@ pub fn close_slack_message_history(history : SlackMessageHistory) -> Unit {
   // Stop admission while retaining outstanding originals. This is not transport
   // closure, a reservation return, escaped-alias retirement or a physical ACK.
   history.phase = Closed
+}
+
+///|
+// Keep the admitted channel occurrence, not merely its equal id text. The
+// physical caller still owes the original list request/response prefix,
+// current workspace, operation-specific authority and whole reader capacity.
+pub fn prepare_slack_message_history_from_channel(
+  page : SlackChannelListPage,
+  index : Int,
+  limits : SlackMessagePageLimits,
+  max_pages : Int,
+) -> Result[SlackMessageHistory, SlackMessagePageIssue] {
+  guard index >= 0 &&
+    index < page.rows.length() &&
+    page.rows[index][0].value is @admitted.Text(channel) else {
+    return Err(InvalidSelection("original channel row"))
+  }
+  match prepare_slack_message_history(channel, limits, max_pages) {
+    Ok(history) => {
+      history.channel_origin = Some((page, index))
+      Ok(history)
+    }
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+pub fn slack_message_history_matches_channel(
+  history : SlackMessageHistory,
+  page : SlackChannelListPage,
+  index : Int,
+) -> Bool {
+  match history.channel_origin {
+    Some((original, selected)) =>
+      physical_equal(original, page) && selected == index
+    None => false
+  }
 }
