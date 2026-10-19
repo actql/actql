@@ -14,6 +14,8 @@ priv enum ExpressionFrame {
   VectorScoreRest(VectorMetric, Expression)
   ObjectExpressions(Array[(String, Expression)], Int)
   PropertyValue(Expression)
+  DecimalDivisionRight(Expression, String, Int, Int)
+  DecimalDivisionTail(String, Int)
 }
 
 ///|
@@ -39,6 +41,7 @@ fn binary_name(op : BinaryOperator) -> String {
     RTrimSet => "rtrim"
     Contains => "contains"
     DateTruncate => "date_trunc"
+    DecimalDivide(_) => "decimal_divide"
     StartsWith => "starts_with"
     EndsWith => "ends_with"
     Equal => "eq"
@@ -266,6 +269,20 @@ fn emit_frames(
             )
             pending.push(Expr(arg))
           }
+          Binary(DecimalDivide(mode), left, right) => {
+            guard expr.contract.shape is @contract.Decimal(precision~, scale~) &&
+              ["half_even", "half_up", "toward_zero", "floor", "ceiling"].contains(
+                mode,
+              ) else {
+              raise @encode.InvalidStructure
+            }
+            pending.push(Op("decimal_divide"))
+            @encode.begin_object(output)
+            @encode.key(output, "left")
+            pending.push(EndObject)
+            pending.push(DecimalDivisionRight(right, mode, precision, scale))
+            pending.push(Expr(left))
+          }
           Binary(op, left, right) => {
             pending.push(Op(binary_name(op)))
             @encode.begin_array(output)
@@ -429,6 +446,19 @@ fn emit_frames(
         } else {
           @encode.end_array(output)
         }
+      DecimalDivisionRight(right, mode, precision, scale) => {
+        @encode.key(output, "precision")
+        @encode.number_value(output, precision.to_double())
+        @encode.key(output, "right")
+        pending.push(DecimalDivisionTail(mode, scale))
+        pending.push(Expr(right))
+      }
+      DecimalDivisionTail(mode, scale) => {
+        @encode.key(output, "rounding")
+        @encode.string_value(output, mode)
+        @encode.key(output, "scale")
+        @encode.number_value(output, scale.to_double())
+      }
       Fields(fields, index) =>
         if @value.element_at(fields, index) is Some((name, value)) {
           @encode.key(output, name)

@@ -157,3 +157,24 @@ not a physical byte grant. Original operand/root, mode String, integer records
 and limbs, coefficient String, formatter and result overlap under the existing
 phase. Child/current/cancel, logical charging and original-root release remain
 owned by the original evaluator; NULL propagation does not catch those errors.
+
+### Explicit exact Decimal division
+
+DECIMAL_DIVIDE reuses the existing eager binary child order, consume events and
+root-release protocol. The private binary event receives the original frame's
+workspace only for the typed Decimal ratio branch; all previous operator paths
+retain their original behavior. The left is an admitted Decimal, the right an
+admitted Decimal or an exactly read safe-integer Number. Both child failures
+remain demanded before NULL propagation, and zero division fails without
+publishing a value. Shared private quotient/remainder rounding preserves the
+same five modes as QUANTIZE; neither operation passes through binary64.
+
+For scales 0..38, the target adjustment exponent is -38..76. The numerator is
+less than 10^114 (at most 379 bits), and the denominator less than 10^76. The
+rounded quotient is compared to 10^precision before formatting, so an overflow
+never constructs a 114-digit public coefficient. Parse/power/ratio/rounding,
+mode and contract references, both operand roots, integer limbs and loop
+temporaries, formatter and final value overlap under the existing phase.
+The 64 structural scratch entries and bounded control preflight are not a
+physical byte grant; logical retirement and GC are not cleanup ACKs. Original
+Value identity, wire schemas, clock domains and authority are unchanged.

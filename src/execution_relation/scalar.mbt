@@ -390,6 +390,7 @@ pub fn binary(
   right : Value,
 ) -> Result[Value, ScalarIssue] {
   match op {
+    DecimalDivide(_) => Err(InvalidOperand)
     DateTruncate =>
       if left is Null || right is Null {
         Ok(Null)
@@ -499,7 +500,8 @@ pub fn binary(
         | StartsWith
         | EndsWith
         | Contains
-        | DateTruncate => Err(InvalidOperand)
+        | DateTruncate
+        | DecimalDivide(_) => Err(InvalidOperand)
       }
       // Only this already-evaluated arithmetic operation is safe. Child,
       // operand-domain, control, cancellation and custody failures keep their
@@ -584,7 +586,8 @@ fn binary_comparison_result(
     | StartsWith
     | EndsWith
     | Contains
-    | DateTruncate => Err(InvalidOperand)
+    | DateTruncate
+    | DecimalDivide(_) => Err(InvalidOperand)
   }
 }
 

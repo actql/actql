@@ -280,6 +280,7 @@ fn scalar_call(
     "TO_DECIMAL" => ("TO_DECIMAL", "to_decimal", 1, 3)
     "TRY_DECIMAL" => ("TRY_DECIMAL", "try_decimal", 1, 3)
     "QUANTIZE" => ("QUANTIZE", "quantize", 2, 4)
+    "DECIMAL_DIVIDE" => ("DECIMAL_DIVIDE", "decimal_divide", 2, 5)
     "SPLIT" => ("SPLIT", "split", 1, 2)
     "SUBSTR" | "SUBSTRING" => ("SUBSTR", "substring", 2, 3)
     "LEFT" => ("LEFT", "left", 2, 2)
@@ -705,6 +706,12 @@ fn append_resolved(
               if name == "quantize" && args.length() != 4 {
                 raise Abort(InvalidArguments)
               }
+              if name == "decimal_divide" && args.length() < 4 {
+                raise Abort(UnsupportedFunction)
+              }
+              if name == "decimal_divide" && args.length() != 5 {
+                raise Abort(InvalidArguments)
+              }
               if name == "date_trunc" &&
                 !(strings[args[1]] is Some("ms" | "s" | "m" | "h" | "d")) {
                 current = @query.expression_origin(ast, args[1])
@@ -735,6 +742,38 @@ fn append_resolved(
                       "target",
                       lowering.object([("type", lowering.add(String(target)))]),
                     ),
+                  ]),
+                )
+              } else if name == "decimal_divide" {
+                guard numbers[args[2]] is Some(precision) &&
+                  precision >= 1.0 &&
+                  precision <= 38.0 &&
+                  precision.trunc() == precision else {
+                  current = @query.expression_origin(ast, args[2])
+                  raise Abort(InvalidArguments)
+                }
+                guard numbers[args[3]] is Some(scale) &&
+                  scale >= 0.0 &&
+                  scale <= precision &&
+                  scale.trunc() == scale else {
+                  current = @query.expression_origin(ast, args[3])
+                  raise Abort(InvalidArguments)
+                }
+                guard strings[args[4]] is Some(rounding) &&
+                  ["half_even", "half_up", "toward_zero", "floor", "ceiling"].contains(
+                    rounding,
+                  ) else {
+                  current = @query.expression_origin(ast, args[4])
+                  raise Abort(InvalidArguments)
+                }
+                lowering.form(
+                  "decimal_divide",
+                  lowering.object([
+                    ("left", nodes[args[0]]),
+                    ("right", nodes[args[1]]),
+                    ("precision", lowering.add(Number(precision))),
+                    ("scale", lowering.add(Number(scale))),
+                    ("rounding", lowering.add(String(rounding))),
                   ]),
                 )
               } else if ["to_decimal", "try_decimal", "quantize"].contains(name) {

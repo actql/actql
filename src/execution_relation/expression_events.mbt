@@ -106,6 +106,7 @@ fn expression_event_binary(
   left_root : ExpressionRootLease?,
   right : Value,
   right_root : ExpressionRootLease?,
+  workspace? : RowWorkspace? = None,
 ) -> Result[Value, EvalIssue] {
   match expression_event_consume(logical, left, expr, root=left_root) {
     Err(issue) => return Err(issue)
@@ -122,14 +123,27 @@ fn expression_event_binary(
     Err(ComparisonChargeInvalidOperand) =>
       return Err({ kind: Scalar(InvalidOperand), expression: expr, })
   }
-  let result = if op == @lower.DateTruncate {
-    temporal_truncation(expr, left, right)
+  let value = if op is @lower.DecimalDivide(mode) {
+    guard workspace is Some(workspace) else {
+      return Err({ kind: WorkspaceLimit, expression: expr, })
+    }
+    match
+      decimal_division_expression_value(
+        expr, left, right, mode, control, workspace,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
   } else {
-    binary(op, left, right)
-  }
-  let value = match result {
-    Err(issue) => return Err({ kind: Scalar(issue), expression: expr, })
-    Ok(value) => value
+    let result = if op == @lower.DateTruncate {
+      temporal_truncation(expr, left, right)
+    } else {
+      binary(op, left, right)
+    }
+    match result {
+      Err(issue) => return Err({ kind: Scalar(issue), expression: expr, })
+      Ok(value) => value
+    }
   }
   match expression_event_release(left_root, expr) {
     Err(issue) => return Err(issue)

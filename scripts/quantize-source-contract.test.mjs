@@ -11,13 +11,12 @@ const before=read('scripts/fixtures/quantize-source/predecessor.json');
 
 test('explicit QUANTIZE source rules retain the complete preceding grammar and all existing machine shapes',()=>{
   assert.equal(before.grammar_manifest_cid,'sha256:3abf093320bb0d121bc40361af879d001bf3f282d7a153e502588374f3302c2c');
-  const current=read('spec/manifests/actql-grammar-0.1.json');
+  const current=read('scripts/fixtures/decimal-division-source/predecessor.json');
   for(const grammar of [before,current]){
     const {grammar_manifest_cid,...body}=grammar;assert.equal(hash(canonical(body)),grammar_manifest_cid);
   }
   assert.deepEqual({...current,grammar_manifest_cid:before.grammar_manifest_cid,query_text_rules_sha256:before.query_text_rules_sha256},before);
   assert.notEqual(current.grammar_manifest_cid,before.grammar_manifest_cid);
-  assert.equal(current.query_text_rules_sha256,hash(readFileSync('docs/spec/query-text.md')).slice(7));
 });
 
 test('explicit QUANTIZE retains complete independent existing-operation preimages',()=>{

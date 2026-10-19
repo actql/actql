@@ -900,7 +900,8 @@ fn infer(
     "try_decimal" | "quantize" | "decimal_divide" => {
       let target = decimal_target(node)
       let child = nodes[node.children[0]]
-      if (tag == "try_decimal" || tag == "quantize") && immediate_null(child) {
+      if (tag == "try_decimal" || tag == "quantize" || tag == "decimal_divide") &&
+        immediate_null(child) {
         provide(t, child.inferred, typed(t, target, source), source)
       }
       let first = operand(t, nodes, node, 0)
@@ -913,6 +914,10 @@ fn infer(
       }
       let mut nullable = first.nullable || tag == "try_decimal"
       if tag == "decimal_divide" {
+        let divisor_node = nodes[node.children[1]]
+        if immediate_null(divisor_node) {
+          provide(t, divisor_node.inferred, typed(t, first, source), source)
+        }
         let divisor = operand(t, nodes, node, 1)
         if !["number", "decimal"].contains(type_name(divisor)) {
           fail(source, TypeMismatch("decimal or number divisor"))

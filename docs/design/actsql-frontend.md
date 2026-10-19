@@ -100,4 +100,7 @@ retains its existing distinct Common body and nullable target. The same target
 context resolves immediate NULL without changing its value. Explicit QUANTIZE
 retains its original Decimal operand, static target and closed rounding String.
 Its omitted-target public lookup remains unresolved without an actual target
-and rounding policy. DECIMAL_DIVIDE remains a separate existing responsibility.
+and rounding policy. Explicit DECIMAL_DIVIDE preserves two original children,
+the same literal target roles and a closed rounding mode. The existing Common
+binary evaluator owns demand, exact division, domain refusal and root release;
+the frontend never evaluates the ratio or reinterprets numeric source tokens.

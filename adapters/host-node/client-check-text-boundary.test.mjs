@@ -791,6 +791,47 @@ for (const entrance of ['local', 'http']) {
     });
   }
 
+  test(`${entrance}: explicit DECIMAL_DIVIDE retains exact original operand domains`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql','aql-text']) {
+      for (const mode of ['half_even','half_up','toward_zero','floor','ceiling']) {
+        for (const text of [
+          `SELECT DECIMAL_DIVIDE(CAST('12.50' AS DECIMAL(6,2)),2,6,2,'${mode}') AS quotient`,
+          `SELECT DECIMAL_DIVIDE(CAST('1' AS DECIMAL(6,2)),CAST('0.8' AS DECIMAL(4,1)),6,2,'${mode}') AS quotient`,
+          `SELECT DECIMAL_DIVIDE(@amount,@divisor,(6),(2),'${mode}') AS quotient`,
+          `SELECT DECIMAL_DIVIDE(NULL,NULL,6,2,'${mode}') AS quotient`,
+          `SELECT CAST('12.50' AS DECIMAL(6,2)) AS amount |> SELECT DECIMAL_DIVIDE(amount,2,6,2,'${mode}') AS quotient`,
+        ]) {
+          const checked = await client.check(text,{kind:'text',scope:'bound_input',format,
+            ...(text.includes('@amount') ? {parameterDeclarations:{amount:{type:'decimal',precision:6,scale:2},divisor:{type:'number'}},parameters:{amount:'12.50',divisor:2}} : {})});
+          assert.equal(checked.report.verdict,'verified',JSON.stringify(checked.report));
+          assert.deepEqual(checked.report.runnable,{verdict:'yes',reasons:[]});
+          assert.deepEqual(checked.report.coverage,{limits:[],unresolved:[]});
+          assert.equal(getCheckInput(checked,'source').text,text);
+        }
+      }
+      for (const text of [
+        "SELECT DECIMAL_DIVIDE(12.5,2,6,2,'floor') AS bad",
+        "SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),'2',6,2,'floor') AS bad",
+        "SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2,@p,2,'floor') AS bad",
+        "SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2,6,2,@mode) AS bad",
+        "SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2,6,2,'nearest') AS bad",
+        "SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),@whole,6,2,'floor') AS bad",
+      ]) {
+        const checked = await client.check(text,{kind:'text',scope:'bound_input',format,
+          ...(text.includes('@p') ? {parameterDeclarations:{p:{type:'number'}},parameters:{p:6}} : {}),
+          ...(text.includes('@mode') ? {parameterDeclarations:{mode:{type:'string'}},parameters:{mode:'floor'}} : {}),
+          ...(text.includes('@whole') ? {parameterDeclarations:{whole:{type:'int64'}},parameters:{whole:'9007199254740993'}} : {})});
+        assert.equal(checked.report.verdict,'invalid',text);
+      }
+      for (const text of ["SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2) AS quotient","SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2,2) AS quotient","SELECT ACTQL.DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2,6,2,'floor') AS quotient"]) {
+        const checked = await client.check(text,{kind:'text',scope:'bound_input',format});
+        assert.equal(checked.report.verdict,'undetermined');
+        assert.equal(checked.report.coverage.limits[0].code,'implementation_limit');
+      }
+    }
+  });
+
   test(`${entrance}: explicit QUANTIZE retains original Decimal target and rounding`, async t => {
     const {client} = await publicCheck(t, entrance);
     for (const format of ['sql','aql-text']) {

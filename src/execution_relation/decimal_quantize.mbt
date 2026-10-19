@@ -20,40 +20,16 @@ fn quantize_coefficient(
     digits + difference > precision {
     return None
   }
-  let ten = @bigint.BigInt::from_int(10)
-  let one = @bigint.BigInt::from_int(1)
-  let zero = @bigint.BigInt::from_int(0)
-  let mut magnitude = zero
-  // Original admitted coefficients have at most 38 digits, not binary64 text.
-  for i = start; i < value.coefficient.length(); i = i + 1 {
-    magnitude = magnitude * ten +
-      @bigint.BigInt::from_int(value.coefficient[i].to_int() - 48)
-  }
-  let mut factor = one
-  for _i = 0; _i < difference.abs(); _i = _i + 1 {
-    factor = factor * ten
-  }
+  let magnitude = decimal_coefficient_magnitude(value)
+  let factor = decimal_scale_power(difference.abs())
   let rounded = if difference >= 0 {
     magnitude * factor
   } else {
-    let quotient = magnitude / factor
-    let remainder = magnitude % factor
-    let twice = remainder * @bigint.BigInt::from_int(2)
-    let increment = match mode {
-      "half_even" =>
-        twice > factor ||
-        (twice == factor && quotient % @bigint.BigInt::from_int(2) == one)
-      "half_up" => twice >= factor
-      "toward_zero" => false
-      "floor" => negative && remainder != zero
-      "ceiling" => !negative && remainder != zero
-      _ => return None
+    guard exact_decimal_round_ratio(magnitude, factor, negative, mode)
+      is Some(value) else {
+      return None
     }
-    if increment {
-      quotient + one
-    } else {
-      quotient
-    }
+    value
   }
   let coefficient = rounded.to_string()
   if coefficient.length() > precision {
