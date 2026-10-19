@@ -5,13 +5,17 @@ fn checked_original_update_prepared() -> @publication_host.PreparedClientEffectC
   let (_, base, limits) = local_effect_export_fixture()
   let original = @program_check.checking_environment_wire(base)
   let original_mapping = @environment.member_at(original, MappingContracts, 0).unwrap()
+  let original_mapping_body = @decode.open_object(
+    @environment.member_body(original_mapping),
+  ).unwrap()
+  let original_mapping_identity = @decode.text(
+    @decode.lookup(original_mapping_body, "mapping_contract_cid").unwrap(),
+  ).unwrap()
   let mapping_writer = @encode.writer(20000, 2000, 100)
   @environment.emit_member(original_mapping, mapping_writer)
   let mapping = @encode.finish(mapping_writer)
     .replace(
-      old="\"mapping_contract_cid\":\"" +
-        @environment.member_cid(original_mapping) +
-        "\",",
+      old="\"mapping_contract_cid\":\"" + original_mapping_identity + "\",",
       new="",
     )
     .replace(old="\"effect_kind\":\"create\"", new="\"effect_kind\":\"update\"")
@@ -38,12 +42,16 @@ fn checked_original_update_prepared() -> @publication_host.PreparedClientEffectC
       environment_cid +
       "\",\"host_policy_profile\":",
   )
-  let admitted = @environment.read(@utf8.encode(body), environment_cid, {
-    max_bytes: 40000,
-    max_nodes: 4000,
-    max_depth: 100,
-    max_members: 100,
-  }).unwrap()
+  let admitted = match
+    @environment.read(@utf8.encode(body), environment_cid, {
+      max_bytes: 40000,
+      max_nodes: 4000,
+      max_depth: 100,
+      max_members: 100,
+    }) {
+    Ok(value) => value
+    Err(issue) => fail("Update fixture environment: " + @debug.to_string(issue))
+  }
   let environment = @program_check.checking_environment(
     admitted,
     { text_time: false, veca: false, },
