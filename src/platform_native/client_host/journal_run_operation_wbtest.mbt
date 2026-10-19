@@ -144,15 +144,10 @@ test "Run original routing rolls back count Run insert and actual final intent C
       let changed = database.compare_exchange(table, key, revision, body)
       if table == "client_submitted_intents" {
         changed.unwrap() |> ignore
-        assert_eq(
-          database.read("client_run_custody", "issued").unwrap().body,
-          b"1",
-        )
-        assert_true(
+        observed.val = database.read("client_run_custody", "issued").unwrap().body ==
+          b"1" &&
           database.read("client_runs", @host.client_request_scope_cid(request))
-          is Ok(_),
-        )
-        observed.val = true
+          is Ok(_)
         Err(@sqlite.Busy)
       } else {
         changed
@@ -273,8 +268,8 @@ test "Run original routing retains an actual committed admission after a lost re
     )
     is Err(Epoch(Fenced)),
   )
-  assert_false(calls.any(value => value.starts_with("compare_exchange:")))
-  assert_false(calls.any(value => value.starts_with("insert:")))
+  assert_false(calls.any(value => value.has_prefix("compare_exchange:")))
+  assert_false(calls.any(value => value.has_prefix("insert:")))
   assert_eq(
     database
     .read("client_runs", @host.client_request_scope_cid(request))
