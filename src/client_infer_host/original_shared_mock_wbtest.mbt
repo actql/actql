@@ -148,10 +148,12 @@ test "shared original Mock publication keeps its own live bytes and planning cap
   assert_eq(calls.val, 1)
   let model = active.model.unwrap()
   let scope = active.call_scope.unwrap()
-  // The already retired attempt no longer reserves bytes, but its identity,
-  // wire history and the independent sibling remain with their original owners.
+  // Settlement acknowledgement does not retire the original attempt metadata.
+  // Retain 1000 request + 65536 response + 81920 Entry/evidence bytes, in
+  // addition to Model startup 100, bootstrap/read 3+7 and sibling 20.
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 148586L)
   let grant = @model.reserve_original_model_publication_capacity(
-    model, scope, 299900L, 1L,
+    model, scope, 151444L, 1L,
   ).unwrap()
   let before = @resources.ledger_usage(ledger)
   assert_true(
