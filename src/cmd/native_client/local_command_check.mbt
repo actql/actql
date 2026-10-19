@@ -9,17 +9,52 @@ let command_preparation_invocation : Ref[LocalCommandPreparationOriginal?] = Ref
 // Retire only through the same original's child-first cleanup. On failure the
 // caller retains that exact invocation, including its primary and every pending
 // receiver; process termination or an output write is not its acknowledgement.
-fn local_finish_command_preparation() -> Bool {
+fn local_finish_command_preparation() -> Result[
+  Unit,
+  LocalCommandPreparationIssue,
+] {
   match command_preparation_invocation.val {
-    None => true
+    None => Ok(())
     Some(original) =>
       match original.close_checked() {
-        Err(_) => false
+        Err(issue) => {
+          original.retain_primary(issue)
+          Err(issue)
+        }
         Ok(_) => {
           command_preparation_invocation.val = None
-          true
+          Ok(())
         }
       }
+  }
+}
+
+///|
+// Project only the release boundary/error kind. Never stringify application
+// messages, key/material payloads or opaque physical receivers for diagnostics.
+fn command_preparation_cleanup_kind(
+  issue : LocalCommandPreparationIssue,
+) -> String {
+  match issue {
+    CommandInvalidProfile => "profile"
+    CommandUnavailable => "original-unavailable"
+    CommandNativeStorage(_) => "native-storage"
+    CommandBacking(code) => "backing(" + code.to_string() + ")"
+    CommandHost(_) => "host"
+    CommandDomain(_) => "domain"
+    CommandRead(_) => "read"
+    CommandPair(_) => "pair"
+    CommandRuntime(_) => "runtime"
+    CommandSqlite(_) => "sqlite"
+    CommandComponent(_) => "crypto-component"
+    CommandReadCrypto(_) => "read-crypto"
+    CommandSignature(_) => "signature"
+    CommandJournal(_) => "journal"
+    CommandAdoption(_) => "adoption"
+    CommandCapture(_) => "adoption-capture"
+    CommandApplication(_) => "application"
+    CommandFilesystem(_) => "filesystem"
+    CommandFilesystemCleanup(_) => "filesystem-cleanup"
   }
 }
 

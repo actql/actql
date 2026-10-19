@@ -1441,14 +1441,24 @@ fn main {
   }
   // stdout/flush, Library, component, context/domain/map, Host and FD retirement
   // are separate facts. An output or process exit never substitutes for ACK.
-  let command_closed = local_finish_command_preparation()
+  let command_cleanup = local_finish_command_preparation()
+  let command_closed = command_cleanup is Ok(_)
   let crypto_closed = if command_closed {
     local_finish_initial_crypto()
   } else {
     false
   }
-  if !command_closed {
-    fail_command("LocalCommandPreparationCleanupPending")
+  if command_cleanup is Err(issue) {
+    let stage = match command_preparation_invocation.val {
+      Some(original) => original.cleanup_stage
+      None => "original-retained"
+    }
+    fail_command(
+      "LocalCommandPreparationCleanupPending: " +
+      stage +
+      ": " +
+      command_preparation_cleanup_kind(issue),
+    )
   }
   if !crypto_closed {
     fail_command("InitialCryptoCleanupPending")

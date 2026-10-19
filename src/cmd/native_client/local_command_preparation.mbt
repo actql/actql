@@ -96,6 +96,7 @@ priv struct LocalCommandPreparationOriginal {
   mut primary : LocalCommandPreparationIssue?
   mut closing : Bool
   mut closed : Bool
+  mut cleanup_stage : String
 }
 
 ///|
@@ -164,6 +165,7 @@ fn prepare_local_command_preparation_original(
     primary: None,
     closing: false,
     closed: false,
+    cleanup_stage: "not-started",
   })
 }
 
@@ -638,6 +640,7 @@ fn LocalCommandPreparationOriginal::close_checked(
   }
   self.closing = true
   try {
+    self.cleanup_stage = "leave-command-read"
     command_preparation_value(self.leave())
     if self.standalone_cleanup_open {
       guard self.host is Some(host) && self.read is Some(read) else {
@@ -661,11 +664,13 @@ fn LocalCommandPreparationOriginal::close_checked(
       )
     }
     if self.runtime is Some(runtime) {
+      self.cleanup_stage = "runtime"
       command_preparation_value(
         runtime.close().map_err(issue => CommandRuntime(issue)),
       )
     }
     if self.journal is Some(journal) {
+      self.cleanup_stage = "journal"
       let reply = journal.close()
       if reply.issue() is Some(issue) {
         return Err(CommandJournal(issue))
@@ -713,6 +718,7 @@ fn LocalCommandPreparationOriginal::close_checked(
           self.read_failure = None
         }
         if self.adoption is Some(adoption) {
+          self.cleanup_stage = "adoption"
           let reply = adoption.close()
           if reply.issue() is Some(issue) {
             return Err(CommandCapture(issue))
@@ -722,6 +728,7 @@ fn LocalCommandPreparationOriginal::close_checked(
           }
         }
         if self.product_parent_failure is Some(failure) {
+          self.cleanup_stage = "product-parent-partial"
           command_preparation_value(
             failure
             .retry_cleanup()
@@ -730,17 +737,20 @@ fn LocalCommandPreparationOriginal::close_checked(
           self.product_parent_failure = None
         }
         if self.product_parent is Some(parent) {
+          self.cleanup_stage = "product-parent"
           command_preparation_value(
             parent.close().map_err(issue => CommandFilesystemCleanup(issue)),
           )
           self.product_parent = None
         }
         if self.product is Some(product) {
+          self.cleanup_stage = "product"
           command_preparation_value(
             product.close().map_err(issue => CommandAdoption(issue)),
           )
         }
         if self.selected_root_failure is Some(failure) {
+          self.cleanup_stage = "configuration-root-partial"
           command_preparation_value(
             failure
             .retry_cleanup()
@@ -749,18 +759,21 @@ fn LocalCommandPreparationOriginal::close_checked(
           self.selected_root_failure = None
         }
         if self.selected_root is Some(root) {
+          self.cleanup_stage = "configuration-root"
           command_preparation_value(
             root.close().map_err(issue => CommandFilesystemCleanup(issue)),
           )
           self.selected_root = None
         }
         if self.inner_library is Some(library) {
+          self.cleanup_stage = "inner-library"
           command_preparation_value(
             library.close_checked().map_err(issue => CommandSignature(issue)),
           )
           self.inner_library = None
         }
         if self.outer_library is Some(library) {
+          self.cleanup_stage = "outer-library"
           command_preparation_value(
             library.close_checked().map_err(issue => CommandSignature(issue)),
           )
@@ -776,6 +789,7 @@ fn LocalCommandPreparationOriginal::close_checked(
         self.crypto_path = ""
         self.crypto_member = None
         if self.component is Some(component) {
+          self.cleanup_stage = "crypto-component"
           guard self.pair is Some(pair) else { return Err(CommandUnavailable) }
           // This caller already owns the exact original cleanup frame. Do not
           // reenter the domain through the legacy owning close operation.
@@ -798,6 +812,7 @@ fn LocalCommandPreparationOriginal::close_checked(
         }
       }
       if self.pair is Some(pair) {
+        self.cleanup_stage = "read-sqlite-pair"
         command_preparation_value(
           host
           .close_local_host_resources(pair)
@@ -826,6 +841,7 @@ fn LocalCommandPreparationOriginal::close_checked(
         }
       }
       if self.read_domain is Some(domain) {
+        self.cleanup_stage = "read-domain"
         command_preparation_value(
           host
           .close_domain_after_owner_ack(domain)
@@ -834,6 +850,7 @@ fn LocalCommandPreparationOriginal::close_checked(
         self.read_domain = None
       }
       if self.sqlite_domain is Some(domain) {
+        self.cleanup_stage = "sqlite-domain"
         command_preparation_value(
           host
           .close_domain_after_owner_ack(domain)
@@ -841,12 +858,14 @@ fn LocalCommandPreparationOriginal::close_checked(
         )
         self.sqlite_domain = None
       }
+      self.cleanup_stage = "host"
       command_preparation_value(
         host.try_close().map_err(issue => CommandHost(issue)),
       )
       self.host = None
     }
     if self.backing is Some(backing) {
+      self.cleanup_stage = "backing"
       if !backing.close_checked() {
         return Err(CommandBacking(backing.acquisition_issue()))
       }
