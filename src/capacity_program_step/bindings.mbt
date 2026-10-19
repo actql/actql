@@ -187,7 +187,9 @@ fn resolve_count(
           Err(InvalidBoundCount)
         }
       }
-      guard entry.value.value is Number(n) else { return Err(InvalidBoundCount) }
+      guard entry.value.value is Number(n) else {
+        return Err(InvalidBoundCount)
+      }
       match @scalar.read_safe_integer(n) {
         Some(n) if n > 0L => Ok(n)
         _ => Err(InvalidBoundCount)
