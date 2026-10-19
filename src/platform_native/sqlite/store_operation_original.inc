@@ -38,8 +38,9 @@ static int32_t actql_store_operation_route(
       value->receiver == NULL || value->route == NULL) return -1;
   if (value->calling) return actql_store_operation_failed(value, -2);
   value->calling = true;
-  moonbit_incref(value->receiver);
-  moonbit_incref(value->library);
+  /* The selected generated FuncRef trampoline borrows its parameters, as do
+   * the existing Native coordinator roots. The retained fields keep them live
+   * throughout this guarded call; per-call increfs would leak child aliases. */
   int32_t code = value->route(value->receiver, value->library, tag);
   value->calling = false;
   return code == 0 ? 0 : actql_store_operation_failed(value, code);
