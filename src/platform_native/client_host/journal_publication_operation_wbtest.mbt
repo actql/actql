@@ -22,16 +22,26 @@ test "Publication original routing preserves one policy packet and named read au
     request,
     SubmitOriginals,
   ).unwrap()
-  let first = host.journal
-    .retain_publication_policy_originals(
+  let first = selected_policy_require(
+    host.journal.retain_publication_policy_originals(
       request,
       prepared,
       compiled,
       definition,
       authority,
       operations=Some(operations),
-    )
-    .unwrap()
+    ),
+    "retain publication originals",
+    issue => {
+      match issue {
+        Physical(value) => selected_policy_sqlite_issue(value)
+        PublicationPolicy(@checked.MissingDependency) => "MissingDependency"
+        PublicationPolicy(@checked.ForeignBody) => "ForeignBody"
+        PublicationPolicy(@checked.BudgetExceeded) => "BudgetExceeded"
+        _ => selected_policy_journal_issue(issue)
+      }
+    },
+  )
   assert_true(first.publication_policy_originals is Some(_))
   assert_true(
     calls.contains(
