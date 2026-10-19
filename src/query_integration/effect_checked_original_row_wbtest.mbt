@@ -151,6 +151,28 @@ test "actual Captured Mapping uses only its original typed Result row and curren
     )
     .unwrap()
     .unwrap()
+  let separate_owner = execution
+    .prepare_effect_result_export(
+      captured, inputs, index, rows, 100, 10000, limits,
+    )
+    .unwrap()
+  let separate_export = separate_owner.captured_export().unwrap()
+  let foreign_plan = @strategy.prepare_captured_effect_proposal_plan(
+    inputs, 0, 10, 10000,
+  ).unwrap()
+  assert_true(
+    @strategy.project_captured_effect_checked_proposal_row(
+      foreign_plan,
+      separate_export,
+      first,
+      10,
+      10000,
+      { max_nodes: 100, max_depth: 20, max_text_bytes: 1000, },
+    )
+    is Err(@strategy.ForeignExport),
+  )
+  @strategy.cancel_captured_effect_proposal_plan(foreign_plan)
+  separate_owner.close()
   let first_checked = @strategy.project_captured_effect_checked_proposal_row(
     plan,
     exported,
@@ -180,6 +202,21 @@ test "actual Captured Mapping uses only its original typed Result row and curren
   assert_false(
     @strategy.captured_effect_checked_proposal_row_available(first_checked),
   )
+  let unordered_plan = @strategy.prepare_captured_effect_proposal_plan(
+    inputs, 0, 10, 10000,
+  ).unwrap()
+  assert_true(
+    @strategy.project_captured_effect_checked_proposal_row(
+      unordered_plan,
+      exported,
+      second,
+      10,
+      10000,
+      { max_nodes: 100, max_depth: 20, max_text_bytes: 1000, },
+    )
+    is Err(@strategy.CapturedEffectCheckedProposalIssue::RowOrder),
+  )
+  @strategy.cancel_captured_effect_proposal_plan(unordered_plan)
   let second_checked = @strategy.project_captured_effect_checked_proposal_row(
     plan,
     exported,
