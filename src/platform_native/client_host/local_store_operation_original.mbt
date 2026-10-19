@@ -129,6 +129,9 @@ fn NativeLocalStoreOperationReceiver::originals(
     self.capture.original_resources is Some(original) else {
     return Err(StoreOperationUnavailable)
   }
+  if original.store_operation is Some(active) && !physical_equal(active, self) {
+    return Err(StoreOperationForeignOriginal)
+  }
   if self.original is Some(retained) && !physical_equal(retained, original) {
     return Err(StoreOperationForeignOriginal)
   }
@@ -284,11 +287,15 @@ fn NativeLocalStoreOperationReceiver::begin_original(
     Ok(value) => value
     Err(issue) => return Err(StoreOperationExecution(issue))
   }
+  if original.store_operation is Some(_) {
+    return Err(StoreOperationUnavailable)
+  }
   match (read, business) {
     (@arena.ReadEntered, @bootstrap.BackedReadUnentered) => {
       if !(original.active_phase is Some(@arena.HostRead)) {
         return Err(StoreOperationUnavailable)
       }
+      original.store_operation = Some(self)
       self.origin = Some(StoreFromRead)
       self.phase = StoreRouteRead
       self.capture
@@ -299,6 +306,7 @@ fn NativeLocalStoreOperationReceiver::begin_original(
       if original.active_phase is Some(_) {
         return Err(StoreOperationUnavailable)
       }
+      original.store_operation = Some(self)
       if business == @bootstrap.BackedReadEntered {
         self.origin = Some(StoreFromBusiness)
         self.business_pending = true
@@ -336,6 +344,7 @@ fn NativeLocalStoreOperationReceiver::begin_cleanup(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  original.store_operation = Some(self)
   self.closing = true
   self.ready = false
   if self.business_pending {
@@ -344,7 +353,7 @@ fn NativeLocalStoreOperationReceiver::begin_cleanup(
       Ok(_) => self.business_pending = false
     }
   }
-  match original.finish_pending_leave() {
+  match original.finish_pending_store_leave(self) {
     Err(issue) => return Err(StoreOperationCapture(issue))
     Ok(_) => ()
   }
@@ -371,7 +380,10 @@ fn NativeLocalStoreOperationReceiver::route(
       match originals {
         Err(issue) => Err(issue)
         Ok((host, original)) =>
-          if !self.cleanup && (!self.ready || self.primary is Some(_)) {
+          if !(original.store_operation is Some(active) &&
+            physical_equal(active, self)) {
+            Err(StoreOperationUnavailable)
+          } else if !self.cleanup && (!self.ready || self.primary is Some(_)) {
             Err(StoreOperationUnavailable)
           } else if tag == 1 && self.phase == StoreRouteRead {
             match self.leave_phase(original) {
@@ -421,6 +433,9 @@ fn NativeLocalStoreOperationReceiver::route(
                     match resumed {
                       Err(issue) => Err(issue)
                       Ok(_) => {
+                        // Actual original restoration/leave acknowledged. Only
+                        // now release this flight and its retained cycle.
+                        original.store_operation = None
                         self.business_pending = false
                         self.origin = None
                         self.phase = StoreRouteIdle

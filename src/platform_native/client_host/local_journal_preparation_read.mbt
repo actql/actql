@@ -17,6 +17,9 @@ pub fn[T] NativeLocalJournalCapture::with_original_read(
     self.original_resources is Some(original) else {
     return Err(InvalidInput)
   }
+  if original.store_operation is Some(_) {
+    return Err(OriginalResourceScopePending)
+  }
   match original.check_journal_current(host) {
     Err(issue) => {
       self.read_operation_issue = Some(issue)
