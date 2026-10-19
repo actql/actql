@@ -1,5 +1,15 @@
-#if !defined(__APPLE__) || !defined(__aarch64__)
-#error "This unadopted candidate targets Darwin arm64 only"
+#if defined(__APPLE__) && defined(__aarch64__)
+/* Existing selected Darwin provider. */
+#elif defined(__linux__) && defined(__aarch64__) && \
+      defined(ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN)
+/* Only the selected local process-domain consumer enables this physical
+ * backend. Its actual private FD/mapping is still required independently of
+ * kernel process limits. This does not select image, Engine or Rust profiles. */
+#if !defined(_GNU_SOURCE)
+#error "The selected Linux provider requires _GNU_SOURCE before system headers"
+#endif
+#else
+#error "Owned backing requires Darwin arm64 or explicitly selected Linux arm64"
 #endif
 
 #include "owned_capacity.h"
@@ -268,6 +278,17 @@ int actql_native_owned_domain_has_child(actql_owned_capacity *lease,
     return ACTQL_OWNED_OK;
 }
 
+int actql_native_owned_domain_returned(actql_owned_capacity *lease,
+    const actql_owned_extent_view *view) {
+    if (current_capacity != NULL || view == NULL || view->domain_borrowed ||
+        actql_native_owned_domain_matches_view(lease, view,
+            (int64_t)getpid()) != ACTQL_OWNED_OK)
+        return ACTQL_OWNED_INVALID;
+    return atomic_load_explicit(&lease->domain_borrower_pid, memory_order_acquire) == 0 &&
+        lease->domain_borrow_attempted && lease->closing
+        ? ACTQL_OWNED_OK : ACTQL_OWNED_BUSY;
+}
+
 /* Existing generic placement, called under the original capacity lock. */
 static int allocate_locked(actql_owned_capacity *lease, size_t bytes,
                            size_t alignment, void **out) {
@@ -490,7 +511,9 @@ int actql_native_owned_retire(actql_owned_capacity *lease, void *allocation) {
     return status;
 }
 
+#if defined(__APPLE__)
 #include "owned_rust_heap.inc"
+#endif
 
 static int prepare_capacity_close_locked(actql_owned_capacity *lease) {
     if (lease->active_scopes != 0) {
