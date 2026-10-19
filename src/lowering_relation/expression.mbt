@@ -114,6 +114,7 @@ pub(all) enum BinaryOperator {
   In
   NotIn
   Contains
+  DateTruncate
 } derive(Eq, Debug)
 
 ///|
@@ -336,7 +337,8 @@ fn expression_tag(
     | "cast"
     | "if"
     | "case"
-    | "date_diff" => ()
+    | "date_diff"
+    | "date_trunc" => ()
     "array" | "empty_array" | "object" | "property" | "subscript" => ()
     other => expression_fail(source, ExpressionNotImplemented(other))
   }
@@ -1062,6 +1064,7 @@ fn lower_typed_expression_measured(
         "log" => Binary(Log, args[0], args[1])
         "strpos" => Binary(Strpos, args[0], args[1])
         "date_diff" => Many(DateDifference, args)
+        "date_trunc" => Binary(DateTruncate, args[0], args[1])
         "contains" => Binary(Contains, args[0], args[1])
         "starts_with" => Binary(StartsWith, args[0], args[1])
         "ends_with" => Binary(EndsWith, args[0], args[1])

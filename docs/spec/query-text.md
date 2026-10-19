@@ -308,6 +308,23 @@ within the existing bounded String/finite Number domains. BYTES and distinct
 INT64 overloads remain coverage gaps. All spellings preserve one common child,
 operand nullability, lazy demand, failure, resources and cancellation.
 
+`DATE_TRUNC(value, literal_unit)` is the SQL/Pipe spelling for fixed UTC
+truncation. The unit is an original string literal in `ms`, `s`, `m`, `h`, `d`;
+parentheses may preserve that literal but a Parameter, expression, alternate
+case or reversed argument order is not a unit overload. Lowering emits the
+unchanged Common `{date_trunc: [literal_unit, value]}` body. The legacy
+expression-text `date_trunc(unit, value)` and structured Program representation
+retain their unit-first order and complete preimages. No frontend evaluation,
+type-guessed fallback, duplicated value or synthesized temporal value is used.
+
+Timestamp truncation returns the start of the containing fixed UTC bucket,
+using the existing exact seconds/nanoseconds and canonical Value domain. Thus
+an instant 1ns before the Unix epoch truncates to the preceding millisecond,
+second, minute, hour or UTC day, rather than toward epoch zero. Date admits only
+`d` and is unchanged. NULL, original demanded failure, enclosing lazy demand,
+value/work limits and cancellation retain their Common owners; operational
+clock domains and the separate quotient law of `date_diff` do not change.
+
 `TO_STRING(value)`, `TO_BOOLEAN(value)` and `TO_TIMESTAMP(value)` each take
 exactly one operand and lower to the existing Common `cast` node with target
 `{"type":"string"}`, `{"type":"boolean"}` or `{"type":"timestamp"}` respectively.

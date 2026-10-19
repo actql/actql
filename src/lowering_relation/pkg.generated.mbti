@@ -1174,6 +1174,7 @@ pub(all) enum BinaryOperator {
   In
   NotIn
   Contains
+  DateTruncate
 } derive(Eq, @debug.Debug)
 
 pub struct BindingIssue {

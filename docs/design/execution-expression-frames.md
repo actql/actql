@@ -90,5 +90,17 @@ An instant one nanosecond before the epoch therefore has a zero public
 millisecond difference while still being earlier under exact comparison and
 internal event-clock classification. This public result does not replace the
 exact event-clock projection or broaden trusted-now, expiry, rollback or
-cleanup clocks. `date_add`, `date_trunc`, civil/offset domains and dynamic clock
+cleanup clocks. `date_add`, civil/offset domains and dynamic clock
 material remain separate existing implementation responsibilities.
+
+
+Fixed `date_trunc` uses the existing eager binary event path with the original
+unit and temporal value roots. Both are consumed once and retained through
+conversion, then released by that same event. The existing Value owner reads
+and formats bounded UTC seconds/nanoseconds, and checks the generated value
+against the original typed result contract's non-null refinement before normal
+expression output admission. Date day-only truncation preserves its value.
+Negative instants use the containing fixed UTC bucket; no binary64 timestamp,
+epoch-nanosecond Int64, Host Date or operational clock is introduced. Formatter
+workspace, contract/value records and input/output aliases overlap; logical
+root retirement is not physical cleanup acknowledgement or phase funding.

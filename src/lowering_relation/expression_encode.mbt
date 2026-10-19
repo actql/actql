@@ -38,6 +38,7 @@ fn binary_name(op : BinaryOperator) -> String {
     LTrimSet => "ltrim"
     RTrimSet => "rtrim"
     Contains => "contains"
+    DateTruncate => "date_trunc"
     StartsWith => "starts_with"
     EndsWith => "ends_with"
     Equal => "eq"
