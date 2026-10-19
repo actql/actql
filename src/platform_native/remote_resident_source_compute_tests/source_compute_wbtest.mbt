@@ -496,7 +496,9 @@ fn resident_compute_open(
       let label = match issue {
         UnsupportedGraph => "unsupported graph"
         Unavailable => "unavailable"
-        Source(Query(_)) => "Source query"
+        Source(Query(Sequences)) => "Source query sequence preparation"
+        Source(Query(MissingStage)) => "Source query missing stage"
+        Source(Query(Requirement(_))) => "Source query requirement"
         Source(Acquisition(_)) => "Source acquisition preparation"
         Source(Binding(_)) => "Source binding"
         Source(_) => "Source identity"

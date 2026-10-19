@@ -37,7 +37,8 @@ priv struct HolderEffectHostSetupScope {
   ordinary : HolderEffectHostOrdinaryLimits?
   // Origin/capacity preparation only; never a Store/read authorization.
   mut preparation_binding : (() -> Bool)?
-  // Production installs this only after entering the original read domain.
+  // Actual Site/Runtime current. An explicit mapped selection additionally
+  // requires the same entered Read domain.
   mut current_binding : (() -> Bool)?
   mut read_domain : HolderEffectHostReadDomain?
   mut read_parent : HolderEffectHostReadParent?
@@ -256,8 +257,7 @@ fn holder_effect_host_read_scope_current(
       (Some(before), Some(after)) =>
         physical_equal(before, after) &&
         holder_effect_host_read_domain_current(before)
-      // Arithmetic lifecycle fixtures install no physical read callback.
-      // Production only installs its guarded callback after domain entry.
+      // Ordinary platform mode and lifecycle fixtures have no mapped child.
       (None, None) => true
       _ => false
     })

@@ -173,8 +173,8 @@ fn load_holder_effect_host_operator(
     ignore(leave_holder_effect_host_read_scope(scope))
     stop("Effect Host original Native read installation unavailable")
   }
-  // Only the entered original domain may perform the first bounded Store
-  // revalidation. Its refusal may read that Store, but opens no Account/Provider.
+  // Revalidate the same actual Store. An explicit mapped selection additionally
+  // checks its entered domain; neither mode grants Account/Provider permission.
   if !install_holder_effect_host_store_current(
       scope,
       holder_effect_host_setup_binding(
@@ -283,8 +283,8 @@ fn prepare_holder_effect_host_operator(
   runtime_bundle_cid : String,
   preparation? : HolderEffectPreparationCapacity? = None,
 ) -> HolderEffectHostOperatorInstallation raise CommandStop {
-  // The same Site operation already funds setup. Refuse excessive retained
-  // original metadata before any physical file read; no admission grants access.
+  // Bound configured inputs before physical reads. Ordinary managed values do
+  // not require a whole-runtime certificate; explicit mapped limits still apply.
   guard holder_effect_host_read_scope_current(scope) else {
     stop("Effect Host current binding unavailable")
   }

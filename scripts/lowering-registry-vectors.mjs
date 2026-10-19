@@ -90,6 +90,8 @@ for (const [path, body] of [
     nativeSourceContracts('src/client_local_host/resident_source_query_regression_wbtest.mbt', 'source_query_original')],
   ['src/platform_native/remote_resident_host/effect_source_fixture_wbtest.mbt',
     nativeSourceContracts('src/platform_native/remote_resident_host/effect_source_fixture_wbtest.mbt', 'resident_effect_source')],
+  ['src/platform_native/remote_resident_source_compute_tests/source_fixture_wbtest.mbt',
+    nativeSourceContracts('src/platform_native/remote_resident_source_compute_tests/source_fixture_wbtest.mbt', 'resident_effect_source')],
   ['src/platform_native/remote_standard_host/retained_task_source_wbtest.mbt',
     nativeSourceContracts('src/platform_native/remote_standard_host/retained_task_source_wbtest.mbt', 'retained_source')],
   ['src/client_local_host/content_recovery_contracts_wbtest.mbt',
