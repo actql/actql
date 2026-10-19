@@ -1722,6 +1722,17 @@ acknowledgment: escaped managed aliases, heap descriptors, arena registration an
 their complete original mapping remain retained, without credit or another setup.
 No heap destruction, child close or process exit supplies their retirement ACK.
 
+A Runtime observation may borrow its same Host pair's already entered Read
+only after nominal Host/pair/read and consuming-current checks, the open consumer
+phase, and the actual backing's entered C context agree. That observation owns no
+leave: the Journal that entered the frame retains its scope and pending cleanup.
+An unentered Runtime keeps its original enter/leave path; SQLite, foreign and
+cleanup-only phases cannot select the borrowed path. Captured Runtime binding
+uses the original Journal's complete current fence and Read/SQLite query exchange
+for adopted material, selected originals and the existing Account read decision.
+The private synchronous access is not retained in the Host or Runtime binding.
+Historical operational witnesses remain unavailable through this entrance.
+
 The command Runtime retains its stronger filesystem selection through current
 checks. Its selected Darwin/APFS census uses `getattrlistbulk` with one fixed
 65536-byte buffer and the existing bounded expected-name bitmap, both allocated

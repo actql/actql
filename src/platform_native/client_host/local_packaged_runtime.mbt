@@ -93,10 +93,12 @@ fn local_runtime_read_begin(
       return Err(OriginalReadUnavailable)
     }
     if !cleanup {
-      match
-        host.require_local_host_consuming_read_current(resources, original) {
+      match host.observe_local_host_consuming_read_scope(resources, original) {
         Err(issue) => return Err(OriginalHostResources(issue))
-        Ok(_) => ()
+        // The original Journal owns this already entered frame. Runtime
+        // observations neither reenter it nor acknowledge its eventual leave.
+        Ok(@arena.ReadEntered) => return Ok(())
+        Ok(@arena.ReadUnentered) => ()
       }
     }
     let entered = if cleanup {

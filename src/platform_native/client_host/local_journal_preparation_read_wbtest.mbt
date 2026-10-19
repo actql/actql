@@ -25,6 +25,19 @@ fn preparation_read_refusal_without_pair() -> (@sqlite.Library, @crypto.Library)
     capture.configuration_in_original_read()
     is Err(OriginalResourceScopePending),
   )
+  let runtime = local_runtime_empty(None)
+  assert_true(
+    capture.bind_packaged_runtime_in_original_read(
+      runtime, "principal", "connection", "environment.json", "run.json", "runtime.json",
+    )
+    is Err(OriginalResourceScopePending),
+  )
+  assert_true(
+    capture.require_packaged_runtime_upgrade_in_original_read()
+    is Err(OriginalResourceScopePending),
+  )
+  assert_true(capture.original_host().unwrap().packaged_runtime is None)
+  runtime.close().unwrap()
   // Refusing an unrelated operational route does not rewrite the original
   // ordinary Host's current checks or turn it into a scoped original.
   assert_eq(capture.check_current().issue_family(), 0)
@@ -51,6 +64,10 @@ fn preparation_read_scope_stop() -> (@sqlite.Library, @crypto.Library) raise {
   assert_eq(capture.open().issue_family(), 3)
   assert_true(
     capture.with_original_read(fn(_host) { "must not run" })
+    is Err(OriginalResourceScopePending),
+  )
+  assert_true(
+    capture.require_packaged_runtime_upgrade_in_original_read()
     is Err(OriginalResourceScopePending),
   )
   assert_eq(
