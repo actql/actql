@@ -5,7 +5,7 @@
 // deliberately separate from the preload recipe: no eager bytecode, preload
 // ancestor, frozen-intrinsic history or earlier application work is claimed.
 const {createRequire} = require('node:module');
-const {join, dirname} = require('node:path');
+const {join, dirname, isAbsolute} = require('node:path');
 const {getHeapStatistics} = require('node:v8');
 const {isMainThread,threadId} = require('node:worker_threads');
 const {isProxy} = require('node:util').types;
@@ -24,6 +24,7 @@ const {createInitialControlInstallationOwner} = require('./initial-control-insta
 const {declareOrdinaryInitialControlPhaseEnvelope, inspectOrdinaryInitialControlPhaseEnvelope}
   = require('./initial-control-phase-envelope.cjs');
 const {declareSourceManagedPhaseEnvelope,declareSourceComputePhaseEnvelope} = require('./source-managed-phase-envelope.cjs');
+const {declareHostJournalServiceRecipe} = require('./host-journal-service-recipe.cjs');
 const fail = code => {throw Object.assign(new TypeError(code), {code});};
 const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');
 const inputUnavailable = () => fail('NodeInitialControlInputUnavailable');
@@ -40,9 +41,139 @@ let state, firstFailure, preparation, intake, closed = false;
 // factory accepting a runtime label, caller callback, capacity or trust flag.
 let sourceInstallation;
 let journalInstallation;
+let journalService;
 const journalUnavailable = () => fail('HostJournalPreparationUnavailable');
 const journalPromise = Promise, journalPromiseResolve = Promise.resolve;
 const journalPromiseThen = Promise.prototype.then;
+
+function beginJournalService(recipe, declaration, runtime) {
+  // This private call is made only by this actual selected startup, before
+  // its covered builtin/native or namespace work. Neither a returned native
+  // receiver nor a caller's DATA packet can reconstruct the original later.
+  if (journalService !== undefined || state !== undefined || firstFailure !== undefined ||
+      recipe.sharedControl !== declaration || processOriginal !== process ||
+      loadingModule !== require.cache[__filename] || delivery !== require.cache[delivery.filename]) {
+    journalUnavailable();
+  }
+  const original = journalService = {recipe, declaration, runtime, process: processOriginal,
+    module: loadingModule, delivery, phase: 'declared',
+    sqlite: undefined, native: undefined, nativeOperations: undefined, facilities: undefined,
+    os: undefined, tmpdir: undefined, temporaryDirectory: undefined,
+    namespace: undefined, originals: undefined, disposition: undefined};
+  // Bound the selected original environment before tmpdir's native/string
+  // acquisition. Retain this choice before namespace callbacks; later ambient
+  // environment changes cannot select another cold-copy/image directory.
+  const environment = field(processOriginal, 'env');
+  if (environment === null || typeof environment !== 'object' || isProxy(environment)) journalUnavailable();
+  for (const name of ['TMPDIR', 'TMP', 'TEMP']) {
+    const property = descriptor(environment, name);
+    if (property !== undefined && (!own(property, 'value') ||
+        typeof property.value !== 'string' || property.value.length > 4096)) journalUnavailable();
+  }
+  original.os = require('node:os');
+  original.tmpdir = field(original.os, 'tmpdir');
+  if (typeof original.tmpdir !== 'function' || isProxy(original.tmpdir)) journalUnavailable();
+  const temporaryDirectory = apply(original.tmpdir, original.os, []);
+  if (typeof temporaryDirectory !== 'string' || temporaryDirectory.length === 0 ||
+      temporaryDirectory.length > 4096 || !isAbsolute(temporaryDirectory) ||
+      temporaryDirectory.includes('\0')) journalUnavailable();
+  original.temporaryDirectory = temporaryDirectory;
+  return original;
+}
+function bindJournalServiceNative(original, sqlite, native, facilities) {
+  if (original !== journalService || original.phase !== 'declared' ||
+      field(sqlite, 'DatabaseSync') !== native.DatabaseSync ||
+      field(sqlite, 'StatementSync') !== native.StatementSync) journalUnavailable();
+  // The returned builtin originals complete the already admitted acquisition;
+  // this does not turn constructor success into retrospective supply.
+  original.sqlite = sqlite;
+  original.native = native;
+  original.nativeOperations = captureJournalServiceNativeOperations(native);
+  original.facilities = facilities;
+  original.phase = 'native-bound';
+}
+function captureJournalServiceNativeOperations(native) {
+  const database = field(native.DatabaseSync, 'prototype');
+  const statement = field(native.StatementSync, 'prototype');
+  if (isProxy(native.DatabaseSync) || isProxy(native.StatementSync) ||
+      database === null || typeof database !== 'object' || isProxy(database) ||
+      statement === null || typeof statement !== 'object' || isProxy(statement)) journalUnavailable();
+  const selected = [[database, 'open'], [database, 'close'], [database, 'prepare'],
+    [database, 'exec'], [statement, 'get'], [statement, 'run'], [statement, 'iterate']];
+  const operations = [];
+  for (let index = 0; index < selected.length; index++) {
+    const [receiver, name] = selected[index];
+    const property = descriptor(receiver, name);
+    if (property === undefined || !own(property, 'value') ||
+        typeof property.value !== 'function' || isProxy(property.value)) journalUnavailable();
+    operations[index] = freeze({receiver, name, property: freeze(property)});
+  }
+  return freeze({database, statement, operations: freeze(operations)});
+}
+function assertJournalServiceNativeCurrent(original) {
+  const native = original.native, held = original.nativeOperations;
+  if (field(original.sqlite, 'DatabaseSync') !== native.DatabaseSync ||
+      field(original.sqlite, 'StatementSync') !== native.StatementSync ||
+      field(native.DatabaseSync, 'prototype') !== held.database ||
+      field(native.StatementSync, 'prototype') !== held.statement) journalUnavailable();
+  for (let index = 0; index < held.operations.length; index++) {
+    const operation = held.operations[index], before = operation.property;
+    const current = descriptor(operation.receiver, operation.name);
+    if (current === undefined || current.value !== before.value ||
+        current.get !== before.get || current.set !== before.set ||
+        current.writable !== before.writable || current.configurable !== before.configurable ||
+        current.enumerable !== before.enumerable) journalUnavailable();
+  }
+}
+function bindJournalServiceNamespace(original, namespace, journal) {
+  if (original !== journalService || original.phase !== 'native-bound') journalUnavailable();
+  // Small component namespaces can omit the Journal. They retain only their
+  // original initial-control qualification; no partial Journal is issued.
+  if (Object.values(journal).some(value => typeof value !== 'function')) return undefined;
+  // Compare against the pre-namespace capture, not only the namespace's own
+  // later baseline. Constructor equality alone cannot preserve method originals.
+  assertJournalServiceNativeCurrent(original);
+  if (apply(journal.current, namespace,
+    [original.native.DatabaseSync, original.native.StatementSync, original.native.bindings]) !== undefined) {
+    journalUnavailable();
+  }
+  assertJournalServiceNativeCurrent(original);
+  const temporaryDirectory = original.temporaryDirectory;
+  original.namespace = namespace;
+  const recipe = original.recipe;
+  const disposition = freeze({serviceOriginal: original,
+    ownershipBounds: recipe.ownershipBounds,
+    ownershipDirectoryLimits: recipe.ownershipDirectoryLimits,
+    rootFormatDirectoryLimits: recipe.rootFormatDirectoryLimits,
+    directoryImageLimits: freeze({...recipe.directoryLimits, temporaryDirectory}),
+    argumentsForOriginalJournal(subject, options, inspection, temporary) {
+      const entry = journalInstallation;
+      if (this !== disposition || entry === undefined || entry.disposition !== disposition ||
+          entry.subject !== subject || entry.directoryInspection !== inspection ||
+          temporary !== temporaryDirectory) journalUnavailable();
+      assertJournalServiceCurrent(original);
+      return recipe.selectArguments(options, inspection, temporaryDirectory, entry.serviceCurrent);
+    }});
+  original.disposition = disposition;
+  original.phase = 'bound';
+  return disposition;
+}
+function assertJournalServiceCurrent(original) {
+  if (original !== journalService) journalUnavailable();
+  try {
+    if (original.phase !== 'bound' || state?.journalService !== original ||
+        state.journalDisposition !== original.disposition || state.journalNative !== original.native ||
+        state.namespace !== original.namespace || state.journalServiceRecipe !== original.recipe ||
+        state.declaration !== original.declaration || state.runtime !== original.runtime ||
+        original.process !== processOriginal || original.module !== loadingModule ||
+        original.delivery !== delivery || field(original.os, 'tmpdir') !== original.tmpdir) journalUnavailable();
+    assertPrefixCurrent();
+    assertJournalServiceNativeCurrent(original);
+  } catch (cause) {
+    original.phase = 'retiring';
+    throw cause;
+  }
+}
 
 function journalOriginal(original, held, allowClosing = false) {
   const entry = journalInstallation;
@@ -60,6 +191,7 @@ function journalCurrent(original, held) {
   try {
     assertSamePreparation(held);
     if (entry.disposition !== state.journalDisposition) journalUnavailable();
+    if (state.journalService !== undefined) assertJournalServiceCurrent(state.journalService);
     apply(state.journal.current, state.namespace,
       [state.journalNative.DatabaseSync, state.journalNative.StatementSync, state.journalNative.bindings]);
     if (entry.nativeImage !== undefined) {
@@ -218,6 +350,11 @@ function prepareJournal(held) {
   if (state.journalDisposition === undefined || journalInstallation !== undefined ||
       state.journal === undefined || Object.values(state.journal)
         .some(value => typeof value !== 'function')) journalUnavailable();
+  if (state.journalService !== undefined) {
+    assertJournalServiceCurrent(state.journalService);
+    if (state.journalService.originals !== undefined) journalUnavailable();
+    state.journalService.originals = held;
+  }
   const original = freeze(Object.create(null));
   const entry = journalInstallation = {original, originals: held,
     disposition: state.journalDisposition, subject: undefined, subjectCurrent: undefined, paths: undefined,
@@ -231,6 +368,7 @@ function prepareJournal(held) {
     cleanup: undefined, cleanupStatus: undefined, cleanupRetry: undefined,
     closing: false, closed: false, closeFlight: undefined,
     firstError: undefined, latestError: undefined};
+  entry.serviceCurrent = () => journalCurrent(original, held);
   try {
     entry.argumentsForJournal = field(entry.disposition, 'argumentsForOriginalJournal');
     if (typeof entry.argumentsForJournal !== 'function') journalUnavailable();
@@ -1082,23 +1220,31 @@ try {
   // The actual prefix owns its fixed initialization and ordinary compiler
   // disposition before loading the generated inventory or covered images.
   const declaration = declareOrdinaryInitialControlPhaseEnvelope(getHeapStatistics().heap_size_limit);
+  // Fix the separate Journal support recipe before builtin/namespace/native
+  // acquisition. Retaining this DATA is not yet its operational disposition;
+  // the complete service and the same actual originals must still be bound.
+  const journalServiceRecipe = declareHostJournalServiceRecipe(declaration);
+  const runtime = freeze({node:processOriginal.versions.node,v8:processOriginal.versions.v8,
+    openssl:processOriginal.versions.openssl,platform:processOriginal.platform,arch:processOriginal.arch,
+    eager:false,libraries:freeze({...processOriginal.versions})});
+  const originalJournalService = beginJournalService(journalServiceRecipe, declaration, runtime);
   // Retain selected builtin constructor identities before namespace callbacks.
   // This is module/control custody only: no DatabaseSync is constructed and
   // no writable Journal capacity is issued by loading this builtin.
   const sqliteOriginal = require('node:sqlite');
+  const journalFacilities = freeze({fs:require('node:fs'), crypto:require('node:crypto'),
+    promises:require('node:fs/promises')});
   const journalNative = freeze({DatabaseSync:field(sqliteOriginal,'DatabaseSync'),
     StatementSync:field(sqliteOriginal,'StatementSync'),
-    bindings:captureJournalNativeBindings(require('node:fs'),require('node:crypto'),
-      require('node:fs/promises'))});
+    bindings:captureJournalNativeBindings(journalFacilities.fs,journalFacilities.crypto,
+      journalFacilities.promises)});
   if (typeof journalNative.DatabaseSync !== 'function' ||
       typeof journalNative.StatementSync !== 'function') unavailable();
+  bindJournalServiceNative(originalJournalService, sqliteOriginal, journalNative, journalFacilities);
   // Adopt the separate joint Source recipe before namespace, managed Source
   // metadata or raw SDK acquisition. This is not a second whole VM allowance.
   const sourceEnvelope = declareSourceManagedPhaseEnvelope(declaration);
   const sourceComputeEnvelope = declareSourceComputePhaseEnvelope(sourceEnvelope);
-  const runtime = freeze({node:processOriginal.versions.node,v8:processOriginal.versions.v8,
-    openssl:processOriginal.versions.openssl,platform:processOriginal.platform,arch:processOriginal.arch,
-    eager:false,libraries:freeze({...processOriginal.versions})});
   const inventory = require('./initial-control-package-original.cjs').imageInventory;
   if (inventory === undefined) unavailable();
   const envelope = inspectOrdinaryInitialControlPhaseEnvelope(inventory,declaration,runtime);
@@ -1150,11 +1296,14 @@ try {
     journal[name] = entry !== undefined && own(entry, 'value') ? entry.value : undefined;
   }
   freeze(journal);
+  const journalDisposition = bindJournalServiceNamespace(originalJournalService, namespace, journal);
   state = {declaration,runtime,envelope,sourceEnvelope,sourceComputeEnvelope,runRequirements,
-    inventory,images,namespace,consumer,validator,reader,source,journal,journalNative,prefixIntrinsics,
+    inventory,images,namespace,consumer,validator,reader,source,journal,journalNative,journalServiceRecipe,
+    journalService:originalJournalService,journalDisposition,prefixIntrinsics,
     directoryNativeImageLoader:field(directoryNativeImage,'loadHostJournalDirectoryNative')};
 } catch(cause) {
   // Keep original FD/namespace/compile failure and its close-only duty. A
   // failed prefix never becomes a second factory or a retrying image read.
   firstFailure = freeze({cause});
+  if (journalService !== undefined) journalService.phase = 'failed';
 }

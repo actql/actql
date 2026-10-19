@@ -1064,6 +1064,45 @@ co-phase before use, including allocator controls and failed attempts; request
 arithmetic does not issue that service. Allocation failure retains the same
 original cleanup, and neither failure nor close refills process-lived terms.
 
+The ordinary prefix retains a separate fixed Journal service recipe before
+loading the SQLite builtin or Host namespace. The recipe selects the existing
+database/source extent, SQL compilation, statement/parameter/result, schema,
+WAL and operation support counters together. It retains the same shared control
+declaration by reference; it does not duplicate that declaration's heap or
+native amounts. Recipe retention alone does not issue the operational service.
+The actual prefix must still bind the complete co-phase and original facility
+before native acquisition.
+
+The private service original is retained by the selected prefix before its
+builtin acquisition, then bound to the returned actual SQLite constructor and
+method chain, original filesystem/crypto modules and checked Host namespace.
+The native operation descriptors are captured before namespace initialization;
+the namespace's later baseline cannot replace these earlier method originals.
+Its temporary-directory function and bounded original environment are captured
+before namespace callbacks. The same retained directory is used by image load
+and cold inspection. A detected service-original change retires it permanently;
+restoring a property cannot issue another service. The original process/module
+terms remain retained after the Host's native children acknowledge close.
+
+One nominal Host installation/generation may claim this original before its
+first subject/root-format operation. Its fixed argument selection captures that
+same entry's current callback. The cold native/copy phase must acknowledge its
+original physical cleanup before the writable phase; retained decoded records
+and process-lived terms remain beside both phases. Primary and observation
+connections sum within the writable phase. The service covers its selected
+stock native request/realloc/cache/control implementation and catchable refusal,
+without converting request demand into reserved capacity or promising that all
+maxima allocate together. Store payload, Result, Source, Compute and other
+business purposes still require their respective original admissions.
+
+Its argument selector preserves the Host's original update control and the
+Root's current callback, nominal directory inspector and retained temporary
+directory. Caller-provided limits, accessor/Proxy packets and caller clock
+closures cannot replace this fixed selection. The selected service uses the
+Journal's ordinary clock defaults; unselected private diagnostic clock behavior
+is unchanged. The same arguments apply the bounded own-DDL cold inspection and
+each actual writable connection, whose physical cleanup remains independent.
+
 Native wrapper and result-conversion history is separate from simultaneous
 live cardinality. The selected bounded cursor includes lookahead, terminal
 `next` and one original `return`; each may construct new protocol vectors even

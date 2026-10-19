@@ -8,6 +8,248 @@
   },
   "declarations": [
     {
+      "module": "adapters/host-node/host-journal-service-recipe.cjs",
+      "sha256": "16ba5a61638050c0f8edbe5d1b69b0168ee3d587943e773450c78f1415b03218",
+      "exports": [
+        "commonjs:declareHostJournalServiceRecipe"
+      ],
+      "operations": [
+        {
+          "name": "declareHostJournalServiceRecipe",
+          "parameters": [
+            "sharedControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "record/record",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectHostJournalServiceArguments",
+          "parameters": [
+            "options",
+            "directoryInspection",
+            "inspectionTemporaryDirectory",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./host-journal-schema-support.cjs",
+        "node:path",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "owner": "Existing Host/Journal and Resource selected service support; recipe DATA does not issue an admission",
+      "role": "physical-io",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "declareHostJournalServiceRecipe",
+            "record/record",
+            "selectHostJournalServiceArguments",
+            "unavailable/unavailable"
+          ],
+          "exports": [
+            "commonjs:declareHostJournalServiceRecipe"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "// Fixed support selection for the separately adopted Host/Journal service."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "function selectHostJournalServiceArguments(options, directoryInspection,"
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "function declareHostJournalServiceRecipe(sharedControl) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "return record({kind: 'selected-node-host-journal-service-recipe', sharedControl,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "shared: record({lifetime: 'same-selected-process-and-all-escaped-module-aliases',"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "// The actual prefix covers and owns this fixed Host-created packet before"
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "assertCurrent();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "cause.code = 'HostJournalServiceArgumentsUnavailable';"
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "if (name !== 'updateOriginalControl' && property.value !== undefined) unavailable();"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "coldBeforeWritable: true, refilledOnClose: false,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "const journal = record({maxRecords: 100000, maxInspectionEntries: 100000,"
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "const phases = record({"
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "numericalBackingClaim: false, allocationSuccessGuaranteed: false"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "excludedPurposes: freeze(['publication or Content/Result payload', 'business Source or Compute',"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.test.mjs",
+                "anchor": "fixed Journal selection retains original callbacks and cannot receive caller limits"
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.test.mjs",
+                "anchor": "current callbacks cannot replace fixed argument construction or unknown-name refusal"
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.test.mjs",
+                "anchor": "fixed service arguments construct both actual Journal connections and inspect their same saved bytes"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/host-journal-schema-support.cjs",
+      "sha256": "9677078c8c7df3c264d0b02f6f20e45bb9fa645f8c100cb5ed099a68bc27e44a",
+      "exports": [
+        "commonjs:sql"
+      ],
+      "operations": [],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "owner": "Existing Journal own-DDL cold support bytes; SQLite retains format/semantic authority",
+      "role": "physical-io",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "commonjs:sql"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/host-journal-schema-support.cjs",
+                "anchor": "// Exact native schema SQL emitted by this Journal"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/host-journal-schema-support.cjs",
+                "anchor": "const sql = Object.freeze(["
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/host-journal-schema-support.test.mjs",
+                "anchor": "assert.deepEqual(actual, [...support.sql].sort());"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/host-journal-schema-support.cjs",
+                "anchor": "module.exports = Object.freeze({sql});"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/host-journal-schema-support.cjs",
+                "anchor": "// selected SQLite implementation. A support boundary before cold native schema"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/host-journal-schema-support.test.mjs",
+                "anchor": "valid but unsupported extra schema refuses before cold native open and preserves original bytes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Its supported request/history envelope is distinct from backed numerical"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "primarySchemaLimits: record({maxSchemaBytes: 65536, maxSchemaEntries: 128,"
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "primarySchemaSqlSupport: sql,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/host-journal-schema-support.cjs",
+                "anchor": "// construction, not a SQL parser, format authority or operational issuer."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-journal-schema-support.test.mjs",
+                "anchor": "selected own-DDL bytes cover the actual primary, Source and observation schema then cold reopen"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-common/acquisition-outcome.mjs",
       "responsibilityFacet": "primary",
       "sha256": "96c9265d3ea813002f7179b42a4a5fd95c7572203e49299dc1934f49be587179",
@@ -60823,7 +61065,7 @@
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "bindings:captureJournalNativeBindings(require('node:fs'),require('node:crypto'),"
+                "anchor": "bindings:captureJournalNativeBindings(journalFacilities.fs,journalFacilities.crypto,"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
@@ -60904,7 +61146,7 @@
     },
     {
       "module": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-      "sha256": "d3a5575f358a34cbe86261083518a18d9f0cadf8738affab5e664f0ebda7ee20",
+      "sha256": "7db9a7742cc00e70bbb37f3cd07fa9b5c60c014e6d079351628bc3278340a18f",
       "exports": [
         "commonjs:admitHostJournalRootFormat",
         "commonjs:assertHostJournalInstallationCurrent",
@@ -60979,6 +61221,20 @@
           "async": false
         },
         {
+          "name": "assertJournalServiceCurrent",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertJournalServiceNativeCurrent",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "assertPrefixCurrent",
           "parameters": [],
           "async": false
@@ -61031,11 +61287,63 @@
           "async": false
         },
         {
+          "name": "beginJournalService",
+          "parameters": [
+            "recipe",
+            "declaration",
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindJournalServiceNamespace",
+          "parameters": [
+            "original",
+            "namespace",
+            "journal"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindJournalServiceNamespace/bindJournalServiceNamespace",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindJournalServiceNamespace/disposition/init:argumentsForOriginalJournal/init:argumentsForOriginalJournal",
+          "parameters": [
+            "subject",
+            "options",
+            "inspection",
+            "temporary"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindJournalServiceNative",
+          "parameters": [
+            "original",
+            "sqlite",
+            "native",
+            "facilities"
+          ],
+          "async": false
+        },
+        {
           "name": "captureJournalNativeBindings",
           "parameters": [
             "fsOriginal",
             "cryptoOriginal",
             "fsPromisesOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureJournalServiceNativeOperations",
+          "parameters": [
+            "native"
           ],
           "async": false
         },
@@ -61278,6 +61586,11 @@
         },
         {
           "name": "prepareJournal/prepareJournal#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareJournal/prepareJournal#6",
           "parameters": [],
           "async": false
         },
@@ -61682,6 +61995,7 @@
         "./host-journal-directory.mjs",
         "./host-journal-facility-fields.cjs",
         "./host-journal-native-image.cjs",
+        "./host-journal-service-recipe.cjs",
         "./initial-control-installation-owner.cjs",
         "./initial-control-package-custody.cjs",
         "./initial-control-package-original.cjs",
@@ -61692,6 +62006,7 @@
         "node:fs",
         "node:fs/promises",
         "node:module",
+        "node:os",
         "node:path",
         "node:process",
         "node:sqlite",
@@ -62050,6 +62365,118 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
                 "anchor": "ordinary Source managed Run unpublished initialization closes distinctly without a fabricated usage report"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "assertJournalServiceCurrent",
+            "assertJournalServiceNativeCurrent",
+            "beginJournalService",
+            "bindJournalServiceNamespace",
+            "bindJournalServiceNamespace/bindJournalServiceNamespace",
+            "bindJournalServiceNamespace/disposition/init:argumentsForOriginalJournal/init:argumentsForOriginalJournal",
+            "bindJournalServiceNative",
+            "captureJournalServiceNativeOperations",
+            "prepareJournal/prepareJournal#6"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function beginJournalService(recipe, declaration, runtime) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function bindJournalServiceNamespace(original, namespace, journal) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "argumentsForOriginalJournal(subject, options, inspection, temporary) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function assertJournalServiceCurrent(original) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function assertJournalServiceNativeCurrent(original) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "const original = journalService = {recipe, declaration, runtime, process: processOriginal,"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "original.nativeOperations = captureJournalServiceNativeOperations(native);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "if (state.journalService.originals !== undefined) journalUnavailable();"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.serviceCurrent = () => journalCurrent(original, held);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "original.phase = 'retiring';"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "if (journalService !== undefined) journalService.phase = 'failed';"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function closeJournal(entry) {"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "terms remain retained after the Host's native children acknowledge close."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "const phases = record({"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "connections sum within the writable phase. The service covers its selected"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "anchor": "excludedPurposes: freeze(["
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "business purposes still require their respective original admissions."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "actual ordinary prefix issues its one original Journal for the same controlled Host"
+              },
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "pre-namespace SQLite method originals cannot be replaced by the later namespace baseline"
               }
             ]
           }
