@@ -502,9 +502,15 @@ fn extract_run_policy_wire(
 fn NativeClientRunJournal::retained_policy_wire(
   self : NativeClientRunJournal,
   requested : @host.ClientRequestIdentity,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[(String?, RunPolicyRequestComparison), NativeClientRunJournalIssue] {
   let row = match
-    self.database.read("client_runs", @host.client_request_scope_cid(requested)) {
+    read_client_journal_value(
+      self.database,
+      "client_runs",
+      @host.client_request_scope_cid(requested),
+      reads,
+    ) {
     Ok(value) => value
     Err(@sqlite.NotFound) => return Err(CustodyLost)
     Err(issue) => return Err(Physical(issue))

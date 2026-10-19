@@ -44,7 +44,9 @@ fn NativeClientRunJournal::retain_publication_policy_originals(
   compiled : @host.ClientCompiledRun,
   definition : @publication.PublicationContract,
   authority : NativeLocalPolicyAuthority,
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  let reads = operations.map(value => value.reads)
   if !authority.current_for(self, request) {
     return Err(AuthorizationDenied)
   }
@@ -57,39 +59,45 @@ fn NativeClientRunJournal::retain_publication_policy_originals(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  self.transaction(() => {
-    if !authority.current_for(self, request) {
-      return Err(AuthorizationDenied)
-    }
-    let record = match self.retained(request) {
-      Ok(Some(value)) => value
-      Ok(None) => return Err(CustodyLost)
-      Err(issue) => return Err(issue)
-    }
-    if @publication.publication_contract_identity(record.definition) !=
-      @publication.publication_contract_identity(definition) {
-      return Err(ForeignRun)
-    }
-    if record.publication_policy_originals is Some(original) {
-      if original != wire {
-        return Err(CustodyLost)
-      }
+  self.transaction_with_reads(
+    () => {
       if !authority.current_for(self, request) {
         return Err(AuthorizationDenied)
       }
-      return Ok(record)
-    }
-    if record.dispatch_reserved ||
-      record.physical_start_claimed ||
-      record.cancellation_requested {
-      return Err(Fenced)
-    }
-    // Recheck after preparation/transaction reads, immediately before CAS.
-    if !authority.current_for(self, request) {
-      return Err(AuthorizationDenied)
-    }
-    self.save({ ..record, publication_policy_originals: Some(wire), })
-  })
+      let record = match self.retained(request, reads~) {
+        Ok(Some(value)) => value
+        Ok(None) => return Err(CustodyLost)
+        Err(issue) => return Err(issue)
+      }
+      if @publication.publication_contract_identity(record.definition) !=
+        @publication.publication_contract_identity(definition) {
+        return Err(ForeignRun)
+      }
+      if record.publication_policy_originals is Some(original) {
+        if original != wire {
+          return Err(CustodyLost)
+        }
+        if !authority.current_for(self, request) {
+          return Err(AuthorizationDenied)
+        }
+        return Ok(record)
+      }
+      if record.dispatch_reserved ||
+        record.physical_start_claimed ||
+        record.cancellation_requested {
+        return Err(Fenced)
+      }
+      // Recheck after preparation/transaction reads, immediately before CAS.
+      if !authority.current_for(self, request) {
+        return Err(AuthorizationDenied)
+      }
+      self.save_with_operations(
+        { ..record, publication_policy_originals: Some(wire), },
+        operations~,
+      )
+    },
+    reads~,
+  )
 }
 
 ///|
@@ -101,6 +109,7 @@ fn NativeClientRunJournal::lookup_publication_policy_original(
   request : @host.ClientRequestIdentity,
   actual_policy_cid : String,
   authority : NativeLocalPolicyAuthority,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[
   @publication.CapturedEffectDependencyBody,
   NativeClientRunJournalIssue,
@@ -108,24 +117,28 @@ fn NativeClientRunJournal::lookup_publication_policy_original(
   if !authority.current_for(self, request) {
     return Err(AuthorizationDenied)
   }
-  self.transaction(() => {
-    if !authority.current_for(self, request) {
-      return Err(AuthorizationDenied)
-    }
-    let (wire, comparison) = match self.retained_policy_wire(request) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    let body = match
-      select_run_policy_wire(wire, comparison, actual_policy_cid) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    if !authority.current_for(self, request) {
-      return Err(AuthorizationDenied)
-    }
-    Ok(body)
-  })
+  self.transaction_with_reads(
+    () => {
+      if !authority.current_for(self, request) {
+        return Err(AuthorizationDenied)
+      }
+      let (wire, comparison) = match
+        self.retained_policy_wire(request, reads~) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let body = match
+        select_run_policy_wire(wire, comparison, actual_policy_cid) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      if !authority.current_for(self, request) {
+        return Err(AuthorizationDenied)
+      }
+      Ok(body)
+    },
+    reads~,
+  )
 }
 
 ///|

@@ -327,8 +327,20 @@ fn local_submission_start(
     if source_free && run.source_free is None {
       stop("LocalValuesInstallationRequired")
     }
-    let run = match
-      host.packaged_runtime_assets_for_submission(reference, preparation, 1000) {
+    let runtime_selection = match business {
+      None =>
+        host.packaged_runtime_assets_for_submission(
+          reference, preparation, 1000,
+        )
+      Some(original) =>
+        local_business_policy_result(
+          original,
+          original.capture.runtime_submission_assets_in_original_read(
+            reference, preparation, 1000,
+          ),
+        )
+    }
+    let run = match runtime_selection {
       Ok(Accepted) => return observe_original()
       Ok(Pending(None)) => run
       Ok(Pending(Some(assets))) => {
@@ -421,7 +433,12 @@ fn local_submission_start(
       8192,
       64,
     ).unwrap_or_else(() => stop("LocalCompilationNotReady"))
-    let configuration_cid = local_host_result(host.configuration()).configuration_cid()
+    let configuration_cid = local_host_result(
+      match business {
+        None => host.configuration()
+        Some(original) => original.capture.configuration_in_original_read()
+      },
+    ).configuration_cid()
     let compiled = @run_host.issue_client_task_compiled_run(
       prepared, compilation, scope, configuration_cid, until,
     ).unwrap_or_else(() => stop("LocalCompiledRunNotReady"))
@@ -554,40 +571,48 @@ fn local_submission_start(
     }
     if source_free {
       local_retain_values_policy_originals(
-        host, settings, crypto, request, prepared, compiled, definition,
+        host,
+        settings,
+        crypto,
+        request,
+        prepared,
+        compiled,
+        definition,
+        business~,
       )
     }
     if settings.read_file is Some(file) {
       let read = local_read_installation_or_stop(
-        @utf8.decode(local_host_result(host.selected_configuration(file))) catch {
+        @utf8.decode(
+          local_host_result(
+            match business {
+              None => host.selected_configuration(file)
+              Some(original) =>
+                original.capture.selected_configuration_in_original_read(file)
+            },
+          ),
+        ) catch {
           _ => stop("InvalidLocalReadPolicyOriginal")
         },
       )
       if read.enabled() {
-        match
-          host.retain_publication_policy_originals(
-            crypto,
-            settings.principal,
-            settings.connection,
-            request,
-            prepared,
-            compiled,
-            definition,
-          ) {
-          Ok(_) => ()
-          Err(PublicationPolicy(@checked.MissingDependency)) =>
-            stop("LocalResultPolicyOriginalsMissing")
-          Err(PublicationPolicy(@checked.BudgetExceeded) | CapacityExceeded) =>
-            stop("LocalResultPolicyOriginalsLimit")
-          Err(AuthorizationDenied) => stop("LocalResultPolicyAuthorityDenied")
-          Err(Fenced) => stop("LocalResultPolicyOriginalsFenced")
-          Err(CustodyLost | PublicationPolicy(@checked.ForeignBody)) =>
-            stop("LocalResultPolicyOriginalsCustodyLost")
-          Err(_) => stop("LocalResultPolicyOriginalsUnavailable")
-        }
+        local_retain_values_policy_originals(
+          host,
+          settings,
+          crypto,
+          request,
+          prepared,
+          compiled,
+          definition,
+          business~,
+        )
       }
     }
-    let managed = local_host_result(host.managed_root_path()).unwrap_or_else(() => {
+    let managed_path = match business {
+      None => host.managed_root_path()
+      Some(original) => original.capture.managed_root_path_in_original_read()
+    }
+    let managed = local_host_result(managed_path).unwrap_or_else(() => {
       stop("LocalManagedRootRequired")
     })
     let root = @local_filesystem.open_private_root(managed).unwrap_or_else(() => {
