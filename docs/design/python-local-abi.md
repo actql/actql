@@ -2425,6 +2425,25 @@ must precede load; the interpreter input service, worker, VM and business
 admissions remain separate. A type declaration or diagnostic finite selection
 does not supply a missing ordinary operational original.
 
+The private Python component's explicit entry captures its actual interpreter
+and Python thread identities, original process/thread, and all three allocator
+callback sets. It retains one static attempted/partial carrier before MI
+mapping and registration. Its finite supplied initial-control facility has no
+caller capacity arguments; exhaustion is not permission to grow or reissue it.
+Normal current rechecks that same interpreter/thread generation, callbacks,
+loader conditions and physical managed original. Foreign/copy/fork observations
+cannot acquire or restore the original. Cleanup of the original partial attempt
+does not depend on its failed normal-current view.
+
+Only the explicitly selected Python producer variant compiles this entrance
+and fences the Runtime initializer. It derives the exact pinned MI object,
+requires a constructor-free link, and permits only its closed CPython imports
+to resolve from the selected interpreter. Other unresolved imports remain link
+errors. The source/recipe identities and original compiler inputs stay bound
+to that component. Loading or compiling this variant does not cover the
+preceding loader/prelude, complete outside-arena startup, or Worker/VM demand;
+the ordinary factory still needs those separate actual suppliers.
+
 ### Bounded private worker selections
 
 The installed worker preparation ports accept exact path text, rather than

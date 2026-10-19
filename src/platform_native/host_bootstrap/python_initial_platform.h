@@ -14,6 +14,18 @@ typedef struct actql_native_python_initial_platform_original
 typedef struct actql_native_initial_managed_original
   actql_native_initial_managed_original;
 
+/* Private selected component entry. Its fixed recipe is compiled into that
+ * component; callers cannot supply capacity, an interpreter pointer, another
+ * entry or a replacement initializer. Publish partial custody through the
+ * original zero slot before mapping/registration. These calls do not cover
+ * the preceding loader/prelude or supply a Worker/VM/business admission. */
+int actql_native_python_initial_platform_begin_into(
+  actql_native_python_initial_platform_original **slot);
+bool actql_native_python_initial_platform_current(
+  actql_native_python_initial_platform_original *original);
+int actql_native_python_initial_platform_restore(
+  actql_native_python_initial_platform_original *original);
+
 /* Read only the same actual entry's selected finite facility. The four DATA
  * slots retain the physical implementation's payload, external metadata and
  * alignment coverage, maximum request and setups=1 meanings. They do not

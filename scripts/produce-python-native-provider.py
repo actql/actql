@@ -15,6 +15,7 @@ import shlex
 import struct
 import subprocess
 import sys
+import sysconfig
 import time
 
 
@@ -51,6 +52,61 @@ FOREIGN_SOURCES = (
 # It selects neither an initial original nor a capacity/envelope by itself.
 PYTHON_INITIAL_RUNTIME_SHA256 = (
     'd9db2413e755c00ab374901211a03a9551222fe779022bc3648235747ed2bd96')
+PYTHON_INITIAL_IMPORTS = (
+    'PyGILState_Check', 'Py_GetVersion', 'PyInterpreterState_Get',
+    'PyThreadState_Get', 'PyInterpreterState_GetID', 'PyThreadState_GetID',
+    'PyMem_GetAllocator')
+
+
+def python_initial_link_flags() -> list[str]:
+    # Permit only these selected interpreter imports. Do not turn every
+    # unresolved provider symbol into an ambient dynamic-lookup fallback.
+    return ['-Wl,-no_inits'] + ['-Wl,-U,_' + name for name in PYTHON_INITIAL_IMPORTS]
+
+
+def prepare_python_initial_component(source: str, moon_home: Path,
+                                     destination: Path) -> dict[str, object]:
+    """Derive the explicit initial-control link recipe, without loading it.
+
+    This does not issue a pre-load platform original or fill the remaining
+    outside-arena/Worker envelope. Ordinary callers cannot select it as funding.
+    """
+    if (sys.implementation.name != 'cpython' or sys.version_info[:3] != (3, 12, 12)
+            or sys.abiflags or len(source) != 40
+            or any(value not in '0123456789abcdef' for value in source)):
+        raise ValueError('Selected Python initial component interpreter/source changed')
+    owner = ROOT / 'src/platform_native/host_bootstrap'
+    runtime = moon_home / 'lib/libmoonbitrun.o'
+    derived = destination / 'python-initial-runtime.o'
+    derived.write_bytes(python_initial_runtime_bytes(runtime.read_bytes()))
+    include = Path(sysconfig.get_path('include'))
+    recipe = {'purpose': 'python-native-initial-control', 'source': source,
+              'interpreter': {'version': sys.version,
+                              'executable': original(Path(sys.executable).resolve(strict=True)),
+                              'cache_tag': sys.implementation.cache_tag},
+              'headers': [original(include / name) for name in ('Python.h', 'pyconfig.h')],
+              'entry_inputs': [original(owner / name) for name in (
+                  'python_initial_platform.c', 'python_initial_platform.h',
+                  'initial_managed.inc', 'initial_managed_mimalloc217.h',
+                  'initial_loader_environment.h')],
+              'runtime_original': original(runtime), 'runtime_derived': original(derived),
+              'link_flags': python_initial_link_flags(),
+              'complete_outside_initial_supply': False, 'worker_supply': False}
+    raw = json.dumps(recipe, sort_keys=True, separators=(',', ':')).encode()
+    (destination / 'python-initial-component-recipe.json').write_bytes(raw)
+    return {'recipe': recipe, 'sha256': hashlib.sha256(raw).hexdigest(),
+            'include': str(include), 'runtime': str(derived)}
+
+
+def require_python_initial_component_current(initial: dict[str, object]) -> None:
+    recipe = initial['recipe']
+    assert isinstance(recipe, dict)
+    records = [*recipe['headers'], *recipe['entry_inputs'],
+               recipe['interpreter']['executable'], recipe['runtime_original'],
+               recipe['runtime_derived']]
+    for item in records:
+        if original(Path(item['path'])) != item:
+            raise ValueError('Original Python initial component input changed')
 
 
 def python_initial_runtime_bytes(raw: bytes) -> bytes:
@@ -221,8 +277,9 @@ def prepare_allocator_source(moon_home: Path, destination: Path,
         'installed_supplier': False, 'normal_profile': None}
 
 def build(source: str, moon_home: Path, clang: Path, sdk: Path,
-          destination: Path, seconds: int, *, scoped_read: bool = False) -> dict[str, object]:
-    if type(scoped_read) is not bool:
+          destination: Path, seconds: int, *, scoped_read: bool = False,
+          python_initial_control: bool = False) -> dict[str, object]:
+    if type(scoped_read) is not bool or type(python_initial_control) is not bool:
         raise ValueError('Explicit Native allocator source selection is required')
     deadline = time.monotonic() + seconds
     environment = {**os.environ, 'MOON_HOME': str(moon_home), 'MOONBIT_NEW_NATIVE': '0',
@@ -256,6 +313,8 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     if not sdk.is_dir() or sdk.is_symlink():
         raise ValueError('Selected Native provider SDK must be an original directory')
     destination.mkdir(parents=True, exist_ok=False)
+    initial = (prepare_python_initial_component(source, moon_home, destination)
+               if python_initial_control else None)
     # Maintainer-only, explicit derived build. This never modifies the selected
     # toolchain/default source or supplies a trusted installed capacity grant.
     allocator, allocator_record = prepare_allocator_source(moon_home, destination, scoped_read)
@@ -318,6 +377,9 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
                                'sqlite_database_shim', 'original_read_shim', 'packaged_runtime_shim',
                                'packaged_product_shim', 'runtime_initialization_shim',
                                'local_host_resources_shim', 'local_adoption_shim', 'read_crypto_shim')]
+    if initial is not None:
+        c_sources.append((ROOT / 'src/platform_native/host_bootstrap/python_initial_platform.c',
+                          'python_initial_platform'))
     runtime_source = allocator if allocator is not None else moon_home / 'lib/runtime'
     c_sources += [(runtime_source / (name + '.c'), 'runtime-' + name)
                   for name in ('backtrace', 'env', 'runtime', 'sync_io', 'utf')]
@@ -330,6 +392,12 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
                   '-I' + str(ROOT / ENTRY),
                   '-fwrapv', '-fno-strict-aliasing', '-fPIC', '-g', '-O0',
                   '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC']
+        if initial is not None and name in ('python_initial_platform', 'runtime_initialization_shim'):
+            common += ['-DACTQL_PYTHON_INITIAL_OPERATIONAL_ENTRY']
+        if initial is not None and name == 'python_initial_platform':
+            common += ['-I' + str(initial['include']),
+                       '-DACTQL_PYTHON_INITIAL_SOURCE_SHA="' + source + '"',
+                       '-DACTQL_PYTHON_INITIAL_RECIPE_SHA="' + str(initial['sha256']) + '"']
         if allocator is not None:
             # The exact derived header precedes original supplemental headers.
             common += ['-I' + str(moon_home / 'include'), '-DACTQL_SCOPED_READ_ALLOCATOR']
@@ -364,7 +432,10 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     library = destination / LIBRARY
     link = [str(clang), '-isysroot', str(sdk), '-mmacosx-version-min=11.0',
             '-dynamiclib', '-Wl,-install_name,@rpath/' + LIBRARY, '-o', str(library),
+            str(initial['runtime']) if initial is not None else
             str(moon_home / 'lib/libmoonbitrun.o')] + [str(path) for path in objects]
+    if initial is not None:
+        link += python_initial_link_flags()
     link += ['-lm', str(moon_home / 'lib/libbacktrace.a')]
     (destination / 'link-command.json').write_text(json.dumps(link, indent=2) + '\n')
     run(link)
@@ -375,6 +446,8 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     module.library_target(library)
+    if initial is not None:
+        require_python_initial_component_current(initial)
     for item in inputs:
         if original(Path(str(item['path']))) != item:
             raise ValueError('Original Native provider input changed during build')
@@ -389,6 +462,8 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
               'initializer_calls': 0, 'Engine': 0, 'VM': 0, 'worker': 0,
               'wheel': 0, 'public_e2e': 0, 'normal_numeric_profile': None,
               'allocator_source': allocator_record}
+    if initial is not None:
+        record['python_initial_control'] = initial
     (destination / 'provider-build.json').write_text(json.dumps(record, indent=2) + '\n')
     return record
 
@@ -403,6 +478,9 @@ if __name__ == '__main__':
     parser.add_argument('--seconds', type=int, default=300)
     parser.add_argument('--scoped-read', action='store_true',
         help='Build exact copied scoped allocator sources; no default/toolchain/profile adoption')
+    parser.add_argument('--python-initial-control', action='store_true',
+        help='Explicit derived Python initial-control entry; no ordinary supplier/funding adoption')
     args = parser.parse_args()
     print(json.dumps(build(args.source, args.moon_home, args.clang, args.sdk,
-                           args.destination, args.seconds, scoped_read=args.scoped_read), sort_keys=True))
+                           args.destination, args.seconds, scoped_read=args.scoped_read,
+                           python_initial_control=args.python_initial_control), sort_keys=True))
