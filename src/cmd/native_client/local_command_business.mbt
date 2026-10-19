@@ -16,6 +16,10 @@ priv struct LocalCommandBusinessOriginal {
   mut domain : @initial_arena.InstalledArenaDomain?
   mut execution : @initial_arena.InstalledArenaRetainedExecution?
   mut operation : @local_host.NativeLocalStoreOperation?
+  mut values_work : @local_host.NativeClientValuesWork?
+  mut values_failure : @local_host.NativeClientValuesWorkFailure?
+  mut store : @local_store.Store?
+  mut store_failure : @local_store.NativePublicationStoreOpenFailure?
   mut active : Bool
 }
 

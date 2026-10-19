@@ -32,6 +32,8 @@ priv enum LocalCommandPreparationIssue {
   CommandRead(@initial_arena.InstalledArenaOriginalReadIssue)
   CommandRetainedExecution(@initial_arena.InstalledArenaRetainedExecutionIssue)
   CommandStoreOperation(@local_host.NativeLocalStoreOperationIssue)
+  CommandBusinessChildren
+  CommandBusinessStore(@local_store.NativePublicationStoreIssue)
   CommandSqlite(@initial_arena.InstalledArenaSqliteIssue)
   CommandPair(@initial_arena.InstalledArenaLocalHostResourcesIssue)
   CommandRuntime(@local_host.NativeLocalPackagedRuntimeIssue)
@@ -164,6 +166,10 @@ fn prepare_local_command_preparation_original(
       domain: None,
       execution: None,
       operation: None,
+      values_work: None,
+      values_failure: None,
+      store: None,
+      store_failure: None,
       active: false,
     }),
     backing: None,
@@ -692,6 +698,8 @@ fn LocalCommandPreparationOriginal::close_checked(
     if self.journal_read_open {
       return Err(CommandUnavailable)
     }
+    self.cleanup_stage = "business-children"
+    command_preparation_value(self.close_business_children())
     self.cleanup_stage = "business-operation"
     command_preparation_value(self.close_business_operation())
     if self.journal is Some(journal) {
