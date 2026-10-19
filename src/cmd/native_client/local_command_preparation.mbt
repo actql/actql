@@ -31,6 +31,7 @@ priv enum LocalCommandPreparationIssue {
   CommandDomain(@initial_bootstrap.NativeBackedExecutionIssue)
   CommandRead(@initial_arena.InstalledArenaOriginalReadIssue)
   CommandRetainedExecution(@initial_arena.InstalledArenaRetainedExecutionIssue)
+  CommandStoreOperation(@local_host.NativeLocalStoreOperationIssue)
   CommandSqlite(@initial_arena.InstalledArenaSqliteIssue)
   CommandPair(@initial_arena.InstalledArenaLocalHostResourcesIssue)
   CommandRuntime(@local_host.NativeLocalPackagedRuntimeIssue)
@@ -162,6 +163,7 @@ fn prepare_local_command_preparation_original(
       profile: candidate,
       domain: None,
       execution: None,
+      operation: None,
       active: false,
     }),
     backing: None,
@@ -690,6 +692,8 @@ fn LocalCommandPreparationOriginal::close_checked(
     if self.journal_read_open {
       return Err(CommandUnavailable)
     }
+    self.cleanup_stage = "business-operation"
+    command_preparation_value(self.close_business_operation())
     if self.journal is Some(journal) {
       command_preparation_value(
         journal
@@ -1220,10 +1224,12 @@ fn LocalCommandPreparationOriginal::open_adopted_journal(
       self.retain_primary(CommandJournal(issue))
       return Err(CommandJournal(issue))
     }
-    match journal.original_host() {
-      Some(original) => Ok(original)
-      None => Err(CommandUnavailable)
+    let original = match journal.original_host() {
+      Some(original) => original
+      None => return Err(CommandUnavailable)
     }
+    command_preparation_value(self.prepare_business_operation())
+    Ok(original)
   } catch {
     LocalCommandPreparationStop(issue) => {
       self.retain_primary(issue)

@@ -15,6 +15,7 @@ priv struct LocalCommandBusinessOriginal {
   profile : LocalCommandBusinessProfile
   mut domain : @initial_arena.InstalledArenaDomain?
   mut execution : @initial_arena.InstalledArenaRetainedExecution?
+  mut operation : @local_host.NativeLocalStoreOperation?
   mut active : Bool
 }
 
@@ -233,4 +234,61 @@ fn LocalCommandPreparationOriginal::require_business_program(
   .require_domain_retained_execution_current(execution)
   .map_err(issue => CommandRetainedExecution(issue))
   .map(_ => needed)
+}
+
+///|
+// Construct this outer-control receiver only after the original Journal and
+// Runtime exist, before any Store/Work call or business entry. Retain its
+// partial activation before attempting the current/Host/pair check.
+fn LocalCommandPreparationOriginal::prepare_business_operation(
+  self : LocalCommandPreparationOriginal,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.business is Some(business) else { return Ok(()) }
+  guard self.host is Some(host) &&
+    self.pair is Some(pair) &&
+    self.journal is Some(capture) &&
+    self.runtime is Some(runtime) &&
+    business.execution is Some(execution) &&
+    business.operation is None &&
+    !self.phase_open &&
+    !self.journal_read_open &&
+    !self.closing &&
+    !self.closed else {
+    return Err(CommandUnavailable)
+  }
+  let library = match host.borrow_local_host_sqlite(pair) {
+    Ok(value) => value
+    Err(issue) => return Err(CommandPair(issue))
+  }
+  let operation = match
+    @local_host.prepare_native_local_store_operation(
+      capture, execution, runtime, library,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(CommandStoreOperation(issue))
+  }
+  business.operation = Some(operation)
+  operation.activate().map_err(issue => CommandStoreOperation(issue))
+}
+
+///|
+// Metadata follows its actual child Store/DB and scope acknowledgements. A
+// false pending observation alone cannot close a Database or Library; their
+// existing original bridge refuses metadata retirement while they remain live.
+fn LocalCommandPreparationOriginal::close_business_operation(
+  self : LocalCommandPreparationOriginal,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.business is Some(business) else { return Ok(()) }
+  if business.operation is Some(operation) {
+    match operation.pending_scope() {
+      Err(issue) => return Err(CommandStoreOperation(issue))
+      Ok(true) => return Err(CommandUnavailable)
+      Ok(false) => ()
+    }
+    match operation.close_checked() {
+      Err(issue) => return Err(CommandStoreOperation(issue))
+      Ok(_) => business.operation = None
+    }
+  }
+  Ok(())
 }
