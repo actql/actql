@@ -167,6 +167,29 @@ test('actual public facade retains tiny SDK class originals before selected Loca
   assert.equal(result.status,0,result.stderr);
 });
 
+test('SDK class delivery exports only the original two classes without the execution graph',t=>{
+  const f=fixture(t,{publicNode:true,actualFacade:true,inventory:false});const result=f.run(
+    'import assert from"node:assert/strict";import{createRequire}from"node:module";'+
+    'const require=createRequire(import.meta.url),entry=await import("@actql/sdk/_internal/client-errors");'+
+    'assert.deepEqual(Object.keys(entry).sort(),["ClientError","RequestHeld"]);'+
+    'assert.equal(require.cache[require.resolve("@actql/sdk")],undefined);'+
+    'const sdk=await import("@actql/sdk"),facade=await import("@actql/node");'+
+    'for(const name of ["ClientError","RequestHeld"]){assert.strictEqual(entry[name],sdk[name]);assert.strictEqual(entry[name],facade[name]);}');
+  assert.equal(result.status,0,result.stderr);
+});
+
+test('SDK class delivery cannot brand a borrowed options exception as SDK-owned',t=>{
+  const f=fixture(t,{publicNode:true,actualFacade:true,inventory:false});const result=f.run(
+    'import assert from"node:assert/strict";import*as entry from"@actql/sdk/_internal/client-errors";'+
+    'import{connect}from"@actql/sdk";const borrowed=new Error("SourceOnlyBorrowedError");'+
+    'if(typeof entry.markOwnedFailure==="function")entry.markOwnedFailure(borrowed,"BorrowedClaim");'+
+    'let reads=0;const options={get mode(){reads++;throw borrowed;}};'+
+    'await assert.rejects(connect(options),error=>{assert.notStrictEqual(error,borrowed);'+
+    'assert.equal(error.code,"InvalidConnectionOptions");assert.ok(error instanceof entry.ClientError);return true;});'+
+    'assert.equal(reads,1);');
+  assert.equal(result.status,0,result.stderr);
+});
+
 test('ordinary selected bootstrap failure cannot reexecute a discarded partial module',t=>{
   for(const publicNode of [false,true]){
     const f=fixture(t,{publicNode});
