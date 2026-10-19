@@ -75,6 +75,43 @@ function bitvecTree(size) {
     depth:1n + child.depth});
 }
 
+function includedNativeComponents(value) {
+  const a = value.allocationBounds, c = value.cache, w = value.wal;
+  const s = value.savepoint, work = value.workspaces;
+  const u = hostJournalNativeUsableUpper;
+  // Compose distinct original allocations. In particular the retained hash
+  // is already the new growth member, and the embedded Pager wrappers are
+  // not three more allocations. This remains one selected page geometry.
+  const cache = checked(c.peakKeys * a.cachePage.heapUsableUpper +
+    a.cacheBulk.heapUsableUpper + a.cacheControl.heapUsableUpper +
+    (a.cacheHashGrowth.previousMaximum?.heapUsableUpper ?? 0n) +
+    a.cacheHashGrowth.nextMaximum.heapUsableUpper);
+  const wal = checked(w.perConnectionPrivateIndexPages * a.privateWalIndexPage.heapUsableUpper +
+    u(w.perWalVectorRequest) + u(w.sharedVectorRequest) +
+    u(w.checkpointIteratorRequest) + u(w.recoveryFrameAndPrivateHashRequest) +
+    u(w.unreliableReadFrameRequest));
+  const savepoint = checked(s.treeCount * s.treeNodes * a.bitvecNode.heapUsableUpper +
+    a.savedPointArrayGrowth.previousMaximum.heapUsableUpper +
+    a.savedPointArrayGrowth.nextMaximum.heapUsableUpper +
+    s.rehashDepth * a.bitvecRehash.heapUsableUpper +
+    s.subjournalChunks * a.subjournalChunk.heapUsableUpper);
+  const workspaces = checked(2n * a.pagerTemporary.heapUsableUpper +
+    a.btreeTemporary.heapUsableUpper + a.balanceScratch.heapUsableUpper +
+    2n * u(work.btreeTemporaryRequest));
+  const pagerControls = checked(a.combinedPager.heapUsableUpper + a.temporaryPath.heapUsableUpper +
+    a.btree.heapUsableUpper + a.sharedBtree.heapUsableUpper + a.walAndFile.heapUsableUpper);
+  return freeze({qualification:'included-stock-usable-subtotal-only', completeJournal:false,
+    cache, wal, savepoint, workspaces, pagerControls,
+    heapUsableUpper:checked(cache + wal + savepoint + workspaces + pagerControls),
+    // Same-inode WAL mappings are not heap malloc blocks and are not another
+    // per-connection credit. Root must compose each real connection/copy and
+    // the shared mapping once, together with all remaining facility terms.
+    sameInodeWalMappingBytes:w.sameInodeMappingBytes,
+    subjournalUsesCumulativeAttemptUpper:true,
+    coversStockRegionAndProcessControls:false,
+    returnsCreditOnNativeObjectFree:false});
+}
+
 function hostJournalNativeStructureRequests(input) {
   // Only fixed already-covered recipe DATA is projected here. This neither
   // enumerates/adopts a raw public packet nor changes its unknown-field or
@@ -142,7 +179,7 @@ function hostJournalNativeStructureRequests(input) {
   const plannerLoopUsable = hostJournalNativeUsableUpper(208n);
   const plannerTermsUsable = hostJournalNativeUsableUpper(256n);
 
-  return freeze({
+  const value = freeze({
     qualification:'partial-native-request-vectors', completePhase:false,
     replenishedOnClose:false,
     cache:freeze({admittedPages:N, peakKeys:N + 1n,
@@ -314,6 +351,7 @@ function hostJournalNativeStructureRequests(input) {
       btree:allocation(128n), sharedBtree:allocation(240n), walAndFile:allocation(848n),
     }),
   });
+  return freeze({...value, includedNativeComponents:includedNativeComponents(value)});
 }
 
 module.exports = freeze({hostJournalNativeStructureRequests, hostJournalNativeUsableUpper});

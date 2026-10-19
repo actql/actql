@@ -274,3 +274,26 @@ test('cursor page aliases and aggregate ownership do not multiply native origina
   assert.equal(a.retainedMainAndChildArraysAlreadyCounted,true);
   assert.equal(calculate(input()).completePhase,false);
 });
+
+test('included native sum keeps old/new originals without adding the retained hash twice', () => {
+  const n = calculate(input()).includedNativeComponents;
+  assert.equal(n.cache,5469375n);
+  assert.equal(n.wal,156703n);
+  assert.equal(n.savepoint,4963500558336n);
+  assert.equal(n.workspaces,51200n);
+  assert.equal(n.pagerControls,6912n);
+  assert.equal(n.heapUsableUpper,4963506242526n);
+  assert.equal(n.sameInodeWalMappingBytes,32768n);
+});
+
+test('a native subset is not a whole facility or allocator-release acknowledgement', () => {
+  const n = calculate(input()).includedNativeComponents;
+  assert.equal(n.completeJournal,false);
+  assert.equal(n.coversStockRegionAndProcessControls,false);
+  assert.equal(n.subjournalUsesCumulativeAttemptUpper,true);
+  assert.equal(n.returnsCreditOnNativeObjectFree,false);
+  assert(Object.isFrozen(n));
+  assert.equal(calculate(input({databaseBytes:512n,pageBytes:512n})).cache.hashSlots,256n);
+  assert.equal(calculate(input({databaseBytes:512n,pageBytes:512n}))
+    .includedNativeComponents.cache,20416n);
+});
