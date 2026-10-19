@@ -511,25 +511,32 @@ fn NativeClientRunJournal::lookup_submitted_intent_with_operations(
     Ok(_) => ()
     Err(issue) => return Err(Epoch(issue))
   }
-  self.transaction_with_reads(() => {
-    match
-      self.verify_submission_locked(
-        authority, reference, authority_scope_cid, current_authorization, reads~,
-      ) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-    match self.submitted_intent_custody(reads~) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-    self
-    .retained_submission(reference, reads~)
-    .map(record => {
-      match record {
-        Some(value) => Submitted(value)
-        None => UnresolvedSubmissionHistory
+  self.transaction_with_reads(
+    () => {
+      match
+        self.verify_submission_locked(
+          authority,
+          reference,
+          authority_scope_cid,
+          current_authorization,
+          reads~,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
       }
-    })
-  }, reads~)
+      match self.submitted_intent_custody(reads~) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      self
+      .retained_submission(reference, reads~)
+      .map(record => {
+        match record {
+          Some(value) => Submitted(value)
+          None => UnresolvedSubmissionHistory
+        }
+      })
+    },
+    reads~,
+  )
 }

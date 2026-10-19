@@ -7,41 +7,62 @@ fn NativeLocalRunPolicyBinding::current_in_original_read(
   request : @host.ClientRequestIdentity?,
   new_submission : Bool,
 ) -> Bool {
-  capture.with_current_adoption_material_in_original_read((host, material, _operations) => {
+  capture.with_current_adoption_material_in_original_read((
+    host,
+    material,
+    _operations,
+  ) => {
     if !physical_equal(host, self.host) ||
       !physical_equal(host.journal, self.host.journal) ||
       !(self.origin is Selected) ||
-      (request is Some(original) &&
-        @host.client_request_authority_scope_cid(original) != self.scope) {
+      (
+        request is Some(original) &&
+        @host.client_request_authority_scope_cid(original) != self.scope
+      ) {
       return Err(CustodyLost)
     }
-    let body = match @host.client_local_adopted_authority_scope_body(
-      material, host.database, self.principal, self.connection,
-    ) {
+    let body = match
+      @host.client_local_adopted_authority_scope_body(
+        material,
+        host.database,
+        self.principal,
+        self.connection,
+      ) {
       Ok(value) => value
       Err(issue) => return Err(local_current_material_issue(issue))
     }
-    if !(local_adoption_digest(capture.crypto, body) is Ok(scope) && scope == self.scope) {
+    if !(local_adoption_digest(capture.crypto, body) is Ok(scope) &&
+      scope == self.scope) {
       return Err(CustodyLost)
     }
     for file in self.files {
-      if !(capture.selected_configuration_in_original_read(file.name) is Ok(body) && body == file.body) {
+      if !(capture.selected_configuration_in_original_read(file.name)
+        is Ok(body) &&
+        body == file.body) {
         return Err(CustodyLost)
       }
     }
-    let operations = if new_submission { ["submit", "publish", "read"] } else { ["read"] }
+    let operations = if new_submission {
+      ["submit", "publish", "read"]
+    } else {
+      ["read"]
+    }
     for operation in operations {
-      match @host.client_local_adopted_account_outcome(material, host.database, {
-        principal: self.principal, connection: self.connection,
-        resource: "run", operation,
-      }) {
+      match
+        @host.client_local_adopted_account_outcome(material, host.database, {
+          principal: self.principal,
+          connection: self.connection,
+          resource: "run",
+          operation,
+        }) {
         Ok(@authorization.Allow(_)) => ()
         Ok(_) => return Err(Journal(AuthorizationDenied))
         Err(issue) => return Err(local_current_material_issue(issue))
       }
     }
     capture.check_current_in_original_read()
-  }) is Ok(_)
+  })
+  is Ok(_)
 }
 
 ///|
@@ -71,19 +92,33 @@ pub fn NativeLocalJournalCapture::bind_run_policy_profile_in_original_read(
     Err(_) => return Err(CustodyLost)
   }
   guard selection.expiry is AcceptedRunProfile(roles) &&
-    roles.run_file == run_file && selection.principal == principal &&
-    selection.connection == connection else { return Err(CustodyLost) }
-  let profile = match self.selected_configuration_in_original_read(profile_file) {
+    roles.run_file == run_file &&
+    selection.principal == principal &&
+    selection.connection == connection else {
+    return Err(CustodyLost)
+  }
+  let profile = match
+    self.selected_configuration_in_original_read(profile_file) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if !(local_adoption_digest(self.crypto, profile) is Ok(cid) && cid == roles.profile_cid) {
+  if !(local_adoption_digest(self.crypto, profile) is Ok(cid) &&
+    cid == roles.profile_cid) {
     return Err(CustodyLost)
   }
-  host.bind_run_policy_profile_with_capture(
-    self.crypto, principal, connection, profile_file, read_file,
-    roles.run_file, roles.retention_file, roles.store_file, capture=Some(self),
-  ).map_err(issue => Journal(issue))
+  host
+  .bind_run_policy_profile_with_capture(
+    self.crypto,
+    principal,
+    connection,
+    profile_file,
+    read_file,
+    roles.run_file,
+    roles.retention_file,
+    roles.store_file,
+    capture=Some(self),
+  )
+  .map_err(issue => Journal(issue))
 }
 
 ///|
@@ -98,14 +133,26 @@ pub fn NativeLocalJournalCapture::prepare_run_policy_in_original_read(
   observed_at : String,
   now : Double,
 ) -> Result[NativeLocalRunPolicyPreparation, NativeLocalAdoptionIssue] {
-  self.with_current_adoption_material_in_original_read((host, _material, operations) => {
-    if !physical_equal(host, binding.host) { return Err(CustodyLost) }
-    binding.prepare_submission_policy_with_operations(
-      reference, preparation, request, observed_at, now,
+  self.with_current_adoption_material_in_original_read((
+    host,
+    _material,
+    operations,
+  ) => {
+    if !physical_equal(host, binding.host) {
+      return Err(CustodyLost)
+    }
+    binding
+    .prepare_submission_policy_with_operations(
+      reference,
+      preparation,
+      request,
+      observed_at,
+      now,
       () => binding.current_in_original_read(self, Some(request), false),
       () => binding.current_in_original_read(self, Some(request), true),
       operations=Some(operations),
-    ).map_err(issue => Journal(issue))
+    )
+    .map_err(issue => Journal(issue))
   })
 }
 
@@ -123,12 +170,26 @@ pub fn NativeLocalJournalCapture::accept_policy_run_in_original_read(
   original : @host.ClientLocalRunPolicyOriginal,
   now : Double,
 ) -> Result[NativeClientSubmittedIntentRecord, NativeLocalAdoptionIssue] {
-  self.with_current_adoption_material_in_original_read((host, _material, operations) => {
-    if !physical_equal(host, binding.host) { return Err(CustodyLost) }
-    binding.accept_submitted_run_with_operations(
-      reference, preparation, request, compiled, definition, original, now,
+  self.with_current_adoption_material_in_original_read((
+    host,
+    _material,
+    operations,
+  ) => {
+    if !physical_equal(host, binding.host) {
+      return Err(CustodyLost)
+    }
+    binding
+    .accept_submitted_run_with_operations(
+      reference,
+      preparation,
+      request,
+      compiled,
+      definition,
+      original,
+      now,
       () => binding.current_in_original_read(self, Some(request), true),
       operations=Some(operations),
-    ).map_err(issue => Journal(issue))
+    )
+    .map_err(issue => Journal(issue))
   })
 }
