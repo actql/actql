@@ -26928,7 +26928,7 @@
     {
       "module": "adapters/host-node/host-root-format.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c08755fccd9e3b301f4b99a882a068c5213f2502d5263ea05bd97ee5ed14528b",
+      "sha256": "74dc6bae58c65c2dd18db68dffde91da02620a5572b2ee9db12c998ca9431ec4",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -26939,7 +26939,8 @@
           "name": "admitHostRootFormat",
           "parameters": [
             "root",
-            "openDirectory"
+            "openDirectory",
+            "directoryInspection"
           ],
           "async": true
         },
@@ -26990,7 +26991,8 @@
           "name": "firstEntry",
           "parameters": [
             "root",
-            "openDirectory"
+            "openDirectory",
+            "directoryInspection"
           ],
           "async": true
         },
@@ -27040,7 +27042,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/host-root-format.mjs",
-                "anchor": "export async function admitHostRootFormat(root, {openDirectory = opendir} = {}) {"
+                "anchor": "export async function admitHostRootFormat(root, {openDirectory = opendir, directoryInspection} = {}) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -27058,7 +27060,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/host-root-format.mjs",
-                "anchor": "export async function admitHostRootFormat(root, {openDirectory = opendir} = {}) {"
+                "anchor": "export async function admitHostRootFormat(root, {openDirectory = opendir, directoryInspection} = {}) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -27071,12 +27073,16 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/host-root-format.mjs",
+                "anchor": "if (directoryInspection !== undefined) assertHostJournalDirectoryInspector(directoryInspection, 1);"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/host-root-format.mjs",
-                "anchor": "export async function admitHostRootFormat(root, {openDirectory = opendir} = {}) {"
+                "anchor": "export async function admitHostRootFormat(root, {openDirectory = opendir, directoryInspection} = {}) {"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -27089,6 +27095,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/host-root-format.mjs",
+                "anchor": "return inspectHostJournalDirectoryFirstEntry(directoryInspection, root);"
               }
             ],
             "ownership": [
@@ -27183,6 +27193,10 @@
               {
                 "path": "adapters/host-node/host-root-format.mjs",
                 "anchor": "// Only emptiness is needed. Do not materialize an arbitrary directory and"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Selected Host root-format admission consumes a one-entry view"
               }
             ],
             "extension": [
@@ -27219,6 +27233,10 @@
               {
                 "path": "adapters/host-node/host-root-format.test.mjs",
                 "anchor": "a pending real Dir close refuses admission and retries only its captured original receiver"
+              },
+              {
+                "path": "adapters/host-node/host-root-format-native.test.mjs",
+                "anchor": "selected emptiness does not decode unrelated name bytes before marker precedence"
               }
             ]
           }
@@ -27226,6 +27244,7 @@
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
+        "./host-journal-directory.mjs",
         "./source-profile-json.mjs",
         "node:fs",
         "node:fs/promises",
@@ -60674,7 +60693,7 @@
     {
       "module": "adapters/host-node/host-journal-facility-fields.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "b6ef648fe9202c8991337231c48ed5d2404924ab12c56c84b050b1bad3cff4c7",
+      "sha256": "ec93c1de0c8c941c11e26e6709ac772614eda63e9bdabda870affb6d56091557",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -60683,7 +60702,9 @@
         "commonjs:directory",
         "commonjs:fs",
         "commonjs:hash",
-        "commonjs:hmac"
+        "commonjs:hmac",
+        "commonjs:promises",
+        "commonjs:realpath"
       ],
       "operations": [],
       "imports": [],
@@ -60700,7 +60721,9 @@
             "commonjs:directory",
             "commonjs:fs",
             "commonjs:hash",
-            "commonjs:hmac"
+            "commonjs:hmac",
+            "commonjs:promises",
+            "commonjs:realpath"
           ],
           "attributes": {
             "responsibility": [
@@ -60718,7 +60741,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "function captureJournalNativeBindings(fsOriginal, cryptoOriginal) {"
+                "anchor": "function captureJournalNativeBindings(fsOriginal, cryptoOriginal, fsPromisesOriginal) {"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -60732,7 +60755,7 @@
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "bindings:captureJournalNativeBindings(require('node:fs'),require('node:crypto'))});"
+                "anchor": "bindings:captureJournalNativeBindings(require('node:fs'),require('node:crypto'),"
               }
             ],
             "synchronization": [
@@ -60783,6 +60806,10 @@
                 "anchor": "foreign filesystem receipt accessors and proxies are refused without evaluating them"
               },
               {
+                "path": "adapters/host-node/client-request-journal-facility-current.test.mjs",
+                "anchor": "selected async filesystem replacement is rejected and restoration does not revive it"
+              },
+              {
                 "path": "adapters/host-node/host-journal-root-custody.test.mjs",
                 "anchor": "Root forwards earlier native bindings and rejects a foreign filesystem operation before subject acquisition"
               }
@@ -60793,8 +60820,9 @@
     },
     {
       "module": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-      "sha256": "0015e4ad4d25fe55f8674a877a4ab504414e8dfa4920b89c8c124e0ede506ae1",
+      "sha256": "f46682d25a5002244af12d365dfa60f00fb65eddb2e1adf1024a6ef72f805257",
       "exports": [
+        "commonjs:admitHostJournalRootFormat",
         "commonjs:assertHostJournalInstallationCurrent",
         "commonjs:assertInitialControlInstallationCurrent",
         "commonjs:assertSourceManagedInstallationCurrent",
@@ -60824,6 +60852,25 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "admitJournalRootFormat",
+          "parameters": [
+            "original",
+            "held",
+            "root"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitJournalRootFormat/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "admitJournalRootFormat/settled/settled",
+          "parameters": [],
           "async": false
         },
         {
@@ -60903,7 +60950,8 @@
           "name": "captureJournalNativeBindings",
           "parameters": [
             "fsOriginal",
-            "cryptoOriginal"
+            "cryptoOriginal",
+            "fsPromisesOriginal"
           ],
           "async": false
         },
@@ -61131,6 +61179,21 @@
         },
         {
           "name": "prepareJournal/prepareJournal#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareJournal/prepareJournal#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareJournal/prepareJournal#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareJournal/prepareJournal#5",
           "parameters": [],
           "async": false
         },
@@ -61532,7 +61595,9 @@
         }
       ],
       "imports": [
+        "./host-journal-directory.mjs",
         "./host-journal-facility-fields.cjs",
+        "./host-journal-native-image.cjs",
         "./initial-control-installation-owner.cjs",
         "./initial-control-package-custody.cjs",
         "./initial-control-package-original.cjs",
@@ -61930,13 +61995,20 @@
             "prepareJournal/prepareJournal",
             "prepareJournal/prepareJournal#2",
             "table/init:assertHostJournalInstallationCurrent/init:assertHostJournalInstallationCurrent",
-            "table/init:closeHostJournalInstallation/init:closeHostJournalInstallation"
+            "table/init:closeHostJournalInstallation/init:closeHostJournalInstallation",
+            "admitJournalRootFormat",
+            "admitJournalRootFormat/flight/flight",
+            "admitJournalRootFormat/settled/settled",
+            "prepareJournal/prepareJournal#3",
+            "prepareJournal/prepareJournal#4",
+            "prepareJournal/prepareJournal#5"
           ],
           "exports": [
             "commonjs:assertHostJournalInstallationCurrent",
             "commonjs:closeHostJournalInstallation",
             "commonjs:openHostJournalRequestJournal",
-            "commonjs:prepareHostJournalInstallation"
+            "commonjs:prepareHostJournalInstallation",
+            "commonjs:admitHostJournalRootFormat"
           ],
           "attributes": {
             "responsibility": [
@@ -61947,6 +62019,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The complete separate Journal disposition must precede this preparation:"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function admitJournalRootFormat(original, held, root) {"
               }
             ],
             "inputsOutputs": [
@@ -61957,6 +62033,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "function journalPublicationOwnership(original, held) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "[root, freeze({directoryInspection: entry.rootDirectoryInspection})]);"
               }
             ],
             "identity": [
@@ -61967,6 +62047,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "if (entry.disposition !== state.journalDisposition) journalUnavailable();"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "if (root !== entry.paths.root || entry.rootFormatAttempted || entry.attempted) journalUnavailable();"
               }
             ],
             "ownership": [
@@ -61977,6 +62061,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "entry.journal = journal;"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.rootFormatFlight = flight;"
               }
             ],
             "synchronization": [
@@ -61991,6 +62079,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "if (entry.closeFlight !== undefined) return entry.closeFlight;"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "if (entry.rootFormatFlight !== undefined) {"
               }
             ],
             "failure": [
@@ -62015,6 +62107,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "if (field(observation, 'databaseClosed') !== true ||"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "try { await entry.rootFormatFlight; } catch {}"
               }
             ],
             "resources": [
@@ -62025,12 +62121,20 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "physicalBackingReleased: false});"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "if (field(rootLimits, 'maxEntries') !== 1 || field(rootLimits, 'maxInspections') !== 2 ||"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "// Namespace functions, support bounds or the initial/Source declarations"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Selected Host root-format admission consumes a one-entry view"
               }
             ],
             "verification": [
@@ -62045,6 +62149,10 @@
               {
                 "path": "adapters/host-node/host-journal-root-custody.test.mjs",
                 "anchor": "secondary native close failure stays pending and retries the same captured receiver"
+              },
+              {
+                "path": "adapters/host-node/host-journal-root-custody.test.mjs",
+                "anchor": "actual selected Host statement and captured facade use the same Root format original"
               }
             ]
           }
@@ -63893,6 +64001,255 @@
         }
       ],
       "referenceQualification": "Source and resource-support references only; SQLite remains the semantic decoder. No native backing, operational issuer, format permission, physical cleanup ACK or installed Host acceptance is issued by this preflight."
+    },
+    {
+      "module": "adapters/host-node/host-journal-directory.mjs",
+      "sha256": "873a8dcfb12d706e3d00fad61164899e1c10403e48c32198ca1523dba355f99e",
+      "exports": [
+        "assertHostJournalDirectoryInspector",
+        "createHostJournalDirectoryInspector",
+        "inspectHostJournalDirectory",
+        "inspectHostJournalDirectoryFirstEntry"
+      ],
+      "operations": [
+        {
+          "name": "assertHostJournalDirectoryInspector",
+          "parameters": [
+            "inspector",
+            "maxEntries"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHostJournalDirectoryInspector",
+          "parameters": [
+            "native",
+            "limits",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHostJournalDirectoryInspector/createHostJournalDirectoryInspector",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHostJournalDirectoryInspector/first/first",
+          "parameters": [
+            "directory"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHostJournalDirectoryInspector/inspect/inspect",
+          "parameters": [
+            "directory"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHostJournalDirectoryInspector/run/inspect",
+          "parameters": [
+            "directory",
+            "firstOnly"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHostJournalDirectoryInspector/run/inspect/closeOriginal/closeOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHostJournalDirectoryInspector/run/inspect/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectHostJournalDirectory",
+          "parameters": [
+            "inspector",
+            "directory",
+            "maxEntries"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectHostJournalDirectoryFirstEntry",
+          "parameters": [
+            "inspector",
+            "directory"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own",
+          "parameters": [
+            "value",
+            "key"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:buffer",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Host/Resource filesystem and original directory custody Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "assertHostJournalDirectoryInspector",
+            "createHostJournalDirectoryInspector",
+            "createHostJournalDirectoryInspector/createHostJournalDirectoryInspector",
+            "createHostJournalDirectoryInspector/first/first",
+            "createHostJournalDirectoryInspector/inspect/inspect",
+            "createHostJournalDirectoryInspector/run/inspect",
+            "createHostJournalDirectoryInspector/run/inspect/closeOriginal/closeOriginal",
+            "createHostJournalDirectoryInspector/run/inspect/status/status",
+            "fail/fail",
+            "inspectHostJournalDirectory",
+            "inspectHostJournalDirectoryFirstEntry",
+            "own/own"
+          ],
+          "exports": [
+            "assertHostJournalDirectoryInspector",
+            "createHostJournalDirectoryInspector",
+            "inspectHostJournalDirectory",
+            "inspectHostJournalDirectoryFirstEntry"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Selected Host root-format admission consumes a one-entry view"
+              },
+              {
+                "path": "adapters/host-node/host-journal-directory.mjs",
+                "anchor": "export function createHostJournalDirectoryInspector(native, limits, assertCurrent) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/host-journal-directory.mjs",
+                "anchor": "export function inspectHostJournalDirectoryFirstEntry(inspector, directory) {"
+              },
+              {
+                "path": "adapters/host-node/host-journal-directory.mjs",
+                "anchor": "const maxEntries = own(limits, 'maxEntries'), maxNameBytes = own(limits, 'maxNameBytes');"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/host-journal-directory.mjs",
+                "anchor": "apply(weakSet, inspectors, [inspect, freeze({maxEntries, first})]);"
+              },
+              {
+                "path": "adapters/host-node/native/directory-darwin.c",
+                "anchor": "return item->owner == *owner ? item : NULL;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/host-journal-directory.mjs",
+                "anchor": "const closeOriginal = () => {"
+              },
+              {
+                "path": "adapters/host-node/host-journal-directory.mjs",
+                "anchor": "pendingDuty = carrier;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/host-journal-directory.mjs",
+                "anchor": "inspections++;"
+              },
+              {
+                "path": "adapters/host-node/host-journal-directory.mjs",
+                "anchor": "active = true;"
+              },
+              {
+                "path": "adapters/host-node/host-journal-directory.mjs",
+                "anchor": "original = apply(open, native, [directory, maxEntries, maxNameBytes, maxWork]);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/host-journal-directory.mjs",
+                "anchor": "const carrier = Object.assign(new Error('HostJournalDirectoryCleanupPending'"
+              },
+              {
+                "path": "adapters/host-node/host-journal-directory.mjs",
+                "anchor": "if (firstOnly) { apply(push, entries, [bytes]); break; }"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/host-journal-directory.mjs",
+                "anchor": "cleanupPending: true, cleanupHandle: freeze({status, retry: status})});"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "only observes that outcome and never closes a possibly reused numeric FD."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/native/directory-darwin.c",
+                "anchor": "#define DIRECTORY_BYTES 65536"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "native 64-KiB buffer, returned first-entry bytes, wrappers, callbacks and marker"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Unicode format rule. The Root binds the original namespace operation and same"
+              },
+              {
+                "path": "adapters/host-node/host-journal-directory.mjs",
+                "anchor": "// Only a one-entry view is accepted; this operation issues no new allowance."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-root-format-native.test.mjs",
+                "anchor": "selected Root format uses one nominal native entry rather than stock Dir"
+              },
+              {
+                "path": "adapters/host-node/host-root-format-native.test.mjs",
+                "anchor": "selected marker and legacy priority do not depend on listing the remaining names"
+              },
+              {
+                "path": "adapters/host-node/host-root-format-native.test.mjs",
+                "anchor": "selected first-entry close Unknown prevents marker creation and is observation-only"
+              },
+              {
+                "path": "adapters/host-node/host-journal-directory.test.mjs",
+                "anchor": "confirmed closes do not refill the captured original inspection allowance"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Private same-module directory view and original native custody only. Source/test anchors are responsibility references, not operational admission, funding or execution evidence."
     }
   ],
   "generated": [],
@@ -63905,10 +64262,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 146,
-    "operations": 3641,
-    "exports": 935,
-    "explicitContractGroups": 181
+    "modules": 147,
+    "operations": 3659,
+    "exports": 942,
+    "explicitContractGroups": 182
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }
