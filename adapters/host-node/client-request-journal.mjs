@@ -1,6 +1,9 @@
 // Physical durable storage for an owner-issued Client request and Run ref.
 // MoonBit supplies and re-admits the identity and decides intent conflicts.
 import {DatabaseSync, StatementSync} from 'node:sqlite';
+import * as facilityFs from 'node:fs';
+import * as facilityCrypto from 'node:crypto';
+import facilityFields from './host-journal-facility-fields.cjs';
 import {prepareInstalledRunStateObservation, issueInstalledRunControlObservation}
   from '../host-common/run-state-observation.mjs';
 import {createHash, createHmac, randomBytes, timingSafeEqual} from 'node:crypto';
@@ -47,6 +50,7 @@ const originalJournalCustodies = new WeakMap();
 const originalJournalCustodyGet = WeakMap.prototype.get;
 const originalJournalCustodySet = WeakMap.prototype.set;
 const facilityDescriptor = Object.getOwnPropertyDescriptor;
+const facilityHasOwn = Object.hasOwn, facilityIsProxy = utilTypes.isProxy;
 const facilityDatabase = DatabaseSync, facilityStatement = StatementSync;
 const facilityOperations = Object.freeze([
   [facilityDatabase.prototype, 'open'], [facilityDatabase.prototype, 'close'],
@@ -55,13 +59,31 @@ const facilityOperations = Object.freeze([
   [facilityStatement.prototype, 'iterate'],
 ].map(([receiver, name]) => Object.freeze({receiver, name,
   property: facilityDescriptor(receiver, name)})));
+const facilityPlatformOperations = Object.freeze([
+  ['fs',facilityFs],['crypto',facilityCrypto],['constants',facilityFs.constants],
+  ['directory',facilityFs.Dir.prototype],['hash',facilityCrypto.Hash.prototype],
+  ['hmac',facilityCrypto.Hmac.prototype],
+].flatMap(([group,receiver]) => facilityFields[group].map(name => Object.freeze({
+  group,receiver,name,property:facilityDescriptor(receiver,name),
+}))));
+
+function originalJournalFacilityField(value, name) {
+  if (value === null || typeof value !== 'object' || facilityIsProxy(value)) {
+    fail('ClientRequestJournalFacilityUnavailable');
+  }
+  const property = facilityDescriptor(value,name);
+  if (property === undefined || !facilityHasOwn(property,'value')) {
+    fail('ClientRequestJournalFacilityUnavailable');
+  }
+  return property.value;
+}
 
 // Fixed namespace forwarder for the selected startup's actual node:sqlite
 // originals. This observes correspondence/currentness, not capacity, a new
 // installation or authority. No caller callback or equal label is a native
 // constructor, and restoration after a detected change cannot revive it.
 let facilityChanged = false;
-export function assertOriginalClientRequestJournalFacilityCurrent(database, statement) {
+export function assertOriginalClientRequestJournalFacilityCurrent(database, statement, nativeBindings) {
   if (database !== facilityDatabase || statement !== facilityStatement) {
     fail('ClientRequestJournalFacilityUnavailable');
   }
@@ -72,6 +94,25 @@ export function assertOriginalClientRequestJournalFacilityCurrent(database, stat
         current.get !== property.get || current.set !== property.set ||
         current.writable !== property.writable || current.configurable !== property.configurable ||
         current.enumerable !== property.enumerable) facilityChanged = true;
+  }
+  if (nativeBindings !== undefined) {
+    // This is correspondence DATA from the actual early prefix, not a new
+    // facility issuer. A foreign table cannot poison another original's
+    // currentness; a detected change in the real operations is irreversible.
+    for (const {group,name,property} of facilityPlatformOperations) {
+      const selected = originalJournalFacilityField(nativeBindings,group);
+      if (property === undefined ||
+          originalJournalFacilityField(selected,name) !== property.value) {
+        fail('ClientRequestJournalFacilityUnavailable');
+      }
+    }
+    for (const {receiver,name,property} of facilityPlatformOperations) {
+      const current = facilityDescriptor(receiver,name);
+      if (current === undefined || current.value !== property.value ||
+          current.get !== property.get || current.set !== property.set ||
+          current.writable !== property.writable || current.configurable !== property.configurable ||
+          current.enumerable !== property.enumerable) facilityChanged = true;
+    }
   }
   if (facilityChanged) fail('ClientRequestJournalFacilityUnavailable');
 }

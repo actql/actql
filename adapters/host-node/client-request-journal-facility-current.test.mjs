@@ -7,6 +7,7 @@ import test from 'node:test';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import facilityFields from './host-journal-facility-fields.cjs';
+import {spawnSync} from 'node:child_process';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {inspectSqliteSnapshot} from '../host-common/sqlite-format-inspection.mjs';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody,
@@ -18,7 +19,8 @@ const limits = Object.freeze({maxDatabaseBytes: 1048576,
   primaryExecutionLimits: {maxStatementCalls: 1000, maxParameters: 32,
     maxParameterBytes: 262144, maxResultRows: 128}});
 const nativeBindings = () => Object.freeze(Object.fromEntries(
-  [['fs',fs],['crypto',crypto],['constants',fs.constants]].map(([group,receiver]) =>
+  [['fs',fs],['crypto',crypto],['constants',fs.constants],['directory',fs.Dir.prototype],
+    ['hash',crypto.Hash.prototype],['hmac',crypto.Hmac.prototype]].map(([group,receiver]) =>
     [group,Object.freeze(Object.fromEntries(facilityFields[group].map(name =>
       [name,Object.getOwnPropertyDescriptor(receiver,name).value])))])));
 async function fixture() {
@@ -64,6 +66,37 @@ test('foreign filesystem receipt accessors and proxies are refused without evalu
     {code:'ClientRequestJournalFacilityUnavailable'});
   assert.equal(reads,0);
 });
+
+for (const selected of ['crypto','directory']) {
+  test(`selected ${selected} operation replacement remains refused after restoration`, () => {
+    const result = spawnSync(process.execPath,['--input-type=module','-e',`
+      import assert from 'node:assert/strict';
+      import fs from 'node:fs'; import crypto from 'node:crypto';
+      import {syncBuiltinESMExports} from 'node:module';
+      import {DatabaseSync,StatementSync} from 'node:sqlite';
+      import fields from ${JSON.stringify(new URL('./host-journal-facility-fields.cjs',import.meta.url).href)};
+      import {assertOriginalClientRequestJournalFacilityCurrent as current}
+        from ${JSON.stringify(new URL('./client-request-journal.mjs',import.meta.url).href)};
+      const held=Object.freeze(Object.fromEntries([
+        ['fs',fs],['crypto',crypto],['constants',fs.constants],['directory',fs.Dir.prototype],
+        ['hash',crypto.Hash.prototype],['hmac',crypto.Hmac.prototype]
+      ].map(([group,receiver])=>[group,Object.freeze(Object.fromEntries(fields[group].map(name=>
+        [name,Object.getOwnPropertyDescriptor(receiver,name).value])))])));
+      current(DatabaseSync,StatementSync,held);
+      const receiver=${selected==='crypto'?'crypto':'fs.Dir.prototype'};
+      const name=${JSON.stringify(selected==='crypto'?'randomBytes':'readSync')};
+      const original=Object.getOwnPropertyDescriptor(receiver,name);
+      try {
+        Object.defineProperty(receiver,name,{...original,value(){throw Error('MustNotDispatchReplacement');}});
+        syncBuiltinESMExports();
+        assert.throws(()=>current(DatabaseSync,StatementSync,held),{code:'ClientRequestJournalFacilityUnavailable'});
+      } finally {Object.defineProperty(receiver,name,original);syncBuiltinESMExports();}
+      assert.throws(()=>current(DatabaseSync,StatementSync,held),{code:'ClientRequestJournalFacilityUnavailable'});
+    `],{encoding:'utf8',timeout:15000});
+    assert.equal(result.error,undefined);
+    assert.equal(result.status,0,result.stderr);
+  });
+}
 
 test('selected current refusal precedes the first Journal directory or database acquisition', async () => {
   const {scratch, directory} = await fixture();

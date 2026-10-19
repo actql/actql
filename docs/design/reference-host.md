@@ -1025,6 +1025,18 @@ once for their process lifetime, not refilled by a connection or Host close.
 This is the finite Journal facility, not a universal allocator lease or another
 business, Model or Effect allowance.
 
+The actual selected public prefix also retains its filesystem/crypto bindings
+before Host namespace initialization. The existing Journal facility-current
+operation compares those same functions, used filesystem constants, directory
+read/close and Hash/Hmac operations with the namespace consumer. A foreign
+receipt or accessor is refused without dispatch; a detected operation change
+does not revive after restoration. The legacy constructor-pair-only call is
+unchanged, while the actual prefix supplies its earlier captured bindings.
+These references do not supply native extent, earlier acquisition coverage,
+an operational disposition, key/first-init permission or a physical ACK. The
+selected filesystem/library branch, native instance custody and complete
+simultaneous facility amount remain separate obligations.
+
 SQL and native-statement counters do not bound an operation that refuses
 before reaching SQL, including its validation and any earlier native crypto
 work. The selected Journal may therefore additionally impose an original

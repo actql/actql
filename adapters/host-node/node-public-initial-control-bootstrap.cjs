@@ -14,6 +14,7 @@ const {open: openSourceFile} = require('node:fs/promises');
 const processOriginal = require('node:process');
 const apply = Reflect.apply, descriptor = Object.getOwnPropertyDescriptor;
 const own = Object.hasOwn, freeze = Object.freeze;
+const journalFacilityFields = require('./host-journal-facility-fields.cjs');
 const {createInitialControlInstallationOwner} = require('./initial-control-installation-owner.cjs');
 const {declareOrdinaryInitialControlPhaseEnvelope, inspectOrdinaryInitialControlPhaseEnvelope}
   = require('./initial-control-phase-envelope.cjs');
@@ -55,7 +56,7 @@ function journalCurrent(original, held) {
     assertSamePreparation(held);
     if (entry.disposition !== state.journalDisposition) journalUnavailable();
     apply(state.journal.current, state.namespace,
-      [state.journalNative.DatabaseSync, state.journalNative.StatementSync]);
+      [state.journalNative.DatabaseSync, state.journalNative.StatementSync, state.journalNative.bindings]);
     apply(entry.subjectCurrent, entry.subject, []);
     if (entry.ownership !== undefined) {
       apply(state.journal.ownershipCurrent, state.namespace,
@@ -197,13 +198,30 @@ function prepareJournal(held) {
     // before the Host namespace. The fixed namespace operation must agree
     // on the same native facility before any subject read or DB acquisition.
     apply(state.journal.current, state.namespace,
-      [state.journalNative.DatabaseSync, state.journalNative.StatementSync]);
+      [state.journalNative.DatabaseSync, state.journalNative.StatementSync, state.journalNative.bindings]);
     entry.subject = apply(state.journal.read, state.namespace, [held]);
     entry.subjectCurrent = field(entry.subject, 'assertCurrent');
     if (typeof entry.subjectCurrent !== 'function') journalUnavailable();
     journalCurrent(original, held);
     return original;
   } catch (cause) { throw journalCarrier(entry, cause); }
+}
+function captureJournalNativeBindings(fsOriginal, cryptoOriginal) {
+  const bindings = Object.create(null);
+  for (const [group,receiver] of [['fs',fsOriginal],['crypto',cryptoOriginal],
+    ['constants',field(fsOriginal,'constants')],
+    ['directory',field(field(fsOriginal,'Dir'),'prototype')],
+    ['hash',field(field(cryptoOriginal,'Hash'),'prototype')],
+    ['hmac',field(field(cryptoOriginal,'Hmac'),'prototype')]]) {
+    const values = Object.create(null);
+    for (const name of journalFacilityFields[group]) {
+      const value = field(receiver,name);
+      if (typeof value !== (group === 'constants' ? 'number' : 'function')) unavailable();
+      values[name] = value;
+    }
+    bindings[group] = freeze(values);
+  }
+  return freeze(bindings);
 }
 function openJournal(original, held, directory, options) {
   const entry = journalCurrent(original, held);
@@ -944,8 +962,10 @@ try {
   // no writable Journal capacity is issued by loading this builtin.
   const sqliteOriginal = require('node:sqlite');
   const journalNative = freeze({DatabaseSync:field(sqliteOriginal,'DatabaseSync'),
-    StatementSync:field(sqliteOriginal,'StatementSync')});
-  if (Object.values(journalNative).some(value=>typeof value !== 'function')) unavailable();
+    StatementSync:field(sqliteOriginal,'StatementSync'),
+    bindings:captureJournalNativeBindings(require('node:fs'),require('node:crypto'))});
+  if (typeof journalNative.DatabaseSync !== 'function' ||
+      typeof journalNative.StatementSync !== 'function') unavailable();
   // Adopt the separate joint Source recipe before namespace, managed Source
   // metadata or raw SDK acquisition. This is not a second whole VM allowance.
   const sourceEnvelope = declareSourceManagedPhaseEnvelope(declaration);

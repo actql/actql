@@ -4,6 +4,9 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {compileFunction} from 'node:vm';
 import test from 'node:test';
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+import journalFacilityFields from './host-journal-facility-fields.cjs';
 import {parse} from 'acorn';
 import {DatabaseSync, StatementSync} from 'node:sqlite';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
@@ -18,7 +21,7 @@ const source = readFileSync(new URL('./node-public-initial-control-bootstrap.cjs
 const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'script'});
 const names = ['journalOriginal', 'journalFailure', 'journalCurrent', 'journalStatus',
   'journalCleanup', 'journalAcknowledged', 'journalExclusionDependency', 'closeJournal', 'journalCarrier',
-  'prepareJournal', 'openJournal', 'journalPublicationOwnership'];
+  'prepareJournal', 'captureJournalNativeBindings', 'openJournal', 'journalPublicationOwnership'];
 const bodies = names.map(name => {
   const nodes = ast.body.filter(node => node.type === 'FunctionDeclaration' && node.id.name === name);
   assert.equal(nodes.length, 1);
@@ -43,9 +46,10 @@ const make = compileFunction(`
     if(property===undefined||!own(property,'value'))journalUnavailable();return property.value;};
   ${bodies}
   return {prepare:prepareJournal,open:openJournal,current:journalCurrent,
+    captureNative:captureJournalNativeBindings,
     ownership:journalPublicationOwnership,owner:{${originalOwner}},
     close:(original,held)=>closeJournal(journalOriginal(original,held,true))};`,
-['state', 'assertSamePreparation', 'join']);
+['state', 'assertSamePreparation', 'join', 'journalFacilityFields']);
 
 // Execute the actual adapter and Host forwarding/Store assignment, not a
 // fixture-only ownership accessor or a manual fifth-argument substitution.
@@ -122,17 +126,39 @@ async function fixture({covered = true, open, read, current, nativeCurrent,
     ownershipPrepare: prepareOwnership,
     ownershipCurrent: assertOriginalPreparedLocalPublicationStoreOwnership,
     ownershipClose: closePreparedLocalPublicationStoreOwnership,
-    current(database, statement) {
+    current(database, statement, bindings) {
       assert.strictEqual(this, namespace);
       assert.strictEqual(database, DatabaseSync);
       assert.strictEqual(statement, StatementSync);
-      assertOriginalClientRequestJournalFacilityCurrent(database, statement);
+      assert.strictEqual(bindings,state.journalNative.bindings);
+      assertOriginalClientRequestJournalFacilityCurrent(database, statement, bindings);
       nativeCurrent?.();
     },
   })};
-  const root = make(state, actual => assert.strictEqual(actual, originals), join);
+  const root = make(state, actual => assert.strictEqual(actual, originals), join, journalFacilityFields);
+  state.journalNative = Object.freeze({DatabaseSync,StatementSync,
+    bindings:root.captureNative(fs,crypto)});
   return {scratch, originals, directory, root, state};
 }
+
+test('Root forwards earlier native bindings and rejects a foreign filesystem operation before subject acquisition', async () => {
+  let subjects = 0;
+  const f = await fixture({read(){subjects++;}});
+  const original = f.state.journalNative;
+  f.state.journalNative = Object.freeze({...original,bindings:Object.freeze({
+    ...original.bindings,fs:Object.freeze({...original.bindings.fs,
+      opendirSync(){assert.fail('Foreign operation must not run');}}),
+  })});
+  let failure;
+  assert.throws(()=>f.root.prepare(f.originals), cause => {
+    failure=cause;
+    return cause.cause?.code==='ClientRequestJournalFacilityUnavailable';
+  });
+  assert.equal(subjects,0);
+  assert.equal(failure.cleanupHandle.status().nativePending,false);
+  assert.equal((await failure.cleanupHandle.retry()).pending,false);
+  f.scratch.passed();
+});
 
 test('actual captured Root adapter and Host Store call adopt the same ownership and keep both ACKs', async () => {
   const nativeClose = DatabaseSync.prototype.close;
