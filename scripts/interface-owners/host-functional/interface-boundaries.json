@@ -51568,7 +51568,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "d0e4c6ac10efab52bd66efdec2ab9769fc99dbe214dcdf84de8eb05b16907159",
+      "sha256": "a32c700d0b564c899ac97670607c324d483e5131b849ff2d9e9f7b17c3703676",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -51582,6 +51582,7 @@
         "OriginalRunPlan",
         "PreparedEffectProgram",
         "PreparedProgram",
+        "PreparedSourceProgram",
         "PrivateCompilationWires",
         "ProfileSelection",
         "PublicIndexEntryContract",
@@ -51617,6 +51618,7 @@
         "RunDefinition",
         "RunEvidence",
         "SourceFreeRunMaterialsInput",
+        "SourceProgramOriginals",
         "StoredRunPlanOriginal",
         "SubmissionEpoch",
         "SubmittedIntent",
@@ -51641,6 +51643,7 @@
         "admitRunEvidenceValue",
         "admitSourceFreeRequestFields",
         "admitSourceFreeRunDefinition",
+        "admitSourceRequestFields",
         "admitTaskRun",
         "admitTaskRunDefinition",
         "beginResultMaterialHolds",
@@ -51720,6 +51723,8 @@
         "prepareRunPreStartFailure",
         "prepareRunStart",
         "prepareSourceFreeRequest",
+        "prepareSourceProgram",
+        "prepareSourceRequest",
         "prepareSubmissionEpoch",
         "prepareSubmittedIntent",
         "prepareTaskPhysicalStart",
@@ -51739,6 +51744,7 @@
         "requestFields",
         "requestRelation",
         "restoreEffectRunNormalization",
+        "restoreSourceProgram",
         "resultDefinitions",
         "resultMaterialHoldsFacts",
         "resultMaterialHoldsWire",
@@ -51758,6 +51764,9 @@
         "runCancellationIntentCid",
         "sealRunEvidenceValue",
         "sourceEvidenceFacts",
+        "sourceProgramMaterialInput",
+        "sourceProgramOriginals",
+        "sourceProgramSourceInput",
         "submissionEpochFacts",
         "submissionEpochValidity",
         "submissionRequestId",
@@ -51801,7 +51810,8 @@
             "definitionCid: string",
             "profiles: Readonly<{textTime?: boolean; veca?: boolean; rela?: boolean;\n    sga?: boolean; tea?: boolean; calendar?: boolean; textRank?: boolean}>",
             "original?: IssuedEffectRunMaterials",
-            "expectedRequest?: RequestIdentity"
+            "expectedRequest?: RequestIdentity",
+            "sourcePrepared?: PreparedEffectProgram"
           ],
           "result": "RestoredEffectRun"
         },
@@ -51935,6 +51945,15 @@
             "wire: string"
           ],
           "result": "RunDefinition"
+        },
+        {
+          "name": "admitSourceRequestFields",
+          "parameters": [
+            "prepared: PreparedProgram | PreparedEffectProgram",
+            "intent: SubmittedIntent",
+            "fields: RequestFields"
+          ],
+          "result": "RequestIdentity"
         },
         {
           "name": "admitTaskRun",
@@ -52766,6 +52785,25 @@
           "result": "RequestIdentity"
         },
         {
+          "name": "prepareSourceProgram",
+          "parameters": [
+            "intent: SubmittedIntent",
+            "environment: CheckEnvironment",
+            "publicationWire: string"
+          ],
+          "result": "PreparedSourceProgram"
+        },
+        {
+          "name": "prepareSourceRequest",
+          "parameters": [
+            "prepared: PreparedProgram | PreparedEffectProgram",
+            "intent: SubmittedIntent",
+            "authorityScopeCid: string",
+            "requestId: string"
+          ],
+          "result": "RequestIdentity"
+        },
+        {
           "name": "prepareSubmissionEpoch",
           "parameters": [
             "scope: Readonly<{authorityScopeCid: string;\n  epochNonce: string; notBefore: number; expiresAt: number}>"
@@ -52940,6 +52978,14 @@
             "materials: RestoredEffectRun"
           ],
           "result": "RunEvidence"
+        },
+        {
+          "name": "restoreSourceProgram",
+          "parameters": [
+            "originals: SourceProgramOriginals",
+            "environment: CheckEnvironment"
+          ],
+          "result": "PreparedSourceProgram"
         },
         {
           "name": "resultDefinitions",
@@ -53454,6 +53500,28 @@
           "result": "Readonly<{sourceRef: string; sourceContractCid: string;\n    carrierSchemaContractCid: string; sourceDataPolicyCid: string;\n    dataClassification: string; sourceViewContractCid: string}> | undefined"
         },
         {
+          "name": "sourceProgramMaterialInput",
+          "parameters": [
+            "prepared: PreparedProgram | PreparedEffectProgram",
+            "environmentWire: string"
+          ],
+          "result": "SourceFreeRunMaterialsInput"
+        },
+        {
+          "name": "sourceProgramOriginals",
+          "parameters": [
+            "prepared: PreparedProgram | PreparedEffectProgram"
+          ],
+          "result": "SourceProgramOriginals"
+        },
+        {
+          "name": "sourceProgramSourceInput",
+          "parameters": [
+            "prepared: PreparedProgram | PreparedEffectProgram"
+          ],
+          "result": "Readonly<{\n  document: string; format: string; parametersWire?: string; parameterDeclarationsWire?: string}>"
+        },
+        {
           "name": "submissionEpochFacts",
           "parameters": [
             "epoch: SubmissionEpoch"
@@ -53786,7 +53854,14 @@
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput"
+            "validateRetainedTaskInput",
+            "admitSourceRequestFields",
+            "prepareSourceProgram",
+            "prepareSourceRequest",
+            "restoreSourceProgram",
+            "sourceProgramMaterialInput",
+            "sourceProgramOriginals",
+            "sourceProgramSourceInput"
           ],
           "exports": [
             "AllowedEffectRun",
@@ -53990,7 +54065,16 @@
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput"
+            "validateRetainedTaskInput",
+            "PreparedSourceProgram",
+            "SourceProgramOriginals",
+            "admitSourceRequestFields",
+            "prepareSourceProgram",
+            "prepareSourceRequest",
+            "restoreSourceProgram",
+            "sourceProgramMaterialInput",
+            "sourceProgramOriginals",
+            "sourceProgramSourceInput"
           ],
           "attributes": {
             "responsibility": [
@@ -54009,6 +54093,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Original source preparation in the portable Run Host"
               }
             ],
             "inputsOutputs": [
@@ -54027,6 +54115,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "export function prepareSourceProgram(intent, environment, publicationWire) {"
               }
             ],
             "identity": [
@@ -54045,6 +54137,14 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "src/run_publication_host/client_source_preparation.mbt",
+                "anchor": "physical_equal(value.intent, intent)"
+              },
+              {
+                "path": "src/run_publication_host/client_source_preparation.mbt",
+                "anchor": "physical_equal(value.environment, environment)"
               }
             ],
             "ownership": [
@@ -54063,6 +54163,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "src/run_publication_host/client_source_preparation.mbt",
+                "anchor": "pub struct ClientSourcePreparation {"
               }
             ],
             "synchronization": [
@@ -54081,6 +54185,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "original.intent !== intent"
               }
             ],
             "failure": [
@@ -54099,6 +54207,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_run_materials.mbt",
+                "anchor": "request is None || expected_request is None || request != expected_request"
               }
             ],
             "cancellation": [
@@ -54117,6 +54229,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "alone does not supply this original binding, current authority or a cleanup ACK."
               }
             ],
             "resources": [
@@ -54135,6 +54251,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "is name-binding metadata, not acquisition, permission or physical capacity."
               }
             ],
             "extension": [
@@ -54153,6 +54273,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "structured preparation and material bytes remain unchanged."
               }
             ],
             "verification": [
@@ -54171,6 +54295,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "packages/run-host-core/source-preparation.test.mjs",
+                "anchor": "test('source Effect materials require the same source preparation and independently retained request'"
               }
             ]
           }
@@ -58750,8 +58878,8 @@
   ],
   "counts": {
     "modules": 136,
-    "operations": 3304,
-    "exports": 882,
+    "operations": 3311,
+    "exports": 891,
     "explicitContractGroups": 163
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."

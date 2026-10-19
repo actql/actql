@@ -914,14 +914,18 @@ fn prepare_kernel_measured(
               return Err(KernelBudgetExceeded)
             }
             names_remaining -= size
-            guard owner.by_name.get(name) is Some(bound) &&
-              bound.value is @value.Number(n) else {
+            guard owner.by_name.get(name) is Some(bound) else {
               return Err(InvalidTakeCount)
             }
-            guard @scalar.read_safe_integer(n) is Some(n) else {
-              return Err(InvalidTakeCount)
+            match bound.value {
+              @value.Signed64(n) => n
+              @value.Number(number) =>
+                match @scalar.read_safe_integer(number) {
+                  Some(n) => n
+                  None => return Err(InvalidTakeCount)
+                }
+              _ => return Err(InvalidTakeCount)
             }
-            n
           }
         }
         if n < minimum || n > 9007199254740991L {

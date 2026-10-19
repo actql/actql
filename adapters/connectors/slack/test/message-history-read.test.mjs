@@ -129,7 +129,7 @@ test('Slack history accepts an explicit maximum page size without making it a fu
   const f=await messageHistoryFixture(t);
   f.state.pages=[messagePage([{type:'message',ts:'1.000000',text:'single'}],null)];
   assert.equal((await f.create({limits:{...f.options.limits,pageSize:1000}}).read()).rowCount,1);
-  assert.equal(f.state.requests[1].path,'/api/conversations.history?channel=C1&limit=1000');
+  assert.equal(f.state.requests[1].path,'/api/conversations.history?channel=C1&limit=999');
   f.row.finish();assert.equal(f.row.captureCount(),1);
 });
 

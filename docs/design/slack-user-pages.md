@@ -406,3 +406,178 @@ those retained originals. Caller-visible output does not issue a Source capture
 or prove complete thread coverage. Connecting the existing actual RowRun and
 normal resource supplier remains a separate responsibility; a final ticket is
 accounting rather than evidence for an otherwise missing original prefix.
+
+### Original history time windows
+
+The history protocol can retain an explicit open interval of original Slack
+`oldest` and `latest` decimal epoch tokens. Both tokens preserve their exact
+String bytes; their derived instants use the existing exact Timestamp owner.
+The original lower bound remains fixed across cursor and time pagination. A
+time-pagination upper bound may only tighten to the last original message
+token, and cursor pagination retains the preceding upper bound. Endpoints and
+out-of-window rows refuse the consumed pending occurrence. Known message
+fields are admitted before that extent check, without skipping unused fields.
+The existing unbounded constructor keeps its original no-window behavior.
+
+This protocol describes a physical interval, not a derivation from WHERE or a
+proof that a broader original Source request has been preserved. A checked
+QueryRequirement, original bound Parameters and the declared request still
+own the selected scan. Provider filtering cannot hide invalid known fields in
+that extent; retaining a residual filter cannot restore their failures. The
+projection-only declaration does not advertise filter preservation. Inclusive
+query predicates, thread coverage and ordinary Source capture need their
+actual existing-owner connections rather than reinterpretation of these tokens.
+
+The retained lower/upper token references, normalized lower instant and each
+request's current upper token overlap the original page and protocol prefix.
+Timestamp parsing/comparison workspace is bounded by the token and page limits;
+those limits are not Resource capacity or a physical cleanup acknowledgement.
+
+### Node history-window projection
+
+The private Node history reader captures explicit `requestWindow` DATA once;
+Common validates the exact boundary tokens and interval order. The caller must
+bind those DATA to the original selected request. A residual `WHERE` does not
+allow a broader original request to be relabelled as a narrower scan. This
+projection does not publish an installed Source or advertise filter pushdown.
+
+The same retained Common history issues every cursor and time-continuation
+request. Its original lower bound is retained throughout; only Common selects
+a later upper bound. Node forwards those tokens without Number or Date
+conversion, with `inclusive=false` once whenever either bound is present.
+Absent lower bounds retain the old private request JSON representation.
+Malformed bounds fail before secret resolution or HTTP; a response outside the
+original window is refused rather than filtered away. The response and its
+charge remain in the original failure custody.
+
+The current [vendor method contract](https://docs.slack.dev/reference/methods/conversations.history/)
+caps a dispatched page at 999. Dispatch takes the smaller of that cap and the
+original Host page ceiling; it does not lower the Program's total row ceiling
+or add read authority. The public documentation's older maximum-page wording
+is a separate documentation clarification, not a global Array or row limit.
+
+A windowed Common history control is retained before workspace identity I/O,
+but its first pending request is issued only after the original identity and
+current checks. The captured callback/receiver, two bound String references,
+control, every page/response/charge and escaped result/error may overlap.
+Closing the protocol does not prove physical retirement of any of them.
+
+### Original channel-to-history preparation
+
+A channel page is one admitted occurrence in an actual channel-list reader,
+not a workspace grant or a complete messages Source. The explicit
+`createSlackChannelListReaderForHistory` entrance retains the original reader,
+request/grant/use/response/charge prefix and checked pages, including a failed
+or pending exchange. A page token becomes selectable only
+after its consumer and current check return, and only after the whole reader
+succeeds. `selectSlackOriginalChannel` selects one original page/index once;
+copied tokens, equal rows and another reader cannot substitute for that pair.
+The ordinary channel reader keeps its existing charge-only callback metadata
+and does not retain this additional page/selection inventory.
+
+The dedicated history entrance requires that selection, the same provider
+receiver, workspace, credential binding and invocation subject. Common creates
+history from the checked channel row and retains the original page/index;
+matching channel text does not establish that membership. Both the history's
+current callback and its original channel reader's captured current callback
+are checked before subsequent work. Stopping the original reader prevents new
+identity or history exchanges. Each operation still needs its own actual
+Credential grant/use; neither the old identity observation nor the selection
+issues permission.
+
+Selection preparation is one-use. A failed typed history preparation keeps its
+original selection and is not rebound with larger limits. Direct history
+constructors remain independent DATA entrances and cannot claim channel-page
+origin. The channel-derived entrance does not accept a caller channel override
+or a WHERE-derived time window. A complete messages Source must separately
+realize the full selected request, including required conversation kinds and
+threads, under its actual bounds; the observed channel pair alone proves none
+of that coverage.
+
+The explicit reader additionally retains its page map, per-page records and
+selected-index sets, copied id references, every original request/authorization,
+pending or failed exchange, success/failure prefix, selection
+WeakMap keys/records, original callback/receiver and downstream history control.
+The Common history's optional page/index field has layout cost even when None.
+These overlap the page rows, checked contracts, raw responses, charges and
+encoding workspace. The provider method wrappers retain their original methods
+and receiver in both reader forms. Bounds and weak reachability do not fund or
+retire these holdings; protocol closure is not a physical acknowledgement.
+
+### History conversation enumeration
+
+The ordinary channel reader requests `public_channel,private_channel` and its
+Common projector continues to reject IM/MPIM discriminants. History discovery
+has a separate `createSlackConversationListReaderForHistory` entrance with the
+fixed `public_channel,private_channel,mpim,im` request and archived records
+included. These are the conversation kinds of the existing
+[Slack method](https://docs.slack.dev/reference/methods/conversations.list/);
+the token's actual scopes and visibility remain separate requirements.
+
+`project_slack_history_conversation_list` admits that broader response through
+the same bounded Common decoding and checked-field construction. Present
+`is_im` and `is_mpim` must be booleans; ordinary channel admission still requires
+them to be false when present. Missing conversation-specific fields remain
+nullable, without an inferred name, member count, kind or identifier prefix.
+All known fields in every returned record are checked before selection, even
+when a later projection omits them. Exact count tokens, duplicate identities,
+cursor history and cumulative bounds retain their existing checks.
+
+The broader reader retains the same original response/charge/page/index graph
+used by history selection and cannot fall back to a narrower projector when
+its captured Common port is absent. Its fixed request is not inferred from a
+residual filter, nor is terminal pagination proof of a complete workspace or
+thread population. It does not change the public channels declaration, saved
+wire, operation grant or Source authority. The additional projector closure
+and fixed request discriminator overlap the existing reader graph and typed
+decoding workspace; their presence is not resource admission or cleanup ACK.
+
+## Installed messages Source
+
+The installed declaration includes the existing Common messages schema and its
+`id` key. Its Account resource is `messages`, independently of `channels` and
+`users`. A channels read decision, token visibility or a shared Slack endpoint
+cannot substitute for an original messages read decision. The actual Site
+issues separate operation grants for conversation enumeration, workspace
+identity, history and replies, each bound to that same messages acquisition,
+Run invocation and dispatch. Current Account/Site checks remain before work
+and across awaits; each use has its own original identifier.
+
+The physical factory captures provider/Site/Host methods and receivers once.
+It realizes a broad conversation request with all four kinds, admits the whole
+returned known record set, and selects each actual page/index for history.
+Replies are read from original history rows; Common coalesces those completed
+protocols before a conversation's rows enter the original RowRun. This checks
+known fields and contradictions even when the eventual query omits a field or
+filters the row out. No residual WHERE is relabelled as a smaller original
+request or time window. The declaration continues to advertise projection
+only; the public pushdown target remains a separate implementation obligation.
+
+There is one pending response ticket. Before the next actual dependent
+exchange is authorized, its predecessor is consumed as an observation. After
+Common coalescence, the conversation's last actual ticket accounts for the
+append through the existing charged-page receiver. It is not proof of earlier
+responses, permission, or physical retirement. The retained original readers,
+requests, responses, checked page/index selections and protocol controls supply
+that prefix. No canonical output is charged as a replacement transfer. An
+empty original conversation extent appends no synthetic message; a later
+failure cannot publish the partially accumulated RowRun.
+
+For messages, the supplied page ceiling bounds total authorized exchanges,
+including workspace observations, across the acquisition. Total response bytes
+and observed row occurrences are bounded across all child readers, in addition
+to the existing per-response limits. Coalescence uses bounded comparison,
+occurrence, work and encoding controls; these controls and the supplied provider
+capacity are not proof of normal physical funding. Exhaustion retains the
+original pending/partial custody rather than retrying or increasing a limit.
+
+The factory retains its acquisition key, RowRun/Host callbacks, provider and
+Site callbacks/receivers, credential binding, per-operation grants, child
+handles and captured read/stop/observe methods, channel page tokens, history
+and reply selections, coalesced outputs, signals, pending charge and failure
+references. Those overlap raw response bodies, cursor and decoder workspace,
+checked contracts, equality state and canonical row encoding/copying in the
+existing Host receiver. Closing transport does not retire escaped aliases or
+return the original reservation. The observer remains `cleanupConfirmed:false`
+without a separate physical retirement supplier. Normal installation funding,
+live Slack and complete public workflow acceptance are separate qualifications.

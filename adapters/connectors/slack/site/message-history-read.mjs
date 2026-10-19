@@ -6,6 +6,7 @@ import {ownInvocationContext, ownInvocationAuthorization, invocationBindingsMatc
   invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
 import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
 import {requestTarget} from '../../../host-common/http-exchange.mjs';
+import {slackOriginalChannelName,prepareSlackOriginalChannelHistory} from './channel-list-read.mjs';
 
 export const SLACK_MESSAGE_HISTORY_OPERATION = 'slack:messages:history';
 export const SLACK_MESSAGE_REPLIES_OPERATION = 'slack:messages:replies';
@@ -42,6 +43,7 @@ const providerExports = ['slackAdmitMessageHistoryPage','slackMessageHistoryRequ
   'slackProjectWorkspaceIdentity','slackWorkspaceIdentityMatches',
   'slackPrepareMessageHistory','slackBeginMessageHistory','slackMessageHistoryRequestJson',
   'slackMessageHistoryPageHasNext','slackNextMessageHistoryRequest','slackFinishMessageHistory','slackCloseMessageHistory'];
+const windowProviderExports = ['slackPrepareMessageHistoryWindow'];
 const replyProviderExports = ['slackPrepareMessageReplies','slackMessageRepliesMatchesOriginal',
   'slackBeginMessageReplies','slackMessageRepliesRequestMatches','slackMessageRepliesRequestJson',
   'slackAdmitMessageRepliesPage','slackMessageRepliesPageHasNext','slackNextMessageRepliesRequest',
@@ -74,8 +76,25 @@ export class SlackMessageHistoryReadFailure extends Error {
   }
 }
 
+// Exact request DATA supplied by the original caller, never a WHERE-derived
+// coverage claim. Common alone validates timestamp syntax and interval order.
+function ownHistoryWindow(value) {
+  if (value === undefined) return undefined;
+  if (!value || typeof value !== 'object' || types.isProxy(value)) fail('InvalidSlackMessageHistoryWindow');
+  const keys = Reflect.ownKeys(value);
+  if (keys.length !== 2 || !keys.includes('oldest') || !keys.includes('latest')) fail('InvalidSlackMessageHistoryWindow');
+  const fields = {};
+  for (const name of ['oldest','latest']) {
+    const descriptor = Object.getOwnPropertyDescriptor(value,name);
+    if (!descriptor || !Object.hasOwn(descriptor,'value') ||
+        (descriptor.value !== null && typeof descriptor.value !== 'string')) fail('InvalidSlackMessageHistoryWindow');
+    fields[name] = descriptor.value;
+  }
+  return Object.freeze(fields);
+}
+
 function prepareRead({moon, workspaceId, channel, names, initialAuthorization, credential,
-  authorizationFor, limits, current, chargeResponse, consumeObservation, consumePage, signal}) {
+  authorizationFor, limits, current, chargeResponse, consumeObservation, consumePage, signal, requestWindow}) {
   if (!Array.isArray(names) ||
       [authorizationFor,current,chargeResponse,consumeObservation,consumePage].some(fn=>typeof fn !== 'function') ||
       typeof workspaceId !== 'string' || !workspaceId.length ||
@@ -85,6 +104,9 @@ function prepareRead({moon, workspaceId, channel, names, initialAuthorization, c
   }
   if (!moon || typeof moon !== 'object' || types.isProxy(moon)) fail('InvalidSlackMessageHistoryRead');
   const provider = captureProvider(moon,providerExports,false,'InvalidSlackMessageHistoryRead');
+  const timeWindow = ownHistoryWindow(requestWindow);
+  const windowProvider = timeWindow === undefined ? undefined
+    : captureProvider(moon,windowProviderExports,false,'SlackMessageHistoryWindowRuntimeUnavailable');
   const replyProvider = captureProvider(moon,replyProviderExports,true);
   const projectionProvider = captureProvider(moon,projectionProviderExports,true);
   const context = ownInvocationContext({authorization:initialAuthorization,credential,limits,
@@ -110,11 +132,13 @@ function prepareRead({moon, workspaceId, channel, names, initialAuthorization, c
       if (selected[previous] === name) fail('InvalidSlackMessageHistoryRead');
     }
   }
-  return Object.freeze({provider,replyProvider,projectionProvider,context,workspaceId,channel,names:selected,signal});
+  return Object.freeze({provider,windowProvider,timeWindow,replyProvider,projectionProvider,context,workspaceId,channel,names:selected,signal});
 }
 
 async function executeRead(prepared, received, retainPage, retainIdentity, retainExchange, retainControl) {
-  const {provider,context,workspaceId,channel,names,signal} = prepared, bound = context.limits;
+  const {provider,windowProvider,timeWindow,context,workspaceId,channel,names,signal} = prepared, bound = context.limits;
+  // Vendor dispatch limit, independent of the admitted Host/Program ceilings.
+  const historyPageSize = Math.min(bound.pageSize,999);
   const observations = [];
   let history;
   let bytes = 0, totalRows = 0;
@@ -122,6 +146,10 @@ async function executeRead(prepared, received, retainPage, retainIdentity, retai
     signal.throwIfAborted();
     await context.callbacks.current(operation);
     signal.throwIfAborted();
+    if (prepared.originalChannel !== undefined) {
+      await prepared.originalChannel.assertCurrent();
+      signal.throwIfAborted();
+    }
   };
   const request = async (operation,index,method,path,query,body) => {
     await verify(operation);
@@ -151,6 +179,17 @@ async function executeRead(prepared, received, retainPage, retainIdentity, retai
     return {response,charge,exchange};
   };
   try {
+    if (prepared.originalChannel !== undefined) {
+      await verify(SLACK_MESSAGE_HISTORY_OPERATION);
+      history=prepared.originalChannel.control;
+      retainControl(history);
+    } else if (timeWindow !== undefined) {
+      await verify(SLACK_MESSAGE_HISTORY_OPERATION);
+      history=checked(windowProvider.slackPrepareMessageHistoryWindow(channel,timeWindow.oldest??undefined,timeWindow.latest??undefined,
+        bound.maxResponseBytes,bound.maxNodes,bound.maxDepth,Math.min(bound.maxRows,historyPageSize),
+        bound.maxCursorBytes,bound.maxValueNodes,bound.maxValueTextBytes,bound.maxPages));
+      retainControl(history);
+    }
     const observed = await request(SLACK_WORKSPACE_IDENTITY_OPERATION,0,'POST','/api/auth.test',[],'{}');
     const identity = checked(provider.slackProjectWorkspaceIdentity(observed.response.body,
       bound.maxResponseBytes,bound.maxNodes,bound.maxDepth,bound.maxIdentityBytes));
@@ -162,19 +201,25 @@ async function executeRead(prepared, received, retainPage, retainIdentity, retai
     // workspace tokens. The actual auth.test response and same retained token
     // must agree with the originally selected workspace before any data call.
     await verify(SLACK_MESSAGE_HISTORY_OPERATION);
-    history=checked(provider.slackPrepareMessageHistory(channel,bound.maxResponseBytes,
-      bound.maxNodes,bound.maxDepth,Math.min(bound.maxRows,bound.pageSize),bound.maxCursorBytes,
-      bound.maxValueNodes,bound.maxValueTextBytes,bound.maxPages));
-    retainControl(history);
+    if (history === undefined) {
+      history=checked(provider.slackPrepareMessageHistory(channel,bound.maxResponseBytes,
+        bound.maxNodes,bound.maxDepth,Math.min(bound.maxRows,historyPageSize),bound.maxCursorBytes,
+        bound.maxValueNodes,bound.maxValueTextBytes,bound.maxPages));
+      retainControl(history);
+    }
     let pending=checked(provider.slackBeginMessageHistory(history));
     for (let index=0; index<bound.maxPages; index++) {
       await verify(SLACK_MESSAGE_HISTORY_OPERATION);
       if (!provider.slackMessageHistoryRequestMatches(history,pending)) fail('ForeignSlackMessageHistoryRequest');
       const original=JSON.parse(provider.slackMessageHistoryRequestJson(pending));
       if (original.channel!==channel || original.ordinal!==index) fail('ForeignSlackMessageHistoryRequest');
-      const query=[['channel',original.channel],['limit',String(bound.pageSize)]];
+      const query=[['channel',original.channel],['limit',String(historyPageSize)]];
       if (original.cursor!==null) query.push(['cursor',original.cursor]);
-      if (original.latest!==null) query.push(['latest',original.latest],['inclusive','false']);
+      const oldest=Object.hasOwn(original,'oldest')?original.oldest:null;
+      if (oldest!==(timeWindow?.oldest??null)) fail('ForeignSlackMessageHistoryRequest');
+      if (oldest!==null) query.push(['oldest',oldest]);
+      if (original.latest!==null) query.push(['latest',original.latest]);
+      if (oldest!==null || original.latest!==null) query.push(['inclusive','false']);
       const {response,charge,exchange}=await request(SLACK_MESSAGE_HISTORY_OPERATION,index,'GET','/api/conversations.history',query);
       const page=checked(provider.slackAdmitMessageHistoryPage(history,pending,response.body));
       const rowCount=provider.slackMessagePageRowCount(page);
@@ -211,7 +256,24 @@ function originalReader(value) {
 }
 
 export function createSlackMessageHistoryReader(options) {
-  const original = prepareRead(options), stop = new AbortController();
+  return createHistoryReader(prepareRead(options));
+}
+
+// This entry accepts only a token issued by the completed channel reader.
+// A caller-provided channel String or WHERE/window substitute is not accepted.
+export function createSlackMessageHistoryReaderFromChannel(options) {
+  const original = projectionRecord(options,['moon','channelSelection','workspaceId','names',
+    'initialAuthorization','credential','authorizationFor','limits','current',
+    'chargeResponse','consumeObservation','consumePage'],['signal'],'InvalidSlackChannelHistoryRead');
+  const channel = slackOriginalChannelName(original.channelSelection,original.moon);
+  const prepared = prepareRead({...original,channel});
+  const binding = prepareSlackOriginalChannelHistory(original.channelSelection,original.moon,
+    prepared.workspaceId,prepared.context.scope,prepared.context.credential,prepared.context.limits);
+  return createHistoryReader(Object.freeze({...prepared,originalChannel:binding}));
+}
+
+function createHistoryReader(original) {
+  const stop = new AbortController();
   const signal = original.signal === undefined ? stop.signal : AbortSignal.any([original.signal,stop.signal]);
   const state = {prepared:Object.freeze({...original,signal}),stop,phase:'ready',
     receivedResponses:0,receivedBodyBytes:0n,observations:[],exchanges:[],pages:new Map(),workspaceIdentity:undefined,control:undefined};
@@ -411,18 +473,18 @@ export function createSlackMessageRepliesReader(options) {
 const projectionLimitFields=['maxRows','maxOccurrences','maxWork','maxComparisonNodes',
   'maxComparisonDepth','maxComparisonTextBytes','maxRowsWireBytes','maxRowsWireNodes','maxRowsWireDepth'];
 
-function projectionRecord(value,required,optional=[]) {
+function projectionRecord(value,required,optional=[],code='InvalidSlackMessageProjection') {
   if (value===null || typeof value!=='object' || arrayIsArray(value) || types.isProxy(value)) {
-    fail('InvalidSlackMessageProjection');
+    fail(code);
   }
   const keys=Reflect.ownKeys(value);
   if (required.some(key=>!keys.includes(key)) || keys.some(key=>!required.includes(key)&&!optional.includes(key))) {
-    fail('InvalidSlackMessageProjection');
+    fail(code);
   }
   const result={};
   for (const key of keys) {
     const descriptor=Object.getOwnPropertyDescriptor(value,key);
-    if (!descriptor?.enumerable || !Object.hasOwn(descriptor,'value')) fail('InvalidSlackMessageProjection');
+    if (!descriptor?.enumerable || !Object.hasOwn(descriptor,'value')) fail(code);
     defineOwned(result,key,{value:descriptor.value,enumerable:true});
   }
   return freezeOwned(result);

@@ -22,7 +22,11 @@ static void require(int condition, const char *name) {
 
 int main(void) {
     size_t page = (size_t)sysconf(_SC_PAGESIZE), bytes = 64 * page;
+#if defined(__linux__)
+    char path[] = "/tmp/actql-extent-domain-XXXXXX";
+#else
     char path[] = "/private/tmp/actql-extent-domain-XXXXXX";
+#endif
     int fd = mkstemp(path);
     if (fd < 0 || unlink(path) != 0 || fchmod(fd, 0600) != 0 || ftruncate(fd, (off_t)bytes) != 0)
         return 2;

@@ -29,9 +29,15 @@ pub fn prepare_slack_command_request(SlackCommandKind, @value_admission.CheckedV
 
 pub fn prepare_slack_message_history(String, SlackMessagePageLimits, Int) -> Result[SlackMessageHistory, SlackMessagePageIssue]
 
+pub fn prepare_slack_message_history_from_channel(SlackChannelListPage, Int, SlackMessagePageLimits, Int) -> Result[SlackMessageHistory, SlackMessagePageIssue]
+
+pub fn prepare_slack_message_history_window(String, String?, String?, SlackMessagePageLimits, Int) -> Result[SlackMessageHistory, SlackMessagePageIssue]
+
 pub fn prepare_slack_message_replies(SlackMessagePage, Int, SlackMessageRepliesLimits) -> Result[SlackMessageReplies, SlackMessagePageIssue]
 
 pub fn project_slack_channel_list(Bytes, SlackChannelListLimits) -> Result[SlackChannelListPage, SlackChannelListIssue]
+
+pub fn project_slack_history_conversation_list(Bytes, SlackChannelListLimits) -> Result[SlackChannelListPage, SlackChannelListIssue]
 
 pub fn project_slack_message_page(Bytes, String, SlackMessagePageLimits) -> Result[SlackMessagePage, SlackMessagePageIssue]
 
@@ -65,6 +71,10 @@ pub fn slack_command_request_path(SlackCommandRequest) -> String
 
 pub fn slack_message_column_names() -> Array[String]
 
+pub fn slack_message_facts_wire() -> String
+
+pub fn slack_message_history_matches_channel(SlackMessageHistory, SlackChannelListPage, Int) -> Bool
+
 pub fn slack_message_history_request_channel(SlackMessageHistoryRequest) -> String
 
 pub fn slack_message_history_request_cursor(SlackMessageHistoryRequest) -> String?
@@ -72,6 +82,8 @@ pub fn slack_message_history_request_cursor(SlackMessageHistoryRequest) -> Strin
 pub fn slack_message_history_request_latest(SlackMessageHistoryRequest) -> String?
 
 pub fn slack_message_history_request_matches(SlackMessageHistory, SlackMessageHistoryRequest) -> Bool
+
+pub fn slack_message_history_request_oldest(SlackMessageHistoryRequest) -> String?
 
 pub fn slack_message_history_request_ordinal(SlackMessageHistoryRequest) -> Int
 

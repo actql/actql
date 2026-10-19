@@ -14,6 +14,10 @@ priv enum SlackMessageHistoryPhase {
 // complete Source capture, custody acknowledgement or Resource capacity.
 pub struct SlackMessageHistory {
   priv channel : String
+  priv mut channel_origin : (SlackChannelListPage, Int)?
+  priv oldest : String?
+  priv oldest_instant : String?
+  priv latest : String?
   priv limits : SlackMessagePageLimits
   priv max_pages : Int
   priv mut phase : SlackMessageHistoryPhase
@@ -41,6 +45,20 @@ pub fn prepare_slack_message_history(
   limits : SlackMessagePageLimits,
   max_pages : Int,
 ) -> Result[SlackMessageHistory, SlackMessagePageIssue] {
+  prepare_slack_message_history_window(channel, None, None, limits, max_pages)
+}
+
+///|
+// The original open time interval belongs to this protocol, not to a query
+// coverage claim. The caller still owns checked selection, authority and full
+// response/charge custody. Existing unbounded callers use the same protocol.
+pub fn prepare_slack_message_history_window(
+  channel : String,
+  oldest : String?,
+  latest : String?,
+  limits : SlackMessagePageLimits,
+  max_pages : Int,
+) -> Result[SlackMessageHistory, SlackMessagePageIssue] {
   if max_pages <= 0 ||
     limits.max_bytes <= 0 ||
     limits.max_nodes <= 0 ||
@@ -55,8 +73,41 @@ pub fn prepare_slack_message_history(
     @scalar.admit_utf8_length(channel, limits.max_value_text_bytes) is Err(_) {
     return Err(InvalidCell("channel"))
   }
+  let oldest_instant = match oldest {
+    Some(token) => {
+      if @scalar.admit_utf8_length(token, limits.max_value_text_bytes) is Err(_) {
+        return Err(BudgetExceeded)
+      }
+      guard message_epoch_timestamp(token) is Some(instant) else {
+        return Err(InvalidCell("oldest"))
+      }
+      Some(instant)
+    }
+    None => None
+  }
+  let latest_instant = match latest {
+    Some(token) => {
+      if @scalar.admit_utf8_length(token, limits.max_value_text_bytes) is Err(_) {
+        return Err(BudgetExceeded)
+      }
+      guard message_epoch_timestamp(token) is Some(instant) else {
+        return Err(InvalidCell("latest"))
+      }
+      Some(instant)
+    }
+    None => None
+  }
+  if oldest_instant is Some(lower) &&
+    latest_instant is Some(upper) &&
+    @admitted.compare_timestamp_text(lower, upper) != Some(-1) {
+    return Err(InvalidPagination)
+  }
   Ok({
     channel,
+    channel_origin: None,
+    oldest,
+    oldest_instant,
+    latest,
     limits,
     max_pages,
     phase: Ready,
@@ -76,7 +127,7 @@ pub fn begin_slack_message_history(
   if history.phase != Ready {
     return Err(ForeignHistoryRequest)
   }
-  let request = { history, ordinal: 0, cursor: None, latest: None, }
+  let request = { history, ordinal: 0, cursor: None, latest: history.latest, }
   history.pending = Some(request)
   history.phase = Pending
   Ok(request)
@@ -111,6 +162,13 @@ pub fn slack_message_history_request_latest(
 }
 
 ///|
+pub fn slack_message_history_request_oldest(
+  request : SlackMessageHistoryRequest,
+) -> String? {
+  request.history.oldest
+}
+
+///|
 pub fn slack_message_history_request_matches(
   history : SlackMessageHistory,
   request : SlackMessageHistoryRequest,
@@ -141,6 +199,26 @@ pub fn admit_slack_message_history_page(
     project_message_page(bytes, history.channel, history.limits, Some(request)) {
     Ok(page) => page
     Err(issue) => return Err(issue)
+  }
+  // A cursor cannot change the original lower bound; time pagination may only
+  // tighten the upper bound. Compare exact instants, not variable-length ts
+  // Strings or a rounded operational clock. A refusal consumes this occurrence.
+  let latest_instant = match request.latest {
+    Some(token) => message_epoch_timestamp(token)
+    None => None
+  }
+  for row in page.rows {
+    guard row[10].value is @admitted.Timestamp(instant) else {
+      return Err(InvalidPagination)
+    }
+    if history.oldest_instant is Some(lower) &&
+      @admitted.compare_timestamp_text(instant, lower) != Some(1) {
+      return Err(InvalidPagination)
+    }
+    if latest_instant is Some(upper) &&
+      @admitted.compare_timestamp_text(instant, upper) != Some(-1) {
+      return Err(InvalidPagination)
+    }
   }
   history.last_page = Some(page)
   for id in slack_message_page_ids(page) {
@@ -243,4 +321,41 @@ pub fn close_slack_message_history(history : SlackMessageHistory) -> Unit {
   // Stop admission while retaining outstanding originals. This is not transport
   // closure, a reservation return, escaped-alias retirement or a physical ACK.
   history.phase = Closed
+}
+
+///|
+// Keep the admitted channel occurrence, not merely its equal id text. The
+// physical caller still owes the original list request/response prefix,
+// current workspace, operation-specific authority and whole reader capacity.
+pub fn prepare_slack_message_history_from_channel(
+  page : SlackChannelListPage,
+  index : Int,
+  limits : SlackMessagePageLimits,
+  max_pages : Int,
+) -> Result[SlackMessageHistory, SlackMessagePageIssue] {
+  guard index >= 0 &&
+    index < page.rows.length() &&
+    page.rows[index][0].value is @admitted.Text(channel) else {
+    return Err(InvalidSelection("original channel row"))
+  }
+  match prepare_slack_message_history(channel, limits, max_pages) {
+    Ok(history) => {
+      history.channel_origin = Some((page, index))
+      Ok(history)
+    }
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+pub fn slack_message_history_matches_channel(
+  history : SlackMessageHistory,
+  page : SlackChannelListPage,
+  index : Int,
+) -> Bool {
+  match history.channel_origin {
+    Some((original, selected)) =>
+      physical_equal(original, page) && selected == index
+    None => false
+  }
 }

@@ -10,6 +10,9 @@ pub fn issue_prepared_client_effect_run_materials(
   normalization? : ClientEffectNormalization? = None,
 ) -> Result[String, ClientEffectRunMaterialsIssue] {
   let prepared = client_effect_compilation_owner(allowed.compilation)
+  if prepared.source_intent is Some(_) && request is None {
+    return Err(Request(IdentityMismatch))
+  }
   match bind_client_effect_compiled_run(prepared, allowed, definition) {
     Ok(_) => ()
     Err(issue) => return Err(Binding(issue))
@@ -43,7 +46,7 @@ pub fn issue_prepared_client_effect_run_materials(
         Err(issue) => return Err(Request(issue))
       }
       if client_request_input_cid(value) !=
-        source_free_caller_input_intent_cid() {
+        client_effect_original_input_intent_cid(prepared) {
         return Err(Request(IdentityMismatch))
       }
       match client_request_identity_record_wire(value) {
@@ -55,6 +58,18 @@ pub fn issue_prepared_client_effect_run_materials(
   encode_prepared_client_effect_materials(
     allowed, definition, request_wire, normalization_wire,
   )
+}
+
+///|
+/// Only the source frontend's original preparation can retain this intent.
+/// The legacy path keeps its exact source-free identity.
+fn client_effect_original_input_intent_cid(
+  prepared : PreparedClientEffectComputation,
+) -> String {
+  match prepared.source_intent {
+    None => source_free_caller_input_intent_cid()
+    Some(intent) => client_submitted_intent_cid(intent)
+  }
 }
 
 ///|
