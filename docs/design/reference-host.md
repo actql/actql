@@ -1057,6 +1057,15 @@ may outlive descriptor close until their separate original lifetimes retire.
 Mutating a later limits record cannot increase the captured allowance. These
 private recipe conditions do not change unselected Journal or public limits.
 
+The selected Store exclusion uses a separate nominal view of that same retained
+native module before Journal construction. Its explicit entry/work/history
+allowance is included beside the Journal view, not credited twice from one
+allowance. Store adoption retains the same cumulative reader rather than
+resetting its counters. A whole bounded native scan and its returned names
+precede Store's cumulative processed-entry/UTF8 checks; both holdings and this
+refusal overlap belong in the original facility envelope. Unselected Store
+bootstrap and later independently scoped Store operations are unchanged.
+
 Physical directory close is consumed once before entering the native call.
 A failed or uncertain result retains the same original and pending duty; retry
 only observes that outcome and never closes a possibly reused numeric FD.

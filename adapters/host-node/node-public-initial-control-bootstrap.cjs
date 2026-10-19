@@ -159,7 +159,8 @@ function closeJournal(entry) {
       }
       entry.closed = true;
       entry.subject = entry.subjectCurrent = undefined;
-      entry.directoryInspection = entry.nativeImage = entry.nativeImageCurrent = undefined;
+      entry.directoryInspection = entry.ownershipDirectoryInspection = undefined;
+      entry.nativeImage = entry.nativeImageCurrent = undefined;
       return journalStatus(entry);
     } catch (cause) {
       journalFailure(entry, cause);
@@ -194,6 +195,7 @@ function prepareJournal(held) {
     disposition: state.journalDisposition, subject: undefined, subjectCurrent: undefined,
     argumentsForJournal: undefined, nativeImage: undefined, nativeImageCurrent: undefined,
     directoryInspection: undefined, directoryEntryBound: undefined,
+    ownershipDirectoryInspection: undefined,
     attempted: false, nativeAttempted: false, openFlight: undefined,
     ownership: undefined, ownershipForwarded: false, dependency: undefined,
     journal: undefined, journalClose: undefined,
@@ -225,6 +227,16 @@ function prepareJournal(held) {
     entry.directoryEntryBound = field(limits, 'maxEntries');
     entry.directoryInspection = createHostJournalDirectoryInspector(
       field(entry.nativeImage, 'operations'), limits, () => journalCurrent(original, held));
+    // Store exclusion precedes Journal acquisition, so its directory reads
+    // need the same retained native module, not a later stock Dir fallback.
+    // This separate view's complete construction history is explicitly part
+    // of the original disposition, not another copy of a credited allowance.
+    const ownershipLimits = field(entry.disposition, 'ownershipDirectoryLimits');
+    if (field(ownershipLimits, 'maxEntries') !== field(entry.ownershipBounds, 'maxDirectoryEntries')) {
+      journalUnavailable();
+    }
+    entry.ownershipDirectoryInspection = createHostJournalDirectoryInspector(
+      field(entry.nativeImage, 'operations'), ownershipLimits, () => journalCurrent(original, held));
     entry.subject = apply(state.journal.read, state.namespace, [held]);
     entry.subjectCurrent = field(entry.subject, 'assertCurrent');
     if (typeof entry.subjectCurrent !== 'function') journalUnavailable();
@@ -277,7 +289,8 @@ function openJournal(original, held, directory, options) {
       // Acquire the same Store exclusion before the native Journal; no fresh
       // publication prefix is created during the earlier preparation phase.
       const ownership = await apply(state.journal.ownershipPrepare, state.namespace,
-        [join(field(entry.subject, 'root'), 'publication'), entry.ownershipBounds, entry.dependency]);
+        [join(field(entry.subject, 'root'), 'publication'), entry.ownershipBounds, entry.dependency,
+          entry.ownershipDirectoryInspection]);
       entry.ownership = ownership;
       if (ownership === undefined) journalUnavailable();
       journalCurrent(original, held);

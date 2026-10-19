@@ -26,6 +26,9 @@ import {
   randomUUID,
 } from 'node:crypto';
 import {resolve} from 'node:path';
+import {Buffer as OriginalBuffer} from 'node:buffer';
+import {assertHostJournalDirectoryInspector, inspectHostJournalDirectory}
+  from '../host-node/host-journal-directory.mjs';
 import {createObjectWriterOwner} from './object-writer-owner.mjs';
 import {createResultDeletionOwner} from './result-deletion-owner.mjs';
 import {createMetadataDeletionOwner} from './metadata-deletion-owner.mjs';
@@ -38,6 +41,8 @@ import {createPublicationCommitOwner} from './publication-commit-owner.mjs';
 export {readBounded as readBoundedLocalMetadata};
 
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
+const originalByteLength = OriginalBuffer.byteLength;
+const originalApply = Reflect.apply;
 // Physical holdings: Transfer material, Effect source/capture custody,
 // encrypted publication evidence, Local continuation evidence, and generated
 // or captured Content. These are kinds in the same physical custody owner,
@@ -433,7 +438,7 @@ async function processIsAlive(pid) {
 // until it completes: no earlier Buffer/String/Promise retirement is assumed.
 // The original Host envelope separately funds decode/tree/backing, the one
 // excess Dirent/EOF probe, FD/Dir/cleanup controls and generated Host baseline.
-function storeBootstrapAcquisition(supplied, maxMetadataBytes) {
+function storeBootstrapAcquisition(supplied, maxMetadataBytes, directoryInspection) {
   if (!exactKeys(supplied, ['maxWireBytes', 'maxDirectoryEntries']) ||
       !quantity(supplied.maxWireBytes) || supplied.maxWireBytes === 0 ||
       !quantity(supplied.maxDirectoryEntries)) {
@@ -441,6 +446,9 @@ function storeBootstrapAcquisition(supplied, maxMetadataBytes) {
   }
   // Capture before I/O. A mutated argument never widens this opening.
   const {maxWireBytes, maxDirectoryEntries} = supplied;
+  if (directoryInspection !== undefined) {
+    assertHostJournalDirectoryInspector(directoryInspection, maxDirectoryEntries);
+  }
   let entries = 0, rawBytes = 0;
   const readMetadata = async path => {
     const bytes = await readBounded(path,
@@ -449,6 +457,23 @@ function storeBootstrapAcquisition(supplied, maxMetadataBytes) {
     return bytes;
   };
   const readDirectory = async path => {
+    if (directoryInspection !== undefined) {
+      // The same Root owns this nominal native view and its cumulative scan
+      // allowance before acquisition. A whole scan's retained names/backing
+      // precedes these Store processing bounds; it is not a stock Dir lease.
+      // Unknown close propagates the view's original cleanup duty unchanged.
+      const names = inspectHostJournalDirectory(directoryInspection, path, maxDirectoryEntries);
+      for (const name of names) {
+        if (entries === maxDirectoryEntries) fail('PublicationStoreBootstrapEntriesLimit');
+        entries++;
+        const bytes = originalApply(originalByteLength, OriginalBuffer, [name, 'utf8']);
+        if (!Number.isSafeInteger(bytes) || bytes < name.length || bytes > maxWireBytes - rawBytes) {
+          fail('PublicationStoreBootstrapWireLimit');
+        }
+        rawBytes += bytes;
+      }
+      return names;
+    }
     const directory = await opendir(path, {encoding: 'buffer', bufferSize: 1});
     let primary, failed = false;
     try {
@@ -808,7 +833,7 @@ export function assertOriginalPreparedLocalPublicationStoreOwnership(original, d
     fail('PublicationStoreOwnershipLost');
   }
 }
-export async function prepareLocalPublicationStoreOwnership(directory, bounds, dependency) {
+export async function prepareLocalPublicationStoreOwnership(directory, bounds, dependency, directoryInspection) {
   if (typeof directory !== 'string' || directory.length === 0) fail('InvalidPublicationStoreConfiguration');
   // Capture before any acquisition/callback. The actual Root supplies its
   // original close-only observation, never a replacement DB or public flag.
@@ -820,12 +845,15 @@ export async function prepareLocalPublicationStoreOwnership(directory, bounds, d
   }
   const dependencyStatus = dependencyProperty?.value;
   const root = resolve(directory);
+  if (bounds === undefined && directoryInspection !== undefined) {
+    fail('InvalidPublicationStoreBootstrapBounds');
+  }
   // Ordinary installed Hosts move this same exclusion before their Journal
   // without selecting a resource recipe or changing their existing intake.
   // Selected operational callers still supply their explicit finite bounds.
   const bootstrap = bounds === undefined ? Object.freeze({
     readDirectory: readdir, readMetadata: path => readBounded(path, 4096),
-  }) : storeBootstrapAcquisition(bounds, 4096);
+  }) : storeBootstrapAcquisition(bounds, 4096, directoryInspection);
   let names;
   try {
     const state = await lstat(root);
@@ -848,6 +876,7 @@ export async function prepareLocalPublicationStoreOwnership(directory, bounds, d
   }
   const original = Object.freeze(Object.create(null));
   const entry = {root, fresh, ownership: undefined, phase: 'prepared',
+    directoryBootstrap: directoryInspection === undefined ? undefined : bootstrap,
     dependency, dependencyStatus,
     closing: false, releaseFlight: undefined, cleanupFlight: undefined,
     child: undefined, childStatus: undefined, childRetry: undefined, unknownChild: false};
@@ -996,8 +1025,16 @@ async function openOriginalLocalPublicationStore(
 ) {
   const configuration = validateConfiguration(supplied);
   const contractControl = validateContractControl(suppliedControl);
-  const bootstrap = suppliedBootstrap === undefined ? undefined
+  const openingBootstrap = suppliedBootstrap === undefined ? undefined
     : storeBootstrapAcquisition(suppliedBootstrap, configuration.maxObjectBytes);
+  // Adopt the selected exclusion's SAME cumulative directory reader. Creating
+  // another view here would reset its history between prepare and Store open.
+  // Metadata keeps its existing object bound and acquisition semantics.
+  const bootstrap = prepared?.directoryBootstrap === undefined ? openingBootstrap : Object.freeze({
+    readDirectory: prepared.directoryBootstrap.readDirectory,
+    readMetadata: openingBootstrap?.readMetadata ??
+      (path => readBounded(path, configuration.maxObjectBytes)),
+  });
   const readOpeningDirectory = bootstrap?.readDirectory ?? readdir;
   const readOpeningMetadata = bootstrap?.readMetadata ??
     (path => readBounded(path, configuration.maxObjectBytes));

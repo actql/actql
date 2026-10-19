@@ -9,7 +9,8 @@ import test from 'node:test';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import journalFacilityFields from './host-journal-facility-fields.cjs';
-import {createHostJournalDirectoryInspector} from './host-journal-directory.mjs';
+import {createHostJournalDirectoryInspector, assertHostJournalDirectoryInspector}
+  from './host-journal-directory.mjs';
 import {parse} from 'acorn';
 import {DatabaseSync, StatementSync} from 'node:sqlite';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
@@ -136,6 +137,8 @@ async function fixture({covered = true, open, read, current, nativeCurrent, load
     directoryNativeImageLoader: loadImage,
     journalDisposition: covered ? Object.freeze({
     ownershipBounds: Object.freeze({maxWireBytes: 16384, maxDirectoryEntries: 64}),
+    ownershipDirectoryLimits: Object.freeze({maxEntries: 64, maxNameBytes: 1024,
+      maxWork: 65536, maxInspections: 128}),
     directoryImageLimits: Object.freeze({maxImageBytes: imageFact.bytes, temporaryDirectory: tmpdir(),
       maxEntries: 100000, maxNameBytes: 1024, maxWork: 268435456, maxInspections: 4096}),
     argumentsForOriginalJournal(actual, options, originalDirectoryInspection) {
@@ -166,6 +169,28 @@ async function fixture({covered = true, open, read, current, nativeCurrent, load
     bindings:root.captureNative(fs,crypto)});
   return {scratch, originals, directory, root, state};
 }
+
+test('actual Root forwards its same-module bounded native reader before Store exclusion and Journal open', async () => {
+  let inspection, prepared = false;
+  const f = await fixture({
+    async prepareOwnership(path, bounds, dependency, originalInspection) {
+      assertHostJournalDirectoryInspector(originalInspection, bounds.maxDirectoryEntries);
+      inspection = originalInspection;
+      const original = await prepareLocalPublicationStoreOwnership(path, bounds, dependency, originalInspection);
+      prepared = true;
+      return original;
+    },
+    open(path, options) {
+      assert.equal(prepared, true);
+      assert.notStrictEqual(options.primaryDirectoryInspection, inspection);
+      return openClientRequestJournal(path, options);
+    },
+  });
+  const original = f.root.prepare(f.originals);
+  await f.root.open(original, f.originals, f.directory, {});
+  assert.equal((await f.root.close(original, f.originals)).pending, false);
+  f.scratch.passed();
+});
 
 test('Root forwards earlier native bindings and rejects a foreign filesystem operation before subject acquisition', async () => {
   let subjects = 0;

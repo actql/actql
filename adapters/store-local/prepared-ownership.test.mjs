@@ -6,6 +6,7 @@ import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 import {DatabaseSync} from 'node:sqlite';
+import {createHostJournalDirectoryInspector} from '../host-node/host-journal-directory.mjs';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody}
   from '../host-node/client-request-journal.mjs';
 import {openLocalPublicationStore, prepareLocalPublicationStoreOwnership,
@@ -24,6 +25,60 @@ async function fixture() {
 }
 const adopt = (f, original, configuration = f.configuration) =>
   openLocalPublicationStore(configuration, f.control, undefined, undefined, original);
+
+// Explicit directory operations test nominal forwarding/custody, not a native
+// close ACK or an operational facility. The Root diagnostic separately uses
+// the retained matching Darwin native artifact.
+function selectedDirectory({names = [], outcome = 'closed', maxInspections = 8} = {}) {
+  let opens = 0, closes = 0, next = 0;
+  const handle = {};
+  const native = {
+    open() { opens++; next = 0; return handle; },
+    next(original) { assert.strictEqual(original, handle);
+      return next === names.length ? null : Buffer.from(names[next++]); },
+    current(original) { assert.strictEqual(original, handle); },
+    close(original) { assert.strictEqual(original, handle); closes++; return {outcome}; },
+  };
+  return {inspect: createHostJournalDirectoryInspector(native,
+    {maxEntries: 64, maxNameBytes: 1024, maxWork: 65536, maxInspections}, () => {}),
+    counts: () => ({opens, closes})};
+}
+
+test('selected Store preparation refuses a foreign or mismatched inspector before filesystem work', async () => {
+  const f = await fixture();
+  let calls = 0;
+  await assert.rejects(prepareLocalPublicationStoreOwnership(f.directory, bounds, undefined,
+    () => { calls++; return []; }), {code: 'HostJournalDirectoryUnavailable'});
+  const selected = selectedDirectory();
+  await assert.rejects(prepareLocalPublicationStoreOwnership(f.directory,
+    {...bounds, maxDirectoryEntries: 63}, undefined, selected.inspect),
+  {code: 'HostJournalDirectoryUnavailable'});
+  assert.equal(calls, 0);
+  assert.deepEqual(selected.counts(), {opens: 0, closes: 0});
+  await assert.rejects(readdir(f.directory), {code: 'ENOENT'});
+  f.scratch.passed();
+});
+
+test('Store adoption retains the prepared native reader and does not refill its history', async () => {
+  const f = await fixture(), selected = selectedDirectory({maxInspections: 1});
+  const original = await prepareLocalPublicationStoreOwnership(f.directory, bounds, undefined, selected.inspect);
+  assert.deepEqual(selected.counts(), {opens: 1, closes: 1});
+  await assert.rejects(adopt(f, original), {code: 'HostJournalDirectoryUnavailable'});
+  assert.deepEqual(selected.counts(), {opens: 1, closes: 1});
+  assert.equal((await closePreparedLocalPublicationStoreOwnership(original)).pending, false);
+  f.scratch.passed();
+});
+
+test('Store preparation propagates the same native consumed-close Unknown without reopening or retrying close', async () => {
+  const f = await fixture(), selected = selectedDirectory({outcome: 'unknown'});
+  let failure;
+  await assert.rejects(prepareLocalPublicationStoreOwnership(f.directory, bounds, undefined, selected.inspect),
+    error => {failure = error; return error.code === 'HostJournalDirectoryCleanupPending';});
+  for (let index = 0; index < 2; index++) assert.equal(failure.cleanupHandle.retry().pending, true);
+  assert.deepEqual(selected.counts(), {opens: 1, closes: 1});
+  assert.deepEqual(await readdir(f.directory), []);
+  f.scratch.passed();
+});
 
 test('shared prepared exclusion survives Store cleanup until the same native Journal closes', async () => {
   const f = await fixture();
