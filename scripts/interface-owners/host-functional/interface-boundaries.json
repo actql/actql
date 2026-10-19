@@ -62951,7 +62951,7 @@
     },
     {
       "module": "adapters/host-node/node-host-journal-installation.mjs",
-      "sha256": "612224a52ece258c69da1d0c1d78c2506c4cf514750d999920229d3ca5b68462",
+      "sha256": "05327d06c0f4342620785fe4077774375a82e231d90ce6c4070b2c89773ad0e1",
       "exports": [
         "prepareHostJournalInstallation"
       ],
@@ -63001,6 +63001,13 @@
             "sameOriginals"
           ],
           "async": true
+        },
+        {
+          "name": "prepareHostJournalInstallation/init:admitRootFormat/init:admitRootFormat",
+          "parameters": [
+            "root"
+          ],
+          "async": false
         },
         {
           "name": "prepareHostJournalInstallation/init:assertCurrent/init:assertCurrent",
@@ -63062,13 +63069,14 @@
             "current",
             "invoke",
             "prepareHostJournalInstallation",
+            "prepareHostJournalInstallation/init:admitRootFormat/init:admitRootFormat",
             "prepareHostJournalInstallation/init:assertCurrent/init:assertCurrent",
             "prepareHostJournalInstallation/init:close/init:close",
             "prepareHostJournalInstallation/init:openRequestJournal/init:openRequestJournal",
+            "prepareHostJournalInstallation/init:publicationOwnership/init:publicationOwnership",
             "prepareHostJournalInstallation/prepareHostJournalInstallation",
             "prepareHostJournalInstallation/prepareHostJournalInstallation#2",
-            "unavailable/unavailable",
-            "prepareHostJournalInstallation/init:publicationOwnership/init:publicationOwnership"
+            "unavailable/unavailable"
           ],
           "exports": [
             "prepareHostJournalInstallation"
@@ -63092,6 +63100,10 @@
               {
                 "path": "adapters/host-node/node-host-journal-installation.mjs",
                 "anchor": "publicationOwnership() {"
+              },
+              {
+                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "anchor": "admitRootFormat(root) {"
               }
             ],
             "identity": [
@@ -63102,6 +63114,10 @@
               {
                 "path": "adapters/host-node/node-host-journal-installation.mjs",
                 "anchor": "return invoke(4, [state.original, state.originals]);"
+              },
+              {
+                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "anchor": "return invoke(5, [state.original, state.originals, root]);"
               }
             ],
             "ownership": [
@@ -63120,6 +63136,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "if (entry.journal === undefined || entry.ownership === undefined || entry.ownershipForwarded) {"
+              },
+              {
+                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "anchor": "if (state.closed || state.closing) unavailable();"
               }
             ],
             "synchronization": [
@@ -63130,6 +63150,10 @@
               {
                 "path": "adapters/host-node/node-host-journal-installation.mjs",
                 "anchor": "function current(state) {"
+              },
+              {
+                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "anchor": "current(state);"
               }
             ],
             "failure": [
@@ -63160,12 +63184,16 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The complete separate Journal disposition must precede this preparation:"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Selected Host root-format admission consumes a one-entry view of that same"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/node-host-journal-installation.mjs",
-                "anchor": "'closeHostJournalInstallation', 'openHostJournalRequestJournal', 'originalHostPublicationOwnership'];"
+                "anchor": "'closeHostJournalInstallation', 'openHostJournalRequestJournal', 'originalHostPublicationOwnership',"
               },
               {
                 "path": "adapters/host-node/node-host-journal-installation.mjs",
@@ -63188,6 +63216,10 @@
               {
                 "path": "adapters/host-node/host-journal-root-custody.test.mjs",
                 "anchor": "Root and adopted Store keep the same exclusion until both original physical duties acknowledge"
+              },
+              {
+                "path": "adapters/host-node/node-host-journal-installation.test.mjs",
+                "anchor": "test('root-format admission forwards through the captured sixth Root operation and same original pair'"
               }
             ]
           }
