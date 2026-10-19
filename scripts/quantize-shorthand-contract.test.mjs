@@ -41,3 +41,19 @@ test('quantize shorthand independent preimages are complete existing bodies with
   assert.equal(vectors[0].value.quantize.scale, 0);
   assert.equal(vectors[2].value.quantize.scale, 38);
 });
+
+test('quantize NULL exception preserves every other original typing vector and environment', () => {
+  const before = read('scripts/fixtures/quantize-shorthand/predecessor-typing.json');
+  const current = read('portability/corpus/actql-expression-typing-v0.1.json');
+  const oldNull = {source: "quantize(NULL,8,2,'half_even')", issue: 'NullTypeUnresolved'};
+  assert.deepEqual(before.negative.filter(value => value.source === oldNull.source), [oldNull]);
+  assert.deepEqual(current, {...before,
+    types: {...before.types, 'decimal38_2?': {type: 'decimal', nullable: true, precision: 38, scale: 2}},
+    positive: [...before.positive, {source: oldNull.source, type: 'decimal8_2?'},
+      {source: 'quantize(NULL,2)', type: 'decimal38_2?'}],
+    negative: [...before.negative.filter(value => value.source !== oldNull.source),
+      {source: 'quantize(unknown_quantize_value,2)', issue: 'UnknownField'},
+      {source: 'quantize($missing_quantize,2)', issue: 'UnknownParameter'}]});
+  assert.ok(current.negative.some(value => value.source === "decimal_divide(NULL,n,8,2,'half_even')" &&
+    value.issue === 'NullTypeUnresolved'));
+});
