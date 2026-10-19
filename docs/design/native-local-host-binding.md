@@ -1969,11 +1969,32 @@ it can retire its Library child. Dropping a reference, leaving a frame or
 closing a descriptor alone is not that acknowledgement; the Library, both
 contexts and the original backing still retain their separate close duties.
 
+An original-routed Store separately retains physical child close and its
+original scope-return duty. A failed final return cannot make a later public
+close terminal. The same handle retries that return; a failed normal return
+can reach only the existing same-original cleanup recovery, never normal
+resumption or replay of the failed operation. Primary and cleanup failures
+remain distinct. After physical Database, descriptor and result-storage ACKs
+and the original return are confirmed, its last managed alias may retire the
+empty Database DATA shell without calling the component from an outer frame.
+A retained closed alias still keeps the Library child busy. Residual storage,
+an unconfirmed physical close or a pending scope keeps that responsibility.
+
 An in-process retained execution keeps its original delegated Ledger while its
 managed work uses the corresponding physical domain. Logical stop precedes
 physical retirement, and both remain distinct from the original usage report,
 parent loan, Host and descriptor acknowledgements. Entering another phase never
 creates a new Ledger or restores consumed capacity.
+
+The original Read user may already have returned while escaped aliases keep
+its context physically busy. Cleanup-only scope observation checks that same
+retained context and its actual entered frame, agreeing with the nominal
+active latch; it issues no normal currentness, Ledger borrow or retirement ACK.
+Normal scope observation retains its stronger current-user requirement. The
+Store operation's separate pending-scope observation reports only its original
+calling/flight/SQL lifecycle: a sticky failure alone is not a pending scope,
+and an invalid observation is never inactivity. Neither an idle scope nor a
+successful return acknowledges Database, Library, domain or parent cleanup.
 
 The Ledger's immutable usage snapshots can themselves have been allocated in
 that child domain. After confirmed logical stop and outside every child
