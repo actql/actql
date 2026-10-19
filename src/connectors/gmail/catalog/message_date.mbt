@@ -1,5 +1,5 @@
 ///|
-enum GmailHeaderDateIssue {
+priv enum GmailHeaderDateIssue {
   Malformed
   Unsupported
   BudgetExceeded
