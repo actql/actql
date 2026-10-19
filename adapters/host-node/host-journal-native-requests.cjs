@@ -56,6 +56,13 @@ const preservingGrowth = (previousPeak, next) => freeze({
   immediateCredit:false,
 });
 
+// An upper for a SUM of independently allocated blocks, not U(sum r).
+// The selected stock family above satisfies U(r)<=2r+32768 per block.
+// Keep this conservative form where the fixed source inventory records a
+// request sum but not every individual size class. This is not region backing.
+const allocationGroup = (count, requestSum) => freeze({count, requestSum,
+  heapUsableSumUpper:checked(2n * requestSum + 32768n * count)});
+
 function bitvecTree(size) {
   // LP64 source layout: 512-byte node,496 usable bytes,62 child pointers,
   //3968 bitmap bits. Last child has the SAME divisor size, not a shorter
@@ -179,6 +186,38 @@ function hostJournalNativeStructureRequests(input) {
       eachTranslatedDataPayloadRequestUpper:translatedPayload,
       uniqueRcStringBlocks:90n, eachRcStringRequestUpper:checked(generatedPayload + 12n),
       retainedMainAndChildArraysAlreadyCounted:true}),
+    fixedSchema:freeze({
+      qualification:'closed-own-ddl-retained-subset', completeSchema:false,
+      // One combined primary/observation catalogue, NOT a copy per prepared
+      // statement. Internal main/temp Schema, intrinsic tables, hashes,
+      // trigger graphs and parse/copy/growth work remain additional terms.
+      tables:allocationGroup(15n, 1800n),
+      tableNames:allocationGroup(15n, 427n),
+      finalColumnArrays:allocationGroup(15n, 1424n),
+      columnNames:allocationGroup(89n, 1380n),
+      // Index name bytes are INLINE in the same allocation as the Index,
+      // pointer/column/sort arrays. Do not charge a second name allocation.
+      indexesIncludingNames:allocationGroup(10n, 2019n),
+      fixedRecordRequestSum:7050n,
+      // Retained CHECK originals are not all reduced packed clones. Inner
+      // ExprLists and original CHECK names have their own allocations.
+      checkNodes:allocationGroup(117n, 10008n),
+      checkNames:allocationGroup(33n, 779n),
+      checkLists:allocationGroup(13n, 1896n),
+      checkInnerLists:allocationGroup(7n, 1080n),
+      // Each numeric-zero default packs TK_SPAN plus its child into ONE
+      // reduced-tree allocation. Its temporary parsed node/span overlap it.
+      defaultTrees:freeze({count:7n, eachRequestUpper:176n,
+        heapUsableSumUpper:7n * hostJournalNativeUsableUpper(176n)}),
+      defaultLists:allocationGroup(2n, 400n),
+      activeDefaultParsedNodeRequestUpper:82n,
+      activeDefaultSpanRequest:2n,
+      // A transient DML CHECK clone is beside the retained Schema and VM;
+      // list clones request the original usable size, not the logical count.
+      largestActiveCheckCloneNodeRequestSum:640n,
+      cloneListRequestUsesOriginalUsable:true,
+      resetRetiresSchema:false,
+    }),
     allocationBounds:freeze({
       qualification:'conditional-stock-usable-not-region',
       cachePage:allocation(p + 272n),

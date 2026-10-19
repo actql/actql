@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import requests from './host-journal-native-requests.cjs';
 
 const {hostJournalNativeStructureRequests:calculate, hostJournalNativeUsableUpper:usable} = requests;
@@ -148,4 +150,47 @@ test('generated/intermediate record upper is not silently limited to saved file 
   assert.equal(value.activeVm.eachRcStringRequestUpper,4218056n);
   assert.equal(value.activeVm.uniqueRcStringBlocks,90n);
   assert.throws(() => calculate(input({parameterBytes:9223372036854775807n})),unavailable);
+});
+
+test('fixed schema request catalogue remains bound to the exact supported own DDL', () => {
+  const body = readFileSync(new URL('./host-journal-schema-support.cjs', import.meta.url));
+  assert.equal(createHash('sha256').update(body).digest('hex'),
+    '9677078c8c7df3c264d0b02f6f20e45bb9fa645f8c100cb5ed099a68bc27e44a');
+  const s = calculate(input()).fixedSchema;
+  assert.equal(s.tables.count,15n);
+  assert.equal(s.finalColumnArrays.requestSum,1424n);
+  assert.equal(s.columnNames.count,89n);
+  assert.equal(s.indexesIncludingNames.count,10n);
+  assert.equal(s.indexesIncludingNames.requestSum,2019n);
+  assert.equal(s.tables.requestSum + s.tableNames.requestSum +
+    s.finalColumnArrays.requestSum + s.columnNames.requestSum +
+    s.indexesIncludingNames.requestSum,7050n);
+});
+
+test('schema groups apply a per-block sum bound and retain independent lifetime', () => {
+  const a = calculate(input({preparedStatements:1n})).fixedSchema;
+  const b = calculate(input({preparedStatements:100n})).fixedSchema;
+  assert.deepEqual(a,b);
+  assert.equal(a.tables.heapUsableSumUpper,495120n);
+  assert.equal(a.indexesIncludingNames.heapUsableSumUpper,331718n);
+  assert.equal(a.completeSchema,false);
+  assert.equal(a.resetRetiresSchema,false);
+  assert(Object.isFrozen(a));
+  assert(Object.isFrozen(a.checkNodes));
+});
+
+test('retained CHECK originals and packed defaults do not collapse into one allocation', () => {
+  const s = calculate(input()).fixedSchema;
+  assert.equal(s.checkNodes.count,117n);
+  assert.equal(s.checkNodes.requestSum,10008n);
+  assert.equal(s.checkNames.count,33n);
+  assert.equal(s.checkLists.count,13n);
+  assert.equal(s.checkInnerLists.count,7n);
+  assert.equal(s.defaultTrees.count,7n);
+  assert.equal(s.defaultTrees.heapUsableSumUpper,1344n);
+  assert.equal(s.defaultLists.requestSum,400n);
+  assert.equal(s.activeDefaultParsedNodeRequestUpper,82n);
+  assert.equal(s.activeDefaultSpanRequest,2n);
+  assert.equal(s.largestActiveCheckCloneNodeRequestSum,640n);
+  assert.equal(s.cloneListRequestUsesOriginalUsable,true);
 });
