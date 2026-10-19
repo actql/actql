@@ -532,10 +532,11 @@ fn check_source_findings(
         ) => return Failed("check_internal")
         // This lowerer issue conflates unknown names with unsupported forms.
         // Without a distinct input violation it cannot justify author blame.
-        QueryLowering(Expression({ issue: UnsupportedCast, origin, })) =>
-          findings.push(
-            LocatedImplementationLimit(check_authored_range(origin)),
-          )
+        // The existing generic limit has no cast-specific public facts.
+        // Keep the original authored range in the lowerer's diagnostic; do
+        // not label a conversion as a function or invent a reason payload.
+        QueryLowering(Expression({ issue: UnsupportedCast, .. })) =>
+          findings.push(Limit("implementation_limit"))
         QueryLowering(Expression({ issue: UnsupportedFunction, origin, })) =>
           findings.push(FunctionLimit(check_authored_range(origin)))
         QueryLowering(

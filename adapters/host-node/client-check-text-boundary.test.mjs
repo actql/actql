@@ -717,7 +717,7 @@ for (const entrance of ['local', 'http']) {
         'SELECT 1 IN UNNEST(CAST(NULL AS ARRAY<INT64>)) AS found',
         'SELECT 1 NOT IN UNNEST(CAST(((NULL)) AS ARRAY<INT64>)) AS absent',
         'SELECT CAST(NULL AS ARRAY<INT64>) IS NULL AS missing, ARRAY<INT64>[] IS NULL AS empty',
-        'SELECT 9007199254740992 IN UNNEST(ARRAY<INT64>[]) AS found',
+        'SELECT 9007199254740992.0 IN UNNEST(ARRAY<INT64>[]) AS found',
         'SELECT NULL IN UNNEST(CAST(NULL AS ARRAY<INT64>)) AS found',
         'SELECT ARRAY<INT64>[NULL] AS nullable_items',
       ]) {
@@ -727,8 +727,9 @@ for (const entrance of ['local', 'http']) {
         assert.equal(getCheckInput(checked, 'source').text, text);
       }
       for (const text of [
+        'SELECT 9007199254740992 IN UNNEST(ARRAY<INT64>[]) AS found',
         'SELECT 1.5 IN UNNEST(CAST(NULL AS ARRAY<INT64>)) AS found',
-        'SELECT 9223372036854775808 IN UNNEST(CAST(NULL AS ARRAY<INT64>)) AS found',
+        'SELECT 9223372036854775808.0 IN UNNEST(CAST(NULL AS ARRAY<INT64>)) AS found',
         "SELECT '1' IN UNNEST(CAST(NULL AS ARRAY<INT64>)) AS found",
         'SELECT ARRAY<INT64>[1] AS no_constructor_promotion',
         'SELECT @value IN UNNEST(CAST(NULL AS ARRAY<INT64>)) AS no_parameter_promotion',
