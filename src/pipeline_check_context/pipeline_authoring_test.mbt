@@ -131,7 +131,7 @@ test "pipeline authoring cannot certify unresolved expressions or unconnected op
   )
   let unconnected = unbound_profile_pipeline(
     true,
-    suffix=",{\"distinct\":true}",
+    suffix=",{\"dedupe_rows\":{\"by\":[\"n\"],\"order_by\":[{\"n\":\"asc\"}]}}",
   )
   let profiles = authoring_profile_proof(unconnected)
   let capacity = authoring_capacity()

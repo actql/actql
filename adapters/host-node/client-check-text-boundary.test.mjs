@@ -713,6 +713,38 @@ for (const entrance of ['local', 'http']) {
     assert.equal(conditional.report.requirements[0].facts.parameter, 'count');
   });
 
+  test(`${entrance}: SQL and Pipe DISTINCT templates retain typed Parameter and Result obligations`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const [format, text] of [
+      ['sql', 'SELECT DISTINCT @x AS n'],
+      ['aql-text', 'SELECT @x AS n |> DISTINCT'],
+    ]) {
+      for (const [declaration, value] of [
+        [{type: 'number', nullable: true}, null],
+        [{type: 'int64'}, '-9223372036854775808'],
+        [{type: 'int64'}, '9007199254740993'],
+      ]) {
+        const options = {kind: 'text', scope: 'template_only', format,
+          parameterDeclarations: {x: declaration}};
+        const outcome = await client.check(text, options);
+        assert.equal(outcome.outcome, 'completed');
+        assert.equal(outcome.report.verdict, 'verified');
+        assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+        assert.deepEqual(outcome.report.reasons, []);
+        assert.equal(outcome.report.requirements.length, 1);
+        const requirement = outcome.report.requirements[0];
+        assert.equal(requirement.code, 'parameter_value_required');
+        assert.equal(requirement.facts.parameter, 'x');
+        assert.equal(resolveCheckLocation(outcome, requirement.location).pointer, '/x');
+        assert.deepEqual(outcome.report.runnable, {verdict: 'no', reasons: [{code: 'parameter_value_required'}]});
+        const bound = await client.check(text, {...options, scope: 'bound_input', parameters: {x: value}});
+        assert.equal(bound.report.verdict, 'verified');
+        assert.deepEqual(bound.report.requirements, []);
+        assert.equal(resolveCheckLocation(structuredClone(outcome), requirement.location), undefined);
+      }
+    }
+  });
+
   test(`${entrance}: scoped SQL and AQL templates close complete obligations and retain runtime Requirements`, async t => {
     const {client} = await publicCheck(t, entrance);
     for (const format of ['sql', 'aql-text']) {
