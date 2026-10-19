@@ -1637,6 +1637,37 @@ A selected load consumes one original attempt, records even a failed load, and
 checks actual handle/symbol-image correspondence before initialization or use.
 Missing entry coverage cannot select a legacy diagnostic load instead.
 
+The selected initial OS service original is the actual trusted Native
+process/main-thread lifetime supplied by platform startup. It is not an
+additional byte reservation, a BackedExtent, measured RSS or a numerical demand
+estimate. The entry borrows it once through its private early-current port,
+before managed initialization or later Runtime registration. The same entry's
+actual executable, generation, stack, captured inputs and closed recipe remain
+conjunctive. A copied record, PID, quote or unrelated mapping cannot supply it.
+Later Runtime/member adoption keeps that same initial lifetime. Only the two
+existing one-shot SQLite/Crypto load records consume the fixed load sequence;
+their existing image/provider/symbol checks and partial cleanup remain intact.
+This service original cannot fill an unresolved numerical byte field or fund
+Read, component heaps, Source, Compute, Model or another runtime's startup.
+
+The fixed Darwin loader recipe excludes ambient `DYLD_*` options. Its private
+entry observation examines at most 10000 environment slots and five name bytes
+per entry without copying values or allocating. A missing or unterminated
+bounded vector refuses. The same entry rechecks this condition before normal
+covered work; an observed refusal is sticky and cannot be reset by removing an
+option. This observation is neither an OS-facility original nor proof that no
+image was injected before entry. Cleanup retains its existing original duty
+even after this normal-use condition fails.
+
+Normal currentness requires the same nominal initial observation and the same
+entry/process/main thread. A foreign thread or fork cannot consume its original
+cleanup; an observed original-parent/environment refusal is sticky for normal
+work. There is no release/refill operation on this process-lived service. In
+particular, the pinned OpenSSL master TLS key and its hooked per-thread table
+have different lifetimes: thread cleanup clears/frees the table without
+establishing retirement of the OS key. Component/module ACKs do not return that
+process-lived control or replace its callback-lifetime obligations.
+
 Normal component use keeps both the original domain-current fence and the
 selected load/member fence. Cleanup retains the same entered original child
 predicate after normal use is unavailable; it cannot reopen, sign or acquire a
