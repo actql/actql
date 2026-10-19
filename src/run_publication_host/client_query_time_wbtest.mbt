@@ -20,6 +20,22 @@ test "query time preparation binds the original Effect owner request and saved R
   let time = bind_client_effect_query_evaluation_time(
     preparation, owner, allowed, definition, request,
   ).unwrap()
+  let run = bind_client_effect_compiled_run(owner, allowed, definition).unwrap()
+  assert_true(client_effect_run_query_time_matches(run, preparation, request))
+  let copied_request = client_query_time_test_request(owner, "query")
+  assert_false(
+    client_effect_run_query_time_matches(run, preparation, copied_request),
+  )
+  let (_, until) = @publication.run_definition_lifetime(definition).unwrap()
+  let other_definition = issue_client_effect_run_definition(
+    allowed, "scope", "another-query", created, until,
+  ).unwrap()
+  let other_run = bind_client_effect_compiled_run(
+    owner, allowed, other_definition,
+  ).unwrap()
+  assert_false(
+    client_effect_run_query_time_matches(other_run, preparation, request),
+  )
   assert_eq(client_query_time_preparation_created_at(preparation), created)
   assert_true(
     @publication.query_evaluation_time_matches(

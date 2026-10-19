@@ -1995,6 +1995,8 @@ pub fn client_program_open_source_free_infer_effect_host(@run_publication_host.P
 
 pub fn client_program_open_source_free_local_effect_host(@run_publication_host.PreparedClientEffectRun, String, String, Int64, Int64, Int64, Int64, String?, String?) -> ClientLocalEffectHost?
 
+pub fn client_program_open_source_free_local_effect_host_at_query_time(@run_publication_host.PreparedClientEffectRun, @run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, String, String, Int64, Int64, Int64, Int64, String?, String?) -> ClientLocalEffectHost?
+
 pub fn client_program_open_source_free_local_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
 pub fn client_program_open_source_free_local_retained_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?

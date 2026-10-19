@@ -120,6 +120,7 @@ import {canonicalJson, contentCid, createLocalAuthorizationGate,
 import {localContractLimits, localOutputLimits,
   sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence, sourceFreePlanOriginal, sourceFreeTaskPlan,
   sourceFreeEffectPublicationPlan, acquiredEffectPublicationAdmission,
+  openSourceFreeEffectComputation,
   acquiredTaskRunAdmission, inferTaskRunAdmission, restoreInferTaskRunAdmission, serializationTaskRunAdmission,
   selectInstalledSerializationGraph} from
   './local-values-plan.mjs';
@@ -1931,9 +1932,8 @@ async function openInstalledHost(originalInstallation, preparation) {
                     parentResume, modelJournalPort: nextJournal});
                 } finally { modelController?.release(ownedModelToken); }
               }
-              const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
-                facts.owner, registry, values, 1n, 0n, 0n, 0n,
-                fragment, ordered);
+              const setup = openSourceFreeEffectComputation({moon, facts,
+                registry, values, fragment, ordered});
               if (setup === undefined) {
                 throw new Error('InstalledEffectProgramUnsupported');
               }

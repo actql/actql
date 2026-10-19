@@ -521,6 +521,8 @@ pub fn client_effect_review_checkpoint_unit_definition_cid(ClientEffectAllowedRu
 
 pub fn client_effect_run_materials_request_for_dispatch(ClientEffectRunMaterials, @remote_site_protocol.DispatchRequest) -> Result[ClientRequestIdentity?, ClientRequestIdentityIssue]
 
+pub fn client_effect_run_query_time_matches(PreparedClientEffectRun, ClientQueryTimePreparation, ClientRequestIdentity) -> Bool
+
 pub fn client_effect_run_receipt_bindings(ClientEffectRunMaterials, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientEffectReceiptBindingsIssue]
 
 pub fn client_effect_run_start_current(ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Bool
