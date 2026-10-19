@@ -72,10 +72,12 @@ export async function threadRowOwner(verifyOriginalTransport, factsWire, format,
   const acquisition = checked(common.clientProgramRowSourcePrepareAcquisition(declaration, requirement, query, evidence));
   // Explicit independent component bounds, not normal Host funding.
   const ledger = checked(common.clientProgramAcquisitionLedger(1, 1, 262144n, 100000000n, 100000000n, 0));
-  const run = checked(common.clientProgramRowSourceStartAccounted(acquisition, randomUUID(), verifyOriginalTransport,
+  const requestId = randomUUID();
+  const run = checked(common.clientProgramRowSourceStartAccounted(acquisition, requestId, verifyOriginalTransport,
     ledger, 262144n, 131072n));
   checked(common.clientProgramRowSourceBegin(run, 16384, 1, 10, undefined));
-  return {charge: bytes => checked(common.clientProgramRowSourceChargePage(run, bytes)),
+  return {originals: Object.freeze({acquisition, run, requestId}),
+    charge: bytes => checked(common.clientProgramRowSourceChargePage(run, bytes)),
     observation: charge => checked(common.clientProgramRowSourceConsumeObservationCharge(run, charge)),
     page: (rows, charge) => checked(common.clientProgramRowSourceAcceptChargedPage(run, charge, Buffer.from(JSON.stringify(rows)))),
     finish: () => checked(common.clientProgramRowSourceFinish(run)),
