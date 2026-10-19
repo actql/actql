@@ -12,6 +12,9 @@ pub(all) enum NativeSqliteIssue {
   BodyTooLarge
   CapacityExceeded
   Physical(String)
+  // Original SQL result is preserved if returning to Read subsequently fails.
+  OperationRoutingBefore(Int)
+  OperationRoutingAfter(NativeSqliteIssue?, Int)
 }
 
 ///|

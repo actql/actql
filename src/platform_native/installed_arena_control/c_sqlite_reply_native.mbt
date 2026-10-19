@@ -129,6 +129,8 @@ fn sqlite_reply_issue_family(issue : InstalledArenaSqliteIssue?) -> Int {
     Some(Library(@sqlite.BodyTooLarge)) => 18
     Some(Library(@sqlite.CapacityExceeded)) => 19
     Some(Library(@sqlite.Physical(_))) => 20
+    Some(Library(@sqlite.OperationRoutingBefore(_))) => 21
+    Some(Library(@sqlite.OperationRoutingAfter(_, _))) => 22
   }
 }
 

@@ -3,7 +3,7 @@
 #include <stdint.h>
 /* Private fixed coordinator ABI. FuncRef supplies a compiled trampoline, not
  * a closure layout. Both arguments are retained originals; callback arguments
- * are transferred references under the Native MoonBit FFI convention. */
+ * are borrowed under the selected generated FuncRef convention. */
 typedef int32_t (*actql_native_store_operation_route)(void *, void *, int32_t);
 void *actql_native_sqlite_prepare_store_operation(
   void *, void *, actql_native_store_operation_route);
