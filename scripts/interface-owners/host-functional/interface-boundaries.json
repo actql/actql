@@ -16970,7 +16970,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "20035f3ca3430c6d717d422112ef7cf5910858e9e0c0aaa11ced72c00c2b49d3",
+      "sha256": "ac7295111685878e3b67ae7d32d3296e59c4ed9b3a67e4d786b9ba5bbe2db8b3",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -17042,7 +17042,8 @@
           "name": "assertOriginalClientRequestJournalFacilityCurrent",
           "parameters": [
             "database",
-            "statement"
+            "statement",
+            "nativeBindings"
           ],
           "async": false
         },
@@ -17278,6 +17279,21 @@
           "name": "facilityOperations/facilityOperations",
           "parameters": [
             "receiver",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "facilityPlatformOperations/facilityPlatformOperations",
+          "parameters": [
+            "group",
+            "receiver"
+          ],
+          "async": false
+        },
+        {
+          "name": "facilityPlatformOperations/facilityPlatformOperations/facilityPlatformOperations",
+          "parameters": [
             "name"
           ],
           "async": false
@@ -18566,6 +18582,14 @@
           "async": false
         },
         {
+          "name": "originalJournalFacilityField",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "pathText/pathText",
           "parameters": [
             "value"
@@ -19716,6 +19740,9 @@
             "boundedPrimarySql/wrap/wrap/wrap",
             "boundJournalDatabaseExtent",
             "facilityOperations/facilityOperations",
+            "facilityPlatformOperations/facilityPlatformOperations",
+            "facilityPlatformOperations/facilityPlatformOperations/facilityPlatformOperations",
+            "originalJournalFacilityField",
             "inspectJournalSnapshot/inspectJournalSnapshot#3",
             "inspectJournalSnapshot/inspectJournalSnapshot#4",
             "inspectJournalSnapshot/observe/observe",
@@ -19754,7 +19781,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "export function assertOriginalClientRequestJournalFacilityCurrent(database, statement) {"
+                "anchor": "export function assertOriginalClientRequestJournalFacilityCurrent(database, statement, nativeBindings) {"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -19964,6 +19991,7 @@
         "../host-common/sqlite-transaction.mjs",
         "./client-observation-journal.mjs",
         "./client-source-operation.mjs",
+        "./host-journal-facility-fields.cjs",
         "./local-account-config.mjs",
         "./local-values-capacity.mjs",
         "./ordinary-source-binding.mjs",
@@ -60644,8 +60672,128 @@
       ]
     },
     {
+      "module": "adapters/host-node/host-journal-facility-fields.cjs",
+      "responsibilityFacet": "primary",
+      "sha256": "b6ef648fe9202c8991337231c48ed5d2404924ab12c56c84b050b1bad3cff4c7",
+      "role": "physical-io",
+      "owner": "Existing Client request/Run/submission Owners and same physical journal",
+      "exports": [
+        "commonjs:constants",
+        "commonjs:crypto",
+        "commonjs:directory",
+        "commonjs:fs",
+        "commonjs:hash",
+        "commonjs:hmac"
+      ],
+      "operations": [],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "commonjs:constants",
+            "commonjs:crypto",
+            "commonjs:directory",
+            "commonjs:fs",
+            "commonjs:hash",
+            "commonjs:hmac"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The actual selected public prefix also retains its filesystem/crypto bindings"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/host-journal-facility-fields.cjs",
+                "anchor": "module.exports = Object.freeze({"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function captureJournalNativeBindings(fsOriginal, cryptoOriginal) {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function originalJournalFacilityField(value, name) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const facilityPlatformOperations = Object.freeze(["
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "bindings:captureJournalNativeBindings(require('node:fs'),require('node:crypto'))});"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function assertOriginalClientRequestJournalFacilityCurrent(database, statement, nativeBindings) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (nativeBindings !== undefined) {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (facilityChanged) fail('ClientRequestJournalFacilityUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function closeJournal(entry) {"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "an operational disposition, key/first-init permission or a physical ACK. The"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "These references do not supply native extent, earlier acquisition coverage,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "unchanged, while the actual prefix supplies its earlier captured bindings."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-request-journal-facility-current.test.mjs",
+                "anchor": "Journal namespace also checks the exact earlier filesystem and crypto operations"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-facility-current.test.mjs",
+                "anchor": "foreign filesystem receipt accessors and proxies are refused without evaluating them"
+              },
+              {
+                "path": "adapters/host-node/host-journal-root-custody.test.mjs",
+                "anchor": "Root forwards earlier native bindings and rejects a foreign filesystem operation before subject acquisition"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-      "sha256": "bbe9958d2f8c756bfe0956b357514470cddf603c2e6b9fa10eee5b6a283774dc",
+      "sha256": "0015e4ad4d25fe55f8674a877a4ab504414e8dfa4920b89c8c124e0ede506ae1",
       "exports": [
         "commonjs:assertHostJournalInstallationCurrent",
         "commonjs:assertInitialControlInstallationCurrent",
@@ -60673,13 +60821,6 @@
       "operations": [
         {
           "name": "<anonymous>",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "<anonymous>#2",
           "parameters": [
             "value"
           ],
@@ -60756,6 +60897,14 @@
         {
           "name": "assertSupportedIntrinsics",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "captureJournalNativeBindings",
+          "parameters": [
+            "fsOriginal",
+            "cryptoOriginal"
+          ],
           "async": false
         },
         {
@@ -61383,12 +61532,15 @@
         }
       ],
       "imports": [
+        "./host-journal-facility-fields.cjs",
         "./initial-control-installation-owner.cjs",
         "./initial-control-package-custody.cjs",
         "./initial-control-package-original.cjs",
         "./initial-control-phase-envelope.cjs",
         "./source-managed-phase-envelope.cjs",
         "node:buffer",
+        "node:crypto",
+        "node:fs",
         "node:fs/promises",
         "node:module",
         "node:path",
@@ -61499,7 +61651,6 @@
         },
         {
           "operations": [
-            "<anonymous>#2",
             "allocateSourceBacking",
             "appendSourceOriginal",
             "assertSourceFile",
@@ -61756,6 +61907,7 @@
         },
         {
           "operations": [
+            "captureJournalNativeBindings",
             "closeJournal",
             "closeJournal/flight/flight",
             "closeJournal/settled/settled",
@@ -63753,10 +63905,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 145,
-    "operations": 3638,
-    "exports": 929,
-    "explicitContractGroups": 180
+    "modules": 146,
+    "operations": 3641,
+    "exports": 935,
+    "explicitContractGroups": 181
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }
