@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include "moonbit_runtime.h"
 #include BOOTSTRAP_SOURCE
@@ -114,7 +115,11 @@ static void case_partial_exhaustion(void) {
     fixture f = open_fixture();
     void *held = NULL;
     actql_owned_capacity *original = f.domain->lease;
-    size_t remaining = (original->page_count - original->control_pages) * original->page_size;
+    uint64_t capacity = 0, control = 0;
+    assert(actql_native_owned_capacity_bytes(original, &capacity) == ACTQL_OWNED_OK);
+    assert(actql_native_owned_control_bytes(original, &control) == ACTQL_OWNED_OK);
+    assert(capacity > control && capacity - control <= SIZE_MAX);
+    size_t remaining = (size_t)(capacity - control);
     assert(actql_bootstrap_enter_domain(f.domain) == 0);
     assert(actql_native_owned_allocate(original, remaining, 1, &held) == 0);
     assert(actql_bootstrap_leave_domain(f.domain) == 0);
