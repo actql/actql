@@ -99,5 +99,5 @@ test "Native material retains typed rows only from the original admitted session
   assert_true(receiver.table(256) is Err(MaterialClosed))
   receiver.close().unwrap()
   assert_true(store.close().unwrap())
-  assert_true(parent.close())
+  parent.close().unwrap()
 }
