@@ -20,6 +20,16 @@ pub fn github_comment_subject_request_json(String) -> String
 
 pub fn github_graphql_read_issue_json(@catalog.GraphqlResponseIssue) -> String
 
+pub fn github_issue_comments_read_accept(@catalog.IssueCommentsRead, Bytes) -> Result[Unit, @catalog.GraphqlResponseIssue]
+
+pub fn github_issue_comments_read_begin(String, Double, String, Int, Int, Int, Int, Int, Int) -> Result[@catalog.IssueCommentsRead, @catalog.GraphqlResponseIssue]
+
+pub fn github_issue_comments_read_close(@catalog.IssueCommentsRead) -> Unit
+
+pub fn github_issue_comments_read_next_request_json(@catalog.IssueCommentsRead, Int) -> Result[String, @catalog.GraphqlResponseIssue]
+
+pub fn github_issue_comments_read_page_json(@catalog.IssueCommentsRead) -> Result[String, @catalog.GraphqlResponseIssue]
+
 pub fn github_issue_page_json(Bytes, Int, Int, Int, Int) -> String
 
 pub fn github_issue_page_read_accept(@catalog.IssuePageRead, Bytes) -> Result[Unit, @catalog.GraphqlResponseIssue]
@@ -37,6 +47,18 @@ pub fn github_issues_page_json(Bytes, Int, Int, Int, Int, String, Double, String
 pub fn github_issues_request_json(String, Int, Bool, String, String, Array[String], Bool, String) -> String
 
 pub fn github_next_page_json(Bool, String, String, String, Int, Int) -> String
+
+pub fn github_pull_request_page_read_accept(@catalog.PullRequestPageRead, Bytes) -> Result[Unit, @catalog.GraphqlResponseIssue]
+
+pub fn github_pull_request_page_read_begin(Bytes, Int, Int, Int, Int, Int, String, Double, String) -> Result[@catalog.PullRequestPageRead, @catalog.GraphqlResponseIssue]
+
+pub fn github_pull_request_page_read_close(@catalog.PullRequestPageRead) -> Unit
+
+pub fn github_pull_request_page_read_finish_json(@catalog.PullRequestPageRead) -> Result[String, @catalog.GraphqlResponseIssue]
+
+pub fn github_pull_request_page_read_next_request_json(@catalog.PullRequestPageRead, Int) -> Result[String, @catalog.GraphqlResponseIssue]
+
+pub fn github_pull_requests_request_json(String, Int, Bool, String, String, Array[String]) -> String
 
 pub fn github_rate_limit_basis_json(Array[String], Array[String]) -> String
 

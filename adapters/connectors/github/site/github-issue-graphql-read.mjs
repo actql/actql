@@ -59,14 +59,37 @@ function checkLimits(limits) {
 // current read decision; `chargePage(body)` charges each received body before
 // provider parsing or refusal. `consumePage(rows, page, {charge})` consumes
 // that exact admission ticket before the next request.
-export async function readGitHubIssuesByNode({moon, repository,
+export function readGitHubIssuesByNode(options) {
+  return readGitHubRowsByNode(options, false);
+}
+
+// Same physical acquisition and original-prefix Owner; only the typed vendor
+// codec family changes. This selects no new credential operation or grant.
+export function readGitHubPullRequestsByNode(options) {
+  return readGitHubRowsByNode(options, true);
+}
+
+// Comments traverse the two actual native subject families through the same
+// original Credential/exchange/prefix Owner as the Issue and PullRequest reads.
+export function readGitHubIssueCommentsByNode(options) {
+  return readGitHubRowsByNode(options, false, true);
+}
+
+async function readGitHubRowsByNode({moon, repository,
   filters = {state: 'all', labels: []}, credential, callResource,
-  authorizationFor, limits, chargePage, consumeObservation, consumePage, signal}) {
-  if (!moon || typeof moon.githubIssuesRequestJson !== 'function' ||
-      ['githubIssuePageReadBegin', 'githubIssuePageReadNextRequestJson',
-        'githubIssuePageReadAccept', 'githubIssuePageReadFinishJson',
-        'githubIssuePageReadClose', 'githubGraphqlReadIssueJson']
-        .some(name => typeof moon[name] !== 'function') ||
+  authorizationFor, limits, chargePage, consumeObservation, consumePage, signal}, pullRequests, comments = false) {
+  const family = comments ? 'IssueComments' : pullRequests ? 'PullRequest' : 'Issue';
+  const operations = moon && Object.freeze({
+    request: moon[comments ? 'githubIssueCommentsReadNextRequestJson'
+      : pullRequests ? 'githubPullRequestsRequestJson' : 'githubIssuesRequestJson'],
+    begin: moon[comments ? 'githubIssueCommentsReadBegin' : `github${family}PageReadBegin`],
+    next: moon[comments ? 'githubIssueCommentsReadNextRequestJson' : `github${family}PageReadNextRequestJson`],
+    accept: moon[comments ? 'githubIssueCommentsReadAccept' : `github${family}PageReadAccept`],
+    finish: moon[comments ? 'githubIssueCommentsReadPageJson' : `github${family}PageReadFinishJson`],
+    close: moon[comments ? 'githubIssueCommentsReadClose' : `github${family}PageReadClose`],
+  });
+  if (!moon || Object.values(operations).some(value => typeof value !== 'function') ||
+      typeof moon.githubGraphqlReadIssueJson !== 'function' ||
       typeof authorizationFor !== 'function' || !credential ||
       typeof callResource !== 'function' ||
       (chargePage !== undefined && typeof chargePage !== 'function') ||
@@ -83,7 +106,7 @@ export async function readGitHubIssuesByNode({moon, repository,
   const grantIdentity = control.identity;
   const prefix = {responses: [], pages: [], credential: originalCredential,
     repository: Object.freeze({...repository}), limits: owned,
-    chargePage, consumeObservation, consumePage};
+    chargePage, consumeObservation, consumePage, operations, moon};
   let prefixFailure;
   const checkPrefix = () => {
     if (prefixFailure !== undefined) throw prefixFailure;
@@ -99,30 +122,43 @@ export async function readGitHubIssuesByNode({moon, repository,
     }
   };
   repository = prefix.repository;
-  const inputLabels = filters.labels ?? [];
-  const filterState = filters.state;
-  const filterSince = filters.since;
-  if (!['open', 'closed', 'all'].includes(filterState) ||
-      !nativeArrayIsArray(inputLabels) ||
-      (filterSince !== undefined && typeof filterSince !== 'string')) {
-    fail('InvalidGitHubReadFilters');
+  if (comments) {
+    for (const name of ['maxSubjects', 'maxRows', 'maxBytes', 'maxNodes', 'maxDepth']) {
+      if (!count(owned[name]) || owned[name] > 2147483647) fail('InvalidGitHubReadLimits');
+    }
+    if (chargePage !== undefined &&
+        (consumeObservation === undefined || consumePage === undefined)) {
+      fail('GitHubObservationNotAdmitted');
+    }
   }
-  const labelCount = inputLabels.length;
-  if (!Number.isInteger(labelCount) || labelCount < 0 || labelCount > 0xffffffff) {
-    fail('InvalidGitHubReadFilters');
+  let labels;
+  if (!comments) {
+    const inputLabels = filters.labels ?? [];
+    const filterState = filters.state;
+    const filterSince = filters.since;
+    const states = pullRequests ? ['open', 'closed', 'merged', 'all'] : ['open', 'closed', 'all'];
+    if (!states.includes(filterState) ||
+        !nativeArrayIsArray(inputLabels) ||
+        (filterSince !== undefined && (pullRequests || typeof filterSince !== 'string'))) {
+      fail('InvalidGitHubReadFilters');
+    }
+    const labelCount = inputLabels.length;
+    if (!Number.isInteger(labelCount) || labelCount < 0 || labelCount > 0xffffffff) {
+      fail('InvalidGitHubReadFilters');
+    }
+    // Capture each original index once, without caller methods, iterators or
+    // species. Validate the owned snapshot that every request will consume.
+    labels = [];
+    for (let index = 0; index < labelCount; index += 1) {
+      defineOwnData(labels, index, {value: inputLabels[index],
+        writable: true, enumerable: true, configurable: true});
+    }
+    for (let index = 0; index < labelCount; index += 1) {
+      if (typeof labels[index] !== 'string') fail('InvalidGitHubReadFilters');
+    }
+    freeze(labels);
+    filters = Object.freeze({state: filterState, since: filterSince, labels});
   }
-  // Capture each original index once, without caller methods, iterators or
-  // species. Validate the owned snapshot that every request will consume.
-  const labels = [];
-  for (let index = 0; index < labelCount; index += 1) {
-    defineOwnData(labels, index, {value: inputLabels[index],
-      writable: true, enumerable: true, configurable: true});
-  }
-  for (let index = 0; index < labelCount; index += 1) {
-    if (typeof labels[index] !== 'string') fail('InvalidGitHubReadFilters');
-  }
-  freeze(labels);
-  filters = Object.freeze({state: filterState, since: filterSince, labels});
   const headers = JSON.parse(moon.githubRequestHeadersJson());
   const responseHeaders = JSON.parse(moon.githubResponseHeadersJson());
   const accepted = [];
@@ -208,24 +244,67 @@ export async function readGitHubIssuesByNode({moon, repository,
     return {response, charge};
   };
   try {
-    while (pending) {
+    if (comments) {
+      const original = decoded(Reflect.apply(operations.begin, moon, [repository.nodeId,
+        repository.databaseId, repository.nameWithOwner, owned.maxBytes,
+        owned.maxNodes, owned.maxDepth, owned.maxRows, owned.maxPages, owned.maxSubjects]));
+      prefix.pages.push(original);
+      try {
+        for (;;) {
+          const next = JSON.parse(decoded(Reflect.apply(operations.next, moon, [original, owned.perPage])));
+          if (next.body === null) { pending = false; break; }
+          const {response, charge} = await exchange(next.body);
+          decoded(Reflect.apply(operations.accept, moon, [original, response.body]));
+          checkPrefix();
+          const current = JSON.parse(decoded(Reflect.apply(operations.finish, moon, [original]))).page;
+          if (current === null) {
+            if (consumeObservation !== undefined) {
+              try {
+                checkPrefix();
+                await consumeObservation(charge);
+                checkPrefix();
+              } catch (cause) {
+                stopped(cause?.code ?? 'GitHubObservationNotAdmitted', {cause});
+              }
+            }
+          } else {
+            if (rows.length + current.rows.length > owned.maxRows) stopped('GitHubReadRowLimit');
+            if (consumePage !== undefined) {
+              try {
+                checkPrefix();
+                await consumePage(current.rows, page, Object.freeze({charge}));
+                checkPrefix();
+              } catch (cause) {
+                stopped(cause?.code ?? 'GitHubPageNotAdmitted', {cause});
+              }
+            }
+            rows.push(...current.rows);
+            accepted.push(Object.freeze({page, useCid: response.useCid, rows: current.rows.length}));
+            page += 1;
+          }
+        }
+      } finally {
+        // Retiring decoder aliases does not ACK the original transport/RowRun.
+        Reflect.apply(operations.close, moon, [original]);
+      }
+    } else while (pending) {
       signal?.throwIfAborted();
-      const request = JSON.parse(moon.githubIssuesRequestJson(repository.nodeId,
-        owned.perPage, after !== undefined, after ?? '', filters.state, labels,
-        filters.since !== undefined, filters.since ?? ''));
+      const arguments_ = [repository.nodeId, owned.perPage, after !== undefined,
+        after ?? '', filters.state, labels];
+      if (!pullRequests) arguments_.push(filters.since !== undefined, filters.since ?? '');
+      const request = JSON.parse(Reflect.apply(operations.request, moon, arguments_));
       if (request.refused) stopped('InvalidGitHubReadRequest',
         {refusal: request.refused});
       const {response, charge} = await exchange(request.body);
-      const original = decoded(moon.githubIssuePageReadBegin(response.body,
+      const original = decoded(Reflect.apply(operations.begin, moon, [response.body,
         owned.maxBytes, owned.maxNodes, owned.maxDepth, owned.perPage,
-        owned.maxPages - requests + 1, repository.nodeId, repository.databaseId, repository.nameWithOwner));
+        owned.maxPages - requests + 1, repository.nodeId, repository.databaseId, repository.nameWithOwner]));
       prefix.pages.push(original);
       let current;
       let rowCharge = charge;
       try {
         for (;;) {
-          const next = JSON.parse(decoded(moon.githubIssuePageReadNextRequestJson(
-            original, owned.perPage)));
+          const next = JSON.parse(decoded(Reflect.apply(operations.next, moon, [original, owned.perPage])));
           if (next.body === null) break;
           // An accounted child body has its own admission ticket. Never hide it
           // as another row page or accept it without the original observation port.
@@ -249,14 +328,14 @@ export async function readGitHubIssuesByNode({moon, repository,
           rowCharge = undefined;
           const child = await exchange(next.body);
           rowCharge = child.charge;
-          decoded(moon.githubIssuePageReadAccept(original, child.response.body));
+          decoded(Reflect.apply(operations.accept, moon, [original, child.response.body]));
         }
         checkPrefix();
-        current = JSON.parse(decoded(moon.githubIssuePageReadFinishJson(original)));
+        current = JSON.parse(decoded(Reflect.apply(operations.finish, moon, [original])));
       } finally {
         // Codec alias retirement does not acknowledge a transport, RowRun or
         // physical resource. Their original owners retain those duties.
-        moon.githubIssuePageReadClose(original);
+        Reflect.apply(operations.close, moon, [original]);
       }
       if (rows.length + current.rows.length > owned.maxRows) {
         stopped('GitHubReadRowLimit');

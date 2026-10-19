@@ -98,6 +98,14 @@ MOONBIT_FFI_EXPORT
 bool actql_native_crypto_component_ready(actql_original_crypto_component *value) {
   return actql_crypto_original_current(value);
 }
+/* Original association only, including a partial or already closed Library.
+ * It neither enters a scope nor turns currentness/cleanup into an ACK. The
+ * enclosing typed caller still requires its same Host/Read and actual phase. */
+MOONBIT_FFI_EXPORT
+bool actql_native_crypto_component_owns_library(
+    actql_original_crypto_component *value, actql_native_signature_library *library) {
+  return actql_crypto_original_thread(value) && library && library->component == value;
+}
 MOONBIT_FFI_EXPORT
 int32_t actql_native_crypto_component_close(actql_original_crypto_component *value) {
   if (!actql_crypto_original_thread(value)) return 2;

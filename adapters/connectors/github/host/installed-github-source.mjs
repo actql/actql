@@ -30,7 +30,7 @@ import {invokeScopedCredentialOperation} from
   '../../../host-common/owned-invocation-context.mjs';
 import {githubIssueListPath} from '../site/github-issue-read.mjs';
 import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION,
-  readGitHubIssuesByNode} from '../site/github-issue-graphql-read.mjs';
+  readGitHubIssuesByNode, readGitHubPullRequestsByNode, readGitHubIssueCommentsByNode} from '../site/github-issue-graphql-read.mjs';
 
 export const INSTALLED_GITHUB_SOURCE_VERSION =
   'actql-installed-github-source/0.1';
@@ -48,7 +48,7 @@ const siteKeys = ['apiOrigin', 'credentialAuthorityId', 'credentialKeyId',
   'owner', 'repo', 'siteGeneration', 'siteKey', 'tokenEnvironment'];
 const readLimits = Object.freeze({maxPages: 10, maxRows: 100,
   maxBytes: 4_000_000, maxNodes: 400_000, maxDepth: 32, perPage: 100,
-  maxRequestBytes: 16_384});
+  maxRequestBytes: 16_384, maxSubjects: 100});
 const rowLimits = Object.freeze({maxPages: readLimits.maxPages,
   maxPageBytes: 4_000_000, maxPageRows: 100, maxCaptureRows: 100});
 
@@ -308,8 +308,11 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
       limits: rowLimits,
       readPages: async ({resource, authorizationFor, chargePage, consumeObservation, consumePage,
         signal}) => {
-        if (resource !== 'issues') fail('UndeclaredGitHubResource');
-        return readGitHubIssuesByNode({moon: providerMoon,
+        const read = resource === 'issues' ? readGitHubIssuesByNode
+          : resource === 'pull_requests' ? readGitHubPullRequestsByNode
+          : resource === 'issue_comments' ? readGitHubIssueCommentsByNode : undefined;
+        if (read === undefined) fail('UndeclaredGitHubResource');
+        return read({moon: providerMoon,
           repository: {nodeId: publication.repository.node_id,
             databaseId: publication.repository.id,
             nameWithOwner: `${site.owner}/${site.repo}`},

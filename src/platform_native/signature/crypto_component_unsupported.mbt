@@ -2,6 +2,14 @@
 type OriginalCryptoComponent
 
 ///|
+pub fn OriginalCryptoComponent::owns_library(
+  _self : OriginalCryptoComponent,
+  _library : Library,
+) -> Bool {
+  false
+}
+
+///|
 pub fn load_current_crypto_component(
   _path : String,
   _heap_bytes : Int64,
