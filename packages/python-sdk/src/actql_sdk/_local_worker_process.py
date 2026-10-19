@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 from ._local_distribution import _hex
 from ._local_worker_funding import OriginalWorkerFunding, LocalWorkerFundingUnavailable
-from ._local_worker_slot import OriginalWorkerSlot, _OriginalDescriptor
+from ._local_worker_slot import OriginalWorkerSlot, _OriginalDescriptor, _bounded_original_path_text
 
 
 class LocalWorkerProcessPending(RuntimeError):
@@ -52,38 +52,39 @@ class OriginalWorkerProcess:
     """
 
     def __init__(self, funding: OriginalWorkerFunding | None, slot: OriginalWorkerSlot,
-                 *, executable: Path | None, executable_bytes: int | None,
+                 *, executable: str | None, executable_bytes: int | None,
                  executable_sha256: str | None,
-                 executable_image: Path | None, executable_link: str | None,
+                 executable_image: str | None, executable_link: str | None,
                  environment: tuple[tuple[str, str], ...] | None) -> None:
         if type(funding) is not OriginalWorkerFunding:
             raise LocalWorkerFundingUnavailable('Original worker physical funding is unavailable')
         if (type(slot) is not OriginalWorkerSlot or slot._funding is not funding
-                or not isinstance(executable, Path) or not executable.is_absolute()
-                or not isinstance(executable_image, Path) or not executable_image.is_absolute()
                 or type(executable_bytes) is not int or not 0 < executable_bytes <= 2**63 - 1
-                or not _hex(executable_sha256, 64) or type(environment) is not tuple):
+                or not _hex(executable_sha256, 64) or type(environment) is not tuple or len(environment) > 4):
             raise ValueError('Original installed worker launch selection is unavailable')
-        if (any('\x00' in str(path) or not 0 < len(os.fsencode(path)) <= 4096
-                for path in (executable, executable_image))
-                or executable_link is None and executable != executable_image
-                or executable_link is not None and (type(executable_link) is not str
-                    or '\x00' in executable_link or not 0 < len(os.fsencode(executable_link)) <= 4096
-                    or Path(os.path.abspath(executable.parent / executable_link)) != executable_image)):
+        selected_executable = Path(_bounded_original_path_text(executable))
+        selected_image = Path(_bounded_original_path_text(executable_image))
+        selected_link = (None if executable_link is None
+            else _bounded_original_path_text(executable_link))
+        if (not selected_executable.is_absolute() or not selected_image.is_absolute()
+                or selected_link is None and selected_executable != selected_image
+                or selected_link is not None and
+                    Path(os.path.abspath(selected_executable.parent / selected_link)) != selected_image):
             raise ValueError('Invalid original worker executable image selection')
         selected: dict[str, str] = {}
         for item in environment:
             if (type(item) is not tuple or len(item) != 2 or type(item[0]) is not str
-                    or type(item[1]) is not str or item[0] in selected
+                    or type(item[1]) is not str
                     or item[0] not in ('LANG', 'LC_ALL', 'LC_CTYPE', 'TMPDIR')
+                    or item[0] in selected or len(item[1]) > 4096
                     or '\x00' in item[1] or len(item[1].encode('utf-8')) > 4096):
                 raise ValueError('Invalid original selected worker environment')
             selected[item[0]] = item[1]
         self._original = self
         self._lock = RLock()
         self._funding, self._slot = funding, slot
-        self._executable, self._executable_bytes = executable, executable_bytes
-        self._executable_image, self._executable_link = executable_image, executable_link
+        self._executable, self._executable_bytes = selected_executable, executable_bytes
+        self._executable_image, self._executable_link = selected_image, selected_link
         self._launch_identity: tuple[int, int, int, int] | None = None
         self._executable_sha256 = executable_sha256
         self._environment = selected

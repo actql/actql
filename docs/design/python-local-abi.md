@@ -2355,6 +2355,23 @@ is no initialization-record close that could acknowledge process-global Runtime
 storage on Engine deletion or arena retirement. That storage remains the
 existing process/runtime Owner's responsibility through actual process stop.
 
+### Bounded private worker selections
+
+The installed worker preparation ports accept exact path text, rather than
+caller-provided Path or PathLike behavior. Each selected path has a nonempty
+4096-character pre-copy ceiling and the existing 4096-byte filesystem-encoding
+ceiling. Only admitted text is converted to an internal Path. The original
+executable, link correspondence, file identity and digest checks still precede
+spawn; accepting path text does not acquire a file or issue worker funding.
+
+The selected environment has at most four entries, restricted to LANG, LC_ALL,
+LC_CTYPE and TMPDIR without duplicates. Value length is checked before UTF-8
+copying, followed by the existing 4096-byte limit. Invalid selections refuse
+before consuming the slot or creating process descriptors. Missing original
+funding continues to refuse before selection processing. These bounds constrain
+startup DATA; they neither reserve interpreter heap nor acknowledge any process,
+domain, descriptor or runtime retirement.
+
 The private compiler transport projects the same domain's material before
 process preparation. The original Native Owner then binds the live child
 frame, channel and captured backing descriptor; the material alone cannot

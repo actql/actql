@@ -118,10 +118,10 @@ with tempfile.TemporaryDirectory(prefix='actql-live-channel-') as directory:
         # no real child is spawned. Native 64/24-page limits remain unchanged.
         funding = OriginalWorkerFunding(components, supplier,
             limits=funding_case.limits, retained=5, execution=6)
-        slot = OriginalWorkerSlot(funding, Path(directory, 'slot'))
+        slot = OriginalWorkerSlot(funding, str(Path(directory, 'slot')))
         slot.open(); assert slot.try_acquire()
-        process = OriginalWorkerProcess(funding, slot, executable=Path(sys.executable).absolute(),
-            executable_image=Path(sys.executable).absolute(), executable_link=None,
+        process = OriginalWorkerProcess(funding, slot, executable=str(Path(sys.executable).absolute()),
+            executable_image=str(Path(sys.executable).absolute()), executable_link=None,
             executable_bytes=1, executable_sha256='a' * 64, environment=(('LANG', 'C.UTF-8'),))
         channel = OriginalWorkerPipeChannel(funding, process, NeverStartedControl())
         # Actual owned pipes and descriptor closes. Only executable verification

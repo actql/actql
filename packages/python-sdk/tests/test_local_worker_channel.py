@@ -54,7 +54,7 @@ class WorkerChannelTests(unittest.IsolatedAsyncioTestCase):
         # The assembly starts its own untouched original slot, not an already
         # spawned scalar process. FD/kernel calls remain the existing doubles.
         self.case.case.fcntl_fcntl.side_effect = iter(range(20, 27))
-        self.slot = OriginalWorkerSlot(self.funding, self.case.case.path)
+        self.slot = OriginalWorkerSlot(self.funding, str(self.case.case.path))
         self.process = OriginalWorkerProcess(self.funding, self.slot, **self.case.options)
         wrapper = patch('actql_sdk._local_worker_pipe.os.set_blocking')
         self.set_blocking = wrapper.start(); self.addCleanup(wrapper.stop)

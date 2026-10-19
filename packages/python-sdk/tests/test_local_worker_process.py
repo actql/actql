@@ -27,8 +27,8 @@ class WorkerProcessTests(unittest.TestCase):
             value = wrapper.start(); self.addCleanup(wrapper.stop)
             setattr(self, name.replace('.', '_'), value)
         self._read_file = self.OriginalWorkerProcess__verify_executable
-        self.options = {'executable': Path('/installed/bin/python'), 'executable_bytes': 8192,
-            'executable_sha256': 'a' * 64, 'executable_image': Path('/installed/bin/python'),
+        self.options = {'executable': '/installed/bin/python', 'executable_bytes': 8192,
+            'executable_sha256': 'a' * 64, 'executable_image': '/installed/bin/python',
             'executable_link': None, 'environment': (('LANG', 'C.UTF-8'),)}
         self.process = OriginalWorkerProcess(self.funding, self.slot, **self.options)
 
@@ -40,7 +40,7 @@ class WorkerProcessTests(unittest.TestCase):
         with self.assertRaises(LocalWorkerFundingUnavailable):
             OriginalWorkerProcess(None, self.slot, **self.options)
         for change in ({'environment': None}, {'environment': (('PATH', '/usr/bin'),)},
-                {'environment': (('LANG', 'C'), ('LANG', 'C'))}, {'executable': Path('python')},
+                {'environment': (('LANG', 'C'), ('LANG', 'C'))}, {'executable': 'python'},
                 {'executable_bytes': True}, {'executable_sha256': 'bad'}):
             with self.assertRaises(ValueError):
                 OriginalWorkerProcess(self.funding, self.slot, **(self.options | change))
@@ -365,8 +365,8 @@ class WorkerInterpreterSelectionTests(unittest.TestCase):
 
     def test_image_missing_and_implicit_link_mapping_refuse_at_selection(self):
         case = self.case.case
-        for changes in ({'executable_image': None}, {'executable_image': Path('relative')},
-                {'executable_image': Path('/different/python'), 'executable_link': None},
+        for changes in ({'executable_image': None}, {'executable_image': 'relative'},
+                {'executable_image': '/different/python', 'executable_link': None},
                 {'executable_link': '/unrelated/python'}, {'executable_link': True}):
             with self.assertRaises(ValueError):
                 OriginalWorkerProcess(case.funding, case.slot, **(case.options | changes))
