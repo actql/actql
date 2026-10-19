@@ -964,6 +964,28 @@ reservations, holdings, uncertain transfers and pending report. Logical stop
 cannot settle those obligations prematurely. Unknown stays with the original
 carrier; neither a retry nor process/Promise completion issues a replacement.
 
+If a separately supplied read purpose needs the first bootstrap on that same
+Run, Resource retains the reservation inside the already owned admission
+before post-reservation currentness or Scope construction. The reservation is
+one-shot and must precede every ordinary child, including spent zero-byte
+identities. A failed Scope constructor leaves that exact token reachable via
+admission cleanup; an installed census still requires all of its original
+children to retire before bootstrap settlement. This does not relax the park
+fence, clear uncertain usage, reset serials or acknowledge external backing.
+The admission's resident optional reference and attempt latch, bootstrap,
+census and constructor overlap belong to the selected phase even when absent.
+Reserving these bytes supplies neither a missing operational purpose nor
+Model or Account authority. The Host's normal Run retirement uses the same
+admission cleanup rather than separately stopping around this retained duty.
+
+An owning consumer may read each original reservation's current retained and
+execution amounts without mutating the shared Ledger or invoking currentness.
+Foreign Ledger/token pairs refuse even after settlement. A closed reservation
+reports no reserved bytes, but separate holdings, escaped aliases and physical
+ACKs remain independent; attempt and wire history are not inferred from this
+read. The consumer's own finite inventory and original purpose still govern
+its admission, rather than treating aggregate shared-Run usage as its budget.
+
 Original file handles and distinct response ArrayBuffers keep their physical
 supplier and cleanup duties. Logical Run stop, Source retirement or a sibling
 ACK does not acknowledge their release, and escaped bytes remain charged.
