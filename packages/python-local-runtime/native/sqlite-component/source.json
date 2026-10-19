@@ -53,8 +53,8 @@
   },
   "provider_inputs": {
     "src/platform_native/host_bootstrap/bootstrap_stub.c": {
-      "bytes": 29492,
-      "sha256": "fbdbcd36542445422330a68b9abe477544d0bb8cb523a11f886db0f9bc27c58a"
+      "bytes": 31621,
+      "sha256": "74e8671e75648c1fdf846b6bfb05d7fa8503b3d31598a68c006c8311ce08ba94"
     },
     "packages/python-local-runtime/native/pre-root/scoped-read-review.patch": {
       "bytes": 37718,
