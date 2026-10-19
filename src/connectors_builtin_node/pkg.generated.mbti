@@ -2045,6 +2045,8 @@ pub fn client_program_open_source_free_local_retained_host(@run_publication_host
 
 pub fn client_program_openai_chat_projection_issue_kind(@model_execution.OpenAIChatProjectionIssue) -> String
 
+pub fn client_program_original_composed_infer_bounds(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph) -> Result[@client_infer_host.Limits, @client_infer_host.Issue]
+
 pub fn client_program_original_mock_provider(@model_execution.ModelMockInstallation) -> Result[@model_execution.ModelProvider, @model_execution.ModelMockInstallationIssue]
 
 pub fn client_program_park_infer_original_model_resources(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope) -> Result[@physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @client_infer_host.Issue]

@@ -143,6 +143,8 @@ pub fn model_cleanup_progress(Execution) -> Int
 
 pub fn observation_issuance_value(ObservationIssuance) -> (@run_publication.RunEvidenceValue, @run_publication.PublicationContract)?
 
+pub fn original_composed_bounds(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph) -> Result[Limits, Issue]
+
 pub fn original_model_current_state_match_current(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]?
 
 pub fn original_model_parked_read_capacity_available(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], Int64, Int64) -> Bool
