@@ -12,6 +12,21 @@ pub fn bound_prepared_requires_query_time(
   max_work~ : Int,
   max_expressions~ : Int,
 ) -> Result[Bool, QueryTimeRequirementIssue] {
+  bound_prepared_query_time_requirement_usage(
+    value,
+    max_work~,
+    max_expressions~,
+  ).map(result => result.0)
+}
+
+///|
+/// Return actual semantic work so an enclosing owner carries one finite
+/// planning budget across tasks rather than resetting it for each request.
+pub fn bound_prepared_query_time_requirement_usage(
+  value : BoundPrepared,
+  max_work~ : Int,
+  max_expressions~ : Int,
+) -> Result[(Bool, Int), QueryTimeRequirementIssue] {
   let slots = match
     @pipeline.collect_expression_slots(
       value.prepared.owner,
@@ -33,5 +48,5 @@ pub fn bound_prepared_requires_query_time(
         @pipeline.expression_slot_at(slots, index).unwrap().expression,
       )
   }
-  Ok(required)
+  Ok((required, max_work - remaining))
 }

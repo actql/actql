@@ -132,6 +132,8 @@ pub fn bindings_ordered(PreparedBindings) -> Bool
 
 pub fn bound_preparation(BoundPrepared) -> Prepared
 
+pub fn bound_prepared_query_time_requirement_usage(BoundPrepared, max_work~ : Int, max_expressions~ : Int) -> Result[(Bool, Int), QueryTimeRequirementIssue]
+
 pub fn bound_prepared_requires_query_time(BoundPrepared, max_work~ : Int, max_expressions~ : Int) -> Result[Bool, QueryTimeRequirementIssue]
 
 pub fn bound_values_cell(BoundPrepared, Int, Int, Int) -> Result[@value_admission.CheckedValue, ValuesIssue]
