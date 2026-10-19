@@ -111,7 +111,8 @@ pub fn close_pipeline_authoring(
       @pipeline.Values(_) => ()
       @pipeline.Unary(value) =>
         match @relation.operation(value) {
-          Derive | Select | Filter | Rename | Drop | Sort | Take => ()
+          Derive | Select | Filter | Rename | Drop | Sort | Take | Distinct =>
+            ()
           _ => return Err(UnsupportedOperation(step))
         }
       _ => return Err(UnsupportedOperation(step))

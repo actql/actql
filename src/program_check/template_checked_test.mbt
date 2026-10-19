@@ -232,7 +232,10 @@ test "complete template closure uses admitted defaults and refuses unsupported s
     )
     is TemplateOnly(Rejected(_)),
   )
-  for unsupported in [",{\"distinct\":true}", ",{\"take\":{\"$param\":\"x\"}}"] {
+  for
+    unsupported in [
+      ",{\"dedupe_rows\":{\"by\":[\"n\"],\"order_by\":[{\"n\":\"asc\"}]}}", ",{\"take\":{\"$param\":\"x\"}}",
+    ] {
     let (program, environment, limits) = complete_template_fixture(
       suffix=unsupported,
     )
@@ -397,4 +400,47 @@ test "complete template accounts static order links in the original requirement 
   // Both programs retain the same one missing value, one publication and
   // unchanged row-candidate bounds. Sort and Take add two static order links.
   assert_eq(first_ordered, first_plain + 2)
+}
+
+///|
+test "complete template DISTINCT keeps original equality types and publication ownership" {
+  for body in ["true", "[\"n\"]"] {
+    let (program, environment, limits) = complete_template_fixture(
+      suffix=",{\"distinct\":" + body + ",\"as\":\"distinct_rows\"}",
+    )
+    guard @program_check.check_parsed_scoped(
+        program,
+        environment,
+        TemplateOnly,
+        None,
+        limits,
+      )
+      is TemplateOnly(Verified(checked)) else {
+      fail("typed original DISTINCT must close in the complete template owner")
+    }
+    assert_true(
+      physical_equal(@program_check.template_checked_program(checked), program),
+    )
+    assert_eq(@program_check.template_checked_input_count(checked), 1)
+    assert_true(
+      physical_equal(
+        @program_check.template_checked_input_at(checked, 0).unwrap().program,
+        program,
+      ),
+    )
+    assert_true(@program_check.template_checked_usage(checked).0 > 0)
+  }
+  let (program, environment, limits) = complete_template_fixture(
+    suffix=",{\"distinct\":[\"absent\"]}",
+  )
+  assert_true(
+    @program_check.check_parsed_scoped(
+      program,
+      environment,
+      TemplateOnly,
+      None,
+      limits,
+    )
+    is TemplateOnly(Rejected(_)),
+  )
 }
