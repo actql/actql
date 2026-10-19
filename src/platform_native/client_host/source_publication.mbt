@@ -226,12 +226,44 @@ fn NativeClientRunJournal::fence_publication(
   @native_publication.NativeRunPublicationResult,
   @native_publication.NativeRunPublicationIssue,
 ] {
-  if !current() {
-    return Err(@native_publication.AccessDenied)
-  }
   match
-    self.transaction(() => {
-      guard self.retained(request) is Ok(Some(run)) &&
+    self.fence_publication_outcome(
+      request, definition, binding, current, commit,
+    ) {
+    Ok(outcome) => outcome
+    Err(_) => Err(@native_publication.CommitFenceUnavailable)
+  }
+}
+
+///|
+// Preserve the actual Journal transaction outcome until the selected original
+// Read has processed its return. The legacy wrapper retains its same public
+// publication error, while the original route can retain COMMIT Unknown too.
+fn NativeClientRunJournal::fence_publication_outcome(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  binding : String,
+  current : () -> Bool,
+  commit : () -> Result[
+    @native_publication.NativeRunPublicationResult,
+    @native_publication.NativeRunPublicationIssue,
+  ],
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[
+  Result[
+    @native_publication.NativeRunPublicationResult,
+    @native_publication.NativeRunPublicationIssue,
+  ],
+  NativeClientRunJournalIssue,
+] {
+  if !current() {
+    return Ok(Err(@native_publication.AccessDenied))
+  }
+  let reads = operations.map(value => value.reads)
+  self.transaction_with_reads(
+    () => {
+      guard self.retained(request, reads~) is Ok(Some(run)) &&
         @publication.publication_contract_identity(run.definition) ==
         @publication.publication_contract_identity(definition) &&
         run.publication_binding == Some(binding) &&
@@ -246,10 +278,9 @@ fn NativeClientRunJournal::fence_publication(
       let outcome = commit()
       self.publication_read_locked = false
       Ok(outcome)
-    }) {
-    Ok(outcome) => outcome
-    Err(_) => Err(@native_publication.CommitFenceUnavailable)
-  }
+    },
+    reads~,
+  )
 }
 
 ///|
@@ -260,29 +291,39 @@ fn NativeClientRunJournal::bind_publication(
   request : @host.ClientRequestIdentity,
   binding : String,
   current : () -> Bool,
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   if !current() {
     return Err(AuthorizationDenied)
   }
-  self.transaction(() => {
-    let run = match self.retained(request) {
-      Ok(Some(value)) => value
-      Ok(None) => return Err(CustodyLost)
-      Err(issue) => return Err(issue)
-    }
-    if !current() {
-      return Err(AuthorizationDenied)
-    }
-    if run.cancellation_requested {
-      return Err(ChangedIntent)
-    }
-    match run.publication_binding {
-      Some(original) if original == binding => Ok(())
-      Some(_) => Err(ChangedIntent)
-      None =>
-        self.save({ ..run, publication_binding: Some(binding), }).map(_ => ())
-    }
-  })
+  let reads = operations.map(value => value.reads)
+  self.transaction_with_reads(
+    () => {
+      let run = match self.retained(request, reads~) {
+        Ok(Some(value)) => value
+        Ok(None) => return Err(CustodyLost)
+        Err(issue) => return Err(issue)
+      }
+      if !current() {
+        return Err(AuthorizationDenied)
+      }
+      if run.cancellation_requested {
+        return Err(ChangedIntent)
+      }
+      match run.publication_binding {
+        Some(original) if original == binding => Ok(())
+        Some(_) => Err(ChangedIntent)
+        None =>
+          self
+          .save_with_operations(
+            { ..run, publication_binding: Some(binding), },
+            operations~,
+          )
+          .map(_ => ())
+      }
+    },
+    reads~,
+  )
 }
 
 ///|

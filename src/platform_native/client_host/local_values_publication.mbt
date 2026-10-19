@@ -104,6 +104,27 @@ pub fn NativeClientValuesWork::install_publication_service(
   @native_publication.NativeRunPublicationService,
   NativeClientValuesPublicationIssue,
 ] {
+  let bind_original : ((String) -> Result[Unit, NativeClientValuesWorkIssue])? = match
+    self.original_access {
+    None => None
+    Some(access) => Some(binding => access.bind_publication(binding))
+  }
+  let fence_original : ((
+    String,
+    () -> Result[
+      @native_publication.NativeRunPublicationResult,
+      @native_publication.NativeRunPublicationIssue,
+    ],
+  ) -> Result[
+    @native_publication.NativeRunPublicationResult,
+    @native_publication.NativeRunPublicationIssue,
+  ])? = match self.original_access {
+    None => None
+    Some(access) =>
+      Some((binding, commit) => {
+        access.fence_publication(self.definition, binding, commit)
+      })
+  }
   install_native_client_work_publication_service(
     self.start.journal,
     self.start.request,
@@ -117,6 +138,8 @@ pub fn NativeClientValuesWork::install_publication_service(
     max_nodes,
     max_depth,
     request_authorize~,
+    bind_original~,
+    fence_original~,
   ).map_err(issue => {
     match issue {
       Work(issue) => NativeClientValuesPublicationIssue::Work(issue)
