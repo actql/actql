@@ -7,8 +7,12 @@ import {parse} from 'acorn';
 // counters prove consumer order/custody, not physical admission or a full Host.
 const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
 const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-const exported = name => ast.body.find(node => node.type === 'ExportNamedDeclaration' &&
-  node.declaration?.type === 'FunctionDeclaration' && node.declaration.id.name === name).declaration;
+const declared = name => {
+  const matches = ast.body.map(node => node.type === 'ExportNamedDeclaration' ? node.declaration : node)
+    .filter(node => node?.type === 'FunctionDeclaration' && node.id.name === name);
+  assert.equal(matches.length, 1, name);
+  return matches[0];
+};
 const text = node => source.slice(node.start, node.end);
 const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
 function visit(node, callback) {
@@ -21,7 +25,7 @@ function visit(node, callback) {
 }
 function opening() {
   let statements;
-  visit(exported('openInstalledHost').body, node => {
+  visit(declared('openInstalledHost').body, node => {
     if (node.type !== 'BlockStatement') return;
     const index = node.body.findIndex(value => value.type === 'ExpressionStatement' &&
       value.expression.type === 'AssignmentExpression' && value.expression.left.name === 'journal' &&
@@ -64,7 +68,7 @@ test('legacy unprepared and existing Mock Source entries do not acquire a Comput
 
 function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, retire = () => {},
   controlClose = async () => ({pending: false})}) {
-  const declarations = exported('connectEmbeddedLocal').body.body
+  const declarations = declared('connectEmbeddedLocal').body.body
     .filter(node => node.type === 'VariableDeclaration').flatMap(node => node.declarations);
   const initial = declarations.find(node => node.id.name === 'initialControl');
   const preparation = declarations.find(node => node.id.name === 'preparation');
