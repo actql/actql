@@ -890,6 +890,12 @@ function sameSourceData(left, right) {
   }
   return true;
 }
+function optionalSourceData(value, name) {
+  const property = descriptor(value, name);
+  if (property === undefined) return undefined;
+  if (!own(property, 'value')) sourceUnavailable();
+  return property.value;
+}
 function sourceSubmissionProjection(entry, producer, body) {
   if (producer.finished || producer.snapshot === undefined || body === null ||
       typeof body !== 'object' || isProxy(body)) sourceUnavailable();
@@ -904,24 +910,29 @@ function sourceSubmissionProjection(entry, producer, body) {
     if (!Object.isFrozen(original)) sourceUnavailable();
     for (const name of Reflect.ownKeys(original)) {
       const value = field(original, name);
-      if (value !== null && typeof value === 'object') pending[pending.length] = value;
+      if (value !== null && typeof value === 'object' && !pending.includes(value)) {
+        if (pending.length === limits.maxNodes) sourceUnavailable();
+        pending[pending.length] = value;
+      }
     }
   }
   const packet = producer.snapshot.packet, actual = captured.packet;
   const options = packet.options ?? Object.create(null);
-  if (actual.kind !== packet.kind || !sameSourceData(actual.parameters, options.parameters ?? null) ||
-      actual.readOnly !== options.readOnly || actual.stopBefore !== options.stopBefore ||
-      !sameSourceData(actual.unresolvedHistory, options.unresolvedHistory)) sourceUnavailable();
+  const option = name => optionalSourceData(options, name);
+  if (field(actual, 'kind') !== packet.kind || !sameSourceData(field(actual, 'parameters'), option('parameters') ?? null) ||
+      optionalSourceData(actual, 'readOnly') !== option('readOnly') ||
+      optionalSourceData(actual, 'stopBefore') !== option('stopBefore') ||
+      !sameSourceData(optionalSourceData(actual, 'unresolvedHistory'), option('unresolvedHistory'))) sourceUnavailable();
   const allowed = ['submissionRef', 'attemptRef', 'kind', 'input', 'parameters',
     'readOnly', 'stopBefore', 'unresolvedHistory'];
   for (const name of Reflect.ownKeys(actual)) if (!allowed.includes(name)) sourceUnavailable();
-  if (options.submissionRef !== undefined && !sameSourceData(actual.submissionRef, options.submissionRef) ||
-      options.attemptId !== undefined && actual.attemptRef?.attemptId !== options.attemptId) sourceUnavailable();
+  if (option('submissionRef') !== undefined && !sameSourceData(optionalSourceData(actual, 'submissionRef'), option('submissionRef')) ||
+      option('attemptId') !== undefined && optionalSourceData(field(actual, 'attemptRef'), 'attemptId') !== option('attemptId')) sourceUnavailable();
   if (packet.kind === 'aql') {
-    const expected = {text: packet.input, format: options.format};
-    if (options.parameterDeclarations !== undefined) expected.parameterDeclarations = options.parameterDeclarations;
-    if (!sameSourceData(actual.input, expected)) sourceUnavailable();
-  } else if (packet.kind !== 'program' || !sameSourceData(actual.input, packet.input)) sourceUnavailable();
+    const expected = {text: packet.input, format: option('format')};
+    if (option('parameterDeclarations') !== undefined) expected.parameterDeclarations = option('parameterDeclarations');
+    if (!sameSourceData(field(actual, 'input'), expected)) sourceUnavailable();
+  } else if (packet.kind !== 'program' || !sameSourceData(field(actual, 'input'), packet.input)) sourceUnavailable();
   return captured;
 }
 function bindSourceSubmission(entry, receipt, body) {
