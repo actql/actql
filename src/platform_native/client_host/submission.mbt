@@ -478,6 +478,22 @@ pub fn NativeClientRunJournal::lookup_submitted_intent(
   current_authorization : Bool,
   now : Double,
 ) -> Result[NativeClientSubmittedIntentLookup, NativeClientRunJournalIssue] {
+  self.lookup_submitted_intent_with_operations(
+    authority, reference, authority_scope_cid, current_authorization, now,
+  )
+}
+
+///|
+fn NativeClientRunJournal::lookup_submitted_intent_with_operations(
+  self : NativeClientRunJournal,
+  authority : NativeClientEpochAuthority,
+  reference : NativeClientSubmissionReference,
+  authority_scope_cid : String,
+  current_authorization : Bool,
+  now : Double,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[NativeClientSubmittedIntentLookup, NativeClientRunJournalIssue] {
+  let reads = operations.map(value => value.reads)
   if !current_authorization {
     return Err(AuthorizationDenied)
   }
@@ -485,34 +501,35 @@ pub fn NativeClientRunJournal::lookup_submitted_intent(
     return Err(InvalidSubmission)
   }
   match
-    authority.verify_epoch(
+    authority.verify_epoch_with_operations(
       reference.epoch,
       authority_scope_cid,
       current_authorization,
       now,
+      operations~,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(Epoch(issue))
   }
-  self.transaction(() => {
+  self.transaction_with_reads(() => {
     match
       self.verify_submission_locked(
-        authority, reference, authority_scope_cid, current_authorization,
+        authority, reference, authority_scope_cid, current_authorization, reads~,
       ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
-    match self.submitted_intent_custody() {
+    match self.submitted_intent_custody(reads~) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
     self
-    .retained_submission(reference)
+    .retained_submission(reference, reads~)
     .map(record => {
       match record {
         Some(value) => Submitted(value)
         None => UnresolvedSubmissionHistory
       }
     })
-  })
+  }, reads~)
 }
