@@ -30481,7 +30481,7 @@
     {
       "module": "adapters/host-node/effect-input-export.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "149e6e2e2cf3ec205c0aeab74ff63e4b760d95e035ac301d2e9b21aa65f5fb70",
+      "sha256": "0f1d54c80af0efe5b7638c76008c2b8f3d202b52c4a81e7d218666e47f3e3d63",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -30544,6 +30544,8 @@
             "onReceipt",
             "onCanonicalRow",
             "canonicalRowLimits",
+            "onOriginalRow",
+            "originalRowLimits",
             "prepareProposal",
             "commandWorkspace",
             "signal",
@@ -30553,14 +30555,26 @@
           "async": true
         },
         {
+          "name": "exportPinnedResult/assertOriginal/assertOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "exportPinnedResult/exportPinnedResult",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "exportPinnedResult/exportPinnedResult#2",
           "parameters": [
             "row"
           ],
           "async": false
         },
         {
-          "name": "exportPinnedResult/exportPinnedResult#2",
+          "name": "exportPinnedResult/exportPinnedResult#3",
           "parameters": [],
           "async": false
         },
@@ -31641,8 +31655,10 @@
         {
           "operations": [
             "exportPinnedResult",
+            "exportPinnedResult/assertOriginal/assertOriginal",
             "exportPinnedResult/exportPinnedResult",
-            "exportPinnedResult/exportPinnedResult#2"
+            "exportPinnedResult/exportPinnedResult#2",
+            "exportPinnedResult/exportPinnedResult#3"
           ],
           "exports": [],
           "attributes": {
@@ -31654,6 +31670,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Original typed projection belongs to the existing Result export"
               }
             ],
             "inputsOutputs": [
@@ -31664,6 +31684,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Inputs retain the original proposal Plan"
               }
             ],
             "identity": [
@@ -31674,6 +31698,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Identity follows the exact checked Result occurrence"
               }
             ],
             "ownership": [
@@ -31684,6 +31712,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Ownership remains with the original export and Effect pins"
               }
             ],
             "synchronization": [
@@ -31694,6 +31726,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Synchronization checks both the original stream and original Effect/export"
               }
             ],
             "failure": [
@@ -31704,6 +31740,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Failure retains the existing typed refusal or original callback error"
               }
             ],
             "cancellation": [
@@ -31714,6 +31754,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Cancellation stops publication after the same awaited consumer"
               }
             ],
             "resources": [
@@ -31724,6 +31768,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Resources cover one shared Mapping work/node/text ceiling"
               }
             ],
             "extension": [
@@ -31734,6 +31782,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Extension uses the same original Captured/Mapping reader"
               }
             ],
             "verification": [
@@ -31748,6 +31800,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Verification separates actual Result/Captured and typed Notion codec counters"
               }
             ]
           }
@@ -33258,7 +33314,8 @@
         "../host-common/runtime-result.mjs",
         "./effect-command-key.mjs",
         "node:crypto",
-        "node:timers/promises"
+        "node:timers/promises",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -120507,6 +120564,332 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Original query evaluation time"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/notion/host/original-effect-property-codec.mjs",
+      "sha256": "d90f105275024c19a19cb6c8d85e0424d4258592d0a753e26b4b38dc4b5099c6",
+      "exports": [
+        "createNotionOriginalEffectPropertyCodec"
+      ],
+      "operations": [
+        {
+          "name": "createNotionOriginalEffectPropertyCodec",
+          "parameters": [
+            "moon",
+            "catalog",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/fieldIndex",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/original",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/ports/ports",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/prepare",
+          "parameters": [
+            "handle",
+            "field",
+            "property",
+            "end"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/retireRow",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/view/init:dateRange/init:dateRange",
+          "parameters": [
+            "handle",
+            "start",
+            "end",
+            "property"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/view/init:projectRow/init:projectRow",
+          "parameters": [
+            "plan",
+            "exported",
+            "originalRow"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/view/init:property/init:property",
+          "parameters": [
+            "handle",
+            "field",
+            "property"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/view/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/view/init:retireRow/init:retireRow",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/view/init:wire/init:wire",
+          "parameters": [
+            "handle",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "data",
+          "parameters": [
+            "value",
+            "keys",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "data/data",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "data/data#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "integer/integer",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "limits",
+          "parameters": [
+            "value",
+            "keys",
+            "positives"
+          ],
+          "async": false
+        },
+        {
+          "name": "limits/limits",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "limits/limits#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/runtime-result.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "supplemental",
+      "role": "connector-semantics",
+      "owner": "Existing private JS/Common checked-result and opaque original-value projection",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createNotionOriginalEffectPropertyCodec",
+            "createNotionOriginalEffectPropertyCodec/call/call",
+            "createNotionOriginalEffectPropertyCodec/current",
+            "createNotionOriginalEffectPropertyCodec/current/current",
+            "createNotionOriginalEffectPropertyCodec/fieldIndex",
+            "createNotionOriginalEffectPropertyCodec/original",
+            "createNotionOriginalEffectPropertyCodec/ports/ports",
+            "createNotionOriginalEffectPropertyCodec/prepare",
+            "createNotionOriginalEffectPropertyCodec/retireRow",
+            "createNotionOriginalEffectPropertyCodec/view/init:dateRange/init:dateRange",
+            "createNotionOriginalEffectPropertyCodec/view/init:projectRow/init:projectRow",
+            "createNotionOriginalEffectPropertyCodec/view/init:property/init:property",
+            "createNotionOriginalEffectPropertyCodec/view/init:retire/init:retire",
+            "createNotionOriginalEffectPropertyCodec/view/init:retireRow/init:retireRow",
+            "createNotionOriginalEffectPropertyCodec/view/init:wire/init:wire",
+            "data",
+            "data/data",
+            "data/data#2",
+            "fail/fail",
+            "integer/integer",
+            "limits",
+            "limits/limits",
+            "limits/limits#2"
+          ],
+          "exports": [
+            "createNotionOriginalEffectPropertyCodec"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Original typed projection belongs to the existing Result export"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Inputs retain the original proposal Plan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Identity follows the exact checked Result occurrence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Ownership remains with the original export and Effect pins"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Synchronization checks both the original stream and original Effect/export"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Failure retains the existing typed refusal or original callback error"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Cancellation stops publication after the same awaited consumer"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Resources cover one shared Mapping work/node/text ceiling"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Extension uses the same original Captured/Mapping reader"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Verification separates actual Result/Captured and typed Notion codec counters"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
               }
             ]
           }

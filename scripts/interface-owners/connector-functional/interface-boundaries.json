@@ -11216,6 +11216,292 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/notion/host/original-effect-property-codec.mjs",
+      "sha256": "d90f105275024c19a19cb6c8d85e0424d4258592d0a753e26b4b38dc4b5099c6",
+      "exports": [
+        "createNotionOriginalEffectPropertyCodec"
+      ],
+      "operations": [
+        {
+          "name": "createNotionOriginalEffectPropertyCodec",
+          "parameters": [
+            "moon",
+            "catalog",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/fieldIndex",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/original",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/ports/ports",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/prepare",
+          "parameters": [
+            "handle",
+            "field",
+            "property",
+            "end"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/retireRow",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/view/init:dateRange/init:dateRange",
+          "parameters": [
+            "handle",
+            "start",
+            "end",
+            "property"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/view/init:projectRow/init:projectRow",
+          "parameters": [
+            "plan",
+            "exported",
+            "originalRow"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/view/init:property/init:property",
+          "parameters": [
+            "handle",
+            "field",
+            "property"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/view/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/view/init:retireRow/init:retireRow",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionOriginalEffectPropertyCodec/view/init:wire/init:wire",
+          "parameters": [
+            "handle",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "data",
+          "parameters": [
+            "value",
+            "keys",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "data/data",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "data/data#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "integer/integer",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "limits",
+          "parameters": [
+            "value",
+            "keys",
+            "positives"
+          ],
+          "async": false
+        },
+        {
+          "name": "limits/limits",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "limits/limits#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/runtime-result.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Notion property codec and original Captured Effect/Mapping DATA projection; no target or permission issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createNotionOriginalEffectPropertyCodec",
+            "createNotionOriginalEffectPropertyCodec/call/call",
+            "createNotionOriginalEffectPropertyCodec/current",
+            "createNotionOriginalEffectPropertyCodec/current/current",
+            "createNotionOriginalEffectPropertyCodec/fieldIndex",
+            "createNotionOriginalEffectPropertyCodec/original",
+            "createNotionOriginalEffectPropertyCodec/ports/ports",
+            "createNotionOriginalEffectPropertyCodec/prepare",
+            "createNotionOriginalEffectPropertyCodec/retireRow",
+            "createNotionOriginalEffectPropertyCodec/view/init:dateRange/init:dateRange",
+            "createNotionOriginalEffectPropertyCodec/view/init:projectRow/init:projectRow",
+            "createNotionOriginalEffectPropertyCodec/view/init:property/init:property",
+            "createNotionOriginalEffectPropertyCodec/view/init:retire/init:retire",
+            "createNotionOriginalEffectPropertyCodec/view/init:retireRow/init:retireRow",
+            "createNotionOriginalEffectPropertyCodec/view/init:wire/init:wire",
+            "data",
+            "data/data",
+            "data/data#2",
+            "fail/fail",
+            "integer/integer",
+            "limits",
+            "limits/limits",
+            "limits/limits#2"
+          ],
+          "exports": [
+            "createNotionOriginalEffectPropertyCodec"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Original typed projection belongs to the existing Result export"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Inputs retain the original proposal Plan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Identity follows the exact checked Result occurrence"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Ownership remains with the original export and Effect pins"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Synchronization checks both the original stream and original Effect/export"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Failure retains the existing typed refusal or original callback error"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Cancellation stops publication after the same awaited consumer"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Resources cover one shared Mapping work/node/text ceiling"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Extension uses the same original Captured/Mapping reader"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Verification separates actual Result/Captured and typed Notion codec counters"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
