@@ -943,7 +943,7 @@
     {
       "module": "adapters/host-common/sqlite-transaction.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5c672cb06df0724c92dceb2958fc48b2a2cc06f11749bc987636f8d74800d7d0",
+      "sha256": "5a0adaff85c7bfb7685e62978a1fd6537f6bfd917c1b60799d81f20a489a1ddb",
       "exports": [
         "createSqliteTransaction",
         "throwSqliteInitializationFailure"
@@ -998,6 +998,11 @@
           "async": false
         },
         {
+          "name": "throwSqliteInitializationFailure/close/close",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "throwSqliteInitializationFailure/retry/retry",
           "parameters": [],
           "async": false
@@ -1022,7 +1027,8 @@
             "createSqliteTransaction/run/run",
             "throwSqliteInitializationFailure",
             "throwSqliteInitializationFailure/retry/retry",
-            "throwSqliteInitializationFailure/status/status"
+            "throwSqliteInitializationFailure/status/status",
+            "throwSqliteInitializationFailure/close/close"
           ],
           "exports": [
             "createSqliteTransaction",
@@ -1045,36 +1051,60 @@
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Identity |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "originalClose = selected;"
               }
             ],
             "ownership": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Ownership |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "const observation = Reflect.apply(originalClose, database, []);"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Synchronization |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "if (closing) return status();"
               }
             ],
             "failure": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Failure |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "errors: Object.freeze(first === latest ? [first] : [first, latest])"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Cancellation |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "if (observation !== undefined) {"
               }
             ],
             "resources": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Resources |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "const first = Object.freeze({owner, error: closeFailure});"
               }
             ],
             "extension": [
@@ -1087,11 +1117,22 @@
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Verification |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-initialization-custody.test.mjs",
+                "anchor": "initialization cleanup retries only the captured original close receiver"
+              },
+              {
+                "path": "adapters/host-common/sqlite-initialization-custody.test.mjs",
+                "anchor": "synchronous cleanup reentry only observes the existing close flight"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/task-observation.mjs",
