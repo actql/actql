@@ -1743,3 +1743,29 @@ It does not emit the Rust allocation entrypoints or select the Darwin
 compiled-image hashing path, a Linux compiler or
 Engine image, Rust/VM admission, an installed Python supplier, or normal funding.
 The existing Darwin selection and its physical semantics remain unchanged.
+
+## Command-preparation Read facility containment
+
+The selected Native command may distinguish a finite supplied Read facility
+from a complete input-graph demand bound. Existing managed and native demand
+fields retain their original meaning. The finite selection applies only to
+Runtime loading and static Project, Task and Journal preparation; it does not
+supply business Read, Source, Compute, Model, Effect or another Host.
+
+Before its first Read context or payload allocation, the original domain can
+consume one physical allocation-ceiling selection. The same allocator enforces
+that ceiling against all occupied pages, including its control table, managed
+slabs, generic extents and failed physical retirement. An invalid or late
+selection consumes the attempt and refuses further allocation. It cannot be
+replaced after exhaustion, scope leave or logical success. Releasing an actual
+extent may permit its ordinary reuse within that same ceiling; it neither
+changes the ceiling nor retires or replenishes the parent holding.
+
+The mapping itself retains its original full extent and physical cleanup duty.
+This ceiling is not another pool, reservation, domain, Ledger or capacity issuer.
+The existing claim, workspace, bootstrap and child reservations remain distinct
+and current. All earlier and later allocation routes outside the entered Read,
+external control, loader, TLS, stack and filesystem holdings still require their
+own actual coverage. Required primitive and inspection minima, input/work bounds
+and the original exhaustion and cleanup semantics remain mandatory. Component
+containment alone does not establish ordinary command success or normal funding.
