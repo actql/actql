@@ -361,6 +361,17 @@ Decimal owner rounds the exact coefficient, rejects result overflow and
 preserves NULL and demanded-child failure. No frontend evaluator, binary64
 intermediate, implicit conversion or omitted-target policy is introduced.
 
+`DECIMAL_DIVIDE(left, right, precision, scale, rounding)` preserves both
+original operands in source order. The left is Decimal; the right is Decimal
+or an original Number whose evaluated value is a safe integer. Precision,
+scale and rounding retain the same literal target roles as `QUANTIZE`.
+Lowering emits the existing closed `decimal_divide` body. Common computes the
+exact coefficient ratio and rounds once at the explicit target scale; zero
+divisors, unrepresentable results and invalid Number divisors fail. Immediate
+NULL uses the explicit Decimal target and original peer context, remains NULL,
+and never suppresses a demanded child error. No default target, frontend
+arithmetic, implicit domain promotion or intermediate binary64 product is used.
+
 `TO_STRING(value)`, `TO_BOOLEAN(value)` and `TO_TIMESTAMP(value)` each take
 exactly one operand and lower to the existing Common `cast` node with target
 `{"type":"string"}`, `{"type":"boolean"}` or `{"type":"timestamp"}` respectively.

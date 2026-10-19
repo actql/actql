@@ -1515,6 +1515,7 @@ fn advance_expression_frame_impl(
                 left_root,
                 value,
                 frame.current_root,
+                workspace=Some(workspace),
               ) {
               Ok(result) => result
               Err(issue) => return Err(issue)

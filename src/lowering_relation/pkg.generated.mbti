@@ -1175,6 +1175,7 @@ pub(all) enum BinaryOperator {
   NotIn
   Contains
   DateTruncate
+  DecimalDivide(String)
 } derive(Eq, @debug.Debug)
 
 pub struct BindingIssue {

@@ -166,7 +166,8 @@ fn check_backend_capabilities(
             | StartsWith
             | EndsWith
             | Contains
-            | DateTruncate => ()
+            | DateTruncate
+            | DecimalDivide(_) => ()
           }
           pending.push(right)
           pending.push(left)

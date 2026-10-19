@@ -117,6 +117,7 @@ pub(all) enum BinaryOperator {
   NotIn
   Contains
   DateTruncate
+  DecimalDivide(String)
 } derive(Eq, Debug)
 
 ///|
@@ -340,6 +341,7 @@ fn expression_tag(
     | "cast"
     | "try_decimal"
     | "quantize"
+    | "decimal_divide"
     | "if"
     | "case"
     | "date_diff"
@@ -389,6 +391,13 @@ fn expression_children(
       children
     }
     "empty_array" | "literal" | "typed_literal" | "field" | "$param" => []
+    "decimal_divide" => {
+      let obj = @decode.open_object(body).unwrap()
+      [
+        @decode.lookup(obj, "left").unwrap(),
+        @decode.lookup(obj, "right").unwrap(),
+      ]
+    }
     "cast" | "try_decimal" | "quantize" => {
       let obj = @decode.open_object(body).unwrap()
       [@decode.lookup(obj, "value").unwrap()]
@@ -1051,6 +1060,11 @@ fn lower_typed_expression_measured(
         "reverse" => Unary(Reverse, args[0])
         "cast" => Cast(args[0])
         "try_decimal" => Unary(TryDecimal, args[0])
+        "decimal_divide" => {
+          let obj = @decode.open_object(body).unwrap()
+          let mode = @decode.text(@decode.lookup(obj, "rounding").unwrap()).unwrap()
+          Binary(DecimalDivide(mode), args[0], args[1])
+        }
         "quantize" => {
           let obj = @decode.open_object(body).unwrap()
           let mode = @decode.text(@decode.lookup(obj, "rounding").unwrap()).unwrap()
