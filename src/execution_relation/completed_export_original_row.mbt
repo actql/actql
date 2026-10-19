@@ -104,11 +104,23 @@ pub fn completed_result_export_preparation_matches_original_row(
   preparation : CompletedResultRelationExportPreparation,
   row : CompletedOutputExportOriginalRow,
 ) -> Bool {
+  completed_result_export_preparation_retains_original_row(preparation, row) &&
+  completed_output_export_original_row_available(row) &&
+  completed_result_export_preparation_retains_original_row(preparation, row)
+}
+
+///|
+/// Callback-free final fence after the physical and derived availability
+/// callbacks. Retention alone never supplies availability or authorization.
+pub fn completed_result_export_preparation_retains_original_row(
+  preparation : CompletedResultRelationExportPreparation,
+  row : CompletedOutputExportOriginalRow,
+) -> Bool {
   guard row.stream is Some(original) else { return false }
   preparation.closed &&
   preparation.stream.map(stream => physical_equal(stream, original)) ==
   Some(true) &&
-  completed_output_export_original_row_available(row)
+  completed_export_original_row_retained(row)
 }
 
 ///|

@@ -791,7 +791,7 @@ async function exportPinnedResult({
         const assertOriginal = () => {
           signal?.throwIfAborted();
           if (Reflect.apply(originalPorts.clientProgramEffectOriginalRowAvailable,
-            moon, [original]) !== true) {
+            moon, [inputs, exportOwner, original]) !== true) {
             throw new TypeError('UnavailableEffectOriginalRow');
           }
         };

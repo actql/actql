@@ -57,9 +57,13 @@ pub fn client_program_effect_original_row_retire(
 ///|
 #export_name("clientProgramEffectOriginalRowAvailable")
 pub fn client_program_effect_original_row_available(
+  inputs : @strategy.CapturedEffectInputs,
+  exported : @strategy.CapturedEffectLocalResultExport,
   row : @execution.CompletedOutputExportOriginalRow,
 ) -> Bool {
-  @execution.completed_output_export_original_row_available(row)
+  @strategy.captured_effect_local_result_original_row_available(
+    inputs, exported, row,
+  )
 }
 
 ///|

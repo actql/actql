@@ -229,6 +229,23 @@ test "actual Captured Mapping uses only its original typed Result row and curren
     @strategy.captured_effect_checked_proposal_row_selector(second_checked).unwrap().value
     is @admitted.Text("two"),
   )
+  assert_true(
+    @strategy.captured_effect_local_result_original_row_available(
+      inputs, exported, second,
+    ),
+  )
+  @strategy.release_captured_effect_inputs(inputs) |> ignore
+  // The stream retains its own original row; it cannot replace the retired
+  // Effect pin inventory after an awaited physical consumer.
+  assert_true(@execution.completed_output_export_original_row_available(second))
+  assert_false(
+    @strategy.captured_effect_local_result_original_row_available(
+      inputs, exported, second,
+    ),
+  )
+  assert_false(
+    @strategy.captured_effect_checked_proposal_row_available(second_checked),
+  )
   export_owner.close()
   assert_false(
     @strategy.captured_effect_checked_proposal_row_available(second_checked),

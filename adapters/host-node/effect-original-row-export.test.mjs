@@ -20,8 +20,9 @@ function fixture() {
       assert.equal(this, moon); calls.push('next');
       return ok(next++ === 0 ? runtimeTriple(0, '[{"id":1}', original) : undefined);
     },
-    clientProgramEffectOriginalRowAvailable(value) {
-      assert.equal(this, moon); assert.equal(value, original); return available;
+    clientProgramEffectOriginalRowAvailable(inputs, actualExport, value) {
+      assert.equal(this, moon); assert.equal(actualExport, exported);
+      assert.equal(inputs, options.inputs); assert.equal(value, original); return available;
     },
     clientProgramEffectOriginalRowRetire(value) {
       assert.equal(this, moon); assert.equal(value, original); calls.push('retire'); available = false;
@@ -36,9 +37,9 @@ function fixture() {
     clientProgramEffectInputExportCancel() { calls.push('cancel'); },
     clientProgramEffectInputExportCancelPreparation() { calls.push('cancel-preparation'); },
   };
-  return {moon, original, exported, calls, revoke() { available = false; },
-    options: {moon, execution: {effectPhysicalSource() {}}, inputs: {}, resultIndex: 0, limits: {},
-      originalRowLimits: {maxNodes: 100, maxDepth: 8, maxUtf16Units: 4096}}};
+  const options = {moon, execution: {effectPhysicalSource() {}}, inputs: {}, resultIndex: 0, limits: {},
+    originalRowLimits: {maxNodes: 100, maxDepth: 8, maxUtf16Units: 4096}};
+  return {moon, original, exported, calls, revoke() { available = false; }, options};
 }
 
 test('original Effect row exporter captures runtime callbacks and delivers its exact export and row once', async () => {

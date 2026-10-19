@@ -61,19 +61,39 @@ fn captured_effect_checked_proposal_export_matches(
   exported : CapturedEffectLocalResultExport,
   original : @execution.CompletedOutputExportOriginalRow,
 ) -> Bool {
-  captured_effect_local_result_export_retained(plan.inputs, exported) &&
-  captured_effect_local_result_export_derived_retained(exported) &&
+  captured_effect_local_result_original_row_available(
+    plan.inputs,
+    exported,
+    original,
+  ) &&
   exported.result.stage == captured_effect_input_stage(plan.input) &&
   captured_any_result_borrows_share_view(
     exported.result.borrow,
     plan.input.borrow,
   ) &&
+  captured_effect_checked_proposal_plan_retained(plan)
+}
+
+///|
+/// An export stream can outlive its Effect pins. Check both original owners
+/// after an awaited caller, including final callback-free fences after the
+/// physical and derived-view availability callbacks.
+pub fn captured_effect_local_result_original_row_available(
+  inputs : CapturedEffectInputs,
+  exported : CapturedEffectLocalResultExport,
+  original : @execution.CompletedOutputExportOriginalRow,
+) -> Bool {
+  captured_effect_local_result_export_retained(inputs, exported) &&
   @execution.completed_result_export_preparation_matches_original_row(
     exported.preparation,
     original,
   ) &&
-  captured_effect_local_result_export_retained(plan.inputs, exported) &&
-  captured_effect_checked_proposal_plan_retained(plan)
+  captured_effect_local_result_export_derived_retained(exported) &&
+  captured_effect_local_result_export_retained(inputs, exported) &&
+  @execution.completed_result_export_preparation_retains_original_row(
+    exported.preparation,
+    original,
+  )
 }
 
 ///|
