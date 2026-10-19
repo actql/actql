@@ -25,10 +25,18 @@ const callbacks = names.map(name => {
   const d = descriptor(originalOwner, name);
   return d !== undefined && hasOwn(d, 'value') && typeof d.value === 'function' ? d.value : undefined;
 });
+const computeNames = freeze(['prepareManagedComputeInstallation', 'assertManagedComputeInstallationCurrent',
+  'beforeManagedComputeSnapshot', 'bindManagedComputeSnapshot', 'bindManagedComputeRequest',
+  'finishManagedComputeProducer', 'closeManagedComputeInstallation', 'managedComputeIntentCid',
+  undefined, 'prepareManagedComputeRun']);
+const computeCallbacks = computeNames.map(name => {
+  const d = name === undefined ? undefined : descriptor(originalOwner, name);
+  return d !== undefined && hasOwn(d, 'value') && typeof d.value === 'function' ? d.value : undefined;
+});
 const unavailable = () => {throw Object.assign(new NativeError('SourceManagedPreparationUnavailable'),
   {code: 'SourceManagedPreparationUnavailable'});};
-function invoke(index, args) {
-  const callback = callbacks[index];
+function invoke(index, args, selected = callbacks) {
+  const callback = selected[index];
   if (callback === undefined) unavailable();
   return apply(callback, originalOwner, args);
 }
@@ -42,13 +50,13 @@ function current(state) {
   if (state.failure !== undefined) throw state.failure;
   // Fixed actual Owner checks nominal installation, shared runtime/domain,
   // Host/generation and currentness; the view's own fields are not evidence.
-  if (invoke(1, [state.installation, state.originals]) !== undefined) unavailable();
+  if (invoke(1, [state.installation, state.originals], state.callbacks) !== undefined) unavailable();
 }
 async function close(state) {
   if (state.closed) return freeze({pending: false});
   if (state.flight !== undefined) return state.flight;
   const flight = (async () => {
-    const observation = await invoke(6, [state.installation, state.originals]);
+    const observation = await invoke(6, [state.installation, state.originals], state.callbacks);
     const d = observation !== null && typeof observation === 'object'
       ? descriptor(observation, 'pending') : undefined;
     if (d !== undefined && hasOwn(d, 'value') && d.value === false) {
@@ -62,7 +70,7 @@ async function close(state) {
 }
 function syncVoid(state, index, args) {
   current(state);
-  const result = invoke(index, [state.installation, state.originals, ...args]);
+  const result = invoke(index, [state.installation, state.originals, ...args], state.callbacks);
   if (result !== undefined) {
     // Retain the unexpected observation, including a live Promise, rather than
     // awaiting it and moving the original synchronous snapshot boundary.
@@ -81,12 +89,26 @@ export function assertSourceManagedPreparationCurrent(originalInstallation, same
   if (invoke(1, [originalInstallation, sameOriginals]) !== undefined) unavailable();
 }
 
-export async function prepareSourceManagedInstallation(originals) {
+export function assertManagedComputePreparationCurrent(originalInstallation, sameOriginals) {
+  if (invoke(1, [originalInstallation, sameOriginals], computeCallbacks) !== undefined) unavailable();
+}
+
+// Selection is private and fixed by these two exported consumer entries,
+// never a callback table or purpose Boolean supplied by an application.
+export function prepareSourceManagedInstallation(originals) {
+  return prepareInstallation(originals, callbacks);
+}
+export function prepareManagedComputeInstallation(originals) {
+  return prepareInstallation(originals, computeCallbacks);
+}
+
+async function prepareInstallation(originals, selectedCallbacks) {
   // This connect-time initialization may await. None of the four submission
   // operations below may await before the SDK's original snapshot/clone.
-  const installation = await invoke(0, [originals]);
+  const installation = await invoke(0, [originals], selectedCallbacks);
   if (installation === undefined) unavailable();
-  const state = {installation, originals, closed: false, failure: undefined, flight: undefined};
+  const state = {installation, originals, callbacks: selectedCallbacks,
+    closed: false, failure: undefined, flight: undefined};
   try { current(state); }
   catch (cause) {
     // Initialization acquired an original before its final current fence.
@@ -101,7 +123,7 @@ export async function prepareSourceManagedInstallation(originals) {
   const view = freeze({
     beforeSourceSnapshot(kind, input, options) {
       current(state);
-      const receipt = invoke(2, [state.installation, state.originals, kind, input, options]);
+      const receipt = invoke(2, [state.installation, state.originals, kind, input, options], state.callbacks);
       if (receipt === null || (typeof receipt !== 'object' && typeof receipt !== 'function') || isPromise(receipt)) {
         state.failure = Object.assign(new NativeError('SourceManagedSynchronousProtocolChanged', {cause: receipt}),
           {code: 'SourceManagedSynchronousProtocolChanged'});
@@ -119,7 +141,7 @@ export async function prepareSourceManagedInstallation(originals) {
       // Common submitted-intent Owner. This result is DATA, not an issuer or
       // permission. A selected Source never falls back to a native hash task
       // whose separate allocator/work lifetime has not been supplied.
-      const result = invoke(7, [state.installation, state.originals, receipt, originalFrozenBody]);
+      const result = invoke(7, [state.installation, state.originals, receipt, originalFrozenBody], state.callbacks);
       if (typeof result !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(result)) {
         state.failure = Object.assign(new NativeError('SourceManagedSynchronousProtocolChanged', {cause: result}),
           {code: 'SourceManagedSynchronousProtocolChanged'});
@@ -131,7 +153,7 @@ export async function prepareSourceManagedInstallation(originals) {
     finishSourceProducer(receipt, terminal) {
       // Producer retirement may follow lost currentness. Only the original
       // Owner can cut this producer's aliases; this is no child/physical ACK.
-      const result = invoke(5, [state.installation, state.originals, receipt, terminal]);
+      const result = invoke(5, [state.installation, state.originals, receipt, terminal], state.callbacks);
       if (result !== undefined) unavailable();
     },
     assertCurrent() {current(state);},
@@ -139,7 +161,7 @@ export async function prepareSourceManagedInstallation(originals) {
       current(state);
       // The fixed Root returns its pre-snapshot original only after the actual
       // Host resolves the same pending SDK request and checked preparation.
-      const result=invoke(9,[state.installation,state.originals,originalCheckedPrepared]);
+      const result=invoke(9,[state.installation,state.originals,originalCheckedPrepared],state.callbacks);
       if (result===null || typeof result!=='object' || isPromise(result)) unavailable();
       // Return the acquired original before the consumer's post-factory
       // current fence. Throwing here would lose its partial cleanup carrier.
@@ -152,7 +174,7 @@ export async function prepareSourceManagedInstallation(originals) {
       // binding, then checks its own receipt and declaration originals. This
       // wrapper cannot construct a child from a declaration label or ordinal.
       const read = invoke(8, [state.installation, state.originals,
-        originalDerivedRequest, originalDeclaration, originalRun]);
+        originalDerivedRequest, originalDeclaration, originalRun], state.callbacks);
       if (read === null || typeof read !== 'object' || isPromise(read)) unavailable();
       // The same Host must retain this child's original close receiver before
       // its post-factory current check, then refuse before Core/physical use.
@@ -167,5 +189,13 @@ export async function prepareSourceManagedInstallation(originals) {
 }
 
 export function assertSourceManagedInstallationCurrent(view, sameOriginals) {
-  current(original(view, sameOriginals));
+  const state = original(view, sameOriginals);
+  if (state.callbacks !== callbacks) unavailable();
+  current(state);
+}
+
+export function assertManagedComputeInstallationCurrent(view, sameOriginals) {
+  const state = original(view, sameOriginals);
+  if (state.callbacks !== computeCallbacks) unavailable();
+  current(state);
 }

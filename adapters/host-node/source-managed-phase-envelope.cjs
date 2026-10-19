@@ -104,5 +104,28 @@ function declareSourceComputePhaseEnvelope(sourceDeclaration) {
     lifetime:'same-original-process-and-all-escaped-run-aliases',replenishedOnClose:false});
 }
 
-module.exports={declareSourceManagedPhaseEnvelope,declareSourceComputePhaseEnvelope};
+// The source-free purpose reuses the SAME fixed Local implementation and
+// shared runtime original, not its Source buffers, child capacity or credit.
+// Its actual installation must retain this selection before SDK acquisition.
+function declareSourceFreeManagedComputePhaseEnvelope(controlDeclaration) {
+  const joint = declareSourceComputePhaseEnvelope(
+    declareSourceManagedPhaseEnvelope(controlDeclaration));
+  const compute = joint.compute;
+  return freeze({controlDeclaration, inputLimits, compute,
+    sourceOccurrences: 0, requests: 1,
+    limits: freeze({planningWork: 100000, attempts: compute.tasks, holdings: compute.tasks,
+      transferBytes: compute.inputPorts * compute.wireBytes,
+      retainedBytes: compute.retainedBytes, executionBytes: compute.executionBytes}),
+    sharedManagedHeapBytes: controlDeclaration.heapCeilingBytes,
+    additionalManagedHeapBytes: 0, additionalWholeNativeDomainBytes: 0,
+    overlap: freeze(['one original SDK packet, frozen body, intent and pending request lineage',
+      'checked Program/graph, generated sequences, planning and all receiving input ports',
+      'same-Run Local values, keys, imports, retained outputs and result aliases',
+      'current callbacks, first/latest failures and partial admission/stop custody']),
+    lifetime: 'same-original-process-and-all-escaped-run-aliases',
+    replenishedOnClose: false});
+}
+
+module.exports={declareSourceManagedPhaseEnvelope,declareSourceComputePhaseEnvelope,
+  declareSourceFreeManagedComputePhaseEnvelope};
 freeze(module.exports);

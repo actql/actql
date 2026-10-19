@@ -14,13 +14,15 @@ const repository = fileURLToPath(new URL('../../', import.meta.url));
 const entries = ['adapters/host-node/client-request-journal.mjs',
   'adapters/store-local/publication-store.mjs', 'adapters/host-node/host-root-format.mjs',
   'adapters/host-node/node-host-journal-installation.mjs',
+  'adapters/host-node/node-source-managed-installation.mjs',
+  'adapters/host-node/source-managed-original-input.mjs',
   'adapters/host-node/node-public-initial-control-bootstrap.cjs',
   'adapters/host-node/node-initial-control-installation.mjs',
   'adapters/host-node/initial-control-host-input.mjs'];
 const closure = localModuleGraphInputs(repository, entries);
 const nativeRoot = process.env.ACTQL_DIRECTORY_NATIVE_DIAGNOSTIC_ROOT;
 
-async function fixture(label, {replaceBeforeJournalCapture} = {}) {
+async function fixture(label, {replaceBeforeJournalCapture, managedCompute = false} = {}) {
   const scratch = await createOwnedScratch({parent: tmpdir(),
     prefix: 'actql-journal-ordinary-service-', label});
   const root = join(scratch.path, 'node_modules/@actql/local-node');
@@ -69,6 +71,30 @@ async function fixture(label, {replaceBeforeJournalCapture} = {}) {
     import {join} from 'node:path';
     import {beginInitialControlInstallation} from './node-initial-control-installation.mjs';
     import {prepareHostJournalInstallation} from './node-host-journal-installation.mjs';
+    ${!managedCompute ? '' : `
+    import {prepareManagedComputeInstallation, assertManagedComputePreparationCurrent,
+      assertManagedComputeInstallationCurrent, assertSourceManagedInstallationCurrent}
+      from './node-source-managed-installation.mjs';
+    export {readSourceManagedOriginalInput} from './source-managed-original-input.mjs';
+    export {assertInitialControlHostPreparation as assertSourceManagedHostPreparation};
+    const preparedRequests = new WeakMap();
+    export function originalSourceManagedHostRequest(value, prepared) {
+      assertInitialControlHostPreparation(value);
+      const request=preparedRequests.get(prepared);
+      if(request===undefined)throw new Error('ForeignControlledPreparedRequest');
+      return request;
+    }
+    export function readManagedComputeRunRequirements(value, prepared) {
+      originalSourceManagedHostRequest(value,prepared);
+      return Object.freeze({planningWork:100000,attempts:1,holdings:1,
+        transferBytes:1000000n,retainedBytes:200000000n,executionBytes:536870912n});
+    }
+    export function managedComputeSubmittedIntentCid(value, original, body) {
+      assertInitialControlHostPreparation(value);
+      assertManagedComputePreparationCurrent(original,value);
+      return 'sha256:'+'a'.repeat(64);
+    }
+    `}
     export {snapshotInitialControlHostInput as readInitialControlHostInput} from './initial-control-host-input.mjs';
     export {openClientRequestJournal as openOriginalHostRequestJournal,
       observeOriginalClientRequestJournalCustody as observeOriginalHostRequestJournalCustody,
@@ -93,7 +119,13 @@ async function fixture(label, {replaceBeforeJournalCapture} = {}) {
       originals=Object.freeze({host:{},installation:{},generation:{},
         supplier:connectInitialControlHostPreparation,moduleLifetime:import.meta});
       const scope=await beginInitialControlInstallation(originals,raw);
-      return Object.freeze({scope,root,originals,prepareJournal(){return prepareHostJournalInstallation(originals);}});
+      return Object.freeze({scope,root,originals,prepareJournal(){return prepareHostJournalInstallation(originals);}
+        ${!managedCompute ? '' : `,
+        prepareCompute(){return prepareManagedComputeInstallation(originals);},
+        assertCompute(view){assertManagedComputeInstallationCurrent(view,originals);},
+        assertSource(view){assertSourceManagedInstallationCurrent(view,originals);},
+        bindPrepared(prepared,request){preparedRequests.set(prepared,request);}`}
+      });
     }
   `));
   if (replaceBeforeJournalCapture !== undefined) {
@@ -233,5 +265,67 @@ test('ordinary Journal cold reopening uses fresh startup custody for the same sa
   // historical Run/DB/key is restored, repaired or replayed between processes.
   f.run(openAndClose('new'));
   f.run(openAndClose('current'));
+  f.scratch.passed();
+});
+
+// Actual selected prefix/private adapter, but controlled request lineage and
+// explicit unaccounted quota/intent fixtures. No Resource Ledger is started,
+// no Common execution is claimed, and no Source or business I/O is acquired.
+test('source-free Compute original precedes SDK snapshot and cannot issue Source children', async () => {
+  const f = await fixture('ordinary prefix separate source-free Compute original', {managedCompute: true});
+  f.run(`
+    import assert from 'node:assert/strict'; import {createRequire} from 'node:module';
+    import {connect} from '@actql/local-node'; const require=createRequire(import.meta.url);
+    const client=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
+    const root=require(${JSON.stringify(join(f.root, 'adapters/host-node/node-public-initial-control-bootstrap.cjs'))});
+    await assert.rejects(()=>client.prepareCompute());
+    const journalDuty=await client.prepareJournal();
+    await journalDuty.admitRootFormat(client.root);
+    await journalDuty.openRequestJournal(client.root+'/requests',{});
+    const compute=await client.prepareCompute();
+    client.assertCompute(compute);
+    assert.throws(()=>client.assertSource(compute));
+    const receipt=compute.beforeSourceSnapshot('aql','SELECT 1',{parameters:null});
+    const body=Object.freeze({kind:'aql',input:'SELECT 1',parameters:null});
+    compute.bindSourceSnapshot(receipt,body);
+    const request=Object.freeze({originalPendingRequest:true});
+    compute.bindSourceRequest(receipt,body,request);
+    assert.equal(compute.intentCid(receipt,body),'sha256:'+'a'.repeat(64));
+    const prepared=Object.freeze({controlledCheckedPrepared:true});
+    client.bindPrepared(prepared,request);
+    const original=compute.prepareRun(prepared);
+    assert.equal(root.prepareOriginalManagedRunPorts(original,{}),null);
+    const ports=root.prepareOriginalManagedRunPorts(original,prepared);
+    assert.equal(ports.limit(0),100000n);
+    assert.equal(ports.limit(3),1000000n);
+    assert.equal(root.prepareOriginalSourceChildPorts(original,prepared),null);
+    assert.throws(()=>compute.prepareRead(prepared,{},original));
+    compute.finishSourceProducer(receipt,'returned');
+    assert.equal((await compute.close()).pending,false);
+    assert.notEqual(ports.status(0),0);
+    assert.throws(()=>root.prepareManagedComputeInstallation(client.originals));
+    assert.equal((await journalDuty.close()).pending,false);
+    assert.equal((await client.scope.close()).pending,false);
+  `);
+  f.scratch.passed();
+});
+
+test('source-free Compute snapshot refusal retains its one original close without entering getters', async () => {
+  const f = await fixture('ordinary source-free Compute rejected original intake', {managedCompute: true});
+  f.run(`
+    import assert from 'node:assert/strict'; import {existsSync} from 'node:fs';
+    import {connect} from '@actql/local-node';
+    const client=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
+    const journalDuty=await client.prepareJournal();
+    await journalDuty.admitRootFormat(client.root);
+    await journalDuty.openRequestJournal(client.root+'/requests',{});
+    const compute=await client.prepareCompute(); let entered=0;
+    assert.throws(()=>compute.beforeSourceSnapshot('aql','SELECT 1',
+      {get parameters(){entered++;return null;}}));
+    assert.equal(entered,0); assert.equal(existsSync(client.root),true);
+    assert.equal((await compute.close()).pending,false);
+    assert.equal((await journalDuty.close()).pending,false);
+    assert.equal((await client.scope.close()).pending,false);
+  `);
   f.scratch.passed();
 });

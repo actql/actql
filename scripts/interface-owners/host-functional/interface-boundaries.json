@@ -61146,22 +61146,31 @@
     },
     {
       "module": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-      "sha256": "7db9a7742cc00e70bbb37f3cd07fa9b5c60c014e6d079351628bc3278340a18f",
+      "sha256": "8dd9af4fdf6975d90d3447d2514140a0bb1b0d2c7d7d7a7bba22749912cd2648",
       "exports": [
         "commonjs:admitHostJournalRootFormat",
         "commonjs:assertHostJournalInstallationCurrent",
         "commonjs:assertInitialControlInstallationCurrent",
+        "commonjs:assertManagedComputeInstallationCurrent",
         "commonjs:assertSourceManagedInstallationCurrent",
+        "commonjs:beforeManagedComputeSnapshot",
         "commonjs:beforeSourceSnapshot",
         "commonjs:beginInitialControlInstallation",
+        "commonjs:bindManagedComputeRequest",
+        "commonjs:bindManagedComputeSnapshot",
         "commonjs:bindSourceRequest",
         "commonjs:bindSourceSnapshot",
         "commonjs:closeHostJournalInstallation",
+        "commonjs:closeManagedComputeInstallation",
         "commonjs:closeSourceManagedInstallation",
+        "commonjs:finishManagedComputeProducer",
         "commonjs:finishSourceProducer",
+        "commonjs:managedComputeIntentCid",
         "commonjs:openHostJournalRequestJournal",
         "commonjs:originalHostPublicationOwnership",
         "commonjs:prepareHostJournalInstallation",
+        "commonjs:prepareManagedComputeInstallation",
+        "commonjs:prepareManagedComputeRun",
         "commonjs:prepareOriginalManagedRunPorts",
         "commonjs:prepareOriginalSourceChildPorts",
         "commonjs:prepareSourceManagedInstallation",
@@ -61287,6 +61296,17 @@
           "async": false
         },
         {
+          "name": "beforeManagedComputeSnapshot",
+          "parameters": [
+            "original",
+            "held",
+            "kind",
+            "input",
+            "options"
+          ],
+          "async": false
+        },
+        {
           "name": "beginJournalService",
           "parameters": [
             "recipe",
@@ -61344,6 +61364,15 @@
           "name": "captureJournalServiceNativeOperations",
           "parameters": [
             "native"
+          ],
+          "async": false
+        },
+        {
+          "name": "claimManagedComputeRun",
+          "parameters": [
+            "original",
+            "held",
+            "derived"
           ],
           "async": false
         },
@@ -61499,6 +61528,23 @@
           "async": false
         },
         {
+          "name": "managedComputeCurrent",
+          "parameters": [
+            "original",
+            "held"
+          ],
+          "async": false
+        },
+        {
+          "name": "managedComputeOriginal",
+          "parameters": [
+            "original",
+            "held",
+            "allowClosing"
+          ],
+          "async": false
+        },
+        {
           "name": "managedRunCurrent",
           "parameters": [
             "run"
@@ -61591,6 +61637,30 @@
         },
         {
           "name": "prepareJournal/prepareJournal#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareManagedCompute",
+          "parameters": [
+            "held"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareManagedCompute/prepareManagedCompute",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareManagedCompute/prepareManagedCompute#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareManagedCompute/prepareManagedCompute#3",
           "parameters": [],
           "async": false
         },
@@ -61885,6 +61955,14 @@
           "async": false
         },
         {
+          "name": "table/init:assertManagedComputeInstallationCurrent/init:assertManagedComputeInstallationCurrent",
+          "parameters": [
+            "original",
+            "originals"
+          ],
+          "async": false
+        },
+        {
           "name": "table/init:assertSourceManagedInstallationCurrent/init:assertSourceManagedInstallationCurrent",
           "parameters": [
             "original",
@@ -61908,6 +61986,27 @@
           "parameters": [
             "originals",
             "raw"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:bindManagedComputeRequest/init:bindManagedComputeRequest",
+          "parameters": [
+            "original",
+            "originals",
+            "receipt",
+            "body",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:bindManagedComputeSnapshot/init:bindManagedComputeSnapshot",
+          "parameters": [
+            "original",
+            "originals",
+            "receipt",
+            "body"
           ],
           "async": false
         },
@@ -61941,10 +62040,28 @@
           "async": false
         },
         {
+          "name": "table/init:closeManagedComputeInstallation/init:closeManagedComputeInstallation",
+          "parameters": [
+            "original",
+            "originals"
+          ],
+          "async": false
+        },
+        {
           "name": "table/init:closeSourceManagedInstallation/init:closeSourceManagedInstallation",
           "parameters": [
             "original",
             "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:finishManagedComputeProducer/init:finishManagedComputeProducer",
+          "parameters": [
+            "original",
+            "originals",
+            "receipt",
+            "terminal"
           ],
           "async": false
         },
@@ -61955,6 +62072,16 @@
             "originals",
             "receipt",
             "terminal"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:managedComputeIntentCid/init:managedComputeIntentCid",
+          "parameters": [
+            "original",
+            "originals",
+            "receipt",
+            "body"
           ],
           "async": false
         },
@@ -62020,6 +62147,133 @@
       "owner": "Existing private Host/Resource initial-control installation and original preparation custody",
       "role": "physical-io",
       "contracts": [
+        {
+          "operations": [
+            "beforeManagedComputeSnapshot",
+            "claimManagedComputeRun",
+            "managedComputeCurrent",
+            "managedComputeOriginal",
+            "prepareManagedCompute",
+            "prepareManagedCompute/prepareManagedCompute",
+            "prepareManagedCompute/prepareManagedCompute#2",
+            "prepareManagedCompute/prepareManagedCompute#3",
+            "table/init:assertManagedComputeInstallationCurrent/init:assertManagedComputeInstallationCurrent",
+            "table/init:bindManagedComputeRequest/init:bindManagedComputeRequest",
+            "table/init:bindManagedComputeSnapshot/init:bindManagedComputeSnapshot",
+            "table/init:closeManagedComputeInstallation/init:closeManagedComputeInstallation",
+            "table/init:finishManagedComputeProducer/init:finishManagedComputeProducer",
+            "table/init:managedComputeIntentCid/init:managedComputeIntentCid"
+          ],
+          "exports": [
+            "commonjs:assertManagedComputeInstallationCurrent",
+            "commonjs:beforeManagedComputeSnapshot",
+            "commonjs:bindManagedComputeRequest",
+            "commonjs:bindManagedComputeSnapshot",
+            "commonjs:closeManagedComputeInstallation",
+            "commonjs:finishManagedComputeProducer",
+            "commonjs:managedComputeIntentCid",
+            "commonjs:prepareManagedComputeInstallation",
+            "commonjs:prepareManagedComputeRun"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-free managed Compute uses a separately selected original in this same"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function beforeManagedComputeSnapshot(original, held, kind, input, options) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function claimManagedComputeRun(original, held, derived) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function managedComputeOriginal(original, held, allowClosing = false) {"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "fn installed_managed_run_purpose_supported("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "requestService: state.journalService, bundle: undefined,"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Both private views retain their fixed purpose-specific startup callbacks."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "producer.managedRun = {original: freeze(Object.create(null)), entry, producer,"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "journalInstallation.journal === undefined) sourceUnavailable();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "carrier.code = 'ManagedComputeInstallationCleanupPending';"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "sourceFailure(entry, cause); entry.closing = true;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "return closeSource(managedComputeOriginal(original, originals, true));"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "pub fn retire_installed_managed_run("
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "function declareSourceFreeManagedComputePhaseEnvelope(controlDeclaration) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "assertJournalServiceCurrent(entry.requestService);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Physical buffers, Result"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "if occurrence < 0 || occurrence >= value.reads.length() {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "source-free Compute original precedes SDK snapshot and cannot issue Source children"
+              },
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "source-free Compute snapshot refusal retains its one original close without entering getters"
+              }
+            ]
+          }
+        },
         {
           "operations": [
             "<module>",
@@ -62697,13 +62951,32 @@
     },
     {
       "module": "adapters/host-node/node-source-managed-installation.mjs",
-      "sha256": "76b461dbe782617739b7272ec18750d09a510cda329e5defa61948912fbc28ed",
+      "sha256": "d10790705ef286480c0f43d7618db8d60e3c80027b4406b8468c7023cf3ab746",
       "exports": [
+        "assertManagedComputeInstallationCurrent",
+        "assertManagedComputePreparationCurrent",
         "assertSourceManagedInstallationCurrent",
         "assertSourceManagedPreparationCurrent",
+        "prepareManagedComputeInstallation",
         "prepareSourceManagedInstallation"
       ],
       "operations": [
+        {
+          "name": "assertManagedComputeInstallationCurrent",
+          "parameters": [
+            "view",
+            "sameOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertManagedComputePreparationCurrent",
+          "parameters": [
+            "originalInstallation",
+            "sameOriginals"
+          ],
+          "async": false
+        },
         {
           "name": "assertSourceManagedInstallationCurrent",
           "parameters": [
@@ -62740,6 +63013,13 @@
           "async": true
         },
         {
+          "name": "computeCallbacks/computeCallbacks",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "current",
           "parameters": [
             "state"
@@ -62750,7 +63030,8 @@
           "name": "invoke",
           "parameters": [
             "index",
-            "args"
+            "args",
+            "selected"
           ],
           "async": false
         },
@@ -62763,29 +63044,30 @@
           "async": false
         },
         {
-          "name": "prepareSourceManagedInstallation",
+          "name": "prepareInstallation",
           "parameters": [
-            "originals"
+            "originals",
+            "selectedCallbacks"
           ],
           "async": true
         },
         {
-          "name": "prepareSourceManagedInstallation/prepareSourceManagedInstallation",
+          "name": "prepareInstallation/prepareInstallation",
           "parameters": [],
           "async": false
         },
         {
-          "name": "prepareSourceManagedInstallation/prepareSourceManagedInstallation#2",
+          "name": "prepareInstallation/prepareInstallation#2",
           "parameters": [],
           "async": false
         },
         {
-          "name": "prepareSourceManagedInstallation/view/init:assertCurrent/init:assertCurrent",
+          "name": "prepareInstallation/view/init:assertCurrent/init:assertCurrent",
           "parameters": [],
           "async": false
         },
         {
-          "name": "prepareSourceManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+          "name": "prepareInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
           "parameters": [
             "kind",
             "input",
@@ -62794,7 +63076,7 @@
           "async": false
         },
         {
-          "name": "prepareSourceManagedInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
+          "name": "prepareInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
           "parameters": [
             "receipt",
             "body",
@@ -62803,7 +63085,7 @@
           "async": false
         },
         {
-          "name": "prepareSourceManagedInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
+          "name": "prepareInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
           "parameters": [
             "receipt",
             "body"
@@ -62811,12 +63093,12 @@
           "async": false
         },
         {
-          "name": "prepareSourceManagedInstallation/view/init:close/init:close",
+          "name": "prepareInstallation/view/init:close/init:close",
           "parameters": [],
           "async": false
         },
         {
-          "name": "prepareSourceManagedInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
+          "name": "prepareInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
           "parameters": [
             "receipt",
             "terminal"
@@ -62824,7 +63106,7 @@
           "async": false
         },
         {
-          "name": "prepareSourceManagedInstallation/view/init:intentCid/init:intentCid",
+          "name": "prepareInstallation/view/init:intentCid/init:intentCid",
           "parameters": [
             "receipt",
             "originalFrozenBody"
@@ -62832,7 +63114,7 @@
           "async": false
         },
         {
-          "name": "prepareSourceManagedInstallation/view/init:prepareRead/init:prepareRead",
+          "name": "prepareInstallation/view/init:prepareRead/init:prepareRead",
           "parameters": [
             "originalDerivedRequest",
             "originalDeclaration",
@@ -62841,9 +63123,23 @@
           "async": false
         },
         {
-          "name": "prepareSourceManagedInstallation/view/init:prepareRun/init:prepareRun",
+          "name": "prepareInstallation/view/init:prepareRun/init:prepareRun",
           "parameters": [
             "originalCheckedPrepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareManagedComputeInstallation",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSourceManagedInstallation",
+          "parameters": [
+            "originals"
           ],
           "async": false
         },
@@ -62886,23 +63182,31 @@
             "invoke",
             "original",
             "prepareSourceManagedInstallation",
-            "prepareSourceManagedInstallation/prepareSourceManagedInstallation",
-            "prepareSourceManagedInstallation/prepareSourceManagedInstallation#2",
-            "prepareSourceManagedInstallation/view/init:assertCurrent/init:assertCurrent",
-            "prepareSourceManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
-            "prepareSourceManagedInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
-            "prepareSourceManagedInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
-            "prepareSourceManagedInstallation/view/init:close/init:close",
-            "prepareSourceManagedInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
-            "prepareSourceManagedInstallation/view/init:intentCid/init:intentCid",
+            "prepareInstallation/prepareInstallation",
+            "prepareInstallation/prepareInstallation#2",
+            "prepareInstallation/view/init:assertCurrent/init:assertCurrent",
+            "prepareInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+            "prepareInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
+            "prepareInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
+            "prepareInstallation/view/init:close/init:close",
+            "prepareInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
+            "prepareInstallation/view/init:intentCid/init:intentCid",
             "syncVoid",
             "unavailable/unavailable",
-            "prepareSourceManagedInstallation/view/init:prepareRead/init:prepareRead",
-            "prepareSourceManagedInstallation/view/init:prepareRun/init:prepareRun"
+            "prepareInstallation/view/init:prepareRead/init:prepareRead",
+            "prepareInstallation/view/init:prepareRun/init:prepareRun",
+            "assertManagedComputeInstallationCurrent",
+            "assertManagedComputePreparationCurrent",
+            "computeCallbacks/computeCallbacks",
+            "prepareInstallation",
+            "prepareManagedComputeInstallation"
           ],
           "exports": [
+            "assertManagedComputeInstallationCurrent",
+            "assertManagedComputePreparationCurrent",
             "assertSourceManagedInstallationCurrent",
             "assertSourceManagedPreparationCurrent",
+            "prepareManagedComputeInstallation",
             "prepareSourceManagedInstallation"
           ],
           "attributes": {
@@ -62910,12 +63214,20 @@
               {
                 "path": "adapters/host-node/node-source-managed-installation.mjs",
                 "anchor": "// Fixed private startup receiver only."
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "if (state.callbacks !== computeCallbacks) unavailable();"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/node-source-managed-installation.mjs",
-                "anchor": "export async function prepareSourceManagedInstallation(originals)"
+                "anchor": "export function prepareSourceManagedInstallation(originals)"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "if (state.callbacks !== computeCallbacks) unavailable();"
               }
             ],
             "identity": [
@@ -62930,6 +63242,10 @@
               {
                 "path": "adapters/host-node/node-source-managed-installation.mjs",
                 "anchor": "intentCid(receipt, originalFrozenBody) {"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "if (state.callbacks !== computeCallbacks) unavailable();"
               }
             ],
             "ownership": [
@@ -62944,6 +63260,10 @@
               {
                 "path": "adapters/host-node/node-source-managed-installation.mjs",
                 "anchor": "// The same Host must retain this child's original close receiver before"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "if (state.callbacks !== computeCallbacks) unavailable();"
               }
             ],
             "synchronization": [
@@ -62957,23 +63277,35 @@
               },
               {
                 "path": "adapters/host-node/node-source-managed-installation.mjs",
-                "anchor": "const result = invoke(7, [state.installation, state.originals, receipt, originalFrozenBody]);"
+                "anchor": "const result = invoke(7, [state.installation, state.originals, receipt, originalFrozenBody], state.callbacks);"
               },
               {
                 "path": "adapters/host-node/installed-project-mock.mjs",
                 "anchor": "sourceManaged.assertCurrent();"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "if (state.callbacks !== computeCallbacks) unavailable();"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/node-source-managed-installation.mjs",
                 "anchor": "carrier.code = 'SourceManagedInstallationCleanupPending';"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "if (state.callbacks !== computeCallbacks) unavailable();"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/node-source-managed-installation.mjs",
                 "anchor": "// Producer retirement may follow lost currentness."
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "if (state.callbacks !== computeCallbacks) unavailable();"
               }
             ],
             "resources": [
@@ -62984,12 +63316,20 @@
               {
                 "path": "adapters/host-node/node-source-managed-installation.mjs",
                 "anchor": "// permission. A selected Source never falls back to a native hash task"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "if (state.callbacks !== computeCallbacks) unavailable();"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/node-source-managed-installation.mjs",
                 "anchor": "// scalar quota or initial-control scope cannot create a Source installation."
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "if (state.callbacks !== computeCallbacks) unavailable();"
               }
             ],
             "verification": [
@@ -63016,6 +63356,14 @@
               {
                 "path": "adapters/host-node/node-source-managed-installation.test.mjs",
                 "anchor": "test('acquired Source child reaches its same cleanup consumer before the post-factory current refusal',async t=>{"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "if (state.callbacks !== computeCallbacks) unavailable();"
+              },
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "source-free Compute original precedes SDK snapshot and cannot issue Source children"
               }
             ]
           }
@@ -63025,9 +63373,10 @@
     },
     {
       "module": "adapters/host-node/source-managed-phase-envelope.cjs",
-      "sha256": "1d15b83e82bb1801616534b9e5821d4af28c1e28c3871718408e71f1935b1d40",
+      "sha256": "b95f7d3794405d13e917339d518eefae8e1ce8672c24f2ae3b02c716fd062793",
       "exports": [
         "commonjs:declareSourceComputePhaseEnvelope",
+        "commonjs:declareSourceFreeManagedComputePhaseEnvelope",
         "commonjs:declareSourceManagedPhaseEnvelope"
       ],
       "operations": [
@@ -63035,6 +63384,13 @@
           "name": "declareSourceComputePhaseEnvelope",
           "parameters": [
             "sourceDeclaration"
+          ],
+          "async": false
+        },
+        {
+          "name": "declareSourceFreeManagedComputePhaseEnvelope",
+          "parameters": [
+            "controlDeclaration"
           ],
           "async": false
         },
@@ -63065,6 +63421,80 @@
       "owner": "Existing Resource and Host Source phase accounting; DATA is not an operational admission",
       "role": "physical-io",
       "contracts": [
+        {
+          "operations": [
+            "declareSourceFreeManagedComputePhaseEnvelope"
+          ],
+          "exports": [
+            "commonjs:declareSourceFreeManagedComputePhaseEnvelope"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-free managed Compute uses a separately selected original in this same"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "function declareSourceFreeManagedComputePhaseEnvelope(controlDeclaration) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "return freeze({controlDeclaration, inputLimits, compute,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "lifetime: 'same-original-process-and-all-escaped-run-aliases',"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "// Its actual installation must retain this selection before SDK acquisition."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "declareSourceManagedPhaseEnvelope(controlDeclaration));"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "replenishedOnClose: false});"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "sourceOccurrences: 0, requests: 1,"
+              },
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "additionalManagedHeapBytes: 0, additionalWholeNativeDomainBytes: 0,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "// shared runtime original, not its Source buffers, child capacity or credit."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.test.mjs",
+                "anchor": "source-free Compute shares the original runtime without Source byte or child credit"
+              }
+            ]
+          }
+        },
         {
           "operations": [
             "<module>",

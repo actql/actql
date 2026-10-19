@@ -841,6 +841,31 @@ the typed preparation and checks physical identity again at the Host consumer.
 The private JS ABI representation is used only for that reference comparison:
 it has no public constructor, raw-field reader or admission semantics.
 
+Source-free managed Compute uses a separately selected original in this same
+Root, before the SDK's first packet traversal or snapshot. It does not create
+a dummy Source installation, file, response backing or Source child. The same
+Host's actual Journal request/control facility must already be retained and
+open; its captured crypto originals cover request/epoch control only, not
+Compute capacity. Neither facility can replace the other's operational purpose.
+
+The fixed Host namespace follows the original pending request to its exact
+checked preparation. The same Local sequence and receiving-port inventory
+quotes source-free retained-output demand; it does not create another Ledger.
+The existing imported admission then supplies the original Run Ledger, with
+the same mutable-resource/park fence, usage reporting and partial cleanup.
+Source-free preparations reject supplied Source capacities and transport
+amounts, and cannot obtain a Source read. The supported two-Source path keeps
+its original acquisition correspondence. Other unsupported backend shapes are
+not invalid public Programs and do not silently fall back to accounting limits.
+
+Both private views retain their fixed purpose-specific startup callbacks.
+Currentness for a Source view cannot authenticate a Compute view or vice versa.
+Shared process/module domains remain one original, with packet, preparation,
+DAG, result aliases and pending cleanup overlapping their actual lifetimes.
+Closing either view does not replenish that domain. Physical buffers, Result
+or Content storage, Model, Effect and external I/O keep their separate actual
+suppliers; a source-free quote or successful claim does not supply them.
+
 The Host retains the unstarted admission before fallible start/take, and takes
 one original Run Ledger. The two Source reads and the generated managed DAG
 borrow that same Ledger internally. The existing physical Ledger equality at

@@ -23,7 +23,8 @@ const {createHostJournalDirectoryInspector} = require('./host-journal-directory.
 const {createInitialControlInstallationOwner} = require('./initial-control-installation-owner.cjs');
 const {declareOrdinaryInitialControlPhaseEnvelope, inspectOrdinaryInitialControlPhaseEnvelope}
   = require('./initial-control-phase-envelope.cjs');
-const {declareSourceManagedPhaseEnvelope,declareSourceComputePhaseEnvelope} = require('./source-managed-phase-envelope.cjs');
+const {declareSourceManagedPhaseEnvelope,declareSourceComputePhaseEnvelope,
+  declareSourceFreeManagedComputePhaseEnvelope} = require('./source-managed-phase-envelope.cjs');
 const {declareHostJournalServiceRecipe} = require('./host-journal-service-recipe.cjs');
 const fail = code => {throw Object.assign(new TypeError(code), {code});};
 const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');
@@ -40,6 +41,7 @@ let state, firstFailure, preparation, intake, closed = false;
 // These originals belong to this actual installed prefix, not to an exported
 // factory accepting a runtime label, caller callback, capacity or trust flag.
 let sourceInstallation;
+let managedComputeInstallation;
 let journalInstallation;
 let journalService;
 const journalUnavailable = () => fail('HostJournalPreparationUnavailable');
@@ -896,8 +898,114 @@ function prepareOriginalSourceChildPorts(original) {
     },
   });
 }
+function managedComputeOriginal(original, held, allowClosing = false) {
+  const entry = managedComputeInstallation;
+  if (entry === undefined || entry.original !== original || entry.originals !== held ||
+      entry.closed || (!allowClosing && entry.closing)) sourceUnavailable();
+  return entry;
+}
+function managedComputeCurrent(original, held) {
+  const entry = managedComputeOriginal(original, held);
+  try {
+    assertSamePreparation(held);
+    if (entry.envelope !== state.managedComputeEnvelope ||
+        entry.envelope.controlDeclaration !== state.declaration ||
+        entry.envelope.sourceOccurrences !== 0 || entry.requestService !== state.journalService ||
+        entry.requestService?.originals !== held || journalInstallation?.originals !== held ||
+        journalInstallation.closing || journalInstallation.closed ||
+        journalInstallation.journal === undefined) sourceUnavailable();
+    // SDK request/control UUID/epoch work uses this SAME separately supplied
+    // facility. Managed Compute itself supplies no native crypto or Journal.
+    assertJournalServiceCurrent(entry.requestService);
+    apply(state.compute.validator, state.namespace, [held]);
+    return entry;
+  } catch (cause) {
+    sourceFailure(entry, cause); entry.closing = true;
+    throw cause;
+  }
+}
+function prepareManagedCompute(held) {
+  assertSamePreparation(held);
+  if (managedComputeInstallation !== undefined || state.compute === undefined ||
+      Object.values(state.compute).some(value => typeof value !== 'function') ||
+      state.managedComputeEnvelope?.sourceOccurrences !== 0 ||
+      state.journalService?.originals !== held || journalInstallation?.originals !== held ||
+      journalInstallation.closing || journalInstallation.closed ||
+      journalInstallation.journal === undefined) sourceUnavailable();
+  assertJournalServiceCurrent(state.journalService);
+  // This separate purpose has no Source bundle, FD or response backings.
+  // It shares the selected runtime original, not an initial/Source allowance.
+  const original = freeze(Object.create(null));
+  const entry = managedComputeInstallation = {original, originals: held,
+    envelope: state.managedComputeEnvelope, requestService: state.journalService, bundle: undefined,
+    closing: false, closed: false, children: [], receipt: undefined,
+    file: undefined, openFlight: undefined, closeFlight: undefined,
+    firstError: undefined, latestError: undefined, backingUnknown: false};
+  try { managedComputeCurrent(original, held); return original; }
+  catch (cause) {
+    const carrier = new Error('ManagedComputeInstallationCleanupPending', {cause});
+    carrier.code = 'ManagedComputeInstallationCleanupPending';
+    carrier.cleanupHandle = freeze({status: () => sourceStatus(entry), retry: () => closeSource(entry)});
+    throw carrier;
+  }
+}
+function beforeManagedComputeSnapshot(original, held, kind, input, options) {
+  const entry = managedComputeCurrent(original, held);
+  if (entry.receipt !== undefined) sourceUnavailable();
+  const receipt = freeze(Object.create(null));
+  const producer = entry.receipt = {original: receipt, snapshot: undefined,
+    body: undefined, request: undefined, finished: false};
+  // The actual original exists BEFORE SDK traversal/clone and Common
+  // preparation. A later typed claim binds this original; it cannot issue it.
+  producer.managedRun = {original: freeze(Object.create(null)), entry, producer,
+    claimed: false, derived: undefined, request: undefined, quotas: undefined,
+    portsTaken: false, admitted: false, stopped: false, usage: undefined};
+  try {
+    producer.snapshot = apply(state.compute.input, state.namespace,
+      [kind, input, options, entry.envelope.inputLimits]);
+    if (producer.snapshot.originalReferences.length !== 0) sourceUnavailable();
+    managedComputeCurrent(original, held);
+    return receipt;
+  } catch (cause) {
+    sourceFailure(entry, cause); producer.finished = true; entry.closing = true;
+    throw cause;
+  }
+}
+function claimManagedComputeRun(original, held, derived) {
+  const entry = managedComputeCurrent(original, held), producer = entry.receipt;
+  if (producer === undefined || producer.finished || producer.managedRun?.claimed) sourceUnavailable();
+  const request = apply(state.compute.request, state.namespace, [held, derived]);
+  if (producer.request !== request) sourceUnavailable();
+  const run = producer.managedRun;
+  run.claimed = true; run.derived = derived; run.request = request;
+  try {
+    const required = apply(state.compute.requirements, state.namespace, [held, derived]);
+    const names = ['planningWork', 'attempts', 'holdings', 'transferBytes', 'retainedBytes', 'executionBytes'];
+    if (required === null || typeof required !== 'object' || isProxy(required) ||
+        !Object.isFrozen(required)) sourceUnavailable();
+    const quotas = [];
+    for (let index = 0; index < names.length; index++) {
+      const name = names[index], property = descriptor(required, name);
+      if (property === undefined || !own(property, 'value')) sourceUnavailable();
+      const value = property.value;
+      if (index < 3 ? !Number.isSafeInteger(value) || value < 0 || value > 2147483647 :
+          typeof value !== 'bigint' || value < 0n) sourceUnavailable();
+      const amount = BigInt(value);
+      if (amount > BigInt(entry.envelope.limits[name])) sourceUnavailable();
+      appendSourceOriginal(quotas, amount);
+    }
+    run.quotas = freeze(quotas);
+    managedRunCurrent(run);
+    return run.original;
+  } catch (cause) {
+    sourceFailure(entry, cause); entry.closing = true;
+    throw cause;
+  }
+}
 function managedRunCurrent(run) {
-  const entry = sourceCurrent(run.entry.original,run.entry.originals);
+  const entry = run.entry === managedComputeInstallation
+    ? managedComputeCurrent(run.entry.original,run.entry.originals)
+    : sourceCurrent(run.entry.original,run.entry.originals);
   if (run.entry !== entry || entry.receipt !== run.producer ||
       run.producer.managedRun !== run || run.stopped ||
       run.request !== run.producer.request || run.derived === undefined) sourceUnavailable();
@@ -935,7 +1043,9 @@ function claimManagedRun(original,held,derived) {
   }
 }
 function prepareOriginalManagedRunPorts(original,prepared) {
-  const entry=sourceInstallation,run=entry?.receipt?.managedRun;
+  const sourceRun=sourceInstallation?.receipt?.managedRun;
+  const entry=sourceRun?.original===original ? sourceInstallation : managedComputeInstallation;
+  const run=entry?.receipt?.managedRun;
   if (run===undefined || run.original!==original || run.derived!==prepared || !run.claimed ||
       run.quotas===undefined || run.portsTaken || run.stopped) return null;
   try {managedRunCurrent(run);} catch(cause) {
@@ -1134,6 +1244,41 @@ const table = module.exports = {
   openHostJournalRequestJournal: openJournal,
   originalHostPublicationOwnership: journalPublicationOwnership,
   admitHostJournalRootFormat: admitJournalRootFormat,
+  prepareManagedComputeInstallation: prepareManagedCompute,
+  assertManagedComputeInstallationCurrent(original, originals) {
+    managedComputeCurrent(original, originals);
+  },
+  closeManagedComputeInstallation(original, originals) {
+    return closeSource(managedComputeOriginal(original, originals, true));
+  },
+  beforeManagedComputeSnapshot,
+  bindManagedComputeSnapshot(original, originals, receipt, body) {
+    const entry = managedComputeCurrent(original, originals), producer = sourceReceipt(entry, receipt);
+    if (producer.body !== undefined || producer.finished || body === null ||
+        typeof body !== 'object' || isProxy(body) || !Object.isFrozen(body) ||
+        body.kind !== producer.snapshot.packet.kind || body.input !== producer.snapshot.packet.input) sourceUnavailable();
+    producer.body = body;
+  },
+  bindManagedComputeRequest(original, originals, receipt, body, request) {
+    const entry = managedComputeCurrent(original, originals), producer = sourceReceipt(entry, receipt);
+    if (producer.body !== body || producer.request !== undefined || producer.finished ||
+        request === null || typeof request !== 'object' || isProxy(request)) sourceUnavailable();
+    producer.request = request;
+  },
+  managedComputeIntentCid(original, originals, receipt, body) {
+    const entry = managedComputeCurrent(original, originals), producer = sourceReceipt(entry, receipt);
+    if (producer.body !== body || producer.finished) sourceUnavailable();
+    const identity = apply(state.compute.intent, state.namespace, [originals, original, body]);
+    managedComputeCurrent(original, originals);
+    return identity;
+  },
+  finishManagedComputeProducer(original, originals, receipt, terminal) {
+    const entry = managedComputeOriginal(original, originals, true), producer = sourceReceipt(entry, receipt);
+    if (terminal !== 'returned' && terminal !== 'failed') sourceUnavailable();
+    producer.finished = true;
+    producer.snapshot = undefined;
+  },
+  prepareManagedComputeRun: claimManagedComputeRun,
   prepareSourceManagedInstallation: prepareSource,
   assertSourceManagedInstallationCurrent(original, originals) {sourceCurrent(original, originals);},
   beforeSourceSnapshot(original, originals, kind, input, options) {
@@ -1245,6 +1390,7 @@ try {
   // metadata or raw SDK acquisition. This is not a second whole VM allowance.
   const sourceEnvelope = declareSourceManagedPhaseEnvelope(declaration);
   const sourceComputeEnvelope = declareSourceComputePhaseEnvelope(sourceEnvelope);
+  const managedComputeEnvelope = declareSourceFreeManagedComputePhaseEnvelope(declaration);
   const inventory = require('./initial-control-package-original.cjs').imageInventory;
   if (inventory === undefined) unavailable();
   const envelope = inspectOrdinaryInitialControlPhaseEnvelope(inventory,declaration,runtime);
@@ -1284,6 +1430,14 @@ try {
   const runRequirementProperty=descriptor(namespace,'readSourceManagedRunRequirements');
   const runRequirements=runRequirementProperty!==undefined&&own(runRequirementProperty,'value')
     ?runRequirementProperty.value:undefined;
+  const compute = {};
+  for (const [name, exported] of Object.entries({validator: 'assertSourceManagedHostPreparation',
+    request: 'originalSourceManagedHostRequest', input: 'readSourceManagedOriginalInput',
+    intent: 'managedComputeSubmittedIntentCid', requirements: 'readManagedComputeRunRequirements'})) {
+    const entry = descriptor(namespace, exported);
+    compute[name] = entry !== undefined && own(entry, 'value') ? entry.value : undefined;
+  }
+  freeze(compute);
   const journal = {};
   for (const [name, exported] of Object.entries({read: 'readHostJournalPreparation',
     open: 'openOriginalHostRequestJournal', observe: 'observeOriginalHostRequestJournalCustody',
@@ -1298,6 +1452,7 @@ try {
   freeze(journal);
   const journalDisposition = bindJournalServiceNamespace(originalJournalService, namespace, journal);
   state = {declaration,runtime,envelope,sourceEnvelope,sourceComputeEnvelope,runRequirements,
+    managedComputeEnvelope,compute,
     inventory,images,namespace,consumer,validator,reader,source,journal,journalNative,journalServiceRecipe,
     journalService:originalJournalService,journalDisposition,prefixIntrinsics,
     directoryNativeImageLoader:field(directoryNativeImage,'loadHostJournalDirectoryNative')};

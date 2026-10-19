@@ -51,3 +51,19 @@ test('Source intake cannot borrow a callback graph under a zero opaque-alias rec
     {format:'sql',callback(){called++;}},phase.inputLimits),{code:'NodeSourceManagedInputUnavailable'});
   assert.equal(called,0);
 });
+
+test('source-free Compute shares the original runtime without Source byte or child credit', () => {
+  const original=control.declareInitialControlPhaseEnvelope(4*1024**3);
+  const phase=source.declareSourceFreeManagedComputePhaseEnvelope(original);
+  assert.strictEqual(phase.controlDeclaration,original);
+  assert.equal(phase.sourceOccurrences,0);
+  assert.equal(phase.requests,1);
+  assert.equal(phase.additionalManagedHeapBytes,0);
+  assert.equal(phase.additionalWholeNativeDomainBytes,0);
+  assert.equal(phase.limits.transferBytes,1024*1000000);
+  assert.equal(phase.limits.retainedBytes,536870912);
+  assert.equal(phase.limits.executionBytes,536870912);
+  assert.equal(phase.responseBackingBytes,undefined);
+  assert.equal(phase.occurrencePartitions,undefined);
+  assert.equal(phase.replenishedOnClose,false);
+});
