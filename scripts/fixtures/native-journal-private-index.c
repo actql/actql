@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,6 +24,20 @@ static int fail_close;
 static int observed_descriptor = -1;
 static int close_count;
 static int stat_fault_count;
+static int allocation_count;
+static int namespace_cleanup_count;
+static void *counted_allocate(size_t bytes) {
+  allocation_count++;
+  return malloc(bytes);
+}
+static int counted_unlink(const char *path) {
+  namespace_cleanup_count++;
+  return unlink(path);
+}
+static int counted_rmdir(const char *path) {
+  namespace_cleanup_count++;
+  return rmdir(path);
+}
 #ifdef __APPLE__
 static int path_fault;
 static int path_observations;
@@ -65,7 +80,13 @@ static int controlled_close(int fd) {
 }
 #define fstat controlled_fstat
 #define close controlled_close
+#define malloc counted_allocate
+#define unlink counted_unlink
+#define rmdir counted_rmdir
 #include "../../src/platform_native/remote_journal/inspection_stub.c"
+#undef rmdir
+#undef unlink
+#undef malloc
 #undef close
 #undef fstat
 #ifdef __APPLE__
@@ -80,6 +101,39 @@ int main(int argc, char **argv) {
   assert(fd >= 0 && write(fd, "original", 8) == 8 && close(fd) == 0);
   moonbit_bytes_t path = moonbit_make_bytes_raw((int32_t)strlen(source));
   memcpy(path, source, strlen(source));
+  if (strcmp(argv[1], "closed-no-reacquire") == 0 ||
+      strcmp(argv[1], "closed-preserves-replacement") == 0) {
+    actql_journal_inspection *closed = inspection_open_bounded(
+      path, (int32_t)strlen(source), 1024);
+    assert(closed && closed->ready);
+    assert(actql_journal_inspection_prepare_private_index(closed));
+    char *directory = strdup(closed->directory);
+    char *copy = strdup(closed->copy);
+    assert(directory && copy && inspection_close(closed));
+    bool replacement = strcmp(argv[1], "closed-preserves-replacement") == 0;
+    if (replacement) {
+      assert(mkdir(directory, 0700) == 0);
+      int fresh = open(copy, O_WRONLY | O_CREAT | O_EXCL, 0600);
+      assert(fresh >= 0 && write(fresh, "foreign", 7) == 7 && close(fresh) == 0);
+    }
+    int allocations = allocation_count, closes = close_count;
+    int namespace = namespace_cleanup_count;
+    if (!replacement) {
+      assert(inspection_close(closed));
+      assert(allocation_count == allocations && close_count == closes &&
+        namespace_cleanup_count == namespace);
+    }
+    moonbit_decref(closed);
+    assert(allocation_count == allocations && close_count == closes &&
+      namespace_cleanup_count == namespace);
+    if (replacement) {
+      struct stat fresh;
+      assert(lstat(copy, &fresh) == 0 && fresh.st_size == 7);
+    }
+    free(directory);
+    free(copy);
+    goto finish;
+  }
   if (strcmp(argv[1], "selected-source-oversized") == 0 ||
       strcmp(argv[1], "selected-source-boundary") == 0) {
     int length = strcmp(argv[1], "selected-source-boundary") == 0 ? 4096 : 4097;
