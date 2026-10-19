@@ -60,6 +60,7 @@ int main(int argc, char **argv) {
     void *parent_allocation = NULL;
     int backing_fd = -1;
     char backing_path[4096];
+    void *escaped_file = NULL;
     actql_read_context *context = NULL;
     if (domain_exhaustion) {
         const size_t page = (size_t)sysconf(_SC_PAGESIZE);
@@ -140,10 +141,14 @@ int main(int argc, char **argv) {
          * payload. Releasing it permits only same-ceiling reuse, not refill or
          * a new DB/library/claim after exhaustion. */
         assert(actql_read_context_try_close(&context) != 0 && context != NULL);
-        for (size_t i = 0; i < count; ++i) actql_native_file_scoped_free(held[i]);
+        escaped_file = held[0];
+        memset(escaped_file, 0xa5, 16);
+        for (size_t i = 1; i < count; ++i) actql_native_file_scoped_free(held[i]);
         uint64_t released[16] = {0};
         assert(actql_native_owned_inventory(lease, released, 16) == 0);
-        assert(released[3] == before[3] && released[4] == domain_ceiling);
+        assert(released[3] > before[3] && released[3] < full[3]);
+        assert(released[4] == domain_ceiling);
+        assert(actql_native_owned_contains_live_span(lease, escaped_file, 16) == 0);
         assert(library->selected_api == original_api && writer->database == original_database);
         /* No read retry, inspection, replacement or reopen follows. */
     } else if (facility_exhaustion) {
@@ -278,9 +283,24 @@ int main(int argc, char **argv) {
     }
     assert(actql_native_sqlite_library_close_checked(library) == 1);
     moonbit_decref(library);
+    if (domain_exhaustion) {
+        /* The actual child Library/module has acknowledged retirement, but
+         * the SAME domain still owns this independent File alias. */
+        assert(escaped_file != NULL);
+        assert(actql_native_owned_contains_live_span(lease, escaped_file, 16) == 0);
+        for (size_t i = 0; i < 16; ++i) assert(((unsigned char *)escaped_file)[i] == 0xa5);
+    }
     assert(actql_read_context_leave(context) == 0);
     assert(actql_native_owned_leave(lease) == 0);
     assert(actql_read_context_release_after_owner_ack(context) == 0);
+    if (domain_exhaustion) {
+        assert(actql_read_context_try_close(&context) == ACTQL_OWNED_BUSY && context != NULL);
+        assert(actql_native_owned_close_extent_view(&view) == ACTQL_OWNED_BUSY);
+        /* Free through the original provider AFTER scope leave, without
+         * reopening Read or invoking any function from the closed component. */
+        actql_native_file_scoped_free(escaped_file);
+        escaped_file = NULL;
+    }
     assert(actql_read_context_try_close(&context) == 0);
     if (domain_exhaustion) {
         assert(actql_native_owned_close_extent_view(&view) == ACTQL_OWNED_BUSY);
