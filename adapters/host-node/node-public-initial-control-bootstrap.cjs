@@ -19,6 +19,7 @@ const journalFacilityFields = require('./host-journal-facility-fields.cjs');
 // JS control body; native image acquisition still requires the separate full
 // Journal disposition and is never funded by this reference alone.
 const directoryNativeImage = require('./host-journal-native-image.cjs');
+const {createHostJournalDirectoryInspector} = require('./host-journal-directory.mjs');
 const {createInitialControlInstallationOwner} = require('./initial-control-installation-owner.cjs');
 const {declareOrdinaryInitialControlPhaseEnvelope, inspectOrdinaryInitialControlPhaseEnvelope}
   = require('./initial-control-phase-envelope.cjs');
@@ -61,6 +62,10 @@ function journalCurrent(original, held) {
     if (entry.disposition !== state.journalDisposition) journalUnavailable();
     apply(state.journal.current, state.namespace,
       [state.journalNative.DatabaseSync, state.journalNative.StatementSync, state.journalNative.bindings]);
+    if (entry.nativeImage !== undefined) {
+      if (typeof entry.nativeImageCurrent !== 'function') journalUnavailable();
+      apply(entry.nativeImageCurrent, entry.nativeImage, []);
+    }
     apply(entry.subjectCurrent, entry.subject, []);
     if (entry.ownership !== undefined) {
       apply(state.journal.ownershipCurrent, state.namespace,
@@ -154,6 +159,7 @@ function closeJournal(entry) {
       }
       entry.closed = true;
       entry.subject = entry.subjectCurrent = undefined;
+      entry.directoryInspection = entry.nativeImage = entry.nativeImageCurrent = undefined;
       return journalStatus(entry);
     } catch (cause) {
       journalFailure(entry, cause);
@@ -186,7 +192,8 @@ function prepareJournal(held) {
   const original = freeze(Object.create(null));
   const entry = journalInstallation = {original, originals: held,
     disposition: state.journalDisposition, subject: undefined, subjectCurrent: undefined,
-    argumentsForJournal: undefined,
+    argumentsForJournal: undefined, nativeImage: undefined, nativeImageCurrent: undefined,
+    directoryInspection: undefined, directoryEntryBound: undefined,
     attempted: false, nativeAttempted: false, openFlight: undefined,
     ownership: undefined, ownershipForwarded: false, dependency: undefined,
     journal: undefined, journalClose: undefined,
@@ -203,12 +210,31 @@ function prepareJournal(held) {
     // on the same native facility before any subject read or DB acquisition.
     apply(state.journal.current, state.namespace,
       [state.journalNative.DatabaseSync, state.journalNative.StatementSync, state.journalNative.bindings]);
+    const images = field(state.inventory, 'nativeImages');
+    const limits = field(entry.disposition, 'directoryImageLimits');
+    if (!Array.isArray(images) || images.length !== 1 ||
+        typeof state.directoryNativeImageLoader !== 'function') journalUnavailable();
+    entry.nativeImage = apply(state.directoryNativeImageLoader, undefined,
+      [localRoot, images[0], limits, assertPrefixCurrent]);
+    // Retain the acquired module/custody BEFORE fallible operation/current
+    // reads. Its process-lived domain is not retired by this Host's close.
+    entry.nativeImageCurrent = field(entry.nativeImage, 'assertCurrent');
+    if (typeof entry.nativeImageCurrent !== 'function') journalUnavailable();
+    apply(entry.nativeImageCurrent, entry.nativeImage, []);
+    assertSamePreparation(held);
+    entry.directoryEntryBound = field(limits, 'maxEntries');
+    entry.directoryInspection = createHostJournalDirectoryInspector(
+      field(entry.nativeImage, 'operations'), limits, () => journalCurrent(original, held));
     entry.subject = apply(state.journal.read, state.namespace, [held]);
     entry.subjectCurrent = field(entry.subject, 'assertCurrent');
     if (typeof entry.subjectCurrent !== 'function') journalUnavailable();
     journalCurrent(original, held);
     return original;
-  } catch (cause) { throw journalCarrier(entry, cause); }
+  } catch (cause) {
+    try { journalCleanup(entry, cause); }
+    catch (cleanupFailure) { journalFailure(entry, cleanupFailure); }
+    throw journalCarrier(entry, cause);
+  }
 }
 function captureJournalNativeBindings(fsOriginal, cryptoOriginal) {
   const bindings = Object.create(null);
@@ -235,7 +261,10 @@ function openJournal(original, held, directory, options) {
   entry.attempted = true;
   let selected;
   try {
-    selected = apply(entry.argumentsForJournal, entry.disposition, [entry.subject, options]);
+    selected = apply(entry.argumentsForJournal, entry.disposition,
+      [entry.subject, options, entry.directoryInspection]);
+    if (field(selected, 'primaryDirectoryInspection') !== entry.directoryInspection ||
+        field(selected, 'maxInspectionEntries') !== entry.directoryEntryBound) journalUnavailable();
   } catch (cause) {
     try { journalCleanup(entry, cause); }
     catch (cleanupFailure) { journalFailure(entry, cleanupFailure); }

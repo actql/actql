@@ -3,10 +3,13 @@ import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {compileFunction} from 'node:vm';
+import {createRequire} from 'node:module';
+import {tmpdir} from 'node:os';
 import test from 'node:test';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import journalFacilityFields from './host-journal-facility-fields.cjs';
+import {createHostJournalDirectoryInspector} from './host-journal-directory.mjs';
 import {parse} from 'acorn';
 import {DatabaseSync, StatementSync} from 'node:sqlite';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
@@ -49,7 +52,24 @@ const make = compileFunction(`
     captureNative:captureJournalNativeBindings,
     ownership:journalPublicationOwnership,owner:{${originalOwner}},
     close:(original,held)=>closeJournal(journalOriginal(original,held,true))};`,
-['state', 'assertSamePreparation', 'join', 'journalFacilityFields']);
+['state', 'assertSamePreparation', 'join', 'journalFacilityFields', 'localRoot',
+  'assertPrefixCurrent', 'createHostJournalDirectoryInspector']);
+
+// Portable Root protocol cases have an explicit directory-port double, not a
+// stock-Dir physical ACK claim. A selected matching Darwin diagnostic may use
+// the retained real native image without building another artifact.
+const nativePackageRoot = process.env.ACTQL_DIRECTORY_NATIVE_DIAGNOSTIC_ROOT;
+const runtimeCurrent = () => {};
+const imageFact = nativePackageRoot === undefined
+  ? {path: '_build/native/directory-darwin-arm64.node', bytes: 52480, sha256: 'a'.repeat(64)}
+  : JSON.parse(readFileSync(join(nativePackageRoot, '_build/native/directory-original.json'))).binary;
+const imageLoader = nativePackageRoot === undefined ? () => Object.freeze({
+  assertCurrent() {}, operations: Object.freeze({
+    open(path) { return fs.opendirSync(path, {bufferSize: 1}); },
+    next(handle) { const value = handle.readSync(); return value === null ? null : Buffer.from(value.name); },
+    current() {}, close(handle) { handle.closeSync(); return {outcome: 'closed'}; },
+  }),
+}) : createRequire(import.meta.url)('./host-journal-native-image.cjs').loadHostJournalDirectoryNative;
 
 // Execute the actual adapter and Host forwarding/Store assignment, not a
 // fixture-only ownership accessor or a manual fifth-argument substitution.
@@ -100,7 +120,7 @@ function connectedHostPreparation(f) {
     code => Object.assign(new Error(code), {code}));
 }
 
-async function fixture({covered = true, open, read, current, nativeCurrent,
+async function fixture({covered = true, open, read, current, nativeCurrent, loadImage = imageLoader,
   prepareOwnership = prepareLocalPublicationStoreOwnership} = {}) {
   const scratch = await createOwnedScratch({
     parent: fileURLToPath(new URL('../../_build/', import.meta.url)),
@@ -112,10 +132,15 @@ async function fixture({covered = true, open, read, current, nativeCurrent,
     assertCurrent() { current?.(); }});
   const namespace = {};
   const state = {namespace, journalNative: Object.freeze({DatabaseSync, StatementSync}),
+    inventory: Object.freeze({nativeImages: Object.freeze([imageFact])}),
+    directoryNativeImageLoader: loadImage,
     journalDisposition: covered ? Object.freeze({
     ownershipBounds: Object.freeze({maxWireBytes: 16384, maxDirectoryEntries: 64}),
-    argumentsForOriginalJournal(actual, options) {
-      assert.strictEqual(actual, subject); return options;
+    directoryImageLimits: Object.freeze({maxImageBytes: imageFact.bytes, temporaryDirectory: tmpdir(),
+      maxEntries: 100000, maxNameBytes: 1024, maxWork: 268435456}),
+    argumentsForOriginalJournal(actual, options, originalDirectoryInspection) {
+      assert.strictEqual(actual, subject);
+      return {...options, maxInspectionEntries: 100000, primaryDirectoryInspection: originalDirectoryInspection};
     },
   }) : undefined, journal: Object.freeze({
     read(actual) {assert.strictEqual(this, namespace); assert.strictEqual(actual, originals);
@@ -135,7 +160,8 @@ async function fixture({covered = true, open, read, current, nativeCurrent,
       nativeCurrent?.();
     },
   })};
-  const root = make(state, actual => assert.strictEqual(actual, originals), join, journalFacilityFields);
+  const root = make(state, actual => assert.strictEqual(actual, originals), join, journalFacilityFields,
+    nativePackageRoot ?? '/explicit-fixture-package', runtimeCurrent, createHostJournalDirectoryInspector);
   state.journalNative = Object.freeze({DatabaseSync,StatementSync,
     bindings:root.captureNative(fs,crypto)});
   return {scratch, originals, directory, root, state};
@@ -323,6 +349,66 @@ test('Root refuses missing disposition before subject read or native constructor
   const f = await fixture({covered: false, read() {reads++;}, open() {opens++;}});
   assert.throws(() => f.root.prepare(f.originals), {code: 'HostJournalPreparationUnavailable'});
   assert.equal(reads, 0); assert.equal(opens, 0); f.scratch.passed();
+});
+
+test('Root retains original image cleanup before subject read and never repeats the load', async () => {
+  let loads = 0, reads = 0, retries = 0, permitted = false;
+  const cleanup = {
+    status() { assert.strictEqual(this, cleanup); return {pending: !permitted}; },
+    retry() { assert.strictEqual(this, cleanup); retries++; return {pending: !permitted}; },
+  };
+  const cause = Object.assign(new Error('OriginalImageCleanupPending'), {cleanupHandle: cleanup});
+  const f = await fixture({read() { reads++; }, loadImage() { loads++; throw cause; }});
+  let failure;
+  assert.throws(() => f.root.prepare(f.originals), error => {
+    failure = error; return error.cause === cause;
+  });
+  cleanup.status = cleanup.retry = () => assert.fail('Replacement cleanup must not run');
+  assert.equal((await failure.cleanupHandle.retry()).pending, true);
+  assert.equal(retries, 1);
+  permitted = true;
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal(retries, 1);
+  assert.throws(() => f.root.prepare(f.originals), {code: 'HostJournalPreparationUnavailable'});
+  assert.equal(loads, 1); assert.equal(reads, 0);
+  f.scratch.passed();
+});
+
+test('Root image current refusal precedes subject and DB acquisition', async () => {
+  let reads = 0, opens = 0, fences = 0;
+  const cause = new Error('OriginalImageCurrentLost');
+  const image = Object.freeze({assertCurrent() {
+    assert.strictEqual(this, image); fences++; throw cause;
+  }});
+  const f = await fixture({read() { reads++; }, open() { opens++; }, loadImage() { return image; }});
+  let failure;
+  assert.throws(() => f.root.prepare(f.originals), error => {
+    failure = error; return error.cause === cause;
+  });
+  const observation = await failure.cleanupHandle.retry();
+  assert.equal(observation.pending, false);
+  assert.equal(observation.physicalBackingReleased, false);
+  assert.equal(fences, 1); assert.equal(reads, 0); assert.equal(opens, 0);
+  f.scratch.passed();
+});
+
+test('Root rejects a substituted directory inspector before Store ownership or native Journal', async () => {
+  let ownerships = 0, opens = 0;
+  const f = await fixture({prepareOwnership() { ownerships++; }, open() { opens++; }});
+  f.state.journalDisposition = Object.freeze({...f.state.journalDisposition,
+    argumentsForOriginalJournal(subject, options, inspection) {
+      assert.equal(typeof inspection, 'function');
+      return {...options, maxInspectionEntries: 100000, primaryDirectoryInspection() {}};
+    },
+  });
+  const original = f.root.prepare(f.originals);
+  let failure;
+  assert.throws(() => f.root.open(original, f.originals, f.directory, {}), error => {
+    failure = error; return error.cause?.code === 'HostJournalPreparationUnavailable';
+  });
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal(ownerships, 0); assert.equal(opens, 0);
+  f.scratch.passed();
 });
 
 test('Root native facility refusal precedes subject read and native constructor', async () => {
