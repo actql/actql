@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "77e274f1bd9835c758ccf84f12d63a682c234c10f0f66b51ce8962be6d9698a6",
+      "sha256": "fe59006e283751694d1e27250ec50675ff15244cccbbc67c4b191313355784a7",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -10697,7 +10697,7 @@
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
-      "sha256": "56feeffa1a61decdb3219b164bea724ea20739ddb83f3e8193960b7e5e6371ef",
+      "sha256": "56a97a6f7bc53d2dc33e00ebe2dc4155b1a9be5d2936dc9127d50c50695297ed",
       "role": "physical-io",
       "exports": [
         "runInstalledComposedInfers"

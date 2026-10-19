@@ -42978,7 +42978,7 @@
     },
     {
       "module": "adapters/host-node/installed-project-mock.mjs",
-      "sha256": "de98ba30cb726f4bac17af4be5a1a66171f98fdf5d4e2c1cb8fae73e793efc19",
+      "sha256": "29612aa1c28387f84065c1e3dfcd9ba24e0217601c45c6dbd86fb855ab2dfae5",
       "exports": [
         "installPreparedProjectMockSources",
         "installedMockRequestRealization",
@@ -43132,7 +43132,7 @@
         {
           "name": "installPreparedProjectMockSources/modelPreparation/init:retire/init:retire",
           "parameters": [],
-          "async": false
+          "async": true
         },
         {
           "name": "installPreparedProjectMockSources/prepareManagedMockModelRun",
@@ -43172,6 +43172,13 @@
           "name": "installPreparedProjectMockSources/retireModelRead",
           "parameters": [
             "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/retireRunRecord",
+          "parameters": [
+            "record"
           ],
           "async": false
         },
@@ -43454,6 +43461,94 @@
             "installPreparedProjectMockSources/modelPreparation/init:retire/init:retire",
             "installPreparedProjectMockSources/prepareManagedMockModelRun",
             "installPreparedProjectMockSources/retireModelRead"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installPreparedProjectMockSources/retireRunRecord"
           ],
           "exports": [],
           "attributes": {
