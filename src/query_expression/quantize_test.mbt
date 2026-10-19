@@ -28,7 +28,7 @@ test "explicit QUANTIZE keeps target mode roles and original refusal bounds" {
       is Err({ issue: InvalidArguments, .. }),
     )
   }
-  for text in ["QUANTIZE(amount,2)", "ACTQL.QUANTIZE(amount,4,2,'floor')"] {
+  for text in ["ACTQL.QUANTIZE(amount,4,2,'floor')"] {
     assert_true(
       lower(fixture(text), path => Some(path[0].value), limits())
       is Err({ issue: UnsupportedFunction, .. }),
@@ -45,4 +45,34 @@ test "explicit QUANTIZE keeps target mode roles and original refusal bounds" {
     })
     is Err({ issue: WorkLimit, .. }),
   )
+}
+
+///|
+test "public QUANTIZE shorthand preserves the operand and complete static defaults" {
+  for scale in ["0", "2", "38"] {
+    assert_eq(
+      emit("QUANTIZE(amount,(" + scale + "))"),
+      "{\"quantize\":{\"precision\":38,\"rounding\":\"half_even\",\"scale\":" +
+      scale +
+      ",\"value\":{\"field\":\"amount\"}}}",
+    )
+    assert_eq(
+      emit("QUANTIZE(@amount," + scale + ")"),
+      emit("QUANTIZE(@amount,38," + scale + ",'half_even')"),
+    )
+  }
+  assert_eq(
+    emit("`QuAnTiZe`(CAST('2.345' AS DECIMAL(6,3)),2)"),
+    emit("QUANTIZE(CAST('2.345' AS DECIMAL(6,3)),38,2,'half_even')"),
+  )
+  for
+    text in [
+      "QUANTIZE(amount,-1)", "QUANTIZE(amount,39)", "QUANTIZE(amount,1.5)", "QUANTIZE(amount,@scale)",
+      "QUANTIZE(amount,1+1)", "QUANTIZE(amount,'2')", "QUANTIZE(amount,38,2)",
+    ] {
+    assert_true(
+      lower(fixture(text), path => Some(path[0].value), limits())
+      is Err({ issue: InvalidArguments, .. }),
+    )
+  }
 }

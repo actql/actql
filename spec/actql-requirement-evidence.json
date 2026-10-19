@@ -1181,7 +1181,7 @@
     },
     {
       "requirement_id": "actql.language/value-contracts.decimal-output-target-is-not-input-evidence",
-      "statement_sha256": "f997c3d578e7780e1c30c4cb321c016dd36c93fec97c410184c62404fcf6d473",
+      "statement_sha256": "8c99d88fd791957952d91653593417ffba20569c2815f3d39bc5ad0106a98e31",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -3667,7 +3667,7 @@
     },
     {
       "requirement_id": "actql.language/expression-text.signatures-mapping-constraints-len-x-sqrt-x",
-      "statement_sha256": "bf2d64029aea1465944944a8649f89b2b97ee2344a4b6cff4dde55f75bcccefd",
+      "statement_sha256": "0de125cf8c3c29127927efb0967e0d30e13425f7f7a14f14fd8980887a551d0c",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -4020,6 +4020,17 @@
     {
       "requirement_id": "actql.language/decimal-expressions.implementations-must-validate-decimal-precision-scale-coefficient-explicit-rounding-and",
       "statement_sha256": "50f8e03879b42b4da3f87460618f4829cc0691c10151fd2a6b02b57131f9e134",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "decimal-expressions",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/decimal-expressions.quantize-public-shorthand",
+      "statement_sha256": "0f783e2a1c7798be0bf2169d55fe790f7e78401a1b3544617eae737a6a36337e",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -1,0 +1,11 @@
+{
+  "source": "0902f66d853c777d3a715b0838b6e3fadea7b7e2",
+  "expression_contract_sha256": "3b169ba348e63f6d2969b7c744bbcdc776b4b204338454e7d374039a27df4818",
+  "explicit_preimages_sha256": "2b67d91bdb7bd5ce4da3677266eeb0f5f298feab9255d500705d7d31bfa9fc3b",
+  "structured_quantize_required": [
+    "value",
+    "precision",
+    "scale",
+    "rounding"
+  ]
+}

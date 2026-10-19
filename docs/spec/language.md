@@ -979,12 +979,15 @@ domain supplies no type; two untyped NULL operands of `IS DISTINCT FROM`
 still require independent type evidence.
 
 <!-- requirement-block: value-contracts.decimal-output-target-is-not-input-evidence -->
-For `quantize` and `decimal_divide`, implementations MUST NOT use the output
-precision and scale to supply an input type: the decimal input domain has no
-unique precision/scale, and the divisor domain also permits `number`.
-Bare literal NULL operands remain
-unresolved; an explicit cast such as `CAST(NULL AS DECIMAL(8,2))` supplies
-the missing input type. Already-typed nullable operands still propagate null.
+Implementations MUST NOT infer a non-null Decimal input domain, unknown field
+or unresolved Parameter from the output precision/scale of `quantize`. As a
+scoped exception, a direct literal NULL receives the nullable declared result
+Decimal target and remains NULL; this establishes no non-null coefficient and
+converts no Number, Signed64 or String. `decimal_divide` retains its separate
+rule: output precision/scale supplies no input type, including its overloaded
+divisor domain, and bare literal NULL operands remain unresolved. An explicit
+cast such as `CAST(NULL AS DECIMAL(8,2))` supplies that missing input type.
+Already-typed nullable operands still propagate null.
 
 An empty array obtains its item type from an explicit `empty_array.items`
 contract or the unique common item type of independently typed peers in an
@@ -3046,6 +3049,7 @@ an optional final argument, not expression syntax.
 | `date_trunc(unit, value)`, `date_add(value, amount, unit)`, `date_diff(end_value, start_value, unit)` | `unit` is a string literal in `ms`, `s`, `m`, `h`, `d` |
 | `to_decimal(value, precision, scale)`, `try_decimal(value, precision, scale)` | [Decimal expressions](#decimal-expressions) fields; precision/scale are integer literals |
 | `quantize(value, precision, scale, rounding)` | [Decimal expressions](#decimal-expressions) fields; precision/scale are integer literals and rounding is a string literal naming an admitted mode |
+| `quantize(value, scale)` | the complete `quantize(value, 38, scale, 'half_even')` body, retaining the original value subtree and the same static scale role |
 | `decimal_divide(left, right, precision, scale, rounding)` | same literal constraints as `quantize` |
 | `left(value, length)`, `right(value, length)` | corresponding common scalar side slice |
 | `lpad(value, length[, pattern])`, `rpad(value, length[, pattern])` | corresponding common scalar padding; omitted pattern remains omitted |
@@ -3751,6 +3755,17 @@ negative zero, excess fractional digits, and overflow are rejected without
 rounding. `try_decimal` makes only invalid/unrepresentable conversion input
 null. Null inputs propagate. Only `quantize` and `decimal_divide` round, using
 `half_even|half_up|toward_zero|floor|ceiling`. Division by zero fails.
+
+<!-- requirement-block: decimal-expressions.quantize-public-shorthand -->
+SQL/Pipe and authored Common expression text `quantize(value, scale)` MUST
+normalize to the existing complete
+`quantize(value, 38, scale, 'half_even')` body, with integer-literal scale in
+`0..38`, the original Decimal operand and the same NULL, demand, failure and
+overflow rules. These are explicit authoring defaults, not fields inferred from
+the input value or omitted during structured/machine admission. No Number,
+Signed64 or String operand is implicitly converted to Decimal. Existing complete
+four-argument bodies, modes and canonical bytes remain unchanged; conversion and
+`decimal_divide` acquire no omitted-target defaults.
 
 `decimal_divide` requires a decimal left operand and a decimal or safe-integer
 `number` right operand. A number divisor is interpreted exactly as an integer;
