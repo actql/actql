@@ -127,11 +127,13 @@ pub fn gmail_thread_request_matches(
   read : GmailThreadRead,
   request : GmailThreadRequest,
 ) -> Bool {
-  read.phase == Pending && physical_equal(read, request.read) &&
-    match read.pending {
-      Some(original) => physical_equal(original, request)
-      None => false
-    }
+  if read.phase != Pending || !physical_equal(read, request.read) {
+    return false
+  }
+  match read.pending {
+    Some(original) => physical_equal(original, request)
+    None => false
+  }
 }
 
 ///|
