@@ -66,7 +66,7 @@ import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 import {prepareInstalledProjectMock, installPreparedProjectMockSources}
   from './installed-project-mock.mjs';
 import {prepareSourceManagedInstallation, assertSourceManagedInstallationCurrent,
-  assertSourceManagedPreparationCurrent}
+  assertSourceManagedPreparationCurrent, assertManagedComputePreparationCurrent}
   from './node-source-managed-installation.mjs';
 import {installNodeInferRun} from './installed-infer-run.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
@@ -256,6 +256,39 @@ export function readSourceManagedRunRequirements(originals, checkedPrepared) {
     retainedBytes: limits[4], executionBytes: limits[5]});
 }
 
+// The separate selected Compute original covers this projection. An empty
+// declaration inventory is not a Source installation or a scalar admission:
+// Common still checks the same nominal preparation and its complete graph.
+export function readManagedComputeRunRequirements(originals, checkedPrepared) {
+  assertSourceManagedHostPreparation(originals);
+  originalSourceManagedHostRequest(originals, checkedPrepared);
+  const {initialControl, projectRuntime: moon} = originals.installation;
+  if (initialControl === undefined || moon === undefined ||
+      typeof moon.clientProgramInstalledManagedRunRequirements !== 'function') {
+    throw clientOperationError('NodeManagedRunAdmissionUnavailable');
+  }
+  const asset = path => readInitialControlInstallationAsset(initialControl, originals, path);
+  const aoa = JSON.parse(asset('spec/contracts/actql-aoa.json'));
+  const limits = checked(moon.clientProgramInstalledManagedRunRequirements(
+    checkedPrepared, [],
+    asset('spec/contracts/actql-query-acquisition.json'),
+    asset('spec/contracts/actql-query-process-evidence.json'), [], [],
+    asset('spec/dependencies/aoa-pipeline-registry.json'),
+    JSON.stringify(aoa.execution_contracts['REL.values']),
+    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+  if (!Array.isArray(limits) || limits.length !== 6 ||
+      limits.some(value => typeof value !== 'bigint' || value < 0n) ||
+      limits.slice(0, 3).some(value => value > 2147483647n)) {
+    throw clientOperationError('InvalidHostRuntimeResult');
+  }
+  assertSourceManagedHostPreparation(originals);
+  originalSourceManagedHostRequest(originals, checkedPrepared);
+  return Object.freeze({planningWork: Number(limits[0]), attempts: Number(limits[1]),
+    holdings: Number(limits[2]), transferBytes: limits[3],
+    retainedBytes: limits[4], executionBytes: limits[5]});
+}
+
 // Called only by the selected Source Root's captured namespace operation,
 // after its original managed preparation holding exists, but before that Root
 // acquires the fixture FD and completes the same Source installation. The
@@ -308,6 +341,27 @@ export function sourceManagedSubmittedIntentCid(originals, originalSourceInstall
   const cid = moon.clientSubmittedIntentCid(intent);
   assertSourceManagedHostPreparation(originals);
   assertSourceManagedPreparationCurrent(originalSourceInstallation, originals);
+  if (typeof cid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(cid)) {
+    throw clientOperationError('InvalidHostRuntimeResult');
+  }
+  return cid;
+}
+
+// Same existing submitted-intent Owner, under the distinct actual Compute
+// installation. No Source original, copied packet or equal CID can replace it.
+export function managedComputeSubmittedIntentCid(originals, originalComputeInstallation, body) {
+  assertSourceManagedHostPreparation(originals);
+  assertManagedComputePreparationCurrent(originalComputeInstallation, originals);
+  const moon = originals.installation.projectRuntime;
+  const wire = canonicalValueJson({kind: body.kind, input: body.input,
+    parameters: body.parameters,
+    ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {}),
+    ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {})}, {dataKeys: true});
+  const intent = moon.clientSubmittedIntent(wire, 1048576, 65536, 64);
+  if (intent === undefined) throw clientOperationError('NodeManagedComputeIntentUnavailable');
+  const cid = moon.clientSubmittedIntentCid(intent);
+  assertSourceManagedHostPreparation(originals);
+  assertManagedComputePreparationCurrent(originalComputeInstallation, originals);
   if (typeof cid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(cid)) {
     throw clientOperationError('InvalidHostRuntimeResult');
   }
