@@ -1460,14 +1460,17 @@ export function openClientRequestJournal(directory, {
   const existed = existsSync(path);
   if (current !== existed) fail('UnknownClientRequestJournalFormat');
   primaryCurrent?.();
-  const connection = new DatabaseSync(path, {
+  // Native option lookup includes inherited properties. The selected facility
+  // must not acquire arbitrary callbacks or configurations from that prototype.
+  // This closed internal packet is not an operational admission.
+  const connection = new DatabaseSync(path, primaryCurrent === undefined ? {
     // Retain the actual wrapper before native open can acquire a connection
     // and then fail. Cleanup must not depend on an unreachable constructor
     // result or on eventual garbage collection of that native connection.
     open: false,
     readOnly: false,
     enableForeignKeyConstraints: true,
-  });
+  } : {__proto__: null, open: false, readOnly: false, enableForeignKeyConstraints: true});
   let database = connection;
   let selectedSql;
   let originalDatabaseClose, originalDatabaseIsOpen;
@@ -2455,7 +2458,8 @@ export function openClientRequestJournal(directory, {
       observationStorageAttempted = true;
       // Separate connection/transaction custody prevents an observation's
       // unknown COMMIT from poisoning the semantic journal connection.
-      observationDatabase = new DatabaseSync(path, {open: false});
+      observationDatabase = new DatabaseSync(path, primaryCurrent === undefined ?
+        {open: false} : {__proto__: null, open: false});
       observationDatabaseClosed = false;
       captureObservationCleanup();
       if (primarySqlLimits !== undefined) {

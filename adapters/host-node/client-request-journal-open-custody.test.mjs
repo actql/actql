@@ -71,3 +71,38 @@ test('pre-open failure returns the original cause without closing an unopened co
   }
   scratch.passed();
 });
+
+test('selected Journal constructor does not acquire inherited option callbacks',async()=>{
+  const {scratch,directory}=await fixture();
+  const previous=Object.getOwnPropertyDescriptor(Object.prototype,'allowBareNamedParameters');
+  let reads=0,journal;
+  Object.defineProperty(Object.prototype,'allowBareNamedParameters',{configurable:true,
+    get(){reads++;throw new Error('InheritedSqliteOptionMustNotRun');}});
+  try {
+    journal=openClientRequestJournal(directory,{primaryCurrent(){}});
+    assert.equal(reads,0);
+  } finally {
+    if(previous===undefined)delete Object.prototype.allowBareNamedParameters;
+    else Object.defineProperty(Object.prototype,'allowBareNamedParameters',previous);
+    journal?.close();
+  }
+  scratch.passed();
+});
+
+test('selected observation constructor keeps its separate original without inherited options',async()=>{
+  const {scratch,directory}=await fixture();
+  const journal=openClientRequestJournal(directory,{primaryCurrent(){}});
+  const previous=Object.getOwnPropertyDescriptor(Object.prototype,'allowBareNamedParameters');
+  let reads=0;
+  Object.defineProperty(Object.prototype,'allowBareNamedParameters',{configurable:true,
+    get(){reads++;throw new Error('InheritedObservationOptionMustNotRun');}});
+  try {
+    assert.ok(journal.observationStorage());
+    assert.equal(reads,0);
+  } finally {
+    if(previous===undefined)delete Object.prototype.allowBareNamedParameters;
+    else Object.defineProperty(Object.prototype,'allowBareNamedParameters',previous);
+    journal.close();
+  }
+  scratch.passed();
+});

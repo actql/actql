@@ -53,6 +53,25 @@ test('format inspection refuses a source modified during the isolated read', t =
   }), {code: 'UnknownSqliteJournalFormat'});
 });
 
+test('selected copy constructor ignores inherited SQLite option callbacks', t => {
+  const {root,path}=fixture(t);
+  const before=snapshot(root);
+  const previous=Object.getOwnPropertyDescriptor(Object.prototype,'allowBareNamedParameters');
+  let reads=0;
+  Object.defineProperty(Object.prototype,'allowBareNamedParameters',{configurable:true,
+    get(){reads++;throw new Error('InheritedInspectionOptionMustNotRun');}});
+  try {
+    assert.equal(inspectSqliteSnapshot(path,database=>
+      database.prepare('SELECT value FROM metadata').get().value,
+    {assertCurrent(){}}),'before-wal');
+    assert.equal(reads,0);
+    assert.deepEqual(snapshot(root),before);
+  } finally {
+    if(previous===undefined)delete Object.prototype.allowBareNamedParameters;
+    else Object.defineProperty(Object.prototype,'allowBareNamedParameters',previous);
+  }
+});
+
 test('inspection refuses scratch inside the source root before creating any file', t => {
   const {root, path} = fixture(t);
   const before = snapshot(root);

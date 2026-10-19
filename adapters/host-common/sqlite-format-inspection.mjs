@@ -221,8 +221,11 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
       }
     }
     assertCurrent?.();
+    // Keep the selected constructor's internal options closed: native Get
+    // otherwise consults inherited callbacks before its wrapper is returned.
     database = new DatabaseSync(join(isolated, basename(databasePath)),
-      {open: false, readOnly: true});
+      assertCurrent === undefined ? {open: false, readOnly: true} :
+        {__proto__: null, open: false, readOnly: true});
     // The original wrapper and cleanup are retained before native open can
     // acquire a connection and then fail. GC is not its close acknowledgement.
     captureDatabaseCleanup();
