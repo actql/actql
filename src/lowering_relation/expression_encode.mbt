@@ -279,6 +279,7 @@ fn emit_frames(
                   LPad => "lpad"
                   RPad => "rpad"
                   Between => "between"
+                  DateDifference => "date_diff"
                 },
               ),
             )

@@ -745,6 +745,43 @@ for (const entrance of ['local', 'http']) {
     }
   });
 
+  test(`${entrance}: DATE_DIFF SQL and Pipe use original temporal Parameter contracts`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const [type, unit, finish, begin] of [
+        ['timestamp', 'ms', '1969-12-31T23:59:59.999999999Z', '1970-01-01T00:00:00.000Z'],
+        ['timestamp', 's', null, '1970-01-01T00:00:00.000Z'],
+        ['date', 'd', '2000-03-01', '2000-02-28'],
+      ]) {
+        const text = format === 'sql'
+          ? `SELECT DATE_DIFF(@finish, @begin, '${unit}') AS n`
+          : `SELECT @finish AS finish, @begin AS begin |> SELECT DATE_DIFF(finish, begin, '${unit}') AS n`;
+        const options = {kind: 'text', format, scope: 'template_only', parameterDeclarations: {
+          begin: {type}, finish: {type, nullable: true},
+        }};
+        const template = await client.check(text, options);
+        assert.equal(template.report.verdict, 'verified');
+        assert.deepEqual(template.report.coverage, {limits: [], unresolved: []});
+        assert.deepEqual(template.report.requirements.map(item => item.facts.parameter), ['begin', 'finish']);
+        const bound = await client.check(text, {...options, scope: 'bound_input', parameters: {finish, begin}});
+        assert.equal(bound.report.verdict, 'verified');
+        assert.deepEqual(bound.report.requirements, []);
+        const wrong = await client.check(text, {...options, scope: 'bound_input', parameters: {finish: 1, begin}});
+        assert.equal(wrong.report.verdict, 'invalid');
+        assert.equal(wrong.report.reasons[0].code, 'supplied_value_type_mismatch');
+      }
+    }
+    for (const text of [
+      "SELECT DATE_DIFF(NULL, NULL, 'month') AS n",
+      "SELECT DATE_DIFF(NULL, NULL, LOWER('ms')) AS n",
+    ]) {
+      const outcome = await client.check(text, {kind: 'text', format: 'sql', scope: 'template_only'});
+      assert.equal(outcome.report.verdict, 'invalid');
+      assert.equal(outcome.report.reasons[0].code, 'query_expression_invalid');
+      assert.equal(outcome.report.reasons[0].facts.issue, 'invalid_arguments');
+    }
+  });
+
   test(`${entrance}: scoped SQL and AQL templates close complete obligations and retain runtime Requirements`, async t => {
     const {client} = await publicCheck(t, entrance);
     for (const format of ['sql', 'aql-text']) {

@@ -68,3 +68,27 @@ evaluation. Neither a value error nor a resource error permits retry through
 another strategy. Typed slot storage and branch masks do not imply speculative
 or parallel evaluation: retaining canonical row/slot scheduling is a valid
 bounded implementation and avoids choosing failures after the fact.
+
+## Fixed-unit temporal differences
+
+`date_diff` retains its three original ordered children in the ordinary
+expression node and eager frame, including the admitted literal unit. NULL
+propagation does not skip a demanded peer or its failure. The frame holds all
+operand values and root leases until the result is computed, charges their
+original bytes, and releases them through the existing expression lifetime.
+Its child views and three value/lease pairs use the same workspace accounting
+as other eager operations; no alternate evaluator or Host time source is used.
+
+Date operands use whole days only. Timestamp operands use the existing Value
+owner's canonical UTC seconds and nanosecond remainder. Subtraction normalizes
+that pair before dividing by the fixed authored unit, truncating the quotient
+toward zero. It never forms an epoch-nanosecond Int64 or converts an input
+instant through binary64. The admitted calendar bounds the final integral
+quotient below 2^53, so conversion to the existing Number result is exact.
+
+An instant one nanosecond before the epoch therefore has a zero public
+millisecond difference while still being earlier under exact comparison and
+internal event-clock classification. This public result does not replace the
+exact event-clock projection or broaden trusted-now, expiry, rollback or
+cleanup clocks. `date_add`, `date_trunc`, civil/offset domains and dynamic clock
+material remain separate existing implementation responsibilities.
