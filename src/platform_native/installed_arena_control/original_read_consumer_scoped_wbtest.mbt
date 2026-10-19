@@ -11,6 +11,31 @@ struct OriginalReadConsumerFixture {
 }
 
 ///|
+priv struct OriginalReadManagedGraph {
+  text : Array[Array[String]]
+  bytes : Array[Array[Bytes]]
+}
+
+///|
+fn original_read_managed_graph() -> OriginalReadManagedGraph {
+  let text : Array[Array[String]] = []
+  let bytes : Array[Array[Bytes]] = []
+  for row in 0..<64 {
+    let strings : Array[String] = []
+    let blocks : Array[Bytes] = []
+    for column in 0..<32 {
+      strings.push("s-" + (row * 32 + column).to_string())
+      if column < 16 {
+        blocks.push(Bytes::make(9, (row + column).to_byte()))
+      }
+    }
+    text.push(strings)
+    bytes.push(blocks)
+  }
+  { text, bytes, }
+}
+
+///|
 fn original_read_consumer_fixture(
   label : String,
 ) -> OriginalReadConsumerFixture raise {
@@ -150,6 +175,46 @@ test "actual original read consumer preserves its same loan and cannot start or 
     host.require_domain_original_read_consumer_current(consumer) is Err(_),
   )
   assert_true(@resources.funded_read_consumer_origin(consumer.consumer) is None)
+}
+
+///|
+test "actual original read retires nested managed graphs only after their last alias" {
+  let fixture = original_read_consumer_fixture("consumer-managed-graph")
+  let host = fixture.host
+  let consumer = host
+    .prepare_domain_original_read_consumer(fixture.read, 8192L, 16384L)
+    .unwrap()
+  // These outer controls must not themselves become Read-managed aliases.
+  let graph : Ref[OriginalReadManagedGraph?] = Ref(None)
+  let last : Ref[String?] = Ref(None)
+  host.enter_domain_original_read_consumer(consumer).unwrap()
+  graph.val = Some(original_read_managed_graph())
+  last.val = Some(graph.val.unwrap().text[0][0])
+  host.leave_domain_original_read_consumer(consumer).unwrap()
+  let held = host.observe_domain_original_read_cleanup(fixture.read).unwrap()
+  assert_true(held.managed_live_blocks >= 3072L)
+  assert_eq(held.active, 0L)
+  assert_eq(held.pending_extents, 0L)
+  assert_eq(graph.val.unwrap().text[63][31], "s-2047")
+  assert_eq(graph.val.unwrap().bytes[63][15][0], 78.to_byte())
+  graph.val = None
+  let one = host.observe_domain_original_read_cleanup(fixture.read).unwrap()
+  assert_eq(one.managed_live_blocks, 1L)
+  assert_eq(one.generic_live_extents, 0L)
+  assert_eq(one.pending_extents, 0L)
+  assert_eq(last.val, Some("s-0"))
+  assert_true(host.close_domain_original_read(fixture.read) is Err(_))
+  assert_true(
+    host.require_domain_original_read_consumer_current(consumer) is Err(_),
+  )
+  assert_eq(last.val, Some("s-0"))
+  last.val = None
+  let empty = host.observe_domain_original_read_cleanup(fixture.read).unwrap()
+  assert_eq(empty.managed_live_blocks, 0L)
+  assert_eq(empty.generic_live_extents, 0L)
+  assert_eq(empty.pending_extents, 0L)
+  original_read_consumer_finish(fixture)
+  assert_true(host.observe_domain_original_read_cleanup(fixture.read) is Err(_))
 }
 
 ///|
