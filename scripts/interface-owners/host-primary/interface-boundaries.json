@@ -7406,7 +7406,7 @@
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "envelope; its result or failure stays with the same preparation record through"
+                "anchor": "admitted prior startup envelope; its result or failure stays with the same"
               }
             ],
             "extension": [
@@ -7422,7 +7422,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
-                "anchor": "test('the selected Host consumer forwards admitted connect and omitted open without a raw observation'"
+                "anchor": "test('the selected Host consumer forwards admitted connect and open without a raw observation'"
               },
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
