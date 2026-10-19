@@ -229,6 +229,61 @@ It never selects a live Credential/Provider fallback or automatically approves
 an Effect. The Host reconstructs restart handles from durable installation and
 current authority; it does not demand a pointer survive process termination.
 
+### Interface responsibilities during migration
+
+These references describe the ordinary target and the remaining private helpers.
+Existing operation-specific source and test references retain their meaning;
+legacy startup helpers are not ordinary initialization prerequisites or a
+same-process security boundary. Migration is not established by this inventory.
+
+Preparation responsibility belongs to the existing Host instance and its
+selected packaged Core/assets. Optional legacy helper selection cannot confer
+additional authority or require a process-wide startup witness.
+
+Input/output admission snapshots the documented configuration and selected
+callbacks before asynchronous use; external encoded inputs keep bounded parsing
+and their existing semantic contracts. An internal helper's restricted input
+is not a new public options restriction.
+
+Instance identity, original callback and receiver correspondence prevent
+accidental substitution across Host, installation and Run operations. Durable
+restart validates stored installation/current authority and reconstructs handles;
+loaded-package integrity is not principal or operation authority.
+
+Reference ownership follows the actual Host record and its real children.
+Registry leases for the same Host share its retirement record. Captured methods,
+receivers and opaque handles remain with their existing Owner; ordinary copied
+managed values end Host retention by releasing its references.
+
+Synchronization snapshots each selected method and receiver before asynchronous
+use and checks the applicable Host/resource current state after fallible awaits
+before exposing another lease or dispatch. It does not authenticate earlier
+imports or the interpreter's execution history.
+
+Failure retains the primary error and each partially acquired resource's real
+cleanup duty. Missing optional compatibility startup selection does not prevent
+ordinary initialization; unavailable required resources fail explicitly without
+live fallback or fabricated allocation/release acknowledgements.
+
+Cancellation requests stop and keeps unfinished tasks and shared native users
+with their original cleanup carrier. Cancellation, a settled Promise or logical
+retirement is not an acknowledgement that a live physical child was released.
+
+Resource coverage distinguishes managed work/data limits and actual owned
+buffer/file/DB/socket holdings from platform-owned module/runtime/library caches.
+Selected asset read/hash/decode buffers retain their real lifetime; scalar
+bounds, image metadata or content identity do not issue capacity or release.
+
+Extension keeps supported ordinary options and normal factory acquisition
+available independently of a private compatibility helper. Another backend,
+operation or authority still uses its existing explicit contracts and Owners;
+a helper restriction never becomes a language ban or an implicit grant.
+
+Verification separates private helper/source checks from fixed ordinary package
+acceptance. The latter exercises public options, SELECT/close, reopen and
+independent Hosts, actual limit/cleanup failures and protected Mock operations;
+no prior component check or retired startup proof establishes that acceptance.
+
 ## Installed Effect cleanup
 
 The installed Effect Site retains target-read authorization, input pins,
