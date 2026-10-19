@@ -73,7 +73,7 @@ fn LocalCommandPreparationOriginal::close_business_store_roots(
     return Err(CommandBusinessChildren)
   }
   match bridge.enter_cleanup_work() {
-    Err(issue) => return Err(CommandSqlite(issue))
+    Err(issue) => return Err(CommandStoreOperation(StoreOperationSqlite(issue)))
     Ok(_) => ()
   }
   let closed = business.close_store_root_descriptors()
@@ -83,7 +83,7 @@ fn LocalCommandPreparationOriginal::close_business_store_roots(
   let returned = bridge.leave_store()
   match (closed, returned) {
     (Err(issue), _) => Err(issue)
-    (Ok(_), Err(issue)) => Err(CommandSqlite(issue))
+    (Ok(_), Err(issue)) => Err(CommandStoreOperation(StoreOperationSqlite(issue)))
     (Ok(_), Ok(_)) => {
       business.store_root_failure = None
       business.store_root = None
