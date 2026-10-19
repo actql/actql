@@ -259,10 +259,13 @@ test('original UPDATE selection custody preserves prior combined identity', () =
   // Effect forms and explicit composite roles moved the source/query grammar.
   // Signed64 additionally changes the inherited expression dependency. Validate
   // that complete original body before restoring the historical manifest edge.
-  const currentManifest = read('spec/manifests/actql-grammar-0.1.json');
+  // The later division extension retains this entire accepted predecessor;
+  // its own full-body/pin proof closes the new identity separately.
+  const divisionPredecessor = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/decimal-division-exact/predecessor.json.gz')));
+  const currentManifest = divisionPredecessor.bodies['spec/manifests/actql-grammar-0.1.json'];
   const expression = JSON.parse(gunzipSync(readFileSync(
     'scripts/fixtures/composite-vector-bridge/signed64-identities.json.gz'))).expressionContract;
-  const currentExpression = read('spec/contracts/actql-expressions.json');
+  const currentExpression = divisionPredecessor.bodies['spec/contracts/actql-expressions.json'];
   const comparisonHistory = JSON.parse(gunzipSync(readFileSync(
     'scripts/fixtures/pre-int64-comparison-literal-identities.json.gz')));
   const comparisonVectors = read('portability/corpus/int64-comparison-literals.json');
