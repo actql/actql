@@ -20,6 +20,22 @@ test "query time preparation binds the original Effect owner request and saved R
   let time = bind_client_effect_query_evaluation_time(
     preparation, owner, allowed, definition, request,
   ).unwrap()
+  let run = bind_client_effect_compiled_run(owner, allowed, definition).unwrap()
+  assert_true(client_effect_run_query_time_matches(run, preparation, request))
+  let copied_request = client_query_time_test_request(owner, "query")
+  assert_false(
+    client_effect_run_query_time_matches(run, preparation, copied_request),
+  )
+  let (_, until) = @publication.run_definition_lifetime(definition).unwrap()
+  let other_definition = issue_client_effect_run_definition(
+    allowed, "scope", "another-query", created, until,
+  ).unwrap()
+  let other_run = bind_client_effect_compiled_run(
+    owner, allowed, other_definition,
+  ).unwrap()
+  assert_false(
+    client_effect_run_query_time_matches(other_run, preparation, request),
+  )
   assert_eq(client_query_time_preparation_created_at(preparation), created)
   assert_true(
     @publication.query_evaluation_time_matches(
@@ -236,6 +252,83 @@ test "query time acquisition retains its dependency until the same original Run 
   ).unwrap()
   assert_true(physical_equal(repeated, context))
   let assets = client_local_product_assets()
+  let local_requirement = @local_query_time.prepare_effect_local_query_requirement_at_query_time(
+    owner,
+    0,
+    0,
+    preparation,
+    request,
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let local_query = @query.query_sequence_requirement(
+    @planning.query_material_owner(
+      @planning.query_requirement_material(local_requirement),
+    ),
+  )
+  let original_wire = @encode.document_text(
+    @planning.query_requirement_document(local_requirement),
+  )
+  assert_true(
+    original_wire.contains(
+      "\"run_definition_cid\":\"" +
+      @publication.publication_contract_identity(definition) +
+      "\"",
+    ),
+  )
+  let (_, until) = @publication.run_definition_lifetime(definition).unwrap()
+  let other_definition = issue_client_effect_run_definition(
+    allowed, "scope", "another-query-source", "2026-10-09T00:00:00.000Z", until,
+  ).unwrap()
+  let other_request = client_query_time_test_request(
+    owner, "another-query-source",
+  )
+  let other_preparation = restore_client_effect_query_time_preparation(
+    owner, allowed, other_definition, other_request,
+  ).unwrap()
+  let other_requirement = @local_query_time.prepare_effect_local_query_requirement_at_query_time(
+    owner,
+    0,
+    0,
+    other_preparation,
+    other_request,
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  assert_true(
+    @planning.query_requirement_cid(local_requirement) !=
+    @planning.query_requirement_cid(other_requirement),
+  )
+  assert_eq(
+    @planning.query_material_cids(
+      @planning.query_requirement_material(local_requirement),
+    ),
+    @planning.query_material_cids(
+      @planning.query_requirement_material(other_requirement),
+    ),
+  )
+  assert_true(
+    @acquisition.query_acquisition_query_time(local_query) is Some(original) &&
+    physical_equal(original, context),
+  )
+  assert_true(
+    @local_query_time.prepare_effect_local_query_requirement_at_query_time(
+      owner,
+      0,
+      0,
+      preparation,
+      client_query_time_test_request(owner, "query-source"),
+      assets.registry,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    )
+    is Err(@local_query_time.Sequences),
+  )
   let sequences = @local_query_time.prepare_client_effect_local_sequences_at_query_time(
     owner,
     preparation,

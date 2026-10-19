@@ -11333,6 +11333,17 @@
       }
     },
     {
+      "requirement_id": "actql.execution/query-acquisition.original-query-time",
+      "statement_sha256": "d18403a8812652ebf394df7f0496bb60f50b20026e7ebc603f077d56f0842985",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-acquisition",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/query-acquisition.binding",
       "statement_sha256": "4de5abd4e51494720f9e8ce41f07df7d5b2b5398810fe60abf87b86fa88941ee",
       "status": "pending",

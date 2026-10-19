@@ -165,6 +165,14 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   retainComputationOwner(custody);
   try {
     current();
+    if (acquired.queryTimePreparation !== undefined) {
+      if (typeof moon.clientProgramOpenLocalEffectHostAtQueryTime !== 'function' ||
+          typeof moon.clientProgramEffectRunQueryTimeMatches !== 'function' ||
+          moon.clientProgramEffectRunQueryTimeMatches(owner,
+            acquired.queryTimePreparation, acquired.requestIdentity) !== true) {
+        throw new Error('OriginalQueryTimeUnavailable');
+      }
+    }
     if (assertUpdateSelectionCurrent !== undefined && infer !== undefined) {
       const originalInfer = infer;
       if (typeof originalInfer.observeAccount !== 'function') {
@@ -181,7 +189,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       }});
     }
     const selectedSources = selectAcquiredEffectSources({moon,
-      preparedEffect: acquired.prepared, sourceProfile, registry, values, fragment, ordered});
+      preparedEffect: acquired.prepared, sourceProfile, registry, values, fragment, ordered,
+      queryTimePreparation: acquired.queryTimePreparation, requestIdentity: acquired.requestIdentity});
     const singleSourceAccess = sourceAccess ?? selectedSources[0]?.adapter.sourceAccess;
     if (infer !== undefined) {
       if (modelController === undefined) throw new Error('InstalledModelJournalRequired');
@@ -205,6 +214,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       current();
       const preparedSource = await adapter.prepare({
         preparedEffect: acquired.prepared, registry, values, fragment, ordered,
+        queryTimePreparation: acquired.queryTimePreparation, requestIdentity: acquired.requestIdentity,
         sourceAccess: access, occurrence});
       current();
       sources.push({adapter, access, preparedSource, occurrence});
@@ -385,7 +395,14 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
         captureStartedAt, captureCompletedAt}) : undefined;
     if (component === undefined && infer !== undefined) component = prepareInferComponent();
     current();
-    checkedHost = sourceFree
+    checkedHost = acquired.queryTimePreparation !== undefined
+      ? moon.clientProgramOpenLocalEffectHostAtQueryTime(owner,
+        acquired.queryTimePreparation, acquired.requestIdentity,
+        captures.map(value => value.capture.source()), ledger,
+        registry, values, fragment, ordered,
+        [...(contentFamily === undefined ? [] : [contentFamily.provider]),
+          ...(component === undefined ? [] : [component.provider])])
+      : sourceFree
       ? moon.clientProgramOpenSourceFreeInferEffectHost(owner,
         registry, values, fragment, ordered, component.provider)
       : multiple

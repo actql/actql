@@ -50,6 +50,56 @@ pub fn prepare_effect_local_query_requirement(
 }
 
 ///|
+/// Physical preparation retains the same admitted invocation as its capture
+/// prefix. Missing or foreign context is never replaced by the legacy path.
+pub fn prepare_local_query_requirement_at_query_time(
+  prepared : @publication_host.PreparedClientProgram,
+  stage : Int,
+  source_index : Int,
+  original : @publication_host.ClientQueryTimePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[@planning.QueryRequirement, ClientLocalQueryIssue] {
+  prepare_local_query_requirement_owned(
+    Pure(prepared),
+    stage,
+    source_index,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    query_time=Some((original, request)),
+  )
+}
+
+///|
+pub fn prepare_effect_local_query_requirement_at_query_time(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  stage : Int,
+  source_index : Int,
+  original : @publication_host.ClientQueryTimePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[@planning.QueryRequirement, ClientLocalQueryIssue] {
+  prepare_local_query_requirement_owned(
+    Effect(prepared),
+    stage,
+    source_index,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    query_time=Some((original, request)),
+  )
+}
+
+///|
 fn prepare_local_query_requirement_owned(
   prepared : ClientLocalSequenceOwner,
   stage : Int,
@@ -58,12 +108,23 @@ fn prepare_local_query_requirement_owned(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
+  query_time? : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )? = None,
 ) -> Result[@planning.QueryRequirement, ClientLocalQueryIssue] {
   if stage < 0 {
     return Err(MissingStage)
   }
   guard prepare_client_query_acquisition_prefix(
-      prepared, stage, source_index, registry_body, values_body, fragment_body, ordered_body,
+      prepared,
+      stage,
+      source_index,
+      registry_body,
+      values_body,
+      fragment_body,
+      ordered_body,
+      query_time~,
     )
     is Some(sequence) else {
     return Err(Sequences)
@@ -80,12 +141,20 @@ fn prepare_local_query_requirement_owned(
     max_rows: 100,
     max_value_bytes: 10000,
   }
-  match prepared {
-    Pure(value) =>
+  match (prepared, query_time) {
+    (Pure(value), Some((original, request))) =>
+      @publication_host.prepare_client_query_requirement_at_query_time(
+        value, sequence, stage, source_index, original, request, guards, limits,
+      ).map_err(issue => Requirement(issue))
+    (Effect(value), Some((original, request))) =>
+      @publication_host.prepare_client_effect_query_requirement_at_query_time(
+        value, sequence, stage, source_index, original, request, guards, limits,
+      ).map_err(issue => Requirement(issue))
+    (Pure(value), None) =>
       @publication_host.prepare_client_query_requirement(
         value, sequence, stage, source_index, guards, limits,
       ).map_err(issue => Requirement(issue))
-    Effect(value) =>
+    (Effect(value), None) =>
       @publication_host.prepare_client_effect_query_requirement(
         value, sequence, stage, source_index, guards, limits,
       ).map_err(issue => Requirement(issue))

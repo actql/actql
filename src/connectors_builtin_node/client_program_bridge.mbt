@@ -1977,6 +1977,50 @@ pub fn client_program_effect_prepare_local_query_requirement(
 }
 
 ///|
+#export_name("clientProgramPrepareLocalQueryRequirementAtQueryTime")
+pub fn client_program_prepare_local_query_requirement_at_query_time(
+  prepared : @publication_host.PreparedClientProgram,
+  stage : Int,
+  source_index : Int,
+  original : @publication_host.ClientQueryTimePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[
+  @planning.QueryRequirement,
+  @client_local_host.ClientLocalQueryIssue,
+] {
+  @client_local_host.prepare_local_query_requirement_at_query_time(
+    prepared, stage, source_index, original, request, registry_body, values_body,
+    fragment_body, ordered_body,
+  )
+}
+
+///|
+#export_name("clientProgramEffectPrepareLocalQueryRequirementAtQueryTime")
+pub fn client_program_effect_prepare_local_query_requirement_at_query_time(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  stage : Int,
+  source_index : Int,
+  original : @publication_host.ClientQueryTimePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[
+  @planning.QueryRequirement,
+  @client_local_host.ClientLocalQueryIssue,
+] {
+  @client_local_host.prepare_effect_local_query_requirement_at_query_time(
+    prepared, stage, source_index, original, request, registry_body, values_body,
+    fragment_body, ordered_body,
+  )
+}
+
+///|
 #export_name("clientProgramQueryRequirementCid")
 pub fn client_program_query_requirement_cid(
   requirement : @planning.QueryRequirement,
@@ -7145,6 +7189,37 @@ pub fn client_program_open_source_free_local_effect_host(
 }
 
 ///|
+/// The original invocation context must match this exact admitted Effect Run.
+#export_name("clientProgramOpenSourceFreeLocalEffectHostAtQueryTime")
+pub fn client_program_open_source_free_local_effect_host_at_query_time(
+  prepared : @publication_host.PreparedClientEffectRun,
+  original : @publication_host.ClientQueryTimePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  registry_body : String,
+  values_body : String,
+  fixed_ms : Int64,
+  per_row_ms : Int64,
+  per_wire_byte_ms : Int64,
+  per_pair_ms : Int64,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> ClientLocalEffectHost? {
+  open_client_local_effect_host(
+    prepared,
+    None,
+    registry_body,
+    values_body,
+    fixed_ms,
+    per_row_ms,
+    per_wire_byte_ms,
+    per_pair_ms,
+    fragment_body~,
+    ordered_body~,
+    query_time=Some((original, request)),
+  )
+}
+
+///|
 /// The captured source is checked against the bound Effect Run before the
 /// acquisition root can feed any Local task. The physical source owner stays
 /// with the Host and is not reconstructed from an equal relation value.
@@ -7176,6 +7251,61 @@ pub fn client_program_open_captured_local_effect_host(
 }
 
 ///|
+/// Reuse the same captured Run opener and selected providers with the exact
+/// invocation context. This grants neither acquisition nor component capacity.
+#export_name("clientProgramOpenLocalEffectHostAtQueryTime")
+pub fn client_program_open_local_effect_host_at_query_time(
+  prepared : @publication_host.PreparedClientEffectRun,
+  original : @publication_host.ClientQueryTimePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  sources : Array[@query.CapturedInputSource],
+  ledger : @resources.Ledger?,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  providers : Array[@local.ManagedProvider],
+) -> ClientLocalEffectHost? {
+  if sources.length() > 2 {
+    return None
+  }
+  let source = if sources.length() == 1 { Some(sources[0]) } else { None }
+  let captured_sources = if sources.length() == 2 {
+    [(0, sources[0]), (1, sources[1])]
+  } else {
+    []
+  }
+  open_client_local_effect_host(
+    prepared,
+    source,
+    registry_body,
+    values_body,
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body~,
+    ordered_body~,
+    captured_sources~,
+    acquisition_ledger=ledger,
+    component_providers=providers,
+    query_time=Some((original, request)),
+  )
+}
+
+///|
+#export_name("clientProgramEffectRunQueryTimeMatches")
+pub fn client_program_effect_run_query_time_matches(
+  prepared : @publication_host.PreparedClientEffectRun,
+  original : @publication_host.ClientQueryTimePreparation,
+  request : @publication_host.ClientRequestIdentity,
+) -> Bool {
+  @publication_host.client_effect_run_query_time_matches(
+    prepared, original, request,
+  )
+}
+
+///|
 fn open_client_local_effect_host(
   prepared : @publication_host.PreparedClientEffectRun,
   source : @query.CapturedInputSource?,
@@ -7190,7 +7320,17 @@ fn open_client_local_effect_host(
   captured_sources? : Array[(Int, @query.CapturedInputSource)] = [],
   acquisition_ledger? : @resources.Ledger? = None,
   component_providers? : Array[@local.ManagedProvider] = [],
+  query_time? : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )? = None,
 ) -> ClientLocalEffectHost? {
+  if query_time is Some((original, request)) &&
+    !@publication_host.client_effect_run_query_time_matches(
+      prepared, original, request,
+    ) {
+    return None
+  }
   if fixed_ms < 0L ||
     per_row_ms < 0L ||
     per_wire_byte_ms < 0L ||
@@ -7250,10 +7390,18 @@ fn open_client_local_effect_host(
   let generated = []
   // Source-free tasks also need the same checked expression contexts as
   // acquired tasks. A private Effect input is not a context-free projection.
-  let sequences = match
-    @client_local_host.prepare_client_effect_local_sequences(
-      computation, registry_body, values_body, fragment_body, ordered_body,
-    ) {
+  let prepared_sequences = match query_time {
+    Some((original, request)) =>
+      @client_local_host.prepare_client_effect_local_sequences_at_query_time(
+        computation, original, request, registry_body, values_body, fragment_body,
+        ordered_body,
+      )
+    None =>
+      @client_local_host.prepare_client_effect_local_sequences(
+        computation, registry_body, values_body, fragment_body, ordered_body,
+      )
+  }
+  let sequences = match prepared_sequences {
     Some(value) => value
     None => {
       ignore(reject_client_local_run(captured))

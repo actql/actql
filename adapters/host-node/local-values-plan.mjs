@@ -158,7 +158,7 @@ function buildLocalPublicationPlan({control, admission, runDefinition, invocatio
 // waiting, so retention covers the admitted Run's validity window.
 function effectPublicationAdmission({moon, control, prepared,
   compilation, allowed, definition, authorityScopeCid, namespaceId,
-  storeAuthorityCid, now, resultDataPolicy}) {
+  storeAuthorityCid, now, resultDataPolicy, queryTimePreparation, queryTime, identity}) {
   const template = control.admitRunEvidence('bound_invocation_template',
     moon.clientProgramEffectCompilationTemplateWire(compilation), limits);
   const preparedEvidence = control.admitRunEvidence('prepared_invocation',
@@ -177,7 +177,26 @@ function effectPublicationAdmission({moon, control, prepared,
   return Object.freeze({moon, control, prepared, compilation, allowed,
     definition, authorityScopeCid, namespaceId, storeAuthorityCid, now,
     admission, runDefinition, compiledPlan, dataPolicyCid, resultDataPolicy,
+    queryTimePreparation, queryTime, requestIdentity: identity,
     resultDataPolicyLimits: limits});
+}
+
+// This is the existing admitted Effect Run, not a second preparation or a
+// replacement timestamp. Common checks its exact Run/request correspondence.
+export function openSourceFreeEffectComputation({moon, facts,
+  registry, values, fragment, ordered}) {
+  if (facts.queryTimePreparation !== undefined || facts.queryTime !== undefined) {
+    if (facts.queryTimePreparation === undefined || facts.queryTime === undefined ||
+        facts.identity === undefined ||
+        typeof moon.clientProgramOpenSourceFreeLocalEffectHostAtQueryTime !== 'function') {
+      throw new Error('OriginalQueryTimeUnavailable');
+    }
+    return moon.clientProgramOpenSourceFreeLocalEffectHostAtQueryTime(
+      facts.owner, facts.queryTimePreparation, facts.identity,
+      registry, values, 1n, 0n, 0n, 0n, fragment, ordered);
+  }
+  return moon.clientProgramOpenSourceFreeLocalEffectHost(
+    facts.owner, registry, values, 1n, 0n, 0n, 0n, fragment, ordered);
 }
 
 export function sourceFreeEffectPublicationPlan(options) {

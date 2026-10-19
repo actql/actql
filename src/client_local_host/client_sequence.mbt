@@ -472,13 +472,25 @@ fn prepare_client_query_acquisition_prefix(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
+  query_time? : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )? = None,
 ) -> @execution.GeneratedSequence? {
-  let query = match prepared {
-    Pure(value) =>
+  let query = match (prepared, query_time) {
+    (Pure(value), Some((original, request))) =>
+      @publication_host.prepare_client_query_acquisition_at_query_time(
+        value, task, source_index, original, request,
+      )
+    (Effect(value), Some((original, request))) =>
+      @publication_host.prepare_client_effect_query_acquisition_at_query_time(
+        value, task, source_index, original, request,
+      )
+    (Pure(value), None) =>
       @publication_host.prepare_client_query_acquisition(
         value, task, source_index,
       )
-    Effect(value) =>
+    (Effect(value), None) =>
       @publication_host.prepare_client_effect_query_acquisition(
         value, task, source_index,
       )
@@ -497,6 +509,7 @@ fn prepare_client_query_acquisition_prefix(
     selected_task=Some(task),
     infer_prefix=Some((task, capture)),
     acquisition_source=Some((task, source_index)),
+    query_time~,
   ).bind(sequences => sequences.get(0))
 }
 

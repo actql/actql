@@ -39,6 +39,27 @@ pub fn bind_client_query_time_sequence(
 }
 
 ///|
+/// A sequence's invocation must belong to this exact admitted Effect Run, not
+/// merely another Run compiled from the same prepared computation.
+pub fn client_effect_run_query_time_matches(
+  run : PreparedClientEffectRun,
+  preparation : ClientQueryTimePreparation,
+  request : ClientRequestIdentity,
+) -> Bool {
+  guard preparation.owner is Effect(original) &&
+    physical_equal(original, run.computation) &&
+    client_query_time_acquisition_context(preparation, request) is Some(context) else {
+    return false
+  }
+  let owner = @strategy.checked_effect_run_owner(run.checked)
+  @publication.query_evaluation_time_matches(
+    context,
+    @effect_binding.effect_program_run_admission(owner),
+    @effect_binding.effect_program_run_definition(owner),
+  )
+}
+
+///|
 pub fn bind_client_effect_query_time_sequence(
   prepared : PreparedClientEffectComputation,
   task : Int,

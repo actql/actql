@@ -6,6 +6,11 @@ import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
 // Render independently authored preimages without importing or running tests.
 // The owning query tests still construct and compare every corpus body.
 const profiles = {
+  query_time_acquisition: {
+    corpus: 'query-time-acquisition-identities', output: 'query_time_acquisition',
+    header: 'Generated from independent same-Run query-time preimages; do not edit.',
+    label: 'query-time acquisition',
+  },
   acquisition: {
     corpus: 'query-acquisition-identities', output: 'query_acquisition',
     header: 'Generated from the independent query-acquisition fixtures; do not edit.',

@@ -13,6 +13,7 @@ struct QueryRequirement {
   output_contract_cid : String
   stage : String
   input : String
+  query_run_definition_cid : String?
   work : Int
   bytes : Int
   nodes : Int
@@ -71,6 +72,20 @@ pub fn prepare_query_requirement(
     return Err(WorkLimit)
   }
   let query = @query.query_sequence_requirement(material.owner)
+  let query_run_definition_cid = if @acquisition.query_acquisition_query_time_required(
+      query,
+    ) {
+    guard @acquisition.query_acquisition_query_time(query) is Some(original) else {
+      return Err(InvalidQuery)
+    }
+    Some(
+      @publication.publication_contract_identity(
+        @publication.query_evaluation_time_definition(original),
+      ),
+    )
+  } else {
+    None
+  }
   let requests = @acquisition.query_acquisition_owner(query)
   guard @acquisition.pipeline_request_at(
       requests,
@@ -167,6 +182,12 @@ pub fn prepare_query_requirement(
     nodes: limits.max_nodes,
     depth: limits.max_depth,
   }
+  if query_run_definition_cid is Some(cid) {
+    if budget.work < 1 || cid.length() > budget.work - 1 {
+      return Err(WorkLimit)
+    }
+    budget.work -= 1 + cid.length()
+  }
   try {
     let input_contract_cid = material_hash(budget, writer => {
       emit_query_schema(input_schema, writer)
@@ -212,6 +233,10 @@ pub fn prepare_query_requirement(
       writer,
       @context.program_identity_definition_cid(program),
     )
+    if query_run_definition_cid is Some(cid) {
+      @encode.key(writer, "run_definition_cid")
+      @encode.string_value(writer, cid)
+    }
     @encode.key(writer, "stage")
     @encode.string_value(writer, stage)
     @encode.end_object(writer)
@@ -280,7 +305,8 @@ pub fn prepare_query_requirement(
       output_contract_cid,
       stage,
       input,
-      work: limits.max_work - remaining,
+      query_run_definition_cid,
+      work: limits.max_work - budget.work,
       bytes: limits.max_bytes - budget.bytes,
       nodes: limits.max_nodes - budget.nodes,
     })

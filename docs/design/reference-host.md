@@ -157,6 +157,14 @@ acquisition shape keeps its query-time dependency unresolved; it cannot pass
 physical material admission. Missing or foreign request/preparation bindings
 remain unbound rather than becoming literal substitutions or hidden Parameters.
 
+The physical QueryRequirement and its completed observation retain the same
+admitted Run Definition CID in their existing owner when query time is required.
+The authored filter remains unchanged, so equal filter or request CIDs cannot
+substitute a different invocation's capture. Structural acquisition shapes do
+not contain this Run-dependent physical projection; it is never fed back into
+the Plan or Template that defines the same Run. Unrelated legacy requirements
+omit the member and retain their complete canonical preimages.
+
 The request Journal confirms the original definition before dependent
 dispatch. Lookup, a racing issuer, approval continuation and recovery consume
 the winning saved definition; none samples a replacement time or issues a
