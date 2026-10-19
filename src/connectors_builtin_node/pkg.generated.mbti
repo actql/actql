@@ -20,6 +20,7 @@ import {
   "actql/actql/effect_application",
   "actql/actql/effect_program_binding",
   "actql/actql/encode_core",
+  "actql/actql/execution_authorization",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/execution_site",
@@ -1864,6 +1865,10 @@ pub fn client_program_local_effect_table_definition_cid(@run_publication_host.Cl
 pub fn client_program_local_effect_table_definition_json(@run_publication_host.ClientEffectLocalTableDefinition) -> String
 
 pub fn client_program_local_effect_table_storage_mapping(@run_publication_host.ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[@table.IcebergStorageMapping, @table.IcebergStorageMappingIssue]
+
+pub fn client_program_local_mock_account_configuration(String, String, String, Array[(String, String)], Array[String], (String, String)?, (String, String)?, String?) -> Result[String, @execution_authorization.LocalMockProfileIssue]
+
+pub fn client_program_local_mock_account_profile() -> (String, String, String, String)
 
 pub fn client_program_local_table_commit_response(String, Int, Int, Int, Int) -> Result[String, @effect_application.TableCommitIssue]
 
