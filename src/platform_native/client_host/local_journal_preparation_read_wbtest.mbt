@@ -38,6 +38,12 @@ fn preparation_read_refusal_without_pair() -> (@sqlite.Library, @crypto.Library)
     })
     is Err(OriginalResourceScopePending),
   )
+  assert_true(
+    capture.issue_epoch_in_original_read(
+      "principal", "connection", "scope", 0.0,
+    )
+    is Err(OriginalResourceScopePending),
+  )
   let runtime = local_runtime_empty(None)
   assert_true(
     capture.bind_packaged_runtime_in_original_read(

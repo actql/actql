@@ -195,3 +195,18 @@ fn[T] NativeLocalJournalOriginalResources::bootstrap_read_stage(
     }
   })
 }
+
+///|
+fn NativeLocalJournalReadQueries::operation_access(
+  self : NativeLocalJournalReadQueries,
+) -> NativeClientJournalOperationAccess {
+  {
+    reads: self.access(),
+    compare_exchange: (table, key, revision, body) => {
+      match self.query(() => self.database.compare_exchange(table, key, revision, body)) {
+        Ok(value) => value
+        Err(issue) => Err(issue)
+      }
+    },
+  }
+}
