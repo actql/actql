@@ -781,8 +781,9 @@ fn LocalCommandPreparationOriginal::close_checked(
         }
         // These closed records still retain Read-managed aliases. Keep them
         // through their real close and then retire our own last references.
-        self.journal = None
-        self.adoption = None
+        // The closed Journal and Adoption still retain their actual SQLite DB.
+        // Its final alias must retire in the same original SQLite frame below,
+        // after these Read-side descriptor/Library acknowledgements.
         self.product = None
         self.reply_outcome = None
         self.runtime = None
@@ -812,6 +813,21 @@ fn LocalCommandPreparationOriginal::close_checked(
         }
       }
       if self.pair is Some(pair) {
+        if self.journal is Some(_) || self.adoption is Some(_) {
+          self.cleanup_stage = "closed-journal-aliases"
+          command_preparation_value(
+            host
+            .enter_local_host_cleanup(pair, @initial_arena.HostSqlite)
+            .map_err(issue => CommandPair(issue)),
+          )
+          self.phase_open = true
+          // Physical DB/Session/Root close already acknowledged above. This
+          // retires only our original managed aliases, while the DB finalizer
+          // can observe its actual SQLite context. It is not a close receipt.
+          self.journal = None
+          self.adoption = None
+          command_preparation_value(self.leave())
+        }
         self.cleanup_stage = "read-sqlite-pair"
         command_preparation_value(
           host

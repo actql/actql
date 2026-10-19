@@ -43,7 +43,12 @@ fn command_preparation_cleanup_kind(
     CommandHost(_) => "host"
     CommandDomain(_) => "domain"
     CommandRead(_) => "read"
-    CommandPair(_) => "pair"
+    CommandPair(value) =>
+      match value {
+        @initial_arena.Read(_) => "pair-read"
+        @initial_arena.Sqlite(_) => "pair-sqlite"
+        @initial_arena.Domain(_) => "pair-domain"
+      }
     CommandRuntime(_) => "runtime"
     CommandSqlite(_) => "sqlite"
     CommandComponent(_) => "crypto-component"
