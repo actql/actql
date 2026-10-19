@@ -76,6 +76,52 @@ class PythonInitialNativeBinding(unittest.TestCase):
         print(json.dumps({'command_token_sha256': hashlib.sha256(b'\n'.join(actual)).hexdigest(),
                           'tokens': len(actual), 'evidence': str(scratch)}))
 
+    def test_runtime_initializer_requires_same_current_managed_original(self):
+        self.assertEqual(sys.platform, 'darwin')
+        self.assertEqual(sys.version_info[:3], (3, 12, 12))
+        import sysconfig
+        scratch = Path(tempfile.mkdtemp(prefix='python-initial-runtime-', dir=ROOT / '_build'))
+        runtime = Path(os.environ['MOON_HOME']) / 'lib/libmoonbitrun.o'
+        selected = scratch / 'runtime.o'
+        selected.write_bytes(PROVIDER.python_initial_runtime_bytes(runtime.read_bytes()))
+        source = OWNER / 'fixtures/python_initial_runtime.c'
+        library, dependencies = scratch / 'original.dylib', scratch / 'original.d'
+        command = ['/Library/Developer/CommandLineTools/usr/bin/clang', '-std=c11', '-O0',
+                   '-Wall', '-Wextra', '-Werror', '-isysroot', os.environ['SDKROOT'],
+                   '-mmacosx-version-min=11.0', '-I' + sysconfig.get_path('include'),
+                   '-I' + str(Path(os.environ['MOON_HOME']) / 'include'),
+                   '-MD', '-MF', str(dependencies), '-dynamiclib', '-undefined', 'dynamic_lookup',
+                   '-Wl,-no_inits', str(source), str(selected), '-o', str(library)]
+        built = subprocess.run(command, capture_output=True, text=True, timeout=60)
+        (scratch / 'compile.stdout').write_text(built.stdout)
+        (scratch / 'compile.stderr').write_text(built.stderr)
+        self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+        child = '''import ctypes,json,sys
+library=ctypes.PyDLL(sys.argv[1])
+call=library.original_python_runtime_case
+call.argtypes=[ctypes.c_int];call.restype=ctypes.c_int
+assert call(int(sys.argv[2]))==1
+print(json.dumps({'case':int(sys.argv[2]),'actual_mi_case':1}))
+'''
+        results = []
+        for mode, name in enumerate(['missing', 'partial', 'ready-then-restored']):
+            result = subprocess.run([sys.executable, '-I', '-B', '-c', child,
+                                     str(library), str(mode)], capture_output=True,
+                                    text=True, timeout=20)
+            (scratch / (name + '.stdout')).write_text(result.stdout)
+            (scratch / (name + '.stderr')).write_text(result.stderr)
+            self.assertEqual(result.returncode, 0, (name, result.stdout, result.stderr))
+            results.append({'name': name, **json.loads(result.stdout)})
+        inputs = [record(Path(name)) for name in
+                  shlex.split(dependencies.read_text().replace('\\\n', ' '))[1:]]
+        packet = {'qualification': 'Actual CPython/MI with controlled emitted-initializer '
+                  'receiver; not product Moon initialization or ordinary initial supply',
+                  'source': record(source), 'runtime': record(runtime),
+                  'derived_runtime': record(selected), 'library': record(library),
+                  'command': command, 'inputs': inputs, 'cases': results}
+        (scratch / 'result.json').write_text(json.dumps(packet, indent=2) + '\n')
+        print(json.dumps({'actual_cases': len(results), 'evidence': str(scratch / 'result.json')}))
+
     def test_actual_python_original_mapping_current_and_partial(self):
         self.assertEqual(sys.platform, 'darwin')
         self.assertEqual(sys.version_info[:3], (3, 12, 12))

@@ -303,6 +303,12 @@ bool actql_native_initial_managed_current(
 #endif
 }
 
+#if defined(ACTQL_PYTHON_INITIAL_OPERATIONAL_ENTRY)
+bool actql_native_python_initial_managed_current(void) {
+  return actql_native_initial_managed_current(&actql_initial_managed);
+}
+#endif
+
 int actql_native_initial_managed_issue(
     actql_native_initial_managed_original *original) {
   int state = atomic_load_explicit(&actql_initial_managed_state, memory_order_acquire);

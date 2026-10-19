@@ -2390,6 +2390,14 @@ or the separate Native/worker supplier.
 
 ### Python initial Native managed entrance
 
+The selected Python Runtime initializer checks the same entrance's actual
+managed original before invoking its emitted Moon initializer. Missing,
+partial or restored supply refuses without consuming the Runtime attempt.
+Runtime current also retains that physical-current condition; a successful
+initializer cannot detach from its original allocator lifetime. This private
+check issues neither an initial platform original nor Worker capacity. The
+unselected Runtime initializer retains its existing behavior.
+
 The Python purpose uses a distinct opaque initial-platform original in the
 existing Bootstrap Owner. It cannot consume or reinterpret the Native command
 original. Its typed entrance reuses the same pinned MI217 physical mapping,

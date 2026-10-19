@@ -2,6 +2,9 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include <unistd.h>
+#if defined(ACTQL_PYTHON_INITIAL_OPERATIONAL_ENTRY)
+#include "../host_bootstrap/python_initial_platform.h"
+#endif
 
 /* This is the same emitted main renamed by the existing private producer.
  * No function supplied by a caller or alternate initializer is accepted. */
@@ -18,6 +21,13 @@ static _Atomic int phase;
 
 int actql_control_runtime_initialize_into(actql_control_runtime_origin **slot) {
     if (slot == NULL || *slot != NULL) return ACTQL_CONTROL_INVALID_SLOT;
+#if defined(ACTQL_PYTHON_INITIAL_OPERATIONAL_ENTRY)
+    /* The selected Python link has no automatic MI initializer. Its original
+     * physical entrance must already be current before any Moon initializer.
+     * Missing/partial/restored supply does not consume the Runtime attempt. */
+    if (!actql_native_python_initial_managed_current())
+        return ACTQL_CONTROL_UNAVAILABLE;
+#endif
     /* An old direct initializer or partial registration is not a fresh
      * component and cannot be silently adopted or initialized a second time. */
     if (actql_control_runtime_roots_state() != 0) return ACTQL_CONTROL_UNAVAILABLE;
@@ -43,5 +53,9 @@ int actql_control_runtime_current(actql_control_runtime_origin *original) {
         return ACTQL_CONTROL_UNAVAILABLE;
     if (origin.process != getpid() || !pthread_equal(origin.thread, pthread_self()))
         return ACTQL_CONTROL_UNAVAILABLE;
+#if defined(ACTQL_PYTHON_INITIAL_OPERATIONAL_ENTRY)
+    if (!actql_native_python_initial_managed_current())
+        return ACTQL_CONTROL_UNAVAILABLE;
+#endif
     return ACTQL_CONTROL_OK;
 }

@@ -33,6 +33,10 @@ actql_native_initial_managed_original *actql_native_python_initial_managed_begin
   actql_native_python_initial_platform_original *entry);
 bool actql_native_initial_managed_current(
   actql_native_initial_managed_original *original);
+/* Selected component-internal initialization fence. This observes only the
+ * one entrance's actual original; no caller-provided pointer can substitute
+ * another arena. It neither acquires initial coverage nor acknowledges it. */
+bool actql_native_python_initial_managed_current(void);
 int actql_native_initial_managed_issue(
   actql_native_initial_managed_original *original);
 
