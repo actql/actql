@@ -622,6 +622,40 @@ for (const entrance of ['local', 'http']) {
     assert.deepEqual(counts, {exchanges: 6, authorization: 6, analysis: 6});
   });
 
+  test(`${entrance}: documented NUMBER casts use the original numeric checker`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const target of ['NUMBER', 'number', 'NuMbEr', 'FLOAT64', 'DOUBLE']) {
+        for (const text of [
+          `SELECT CAST('1.25' AS ${target}) AS n, CAST(NULL AS ${target}) AS missing`,
+          `SELECT '1.25' AS raw |> SELECT CAST(raw AS ${target}) AS n`,
+          `SELECT CAST(@value AS ${target}) AS n`,
+        ]) {
+          const options = {kind: 'text', scope: 'bound_input', format,
+            ...(text.includes('@value') ? {
+              parameterDeclarations: {value: {type: 'string'}}, parameters: {value: '1.25'},
+            } : {})};
+          const checked = await client.check(text, options);
+          assert.equal(checked.outcome, 'completed');
+          assert.equal(checked.report.verdict, 'verified', text);
+          assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+          assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+          assert.deepEqual(checked.report.requirements, []);
+          assert.equal(getCheckInput(checked, 'source').text, text);
+        }
+      }
+      const wrongType = await client.check('SELECT CAST(TRUE AS NUMBER) AS n',
+        {kind: 'text', scope: 'bound_input', format});
+      assert.equal(wrongType.report.verdict, 'invalid');
+      for (const target of ['`NUMBER`', 'NUMBERISH']) {
+        const invalid = await client.check(`SELECT CAST('1.25' AS ${target}) AS n`,
+          {kind: 'text', scope: 'bound_input', format});
+        assert.equal(invalid.report.verdict, 'invalid');
+        assert.equal(invalid.report.reasons[0].code, 'query_syntax_invalid');
+      }
+    }
+  });
+
   test(`${entrance}: runnable uses the same structured Program Owner and original inputs`, async t => {
     const {client, counts} = await publicCheck(t, entrance, {program: true});
     const program = authoringProgram();
