@@ -416,7 +416,8 @@ fn NativeLocalStoreOperationReceiver::route(
     self.return_acknowledged &&
     self.phase == StoreRouteIdle &&
     self.origin is None &&
-    !self.business_pending {
+    !self.business_pending &&
+    !self.borrowed_read {
     return match self.originals(library, true) {
       Ok(_) => 0
       Err(issue) => self.refuse(issue)
@@ -552,9 +553,11 @@ pub fn NativeLocalStoreOperation::retry_scope_cleanup(
     Err(issue) => return Err(issue)
     Ok(true) => ()
   }
-  // An already completed original return is acknowledged without reentering
-  // or rerunning its body. A failed normal return may only enter cleanup.
-  if bridge.leave_store() is Ok(_) {
+  // A borrowed parent transition may fail before a C Store flight exists.
+  // Its recorded return duty still requires this same cleanup callback; a
+  // previous Store flight's return cannot acknowledge the borrowed parent.
+  // Other completed original returns need no reentry or repeated SQL body.
+  if !self.receiver.borrowed_read && bridge.leave_store() is Ok(_) {
     return Ok(())
   }
   match bridge.enter_cleanup() {
@@ -623,6 +626,7 @@ pub fn NativeLocalStoreOperation::pending_scope(
   Ok(
     pending ||
     retained ||
+    receiver.borrowed_read ||
     receiver.business_pending ||
     receiver.origin is Some(_) ||
     receiver.phase != StoreRouteIdle,
