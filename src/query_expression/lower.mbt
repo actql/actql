@@ -272,6 +272,9 @@ fn scalar_call(
     "STRPOS" => ("STRPOS", "strpos", 2, 2)
     "DATE_DIFF" => ("DATE_DIFF", "date_diff", 3, 3)
     "TO_NUMBER" => ("TO_NUMBER", "to_number", 1, 1)
+    "TO_STRING" => ("TO_STRING", "to_string", 1, 1)
+    "TO_BOOLEAN" => ("TO_BOOLEAN", "to_boolean", 1, 1)
+    "TO_TIMESTAMP" => ("TO_TIMESTAMP", "to_timestamp", 1, 1)
     "SPLIT" => ("SPLIT", "split", 1, 2)
     "SUBSTR" | "SUBSTRING" => ("SUBSTR", "substring", 2, 3)
     "LEFT" => ("LEFT", "left", 2, 2)
@@ -685,16 +688,25 @@ fn append_resolved(
                 current = @query.expression_origin(ast, args[2])
                 raise Abort(InvalidArguments)
               }
-              if name == "to_number" {
-                // This public spelling uses the existing Common CAST contract.
+              if ["to_number", "to_string", "to_boolean", "to_timestamp"].contains(
+                  name,
+                ) {
+                // These public spellings use the existing Common CAST contract.
                 // Preserve the operand subtree and its original Parameter role.
+                let target = match name {
+                  "to_number" => "number"
+                  "to_string" => "string"
+                  "to_boolean" => "boolean"
+                  "to_timestamp" => "timestamp"
+                  _ => raise Abort(UnsupportedFunction)
+                }
                 lowering.form(
                   "cast",
                   lowering.object([
                     ("value", nodes[args[0]]),
                     (
                       "target",
-                      lowering.object([("type", lowering.add(String("number")))]),
+                      lowering.object([("type", lowering.add(String(target)))]),
                     ),
                   ]),
                 )
