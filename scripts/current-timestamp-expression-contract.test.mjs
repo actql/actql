@@ -238,7 +238,7 @@ test('fixed interval query grammar adds only the declared source operand and pre
 (* A fixed interval is an operand role only at the shared Timestamp consumers;
    integral tokens retain their exact signed spelling before Common admission. *)
 fixed_interval = "INTERVAL", ( [ "+" | "-" ], interval_integer | parameter_token | path ), fixed_interval_unit ;
-interval_integer = ? exact unsigned decimal digits, admitted in signed64 context without binary64 conversion ? ;
+interval_integer = ? exact decimal or 0x/0X hexadecimal integer token, admitted in signed64 context without binary64 conversion ? ;
 fixed_interval_unit = "NANOSECOND" | "MICROSECOND" | "MILLISECOND"
                     | "SECOND" | "MINUTE" | "HOUR" | "DAY" ;
 `);

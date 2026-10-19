@@ -598,7 +598,9 @@ fn same_expression(
         }
       }
       (Interval(ax, ux), Interval(ay, uy)) => {
-        if ux != uy { return false }
+        if ux != uy {
+          return false
+        }
         pending.push((ax, ay))
       }
       (Unary(x, child_a), Unary(y, child_b)) => {

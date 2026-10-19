@@ -136,9 +136,14 @@ fn temporal_interval(
   amount : Value,
   subtract : Bool,
 ) -> Result[Value, ScalarIssue] {
-  if value is Null || amount is Null { return Ok(Null) }
-  guard amount is Captured(@admitted.Signed64(integer)) else { return Err(InvalidOperand) }
-  guard value is Captured(@admitted.Timestamp(_)) && temporal_difference_instant(value) is Some(instant) else {
+  if value is Null || amount is Null {
+    return Ok(Null)
+  }
+  guard amount is Captured(@admitted.Signed64(integer)) else {
+    return Err(InvalidOperand)
+  }
+  guard value is Captured(@admitted.Timestamp(_)) &&
+    temporal_difference_instant(value) is Some(instant) else {
     return Err(InvalidOperand)
   }
   let factor = match unit {
@@ -151,19 +156,32 @@ fn temporal_interval(
     "d" => 86400000000000L
     _ => return Err(InvalidOperand)
   }
-  let product = @bigint.BigInt::from_int64(integer) * @bigint.BigInt::from_int64(factor)
+  let product = @bigint.BigInt::from_int64(integer) *
+    @bigint.BigInt::from_int64(factor)
   let delta = if subtract { -product } else { product }
   let billion = @bigint.BigInt::from_int(1000000000)
   let seconds_delta = delta / billion
-  if seconds_delta < @bigint.BigInt::from_int64(-316000000000L) || seconds_delta > @bigint.BigInt::from_int64(316000000000L) {
+  if seconds_delta < @bigint.BigInt::from_int64(-316000000000L) ||
+    seconds_delta > @bigint.BigInt::from_int64(316000000000L) {
     return Err(ArithmeticFailure)
   }
   let mut seconds = instant.seconds + seconds_delta.to_int64()
   let mut nanos = instant.nanoseconds + (delta % billion).to_int()
-  if nanos < 0 { seconds -= 1L; nanos += 1000000000 }
-  if nanos >= 1000000000 { seconds += 1L; nanos -= 1000000000 }
-  guard @admitted.epoch_parts_timestamp(seconds, nanos) is Some(text) else { return Err(ArithmeticFailure) }
-  let contract = @contract.with_nullability(@lower.expression_contract(expression), false)
+  if nanos < 0 {
+    seconds -= 1L
+    nanos += 1000000000
+  }
+  if nanos >= 1000000000 {
+    seconds += 1L
+    nanos -= 1000000000
+  }
+  guard @admitted.epoch_parts_timestamp(seconds, nanos) is Some(text) else {
+    return Err(ArithmeticFailure)
+  }
+  let contract = @contract.with_nullability(
+    @lower.expression_contract(expression),
+    false,
+  )
   match @admitted.checked_timestamp_value(text, contract) {
     Some(checked) => Ok(Captured(checked.value))
     None => Err(InvalidOperand)
