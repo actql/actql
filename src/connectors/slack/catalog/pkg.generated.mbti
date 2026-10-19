@@ -37,6 +37,8 @@ pub fn prepare_slack_message_replies(SlackMessagePage, Int, SlackMessageRepliesL
 
 pub fn project_slack_channel_list(Bytes, SlackChannelListLimits) -> Result[SlackChannelListPage, SlackChannelListIssue]
 
+pub fn project_slack_history_conversation_list(Bytes, SlackChannelListLimits) -> Result[SlackChannelListPage, SlackChannelListIssue]
+
 pub fn project_slack_message_page(Bytes, String, SlackMessagePageLimits) -> Result[SlackMessagePage, SlackMessagePageIssue]
 
 pub fn project_slack_user_list(Bytes, SlackUserListLimits) -> Result[SlackUserListPage, SlackUserListIssue]

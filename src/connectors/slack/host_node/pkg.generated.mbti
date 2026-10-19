@@ -82,6 +82,8 @@ pub fn slack_prepare_message_replies(@catalog.SlackMessagePage, Int, Int, Int, I
 
 pub fn slack_project_channel_list(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SlackChannelListPage, @catalog.SlackChannelListIssue]
 
+pub fn slack_project_history_conversation_list(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SlackChannelListPage, @catalog.SlackChannelListIssue]
+
 pub fn slack_project_user_list(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SlackUserListPage, @catalog.SlackUserListIssue]
 
 pub fn slack_project_workspace_identity(Bytes, Int, Int, Int, Int) -> Result[@catalog.SlackWorkspaceIdentity, @catalog.SlackUserListIssue]
