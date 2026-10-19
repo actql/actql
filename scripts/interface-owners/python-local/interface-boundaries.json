@@ -45764,6 +45764,7 @@
           "name": "InstalledLocalHost/installed",
           "parameters": [
             "cls",
+            "state_dir",
             "resources"
           ]
         },
@@ -45817,9 +45818,16 @@
           "async": false,
           "name": "_default_directory",
           "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_private_state_directory",
+          "parameters": [
+            "directory"
+          ]
         }
       ],
-      "sha256": "f9f81f80ba504469e12e9cb13e3e027cba5c92b0c44eeba7cf7e6c7ed5a36ef0",
+      "sha256": "f49d411c20971a7659b27ddeaba0677e1013705db92fb114dff354dded2fb25d",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -46470,7 +46478,8 @@
         },
         {
           "operations": [
-            "_default_directory"
+            "_default_directory",
+            "_private_state_directory"
           ],
           "exports": [],
           "attributes": {

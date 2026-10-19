@@ -271,23 +271,35 @@
         "get_check_input",
         "get_submission_check_observation",
         "get_submission_input",
+        "open",
         "resolve_check_location",
         "resolve_check_text_range"
       ],
       "imports": [
-        "actql_sdk"
+        "actql_sdk",
+        "os"
       ],
       "module": "packages/python-product/src/actql/__init__.py",
       "responsibilityFacet": "primary",
-      "operations": [],
-      "sha256": "34605f2325c52d4f3255ba11ac16786d2679f4710b2f070212b91f26b26af8a0",
+      "operations": [
+        {
+          "async": false,
+          "name": "open",
+          "parameters": [
+            "state_dir",
+            "signer"
+          ]
+        }
+      ],
+      "sha256": "23fc666e0fd89f5cc3e882e8e1f98756590e8cf688b5d660bdf687a085dc89da",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
       "contracts": [
         {
           "operations": [
-            "<module>"
+            "<module>",
+            "open"
           ],
           "exports": [
             "AsyncClient",
@@ -300,6 +312,7 @@
             "JSONValue",
             "Observation",
             "Reader",
+            "RequestConflict",
             "Result",
             "RunState",
             "Scope",
@@ -311,9 +324,9 @@
             "get_check_input",
             "get_submission_check_observation",
             "get_submission_input",
+            "open",
             "resolve_check_location",
-            "resolve_check_text_range",
-            "RequestConflict"
+            "resolve_check_text_range"
           ],
           "attributes": {
             "responsibility": [
@@ -551,23 +564,35 @@
         "get_check_input",
         "get_submission_check_observation",
         "get_submission_input",
+        "open",
         "resolve_check_location",
         "resolve_check_text_range"
       ],
       "imports": [
-        "actql_sdk"
+        "actql_sdk",
+        "os"
       ],
       "module": "packages/python-product/src/actql/__init__.pyi",
       "responsibilityFacet": "primary",
-      "operations": [],
-      "sha256": "0e7b43ad57ec03bc0a4f6414366c12850120d823fc368cc53ac85af80093ecf4",
+      "operations": [
+        {
+          "async": false,
+          "name": "open",
+          "parameters": [
+            "state_dir",
+            "signer"
+          ]
+        }
+      ],
+      "sha256": "88ed451ae8dce6f23ad6727dc7e70c483a73582b63c7b0ff2b6549deba134ae0",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
       "contracts": [
         {
           "operations": [
-            "<module>"
+            "<module>",
+            "open"
           ],
           "exports": [
             "AsyncClient",
@@ -580,6 +605,7 @@
             "JSONValue",
             "Observation",
             "Reader",
+            "RequestConflict",
             "Result",
             "RunState",
             "Scope",
@@ -591,9 +617,9 @@
             "get_check_input",
             "get_submission_check_observation",
             "get_submission_input",
+            "open",
             "resolve_check_location",
-            "resolve_check_text_range",
-            "RequestConflict"
+            "resolve_check_text_range"
           ],
           "attributes": {
             "responsibility": [
@@ -1266,6 +1292,7 @@
         "collections.abc",
         "dataclasses",
         "httpx",
+        "os",
         "ssl",
         "typing"
       ],
@@ -1420,6 +1447,7 @@
           "name": "AsyncClient/open",
           "parameters": [
             "cls",
+            "state_dir",
             "signer"
           ]
         },
@@ -1974,6 +2002,7 @@
           "name": "Client/open",
           "parameters": [
             "cls",
+            "state_dir",
             "signer"
           ]
         },
@@ -2536,7 +2565,7 @@
           ]
         }
       ],
-      "sha256": "11ca92bcf2d92aaa7c3f72f51e0eae3b65e8e8bce5a47edf88924b9b9300a5f5",
+      "sha256": "b206c8ea71459a17f0455a873a13fa7ef7da1093f798a90b7e3874a6535b6a8d",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -2632,6 +2661,8 @@
             "Reader/close",
             "Reader/delivery_attempt",
             "Reader/rows_yielded",
+            "RequestConflict",
+            "RequestConflict/__init__",
             "Result",
             "Result/all",
             "Result/all#2",
@@ -2650,9 +2681,7 @@
             "get_submission_check_observation",
             "get_submission_input",
             "resolve_check_location",
-            "resolve_check_text_range",
-            "RequestConflict",
-            "RequestConflict/__init__"
+            "resolve_check_text_range"
           ],
           "exports": [
             "Any",
@@ -2679,6 +2708,7 @@
             "Profile",
             "Protocol",
             "Reader",
+            "RequestConflict",
             "Result",
             "RunState",
             "SSLContext",
@@ -2696,8 +2726,7 @@
             "get_submission_input",
             "overload",
             "resolve_check_location",
-            "resolve_check_text_range",
-            "RequestConflict"
+            "resolve_check_text_range"
           ],
           "attributes": {
             "responsibility": [
@@ -3657,6 +3686,7 @@
           "name": "AsyncClient/open",
           "parameters": [
             "cls",
+            "state_dir",
             "signer"
           ]
         },
@@ -3888,7 +3918,7 @@
           ]
         }
       ],
-      "sha256": "102296c0c157606b1712db2b204378974d10164f1b0057924cfd92e517560368",
+      "sha256": "bbd88b4598e87202e9c96668d538ffc31ba09aadf5c5a34d3f7d8546b7fa8635",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -3918,6 +3948,7 @@
             "AsyncClient/_resolve_checkpoints",
             "AsyncClient/_review_checkpoint",
             "AsyncClient/_start",
+            "AsyncClient/_submission_candidate",
             "AsyncClient/_valid_token",
             "AsyncClient/aclose",
             "AsyncClient/attach",
@@ -3950,15 +3981,15 @@
             "_LocalCoreCleanupPort",
             "_LocalCoreCleanupPort/__init__",
             "_LocalCoreCleanupPort/aclose",
-            "get_submission_input",
-            "AsyncClient/_submission_candidate",
-            "_submission_context"
+            "_submission_context",
+            "get_submission_input"
           ],
           "exports": [
             "AsyncClient",
             "AsyncExecution",
             "ClientError",
             "Observation",
+            "RequestConflict",
             "RunState",
             "asyncio",
             "base64",
@@ -3984,8 +4015,7 @@
             "uuid",
             "weakref",
             "wire",
-            "wire_bytes",
-            "RequestConflict"
+            "wire_bytes"
           ],
           "attributes": {
             "responsibility": [
@@ -7275,6 +7305,7 @@
           "name": "Client/open",
           "parameters": [
             "cls",
+            "state_dir",
             "signer"
           ]
         },
@@ -7577,7 +7608,7 @@
           "parameters": []
         }
       ],
-      "sha256": "85a6c9b4110bf6c2b1776d6ecc499a75d2a579b1efc3c8885cab99d742fda171",
+      "sha256": "659859e79840131a2bd42804749c3878c5eea2655e629a71cb677bd313a8a06e",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
