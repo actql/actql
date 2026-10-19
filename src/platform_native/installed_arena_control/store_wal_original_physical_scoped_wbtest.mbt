@@ -489,7 +489,7 @@ fn store_failed_open_original_work(
     assert_true(original.enter_store() is Err(_))
     // Only failed+SQL can reach the original recovery. It acknowledges no DB.
     assert_true(
-      original.enter_cleanup() is Err(@sqlite.OperationRoutingBefore(56)),
+      original.enter_cleanup() is Err(@sqlite.Physical(_)),
     )
     assert_true(original.pending_scope().unwrap())
     assert_true(receiver.active && receiver.sql)
