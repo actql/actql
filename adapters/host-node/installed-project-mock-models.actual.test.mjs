@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {mkdir, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import test from 'node:test';
+import {parse} from 'acorn';
 import {pathToFileURL} from 'node:url';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {projectTemplateFiles} from '../../packages/native-cli/lib/project-template.mjs';
@@ -20,6 +22,14 @@ const limits = Object.freeze({maxTasks:128,maxBytes:65536,maxNodes:4096,maxDepth
   maxWork:2097152,valueNodes:4096,valueDepth:64,valueTextBytes:65536,maxEntries:128});
 const core = [limits.maxBytes,limits.maxNodes,limits.maxDepth,limits.maxMembers,
   limits.contractNodes,limits.contractDepth,limits.contractTextBytes,limits.maxWork];
+const controllerSource=readFileSync(new URL('./installed-model-continuation.mjs',import.meta.url),'utf8');
+const controllerTree=parse(controllerSource,{ecmaVersion:'latest',sourceType:'module'});
+const dispatchPreparation=controllerTree.body.find(node=>node.type==='FunctionDeclaration'&&
+  node.id.name==='requireModelDispatchPreparation');
+assert(dispatchPreparation);
+const requireDispatchPreparation=new Function('checked','fail',
+  'return ('+controllerSource.slice(dispatchPreparation.start,dispatchPreparation.end)+');')(
+    checked,code=>{throw Object.assign(new Error(code),{code});});
 
 // Real Common and the unchanged public Project/Task/answer files. This is
 // installation/original correspondence, not a Host startup, Model invocation,
@@ -123,4 +133,33 @@ test('actual Mock Model current refusal and retired profile do not acknowledge o
   f.answers.retire(moon);
   assert.throws(() => bound.originalsForRuntime(moon),{code:'InstalledMockModelsRetired'});
   f.retireProfile();
+});
+
+test('same live Core Mock installation admits no-I/O preparation without fabricating egress',async t => {
+  const f=await fixture(t),entry=f.bind().originalsForRuntime(moon)[0];
+  requireDispatchPreparation(moon,{localMock:true,originalMockInstallation:entry.installation,
+    provider:entry.provider});
+  assert.throws(()=>requireDispatchPreparation(moon,{localMock:true,provider:entry.provider}),
+    {code:'InstalledMockModelOriginalUnavailable'});
+  assert.throws(()=>requireDispatchPreparation(moon,{localMock:true,
+    originalMockInstallation:entry.installation,provider:{}}),
+    {code:'InstalledMockModelOriginalUnavailable'});
+});
+
+test('copied or retired Mock originals cannot replace dispatch preparation',async t => {
+  const f=await fixture(t),entry=f.bind().originalsForRuntime(moon)[0];
+  assert.throws(()=>requireDispatchPreparation(moon,{localMock:true,
+    originalMockInstallation:{...entry.installation},provider:entry.provider}),
+    {code:'MoonBitHostFailure'});
+  f.answers.retire(moon);
+  assert.throws(()=>requireDispatchPreparation(moon,{localMock:true,
+    originalMockInstallation:entry.installation,provider:entry.provider}),
+    {code:'MoonBitHostFailure'});
+});
+
+test('external Provider preparation keeps the original egress refusal',()=>{
+  const original=new Error('OriginalEgressRefusal');
+  assert.throws(()=>requireDispatchPreparation(moon,{egressFailure:original}),error=>error===original);
+  assert.throws(()=>requireDispatchPreparation(moon,{}),{message:'InstalledModelEgressUnavailable'});
+  requireDispatchPreparation(moon,{egressAdmission:{}});
 });

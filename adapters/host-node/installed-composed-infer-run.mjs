@@ -233,6 +233,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       if (preparedCallSet === undefined) throw new Error('ModelPausePreparedOwnerMissing');
       child.continuation = await modelController.open({operation: child.operation, preparedCallSet,
         plan, selected: child.selection, principalId, declaredResults, submission, signal,
+        originalPreparation,
         retainEvidenceCopy(copy) {
           if (child.copy?.cleanupPending()) throw new Error('InferEvidenceCopyAlreadyRetained');
           child.copy = copy;

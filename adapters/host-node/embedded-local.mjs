@@ -1667,7 +1667,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             undefined});
         throw clientOperationError('ClientProgramUnsupported', cause);
       }
-      let admittedProvider;
+      let admittedProvider, originalMockInstallation;
       try {
         if (mockModels === undefined) {
           admittedProvider = admitInstalledModelProvider(moon, execution, dependencies,
@@ -1686,6 +1686,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           // or configured physical Provider can stand in for that admission.
           admittedProvider = checked(moon.clientProgramAdmitOriginalMockProvider(
             original.installation, execution, dependencies));
+          originalMockInstallation = original.installation;
           mockModels.originalsForRuntime(moon);
         }
       } catch (cause) {
@@ -1713,7 +1714,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         const account = observeAccount();
         const providerBinding = admitInstalledModelProviderBinding(moon, 'mock', {
           bindingOriginals: mockModels.providerBindingOriginalsForRuntime(moon)});
-        const selection = Object.freeze({localMock: true, step: selectedStep,
+        const selection = Object.freeze({localMock: true, originalMockInstallation, step: selectedStep,
           occurrence, graph, computePrefix: runtimeOptionalField(segments, 0),
           computeSuffix: runtimeField(segments, 1),
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
