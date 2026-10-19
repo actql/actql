@@ -14,6 +14,10 @@ fn preparation_read_refusal_without_pair() -> (@sqlite.Library, @crypto.Library)
   )
   assert_eq(calls.val, 0)
   assert_true(
+    capture.submission_originals_in_original_read()
+    is Err(OriginalResourceScopePending),
+  )
+  assert_true(
     capture.check_current_in_original_read()
     is Err(OriginalResourceScopePending),
   )

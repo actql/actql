@@ -208,21 +208,58 @@ fn local_submission_start(
           64,
         ).unwrap_or_else(() => stop("LocalSubmittedInputNotAdmitted"))
     }
-    let journal = local_host_result(host.run_journal())
-    let epoch = local_host_result(host.epoch_authority())
-    // The original intent is durable before preparation. Invalid preparation
-    // therefore remains an observable original submission, not an absent Run
-    // interpreted as permission to send again under a new identity.
-    let original = journal
-      .record_submitted_intent(
-        epoch,
-        reference,
-        intent,
-        scope,
-        current(),
-        @env.now().to_double(),
-      )
-      .unwrap_or_else(() => stop("LocalSubmissionAcceptanceUnavailable"))
+    let (journal, epoch) = match business {
+      None =>
+        (
+          local_host_result(host.run_journal()),
+          local_host_result(host.epoch_authority()),
+        )
+      Some(original) =>
+        local_host_result(
+          original.capture.submission_originals_in_original_read(),
+        )
+    }
+    // Legacy preparation follows its durable intent as before. The selected
+    // business route reuses the exact preflight intent/preparation; neither
+    // an error nor an unresolved saved Run permits another identity or send.
+    let original = match business {
+      None =>
+        journal
+        .record_submitted_intent(
+          epoch,
+          reference,
+          intent,
+          scope,
+          current(),
+          @env.now().to_double(),
+        )
+        .unwrap_or_else(() => stop("LocalSubmissionAcceptanceUnavailable"))
+      Some(selected) => {
+        if !current() {
+          stop("LocalSubmissionAuthorizationDenied")
+        }
+        match
+          selected.capture.record_submitted_intent_in_original_read(
+            settings.principal,
+            settings.connection,
+            scope,
+            reference,
+            intent,
+            @env.now().to_double(),
+          ) {
+          Ok(value) => value
+          Err(
+            @local_host.Journal(TransactionUnknown)
+            | @local_host.Journal(Epoch(TransactionUnknown))
+            | @local_host.InstallationReadTransactionFailure(
+              _,
+              TransactionUnknown
+            )
+          ) => stop("LocalSubmissionAcceptanceUnknown")
+          Err(_) => stop("LocalSubmissionAcceptanceUnavailable")
+        }
+      }
+    }
     if !current() {
       stop("LocalSubmissionAuthorizationDenied")
     }
@@ -234,7 +271,15 @@ fn local_submission_start(
       stop("LocalRunInstallationRequired")
     })
     let run = local_run_installation(
-      @utf8.decode(local_host_result(host.selected_configuration(run_file))) catch {
+      @utf8.decode(
+        local_host_result(
+          match business {
+            None => host.selected_configuration(run_file)
+            Some(original) =>
+              original.capture.selected_configuration_in_original_read(run_file)
+          },
+        ),
+      ) catch {
         _ => stop("InvalidLocalRunInstallation")
       },
     )

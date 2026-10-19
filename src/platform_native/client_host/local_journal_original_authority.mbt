@@ -40,7 +40,11 @@ fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read
     (
       Some(issue),
       _,
-      Err(Epoch(TransactionUnknown) | Journal(TransactionUnknown)),
+      Err(
+        Epoch(TransactionUnknown)
+        | Journal(TransactionUnknown)
+        | Journal(Epoch(TransactionUnknown))
+      ),
     ) => {
       self.read_operation_issue = Some(issue)
       Err(InstallationReadTransactionFailure(issue, TransactionUnknown))
@@ -212,4 +216,28 @@ pub fn NativeLocalJournalCapture::record_submitted_intent_in_original_read(
     )
     .map_err(issue => Journal(issue))
   })
+}
+
+///|
+/// Borrow the already opened original handles only under this captured Read.
+/// Their presence grants no permission and does not select unscoped SQL.
+pub fn NativeLocalJournalCapture::submission_originals_in_original_read(
+  self : NativeLocalJournalCapture,
+) -> Result[
+  (NativeClientRunJournal, NativeClientEpochAuthority),
+  NativeLocalAdoptionIssue,
+] {
+  match self.check_current_in_original_read() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard self.opening is JournalAcquired(host) &&
+    self.original_resources is Some(_) else {
+    return Err(OriginalResourceScopePending)
+  }
+  if !physical_equal(host.database, host.journal.database) ||
+    !physical_equal(host.database, host.epoch.database) {
+    return Err(CustodyLost)
+  }
+  Ok((host.journal, host.epoch))
 }

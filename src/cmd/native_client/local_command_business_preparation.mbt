@@ -78,6 +78,20 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
       settings.connection,
     ),
   )
+  let run_file = settings.run_file.unwrap_or_else(() => {
+    stop("LocalRunInstallationRequired")
+  })
+  local_host_result(
+    capture.bind_packaged_runtime_in_original_read(
+      runtime.physical,
+      settings.principal,
+      settings.connection,
+      environment_name,
+      run_file,
+      "runtime.json",
+    ),
+  )
+  local_host_result(capture.require_packaged_runtime_upgrade_in_original_read())
   let intent = @run_host.prepare_client_submitted_intent(
     local_intent_wire(input_root, operation, child),
     65536,
