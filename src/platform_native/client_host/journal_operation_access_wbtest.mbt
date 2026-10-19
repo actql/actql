@@ -21,6 +21,10 @@ fn journal_test_operation_access(
       calls.push("insert:" + table + ":" + key)
       database.insert(table, key, body)
     },
+    remove_exact: (table, key, revision, body) => {
+      calls.push("remove_exact:" + table + ":" + key)
+      database.remove_exact(table, key, revision, body)
+    },
     compare_exchange: (table, key, revision, body) => {
       calls.push("compare_exchange:" + table + ":" + key)
       database.compare_exchange(table, key, revision, body)

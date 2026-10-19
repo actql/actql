@@ -256,8 +256,9 @@ fn initialize_native_client_run_journal(
   }
   for
     table in [
-      "client_effect_response_meta", "client_effect_response_bytes", "client_effect_row_receipt",
-      "client_cancellations", "client_cancel_custody", "client_cancel_originals",
+      "client_checkpoint_id_index", "client_effect_response_meta", "client_effect_response_bytes",
+      "client_effect_row_receipt", "client_cancellations", "client_cancel_custody",
+      "client_cancel_originals",
     ] {
     match
       scan_client_journal_value(
@@ -709,15 +710,22 @@ fn NativeClientRunJournal::save_with_operations(
   record : NativeClientRunRecord,
   operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  if !self.transaction_active {
+    return Err(CustodyLost)
+  }
   let reads = operations.map(value => value.reads)
-  match
+  let before = match
     read_client_journal_value(
       self.database,
       "client_runs",
       @host.client_request_scope_cid(record.request),
       reads,
     ) {
-    Ok(current) if current.revision == record.revision => ()
+    Ok(current) if current.revision == record.revision =>
+      match read_run_record(current) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
     Ok(_) => return Err(Physical(@sqlite.Collision))
     Err(issue) => return Err(Physical(issue))
   }
@@ -729,16 +737,20 @@ fn NativeClientRunJournal::save_with_operations(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  compare_exchange_client_journal_value(
-    self.database,
-    "client_runs",
-    @host.client_request_scope_cid(record.request),
-    record.revision,
-    body,
-    operations,
-  )
-  .map(revision => { ..record, revision, })
-  .map_err(issue => Physical(issue))
+  let revision = match
+    compare_exchange_client_journal_value(
+      self.database,
+      "client_runs",
+      @host.client_request_scope_cid(record.request),
+      record.revision,
+      body,
+      operations,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Physical(issue))
+  }
+  let next = { ..record, revision, }
+  self.save_checkpoint_id_index(before, next, operations~).map(_ => next)
 }
 
 ///|

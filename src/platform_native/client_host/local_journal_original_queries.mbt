@@ -225,6 +225,13 @@ fn NativeLocalJournalReadQueries::operation_access(
         Err(issue) => Err(issue)
       }
     },
+    remove_exact: (table, key, revision, body) => {
+      match
+        self.query(() => self.database.remove_exact(table, key, revision, body)) {
+        Ok(value) => value
+        Err(issue) => Err(issue)
+      }
+    },
     compare_exchange: (table, key, revision, body) => {
       match
         self.query(() => {

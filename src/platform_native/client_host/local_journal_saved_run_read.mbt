@@ -97,3 +97,39 @@ pub fn NativeLocalJournalCapture::lookup_original_result_names_json_in_original_
     )
   })
 }
+
+///|
+/// Exact checkpoint selection through the same adopted Host's current Read and
+/// original SQL route. The ID selects retained metadata, never a signing use,
+/// approval, Run creation, scan fallback or continuation.
+pub fn NativeLocalJournalCapture::lookup_original_checkpoint_by_id_in_original_read(
+  self : NativeLocalJournalCapture,
+  principal : String,
+  connection : String,
+  id : String,
+  now : Double,
+) -> Result[
+  Result[NativeLocalCheckpointSelection?, NativeClientRunJournalIssue],
+  NativeLocalAdoptionIssue,
+] {
+  self.with_current_adoption_material_in_original_read((
+    host,
+    _material,
+    operations,
+  ) => {
+    let result = host.lookup_original_checkpoint_by_id_with_operations(
+      self.crypto,
+      principal,
+      connection,
+      id,
+      now,
+      operations=Some(operations),
+      capture=Some(self),
+    )
+    match result {
+      Err(TransactionUnknown) => Err(Journal(TransactionUnknown))
+      Err(Epoch(TransactionUnknown)) => Err(Journal(Epoch(TransactionUnknown)))
+      _ => Ok(result)
+    }
+  })
+}

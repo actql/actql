@@ -359,9 +359,11 @@ test "wire-only lookup defers ChangedIntent until complete Policy validation" {
     selected_policy_journal_issue,
   )
   selected_policy_require(
-    journal.save({
-      ..record,
-      publication_policy_originals: Some(selected_policy_fixture_packet),
+    journal.transaction(() => {
+      journal.save({
+        ..record,
+        publication_policy_originals: Some(selected_policy_fixture_packet),
+      })
     }),
     "save_row",
     selected_policy_journal_issue,

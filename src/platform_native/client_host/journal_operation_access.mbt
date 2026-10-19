@@ -9,6 +9,10 @@ priv struct NativeClientJournalOperationAccess {
     Int64,
     @sqlite.NativeSqliteIssue,
   ]
+  remove_exact : (String, String, Int64, Bytes) -> Result[
+    Unit,
+    @sqlite.NativeSqliteIssue,
+  ]
   capacity_usage : (String) -> Result[
     @sqlite.NativeCapacityUsage,
     @sqlite.NativeSqliteIssue,
@@ -100,6 +104,26 @@ fn insert_client_journal_value(
         return Err(@sqlite.Collision)
       }
       (original.insert)(table_name, key, body)
+    }
+  }
+}
+
+///|
+fn remove_exact_client_journal_value(
+  database : @sqlite.Database,
+  table_name : String,
+  key : String,
+  revision : Int64,
+  body : Bytes,
+  access : NativeClientJournalOperationAccess?,
+) -> Result[Unit, @sqlite.NativeSqliteIssue] {
+  match access {
+    None => database.remove_exact(table_name, key, revision, body)
+    Some(original) => {
+      if !physical_equal(database, original.reads.database) {
+        return Err(@sqlite.Collision)
+      }
+      (original.remove_exact)(table_name, key, revision, body)
     }
   }
 }

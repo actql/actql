@@ -459,6 +459,8 @@ fn execute_native_local_adoption(
       local_submission_lookup(host, settings, crypto, input_root, child)
     } else if operation == "lookup-request" {
       local_request_lookup(host, settings, crypto, child)
+    } else if operation == "approve" || operation == "reject" {
+      local_checkpoint_answer_by_id(host, settings, crypto, operation, child)
     } else if operation == "checkpoint-state" {
       local_checkpoint_metadata_lookup(
         host, settings, crypto, input_root, child,
