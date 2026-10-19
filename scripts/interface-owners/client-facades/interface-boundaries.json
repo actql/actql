@@ -2328,11 +2328,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Ancestor public preload wrappers publish their same immutable null-prototype"
+                "anchor": "Instance identity, original callback and receiver correspondence"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Instance identity, original callback and receiver correspondence"
               }
             ],
             "ownership": [
@@ -2346,7 +2346,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -2360,11 +2360,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "table before nested loading. A later exports replacement or Node's circular-"
+                "anchor": "Synchronization snapshots each selected method and receiver"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Synchronization snapshots each selected method and receiver"
               }
             ],
             "failure": [
@@ -2378,7 +2378,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Failure retains the primary error and each partially acquired resource"
               }
             ],
             "cancellation": [
@@ -2402,7 +2402,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
@@ -3027,11 +3027,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Ancestor public preload wrappers publish their same immutable null-prototype"
+                "anchor": "Instance identity, original callback and receiver correspondence"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Instance identity, original callback and receiver correspondence"
               }
             ],
             "ownership": [
@@ -3045,7 +3045,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -3059,11 +3059,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "table before nested loading. A later exports replacement or Node's circular-"
+                "anchor": "Synchronization snapshots each selected method and receiver"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Synchronization snapshots each selected method and receiver"
               }
             ],
             "failure": [
@@ -3077,7 +3077,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Failure retains the primary error and each partially acquired resource"
               }
             ],
             "cancellation": [
@@ -3101,7 +3101,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
@@ -13262,7 +13262,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "it captures the same wrapper's original Client-only function and receiver."
+                "anchor": "Instance identity, original callback and receiver correspondence"
               },
               {
                 "path": "packages/local-node/initial-control-public-dispatch.cjs",
@@ -13276,7 +13276,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The two wrapper tables/functions, child receiver/function references, private"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -13286,7 +13286,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The wrapper retains its child function and"
+                "anchor": "Synchronization snapshots each selected method and receiver"
               }
             ],
             "failure": [
@@ -13296,13 +13296,13 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Ordinary imports return an immutable `undefined` selection without loading a"
+                "anchor": "Failure retains the primary error and each partially acquired resource"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "physical retirement acknowledgement or numerical capacity. Private root-level"
+                "anchor": "Cancellation requests stop and keeps unfinished tasks and shared native users"
               },
               {
                 "path": "packages/local-node/initial-control-public-dispatch.cjs",
@@ -13312,17 +13312,17 @@
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "delivery tables/closures and captured native descriptor/path/module controls"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "original kind/raw aliases and argument forwarding workspace. These holdings"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "even though they are not public export subpaths."
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "packages/local-node/initial-control-public-dispatch.cjs",
@@ -13411,7 +13411,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "it captures the same wrapper's original Client-only function and receiver."
+                "anchor": "Instance identity, original callback and receiver correspondence"
               },
               {
                 "path": "packages/node/initial-control-public-dispatch.cjs",
@@ -13425,7 +13425,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The two wrapper tables/functions, child receiver/function references, private"
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -13435,7 +13435,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The wrapper retains its child function and"
+                "anchor": "Synchronization snapshots each selected method and receiver"
               }
             ],
             "failure": [
@@ -13445,13 +13445,13 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Ordinary imports return an immutable `undefined` selection without loading a"
+                "anchor": "Failure retains the primary error and each partially acquired resource"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "physical retirement acknowledgement or numerical capacity. Private root-level"
+                "anchor": "Cancellation requests stop and keeps unfinished tasks and shared native users"
               },
               {
                 "path": "packages/node/initial-control-public-dispatch.cjs",
@@ -13461,17 +13461,17 @@
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "delivery tables/closures and captured native descriptor/path/module controls"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "original kind/raw aliases and argument forwarding workspace. These holdings"
+                "anchor": "Resource coverage distinguishes managed work/data limits"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "even though they are not public export subpaths."
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
                 "path": "packages/node/initial-control-public-dispatch.cjs",
