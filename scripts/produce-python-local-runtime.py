@@ -408,7 +408,7 @@ def produce(core_receipt: Path, duckdb_receipt: Path, image_receipt: Path, desti
     selected = _recipe_from_original(original, source_sha=source,
         package_version=sdk['version'], module_sha256=digest)
     image_path, image_item = verify_original_image(image, selected, source, digest)
-    require(core['contract']['cohort'] == physical_core_cohort(selected, image_item['sha256']),
+    require(core['contract']['cohort'] == physical_core_cohort(selected, cast(str, image_item['sha256'])),
             'Core physical observations differ from the original compiled image')
     engine_hash = hashlib.sha256(selected.engine_body).hexdigest()
     image_body = {'source_sha': source, 'package_version': sdk['version'],

@@ -20,7 +20,7 @@ import subprocess
 import sys
 import time
 from threading import current_thread
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, cast
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
@@ -74,11 +74,11 @@ def _compiler_configuration_header(recipe: _SelectedImageRecipe) -> bytes:
     if recipe.image_bytes_limit > 2**63 - 1:
         raise ValueError('Original image bound is not representable by the selected C compiler')
     lines.append(f'#define ACTQL_COMPILER_IMAGE_MAX_BYTES {recipe.image_bytes_limit}ULL')
-    for name, value in (('MODULE', recipe.module_sha256),
+    for name, digest in (('MODULE', recipe.module_sha256),
                         ('RUNTIME', recipe.runtime_library_sha256),
                         ('PROVIDER', provider_digest),
                         ('ENGINE', hashlib.sha256(recipe.engine_body).hexdigest())):
-        lines.append(f'#define ACTQL_COMPILER_{name}_SHA256 "{value}"')
+        lines.append(f'#define ACTQL_COMPILER_{name}_SHA256 "{digest}"')
     lines += ['static inline wasmtime_error_t *actql_compiler_configure(',
               '    wasm_config_t *config, wasmtime_pooling_allocation_config_t *pool) {']
     for domain, name, value in settings:
@@ -644,6 +644,18 @@ class _PhysicalCoreInputs:
     a replacement holding or satisfy the final component verifier by itself.
     """
 
+    _original: _PhysicalCoreInputs
+    _core_receipt: Path
+    _image_receipt: Path
+    _source: str
+    _module_sha256: str
+    _module_receipt_hash: str
+    _image_receipt_hash: str
+    _image_path: Path
+    _image_bytes: int
+    _image_sha256: str
+    _runtime: _CompilerRuntime
+
     def __init__(self) -> None:
         raise TypeError('Physical Core inputs require original preparation')
 
@@ -669,7 +681,8 @@ class _PhysicalCoreInputs:
         value._module_sha256 = original['module_sha256']
         value._module_receipt_hash = original['core_receipt_sha256']
         value._image_receipt_hash = image_receipt_hash
-        value._image_path, value._image_bytes, value._image_sha256 = image_path, item['bytes'], item['sha256']
+        value._image_path = image_path
+        value._image_bytes, value._image_sha256 = cast(int, item['bytes']), cast(str, item['sha256'])
         value._runtime = runtime
         value.require_current()
         return value
@@ -1197,6 +1210,7 @@ def finish_failed_compilation(failure: CompilerProcessAssemblyError,
         if (not parent._closed
                 or any(carrier is None or not carrier._closed or carrier._unknown is not None
                     for carrier in (parent.host, parent.backing, parent.domain))
+                or parent.domain is None
                 or parent.domain._installed_process_original is not None
                 or parent.domain._worker_process_original is not None):
             raise ValueError('Original compiler parent cleanup remains unconfirmed')
@@ -1329,7 +1343,7 @@ def compile_from_original(core_receipt: Path, expected_source: str,
         failure.cleanup_runtime = getattr(primary, 'cleanup_runtime', None) or failure.cleanup_runtime
         partial = getattr(primary, 'response', None)
         if type(partial) in (bytes, bytearray):
-            failure.response = bytes(partial)
+            failure.response = bytes(cast(bytes | bytearray, partial))
         # A descriptor opened before any Native operation is still this call's
         # original. Once control/parent acquisition is attempted, retain all
         # partial carriers; never infer release or repeat their foreign cleanup.

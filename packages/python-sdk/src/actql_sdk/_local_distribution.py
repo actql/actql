@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from ._local_image_recipe import _SelectedImageRecipe
     from ._local_worker_slot import _OriginalDescriptor
 
-from ._local_core import LOCAL_CORE_ABI
+from ._local_wasm_abi import LOCAL_CORE_ABI
 
 WASMTIME_VERSION = '38.0.0'
 # Selected standalone profile, shared with the pinned vendor/artifact producer.

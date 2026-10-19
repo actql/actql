@@ -12,7 +12,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from ._local_core import LOCAL_CORE_ABI
+from ._local_wasm_abi import LOCAL_CORE_ABI
 from ._local_distribution import LocalInstallationError, WASMTIME_VERSION, _closed, _hex, _pairs, _read_file
 
 
