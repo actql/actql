@@ -30,6 +30,12 @@ test('explicit QUANTIZE retains complete independent existing-operation preimage
     assert.equal(Number.isInteger(record.value.quantize.precision),true);
     assert.equal(Number.isInteger(record.value.quantize.scale),true);
   }
-  assert.equal(before.expression_contract_cid,read('spec/manifests/actql-grammar-0.1.json').expression_contract_cid);
-  assert.equal(before.source_grammar_cid,read('spec/manifests/actql-grammar-0.1.json').source_grammar_cid);
+  // Later query-time operations extended both current expression embeddings.
+  // Keep this explicit-quantize oracle bound to its complete retained bodies.
+  const history=read('scripts/fixtures/query-time-source/predecessor.json');
+  const contracts=Object.fromEntries(history.contracts.map(record=>[record.id,record]));
+  assert.equal(before.expression_contract_cid,contracts.expression_contract.cid);
+  assert.equal(hash(canonical(contracts.expression_contract.body)),before.expression_contract_cid);
+  const program=contracts.executable_plan.body.properties.execution_material.properties.program;
+  assert.equal(hash(canonical(program)),before.source_grammar_cid);
 });
