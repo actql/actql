@@ -183,8 +183,6 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           prepared, request, model.compiled, model.runDefinition, model.graph, model.budget);
         record.value = runtimeField(begun, 0);
         model.scope = runtimeField(begun, 1);
-        model.read = model.control.prepareCheckedClientInferOriginalRead(model.compiled,
-          model.runDefinition, model.graph, model.scope, model.budget);
       }
       sameRun(prepared);
     } catch (error) { record.failure = error; throw error; }
@@ -203,14 +201,32 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
   function modelPreparation(prepared, plan) {
     const run = sameRun(prepared), model = run.model;
     if (model === undefined || model.compiled !== plan.compiled || model.runDefinition !== plan.runDefinition ||
-        model.read === undefined) fail('ForeignInstalledModelPreparation');
+        model.scope === undefined) fail('ForeignInstalledModelPreparation');
     return Object.freeze({control: model.control, compiled: model.compiled,
-      runDefinition: model.runDefinition, scope: model.scope, read: model.read,
+      runDefinition: model.runDefinition, scope: model.scope,
       readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
       modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes,
       retain() {
-        if (model.taken || model.read === undefined) fail('ForeignInstalledModelPreparation');
+        if (model.taken || model.readAttempted) fail('ForeignInstalledModelPreparation');
         model.taken = true;
+      },
+      prepareRead() {
+        // The Scope predates all Sources. Its descriptor/read snapshots the
+        // same Ledger only when Local hands the actual prefix inputs to the
+        // Model component: earlier Source/Compute mutations must not make a
+        // previously issued claim stale, nor may they reset a spent claim.
+        if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;
+        if (!model.taken || model.readAttempted) fail('ForeignInstalledModelPreparation');
+        model.readAttempted = true;
+        try {
+          sameRun(prepared);
+          model.read = model.control.prepareCheckedClientInferOriginalRead(model.compiled,
+            model.runDefinition, model.graph, model.scope, model.budget);
+          return Object.freeze({control: model.control, compiled: model.compiled,
+            runDefinition: model.runDefinition, scope: model.scope, read: model.read,
+            readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
+            modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes});
+        } catch (error) {model.readFailure = error; throw error;}
       },
       retire() {retireModelRead(model);}});
   }

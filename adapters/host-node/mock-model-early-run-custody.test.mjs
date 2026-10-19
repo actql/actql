@@ -57,10 +57,16 @@ test('Mock installs its same original Run Scope before returning any Source prep
   const f=fixture();f.begin();
   assert(f.calls.indexOf('original')<f.calls.indexOf('admission'));
   assert(f.calls.indexOf('admission')<f.calls.indexOf('scope'));
-  assert(f.calls.indexOf('scope')<f.calls.indexOf('read'));
+  assert.equal(f.calls.includes('read'),false);
   const held=f.records.get(f.prepared);
   assert.strictEqual(held.original,f.original);assert.strictEqual(held.admission,f.admission);
   assert.strictEqual(held.value,f.value);assert.strictEqual(held.model.scope,f.scope);
+  const preparation=f.modelPreparation(f.prepared,f.plan);
+  preparation.retain();
+  const read=preparation.prepareRead();
+  assert.strictEqual(read.scope,f.scope);
+  assert(f.calls.indexOf('scope')<f.calls.indexOf('read'));
+  assert.throws(()=>preparation.prepareRead(),{code:'ForeignInstalledModelPreparation'});
   f.begin();assert.equal(f.calls.filter(call=>call==='scope').length,1);
   assert.throws(()=>f.prepareManagedMockModelRun(f.prepared,f.request,f.control,
     {...f.plan,compiled:{}},f.selection),{code:'ForeignInstalledModelPreparation'});
@@ -78,10 +84,14 @@ test('Mock current failure retains the returned original and never reissues it',
 
 test('Mock read refusal retains the already issued Scope and its original admission',()=>{
   const failure=new Error('read-refused'),f=fixture({readFailure:failure});
-  assert.throws(()=>f.begin(),error=>error===failure);
+  f.begin();
+  const preparation=f.modelPreparation(f.prepared,f.plan);
+  preparation.retain();
+  assert.throws(()=>preparation.prepareRead(),error=>error===failure);
   const held=f.records.get(f.prepared);
   assert.strictEqual(held.model.scope,f.scope);assert.strictEqual(held.value,f.value);
   assert.strictEqual(held.admission,f.admission);assert.equal(held.model.read,undefined);
-  assert.throws(()=>f.begin(),error=>error===failure);
+  assert.strictEqual(held.model.readFailure,failure);
+  assert.throws(()=>preparation.prepareRead(),error=>error===failure);
   assert.equal(f.calls.filter(call=>call==='scope').length,1);
 });
