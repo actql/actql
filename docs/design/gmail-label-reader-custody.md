@@ -112,6 +112,40 @@ prevents further work but does not retire those aliases, native transport or
 pending charges. Existing Host/Source capacity and custody must cover this
 whole graph independently of the finite decoder and request bounds.
 
+## Original installed thread reader binding
+
+The private thread factory receives the existing installed caller's original
+RowRun acquisition, run, request identity and Run/dispatch binding. It captures
+the provider methods, Site methods and current/charge/row callbacks with their
+receivers before asynchronous work. The same original container and opaque
+values must remain selected after every Account await. Preparing another reader
+for that acquisition or starting the same reader twice is refused.
+
+The original Host LIST authorization remains a LIST authorization. For the first
+dependent get, the factory requires the Common reader's actual pending request,
+then obtains a separate GET grant from the same Site using its original current
+Account decision. The grant retains the original Run and dispatch, and is bounded
+by the original get extent. Each subsequent get uses a distinct original use ID;
+it does not refresh or replace the grant. The membership assertion exposes no
+Common control and cannot itself issue Account permission or physical custody.
+
+The factory retains the child reader, pending-request references, original
+RowRun, captured receivers, credential binding, grant and failure graph. Actual
+transport close remains separate from raw/row/callback retirement. Completion
+of the typed rows does not supply a physical cleanup acknowledgement or release
+the original capture reservation. Stop and failure keep the original attempts;
+there is no replacement reader, grant retry or resend.
+
+This factory does not register threads in the installed Source profile. That
+connection requires the existing Host/Resource supplier to cover both list and
+dependent-get response transfers and their overlapping retained/workspace
+inventory. With list bound P, get bound T and per-response byte cap B, the raw
+response transfer bound includes (P + T) × B; the list grant still has its own
+P-use bound. A total-response check performed after charge does not reserve the
+failed response, and finite decoder bounds are not a capacity issuer. Missing
+normal supplies remain unavailable rather than borrowing the labels-only page
+reservation or treating a final ticket as proof of the whole prefix.
+
 ## Installed label preparation
 
 The connector-owned Host manifest selects the label Source factory through the
