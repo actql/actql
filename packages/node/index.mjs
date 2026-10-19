@@ -1,13 +1,17 @@
 import initialControlPublicDispatch from './initial-control-public-dispatch.cjs';
 import {resolve} from 'node:path';
 import {createRequire} from 'node:module';
+import {ClientError, RequestHeld} from '@actql/sdk/_internal/client-errors';
 
-// Load the same SDK namespace synchronously AFTER the actual fixed bootstrap
-// prefix evaluates. A static SDK import/re-export would link and compile that
-// graph before the prefix runs. Keep no TLA so the existing preload image can
-// still load this facade synchronously; these are the SDK's original classes.
-const {connect: connectHost, ClientError, RequestHeld} =
-  createRequire(import.meta.url)('@actql/sdk');
+// Only the SDK's original error classes belong to this Client-only prefix.
+// Acquire the execution graph only on the unselected route; selected Local
+// owns its actual bootstrap and captured SDK images before that acquisition.
+const requireSdk = createRequire(import.meta.url);
+let sdk;
+function connectHost(...args) {
+  sdk ??= requireSdk('@actql/sdk');
+  return sdk.connect(...args);
+}
 
 // Capture the actual early private consumer once, not a later cache export or
 // a caller option. Its presence selects an entrance, never an admission. The

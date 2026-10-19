@@ -8,7 +8,7 @@ import {bytesCid, canonicalJson} from '../checkpoints.mjs';
 import {sourceQuery} from '../source-query.mjs';
 import {bindCheckObservation} from './check-observation.mjs';
 import {captureResponse, detachResponse, freezeInput, structuralKey} from './data.mjs';
-import {ClientError, fail, requestCancellationCause} from './errors.mjs';
+import {ClientError, RequestHeld, fail, requestCancellationCause} from './errors.mjs';
 import {copyRunObservationFailure} from './run-observation.mjs';
 import {controlValue} from './transport-response.mjs';
 import {clientSourceFormats, snapshotClientRequest, validClientAdmission, validOperationAttemptRef,
@@ -171,11 +171,7 @@ export const submissionNotSent = (context, cause) => {
 // a Run. This is a control result, not a failure and not an unknown
 // submission: submitting again is never needed. Follow it with
 // `lookupRequest(requestId)`; once the Run exists the lookup is `found`.
-export class RequestHeld extends ClientError {
-  constructor(held, lookupContext) {
-    super('RequestHeld', {requestId: held.requestId, held, lookupContext});
-  }
-}
+export {RequestHeld};
 
 export function createSubmissionOperations(selected, confirmed, transport, execution, lifecycle) {
   const {exchange, responseValue, wasSubmissionDispatched, sourcePreparation} = transport;
