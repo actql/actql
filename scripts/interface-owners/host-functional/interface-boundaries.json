@@ -16896,10 +16896,12 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3366b9eb971bb075dc2ae338f77f64b894696c1384190f2ce853573ced0b9818",
+      "sha256": "7b2c873e2abab2600d47510865db478d78ea57161dbe1a8cf89dc92c49751028",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
+        "assertOriginalClientRequestJournalFacilityCurrent",
+        "observeOriginalClientRequestJournalCustody",
         "openClientRequestJournal",
         "validateSourceInventory"
       ],
@@ -16945,7 +16947,12 @@
           "parameters": [
             "directory",
             "maxInspectionEntries",
-            "maxInspectionBytes"
+            "maxInspectionBytes",
+            "primarySqlLimits",
+            "primaryExecutionLimits",
+            "primarySchemaLimits",
+            "primarySchemaSqlSupport",
+            "primaryCurrent"
           ],
           "async": false
         },
@@ -16958,10 +16965,158 @@
           "async": false
         },
         {
+          "name": "assertOriginalClientRequestJournalFacilityCurrent",
+          "parameters": [
+            "database",
+            "statement"
+          ],
+          "async": false
+        },
+        {
           "name": "assertSourceInventory",
           "parameters": [
             "retained",
             "proposed"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames",
+          "parameters": [
+            "maxFrames",
+            "sourceBytes",
+            "maxDatabaseBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/amount/amount",
+          "parameters": [
+            "units"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/check/check",
+          "parameters": [
+            "units"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/init:beforeExec/init:beforeExec",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/init:beforePrepare/init:beforePrepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/init:beforeStatement/init:beforeStatement",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/init:configure/init:configure",
+          "parameters": [
+            "page"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql",
+          "parameters": [
+            "connection",
+            "limits",
+            "executionLimits",
+            "assertCurrent",
+            "walFrames"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/boundedPrimarySql",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/consume/consume",
+          "parameters": [
+            "sql",
+            "isPrepare"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/init:exec/init:exec",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/init:prepare/init:prepare",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/init:retireClosedNativeAliases/init:retireClosedNativeAliases",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/operands/operands",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/wrap/wrap",
+          "parameters": [
+            "statement"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/wrap/wrap/init:all/init:all",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/wrap/wrap/init:get/init:get",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/wrap/wrap/init:run/init:run",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/wrap/wrap/wrap",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundJournalDatabaseExtent",
+          "parameters": [
+            "database",
+            "maxDatabaseBytes"
           ],
           "async": false
         },
@@ -17006,6 +17161,14 @@
             "value",
             "maxBytes",
             "updateOriginalControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "facilityOperations/facilityOperations",
+          "parameters": [
+            "receiver",
+            "name"
           ],
           "async": false
         },
@@ -17105,14 +17268,19 @@
             "databasePath",
             "markerPath",
             "maxInspectionEntries",
-            "maxInspectionBytes"
+            "maxInspectionBytes",
+            "primarySqlLimits",
+            "primaryExecutionLimits",
+            "primarySchemaLimits",
+            "primarySchemaSqlSupport",
+            "primaryCurrent"
           ],
           "async": false
         },
         {
           "name": "inspectJournalSnapshot/inspectJournalSnapshot",
           "parameters": [
-            "database"
+            "originalDatabase"
           ],
           "async": false
         },
@@ -17126,6 +17294,23 @@
         {
           "name": "inspectJournalSnapshot/inspectJournalSnapshot#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "inspectJournalSnapshot/inspectJournalSnapshot#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "inspectJournalSnapshot/inspectJournalSnapshot#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "inspectJournalSnapshot/observe/observe",
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -17252,12 +17437,26 @@
           "async": false
         },
         {
+          "name": "observeOriginalClientRequestJournalCustody",
+          "parameters": [
+            "journal"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal",
           "parameters": [
             "directory",
             "maxRecords",
             "maxInspectionEntries",
             "maxInspectionBytes",
+            "maxDatabaseBytes",
+            "maxWalFrames",
+            "primarySqlLimits",
+            "primaryExecutionLimits",
+            "primarySchemaLimits",
+            "primarySchemaSqlSupport",
+            "primaryCurrent",
             "maxRunDefinitionWireBytes",
             "submissionEpochTtlMs",
             "submissionEpochNow",
@@ -17398,6 +17597,16 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/captureDatabaseCleanup/captureDatabaseCleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/captureObservationCleanup/captureObservationCleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/checkRestartLocked/checkRestartLocked",
           "parameters": [
             "requestId",
@@ -17438,6 +17647,11 @@
             "epoch",
             "control"
           ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/initializationCleanup/init:close/init:close",
+          "parameters": [],
           "async": false
         },
         {
@@ -17687,11 +17901,6 @@
         },
         {
           "name": "openClientRequestJournal/journal/init:observationStorage/init:observationStorage",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:observationStorage/init:observationStorage/init:close/init:close",
           "parameters": [],
           "async": false
         },
@@ -18070,6 +18279,11 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/openClientRequestJournal#9",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/originalIntent/originalIntent",
           "parameters": [
             "intent",
@@ -18297,6 +18511,42 @@
           "async": false
         },
         {
+          "name": "selectJournalTemporaryStorage",
+          "parameters": [
+            "database",
+            "executionLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotPrimaryExecutionLimits",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotPrimaryExecutionLimits/snapshotPrimaryExecutionLimits",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotPrimarySqlLimits",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotPrimarySqlLimits/snapshotPrimarySqlLimits",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "syncDirectory",
           "parameters": [
             "path"
@@ -18466,7 +18716,6 @@
             "openClientRequestJournal/journal/init:markPreDispatchFailure/init:markPreDispatchFailure/init:markPreDispatchFailure",
             "openClientRequestJournal/journal/init:markPreDispatchFailure/init:markPreDispatchFailure/init:markPreDispatchFailure#2",
             "openClientRequestJournal/journal/init:observationStorage/init:observationStorage",
-            "openClientRequestJournal/journal/init:observationStorage/init:observationStorage/init:close/init:close",
             "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation",
             "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation",
             "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation",
@@ -19329,6 +19578,151 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "assertOriginalClientRequestJournalFacilityCurrent",
+            "boundedJournalWalFrames",
+            "boundedJournalWalFrames/amount/amount",
+            "boundedJournalWalFrames/check/check",
+            "boundedJournalWalFrames/init:beforeExec/init:beforeExec",
+            "boundedJournalWalFrames/init:beforePrepare/init:beforePrepare",
+            "boundedJournalWalFrames/init:beforeStatement/init:beforeStatement",
+            "boundedJournalWalFrames/init:configure/init:configure",
+            "boundedPrimarySql",
+            "boundedPrimarySql/boundedPrimarySql",
+            "boundedPrimarySql/consume/consume",
+            "boundedPrimarySql/init:exec/init:exec",
+            "boundedPrimarySql/init:prepare/init:prepare",
+            "boundedPrimarySql/init:retireClosedNativeAliases/init:retireClosedNativeAliases",
+            "boundedPrimarySql/operands/operands",
+            "boundedPrimarySql/wrap/wrap",
+            "boundedPrimarySql/wrap/wrap/init:all/init:all",
+            "boundedPrimarySql/wrap/wrap/init:get/init:get",
+            "boundedPrimarySql/wrap/wrap/init:run/init:run",
+            "boundedPrimarySql/wrap/wrap/wrap",
+            "boundJournalDatabaseExtent",
+            "facilityOperations/facilityOperations",
+            "inspectJournalSnapshot/inspectJournalSnapshot#3",
+            "inspectJournalSnapshot/inspectJournalSnapshot#4",
+            "inspectJournalSnapshot/observe/observe",
+            "observeOriginalClientRequestJournalCustody",
+            "openClientRequestJournal/captureDatabaseCleanup/captureDatabaseCleanup",
+            "openClientRequestJournal/captureObservationCleanup/captureObservationCleanup",
+            "openClientRequestJournal/initializationCleanup/init:close/init:close",
+            "openClientRequestJournal/openClientRequestJournal#9",
+            "selectJournalTemporaryStorage",
+            "snapshotPrimaryExecutionLimits",
+            "snapshotPrimaryExecutionLimits/snapshotPrimaryExecutionLimits",
+            "snapshotPrimarySqlLimits",
+            "snapshotPrimarySqlLimits/snapshotPrimarySqlLimits"
+          ],
+          "exports": [
+            "assertOriginalClientRequestJournalFacilityCurrent",
+            "observeOriginalClientRequestJournalCustody"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The complete separate Journal disposition must precede this preparation:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function snapshotPrimarySqlLimits(value) {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function snapshotPrimaryExecutionLimits(value) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function assertOriginalClientRequestJournalFacilityCurrent(database, statement) {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function observeOriginalClientRequestJournalCustody(journal) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalDatabaseClose ??= connection.close;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "observationDatabaseClosed = true;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function boundedJournalWalFrames(maxFrames, sourceBytes, maxDatabaseBytes) {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const originalJournalCustodies = new WeakMap();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (supported !== 1) fail('ClientRequestJournalTemporaryUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (selected !== 2) fail('ClientRequestJournalTemporaryUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "selectedSql?.retireClosedNativeAliases();"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "observationSql?.retireClosedNativeAliases();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the fixed CHECK-IN index still has a distinct Btree, Pager, cache, cursor and"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "That disposition includes the actual selected SQLite allocator's necessary"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "// Fixed namespace forwarder for the selected startup's actual node:sqlite"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "This is the finite Journal facility, not a universal allocator lease or another"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-request-journal-observation-extent.test.mjs",
+                "anchor": "both execution-bounded Journal connections select original in-memory temporary storage"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-execution-bounds.test.mjs",
+                "anchor": "failed original cursor close and pending database close retain the same native connection until its close ACK"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-wal-bounds.test.mjs",
+                "anchor": "both writable connections share one non-refilling WAL lifetime before native calls"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -19338,6 +19732,7 @@
         "../host-common/observation.mjs",
         "../host-common/run-state-observation.mjs",
         "../host-common/sqlite-format-inspection.mjs",
+        "../host-common/sqlite-schema-resource-bounds.mjs",
         "../host-common/sqlite-transaction.mjs",
         "./client-observation-journal.mjs",
         "./client-source-operation.mjs",
@@ -19347,7 +19742,8 @@
         "node:crypto",
         "node:fs",
         "node:path",
-        "node:sqlite"
+        "node:sqlite",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []

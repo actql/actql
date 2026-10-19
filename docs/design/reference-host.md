@@ -979,6 +979,28 @@ the full selected frame, index-region, array-growth and failure lifetime before
 work. A frame count, support counter or successful close cannot issue that
 facility or acknowledge process-lived native backing.
 
+For its execution-bounded SQLite recipe, each original connection selects
+connection-local memory temporary storage before the Journal's schema/control
+statements. The pinned `TEMP_STORE=1` compile choice and effective `temp_store`
+selection are both checked; unsupported or ineffective selection refuses with
+the acquired original connection still owned by its existing cleanup. An
+unselected connection keeps its prior temporary-storage behavior. This selection
+removes the transient-file branch from this recipe, not its native allocations:
+the fixed CHECK-IN index still has a distinct Btree, Pager, cache, cursor and
+KeyInfo lifetime beside the main database. Its native requests and allocator
+classes, old/new growth, failure custody and managed aliases remain in the same
+complete disposition before acquisition. Selecting memory or reading a PRAGMA
+is not heap backing, an operational issuer or a release acknowledgement.
+
+That disposition includes the actual selected SQLite allocator's necessary
+zone/class/control metadata. It binds the same selected runtime and facility,
+installation and generation before covered work; a default-zone probe, CPU
+count, scalar limit or unused Buffer does not identify or back that original.
+The shared allocator controls and escaped native/module state are retained
+once for their process lifetime, not refilled by a connection or Host close.
+This is the finite Journal facility, not a universal allocator lease or another
+business, Model or Effect allowance.
+
 Selected cold inspection may additionally bound the SQLite schema table's
 declared row payload and traversal before native SQLite opens the isolated
 copy. The resource reader follows table-btree pages and the same last valid

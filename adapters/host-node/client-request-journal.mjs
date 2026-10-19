@@ -340,6 +340,20 @@ function boundJournalDatabaseExtent(database, maxDatabaseBytes) {
   return page;
 }
 
+function selectJournalTemporaryStorage(database, executionLimits) {
+  if (executionLimits === undefined) return;
+  // This selected facility uses the pinned TEMP_STORE=1 implementation:
+  // connection-local memory selection covers its fixed CHECK-IN Btrees,
+  // not another file/FD supplier or a process-global heap limit. The complete
+  // native recipe must retain their Pager/cache/VM and allocator overhead.
+  const supported = database.prepare(
+    "SELECT sqlite_compileoption_used('TEMP_STORE=1') AS supported").get().supported;
+  if (supported !== 1) fail('ClientRequestJournalTemporaryUnavailable');
+  database.exec('PRAGMA temp_store = MEMORY');
+  const selected = database.prepare('PRAGMA temp_store').get().temp_store;
+  if (selected !== 2) fail('ClientRequestJournalTemporaryUnavailable');
+}
+
 // This is an inspection-work ceiling, not a stored-request limit, format
 // rule, physical capacity supplier or permission. Never materialize a complete
 // unbounded listing before checking it. Preserve the exact full-name snapshot
@@ -1361,6 +1375,7 @@ export function openClientRequestJournal(directory, {
     }
     const page = boundJournalDatabaseExtent(database, maxDatabaseBytes);
     walFrames?.configure(page);
+    selectJournalTemporaryStorage(database, primaryExecutionLimits);
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
     database.exec(`
@@ -2326,6 +2341,7 @@ export function openClientRequestJournal(directory, {
       // schema/control write, retaining its existing separate close duty.
       const page = boundJournalDatabaseExtent(selectedObservation, maxDatabaseBytes);
       walFrames?.configure(page);
+      selectJournalTemporaryStorage(selectedObservation, primaryExecutionLimits);
       selectedObservation.exec('PRAGMA busy_timeout = 0');
       const storage = openClientObservationStorage(selectedObservation,
         createSqliteTransaction(selectedObservation, 'ClientObservation'));
