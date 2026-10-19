@@ -10,10 +10,15 @@
 typedef struct mi_heap_s mi_heap_t;
 extern int mi_version(void);
 extern void mi_process_init(void);
-extern int mi_reserve_os_memory_ex(size_t, bool, bool, bool, int *);
 extern void *mi_arena_area(int, size_t *);
 extern mi_heap_t *mi_heap_new_in_arena(int);
 extern mi_heap_t *mi_heap_set_default(mi_heap_t *);
 extern mi_heap_t *mi_heap_get_default(void);
+extern size_t mi_usable_size(const void *);
+extern bool mi_manage_os_memory_ex(void *, size_t, bool, bool, bool, int, bool, int *);
+/* The exact selected option indices are checked against the pinned object;
+ * enum arguments use its public C int ABI. No generic option port is exposed. */
+extern long mi_option_get(int);
+extern void mi_option_set(int, long);
 
 #endif

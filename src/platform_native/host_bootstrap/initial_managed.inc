@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <sys/mman.h>
 
 #if defined(__APPLE__) && defined(__aarch64__)
 #include <crt_externs.h>
@@ -17,9 +18,35 @@
  * Preselect whole segments before reservation; reject any observed mismatch. */
 #define ACTQL_INITIAL_MI_SEGMENT_BYTES ((size_t)32 * 1024 * 1024)
 
+/* Exact selected 2.1.7 option ABI: no startup reserve, no dynamic general
+ * arena growth, no OS allocation fallback, and no destructive exit shortcut.
+ * Defaults/selection and the five previous values stay with this original. */
+static const int actql_initial_mi_options[5] = {7, 9, 17, 22, 23};
+static const long actql_initial_mi_values[5] = {0, 0, 1, 0, 0};
+
+static bool actql_initial_managed_geometry(const size_t selection[4]) {
+  const size_t segment = ACTQL_INITIAL_MI_SEGMENT_BYTES;
+  if (selection[0] > SIZE_MAX-2*segment || selection[1] < 2*segment ||
+      !selection[2] || selection[2] > selection[0]) return false;
+  /* The pinned object registers each arena with 152 bytes plus five 64-bit
+   * bitmaps per field, and at most 15 alignment bytes. Both registrations
+   * must fit its existing 8192-byte static registration storage. This is a
+   * private geometry bound, not a public payload or numerical profile. */
+  size_t blocks = selection[0]/segment;
+  size_t fields = blocks/64 + (blocks%64 != 0);
+  return fields <= (8192-2*(152+15)-40)/40;
+}
+
+static bool actql_initial_managed_contains(const void *base, size_t bytes,
+    const void *allocation, size_t length) {
+  uintptr_t first = (uintptr_t)base, address = (uintptr_t)allocation;
+  return address >= first && address-first <= bytes &&
+    length <= bytes-(address-first);
+}
+
 /* The selected allocator's startup options can reserve other arenas or alter
- * process-lived cleanup. This profile selects its pinned defaults, not ambient
- * allocator customization. Observe the actual startup vector without getenv,
+ * process-lived cleanup. This profile selects its pinned finite options, not
+ * ambient allocator customization. Observe the actual startup vector without getenv,
  * value parsing, copying or allocation. The selected Unix runtime examines at
  * most 10000 entries case-insensitively; refuse an unterminated bounded census
  * too. No unsupported option is silently rewritten or ignored. */
@@ -49,7 +76,10 @@ enum {
   ACTQL_INITIAL_MANAGED_RESERVE = -5,
   ACTQL_INITIAL_MANAGED_AREA = -6,
   ACTQL_INITIAL_MANAGED_HEAP = -7,
-  ACTQL_INITIAL_MANAGED_DEFAULT = -8
+  ACTQL_INITIAL_MANAGED_DEFAULT = -8,
+  ACTQL_INITIAL_MANAGED_OPTIONS = -9,
+  ACTQL_INITIAL_MANAGED_MAPPING = -10,
+  ACTQL_INITIAL_MANAGED_METADATA = -11
 };
 
 struct actql_native_initial_managed_original {
@@ -57,6 +87,15 @@ struct actql_native_initial_managed_original {
   pid_t process;
   pthread_t thread;
   size_t selection[4];
+  void *mapping;
+  size_t mapping_bytes;
+  void *metadata_area;
+  int metadata_arena_id;
+  long previous_options[5];
+  bool options_attempted;
+  bool mapping_attempted;
+  bool mapping_acquired;
+  bool metadata_registration_attempted;
   void *area;
   size_t reserved_bytes;
   void *previous_default;
@@ -64,7 +103,7 @@ struct actql_native_initial_managed_original {
   void *observed_previous;
   int arena_id;
   int issue;
-  bool reserve_attempted;
+  bool payload_registration_attempted;
   bool switch_attempted;
   bool closing;
   bool metadata_setup_attempted;
@@ -90,7 +129,7 @@ actql_native_initial_managed_original *actql_native_initial_managed_begin(
   if (!entry || !actql_native_command_platform_managed_selection(entry, selection) ||
       selection[0] < ACTQL_INITIAL_MI_SEGMENT_BYTES ||
       selection[0] % ACTQL_INITIAL_MI_SEGMENT_BYTES != 0 || !selection[1] ||
-      !selection[2] || selection[2] > selection[0] || selection[3] != 1 ||
+      !actql_initial_managed_geometry(selection) || selection[3] != 1 ||
       !actql_initial_managed_environment_supported(*_NSGetEnviron()))
     return NULL;
   int expected = 0;
@@ -102,28 +141,67 @@ actql_native_initial_managed_original *actql_native_initial_managed_begin(
   original->thread = pthread_self();
   for (size_t index = 0; index < 4; ++index)
     original->selection[index] = selection[index];
-  /* Publish custody before any allocator setup. Failure cannot return a fresh
-   * empty receiver or lose an arena/parent metadata attempt. */
+  /* Retain the actual entry before option setup, mapping or registration.
+   * The selected runtime uses these exact public option indices. Mutations
+   * and the original values belong to this process lifetime, not a child. */
   original->issue = ACTQL_INITIAL_MANAGED_VERSION;
   if (mi_version() != 217) goto partial;
+  original->issue = ACTQL_INITIAL_MANAGED_OPTIONS;
+  original->options_attempted = true;
+  for (size_t index = 0; index < 5; ++index) {
+    original->previous_options[index] = mi_option_get(actql_initial_mi_options[index]);
+    mi_option_set(actql_initial_mi_options[index], actql_initial_mi_values[index]);
+    if (mi_option_get(actql_initial_mi_options[index]) != actql_initial_mi_values[index])
+      goto partial;
+  }
+  original->issue = ACTQL_INITIAL_MANAGED_MAPPING;
+  original->mapping_bytes = selection[0] + 2*ACTQL_INITIAL_MI_SEGMENT_BYTES;
+  original->mapping_attempted = true;
+  original->mapping = mmap(NULL, original->mapping_bytes, PROT_READ | PROT_WRITE,
+    MAP_PRIVATE | MAP_ANON, -1, 0);
+  if (original->mapping == MAP_FAILED) goto partial;
+  original->mapping_acquired = true;
+  uintptr_t base = (uintptr_t)original->mapping;
+  if (!base || base > UINTPTR_MAX-original->mapping_bytes) goto partial;
+  uintptr_t aligned = (base + ACTQL_INITIAL_MI_SEGMENT_BYTES-1) &
+    ~(uintptr_t)(ACTQL_INITIAL_MI_SEGMENT_BYTES-1);
+  original->metadata_area = (void *)aligned;
+  original->area = (void *)(aligned + ACTQL_INITIAL_MI_SEGMENT_BYTES);
+  original->reserved_bytes = selection[0];
+  /* Initialize inside the covered lifetime before observing the actual parent.
+   * Additional allocator reservations are disabled before this first init. */
   original->issue = ACTQL_INITIAL_MANAGED_PARENT;
-  /* The selected entry runs before the runtime's automatic initializer.
-   * Initialize inside this already covered metadata lifetime before observing
-   * the actual parent default; a pre-init empty-heap sentinel is not a parent. */
   original->metadata_setup_attempted = true;
   mi_process_init();
   original->previous_default = mi_heap_get_default();
   if (!original->previous_default) goto partial;
+  /* One actual fresh process registration sequence, with a source-qualified
+   * static-registration bound checked before use. No general arena or OS
+   * fallback may substitute for this backing. */
+  size_t existing = 0;
+  if (mi_arena_area(1, &existing) != NULL) goto partial;
+  original->issue = ACTQL_INITIAL_MANAGED_METADATA;
+  original->metadata_registration_attempted = true;
+  if (!mi_manage_os_memory_ex(original->metadata_area, ACTQL_INITIAL_MI_SEGMENT_BYTES,
+      true, false, true, -1, false, &original->metadata_arena_id) ||
+      original->metadata_arena_id <= 0) goto partial;
   original->issue = ACTQL_INITIAL_MANAGED_RESERVE;
-  original->reserve_attempted = true;
-  if (mi_reserve_os_memory_ex(selection[0], false, false, true,
-      &original->arena_id) != 0 || original->arena_id <= 0) goto partial;
+  original->payload_registration_attempted = true;
+  if (!mi_manage_os_memory_ex(original->area, selection[0],
+      true, false, true, -1, true, &original->arena_id) || original->arena_id <= 0)
+    goto partial;
   original->issue = ACTQL_INITIAL_MANAGED_AREA;
-  original->area = mi_arena_area(original->arena_id, &original->reserved_bytes);
-  if (!original->area || original->reserved_bytes != selection[0]) goto partial;
+  size_t observed = 0;
+  if (mi_arena_area(original->metadata_arena_id, &observed) != original->metadata_area ||
+      observed != ACTQL_INITIAL_MI_SEGMENT_BYTES ||
+      mi_arena_area(original->arena_id, &observed) != original->area ||
+      observed != selection[0]) goto partial;
   original->issue = ACTQL_INITIAL_MANAGED_HEAP;
   original->heap = mi_heap_new_in_arena(original->arena_id);
-  if (!original->heap || original->heap == original->previous_default) goto partial;
+  if (!original->heap || original->heap == original->previous_default ||
+      !actql_initial_managed_contains(original->metadata_area,
+        ACTQL_INITIAL_MI_SEGMENT_BYTES, original->heap, mi_usable_size(original->heap)))
+    goto partial;
   original->issue = ACTQL_INITIAL_MANAGED_DEFAULT;
   /* A changed parent is not permission to replace an unrelated default. */
   if (mi_heap_get_default() != original->previous_default) goto partial;
@@ -154,6 +232,11 @@ bool actql_native_initial_managed_current(
     return false;
   for (size_t index = 0; index < 4; ++index)
     if (selection[index] != original->selection[index]) return false;
+  for (size_t index = 0; index < 5; ++index)
+    if (mi_option_get(actql_initial_mi_options[index]) != actql_initial_mi_values[index])
+      return false;
+  if (mi_arena_area(original->metadata_arena_id, &bytes) != original->metadata_area ||
+      bytes != ACTQL_INITIAL_MI_SEGMENT_BYTES) return false;
   return mi_heap_get_default() == original->heap &&
     mi_arena_area(original->arena_id, &bytes) == original->area &&
     bytes == original->reserved_bytes;
