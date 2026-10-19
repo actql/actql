@@ -37,6 +37,21 @@ static bool actql_initial_managed_geometry(const size_t selection[4]) {
   return fields <= (8192-2*(152+15)-40)/40;
 }
 
+/* A private finite candidate for this SAME actual allocator geometry. The
+ * source-bound allocation volume selects whole payload segments, not an
+ * all-input fit guarantee: headers/fragmentation/realloc overlap may exhaust
+ * it. No mapping, registration, options or initial admission occurs here. */
+static bool actql_initial_managed_prepare_candidate(
+    size_t volume, size_t out[4]) {
+  const size_t segment = ACTQL_INITIAL_MI_SEGMENT_BYTES;
+  if (!out || !volume || volume > SIZE_MAX-(segment-1)) return false;
+  size_t payload = ((volume+segment-1)/segment)*segment;
+  size_t selection[4] = {payload, 2*segment, volume, 1};
+  if (!actql_initial_managed_geometry(selection)) return false;
+  for (size_t index = 0; index < 4; ++index) out[index] = selection[index];
+  return true;
+}
+
 static bool actql_initial_managed_contains(const void *base, size_t bytes,
     const void *allocation, size_t length) {
   uintptr_t first = (uintptr_t)base, address = (uintptr_t)allocation;
@@ -64,6 +79,14 @@ static bool actql_initial_managed_environment_supported(char *const *environment
     }
     if (offset == sizeof(prefix)-1) return false;
   }
+  return false;
+}
+#endif
+
+#if !defined(__APPLE__) || !defined(__aarch64__)
+static bool actql_initial_managed_prepare_candidate(
+    size_t volume, size_t out[4]) {
+  (void)volume; (void)out;
   return false;
 }
 #endif

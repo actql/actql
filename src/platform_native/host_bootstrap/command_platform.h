@@ -51,6 +51,13 @@ const char *actql_native_observed_component_member_manifest_sha256(
 actql_native_command_platform_original *
 actql_native_command_platform_current(void);
 
+/* Borrow the SAME actual early startup generation before managed setup or
+ * later Runtime adoption. This checks the selected original entry, process,
+ * main thread, executable and retained input; it does not admit operational
+ * coverage, issue OS/byte capacity or depend on phase-two platform_current. */
+actql_native_command_platform_original *
+actql_native_command_platform_initial_current(void);
+
 /* Private pre-acquisition observation only. The actual original stays with
  * this Owner and is required again by every load; this is not a constructor,
  * transferable capacity or a substitute for the complete selected envelope. */

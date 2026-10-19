@@ -1594,6 +1594,15 @@ platform entrance, positive bounds remain insufficient and command preparation
 refuses before physical acquisition. No scalar, source label or successful
 component test supplies that missing original.
 
+The selected private representation distinguishes a numerical platform-demand
+term from the closed initial OS-service facility. The latter retains no byte
+credit: its numerical demand field remains absent, and supplying a nominal
+number with that selection is invalid. It still requires the actual trusted
+startup original, supported platform/recipe, original lifetime and currentness
+before any covered call. This distinction does not replace Read, SQLite,
+Crypto or shared-control numerical requirements, nor satisfy a consumer that
+actually requires a byte demand or ceiling. It supplies no business capacity.
+
 The trusted early entry captures the original OS-created main-thread stack
 before argument/control work, retaining its complete reported extent with the
 original process and thread. Current use requires that same thread, process,
@@ -1658,6 +1667,20 @@ Its bounded startup environment observation allocates no storage and rewrites
 no environment value. On refusal, the entry must stop before subsequent automatic allocator
 or module initializers; returning into those initializers cannot establish a
 pre-acquisition refusal.
+
+The trusted entry prepares its private four-slot managed candidate from the
+retained source-bound allocation volume using the same selected allocator's
+segment and registration geometry. Payload rounds to whole segments; the
+separate metadata/alignment holding and one setup are explicit. This candidate
+neither reserves storage nor proves that fragmentation and every bounded input
+fit. It cannot bypass complete initial admission, perform allocator setup or
+replace an exhausted original. Unselected compatibility keeps no candidate.
+
+The early startup getter borrows only that same actual entry generation before
+managed setup or later Runtime adoption. It checks original process, main
+thread, executable, source, retained raw input and stack correspondence. The
+default non-command entrance remains unavailable. This borrow is distinct from
+operational platform currentness and issues no OS facility or byte credit.
 
 Partial setup retains that same receiver and any acquired reservation or heap;
 a duplicate or refused receiver inherits none of its cleanup responsibility.

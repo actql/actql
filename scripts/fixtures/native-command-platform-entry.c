@@ -16,6 +16,12 @@ static void *foreign_stack_thread(void *raw) {
   return NULL;
 }
 
+static void *foreign_initial_thread(void *raw) {
+  (void)raw;
+  assert(actql_native_command_platform_initial_current() == NULL);
+  return NULL;
+}
+
 static void *foreign_thread(void *raw) {
   actql_native_command_platform_load *load = raw;
   assert(actql_native_command_platform_current() == NULL);
@@ -45,6 +51,45 @@ int main(int argc, char **argv) {
     refused_selection[2] == 33 && refused_selection[3] == 44);
   assert(!actql_command_entry.initial_coverage_complete);
   assert(actql_command_entry.initial_managed == NULL);
+  if (strcmp(argv[1], "initial-candidate") == 0) {
+    assert(actql_native_command_platform_initial_current() == &actql_command_entry);
+    size_t expected[4] = {0};
+    size_t volume = actql_command_entry.initial_parser_allocation_volume;
+    assert(actql_initial_managed_prepare_candidate(volume, expected));
+    for (size_t index = 0; index < 4; ++index)
+      assert(actql_command_entry.initial_managed_selection[index] == expected[index]);
+    const size_t segment = ACTQL_INITIAL_MI_SEGMENT_BYTES;
+    assert(expected[0] >= volume && expected[0] % segment == 0);
+    assert(expected[0] - volume < segment);
+    assert(expected[1] == 2 * segment && expected[2] == volume && expected[3] == 1);
+    assert(actql_initial_managed_geometry(expected));
+    size_t unchanged[4] = {11, 22, 33, 44};
+    assert(!actql_initial_managed_prepare_candidate(0, unchanged));
+    assert(!actql_initial_managed_prepare_candidate(SIZE_MAX, unchanged));
+    for (size_t index = 0; index < 4; ++index) assert(unchanged[index] == 11 * (index + 1));
+    assert(!actql_native_command_platform_managed_selection(&actql_command_entry, unchanged));
+    for (size_t index = 0; index < 4; ++index) assert(unchanged[index] == 11 * (index + 1));
+    pthread_t other;
+    assert(pthread_create(&other, NULL, foreign_initial_thread, NULL) == 0);
+    assert(pthread_join(other, NULL) == 0);
+    pid_t child = fork(); assert(child >= 0);
+    if (child == 0) { foreign_initial_thread(NULL); _exit(0); }
+    int status = -1;
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+    char original = argv[1][0]; argv[1][0] = 'X';
+    assert(actql_native_command_platform_initial_current() == NULL);
+    argv[1][0] = original;
+    assert(actql_native_client_measure_prearguments(256,4096,65536,8192) == 0);
+    actql_native_client_capture_command_entry();
+    assert(actql_native_command_platform_initial_current() == &actql_command_entry);
+    assert(!actql_command_entry.initial_envelope_admitted);
+    assert(!actql_command_entry.initial_coverage_complete);
+    assert(actql_native_command_platform_current() == NULL);
+    assert(actql_command_entry.initial_managed == NULL);
+    puts("original entry record passed");
+    return 0;
+  }
   if (strcmp(argv[1], "initial-stack") == 0) {
     actql_bootstrap_command_stack *original = &actql_command_entry.initial_stack;
     volatile unsigned char marker = 0;

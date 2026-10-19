@@ -39,6 +39,7 @@ fn native_storage_arithmetic_profile() -> LocalCommandPreparationProfile {
       max_snapshot_bytes: 32L,
       max_records: 8,
       read_selection: CommandReadDemand,
+      platform_selection: CommandPlatformDemand,
       managed_read_execution_bytes: Some(11L),
       loader_platform_execution_bytes: Some(19L),
       native_read_execution_bytes: Some(131072L),
@@ -129,7 +130,7 @@ test "Native storage shared heaps count once and platform never charges Read" {
   assert_eq(quote.read_execution_bytes, profile.crypto_heap_bytes + 131083L)
   assert_true(quote.read_payload_requirement is CommandReadDemandPayload(_))
   assert_eq(quote.read_facility_ceiling, None)
-  assert_eq(quote.platform_required_bytes, 19L)
+  assert_eq(quote.platform_required_bytes, Some(19L))
   assert_eq(quote.sqlite_execution_bytes, profile.sqlite_heap_bytes + 17L)
   assert_true(quote.sqlite_payload_requirement is SqliteDemandPayload(295456L))
   assert_eq(quote.shared_control_bytes, 29L)
@@ -192,7 +193,7 @@ test "Native storage original page alignment is preserved for both heaps" {
   let quote = quote_local_command_native_storage(profile).unwrap()
   assert_eq(quote.sqlite_execution_bytes, 134217728L + page + 17L)
   assert_eq(quote.read_execution_bytes, 1048576L + page + 131083L)
-  assert_eq(quote.platform_required_bytes, 19L)
+  assert_eq(quote.platform_required_bytes, Some(19L))
 }
 
 ///|
@@ -423,5 +424,70 @@ test "Native command Read facility retains minima and independent reservations" 
       native_storage: missing_external,
     })
     is Err(NativeStoragePlatformMissing),
+  )
+}
+
+///|
+test "Native platform OS facility is not a numerical reservation" {
+  let profile = native_storage_arithmetic_profile()
+  let demand = quote_local_command_native_storage(profile).unwrap()
+  assert_eq(demand.platform_required_bytes, Some(19L))
+  let bounds = {
+    ..profile.native_storage,
+    platform_selection: CommandPlatformInitialOsFacility,
+    loader_platform_execution_bytes: None,
+  }
+  let selected = { ..profile, native_storage: bounds, }
+  let quote = quote_local_command_native_storage(selected).unwrap()
+  assert_true(quote.platform_selection is CommandPlatformInitialOsFacility)
+  assert_eq(quote.platform_required_bytes, None)
+  assert_eq(quote.read_execution_bytes, demand.read_execution_bytes)
+  assert_eq(quote.sqlite_execution_bytes, demand.sqlite_execution_bytes)
+  assert_eq(quote.shared_control_bytes, demand.shared_control_bytes)
+  // The operational original is still required before actual acquisition.
+  assert_true(
+    prepare_local_command_preparation_original(selected)
+    is Err(CommandNativeStorage(NativeStoragePlatformUnadmitted)),
+  )
+  for bytes in [0L, 19L] {
+    assert_true(
+      quote_local_command_native_storage({
+        ..profile,
+        native_storage: {
+          ..bounds,
+          loader_platform_execution_bytes: Some(bytes),
+        },
+      })
+      is Err(NativeStorageInvalidInput),
+    )
+  }
+  assert_true(
+    quote_local_command_native_storage({
+      ..profile,
+      native_storage: { ..bounds, platform_selection: CommandPlatformDemand, },
+    })
+    is Err(NativeStoragePlatformMissing),
+  )
+  assert_true(
+    quote_local_command_native_storage({
+      ..profile,
+      native_storage: { ..bounds, shared_control_bytes: None, },
+    })
+    is Err(NativeStorageControlMissing),
+  )
+  assert_true(
+    quote_local_command_native_storage({
+      ..profile,
+      control_bytes: 28L,
+      native_storage: bounds,
+    })
+    is Err(NativeStorageInsufficient),
+  )
+  assert_true(
+    quote_local_command_native_storage({
+      ..profile,
+      native_storage: { ..bounds, sqlite_external_execution_bytes: None, },
+    })
+    is Err(NativeStorageSqliteExternalMissing),
   )
 }

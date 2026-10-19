@@ -53,6 +53,27 @@ struct actql_native_command_platform_original {
 
 static _Atomic int actql_command_entry_state;
 static actql_native_command_platform_original actql_command_entry;
+static bool actql_initial_managed_prepare_candidate(size_t volume, size_t out[4]);
+
+actql_native_command_platform_original *
+actql_native_command_platform_initial_current(void) {
+#if defined(__APPLE__)
+  int state = atomic_load_explicit(&actql_command_entry_state, memory_order_acquire);
+  actql_native_command_platform_original *entry = &actql_command_entry;
+  extern const struct mach_header_64 _mh_execute_header;
+  return (state == 1 || state == 2) && !entry->closing &&
+    entry->process == getpid() && pthread_equal(entry->thread, pthread_self()) &&
+    entry->image == &_mh_execute_header &&
+    entry->source == actql_native_client_selected_source() &&
+    entry->source == actql_command_input_source &&
+    actql_command_early_input_status == ACTQL_COMMAND_INPUT_OK &&
+    actql_command_original_arguments_current() &&
+    actql_bootstrap_command_stack_current(&entry->initial_stack)
+    ? entry : NULL;
+#else
+  return NULL;
+#endif
+}
 
 #if defined(ACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY)
 static _Noreturn void actql_command_initial_refusal(void) {
@@ -128,6 +149,16 @@ __attribute__((constructor)) static void actql_command_capture_process_entry(voi
       actql_command_input.input.arguments, actql_command_input.input.storage_bytes,
       actql_command_argument_classes,
       &actql_command_entry.initial_parser_allocation_volume)) {
+    atomic_store_explicit(&actql_command_entry_state, -1, memory_order_release);
+#if defined(ACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY)
+    actql_command_initial_refusal();
+#endif
+    return;
+  }
+  if (actql_command_early_input_status != ACTQL_COMMAND_INPUT_NOT_SELECTED &&
+      !actql_initial_managed_prepare_candidate(
+        actql_command_entry.initial_parser_allocation_volume,
+        actql_command_entry.initial_managed_selection)) {
     atomic_store_explicit(&actql_command_entry_state, -1, memory_order_release);
 #if defined(ACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY)
     actql_command_initial_refusal();

@@ -4,6 +4,7 @@
 
 int main(void) {
   assert(actql_native_command_platform_current() == NULL);
+  assert(actql_native_command_platform_initial_current() == NULL);
   assert(!actql_native_command_platform_available());
   assert(actql_native_command_platform_scratch_directory((void *)1) == NULL);
   assert(actql_native_command_platform_begin_load((void *)1,

@@ -9,12 +9,14 @@ priv struct LocalCommandNativeStorageBounds {
   max_snapshot_bytes : Int64
   max_records : Int
   read_selection : LocalCommandReadStorageSelection
+  platform_selection : LocalCommandPlatformStorageSelection
   // Full retained Runtime/configuration/Journal/Common managed graphs,
   // including copies, decoding, callbacks and escaped diagnostics.
   // Demand selection only; never a residual facility capacity.
   managed_read_execution_bytes : Int64?
   // Mapped images and loader/pthread/TLS/OS/stack holdings outside component heaps.
-  // One original shared term, retained through its own actual retirement.
+  // Numerical demand selection only. A selected OS service original has no
+  // byte-credit equivalent and must not fill this field with zero or a scalar.
   loader_platform_execution_bytes : Int64?
   // Original Read-backed native buffers/receivers and cleanup-only carriers.
   // Includes inspection's five retained strings and transient path/IO overlap.
@@ -27,6 +29,14 @@ priv struct LocalCommandNativeStorageBounds {
   // The shared outer registration/controller lifetime, counted once in the
   // existing actual control envelope, not once per Library or phase.
   shared_control_bytes : Int64?
+}
+
+///|
+// Neither branch issues the original. The same trusted initial entry remains
+// mandatory; the OS facility is a closed operational lifetime, not a byte pool.
+priv enum LocalCommandPlatformStorageSelection {
+  CommandPlatformDemand
+  CommandPlatformInitialOsFacility
 }
 
 ///|
@@ -90,7 +100,8 @@ priv struct LocalCommandNativeStorageQuote {
   read_execution_bytes : Int64
   read_payload_requirement : LocalCommandReadPayloadRequirement
   read_facility_ceiling : Int64?
-  platform_required_bytes : Int64
+  platform_selection : LocalCommandPlatformStorageSelection
+  platform_required_bytes : Int64?
   shared_control_bytes : Int64
 }
 
@@ -260,9 +271,20 @@ fn quote_local_command_native_storage(
     }
     CommandReadFiniteFacility(_) => None
   }
-  guard bounds.loader_platform_execution_bytes is Some(platform) &&
-    platform > 0L else {
-    return Err(NativeStoragePlatformMissing)
+  let platform = match bounds.platform_selection {
+    CommandPlatformDemand => {
+      guard bounds.loader_platform_execution_bytes is Some(bytes) &&
+        bytes > 0L else {
+        return Err(NativeStoragePlatformMissing)
+      }
+      Some(bytes)
+    }
+    CommandPlatformInitialOsFacility => {
+      if bounds.loader_platform_execution_bytes is Some(_) {
+        return Err(NativeStorageInvalidInput)
+      }
+      None
+    }
   }
   let read_demand = match bounds.read_selection {
     CommandReadDemand => {
@@ -431,6 +453,7 @@ fn quote_local_command_native_storage(
     read_execution_bytes: read,
     read_payload_requirement: read_requirement,
     read_facility_ceiling: read_ceiling,
+    platform_selection: bounds.platform_selection,
     platform_required_bytes: platform,
     shared_control_bytes: control,
   })

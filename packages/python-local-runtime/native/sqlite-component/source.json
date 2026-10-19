@@ -69,12 +69,12 @@
       "sha256": "0eff61d19679bbee232e6fc5089a24d3ab17a8f1ff46fb6ac49eb5a5ec1b6308"
     },
     "src/platform_native/host_bootstrap/command_platform.h": {
-      "bytes": 8086,
-      "sha256": "fca967994c92fab63a945e0ab6bceea078c3be3b3e434d3d030eeda0bc920b75"
+      "bytes": 8490,
+      "sha256": "f54403498057bbb284393d9dc08d04539408ec24791bce2fdcbe742b355932d1"
     },
     "src/platform_native/host_bootstrap/command_platform_unavailable.h": {
-      "bytes": 1969,
-      "sha256": "7ab5c3ad1a349ee3acfb5685970eebd06d74853a8241877f84857d73e7848c1e"
+      "bytes": 2102,
+      "sha256": "75af54ace885675078396eb5890d8fbcf24697d5ea1ede749ea6ec22306383b0"
     }
   },
   "memory": {
