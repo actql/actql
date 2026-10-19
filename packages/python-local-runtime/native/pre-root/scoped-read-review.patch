@@ -134,7 +134,7 @@
 +#endif
 --- /dev/null
 +++ b/scoped_read.inc
-@@ -0,0 +1,657 @@
+@@ -0,0 +1,687 @@
 +/* Derived selected-runtime read allocator, included once by the ORIGINAL
 + * owned_capacity.c. Selection still requires its source-bound recipe and
 + * original physical supplier. This is physical provenance
@@ -233,6 +233,9 @@
 +    size_t users;
 +    size_t active;
 +    uint64_t managed_serial;
++    /* Search hint only. Every use rechecks original extent provenance under
++     * both existing locks; retirement/reuse cannot turn this index into credit. */
++    size_t managed_page_hint;
 +    bool closing;
 +};
 +
@@ -466,6 +469,35 @@
 +    }
 +    return ACTQL_OWNED_INVALID;
 +}
++/* Candidate lookup never grants a page: exact context/process, live extent
++ * and a genuinely free fitting block are checked under the original locks.
++ * The hint changes only search order and cannot hide an exhausted capacity. */
++static bool allocate_read_heap_page_locked(actql_read_context *context,
++    size_t index, size_t bytes, size_t rounded, void **output) {
++    actql_owned_capacity *lease = context->lease;
++    if (index < lease->control_pages || index >= lease->page_count) return false;
++    struct extent *extent = &lease->extents[index];
++    if (!extent->read_heap || extent->read_context != context || extent->retired ||
++        extent->read_released || extent->read_process != getpid()) return false;
++    void *page = (unsigned char *)lease + index * lease->page_size;
++    for (struct read_heap_block *block = read_heap_first(page); block;
++         block = read_heap_next(page, lease->page_size, block)) {
++        if (block->requested || block->capacity < rounded) continue;
++        if (block->capacity - rounded >= read_heap_header() + _Alignof(max_align_t)) {
++            struct read_heap_block *tail = (void *)((unsigned char *)read_heap_payload(block) + rounded);
++            *tail = (struct read_heap_block){.capacity = block->capacity - rounded - read_heap_header()};
++            block->capacity = rounded;
++        }
++        block->requested = bytes;
++        block->serial = ++context->managed_serial;
++        ((struct read_heap_page *)page)->live++;
++        *output = read_heap_payload(block);
++        memset(*output, 0, block->capacity);
++        context->managed_page_hint = index;
++        return true;
++    }
++    return false;
++}
 +/* Read index lock is already held; the provider's original lock serializes
 + * page contents against span observations and last-slot physical retirement. */
 +static int allocate_read_heap_bytes(actql_read_context *context, size_t bytes,
@@ -478,24 +510,16 @@
 +    if (context->managed_serial == UINT64_MAX) { status = ACTQL_OWNED_EXHAUSTED; goto done; }
 +    size_t rounded = read_heap_round(bytes);
 +    if (!rounded) goto done;
++    size_t hint = context->managed_page_hint;
++    if (allocate_read_heap_page_locked(context, hint, bytes, rounded, output)) {
++        status = ACTQL_OWNED_OK;
++        goto done;
++    }
++    /* A miss still examines every other original extent before requesting a
++     * new page. No free space or physical-retirement attempt is skipped. */
 +    for (size_t index = lease->control_pages; index < lease->page_count; index++) {
-+        struct extent *extent = &lease->extents[index];
-+        if (!extent->read_heap || extent->read_context != context || extent->retired)
-+            continue;
-+        void *page = (unsigned char *)lease + index * lease->page_size;
-+        for (struct read_heap_block *block = read_heap_first(page); block;
-+             block = read_heap_next(page, lease->page_size, block)) {
-+            if (block->requested || block->capacity < rounded) continue;
-+            if (block->capacity - rounded >= read_heap_header() + _Alignof(max_align_t)) {
-+                struct read_heap_block *tail = (void *)((unsigned char *)read_heap_payload(block) + rounded);
-+                *tail = (struct read_heap_block){.capacity = block->capacity - rounded - read_heap_header()};
-+                block->capacity = rounded;
-+            }
-+            block->requested = bytes;
-+            block->serial = ++context->managed_serial;
-+            ((struct read_heap_page *)page)->live++;
-+            *output = read_heap_payload(block);
-+            memset(*output, 0, block->capacity);
++        if (index != hint &&
++            allocate_read_heap_page_locked(context, index, bytes, rounded, output)) {
 +            status = ACTQL_OWNED_OK;
 +            goto done;
 +        }
@@ -518,6 +542,7 @@
 +        }
 +        block->requested = bytes; block->serial = ++context->managed_serial;
 +        ((struct read_heap_page *)page)->live = 1;
++        context->managed_page_hint = index;
 +        *output = read_heap_payload(block); /* allocate_locked zeroed the page. */
 +    }
 +done:
@@ -538,9 +563,14 @@
 +        if (!block->requested || !block->serial || !header->live) return ACTQL_OWNED_INVALID;
 +        block->requested = 0; block->serial = 0; header->live--;
 +        if (header->live == 0) {
++            if (extent->read_context->managed_page_hint == index)
++                extent->read_context->managed_page_hint = 0;
 +            extent->read_released = true; extent->retired = true;
 +            return clean_retired(lease, index);
 +        }
++        /* Reuse the just-freed original page before a whole-extent search.
++         * This remains a hint: allocation independently rechecks the extent. */
++        extent->read_context->managed_page_hint = index;
 +        /* Coalesce only free neighbors; no live allocation moves or changes. */
 +        for (struct read_heap_block *item = read_heap_first(page); item;) {
 +            struct read_heap_block *next = read_heap_next(page, lease->page_size, item);
