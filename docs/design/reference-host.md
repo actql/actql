@@ -875,6 +875,16 @@ not retired before the database's own close is confirmed. Cleanup retries are
 close-only, retain first/latest diagnostics and observe an existing synchronous
 close flight rather than reentering it.
 
+Selected primary, observation and isolated-copy constructors receive closed
+null-prototype internal option packets; native property lookup must not acquire
+inherited callbacks. Selected Journal and copy path canonicalization uses the
+captured `realpathSync.native` operation, whose identity and descriptor are part
+of the original facility's currentness checks. This avoids the ordinary JS
+symlink walk's intermediate path and Map/Set history, not its separate libc,
+libuv, managed result, allocator or stack obligations. The same native operation
+and option packets issue no admission or physical ACK; unselected paths retain
+their existing constructor and canonicalization behavior.
+
 An optional private Journal database-byte ceiling is an implementation support
 bound, not admission or a new format rule. It bounds original DB/WAL extent
 before copy/inspection and the same connection's main database growth before
