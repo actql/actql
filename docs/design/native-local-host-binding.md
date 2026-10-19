@@ -1664,6 +1664,10 @@ changed arguments cannot replace that original observation. Context and scratch
 selection use retained bytes rather than later environment pointers. This
 static initial-control storage remains distinct from an admitted managed arena
 and from the physical Host, Read and component originals.
+The selected product caller consumes those same retained context bytes; an
+invalid or missing selected original cannot fall back to a replacement
+environment value. The explicitly unselected entrance retains its separate
+compatibility behavior.
 
 After the complete initial selection is current, the selected entry binds
 stdout and stderr before allocator setup can emit diagnostics. Both fixed

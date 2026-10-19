@@ -184,9 +184,14 @@ fn execute_native_local_product(
   if command_preparation_invocation.val is Some(original) {
     return original.execute_product_check(matches, operation)
   }
-  let context = @env.get_env_var("ACTQL_NATIVE_LOCAL_RUNTIME").unwrap_or_else(() => {
-    stop("PackagedLocalRuntimeUnavailable")
-  })
+  let context = match command_preargument_retained_context() {
+    Ok(Some(original)) => original
+    Ok(None) =>
+      @env.get_env_var("ACTQL_NATIVE_LOCAL_RUNTIME").unwrap_or_else(() => {
+        stop("PackagedLocalRuntimeUnavailable")
+      })
+    Err(_) => stop("PackagedLocalRuntimeUnavailable")
+  }
   let runtime = local_packaged_runtime(context)
   let reply = {
     errdefer (if runtime.physical.close() is Err(_) {

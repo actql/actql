@@ -12,6 +12,7 @@ extern size_t mi_good_size(size_t);
 extern size_t mi_usable_size(const void *);
 extern int32_t actql_native_client_measure_prearguments(int32_t,int32_t,int32_t,int32_t);
 extern int32_t actql_native_client_preargument_count(void);
+extern int32_t actql_native_client_preargument_selection(void);
 extern int32_t actql_native_client_copy_bounded_home(moonbit_bytes_t,int32_t);
 extern int64_t actql_native_client_preargument_class_bytes(int32_t);
 extern int32_t actql_native_client_preargument_storage_bytes(void);
@@ -20,6 +21,7 @@ extern int32_t actql_native_client_copy_preargument_source(moonbit_bytes_t,int32
 extern int32_t actql_native_client_copy_preargument_context(moonbit_bytes_t,int32_t);
 int main(int argc, char **argv) {
   assert(argc >= 2);
+  assert(actql_native_client_preargument_selection() == ACTQL_COMMAND_INPUT_INVALID);
   const char *name = argv[1];
   int expected = strcmp(name,"absent") == 0 ? 5 :
     strcmp(name,"missing-source") == 0 ? 6 :
@@ -30,6 +32,7 @@ int main(int argc, char **argv) {
     strcmp(name,"invalid-bound") == 0 ? 0 : 256,4096,65536,
     strcmp(name,"context-limit") == 0 ? 1 : 8192);
   assert(status == expected);
+  assert(actql_native_client_preargument_selection() == expected);
   if (strncmp(name,"scratch-",8)==0) {
     char scratch[ACTQL_COMMAND_SCRATCH_BYTES + 1];
     memset(scratch, 0x5a, sizeof(scratch));

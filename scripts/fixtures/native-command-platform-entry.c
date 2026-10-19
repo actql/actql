@@ -43,6 +43,7 @@ int main(int argc, char **argv) {
     assert(setenv("ACTQL_NATIVE_LOCAL_RUNTIME", "replacement", 1) == 0);
     assert(setenv("TMPDIR", "/replacement/scratch", 1) == 0);
     assert(actql_native_client_measure_prearguments(256,4096,65536,8192) == 0);
+    assert(actql_native_client_preargument_selection() == ACTQL_COMMAND_INPUT_OK);
     unsigned char observed[ACTQL_COMMAND_ORIGINAL_CONTEXT_BYTES];
     assert(actql_native_client_copy_preargument_context(observed, (int32_t)length));
     assert(memcmp(observed, original, length) == 0);
@@ -58,6 +59,7 @@ int main(int argc, char **argv) {
     argv[1][0] = 'X';
     assert(actql_native_client_measure_prearguments(256,4096,65536,8192)
       == ACTQL_COMMAND_INPUT_INVALID);
+    assert(actql_native_client_preargument_selection() == ACTQL_COMMAND_INPUT_INVALID);
     actql_native_client_capture_command_entry();
     assert(atomic_load(&actql_command_entry_state) == -1);
     assert(actql_native_command_platform_current() == NULL);

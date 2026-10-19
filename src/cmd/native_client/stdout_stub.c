@@ -295,6 +295,13 @@ int32_t actql_native_client_preargument_count(void) {
   return actql_command_input_status == ACTQL_COMMAND_INPUT_OK
       ? (int32_t)actql_command_input.input.arguments : -1;
 }
+/* Selection is the original one-shot observation, never a later environment
+ * probe or an operational/permission receipt. Invalid/unmeasured input cannot
+ * choose the unselected compatibility entrance. */
+int32_t actql_native_client_preargument_selection(void) {
+  return actql_command_input_attempted
+      ? actql_command_input_status : ACTQL_COMMAND_INPUT_INVALID;
+}
 int32_t actql_native_client_preargument_storage_bytes(void) {
   return actql_command_input_status == ACTQL_COMMAND_INPUT_OK
       ? (int32_t)actql_command_input.input.storage_bytes : -1;

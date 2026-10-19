@@ -60,6 +60,24 @@ fn command_preargument_context() -> Result[String, LocalCommandPreparationIssue]
 }
 
 ///|
+extern "C" fn command_preargument_selection_ffi() -> Int = "actql_native_client_preargument_selection"
+
+///|
+// Selected input consumes the same bounded original bytes even after another
+// initializer changes the environment. None means genuinely unselected; an
+// invalid or missing original must not enter that compatibility path.
+fn command_preargument_retained_context() -> Result[
+  String?,
+  LocalCommandPreparationIssue,
+] {
+  match command_preargument_selection_ffi() {
+    0 => command_preargument_context().map(Some)
+    5 => Ok(None)
+    _ => Err(CommandUnavailable)
+  }
+}
+
+///|
 // This entrance performs only the original raw observation. Its caller must
 // account for the pinned parser and all decoded/control aliases separately;
 // input ceilings are not backing or a managed-heap capacity claim.
