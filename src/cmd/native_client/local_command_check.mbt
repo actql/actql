@@ -250,8 +250,9 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             capture=Some(capture),
           )
         } else if operation == "explain" {
-          local_check_context(host, crypto, name, capture=Some(capture))
-          .explain(input_root, child)
+          local_check_context(host, crypto, name, capture=Some(capture)).explain(
+            input_root, child,
+          )
         } else {
           let runtime = self.runtime.unwrap()
           let run_file = settings.run_file.unwrap_or_else(() => {
