@@ -1569,6 +1569,7 @@ pub(all) enum ManyOperator {
   RPad
   Between
   DateDifference
+  DateAddition
 } derive(Eq, @debug.Debug)
 
 pub(all) enum NestIssue {
