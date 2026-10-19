@@ -43,6 +43,7 @@ fn command_preparation_cleanup_kind(
     CommandHost(_) => "host"
     CommandDomain(_) => "domain"
     CommandRead(_) => "read"
+    CommandRetainedExecution(_) => "business-execution"
     CommandPair(value) =>
       match value {
         @initial_arena.Read(_) => "pair-read"

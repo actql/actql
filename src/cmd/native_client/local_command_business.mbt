@@ -1,0 +1,227 @@
+///|
+// Installer-private facility selection for the accepted source-free Run scope.
+// This is neither all-input demand adequacy nor a physical issuer. Actual
+// backing/context/Ledger acquisition and Program quotation remain mandatory.
+priv struct LocalCommandBusinessProfile {
+  domain_bytes : Int64
+  payload_facility_bytes : Int64
+  limits : @initial_resources.LedgerLimits
+}
+
+///|
+// Caller retention only. The existing Host/domain/retained-execution Owners
+// keep every partial physical stage and their distinct acknowledgements.
+priv struct LocalCommandBusinessOriginal {
+  profile : LocalCommandBusinessProfile
+  mut domain : @initial_arena.InstalledArenaDomain?
+  mut execution : @initial_arena.InstalledArenaRetainedExecution?
+  mut active : Bool
+}
+
+///|
+// Declare the selected parent before its first physical acquisition. Complete
+// external/initial overlap remains mandatory alongside this backed facility.
+// The payload is a hard backed facility, not residual space or an estimate of
+// every Program. Same-source Program limits must fit it before issue_epoch.
+fn local_command_source_free_business_profile(
+  static_profile : LocalCommandPreparationProfile,
+) -> (LocalCommandPreparationProfile, LocalCommandBusinessProfile) raise ClientStop {
+  let limits : @initial_resources.LedgerLimits = {
+    planning_work: 100000,
+    attempts: 1,
+    holdings: 1,
+    transfer_bytes: 1000000L,
+    retained_bytes: 536870912L,
+    execution_bytes: 536870912L,
+  }
+  let payload = limits.retained_bytes + limits.execution_bytes
+  let mut bytes = payload
+  let mut converged = false
+  // The actual provider's extent table depends on the complete domain size.
+  // Iterate its checked, page-rounded layout, never add guessed spare space.
+  for _ in 0..<16 {
+    let necessary = @initial_bootstrap.execution_domain_necessary_bytes(
+      bytes, payload,
+    )
+    if necessary <= 0L {
+      stop("LocalBusinessLayoutUnavailable")
+    }
+    if necessary <= bytes {
+      converged = true
+      break
+    }
+    bytes = necessary
+  }
+  if !converged || bytes > 9223372036854775807L - static_profile.arena_bytes {
+    stop("LocalBusinessLayoutUnavailable")
+  }
+  let arena = static_profile.arena_bytes + bytes
+  let control = @initial_bootstrap.command_backing_control_necessary_bytes(
+    arena,
+  ).unwrap_or_else(() => stop("LocalBusinessLayoutUnavailable"))
+  if control <= 0L ||
+    control >
+    arena -
+    static_profile.read_domain_bytes -
+    static_profile.sqlite_domain_bytes -
+    bytes {
+    stop("LocalBusinessLayoutUnavailable")
+  }
+  let original = static_profile.host_limits
+  let profile : LocalCommandPreparationProfile = {
+    ..static_profile,
+    arena_bytes: arena,
+    control_bytes: control,
+    host_limits: {
+      ..original,
+      planning_work: original.planning_work + limits.planning_work,
+      // The original business provisioning attempt and the unchanged task
+      // attempt are declared once. Scope changes and child close do not refill.
+      attempts: original.attempts + 1 + limits.attempts,
+      transfer_bytes: original.transfer_bytes + limits.transfer_bytes,
+      execution_bytes: arena,
+    },
+    native_storage: {
+      ..static_profile.native_storage,
+      shared_control_bytes: Some(control),
+    },
+  }
+  (profile, { domain_bytes: bytes, payload_facility_bytes: payload, limits, })
+}
+
+///|
+fn LocalCommandPreparationOriginal::prepare_business_domain(
+  self : LocalCommandPreparationOriginal,
+  host : @initial_arena.InstalledArenaHost,
+  scope : @initial_arena.InstalledArenaBackingBorrow,
+  descriptor : Int,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.business is Some(business) else { return Ok(()) }
+  if business.domain is Some(_) || self.closing || self.closed {
+    return Err(CommandUnavailable)
+  }
+  let acquired = host
+    .prepare_domain(
+      scope,
+      descriptor,
+      business.profile.domain_bytes,
+      business.profile.limits,
+    )
+    .map_err(issue => CommandDomain(issue))
+  match acquired {
+    Err(issue) => Err(issue)
+    Ok(PendingDomain(domain, issue)) => {
+      business.domain = Some(domain)
+      Err(CommandDomain(issue))
+    }
+    Ok(PreparedDomain(domain)) => {
+      business.domain = Some(domain)
+      host.transfer_domain(domain).map_err(issue => CommandDomain(issue))
+    }
+  }
+}
+
+///|
+fn LocalCommandPreparationOriginal::prepare_business_execution(
+  self : LocalCommandPreparationOriginal,
+  host : @initial_arena.InstalledArenaHost,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.business is Some(business) else { return Ok(()) }
+  guard business.domain is Some(domain) && business.execution is None else {
+    return Err(CommandUnavailable)
+  }
+  match
+    host.prepare_domain_read(
+      domain,
+      execution_ceiling=business.profile.payload_facility_bytes,
+    ) {
+    Err(issue) => return Err(CommandDomain(issue))
+    Ok(_) => ()
+  }
+  match host.prepare_domain_retained_execution(domain) {
+    Err(issue) => Err(CommandRetainedExecution(issue))
+    Ok(PendingRetainedExecution(execution, issue)) => {
+      business.execution = Some(execution)
+      Err(CommandRetainedExecution(issue))
+    }
+    Ok(ReadyRetainedExecution(execution)) => {
+      business.execution = Some(execution)
+      Ok(())
+    }
+  }
+}
+
+///|
+fn LocalCommandPreparationOriginal::close_business_execution(
+  self : LocalCommandPreparationOriginal,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.business is Some(business) else { return Ok(()) }
+  guard self.host is Some(host) else {
+    return if business.domain is None && business.execution is None {
+      Ok(())
+    } else {
+      Err(CommandUnavailable)
+    }
+  }
+  if business.execution is Some(execution) {
+    if business.active {
+      match host.leave_domain_retained_execution(execution) {
+        Err(issue) => return Err(CommandRetainedExecution(issue))
+        Ok(_) => business.active = false
+      }
+    }
+    match host.close_domain_retained_execution(execution) {
+      Err(issue) => return Err(CommandRetainedExecution(issue))
+      Ok(_) => business.execution = None
+    }
+  }
+  if business.domain is Some(domain) {
+    match host.close_domain(domain) {
+      Err(issue) => return Err(CommandDomain(issue))
+      Ok(_) => business.domain = None
+    }
+  }
+  Ok(())
+}
+
+///|
+// Compare the exact existing checked Program/registry inventory before epoch
+// or Submission admission. Passing this comparison issues no actual resource
+// or Account authority; the same retained-execution current fence is separate.
+fn LocalCommandPreparationOriginal::require_business_program(
+  self : LocalCommandPreparationOriginal,
+  prepared : @run_host.PreparedClientProgram,
+  assets : @run_host.ClientLocalProductAssets,
+) -> Result[@initial_resources.LedgerLimits, LocalCommandPreparationIssue] {
+  if self.closing || self.closed || self.primary is Some(_) {
+    return Err(CommandUnavailable)
+  }
+  guard self.host is Some(host) &&
+    self.business is Some(business) &&
+    business.execution is Some(execution) else {
+    return Err(CommandUnavailable)
+  }
+  guard @local_values.single_source_free_local_ledger_limits(
+      prepared,
+      assets.registry,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    )
+    is Some(needed) else {
+    return Err(CommandUnavailable)
+  }
+  let supplied = business.profile.limits
+  if needed.planning_work > supplied.planning_work ||
+    needed.attempts > supplied.attempts ||
+    needed.holdings > supplied.holdings ||
+    needed.transfer_bytes > supplied.transfer_bytes ||
+    needed.retained_bytes > supplied.retained_bytes ||
+    needed.execution_bytes > supplied.execution_bytes {
+    return Err(CommandUnavailable)
+  }
+  host
+  .require_domain_retained_execution_current(execution)
+  .map_err(issue => CommandRetainedExecution(issue))
+  .map(_ => needed)
+}
