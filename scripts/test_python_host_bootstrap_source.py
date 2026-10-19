@@ -48,9 +48,18 @@ class SourceClosureTests(unittest.TestCase):
         with patch('python_host_bootstrap_source.subprocess.check_output', self.git_blob):
             return verify_source(self.root, '0' * 40)
 
+    def test_required_allocator_include_cannot_be_omitted(self):
+        required = 'packages/python-local-runtime/native/pre-root/owned_rust_heap.inc'
+        self.assertIn(required, INPUTS)
+        self.manifest['inputs'] = [entry for entry in self.manifest['inputs']
+                                   if entry['path'] != required]
+        self.write_manifest()
+        with self.assertRaisesRegex(ValueError, 'source manifest'):
+            self.check()
+
     def test_source_closure_does_not_claim_physical_or_installed_success(self):
         result = self.check()
-        self.assertEqual(result['verified_inputs'], 17)
+        self.assertEqual(result['verified_inputs'], 18)
         self.assertEqual(result['native_execution'], 0)
         self.assertIs(result['installed_capability'], False)
 
