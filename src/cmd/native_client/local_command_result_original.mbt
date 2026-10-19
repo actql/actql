@@ -158,13 +158,15 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
     capture.check_current_in_original_read(),
     "Store current",
   )
-  command_preparation_result(
-    operation.activate().map_err(issue => CommandStoreOperation(issue)),
-  )
   // Restore only the existing Store. Missing path/DB/custody cannot initialize
   // another namespace, schema, key or Run merely to obtain a public result.
   let store = match publication {
-    None => self.open_business_store(sqlite, managed, run, existing=true)
+    None => {
+      command_preparation_result(
+        operation.activate().map_err(issue => CommandStoreOperation(issue)),
+      )
+      self.open_business_store(sqlite, managed, run, existing=true)
+    }
     Some(published) => {
       // A quick query reads the Store that published this exact request. It
       // neither opens a second DB nor retires the still-owned Values children.
@@ -182,9 +184,16 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
         @run_host.SameRequest {
         stop("LocalOriginalRunReferenceMismatch")
       }
-      business.store.unwrap_or_else(() => {
+      let store = business.store.unwrap_or_else(() => {
         stop("LocalReadOriginalCustodyUnavailable")
       })
+      let bridge = operation
+        .sqlite_original()
+        .unwrap_or_else(() => stop("LocalReadOriginalCustodyUnavailable"))
+      if !store.matches_original_operation(bridge) {
+        stop("LocalReadOriginalCustodyUnavailable")
+      }
+      store
     }
   }
   local_result_host_value(
