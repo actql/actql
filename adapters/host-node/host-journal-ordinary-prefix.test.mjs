@@ -190,3 +190,48 @@ test('pre-namespace SQLite method originals cannot be replaced by the later name
     f.scratch.passed();
   }
 });
+
+test('ordinary Journal service cleanup retains original native close after current refusal', async () => {
+  const f = await fixture('ordinary Journal actual service retirement and original close');
+  f.run(`
+    import assert from 'node:assert/strict'; import {join} from 'node:path';
+    import {DatabaseSync} from 'node:sqlite';
+    import {connect} from '@actql/local-node';
+    const client=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
+    const duty=await client.prepareJournal(); await duty.admitRootFormat(client.root);
+    const journal=await duty.openRequestJournal(join(client.root,'requests'),{});
+    journal.observationStorage();
+    const original=DatabaseSync.prototype.close; let replacementCalls=0;
+    DatabaseSync.prototype.close=function(){replacementCalls++;throw new Error('ReplacementClose');};
+    try {
+      assert.throws(()=>duty.assertCurrent(),{code:'HostJournalPreparationUnavailable'});
+      const closed=await duty.close();
+      assert.equal(closed.pending,false);
+      assert.equal(closed.physicalBackingReleased,false);
+      assert.equal(replacementCalls,0);
+    } finally {DatabaseSync.prototype.close=original;}
+    assert.throws(()=>duty.assertCurrent(),{code:'HostJournalPreparationUnavailable'});
+    assert.equal((await client.scope.close()).pending,false);
+  `);
+  f.scratch.passed();
+});
+
+test('ordinary Journal cold reopening uses fresh startup custody for the same saved test state', async () => {
+  const f = await fixture('ordinary Journal actual service fresh-process cold reopen');
+  const openAndClose = expected => `
+    import assert from 'node:assert/strict'; import {join} from 'node:path';
+    import {connect} from '@actql/local-node';
+    const client=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
+    const duty=await client.prepareJournal();
+    assert.equal(await duty.admitRootFormat(client.root),${JSON.stringify(expected)});
+    const journal=await duty.openRequestJournal(join(client.root,'requests'),{});
+    journal.observationStorage();
+    assert.equal((await duty.close()).pending,false);
+    assert.equal((await client.scope.close()).pending,false);
+  `;
+  // Both children operate only on this newly created test's own state. No
+  // historical Run/DB/key is restored, repaired or replayed between processes.
+  f.run(openAndClose('new'));
+  f.run(openAndClose('current'));
+  f.scratch.passed();
+});
