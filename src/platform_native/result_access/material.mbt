@@ -383,7 +383,13 @@ pub fn NativeResultMaterialReceiver::write_table(
   }
   guard self.session is Some(session) else { return Err(MaterialNotComplete) }
   self.table_attempted = true
-  match session.authorize_stage("table_output") {
+  // The material receipt has ended the physical reader. Only this retained
+  // completed receiver may request a separate current output decision; the
+  // terminal Session is never reopened or made eligible for another read.
+  if !self.completed || !self.finished || !session.closed {
+    return Err(MaterialNotComplete)
+  }
+  match session.authorize_current_stage("table_output") {
     Err(issue) => return Err(MaterialAccess(issue))
     Ok(_) => ()
   }
