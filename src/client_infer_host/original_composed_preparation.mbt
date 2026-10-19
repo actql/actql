@@ -42,7 +42,13 @@ pub fn start_original_composed(
   // read/Scope cleanup owner. Never claim again or fall back to unowned start.
   start_composed(occurrence, plan, prefix, inputs, provider, limits, sources~).map(active => {
       retain_original_model_preparation(
-        active, compiled, definition, consumer, model_retained_bytes, model_execution_bytes,
+        active,
+        compiled,
+        definition,
+        consumer,
+        model_retained_bytes,
+        model_execution_bytes,
+        shared_mock=true,
       )
       active
     },

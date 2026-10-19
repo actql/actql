@@ -414,22 +414,33 @@ fn advance_model(
         state.reservation_next_slot += 1
         return @bounded.Continue(1, 1)
       }
+      let transfer = state.limits.max_request_bytes +
+        state.limits.max_response_bytes
+      let retention = state.limits.max_request_bytes +
+        state.limits.max_response_bytes +
+        (if state.dispatch_admission is Some(_) || state.durable_calls {
+          81920L + model_attachment_evidence_bytes(state.task)
+        } else {
+          0L
+        })
+      let execution = if state.physical_preflight is Some(_) {
+        physical_preflight_metadata_bytes
+      } else {
+        0L
+      }
+      match
+        check_original_mock_attempt_capacity(
+          state, transfer, retention, execution,
+        ) {
+        Err(issue) => return @bounded.Failed(issue, 1, 1)
+        Ok(_) => ()
+      }
       match
         @resources.reserve_attempt(
           state.ledger,
-          state.limits.max_request_bytes + state.limits.max_response_bytes,
-          state.limits.max_request_bytes +
-          state.limits.max_response_bytes +
-          (if state.dispatch_admission is Some(_) || state.durable_calls {
-            81920L + model_attachment_evidence_bytes(state.task)
-          } else {
-            0L
-          }),
-          if state.physical_preflight is Some(_) {
-            physical_preflight_metadata_bytes
-          } else {
-            0L
-          },
+          transfer,
+          retention,
+          execution,
           quantities=state.quantity_capacity.map(value => value.per_attempt),
         ) {
         Ok(value) => state.reservations[ordinal] = value
@@ -1046,7 +1057,15 @@ fn start_model_owned(
       prepared_capacity is Some(_) ||
       !(source is Provider(_)) ||
       !original_model_startup_matches(
-        original, rows, call_scope, limits, quantity_capacity,
+        original,
+        rows,
+        call_scope,
+        limits,
+        quantity_capacity,
+        match source {
+          Provider(provider) => Some(provider)
+          _ => None
+        },
       )
     ) {
     return Err(RequestIdentity)

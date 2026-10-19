@@ -961,16 +961,31 @@ fn begin_model(active : Execution) -> Poll {
               original.execution_bytes,
             )
           Claimed(consumer) =>
-            @model.prepare_original_model_consumer_startup(
-              consumer,
-              bound.compiled,
-              bound.definition,
-              plan,
-              scope,
-              rows,
-              original.retained_bytes,
-              original.execution_bytes,
-            )
+            if original.shared_mock {
+              @model.prepare_original_model_provider_consumer_startup(
+                consumer,
+                bound.compiled,
+                bound.definition,
+                plan,
+                scope,
+                rows,
+                provider,
+                active.limits.model,
+                original.retained_bytes,
+                original.execution_bytes,
+              )
+            } else {
+              @model.prepare_original_model_consumer_startup(
+                consumer,
+                bound.compiled,
+                bound.definition,
+                plan,
+                scope,
+                rows,
+                original.retained_bytes,
+                original.execution_bytes,
+              )
+            }
         }
         let startup = match issued {
           Ok(value) => value

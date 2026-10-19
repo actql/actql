@@ -1,0 +1,209 @@
+///|
+// A restriction within the existing Model owner, never an operational issuer.
+// The actual Host must supply its separate local-Mock purpose and complete
+// same-Run overlap before this record, its references or the input are created.
+// Resident None on legacy startup also belongs in the physical recipe.
+priv struct OriginalMockPurpose {
+  provider : ModelProvider
+  limits : ModelExecutionLimits
+  mut publication_retained : Int64
+  mut publication_execution : Int64
+  mut publication_planning : Int
+}
+
+///|
+/// Preserve the dedicated legacy startup exactly. Only the original no-I/O
+/// Mock implementation may retain a separate Model ceiling on a shared Run
+/// Ledger. The same checked input handoff still issues the actual reservation.
+pub fn prepare_original_model_provider_consumer_startup(
+  consumer : @publication_host.ClientModelReadConsumer,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  scope : @publication_host.ClientInferCallScope,
+  rows : @relation.PreparedInferRows,
+  provider : ModelProvider,
+  limits : ModelExecutionLimits,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[
+  OriginalModelStartup,
+  @publication_host.ClientModelInputCapacityIssue,
+] {
+  guard provider.invocation is OriginalMock(original) else {
+    return prepare_original_model_consumer_startup(
+      consumer, compiled, definition, plan, scope, rows, retained_bytes, execution_bytes,
+    )
+  }
+  let task = @infer.model_task(@relation.prepared_infer_rows_owner(rows))
+  let execution = @publication_host.client_infer_plan_graph_execution_contract(
+    plan,
+  )
+  if !original_mock_provider_matches(original, provider, task) ||
+    !physical_equal(
+      execution,
+      @publication_host.client_infer_call_scope_model_execution(scope),
+    ) ||
+    !@environment.model_mock_execution_matches(
+      original.profile.unwrap(),
+      original.normalized.unwrap(),
+      execution,
+    ) ||
+    !valid_original_mock_purpose_limits(limits) ||
+    limits.ledger.attempts.to_int64() >
+    @environment.model_execution_ceiling(execution, @environment.TotalAttempts) ||
+    limits.ledger.transfer_bytes >
+    @environment.model_execution_ceiling(execution, @environment.TotalWireBytes) ||
+    retained_bytes <= 0L ||
+    execution_bytes < 0L ||
+    retained_bytes > limits.ledger.retained_bytes ||
+    execution_bytes > limits.ledger.execution_bytes {
+    return Err(@publication_host.ForeignInput)
+  }
+  let (ledger, capacity) = match
+    @publication_host.handoff_client_model_read_consumer_input_capacity(
+      consumer, compiled, definition, plan, scope, rows, retained_bytes, execution_bytes,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  // Refusal after handoff retains this original consumer's existing capacity;
+  // the caller must not re-claim or substitute another startup/Run.
+  Ok({
+    rows,
+    scope: Some(scope),
+    ledger,
+    capacity,
+    retained_bytes,
+    execution_bytes,
+    shared_mock: Some({
+      provider,
+      limits,
+      publication_retained: 0L,
+      publication_execution: 0L,
+      publication_planning: 0,
+    }),
+    used: false,
+  })
+}
+
+///|
+fn valid_original_mock_purpose_limits(limits : ModelExecutionLimits) -> Bool {
+  let bound = limits.ledger
+  limits.max_items >= 0 &&
+  limits.max_work >= 0 &&
+  limits.max_request_bytes >= 0L &&
+  limits.max_response_bytes >= 0L &&
+  limits.max_request_bytes <= 9223372036854775807L - limits.max_response_bytes &&
+  bound.planning_work >= 0 &&
+  bound.attempts >= 0 &&
+  bound.holdings >= 0 &&
+  bound.transfer_bytes >= 0L &&
+  bound.retained_bytes >= 0L &&
+  bound.execution_bytes >= 0L
+}
+
+///|
+fn original_model_startup_limits_match(
+  value : OriginalModelStartup,
+  limits : ModelExecutionLimits,
+  provider : ModelProvider?,
+) -> Bool {
+  guard value.shared_mock is Some(purpose) else {
+    return @resources.ledger_limits(value.ledger) == limits.ledger
+  }
+  guard provider is Some(provider) &&
+    physical_equal(provider, purpose.provider) &&
+    provider.invocation is OriginalMock(original) &&
+    physical_equal(limits, purpose.limits) &&
+    original_mock_provider_matches(
+      original,
+      provider,
+      @infer.model_task(@relation.prepared_infer_rows_owner(value.rows)),
+    ) else {
+    return false
+  }
+  let parent = @resources.ledger_limits(value.ledger)
+  let bound = purpose.limits.ledger
+  valid_original_mock_purpose_limits(limits) &&
+  parent.planning_work >= bound.planning_work &&
+  parent.attempts >= bound.attempts &&
+  parent.holdings >= bound.holdings &&
+  parent.transfer_bytes >= bound.transfer_bytes &&
+  parent.retained_bytes >= bound.retained_bytes &&
+  parent.execution_bytes >= bound.execution_bytes
+}
+
+///|
+// Scan the same existing map, including closed identities for spent attempts.
+// The Host covers this bounded scan and its scratch before entering the Model.
+// Actual live byte amounts come from the original Resource tokens, not rows,
+// alias counts, aggregate Run usage or a second private accounting Ledger.
+// This selected implementation creates no Model IO/holding. Closed attempt
+// amounts do not acknowledge Source holdings, escaped aliases or physical IO;
+// those remain charged/retained by their original owners on the same Run.
+fn check_original_mock_capacity(
+  state : ModelState,
+  retained : Int64,
+  execution : Int64,
+) -> Result[Unit, ModelExecutionIssue] {
+  guard state.original_startup is Some(startup) &&
+    startup.shared_mock is Some(purpose) else {
+    return Ok(())
+  }
+  let bound = purpose.limits.ledger
+  if retained < 0L ||
+    execution < 0L ||
+    startup.retained_bytes > bound.retained_bytes ||
+    startup.execution_bytes > bound.execution_bytes {
+    return Err(InvalidLimits)
+  }
+  let mut available_retained = bound.retained_bytes - startup.retained_bytes
+  let mut available_execution = bound.execution_bytes - startup.execution_bytes
+  for (_, reservation) in state.reservations {
+    let (retention, scratch) = match
+      @resources.reservation_capacity_amounts(state.ledger, reservation) {
+      Err(issue) => return Err(Ledger(issue))
+      Ok(value) => value
+    }
+    if retention > available_retained {
+      return Err(Ledger(@resources.RetentionLimit))
+    }
+    if scratch > available_execution {
+      return Err(Ledger(@resources.ExecutionLimit))
+    }
+    available_retained -= retention
+    available_execution -= scratch
+  }
+  if purpose.publication_retained > available_retained ||
+    retained > available_retained - purpose.publication_retained {
+    return Err(Ledger(@resources.RetentionLimit))
+  }
+  if purpose.publication_execution > available_execution ||
+    execution > available_execution - purpose.publication_execution {
+    return Err(Ledger(@resources.ExecutionLimit))
+  }
+  Ok(())
+}
+
+///|
+fn check_original_mock_attempt_capacity(
+  state : ModelState,
+  transfer : Int64,
+  retained : Int64,
+  execution : Int64,
+) -> Result[Unit, ModelExecutionIssue] {
+  guard state.original_startup is Some(startup) &&
+    startup.shared_mock is Some(purpose) else {
+    return Ok(())
+  }
+  let count = state.reservations.length()
+  if count >= purpose.limits.ledger.attempts {
+    return Err(Ledger(@resources.AttemptLimit))
+  }
+  if transfer < 0L ||
+    transfer > purpose.limits.ledger.transfer_bytes / (count.to_int64() + 1L) {
+    return Err(Ledger(@resources.TransferLimit))
+  }
+  check_original_mock_capacity(state, retained, execution)
+}

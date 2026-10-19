@@ -181,6 +181,16 @@ pub fn prepare_model_response_reconciliation(
     Err(issue) => return Err(InvocationEvidence(issue))
     Ok(_) => ()
   }
+  match
+    check_original_mock_attempt_capacity(
+      state,
+      state.limits.max_request_bytes + state.limits.max_response_bytes,
+      state.limits.max_request_bytes + state.limits.max_response_bytes + 81920L,
+      0L,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   let reservation = match
     @resources.reserve_attempt(
       state.ledger,

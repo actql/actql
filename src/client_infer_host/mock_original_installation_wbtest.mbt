@@ -5,6 +5,10 @@ fn original_mock_fixture(
   calls : Ref[Int],
   document? : String = infer_fixture_program,
   entry_unknown? : Bool = false,
+  shared_parent? : @resources.LedgerLimits? = None,
+  shared_sibling? : Ref[@resources.CapacityReservation?]? = None,
+  purpose_ledger? : @resources.LedgerLimits? = None,
+  expected_purpose_issue? : @resources.LedgerIssue? = None,
 ) -> (
   Execution,
   @model.ModelMockInstallation,
@@ -129,20 +133,65 @@ fn original_mock_fixture(
     ..original_limits,
     model: {
       ..original_limits.model,
-      ledger: {
+      ledger: purpose_ledger.or_else({
         ..original_limits.model.ledger,
         attempts: 4,
         transfer_bytes: 133072L,
-      },
+      }),
     },
   }
-  let (compiled, definition, ledger, read) = original_funded_start_read(
-    prepared_program, plan, original_limits,
-  )
-  let attempted = original_funded_start_from_read(
-    prepared_program, 2, infer_fixture_registry, infer_fixture_values, provider,
-    original_limits, compiled, definition, plan, read, 7L, 5L, 100L, 5L,
-  )
+  let (compiled, definition, ledger, read) = match shared_parent {
+    None => original_funded_start_read(prepared_program, plan, original_limits)
+    Some(parent) => {
+      let (compiled, definition) = original_input_capacity_run(
+        prepared_program, plan,
+      )
+      let ledger = @resources.create_ledger(parent).unwrap()
+      let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
+      let scope = @publication_host.begin_client_model_read_scope(
+        compiled, definition, plan, ledger, bootstrap, 8, 2, 0,
+      ).unwrap()
+      if shared_sibling is Some(retained) {
+        retained.val = Some(
+          @resources.reserve_capacity(ledger, 20L, 10L).unwrap(),
+        )
+      }
+      @resources.charge_planning(ledger, 17).unwrap()
+      let read = @publication_host.prepare_client_model_read(scope, 7L, 5L).unwrap()
+      (compiled, definition, ledger, read)
+    }
+  }
+  let attempted = if shared_parent is Some(_) {
+    let consumer = @publication_host.claim_client_model_read_preparation(
+      read, compiled, definition, plan, 7L, 5L,
+    ).unwrap()
+    let occurrence = @publication_host.prepared_client_composed_infer_occurrence(
+      prepared_program,
+    ).unwrap()
+    let prefix = @input.prepare_client_composed_infer_prefix(
+      prepared_program, occurrence, infer_fixture_registry, infer_fixture_values,
+    ).unwrap()
+    start_original_composed(
+      occurrence,
+      plan,
+      prefix,
+      [],
+      provider,
+      original_limits,
+      compiled,
+      definition,
+      consumer,
+      7L,
+      5L,
+      100L,
+      5L,
+    )
+  } else {
+    original_funded_start_from_read(
+      prepared_program, 2, infer_fixture_registry, infer_fixture_values, provider,
+      original_limits, compiled, definition, plan, read, 7L, 5L, 100L, 5L,
+    )
+  }
   let active = match attempted {
     Ok(active) => active
     Err(OriginalCapacity(issue)) => {
@@ -179,6 +228,17 @@ fn original_mock_fixture(
   bind_egress_admission(active, egress).unwrap()
   let prefix_work = match fixture_finish(active) {
     Waiting(work~) => work
+    Failed(Model(@model.Ledger(issue)), ..) if expected_purpose_issue ==
+      Some(issue) =>
+      return (
+        active,
+        installation,
+        profile,
+        read,
+        ledger,
+        Ref(evidence_account(@authorization.Allow)),
+        now,
+      )
     Failed(Model(issue), ..) => {
       debug_inspect(issue)
       abort("original mock must prepare before dispatch")
