@@ -440,9 +440,9 @@ fn store_failed_open_original_work(
     original.leave_store().unwrap()
     let held_after = library.close_checked() is Err(_)
     // Retaining this typed same-original DATA is distinct from both ACKs.
-    let same_alias_closed = retained_database.close_checked() is Ok(_)
+    let unentered_close_refused = retained_database.close_checked() is Err(_)
     original.close_checked().unwrap()
-    held_before && pending && held_after && same_alias_closed
+    held_before && pending && held_after && unentered_close_refused
   }
   result && !receiver.active && !receiver.sql && !receiver.return_ack_pending
 }
