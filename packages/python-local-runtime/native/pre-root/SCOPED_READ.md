@@ -1,7 +1,6 @@
 # Derived same-provider read allocation
 
-This review unit makes the tested physical allocator patch reproducible from
-pinned inputs. It does not select a new default producer, replace the installed
+The physical allocator patch is reproducible from pinned inputs. It does not select a new default producer, replace the installed
 toolchain, or enable an ordinary Local supplier. The numerical profile stays
 `None` until the original Common backed pair, caller closure and layout review
 are complete.
@@ -16,12 +15,30 @@ python3 packages/python-local-runtime/native/pre-root/prepare_scoped_read.py \
 
 These are developer preparation paths, not public Python Client options. The
 command never compiles, loads or installs a library. `scoped-read-source.json`
-pins 18 input files and 20 derived files. The exact patch SHA256 is
-`aadd441a497af3b75857d1fdb1989df2828a00504e809472c859c674b0f5747e`.
+pins 21 input files and 23 derived files. Its patch and every derived output
+have separate SHA256 identities.
 Changed inputs, patch, derived bytes, symlinks and existing destinations are
 refused. Only copied bytes are patched. Completion metadata is written last;
 partial output is not a usable stage. This is a source closure, not a receipt
 for a compiled artifact or a trusted funding grant.
+
+## Explicit source target
+
+The default source selection remains `aarch64-apple-darwin`. A selected Linux
+arm64 consumer must pass `--target aarch64-unknown-linux-gnu` and supply the
+pinned Linux toolchain inputs. The ten text inputs are shared; the original
+runtime object and backtrace archive have separate Linux identities. A Darwin
+binary cannot satisfy Linux preparation, or vice versa. Preparation does not
+install a toolchain or compile either target.
+
+Linux consumers must use the recorded `_GNU_SOURCE` and
+`ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN` definitions alongside the scoped
+allocator definitions. The actual FD, mapping, extent, domain and Read context
+still require their original acquisition and cleanup. The Linux selection does
+not include Darwin image capture, Rust, Engine or VM support, or adopt an
+installed supplier or a normal numerical profile. A bootstrap consumer imports
+the single selected provider through `ACTQL_BOOTSTRAP_IMPORT_PROVIDER`; it must
+not include another provider or the Darwin-only image implementation.
 
 ## Build and lifetime obligations
 
@@ -33,7 +50,8 @@ The original `libmoonbitrun.o` supplies its original mimalloc implementation,
 including its load initializer. Reusing stock-header objects with the derived
 free route is invalid. New generated C, provider, ABI, library and image must
 have their own complete derived identities; this unit does not relabel retained
-artifacts. F's separate filesystem caller patch is not included here.
+artifacts. Filesystem callers must independently preserve the same original
+Read context and cleanup ownership.
 
 The existing Common Owner must bind the original reservation/backing/borrow
 before creating an opaque context. C pointers and matching data are not grants.
@@ -52,37 +70,6 @@ Failed extent/context retirement retains the same slot and lease for original
 cleanup retry; it does not retry a Run, read, COMMIT or external operation.
 Full lease return is denied while a context remains. Unexpected managed OOM
 uses the existing fail-stop path and is not a successful cleanup observation.
-
-## Source-qualified evidence
-
-The copied patch and `fixtures/scoped_read.c` were consumed under clean parent
-`7cc1866bbea6ee1c3128a39cca5495a02901ffc1` by `run-IIAMdL` using the selected
-macOS SDK/clang, C11/O0, 64-page disposable arena, non-Heavy outer60/TERM5 and
-cumulative child50/j1. Five runtime C sources, two fixture variants and two
-executables were built. The earlier `ec0744c8` variant failed the real fork
-counter; the fixed variant discovered/executed/passed **9/9**. These results
-qualify the original derived bytes, not a new current-source runtime build.
-
-The cases cover child stock free, actual MoonBit Bytes/RC aliases after scope
-exit, same-owner cleanup, nested/foreign/closing rejection, exhaustion without
-fallback, original extent retirement retry, inherited arena refusal,
-foreign-PID refusal and context retirement retry. Retirement failure is an
-explicit fixture `mprotect` fault on the exact original extent. Test fork/wait
-children are not product workers. The optional `ACTQL_F_CALLER_CASES` fixture
-branch was not selected: Root/Reader caller execution is **0** here.
-
-The raw evidence remains in workspace reviews under
-`2026-10-10-python-client/scoped-native-read-conformance`: input/actual dependency
-hashes, original failure, new success, commands, binaries, complete guard output
-and Owner/group/lock release. `runtime-reuse.json` qualifies the five runtime
-objects and derived header for F's matching caller diagnostic. The old/new
-fixture objects contain test main and are not reusable provider objects.
-
-The compiled object's DWARF records context48/extent48/capacity136 bytes. These
-are structure sizes, not allocator charges, a complete retained inventory or
-accepted numerical profile. Common paired funding, F's caller, complete layout,
-DLL/Engine/worker, ordinary installed wheel/public Python execution remain
-separate and unaccepted. Fuel100M, transfer12MiB and VM16MiB are unchanged.
 
 ## Non-test Native provider production
 
@@ -111,24 +98,6 @@ Engine/worker startup, installation and public Python execution remain separate.
 A following Wasmtime build must link this exact selected library and use a new
 provider digest in its recipe; it must not embed another provider/TLS copy or
 relabel a previous compiled image.
-
-Source-qualified producer acceptance at
-`cd8b37fe5fe67d08f694d42560df07d20d32967c` (`run-GPHg0C`) completed12 regular
-build-package tasks, one C emission, eleven fresh C compiles and one library
-link. No diagnostic helper was linked. The726944-byte library SHA256 is
-`bb94cd5635b82ac32a9d613ec339137139b0b1a8e9e954892c4cd43fd56f01e9`.
-All eleven actual compiler dependency sets select the copied header; exactly
-one translation unit consumes the copied provider C. The build's initialized
-code/Engine/worker counts are zero.
-
-The exact saved library was separately consumed by `run-MqlqRH`: an external
-test-only helper (compile1/link1, never another provider) drove the existing four
-Core/Common/Python read-custody cases. All4 passed and original Host/domain/FD
-cleanup completed. Explicit code-root initialization ran once in that consumer;
-the library's original mimalloc load initializer is separate. The old mixed
-Sourcefb6 diagnostic DLL and its receipt remain distinct. This new component
-still does not supply F Root/Reader, full bootstrap/VM funding, a normal numerical
-profile, Engine/worker startup or a public wheel E2E.
 
 ## Active cleanup result lifetime
 

@@ -22,7 +22,11 @@ static const unsigned char recipe[32] = {61};
 
 static fixture open_fixture(void) {
     size_t page = (size_t)sysconf(_SC_PAGESIZE);
+#if defined(__linux__)
+    char path[] = "/tmp/actql-read-bridge-XXXXXX";
+#else
     char path[] = "/private/tmp/actql-read-bridge-XXXXXX";
+#endif
     fixture f = {0};
     f.fd = mkstemp(path);
     assert(f.fd >= 0 && unlink(path) == 0 && fchmod(f.fd, 0600) == 0);
