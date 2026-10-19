@@ -2,7 +2,8 @@
 // A closed installer candidate for static command preparation. These finite
 // facilities are selected before their actual FD/mapping/context acquisitions;
 // they do not estimate all-input demand or grant a business Run any capacity.
-// The process retains its separate initial managed/OS originals throughout.
+// Ordinary runtime values use the trusted platform allocator. Explicit native
+// domains retain their own actual backing, currentness and cleanup duties.
 fn local_command_installed_profile(
   source : String,
   manifest : String,
