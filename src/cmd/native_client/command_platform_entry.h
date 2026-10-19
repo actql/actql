@@ -48,6 +48,7 @@ __attribute__((constructor)) static void actql_command_capture_process_entry(voi
   int expected = 0;
   if (!atomic_compare_exchange_strong_explicit(&actql_command_entry_state,
       &expected, -2, memory_order_acq_rel, memory_order_acquire)) return;
+  actql_native_client_capture_initial_input();
 #if defined(__APPLE__)
   const char *source = actql_native_client_selected_source();
   if (!source) {

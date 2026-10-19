@@ -40,7 +40,7 @@ test('unselected bootstrap has no CLI or filesystem dependency', () => {
   assert.equal(run.status, 0, `${run.error ?? ''}\n${run.stdout}\n${run.stderr}`);
   assert.equal(run.stdout.trim(), 'unselected bootstrap entry passed');
 });
-for (const name of ['capture', 'one-shot', 'partial-current', 'thread-fork', 'runtime']) {
+for (const name of ['capture', 'early-input', 'early-argv-change', 'one-shot', 'partial-current', 'thread-fork', 'runtime']) {
   test(`original command entry record ${name}`, () => {
     const run = spawnSync(executable, [name], {cwd:root,
       env:{...process.env, TMPDIR:'/original/command-scratch',

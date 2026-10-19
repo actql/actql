@@ -1387,7 +1387,8 @@ fn execute_and_write_native_reply(
 
 ///|
 fn main {
-  // Observe the original OS input before Command construction/default_argv.
+  // Join the bounded raw input retained by the actual pre-module entry.
+  // Replaced argv cannot be adopted after the original startup observation.
   // These selected Darwin input ceilings include argv0 and terminal bytes;
   // they are not the initial-control or physical-capacity admission itself.
   // Help/version and argument failure acquire no Host/Root/Read resources.

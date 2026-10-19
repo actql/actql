@@ -32,6 +32,10 @@ enum {
  * text copy in initial control before any Read/inspection allocation. This is
  * input DATA only, not a directory observation, resource or authorization. */
 #define ACTQL_COMMAND_SCRATCH_BYTES 4096
+/* Closed selected executable input storage, including argv0 and every NUL.
+ * These static originals are initial control, never an allocator admission. */
+#define ACTQL_COMMAND_ORIGINAL_ARGUMENT_BYTES 1048576
+#define ACTQL_COMMAND_ORIGINAL_CONTEXT_BYTES 8192
 static int actql_bootstrap_capture_command_scratch(
     const char *original, char out[ACTQL_COMMAND_SCRATCH_BYTES + 1]) {
     if (original == NULL || original[0] == '\0') original = "/tmp";

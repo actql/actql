@@ -148,6 +148,10 @@ static int actql_command_input_status = ACTQL_COMMAND_INPUT_INVALID;
 static const char *actql_command_input_source;
 static const char *actql_command_input_context;
 static char actql_command_input_scratch[ACTQL_COMMAND_SCRATCH_BYTES + 1];
+static char actql_command_original_context[ACTQL_COMMAND_ORIGINAL_CONTEXT_BYTES + 1];
+static unsigned char actql_command_original_arguments[ACTQL_COMMAND_ORIGINAL_ARGUMENT_BYTES];
+static bool actql_command_early_input_attempted;
+static int actql_command_early_input_status = ACTQL_COMMAND_INPUT_INVALID;
 static actql_bootstrap_command_preparation_observation actql_command_input;
 // Partial initial-control inventory, not capacity or an allocation receipt.
 // These are the selected pinned mimalloc usable classes for the original raw argv,
@@ -192,39 +196,98 @@ static bool actql_command_quote_arguments(int argc, const char *const *argv) {
 }
 #endif
 
+/* The same entry invokes this before generated managed module startup. Capture
+ * bytes, not environment pointers that a later initializer could replace. The
+ * finite static storage and allocator class observations admit no arena. */
+static void actql_native_client_capture_initial_input(void) {
+  if (actql_command_early_input_attempted) return;
+  actql_command_early_input_attempted = true;
+  const char *context = getenv("ACTQL_NATIVE_LOCAL_RUNTIME");
+  if (context == NULL) {
+    actql_command_early_input_status = ACTQL_COMMAND_INPUT_NOT_SELECTED;
+    return;
+  }
+#if defined(__APPLE__)
+  const char *source = actql_native_client_selected_source();
+  int argc = *_NSGetArgc();
+  const char *const *argv = (const char *const *)*_NSGetArgv();
+  actql_command_early_input_status = actql_bootstrap_measure_command_preparation(
+      source, context, argc, argv,
+      ACTQL_COMMAND_ORIGINAL_ARGUMENT_BYTES, ACTQL_COMMAND_ORIGINAL_ARGUMENT_BYTES,
+      ACTQL_COMMAND_ORIGINAL_ARGUMENT_BYTES, ACTQL_COMMAND_ORIGINAL_CONTEXT_BYTES,
+      &actql_command_input);
+  if (actql_command_early_input_status != ACTQL_COMMAND_INPUT_OK) return;
+  size_t offset = 0;
+  for (int index = 0; index < argc; ++index) {
+    for (size_t byte = 0;; ++byte) {
+      if (offset >= sizeof(actql_command_original_arguments)) {
+        actql_command_early_input_status = ACTQL_COMMAND_INPUT_TOTAL_BYTES;
+        return;
+      }
+      unsigned char value = (unsigned char)argv[index][byte];
+      actql_command_original_arguments[offset++] = value;
+      if (value == 0) break;
+    }
+  }
+  if (offset != actql_command_input.input.storage_bytes ||
+      !actql_command_quote_arguments(argc, argv)) {
+    actql_command_early_input_status = ACTQL_COMMAND_INPUT_INVALID;
+    return;
+  }
+  memcpy(actql_command_original_context, context,
+      actql_command_input.context_bytes + 1);
+  actql_command_early_input_status = actql_bootstrap_capture_command_scratch(
+        getenv("TMPDIR"), actql_command_input_scratch);
+  if (actql_command_early_input_status == ACTQL_COMMAND_INPUT_OK) {
+    actql_command_input_source = source;
+    actql_command_input_context = actql_command_original_context;
+  }
+#endif
+}
+
+static bool actql_command_original_arguments_current(void) {
+#if defined(__APPLE__)
+  int argc = *_NSGetArgc();
+  const char *const *argv = (const char *const *)*_NSGetArgv();
+  if (argc <= 0 || (size_t)argc != actql_command_input.input.arguments || !argv)
+    return false;
+  size_t offset = 0;
+  for (int index = 0; index < argc; ++index) {
+    if (argv[index] == NULL) return false;
+    for (size_t byte = 0;; ++byte) {
+      if (offset >= actql_command_input.input.storage_bytes) return false;
+      unsigned char original = actql_command_original_arguments[offset++];
+      if ((unsigned char)argv[index][byte] != original) return false;
+      if (original == 0) break;
+    }
+  }
+  return offset == actql_command_input.input.storage_bytes;
+#else
+  return false;
+#endif
+}
+
 int32_t actql_native_client_measure_prearguments(
     int32_t maximum_arguments, int32_t maximum_argument_bytes,
     int32_t maximum_storage_bytes, int32_t maximum_context_bytes) {
   if (actql_command_input_attempted) return actql_command_input_status;
   actql_command_input_attempted = true;
-  const char *context = getenv("ACTQL_NATIVE_LOCAL_RUNTIME");
-  if (context == NULL) {
-    actql_command_input_status = ACTQL_COMMAND_INPUT_NOT_SELECTED;
+  if (!actql_command_early_input_attempted) return actql_command_input_status;
+  actql_command_input_status = actql_command_early_input_status;
+  if (actql_command_input_status != ACTQL_COMMAND_INPUT_OK)
     return actql_command_input_status;
-  }
   if (maximum_arguments <= 0 || maximum_argument_bytes <= 0 ||
-      maximum_storage_bytes <= 0 || maximum_context_bytes <= 0)
-    return actql_command_input_status;
-#if defined(__APPLE__)
-  const char *source = actql_native_client_selected_source();
-  actql_command_input_status = actql_bootstrap_measure_command_preparation(
-      source, context, *_NSGetArgc(), (const char *const *)*_NSGetArgv(),
-      (size_t)maximum_arguments, (size_t)maximum_argument_bytes,
-      (size_t)maximum_storage_bytes, (size_t)maximum_context_bytes,
-      &actql_command_input);
-  if (actql_command_input_status == ACTQL_COMMAND_INPUT_OK &&
-      !actql_command_quote_arguments(*_NSGetArgc(),
-          (const char *const *)*_NSGetArgv()))
+      maximum_storage_bytes <= 0 || maximum_context_bytes <= 0 ||
+      !actql_command_original_arguments_current())
     actql_command_input_status = ACTQL_COMMAND_INPUT_INVALID;
-  if (actql_command_input_status == ACTQL_COMMAND_INPUT_OK) {
-    actql_command_input_status = actql_bootstrap_capture_command_scratch(
-        getenv("TMPDIR"), actql_command_input_scratch);
-  }
-  if (actql_command_input_status == ACTQL_COMMAND_INPUT_OK) {
-    actql_command_input_source = source;
-    actql_command_input_context = context;
-  }
-#endif
+  else if (actql_command_input.context_bytes > (size_t)maximum_context_bytes)
+    actql_command_input_status = ACTQL_COMMAND_INPUT_CONTEXT;
+  else if (actql_command_input.input.arguments > (size_t)maximum_arguments)
+    actql_command_input_status = ACTQL_COMMAND_INPUT_ARGUMENTS;
+  else if (actql_command_input.input.longest_argument_bytes > (size_t)maximum_argument_bytes)
+    actql_command_input_status = ACTQL_COMMAND_INPUT_ARGUMENT_BYTES;
+  else if (actql_command_input.input.storage_bytes > (size_t)maximum_storage_bytes)
+    actql_command_input_status = ACTQL_COMMAND_INPUT_TOTAL_BYTES;
   return actql_command_input_status;
 }
 

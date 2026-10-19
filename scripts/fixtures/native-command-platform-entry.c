@@ -25,6 +25,42 @@ int main(int argc, char **argv) {
   assert(actql_native_command_platform_current() == NULL);
   assert(actql_native_command_platform_scratch_directory(
     &actql_command_entry) == NULL);
+  assert(actql_command_early_input_attempted);
+  assert(actql_command_early_input_status == ACTQL_COMMAND_INPUT_OK);
+  assert(!actql_command_input_attempted);
+  if (strcmp(argv[1], "early-input") == 0) {
+    char original[ACTQL_COMMAND_ORIGINAL_CONTEXT_BYTES + 1];
+    size_t length = actql_command_input.context_bytes;
+    assert(length > 0 && length < sizeof(original));
+    memcpy(original, actql_command_original_context, length + 1);
+    assert(setenv("ACTQL_NATIVE_LOCAL_RUNTIME", "replacement", 1) == 0);
+    assert(setenv("TMPDIR", "/replacement/scratch", 1) == 0);
+    assert(actql_native_client_measure_prearguments(256,4096,65536,8192) == 0);
+    unsigned char observed[ACTQL_COMMAND_ORIGINAL_CONTEXT_BYTES];
+    assert(actql_native_client_copy_preargument_context(observed, (int32_t)length));
+    assert(memcmp(observed, original, length) == 0);
+    assert(strcmp(actql_command_input_scratch, "/original/command-scratch") == 0);
+    actql_native_client_capture_command_entry();
+    assert(atomic_load(&actql_command_entry_state) == 2);
+    assert(!actql_command_entry.initial_envelope_admitted);
+    assert(actql_native_command_platform_current() == NULL);
+    puts("original entry record passed");
+    return 0;
+  }
+  if (strcmp(argv[1], "early-argv-change") == 0) {
+    argv[1][0] = 'X';
+    assert(actql_native_client_measure_prearguments(256,4096,65536,8192)
+      == ACTQL_COMMAND_INPUT_INVALID);
+    actql_native_client_capture_command_entry();
+    assert(atomic_load(&actql_command_entry_state) == -1);
+    assert(actql_native_command_platform_current() == NULL);
+    argv[1][0] = 'e';
+    assert(actql_native_client_measure_prearguments(256,4096,65536,8192)
+      == ACTQL_COMMAND_INPUT_INVALID);
+    assert(!actql_command_entry.initial_envelope_admitted);
+    puts("original entry record passed");
+    return 0;
+  }
   assert(actql_native_client_measure_prearguments(256,4096,65536,8192) == 0);
   actql_native_client_capture_command_entry();
   assert(atomic_load(&actql_command_entry_state) == 2);

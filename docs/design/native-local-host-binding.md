@@ -1625,6 +1625,14 @@ retain their existing identity and cleanup responsibilities. Captured path text
 is input correspondence; it cannot issue the initial platform holding or pay for
 path-helper internals, ACL objects, Read buffers or other allocations.
 
+The executable entry retains its bounded raw argument bytes, runtime context
+and scratch selection before generated managed module initialization. The later
+parser entrance checks the same argument bytes and its requested bounds;
+changed arguments cannot replace that original observation. Context and scratch
+selection use retained bytes rather than later environment pointers. This
+static initial-control storage remains distinct from an admitted managed arena
+and from the physical Host, Read and component originals.
+
 Selected inspection resolves its source and scratch directories with bounded
 descriptor-based kernel path observations. It keeps the original containment
 comparison, refuses unsupported filesystems without a realpath fallback and
