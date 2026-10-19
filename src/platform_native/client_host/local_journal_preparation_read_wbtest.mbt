@@ -25,6 +25,19 @@ fn preparation_read_refusal_without_pair() -> (@sqlite.Library, @crypto.Library)
     capture.configuration_in_original_read()
     is Err(OriginalResourceScopePending),
   )
+  assert_true(
+    capture.authority_scope_cid_in_original_read("principal", "connection")
+    is Err(OriginalResourceScopePending),
+  )
+  assert_true(
+    capture.authorize_in_original_read({
+      principal: "principal",
+      connection: "connection",
+      resource: "run",
+      operation: "submit",
+    })
+    is Err(OriginalResourceScopePending),
+  )
   let runtime = local_runtime_empty(None)
   assert_true(
     capture.bind_packaged_runtime_in_original_read(
@@ -68,6 +81,19 @@ fn preparation_read_scope_stop() -> (@sqlite.Library, @crypto.Library) raise {
   )
   assert_true(
     capture.require_packaged_runtime_upgrade_in_original_read()
+    is Err(OriginalResourceScopePending),
+  )
+  assert_true(
+    capture.authority_scope_cid_in_original_read("principal", "connection")
+    is Err(OriginalResourceScopePending),
+  )
+  assert_true(
+    capture.authorize_in_original_read({
+      principal: "principal",
+      connection: "connection",
+      resource: "run",
+      operation: "submit",
+    })
     is Err(OriginalResourceScopePending),
   )
   assert_eq(
