@@ -114,6 +114,10 @@ test "finite Policy original routing retains its first issuance without resampli
       "insert:client_runs:" + @host.client_request_scope_cid(request),
     ),
   )
+  let saved_intent = host.database
+    .read("client_submitted_intents", reference.request_id)
+    .unwrap()
+  let saved_count = host.database.read("client_run_custody", "issued").unwrap()
   calls.clear()
   let restored = policy
     .prepare_submission_policy_with_operations(
@@ -134,11 +138,24 @@ test "finite Policy original routing retains its first issuance without resampli
     @host.client_local_run_policy_original_body(packet),
     @host.client_local_run_policy_original_body(original),
   )
-  assert_false(
-    calls.any(value => {
-      value.has_prefix("insert:") || value.has_prefix("compare_exchange:")
-    }),
+  // Authentication still advances the original monotonic epoch clock. It
+  // cannot issue another Run, replace its intent or resample the saved Policy.
+  assert_true(
+    calls.contains("compare_exchange:client_submission_epoch:authority"),
   )
+  for value in calls {
+    if value.has_prefix("insert:") || value.has_prefix("compare_exchange:") {
+      assert_eq(value, "compare_exchange:client_submission_epoch:authority")
+    }
+  }
+  let after_intent = host.database
+    .read("client_submitted_intents", reference.request_id)
+    .unwrap()
+  let after_count = host.database.read("client_run_custody", "issued").unwrap()
+  assert_eq(after_intent.body, saved_intent.body)
+  assert_eq(after_intent.revision, saved_intent.revision)
+  assert_eq(after_count.body, saved_count.body)
+  assert_eq(after_count.revision, saved_count.revision)
   let after = host.journal.retained(request).unwrap().unwrap()
   assert_eq(after.revision, saved.revision)
   assert_false(after.physical_start_claimed)
