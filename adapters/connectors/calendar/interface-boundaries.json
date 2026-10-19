@@ -1,10 +1,10 @@
 {
-  "qualification": "existing Calendar Owner source-reference coverage; not normal acquisition, capacity, physical cleanup, credential mint or installed acceptance",
-  "source": "666d7858cb5e26b7c39609b1dee723a9be3aba15",
+  "qualification": "Existing Calendar Owner source/operation references; actual component captures and physical close are separate from normal Host capacity, installed/live Google or funding acceptance",
+  "source": "f8eced46cf359819c131109702e8bdda6eb718bf",
   "declarations": [
     {
       "module": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-      "sha256": "ad5b3dbdf5cfb0b32f8e551ef9f8a318f696496d38e068f4ea13cbfe311ddef3",
+      "sha256": "b4c30cfd9d292eb6936e956dbb41497f13cb2c72a49ec9ddbb15c342b8829de3",
       "exports": [
         "CALENDAR_LIST_OPERATION",
         "CalendarListReadFailure",
@@ -271,7 +271,7 @@
             "ownership": [
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "Their frozen arrays are shallow"
+                "anchor": "Frozen arrays are shallow"
               }
             ],
             "synchronization": {
@@ -295,7 +295,7 @@
             "extension": [
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "Missing inventory, placement"
+                "anchor": "Missing capacity or"
               }
             ],
             "verification": [
@@ -340,7 +340,7 @@
             "ownership": [
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "returns one private physical-reader handle"
+                "anchor": "`createCalendarListReader` snapshots the original invocation before I/O."
               }
             ],
             "synchronization": [
@@ -352,7 +352,7 @@
             "failure": [
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "If the factory refuses"
+                "anchor": "Pending or"
               }
             ],
             "cancellation": [
@@ -1739,7 +1739,7 @@
             "extension": [
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "A normal"
+                "anchor": "The actual installer must separately supply"
               },
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
@@ -1848,7 +1848,7 @@
             "extension": [
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "A normal"
+                "anchor": "The actual installer must separately supply"
               },
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
@@ -1959,7 +1959,7 @@
             "extension": [
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "A normal"
+                "anchor": "The actual installer must separately supply"
               },
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
@@ -2065,7 +2065,7 @@
             "extension": [
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "A normal"
+                "anchor": "The actual installer must separately supply"
               },
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
@@ -2080,6 +2080,469 @@
               {
                 "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
                 "anchor": "test('Calendar free busy lost POST reply"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
+      "sha256": "0f9eec0cecbdb576be16627ca8901324ef0d6058a5cc218df02b217edeb4172a",
+      "exports": [
+        "INSTALLED_CALENDAR_SITE_VERSION",
+        "INSTALLED_CALENDAR_SOURCE_VERSION",
+        "checkInstalledCalendarSourceProfile",
+        "installedCalendarSourceIdentityParts",
+        "loadInstalledCalendarSource"
+      ],
+      "operations": [
+        {
+          "name": "absolute/absolute",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureProvider",
+          "parameters": [
+            "provider"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureProvider/captureProvider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureProvider/captureProvider/captureProvider",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledCalendarSourceProfile",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledCalendarSourceProfile/checkInstalledCalendarSourceProfile",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkSite",
+          "parameters": [
+            "site"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkSite/checkSite",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "closedData",
+          "parameters": [
+            "value",
+            "keys",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "closedData/closedData",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "closedData/closedData#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedCalendarSourceIdentityParts",
+          "parameters": [
+            "profile",
+            "providerProfile"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledCalendarSource",
+          "parameters": [
+            "profile",
+            "root",
+            "principalId",
+            "moon",
+            "providerMoon",
+            "baseEnvironmentWire",
+            "runtimeBundleCid",
+            "resolveSecret",
+            "readerCapacity"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledCalendarSource/admitsApprovalTarget/admitsApprovalTarget",
+          "parameters": [
+            "value",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledCalendarSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledCalendarSource/init:readPages/init:readPages",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledCalendarSource/target/target",
+          "parameters": [
+            "selected",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReaderFactory",
+          "parameters": [
+            "provider",
+            "site",
+            "installed",
+            "capacity"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/closeTransport/closeTransport",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
+          "parameters": [
+            "index"
+          ],
+          "async": true
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#3",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#4",
+          "parameters": [
+            "rows",
+            "ticket"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#5",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInputs",
+          "parameters": [
+            "profile"
+          ],
+          "async": true
+        },
+        {
+          "name": "sha/sha",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/source-profile-json.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "../site/calendar-list-read.mjs",
+        "node:crypto",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Calendar Catalog, Account/Credential Site and original Common RowRun owners",
+      "contracts": [
+        {
+          "operations": [
+            "absolute/absolute",
+            "captureProvider",
+            "captureProvider/captureProvider",
+            "captureProvider/captureProvider/captureProvider",
+            "checkInstalledCalendarSourceProfile",
+            "checkInstalledCalendarSourceProfile/checkInstalledCalendarSourceProfile",
+            "checkSite",
+            "checkSite/checkSite",
+            "cid/cid",
+            "closedData",
+            "closedData/closedData",
+            "closedData/closedData#2",
+            "fail/fail",
+            "installedCalendarSourceIdentityParts",
+            "loadInstalledCalendarSource",
+            "loadInstalledCalendarSource/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledCalendarSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledCalendarSource/init:readPages/init:readPages",
+            "loadInstalledCalendarSource/target/target",
+            "originalReaderFactory",
+            "originalReaderFactory/init:prepare/init:prepare",
+            "originalReaderFactory/init:prepare/init:prepare/assertCurrent/assertCurrent",
+            "originalReaderFactory/init:prepare/init:prepare/closeTransport/closeTransport",
+            "originalReaderFactory/init:prepare/init:prepare/handle/init:observe/init:observe",
+            "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read",
+            "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
+            "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
+            "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#3",
+            "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#4",
+            "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#5",
+            "originalReaderFactory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+            "positive/positive",
+            "readInputs",
+            "sha/sha",
+            "text/text"
+          ],
+          "exports": [
+            "INSTALLED_CALENDAR_SITE_VERSION",
+            "INSTALLED_CALENDAR_SOURCE_VERSION",
+            "checkInstalledCalendarSourceProfile",
+            "installedCalendarSourceIdentityParts",
+            "loadInstalledCalendarSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The Calendar catalog owns"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The installed Calendar factory opens exactly one binding"
+              },
+              {
+                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
+                "anchor": "export async function loadInstalledCalendarSource"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
+                "anchor": "export function checkInstalledCalendarSourceProfile"
+              },
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "pub fn calendar_list_schema_wire("
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The schema, four"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The same checked SQL/Pipe Program"
+              },
+              {
+                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
+                "anchor": "if(this!==handle)fail('ForeignInstalledCalendarReader');"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "Equal target or schema DATA cannot"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The common session separately waits"
+              },
+              {
+                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
+                "anchor": "function originalReaderFactory("
+              },
+              {
+                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
+                "anchor": "const credential=site.credential,callResource=site.callResource;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
+                "anchor": "const assertCurrent=async()=>"
+              },
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "await context.callbacks.consumePage(rows, Object.freeze({charge}));"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
+                "anchor": "}catch(cause){phase='failed';originalFailure=cause;throw cause;}"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "Pending or"
+              },
+              {
+                "path": "adapters/connectors/calendar/test/installed-calendar-capture.test.mjs",
+                "anchor": "lost-response Credential Unknown after physical close"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
+                "anchor": "requestStop(reason)"
+              },
+              {
+                "path": "adapters/connectors/calendar/test/installed-calendar-capture.test.mjs",
+                "anchor": "rechecks stop before the next page and does not resend"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The transfer envelope is"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The response byte limit bounds"
+              },
+              {
+                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
+                "anchor": "cleanupConfirmed:phase!=="
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "free/busy and event writes do not inherit this registration."
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "Missing capacity or"
+              },
+              {
+                "path": "src/connectors/calendar/host-bundle.json",
+                "anchor": "\"registration\": \"calendar\""
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/calendar/test/installed-calendar-capture.test.mjs",
+                "anchor": "captures two original pages and releases its native binding"
+              },
+              {
+                "path": "adapters/connectors/calendar/test/installed-calendar-capture.test.mjs",
+                "anchor": "malformed unselected cell before capture"
+              },
+              {
+                "path": "adapters/connectors/calendar/test/installed-calendar-source.test.mjs",
+                "anchor": "ordinary installed Source selection reaches the Calendar-owned factory"
               }
             ]
           }
