@@ -94,13 +94,15 @@ pub fn prepare_native_result_material_receiver(
     max_depth > 64 {
     return Err(MaterialInvalidLimits)
   }
+  // Metadata uses the existing bounded contract envelope. The payload byte
+  // ceiling is independent and remains enforced by the frame and sink.
   let resolved = match
     store.resolve_committed_result(
       request.namespace_id,
       request.authority_scope_cid,
       request.run_definition_cid,
       request.result_name,
-      max_bytes,
+      65536,
       max_nodes,
       max_depth,
     ) {
@@ -122,7 +124,7 @@ pub fn prepare_native_result_material_receiver(
     @publication.prepare_result_material_schema(
       schema_wire,
       resolved.read.result_fields,
-      max_bytes,
+      65536,
       max_nodes,
       max_depth,
       max_fields,
