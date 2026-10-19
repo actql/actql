@@ -2625,6 +2625,10 @@
               {
                 "path": "adapters/connectors/slack/test/message-projection-read.test.mjs",
                 "anchor": "test('Slack projection preserves the original current callback receiver across completed reader reuse'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-history-window-read.test.mjs",
+                "anchor": "test('Slack original window survives cursor and exact-time pagination at the real HTTP caller'"
               }
             ]
           }
