@@ -157,3 +157,86 @@ test('original composed provider retains original preparation through the existi
   assert.equal(result.failure(), undefined);
   await retained.close();
 });
+
+function deferredProvider(f, originalPreparation) {
+  let open;
+  f.moon.clientProgramComposedInferLocalProvider = (_occurrence, callback) => {
+    open = callback; return f.provider;
+  };
+  const component = openNodeComposedInferProvider({moon: f.moon, sources: f.sources,
+    selected: {occurrence: f.occurrence, graph: f.graph, computePrefix: f.prefix, provider: f.provider},
+    originalPreparation, plan: {compiled: f.originalPreparation.compiled,
+      runDefinition: f.originalPreparation.runDefinition},
+    control: {
+      bindCheckedClientInferRun() { f.calls.push(['run']); },
+      bindCheckedClientInferDispatch() { f.calls.push(['dispatch']); },
+    }, now: () => '2026-10-20T00:00:00.000Z',
+    retainOperation() { f.calls.push(['retain']); }});
+  return {component, open: () => open(f.inputs)};
+}
+
+test('deferred composed read is issued after inputs arrive using the captured original callback and receiver', async () => {
+  const f = fixture(), view = Object.freeze(f.originalPreparation);
+  let sourcesReady = false, reads = 0;
+  const original = {prepareRead() {
+    assert.strictEqual(this, original); assert(sourcesReady);
+    reads++; f.calls.push(['prepareRead']); return view;
+  }};
+  const {component, open} = deferredProvider(f, original);
+  assert.equal(reads, 0); assert.deepEqual(f.calls, []);
+  await Promise.resolve();
+  sourcesReady = true;
+  original.prepareRead = () => assert.fail('replacement read issuer');
+  assert.strictEqual(open(), f.active);
+  assert.equal(reads, 1);
+  assert.deepEqual(f.calls.map(x => x[0]), ['prepareRead', 'claim', 'start', 'retain', 'run', 'dispatch']);
+  assert.strictEqual(f.calls[1][1], view.read);
+  assert.strictEqual(component.operation().originalResourceScope(), view.scope);
+  assert.equal(open(), undefined); assert.equal(reads, 1);
+  await component.operation().close();
+});
+
+test('deferred composed read failure remains the original failure without a replacement attempt', () => {
+  const f = fixture(), cause = new Error('OriginalReadIssueFailed'); let reads = 0;
+  const {component, open} = deferredProvider(f, {prepareRead() { reads++; throw cause; }});
+  assert.equal(open(), undefined);
+  assert.strictEqual(component.failure(), cause);
+  assert.equal(open(), undefined);
+  assert.strictEqual(component.failure(), cause);
+  assert.equal(reads, 1); assert.equal(f.calls.length, 0);
+});
+
+test('deferred composed claim refusal preserves the same issued read and cannot issue another', () => {
+  const cause = Object.freeze({issue: 'ChangedOriginalRead'}), f = fixture({claimIssue: cause});
+  let reads = 0;
+  const {component, open} = deferredProvider(f, {prepareRead() { reads++; return Object.freeze(f.originalPreparation); }});
+  assert.equal(open(), undefined);
+  const failure = component.failure(); assert.strictEqual(failure.cause, cause);
+  assert.equal(open(), undefined);
+  assert.strictEqual(component.failure(), failure);
+  assert.equal(reads, 1); assert.equal(f.calls.length, 1);
+  assert.strictEqual(f.calls[0][1], f.originalPreparation.read);
+});
+
+test('deferred composed read cannot return no view or an asynchronous view and fall back to an unowned start', () => {
+  for (const result of [undefined, null, Promise.resolve({})]) {
+    const f = fixture(); let reads = 0;
+    const {component, open} = deferredProvider(f, {prepareRead() { reads++; return result; }});
+    assert.equal(open(), undefined);
+    assert.equal(component.failure()?.message, 'InvalidComposedInferOriginalPreparation');
+    const failure = component.failure(); assert.equal(open(), undefined);
+    assert.strictEqual(component.failure(), failure);
+    assert.equal(reads, 1); assert.equal(f.calls.length, 0);
+  }
+});
+
+test('deferred composed read never invokes an inherited then getter on the returned original', async () => {
+  const f = fixture(); let observed = 0;
+  const prototype = {get then() { observed++; throw new Error('UnownedThenGetter'); }};
+  const view = Object.freeze(Object.assign(Object.create(prototype), f.originalPreparation));
+  const {component, open} = deferredProvider(f, {prepareRead() { return view; }});
+  assert.strictEqual(open(), f.active);
+  assert.equal(observed, 0);
+  assert.equal(component.failure(), undefined);
+  await component.operation().close();
+});
