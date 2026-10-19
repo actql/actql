@@ -157,7 +157,13 @@ fn LocalCommandPreparationOriginal::execute_original_quick_query(
   operation : String,
   child : @argparse.Matches,
 ) -> String raise ClientStop {
-  let format = local_quick_query_delivery(child)
+  let presentation = local_quick_query_format(child)
+  if child.values.contains("output") {
+    stop("LocalResultFileDeliveryUnavailable")
+  }
+  // JSON is the private material transfer encoding, never a stdout receipt
+  // relabelled as a table. The selected receiver owns the checked rows.
+  let format = if presentation == "table" { "json" } else { presentation }
   let publication = self.prepare_business_submission(
     host, capture, configuration_name, runtime, input_root, operation, child,
   )
@@ -204,6 +210,7 @@ fn LocalCommandPreparationOriginal::execute_original_quick_query(
       sqlite,
       result,
       prepared=Some(selected),
+      material_table=presentation == "table",
     )
   } catch {
     ClientStop(issue) => stop(issue + correlation)

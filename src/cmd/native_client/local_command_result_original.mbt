@@ -7,6 +7,7 @@ priv struct LocalCommandResultOriginal {
   capture : @local_host.NativeLocalJournalCapture
   original : @local_host.NativeClientOriginalRunSelection
   binding : @local_host.NativeLocalReadPolicyBinding
+  policy : @local_host.NativeLocalRunPolicyBinding
   store : @local_store.Store
   scope : String
 }
@@ -200,5 +201,5 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
     capture.check_current_in_original_read(),
     "Store current",
   )
-  { owner: self, host, capture, original, binding, store, scope, }
+  { owner: self, host, capture, original, binding, policy, store, scope, }
 }

@@ -78,6 +78,7 @@ test "Business child cleanup retries the same failed physical entry after origin
     result_binding: None,
     result_service: None,
     result_session: None,
+    result_material: None,
     result_sink: None,
     result_refusal: None,
     result_cleanup_issue: None,

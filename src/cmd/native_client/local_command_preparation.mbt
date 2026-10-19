@@ -191,6 +191,7 @@ fn prepare_local_command_preparation_original(
       result_binding: None,
       result_service: None,
       result_session: None,
+      result_material: None,
       result_sink: None,
       result_refusal: None,
       result_cleanup_issue: None,

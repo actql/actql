@@ -64,3 +64,26 @@ pub fn NativeLocalJournalCapture::bind_result_read_policy_for_run_in_original_re
     )
   })
 }
+
+///|
+/// The original selected Material file and actual receiver are both required.
+/// A copied identity or the independent stdout selection cannot substitute.
+pub fn NativeLocalJournalCapture::bind_result_material_read_policy_for_run_in_original_read(
+  self : NativeLocalJournalCapture,
+  policy : NativeLocalRunPolicyBinding,
+  reference : NativeClientSubmissionReference,
+  request : @host.ClientRequestIdentity,
+  now : Double,
+  material_file : String,
+) -> Result[NativeLocalReadPolicyBinding, NativeLocalReadBindingIssue] {
+  read_binding_in_original_read(self, (host, _operations) => {
+    host.bind_result_read_policy_for_run_with_capture(
+      policy,
+      reference,
+      request,
+      now,
+      capture=Some(self),
+      material_file=Some(material_file),
+    )
+  })
+}
