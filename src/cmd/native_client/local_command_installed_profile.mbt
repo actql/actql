@@ -102,6 +102,8 @@ fn local_command_preparation_selected(
   if !(matches.subcommand is Some(("check", _)) ||
     matches.subcommand is Some(("explain", _)) ||
     matches.subcommand is Some(("run", _)) ||
+    local_checkpoint_action_selected(matches, "approve") ||
+    local_checkpoint_action_selected(matches, "reject") ||
     (
       matches.subcommand is Some(("result", child)) &&
       optional(child, "run") is Some(_)

@@ -91,6 +91,7 @@ fn local_command_preparation_operation_selected(
   operation == "check" ||
   operation == "explain" ||
   operation == "adopt" ||
+  local_checkpoint_action_selected(matches, operation) ||
   (
     operation == "status" &&
     matches.subcommand is Some(("status", child)) &&
@@ -299,6 +300,15 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
         } else if operation == "explain" {
           local_check_context(host, crypto, name, capture=Some(capture)).explain(
             input_root, child,
+          )
+        } else if operation == "approve" || operation == "reject" {
+          local_checkpoint_answer_by_id(
+            host,
+            settings,
+            crypto,
+            operation,
+            child,
+            capture=Some(capture),
           )
         } else if operation == "status" {
           local_saved_run_status_command(

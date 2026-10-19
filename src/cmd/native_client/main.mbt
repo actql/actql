@@ -922,6 +922,7 @@ fn command() -> @argparse.Command {
       ]),
       @argparse.Command(
         "approve",
+        flags=[@argparse.FlagArg("wait"), @argparse.FlagArg("json")],
         positionals=[
           @argparse.PositionArg(
             "checkpoint-id",
@@ -932,6 +933,7 @@ fn command() -> @argparse.Command {
       ),
       @argparse.Command(
         "reject",
+        flags=[@argparse.FlagArg("json")],
         positionals=[
           @argparse.PositionArg(
             "checkpoint-id",
