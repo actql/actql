@@ -249,6 +249,7 @@ fn row_count(
   minimum : Int64,
   parameters : Map[String, @contract.Contract],
   pending : Array[PendingValidation],
+  allow_int64? : Bool = false,
 ) -> CountValue raise Stop {
   spend(b, source)
   match @decode.view(source) {
@@ -275,7 +276,8 @@ fn row_count(
         Some(c) => c
         None => fail(s, UnknownParameter(name))
       }
-      if !(c.shape is @contract.Number) {
+      if !(c.shape is @contract.Number) &&
+        !(allow_int64 && c.shape is @contract.Signed64) {
         fail(s, InvalidCount)
       }
       pending.push({ kind: BoundInteger(name~, minimum~), source, })

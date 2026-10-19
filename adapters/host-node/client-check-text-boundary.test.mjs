@@ -655,6 +655,96 @@ for (const entrance of ['local', 'http']) {
     assert.deepEqual(outcomes[1], outcomes[2]);
   });
 
+  test(`${entrance}: LIMIT count parameter diagnostics keep the original supplied and default inputs`, async t => {
+    const {client} = await publicCheck(t, entrance, {visibility: 'allowed'});
+    const text = 'SELECT id FROM records ORDER BY id LIMIT @count';
+    for (const type of ['number', 'int64']) {
+      for (const defaulted of [false, true]) {
+        const zero = type === 'number' ? 0 : '0';
+        const declarations = {count: {type, ...(defaulted ? {default: zero} : {})}};
+        const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql',
+          parameterDeclarations: declarations, ...(defaulted ? {} : {parameters: {count: zero}})});
+        assert.equal(outcome.outcome, 'completed');
+        assert.equal(outcome.report.verdict, 'invalid');
+        const [reason] = outcome.report.reasons;
+        assert.deepEqual({code: reason.code, facts: reason.facts}, {code: 'operation_parameter_invalid',
+          facts: {parameter: 'count', domain: 'positive_safe_integer'}});
+        const documentId = defaulted ? 'parameter_declarations' : 'parameters';
+        assert.deepEqual(reason.location, {kind: 'structured', document_id: documentId,
+          revision: outcome.report.inputs.find(input => input.document_id === documentId).revision,
+          pointer: defaulted ? '/count/default' : '/count'});
+        assert.ok(resolveCheckLocation(outcome, reason.location));
+        assert.equal(explainCheckReason(reason).hint, 'Supply an integer from 1 through 9007199254740991.');
+        assert.equal(resolveCheckLocation(structuredClone(outcome), reason.location), undefined);
+        assert.deepEqual(outcome.report.requirements, []);
+      }
+    }
+  });
+
+  test(`${entrance}: ordered SQL and Pipe templates close original Sort and literal LIMIT obligations`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const [format, text] of [
+      ['sql', 'SELECT @x AS n ORDER BY n DESC LIMIT 1 OFFSET 0'],
+      ['aql-text', 'SELECT @x AS n |> ORDER BY n DESC |> LIMIT 1 OFFSET 0'],
+    ]) {
+      const options = {kind: 'text', scope: 'template_only', format,
+        parameterDeclarations: {x: {type: 'number'}}};
+      const outcome = await client.check(text, options);
+      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.report.verdict, 'verified');
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+      assert.deepEqual(outcome.report.reasons, []);
+      assert.equal(outcome.report.requirements.length, 1);
+      const requirement = outcome.report.requirements[0];
+      assert.equal(requirement.code, 'parameter_value_required');
+      assert.equal(requirement.facts.parameter, 'x');
+      assert.equal(resolveCheckLocation(outcome, requirement.location).pointer, '/x');
+      assert.deepEqual(outcome.report.runnable, {verdict: 'no', reasons: [{code: 'parameter_value_required'}]});
+      // A complete template is not bound input or an executable Run.
+      const bound = await client.check(text, {...options, scope: 'bound_input', parameters: {x: 2}});
+      assert.equal(bound.report.verdict, 'verified');
+      assert.deepEqual(bound.report.requirements, []);
+      assert.equal(resolveCheckLocation(structuredClone(outcome), requirement.location), undefined);
+    }
+    const conditional = await client.check('SELECT 1 AS n ORDER BY n LIMIT @count',
+      {kind: 'text', scope: 'template_only', format: 'sql', parameterDeclarations: {count: {type: 'int64'}}});
+    assert.equal(conditional.report.verdict, 'undetermined');
+    assert.ok(conditional.report.coverage.limits.some(limit => limit.code === 'implementation_limit'));
+    assert.equal(conditional.report.requirements[0].facts.parameter, 'count');
+  });
+
+  test(`${entrance}: SQL and Pipe DISTINCT templates retain typed Parameter and Result obligations`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const [format, text] of [
+      ['sql', 'SELECT DISTINCT @x AS n'],
+      ['aql-text', 'SELECT @x AS n |> DISTINCT'],
+    ]) {
+      for (const [declaration, value] of [
+        [{type: 'number', nullable: true}, null],
+        [{type: 'int64'}, '-9223372036854775808'],
+        [{type: 'int64'}, '9007199254740993'],
+      ]) {
+        const options = {kind: 'text', scope: 'template_only', format,
+          parameterDeclarations: {x: declaration}};
+        const outcome = await client.check(text, options);
+        assert.equal(outcome.outcome, 'completed');
+        assert.equal(outcome.report.verdict, 'verified');
+        assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+        assert.deepEqual(outcome.report.reasons, []);
+        assert.equal(outcome.report.requirements.length, 1);
+        const requirement = outcome.report.requirements[0];
+        assert.equal(requirement.code, 'parameter_value_required');
+        assert.equal(requirement.facts.parameter, 'x');
+        assert.equal(resolveCheckLocation(outcome, requirement.location).pointer, '/x');
+        assert.deepEqual(outcome.report.runnable, {verdict: 'no', reasons: [{code: 'parameter_value_required'}]});
+        const bound = await client.check(text, {...options, scope: 'bound_input', parameters: {x: value}});
+        assert.equal(bound.report.verdict, 'verified');
+        assert.deepEqual(bound.report.requirements, []);
+        assert.equal(resolveCheckLocation(structuredClone(outcome), requirement.location), undefined);
+      }
+    }
+  });
+
   test(`${entrance}: scoped SQL and AQL templates close complete obligations and retain runtime Requirements`, async t => {
     const {client} = await publicCheck(t, entrance);
     for (const format of ['sql', 'aql-text']) {

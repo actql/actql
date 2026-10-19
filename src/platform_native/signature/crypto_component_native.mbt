@@ -85,12 +85,21 @@ pub fn load_current_crypto_component(
     return Err(LibraryLoad("original scoped Crypto provider unavailable"))
   }
   let original = match command_member {
-    Some(component) => crypto_command_component_load_ffi(
-      encoded, encoded.length(), heap_bytes, diagnostic_ceiling, component,
-    )
-    None => crypto_component_load_ffi(
-      encoded, encoded.length(), heap_bytes, diagnostic_ceiling,
-    )
+    Some(component) =>
+      crypto_command_component_load_ffi(
+        encoded,
+        encoded.length(),
+        heap_bytes,
+        diagnostic_ceiling,
+        component,
+      )
+    None =>
+      crypto_component_load_ffi(
+        encoded,
+        encoded.length(),
+        heap_bytes,
+        diagnostic_ceiling,
+      )
   }
   if crypto_component_ready_ffi(original) {
     Ok(ReadyCryptoComponent(original))
