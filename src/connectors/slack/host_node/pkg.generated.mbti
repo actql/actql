@@ -38,6 +38,8 @@ pub fn slack_finish_message_replies(@catalog.SlackMessageReplies, @catalog.Slack
 
 pub fn slack_message_column_names() -> Array[String]
 
+pub fn slack_message_history_matches_channel(@catalog.SlackMessageHistory, @catalog.SlackChannelListPage, Int) -> Bool
+
 pub fn slack_message_history_page_has_next(@catalog.SlackMessagePage) -> Bool
 
 pub fn slack_message_history_request_json(@catalog.SlackMessageHistoryRequest) -> String
@@ -71,6 +73,8 @@ pub fn slack_next_message_history_request(@catalog.SlackMessageHistory, @catalog
 pub fn slack_next_message_replies_request(@catalog.SlackMessageReplies, @catalog.SlackMessageRepliesPage) -> Result[@catalog.SlackMessageRepliesRequest, @catalog.SlackMessagePageIssue]
 
 pub fn slack_prepare_message_history(String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SlackMessageHistory, @catalog.SlackMessagePageIssue]
+
+pub fn slack_prepare_message_history_from_channel(@catalog.SlackChannelListPage, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SlackMessageHistory, @catalog.SlackMessagePageIssue]
 
 pub fn slack_prepare_message_history_window(String, String?, String?, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SlackMessageHistory, @catalog.SlackMessagePageIssue]
 
