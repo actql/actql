@@ -1037,6 +1037,24 @@ an operational disposition, key/first-init permission or a physical ACK. The
 selected filesystem/library branch, native instance custody and complete
 simultaneous facility amount remain separate obligations.
 
+The selected Darwin Journal directory path uses an instance-bound native
+descriptor, APFS/non-union admission and a fixed kernel attribute buffer, rather
+than asking libc to construct a potentially eager directory stream. Entry,
+name-byte and work ceilings apply before returning names. The same descriptor
+and path identity remain current through enumeration; the existing full-name
+snapshot and cold-copy checks consume that private inspector without falling
+back after a selected refusal. An unselected Journal retains its existing path.
+The native module, loader and all native/managed aliases require their own
+pre-use correspondence and complete facility coverage; the inspector's private
+membership or bounds do not issue that admission.
+
+Physical directory close is consumed once before entering the native call.
+A failed or uncertain result retains the same original and pending duty; retry
+only observes that outcome and never closes a possibly reused numeric FD.
+Neither JavaScript alias retirement nor native finalization supplies a close
+acknowledgement. The loaded module and shared allocator/library domains remain
+charged for their actual lifetimes after a successful child close.
+
 SQL and native-statement counters do not bound an operation that refuses
 before reaching SQL, including its validation and any earlier native crypto
 work. The selected Journal may therefore additionally impose an original

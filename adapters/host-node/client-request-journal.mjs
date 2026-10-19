@@ -15,6 +15,8 @@ import {types as utilTypes} from 'node:util';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
 import {inspectSqliteSnapshot, inspectJournalDirectory} from '../host-common/sqlite-format-inspection.mjs';
+import {assertHostJournalDirectoryInspector, inspectHostJournalDirectory}
+  from './host-journal-directory.mjs';
 import {snapshotSqliteSchemaReadLimits, snapshotSqliteSchemaSqlSupport}
   from '../host-common/sqlite-schema-resource-bounds.mjs';
 import {openClientObservationStorage} from './client-observation-journal.mjs';
@@ -464,7 +466,10 @@ function selectJournalTemporaryStorage(database, executionLimits) {
 // rule, physical capacity supplier or permission. Never materialize a complete
 // unbounded listing before checking it. Preserve the exact full-name snapshot
 // (including unrelated retained entries) for the existing currentness check.
-function journalDirectoryEntries(directory, maxInspectionEntries) {
+function journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection) {
+  if (primaryDirectoryInspection !== undefined) {
+    return inspectHostJournalDirectory(primaryDirectoryInspection, directory, maxInspectionEntries);
+  }
   return inspectJournalDirectory(directory, {maxEntries: maxInspectionEntries,
     unavailableCode: 'ClientRequestJournalInspectionUnavailable',
     cleanupCode: 'ClientRequestJournalInspectionCleanupPending'});
@@ -1217,8 +1222,9 @@ function inspectCancellationStorage(database, enabled) {
 // A read-only SQLite connection can still create -shm beside a WAL database.
 // Inspect a private copy and refuse a source that changes during inspection.
 function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries, maxInspectionBytes,
-  primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent) {
-  const entries = journalDirectoryEntries(directory, maxInspectionEntries);
+  primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent,
+  primaryDirectoryInspection) {
+  const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);
   const featurePath = join(directory, cancellationMarkerName);
   const enabled = entries.includes(cancellationMarkerName);
   if (enabled && (!lstatSync(featurePath).isFile() ||
@@ -1289,7 +1295,7 @@ function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspecti
       (!retirementEnabled || journalMarkerMatches(retirementPath, retirementMarker)) &&
       (!restartEnabled || journalMarkerMatches(restartPath, restartMarker)) &&
       (!nameEnabled || journalMarkerMatches(namePath, nameMarker)) &&
-      JSON.stringify(journalDirectoryEntries(directory, maxInspectionEntries)) === JSON.stringify(entries)});
+      JSON.stringify(journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection)) === JSON.stringify(entries)});
   } catch (error) {
     if (inspectionSql !== undefined) {
       const handleField = error !== null && typeof error === 'object'
@@ -1325,13 +1331,14 @@ function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspecti
 }
 
 function admitJournalDirectory(directory, maxInspectionEntries, maxInspectionBytes,
-  primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent) {
+  primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent,
+  primaryDirectoryInspection) {
   if (!existsSync(directory)) return false;
   const state = lstatSync(directory);
   if (!state.isDirectory() || state.isSymbolicLink()) {
     fail('UnknownClientRequestJournalFormat');
   }
-  const entries = journalDirectoryEntries(directory, maxInspectionEntries);
+  const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);
   if (entries.length === 0) return false;
   const markerPath = join(directory, 'journal-format.json');
   if (!entries.includes('journal-format.json')) {
@@ -1350,9 +1357,13 @@ function admitJournalDirectory(directory, maxInspectionEntries, maxInspectionByt
   }
   try {
     inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries, maxInspectionBytes,
-      primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent);
+      primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent,
+      primaryDirectoryInspection);
   } catch (cause) {
     if (cause?.cleanupPending) throw cause;
+    if (['HostJournalDirectoryUnavailable', 'HostJournalDirectoryCurrentUnavailable',
+      'HostJournalDirectoryBoundsUnavailable', 'HostJournalDirectoryReadUnavailable',
+      'HostJournalDirectoryRecordUnavailable'].includes(cause?.code)) throw cause;
     if (cause?.code === 'ClientRequestJournalInspectionUnavailable') throw cause;
     if (cause?.code === 'ClientRequestJournalSqlUnavailable' ||
         cause?.code === 'ClientRequestJournalSqlCleanupPending') throw cause;
@@ -1375,6 +1386,7 @@ export function openClientRequestJournal(directory, {
   primarySchemaLimits,
   primarySchemaSqlSupport,
   primaryCurrent,
+  primaryDirectoryInspection,
   maxRunDefinitionWireBytes = 65_536,
   submissionEpochTtlMs = maxEpochTtlMs,
   submissionEpochNow = Date.now,
@@ -1399,6 +1411,11 @@ export function openClientRequestJournal(directory, {
   sourceOperationLimits = snapshotClientSourceOperationLimits(sourceOperationLimits);
   if (primaryCurrent !== undefined && typeof primaryCurrent !== 'function') {
     fail('InvalidClientRequestJournalConfiguration');
+  }
+  if (primaryDirectoryInspection !== undefined) {
+    // Validate the same private view and exact selected bound BEFORE any
+    // directory/format/native acquisition. No fallback on selected refusal.
+    assertHostJournalDirectoryInspector(primaryDirectoryInspection, maxInspectionEntries);
   }
   primarySqlLimits = snapshotPrimarySqlLimits(primarySqlLimits);
   primaryExecutionLimits = snapshotPrimaryExecutionLimits(primaryExecutionLimits);
@@ -1430,7 +1447,8 @@ export function openClientRequestJournal(directory, {
   // copy or native acquisition, and again at each covered SQL boundary.
   primaryCurrent?.();
   const current = admitJournalDirectory(directory, maxInspectionEntries, inspectionBytes,
-    primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent);
+    primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent,
+    primaryDirectoryInspection);
   mkdirSync(directory, {recursive: true, mode: 0o700});
   const root = realpathSync(directory);
   const path = join(root, 'client-requests.sqlite3');

@@ -11,6 +11,7 @@ const decode = TextDecoder.prototype.decode;
 const decoder = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true});
 const sort = Array.prototype.sort, push = Array.prototype.push;
 const NativeSet = Set, setHas = Set.prototype.has, setAdd = Set.prototype.add;
+const inspectors = new WeakMap(), weakGet = WeakMap.prototype.get, weakSet = WeakMap.prototype.set;
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 const own = (value, key) => {
   if (value === null || typeof value !== 'object' || isProxy(value)) {
@@ -30,7 +31,7 @@ export function createHostJournalDirectoryInspector(native, limits, assertCurren
       !integer(maxEntries) || maxEntries < 1 || !integer(maxNameBytes) || maxNameBytes < 1 ||
       !integer(maxWork) || maxWork < maxEntries) fail('HostJournalDirectoryUnavailable');
   let active = false, pendingDuty;
-  return function inspect(directory) {
+  const inspect = function inspect(directory) {
     if (active || pendingDuty !== undefined || typeof directory !== 'string' || directory.length === 0 ||
         directory.length > 4096 ||
         directory.includes('\0')) fail('HostJournalDirectoryUnavailable');
@@ -100,4 +101,19 @@ export function createHostJournalDirectoryInspector(native, limits, assertCurren
     if (failed) throw primary;
     return entries;
   };
+  apply(weakSet, inspectors, [inspect, maxEntries]);
+  return inspect;
+}
+
+// Membership is only this private view's provenance, not an operational
+// admission. The actual Root must still supply the original native module,
+// same installation/currentness and complete co-phase backing before use.
+export function assertHostJournalDirectoryInspector(inspector, maxEntries) {
+  if (typeof inspector !== 'function' || !integer(maxEntries) || maxEntries < 1 ||
+      apply(weakGet, inspectors, [inspector]) !== maxEntries) fail('HostJournalDirectoryUnavailable');
+}
+
+export function inspectHostJournalDirectory(inspector, directory, maxEntries) {
+  assertHostJournalDirectoryInspector(inspector, maxEntries);
+  return apply(inspector, undefined, [directory]);
 }

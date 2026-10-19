@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdirSync, renameSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, readFileSync, renameSync, writeFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {createHostJournalDirectoryInspector} from './host-journal-directory.mjs';
+import {openClientRequestJournal} from './client-request-journal.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const require = createRequire(import.meta.url);
@@ -57,6 +58,28 @@ test('actual Darwin directory original bounds names/currentness and owns one-sho
   assert.throws(() => native.current(missing), {code: 'HostJournalDirectoryCurrentUnavailable'});
   assert.deepEqual(native.close(missing), {outcome: 'closed', errno: 0});
 
+  // The actual Journal constructor and its cold-copy/currentness path consume
+  // this same private inspector; no stock Dir fallback on selected refusal.
+  // This diagnostic supplies no operational Host/Run admission or funding.
+  const requests = join(scratch.path, 'requests');
+  const selectedLimits = {maxEntries: 64, maxNameBytes: 1024, maxWork: 65536};
+  const selected = createHostJournalDirectoryInspector(native, selectedLimits, () => {});
+  const options = {maxInspectionEntries: 64, primaryDirectoryInspection: selected};
+  let journal = openClientRequestJournal(requests, options);
+  journal.close(); journal = undefined;
+  const originalDatabase = readFileSync(join(requests, 'client-requests.sqlite3'));
+  journal = openClientRequestJournal(requests, options);
+  journal.close(); journal = undefined;
+  assert.deepEqual(readFileSync(join(requests, 'client-requests.sqlite3')), originalDatabase);
+  const untouched = join(scratch.path, 'untouched');
+  assert.throws(() => openClientRequestJournal(untouched,
+    {maxInspectionEntries: 64, primaryDirectoryInspection: () => []}),
+  {code: 'HostJournalDirectoryUnavailable'});
+  assert.equal(existsSync(untouched), false);
+  assert.throws(() => openClientRequestJournal(untouched,
+    {...options, maxInspectionEntries: 63}), {code: 'HostJournalDirectoryUnavailable'});
+  assert.equal(existsSync(untouched), false);
+
   const fault = build('fixtures/directory-close-fault.c');
   const uncertain = createHostJournalDirectoryInspector(fault.operations, limits, () => {});
   let carrier;
@@ -70,6 +93,17 @@ test('actual Darwin directory original bounds names/currentness and owns one-sho
   assert.equal(fault.physicallyClosed(), 1);
   assert.throws(() => uncertain(moved), {code: 'HostJournalDirectoryUnavailable'});
   assert.equal(fault.attempts(), 1);
+  const journalUnknown = createHostJournalDirectoryInspector(fault.operations, selectedLimits, () => {});
+  let journalFailure;
+  assert.throws(() => openClientRequestJournal(requests,
+    {...options, primaryDirectoryInspection: journalUnknown}), error => {
+    journalFailure = error; return error.code === 'HostJournalDirectoryCleanupPending';
+  });
+  assert.equal(journalFailure.cleanupHandle.retry().pending, true);
+  assert.equal(journalFailure.cleanupHandle.retry().pending, true);
+  assert.equal(fault.attempts(), 2);
+  assert.equal(fault.physicallyClosed(), 2);
+  assert.deepEqual(readFileSync(join(requests, 'client-requests.sqlite3')), originalDatabase);
   // This injected fixture really closed its disposable FD; the consumer's
   // Unknown remains Unknown. Test teardown is not an operational close ACK.
   scratch.passed();

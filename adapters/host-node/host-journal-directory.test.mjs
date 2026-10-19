@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {createHostJournalDirectoryInspector} from './host-journal-directory.mjs';
+import {createHostJournalDirectoryInspector, assertHostJournalDirectoryInspector,
+  inspectHostJournalDirectory} from './host-journal-directory.mjs';
 
 // Explicit native-port fixtures: these test the consumer's custody protocol,
 // not a Darwin syscall, an operational issuer or an installed Host.
@@ -135,4 +136,20 @@ test('reentry from the native close cannot acquire a sibling or retry the consum
   assert.deepEqual(inspect('/original'), ['a', 'b']);
   assert.equal(attempts, 1);
   assert.equal(f.count().opens, 1);
+});
+
+test('private view membership and its exact bound cannot be replaced by a callable copy', () => {
+  const f = fixture();
+  const inspect = createHostJournalDirectoryInspector(f.native, limits, () => {});
+  assert.equal(assertHostJournalDirectoryInspector(inspect, 3), undefined);
+  for (const candidate of [() => [], inspect.bind(undefined), new Proxy(inspect, {})]) {
+    for (const bound of [undefined, 3]) {
+      assert.throws(() => assertHostJournalDirectoryInspector(candidate, bound),
+        {code: 'HostJournalDirectoryUnavailable'});
+    }
+  }
+  assert.throws(() => inspectHostJournalDirectory(inspect, '/original', 2),
+    {code: 'HostJournalDirectoryUnavailable'});
+  assert.equal(f.count().opens, 0);
+  assert.deepEqual(inspectHostJournalDirectory(inspect, '/original', 3), ['a', 'b']);
 });
