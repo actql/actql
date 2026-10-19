@@ -121,6 +121,24 @@ extern "C" fn initialize_owned_database_ffi(
 
 ///|
 #borrow(library, path)
+extern "C" fn open_local_store_database_ffi(
+  library : Library,
+  path : Bytes,
+  length : Int,
+  max_body_bytes : Int64,
+) -> Database = "actql_native_sqlite_open_local_store_database"
+
+///|
+#borrow(library, path)
+extern "C" fn open_existing_local_store_database_ffi(
+  library : Library,
+  path : Bytes,
+  length : Int,
+  max_body_bytes : Int64,
+) -> Database = "actql_native_sqlite_open_existing_local_store_database"
+
+///|
+#borrow(library, path)
 extern "C" fn open_existing_journal_database_ffi(
   library : Library,
   path : Bytes,
@@ -715,6 +733,41 @@ pub fn Library::open_existing_database_with_custody(
   let encoded = @utf8.encode(path)
   sqlite_open_result_with_custody(
     open_existing_database_ffi(self, encoded, encoded.length(), max_body_bytes),
+  )
+}
+
+///|
+/// Explicit selected Local Store facility only. The caller preserves its
+/// original Root/format/flock and authority. This shares the original Library
+/// and fixed heap with other live DB children; it creates no additional capacity.
+pub fn Library::open_local_store_database_with_custody(
+  self : Library,
+  path : String,
+  max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  if max_body_bytes < 0L {
+    return Err({ original_issue: InvalidLimit, database: None, })
+  }
+  let encoded = @utf8.encode(path)
+  sqlite_open_result_with_custody(
+    open_local_store_database_ffi(self, encoded, encoded.length(), max_body_bytes),
+  )
+}
+
+///|
+/// Restoration does not create or repair the saved Store. Both selection and
+/// failed-open descriptor/DB custody remain with this same original receiver.
+pub fn Library::open_existing_local_store_database_with_custody(
+  self : Library,
+  path : String,
+  max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  if max_body_bytes < 0L {
+    return Err({ original_issue: InvalidLimit, database: None, })
+  }
+  let encoded = @utf8.encode(path)
+  sqlite_open_result_with_custody(
+    open_existing_local_store_database_ffi(self, encoded, encoded.length(), max_body_bytes),
   )
 }
 

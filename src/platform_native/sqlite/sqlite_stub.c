@@ -1161,6 +1161,24 @@ void *actql_native_sqlite_initialize_owned_database(
   return actql_open_database(library, path, length, max_body_bytes, 2, device, inode, false);
 }
 
+/* Selected original Local Result Store only. Its existing Store Owner retains
+ * format, exclusive Root lock, original authority and cleanup. The same private
+ * Library/heap may already retain the adoption Journal; no second heap/credit.
+ * Select before any schema/WAL access, without changing generic open defaults. */
+void *actql_native_sqlite_open_local_store_database(
+  actql_native_sqlite_library *library, moonbit_bytes_t path, int32_t length,
+  int64_t max_body_bytes
+) {
+  return actql_open_database(library, path, length, max_body_bytes, 0, 0, 0, true);
+}
+
+void *actql_native_sqlite_open_existing_local_store_database(
+  actql_native_sqlite_library *library, moonbit_bytes_t path, int32_t length,
+  int64_t max_body_bytes
+) {
+  return actql_open_database(library, path, length, max_body_bytes, 1, 0, 0, true);
+}
+
 void *actql_native_sqlite_open_existing_journal_database(
   actql_native_sqlite_library *library, moonbit_bytes_t path, int32_t length,
   int64_t max_body_bytes

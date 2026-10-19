@@ -682,6 +682,41 @@ pub fn open_existing_store_with_custody(
 }
 
 ///|
+/// Trusted selected Native Local consumer only. Selection is a physical
+/// restriction, not authority or an allocation grant. The complete same-Host
+/// phase/heap/FD overlap must precede this call and remain through cleanup.
+pub fn open_local_store_with_custody(
+  library : @sqlite.Library,
+  root_path : String,
+  authority_cid : String,
+  capacity_bytes : Int64,
+  max_objects : Int64,
+  max_record_bytes : Int64,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Store, NativePublicationStoreOpenError] {
+  open_store_owned_with_custody(
+    library, root_path, authority_cid, capacity_bytes, max_objects, max_record_bytes,
+    false, diagnostic_ceiling~, local_facility=true,
+  )
+}
+
+///|
+pub fn open_existing_local_store_with_custody(
+  library : @sqlite.Library,
+  root_path : String,
+  authority_cid : String,
+  capacity_bytes : Int64,
+  max_objects : Int64,
+  max_record_bytes : Int64,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Store, NativePublicationStoreOpenError] {
+  open_store_owned_with_custody(
+    library, root_path, authority_cid, capacity_bytes, max_objects, max_record_bytes,
+    true, diagnostic_ceiling~, local_facility=true,
+  )
+}
+
+///|
 fn open_store_owned_with_custody(
   library : @sqlite.Library,
   root_path : String,
@@ -691,6 +726,7 @@ fn open_store_owned_with_custody(
   max_record_bytes : Int64,
   existing_only : Bool,
   diagnostic_ceiling? : Int? = None,
+  local_facility? : Bool = false,
 ) -> Result[Store, NativePublicationStoreOpenError] {
   if capacity_bytes < 0L ||
     max_objects < 1L ||
@@ -742,7 +778,13 @@ fn open_store_owned_with_custody(
       )
   }
   let journal_path = root_path + "/.actql-publication.sqlite3"
-  let selected = if existing_only {
+  let selected = if local_facility {
+    if existing_only {
+      library.open_existing_local_store_database_with_custody(journal_path, max_record_bytes)
+    } else {
+      library.open_local_store_database_with_custody(journal_path, max_record_bytes)
+    }
+  } else if existing_only {
     library.open_existing_database_with_custody(journal_path, max_record_bytes)
   } else {
     library.open_database_with_custody(journal_path, max_record_bytes)
