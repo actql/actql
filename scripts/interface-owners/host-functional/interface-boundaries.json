@@ -16970,7 +16970,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "236ad5854e3f8fa4d90ec3a9a82b519057008f77be2d21f241203087ef137853",
+      "sha256": "20035f3ca3430c6d717d422112ef7cf5910858e9e0c0aaa11ced72c00c2b49d3",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -17113,6 +17113,11 @@
           "async": false
         },
         {
+          "name": "boundedPrimarySql/beginOperation/beginOperation",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "boundedPrimarySql/boundedPrimarySql",
           "parameters": [],
           "async": false
@@ -17123,6 +17128,11 @@
             "sql",
             "isPrepare"
           ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/endOperation/endOperation",
+          "parameters": [],
           "async": false
         },
         {
@@ -19691,8 +19701,10 @@
             "boundedJournalWalFrames/init:beforeStatement/init:beforeStatement",
             "boundedJournalWalFrames/init:configure/init:configure",
             "boundedPrimarySql",
+            "boundedPrimarySql/beginOperation/beginOperation",
             "boundedPrimarySql/boundedPrimarySql",
             "boundedPrimarySql/consume/consume",
+            "boundedPrimarySql/endOperation/endOperation",
             "boundedPrimarySql/init:exec/init:exec",
             "boundedPrimarySql/init:prepare/init:prepare",
             "boundedPrimarySql/init:retireClosedNativeAliases/init:retireClosedNativeAliases",
@@ -19767,6 +19779,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "const originalJournalCustodies = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const beginOperation = () => {"
               }
             ],
             "failure": [
@@ -19777,6 +19793,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "if (selected !== 2) fail('ClientRequestJournalTemporaryUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (operationActive) fail('ClientRequestJournalSqlCleanupPending');"
               }
             ],
             "cancellation": [
@@ -19821,6 +19841,10 @@
               {
                 "path": "adapters/host-node/client-request-journal-execution-bounds.test.mjs",
                 "anchor": "failed original cursor close and pending database close retain the same native connection until its close ACK"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-execution-bounds.test.mjs",
+                "anchor": "selected preparation current callback cannot reenter the same Journal before native preparation"
               },
               {
                 "path": "adapters/host-node/client-request-journal-wal-bounds.test.mjs",
@@ -63730,7 +63754,7 @@
   ],
   "counts": {
     "modules": 145,
-    "operations": 3636,
+    "operations": 3638,
     "exports": 929,
     "explicitContractGroups": 180
   },
