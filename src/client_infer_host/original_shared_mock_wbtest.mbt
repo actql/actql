@@ -117,3 +117,77 @@ test "shared original Mock preserves Model attempts wire and retention caps desp
     )
   }
 }
+
+///|
+test "shared original Mock publication keeps its own live bytes and planning cap on the same Run" {
+  let base = standard_limits().model.ledger
+  let purpose = {
+    ..base,
+    planning_work: 1,
+    attempts: 4,
+    transfer_bytes: 133072L,
+    retained_bytes: 300000L,
+    execution_bytes: 6L,
+  }
+  let calls = Ref(0)
+  let sibling : Ref[@resources.CapacityReservation?] = Ref(None)
+  let (active, installation, profile, read, ledger, _, _) = original_mock_fixture(
+    calls,
+    shared_parent=Some(shared_mock_test_parent()),
+    shared_sibling=Some(sibling),
+    purpose_ledger=Some(purpose),
+  )
+  let work = match fixture_finish(active, initial_work=active.work) {
+    Settling(_, work~) => work
+    _ => abort("the original Mock must await its original settlement")
+  }
+  assert_true(
+    @model.acknowledge_model_call_settlement(call_settlement(active).unwrap()),
+  )
+  assert_true(fixture_finish(active, initial_work=work) is Complete(_, ..))
+  assert_eq(calls.val, 1)
+  let model = active.model.unwrap()
+  let scope = active.call_scope.unwrap()
+  // The already retired attempt no longer reserves bytes, but its identity,
+  // wire history and the independent sibling remain with their original owners.
+  let grant = @model.reserve_original_model_publication_capacity(
+    model, scope, 299900L, 1L,
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    @model.reserve_original_model_publication_capacity(model, scope, 1L, 0L)
+    is Err(@model.Ledger(@resources.RetentionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  @model.charge_original_model_observation_step(grant).unwrap()
+  assert_true(
+    @model.charge_original_model_observation_step(grant)
+    is Err(@model.Ledger(@resources.PlanningLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger).planning_work, 18)
+  assert_true(@resources.capacity_reservation_open(sibling.val.unwrap()))
+  assert_true(
+    @model.release_original_model_publication_capacity(grant).unwrap(),
+  )
+  assert_false(
+    @model.original_model_publication_capacity_current(grant, model, scope),
+  )
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    @model.reserve_original_model_publication_capacity(model, scope, 1L, 2L)
+    is Err(@model.Ledger(@resources.ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  let next = @model.reserve_original_model_publication_capacity(
+    model, scope, 1L, 1L,
+  ).unwrap()
+  assert_true(@model.release_original_model_publication_capacity(next).unwrap())
+  shared_mock_test_finish(
+    active,
+    installation,
+    profile,
+    read,
+    ledger,
+    sibling.val.unwrap(),
+  )
+}
