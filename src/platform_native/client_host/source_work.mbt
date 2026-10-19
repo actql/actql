@@ -160,7 +160,8 @@ fn claim_native_client_retained_work_first_start_with_operations(
   if !current_authorization() {
     return Err(AuthorizationDenied)
   }
-  match journal.claim_physical_start_with_operations(request, true, operations~) {
+  match
+    journal.claim_physical_start_with_operations(request, true, operations~) {
     Ok(true) => ()
     Ok(false) => return Err(NeedsOriginalReconciliation)
     Err(issue) => return Err(Journal(issue))
