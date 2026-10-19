@@ -461,3 +461,43 @@ but its first pending request is issued only after the original identity and
 current checks. The captured callback/receiver, two bound String references,
 control, every page/response/charge and escaped result/error may overlap.
 Closing the protocol does not prove physical retirement of any of them.
+
+### Original channel-to-history preparation
+
+A channel page is one admitted occurrence in an actual channel-list reader,
+not a workspace grant or a complete messages Source. The explicit
+`createSlackChannelListReaderForHistory` entrance retains the original reader,
+response/charge prefix and checked pages. A page token becomes selectable only
+after its consumer and current check return, and only after the whole reader
+succeeds. `selectSlackOriginalChannel` selects one original page/index once;
+copied tokens, equal rows and another reader cannot substitute for that pair.
+The ordinary channel reader keeps its existing charge-only callback metadata
+and does not retain this additional page/selection inventory.
+
+The dedicated history entrance requires that selection, the same provider
+receiver, workspace, credential binding and invocation subject. Common creates
+history from the checked channel row and retains the original page/index;
+matching channel text does not establish that membership. Both the history's
+current callback and its original channel reader's captured current callback
+are checked before subsequent work. Stopping the original reader prevents new
+identity or history exchanges. Each operation still needs its own actual
+Credential grant/use; neither the old identity observation nor the selection
+issues permission.
+
+Selection preparation is one-use. A failed typed history preparation keeps its
+original selection and is not rebound with larger limits. Direct history
+constructors remain independent DATA entrances and cannot claim channel-page
+origin. The channel-derived entrance does not accept a caller channel override
+or a WHERE-derived time window. A complete messages Source must separately
+realize the full selected request, including required conversation kinds and
+threads, under its actual bounds; the observed channel pair alone proves none
+of that coverage.
+
+The explicit reader additionally retains its page map, per-page records and
+selected-index sets, copied id references, success/failure prefix, selection
+WeakMap keys/records, original callback/receiver and downstream history control.
+The Common history's optional page/index field has layout cost even when None.
+These overlap the page rows, checked contracts, raw responses, charges and
+encoding workspace. The provider method wrappers retain their original methods
+and receiver in both reader forms. Bounds and weak reachability do not fund or
+retire these holdings; protocol closure is not a physical acknowledgement.
