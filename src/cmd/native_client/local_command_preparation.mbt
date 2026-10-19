@@ -697,21 +697,6 @@ fn LocalCommandPreparationOriginal::close_checked(
         .map_err(issue => CommandAdoption(issue)),
       )
     }
-    self.cleanup_stage = "business-execution"
-    command_preparation_value(self.close_business_execution())
-    if self.runtime is Some(runtime) {
-      self.cleanup_stage = "runtime"
-      command_preparation_value(
-        runtime.close().map_err(issue => CommandRuntime(issue)),
-      )
-    }
-    if self.journal is Some(journal) {
-      self.cleanup_stage = "journal"
-      let reply = journal.close()
-      if reply.issue() is Some(issue) {
-        return Err(CommandJournal(issue))
-      }
-    }
     if self.host is Some(host) {
       // An incomplete physical domain acquisition can retain the original
       // backing borrow before any Read/Runtime/Library ever existed.
@@ -729,6 +714,23 @@ fn LocalCommandPreparationOriginal::close_checked(
         )
         self.backing_scope = None
       }
+    }
+    self.cleanup_stage = "business-execution"
+    command_preparation_value(self.close_business_execution())
+    if self.runtime is Some(runtime) {
+      self.cleanup_stage = "runtime"
+      command_preparation_value(
+        runtime.close().map_err(issue => CommandRuntime(issue)),
+      )
+    }
+    if self.journal is Some(journal) {
+      self.cleanup_stage = "journal"
+      let reply = journal.close()
+      if reply.issue() is Some(issue) {
+        return Err(CommandJournal(issue))
+      }
+    }
+    if self.host is Some(host) {
       if self.read is Some(read) {
         if self.pair is Some(pair) {
           command_preparation_value(
