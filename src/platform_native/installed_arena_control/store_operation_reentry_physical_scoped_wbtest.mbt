@@ -7,6 +7,7 @@ struct StoreReentryReceiver {
   mut active : Bool
   mut probe : Int
   mut nested_refused : Bool
+  mut normal_calls : Int
 }
 
 ///|
@@ -31,6 +32,7 @@ fn store_reentry_route(
   match tag {
     -1 => if host.require_domain_read_current(domain) is Ok(_) { 0 } else { 11 }
     0 => {
+      receiver.normal_calls += 1
       if receiver.active || host.enter_domain_read(domain) is Err(_) {
         return 12
       }
@@ -84,6 +86,7 @@ fn store_reentry_original_call(
     active: false,
     probe,
     nested_refused: false,
+    normal_calls: 0,
   }
   let original = reentry_prepare_store_operation(library, receiver, fn(
     receiver,
@@ -97,6 +100,38 @@ fn store_reentry_original_call(
   receiver.original.val = Some(original)
   original.activate().retained_execution_value("Store reentry original stage 1")
   assert_false(original.pending_scope().unwrap())
+  if probe == 4 {
+    // Successful cleanup spends normal use without inventing a primary error.
+    original
+    .enter_cleanup()
+    .retained_execution_value("cleanup selection first entry")
+    original
+    .leave_store()
+    .retained_execution_value("cleanup selection first return")
+    assert_eq(original.primary_code(), 0)
+    assert_eq(original.cleanup_code(), 0)
+    assert_false(original.pending_scope().unwrap())
+    let second = original.enter_cleanup_work()
+    let cleanup_selected = second is Ok(_)
+    if second is Err(_) {
+      // The old C path dispatches normal entry here. Retain its actual refusal
+      // and recover through the existing same-original explicit cleanup route.
+      original
+      .enter_cleanup()
+      .retained_execution_value("cleanup selection retained recovery")
+    }
+    original
+    .leave_store()
+    .retained_execution_value("cleanup selection second return")
+    let no_error = original.primary_code() == 0 && original.cleanup_code() == 0
+    let no_normal_route = receiver.normal_calls == 0
+    let normal_refused = original.enter_store() is Err(_)
+    receiver.original.val = None
+    original
+    .close_checked()
+    .retained_execution_value("cleanup selection metadata close")
+    return cleanup_selected && no_error && no_normal_route && normal_refused
+  }
   let outer = if probe == 0 {
     original.enter_store()
   } else {
@@ -207,6 +242,9 @@ fn store_reentry_physical_case(probe : Int) -> Unit raise {
   .retained_execution_value("Store reentry original stage 17")
   host.try_close().retained_execution_value("Store reentry original stage 18")
   assert_eq(process_test_close(descriptor), 0)
+  if probe == 4 {
+    println("original cleanup selection physical ACKs confirmed")
+  }
   // Assert the transition result only AFTER the actual original cleanup ACKs.
   assert_true(refused)
 }
@@ -219,4 +257,9 @@ test "same original receiver cannot ACK enter after nested refusal" {
 ///|
 test "same original receiver cannot ACK leave after nested refusal" {
   store_reentry_physical_case(3)
+}
+
+///|
+test "successful original cleanup remains cleanup-only without a fabricated error" {
+  store_reentry_physical_case(4)
 }
