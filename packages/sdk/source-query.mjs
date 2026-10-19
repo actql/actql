@@ -36,9 +36,12 @@ function collectAfterQuery(query, retainResult, capture, read) {
 }
 
 export function sourceQuery(startSource, ClientError, retainResult, retainFailure,
-  format, text, parameters, options = {}, beforeResultRead, assertResultReadCurrent) {
+  format, text, parameters, options, beforeResultRead, assertResultReadCurrent, captureAdmission) {
   let requestId, admission, signal, selectedResult;
-  try {
+  const capture = submit => {
+    // A selected query intake observes the original omission before this
+    // SDK-owned default or any caller option/property access is performed.
+    if (options === undefined) options = {};
     requestId = options?.submissionRef?.nonce ?? options?.requestId;
     if (requestId !== undefined && (typeof requestId !== 'string' || !requestId)) {
       throw new ClientError('InvalidRequestId');
@@ -60,12 +63,16 @@ export function sourceQuery(startSource, ClientError, retainResult, retainFailur
     signal = options.signal;
     // startSource captures JSON source/declarations/parameters synchronously,
     // before credentials or I/O. Do not serialize caller-owned inputs twice.
-    admission = startSource(text, {format, parameters, signal, readOnly: true,
+    return submit(text, {format, parameters, signal, readOnly: true,
       ...(options.attemptId === undefined ? {} : {attemptId: options.attemptId}),
       ...(options.requestId === undefined ? {} : {requestId: options.requestId}),
       ...(options.submissionRef === undefined ? {} : {submissionRef: options.submissionRef}),
       ...(options.parameterDeclarations === undefined ? {} :
         {parameterDeclarations: options.parameterDeclarations})});
+  };
+  try {
+    admission = captureAdmission === undefined ? capture(startSource)
+      : captureAdmission(format, text, parameters, options, capture);
   } catch (cause) {
     // An unreadable option has no admission identity; expose one local call ID
     // consistently without evaluating the accessor again or sending anything.

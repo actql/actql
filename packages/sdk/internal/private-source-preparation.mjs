@@ -30,6 +30,9 @@ export function captureSourcePreparation(port) {
       return field.value;
     });
   const [before, snapshot, request, finish, intent] = methods;
+  const queryField = descriptor(receiver, 'beforeSourceQuery');
+  const beforeQuery = queryField !== undefined && hasOwn(queryField, 'value') &&
+    typeof queryField.value === 'function' ? queryField.value : undefined;
   // Result support is separately selected by this same installation. Its
   // absence cannot break connect or Source submission, but cannot fund a read.
   const resultField = descriptor(receiver, 'beforeResultRead');
@@ -47,6 +50,15 @@ export function captureSourcePreparation(port) {
     }
   };
   return Object.freeze({
+    beforeSourceQuery(format, text, parameters, options) {
+      if (beforeQuery === undefined) throw unavailable();
+      const receipt = apply(beforeQuery, receiver, [format, text, parameters, options]);
+      if (receipt instanceof originalPromise) {
+        apply(promiseThen, receipt, [undefined, () => {}]);
+        throw unavailable();
+      }
+      return receipt;
+    },
     beforeResultRead(schemaOrOptions, options) {
       resultVoid(beforeResult, [schemaOrOptions, options]);
     },

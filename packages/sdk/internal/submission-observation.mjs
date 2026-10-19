@@ -176,13 +176,15 @@ export {RequestHeld};
 export function createSubmissionOperations(selected, confirmed, transport, execution, lifecycle) {
   const {exchange, responseValue, wasSubmissionDispatched, sourcePreparation} = transport;
   const {isClosed} = lifecycle;
-  const withSourceProducer = (kind, originalInput, originalOptions, run) => {
+  const withSourceProducer = (kind, originalInput, originalOptions, run, acquire) => {
     if (sourcePreparation === undefined) return run(undefined);
     let producer;
     try {
       // Synchronous admission precedes the first SDK capture, option getter,
       // serialization, hash or Promise workspace of this submitted original.
-      const receipt = sourcePreparation.beforeSourceSnapshot(kind, originalInput, originalOptions);
+      const receipt = acquire === undefined
+        ? sourcePreparation.beforeSourceSnapshot(kind, originalInput, originalOptions)
+        : acquire();
       producer = {receipt, body: undefined};
     } catch (cause) {return Promise.reject(cause);}
     const finish = (terminal, primary, originalResult) => {
@@ -330,7 +332,7 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
         submissionRef: options.submissionRef ?? newSubmission()}, sourceProducer);
     } catch (cause) {return Promise.reject(cause);}
   };
-  const startSource = (text, options) => withSourceProducer('aql', text, options, sourceProducer => {
+  const submitSource = (text, options, sourceProducer) => {
     // Preserve omission at the actual before-copy boundary. This SDK-owned
     // default belongs after the selected original admission, not before it.
     if (options === undefined) options = {};
@@ -345,7 +347,13 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
     return submit('aql', {text, format: options.format,
       ...(options.parameterDeclarations === undefined ? {} :
         {parameterDeclarations: options.parameterDeclarations})}, options, sourceProducer);
-  });
+  };
+  const startSource = (text, options) => withSourceProducer('aql', text, options,
+    producer => submitSource(text, options, producer));
+  const captureQueryAdmission = sourcePreparation === undefined ? undefined
+    : (format, text, parameters, options, capture) => withSourceProducer('aql', text, options,
+      producer => capture((originalText, sourceOptions) => submitSource(originalText, sourceOptions, producer)),
+      () => sourcePreparation.beforeSourceQuery(format, text, parameters, options));
   const retainQueryResult = (execution, result) => {
     const input = submissionInputs.get(execution);
     if (input && result !== undefined) submissionInputs.set(result, input);
@@ -366,10 +374,10 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
     startSource, newSubmission,
     sql: (text, parameters, options) => sourceQuery(startSource, ClientError,
       retainQueryResult, retainQueryFailure, 'sql', text, parameters, options,
-      sourcePreparation?.beforeResultRead, sourcePreparation?.assertResultReadCurrent),
+      sourcePreparation?.beforeResultRead, sourcePreparation?.assertResultReadCurrent, captureQueryAdmission),
     aql: (text, parameters, options) => sourceQuery(startSource, ClientError,
       retainQueryResult, retainQueryFailure, 'aql-text', text, parameters, options,
-      sourcePreparation?.beforeResultRead, sourcePreparation?.assertResultReadCurrent),
+      sourcePreparation?.beforeResultRead, sourcePreparation?.assertResultReadCurrent, captureQueryAdmission),
     lookupSubmission: async (submissionRef, {signal} = {}) => {
       let owned;
       try {owned = freezeInput(snapshotClientRequest(submissionRef));}
