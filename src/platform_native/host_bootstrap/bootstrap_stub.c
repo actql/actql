@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include "component_domain_minimum.h"
 #if defined(ACTQL_BOOTSTRAP_IMPORT_PROVIDER)
 #if !defined(ACTQL_SCOPED_READ_ALLOCATOR) || defined(ACTQL_SCOPED_READ_PROVIDER)
 #error "Imported bootstrap requires one selected scoped provider, never its source copy"
@@ -51,6 +52,100 @@ static void keep_physical_custody(void *record) {
 
 MOONBIT_FFI_EXPORT int64_t actql_bootstrap_page_bytes(void) {
     return (int64_t)sysconf(_SC_PAGESIZE);
+}
+
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR) && defined(ACTQL_SCOPED_READ_PROVIDER) && \
+    !defined(ACTQL_BOOTSTRAP_IMPORT_PROVIDER)
+static bool component_minimum_add(size_t a, size_t b, size_t *out) {
+    if (a > SIZE_MAX-b) return false;
+    *out = a+b;
+    return true;
+}
+static bool component_minimum_round(size_t bytes, size_t page, size_t *out) {
+    size_t count;
+    if (!round_pages(bytes, page, &count) || count > SIZE_MAX/page) return false;
+    *out = count*page;
+    return true;
+}
+static bool component_receiver_raw(size_t payload, size_t *out) {
+    /* Exact pinned moonbit_make_external_object -> moonbit_malloc path. */
+    size_t bytes;
+    return payload != 0 &&
+        component_minimum_add(payload, sizeof(void (*)(void *)), &bytes) &&
+        component_minimum_add(bytes, sizeof(struct moonbit_object), out);
+}
+static bool component_domain_control(size_t capacity, size_t page, size_t *out) {
+    if (!capacity || capacity > PTRDIFF_MAX || capacity % page) return false;
+    size_t count = capacity/page;
+    if (count > (SIZE_MAX-sizeof(actql_owned_capacity))/sizeof(struct extent)) return false;
+    return component_minimum_round(sizeof(actql_owned_capacity)+count*sizeof(struct extent), page, out)
+        && *out < capacity;
+}
+#endif
+
+MOONBIT_FFI_EXPORT int64_t actql_bootstrap_command_backing_control_necessary_bytes(
+    int64_t bytes) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR) && defined(ACTQL_SCOPED_READ_PROVIDER) && \
+    !defined(ACTQL_BOOTSTRAP_IMPORT_PROVIDER)
+    long page = sysconf(_SC_PAGESIZE);
+    size_t control;
+    if (bytes <= 0 || (uint64_t)bytes > PTRDIFF_MAX || page <= 0 ||
+        !component_domain_control((size_t)bytes, (size_t)page, &control) || control > INT64_MAX)
+        return -1;
+    return (int64_t)control;
+#else
+    (void)bytes;
+    return -1;
+#endif
+}
+
+int64_t actql_bootstrap_component_domain_necessary_bytes(
+    int64_t domain_bytes, int64_t heap_bytes, size_t library_payload,
+    size_t database_payload, size_t maximum_path_bytes) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR) && defined(ACTQL_SCOPED_READ_PROVIDER) && \
+    !defined(ACTQL_BOOTSTRAP_IMPORT_PROVIDER)
+    long selected_page = sysconf(_SC_PAGESIZE);
+    if (selected_page <= 0 || domain_bytes <= 0 || heap_bytes < 4096 ||
+        heap_bytes > INT32_MAX || (uint64_t)domain_bytes > PTRDIFF_MAX ||
+        maximum_path_bytes == 0) return -1;
+    size_t page = (size_t)selected_page, capacity = (size_t)domain_bytes;
+    if (capacity % page != 0) return -1;
+    size_t control, context, heap, text;
+    if (!component_domain_control(capacity, page, &control) ||
+        !component_minimum_round(sizeof(actql_read_context), page, &context) ||
+        !component_minimum_round((size_t)heap_bytes, page, &heap) ||
+        !component_minimum_round(maximum_path_bytes, page, &text)) return -1;
+    size_t library, database;
+    if (!component_receiver_raw(library_payload, &library) ||
+        !component_receiver_raw(database_payload, &database)) return -1;
+    bool library_small = library <= page/2, database_small = database <= page/2;
+    size_t library_pages, database_pages, receivers;
+    if (!component_minimum_round(library, page, &library_pages) ||
+        !component_minimum_round(database, page, &database_pages)) return -1;
+    if (library_small && database_small) {
+        size_t a = read_heap_round(library), b = read_heap_round(database);
+        size_t bytes = read_heap_round(sizeof(struct read_heap_page));
+        if (!a || !b ||
+            !component_minimum_add(bytes, read_heap_header(), &bytes) ||
+            !component_minimum_add(bytes, a, &bytes) ||
+            !component_minimum_add(bytes, read_heap_header(), &bytes) ||
+            !component_minimum_add(bytes, b, &bytes)) return -1;
+        if (!component_minimum_round(bytes, page, &receivers)) return -1;
+    } else if (!component_minimum_add(library_pages, database_pages, &receivers)) return -1;
+    size_t prebind, opened, total;
+    /* sqlite_selected_component frees its File path immediately after dlopen,
+     * BEFORE binding the heap. Do not add these mutually exclusive phases. */
+    if (!component_minimum_add(library_pages, text, &prebind) ||
+        !component_minimum_add(heap, receivers, &opened) ||
+        !component_minimum_add(control, context, &total) ||
+        !component_minimum_add(total, prebind > opened ? prebind : opened, &total) ||
+        total > INT64_MAX) return -1;
+    return (int64_t)total;
+#else
+    (void)domain_bytes; (void)heap_bytes; (void)library_payload;
+    (void)database_payload; (void)maximum_path_bytes;
+    return -1;
+#endif
 }
 
 MOONBIT_FFI_EXPORT void *actql_bootstrap_acquire(int64_t bytes,

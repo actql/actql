@@ -2,6 +2,14 @@
 type Library
 
 ///|
+pub fn command_domain_necessary_bytes(
+  _domain_bytes : Int64,
+  _heap_bytes : Int64,
+) -> Int64? {
+  None
+}
+
+///|
 struct Database {
   unsupported : Unit
 }

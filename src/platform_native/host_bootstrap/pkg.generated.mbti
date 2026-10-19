@@ -8,6 +8,8 @@ import {
 }
 
 // Values
+pub fn command_backing_control_necessary_bytes(Int64) -> Int64?
+
 pub fn[T] prepare_installed_arena_supplier(T, String, Bytes, Int64, Int64, @physical_resources.LedgerLimits, Int64) -> Result[NativeInstalledArenaSupplier[T], NativeBootstrapIssue]
 
 // Errors

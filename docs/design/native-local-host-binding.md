@@ -1789,6 +1789,17 @@ containment alone does not establish ordinary command success or normal funding.
 
 ### Original process SQLite component assembly
 
+The command's necessary domain subset is queried from its actual compiled
+provider/receiver layouts. It includes page-rounded provider control for that
+domain size, the original Read context, managed external-object/slab metadata
+and the component heap. The pre-bind File path is freed before heap binding,
+so pre-bind Library/path storage and the later heap/Library/Database phase use
+their maximum, not a sum of mutually exclusive terms. The parent control query
+uses the same compiled provider's extent-table layout. Neither query allocates
+backing or proves full graph/SQL/cache adequacy. Missing/imported layout refuses
+instead of guessing a page count; all original post-acquisition comparisons,
+claims, external controls and cleanup obligations remain mandatory.
+
 The selected command's SQLite member uses the same pinned private component and
 its MEMSYS5, private WAL-index and descriptor-cleanup rules. A stock SQLite
 library with a compatible public SQLite API does not supply this private API.
