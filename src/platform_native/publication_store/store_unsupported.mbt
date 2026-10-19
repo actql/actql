@@ -39,6 +39,20 @@ type ConfirmedPayloadDelivery
 type ResultDelivery
 
 ///|
+pub fn Store::reconcile_original_return(
+  _self : Store,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Store::retry_pending_result_delivery_cleanup(
+  _self : Store,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn open_store(
   _library : @sqlite.Library,
   _root_path : String,

@@ -1980,6 +1980,24 @@ empty Database DATA shell without calling the component from an outer frame.
 A retained closed alias still keeps the Library child busy. Residual storage,
 an unconfirmed physical close or a pending scope keeps that responsibility.
 
+Result acquisition also retains its exact owning child before a fallible Store
+return. The Store keeps that ResultDelivery, including its Reader, until the
+return succeeds and the caller receives the same child, or its cleanup-only
+path confirms child close and the associated return. A count cannot replace
+the child and retry cannot acquire a new Reader or delivery attempt. Parent
+Store close refuses while this retained child duty remains. The temporary
+Store-to-child custody edge is removed only after those acknowledgements; a
+failed call cannot silently drop it.
+
+Return-only reconciliation belongs to that same Store. It invokes only the
+original return and, if required, the existing same-original cleanup entry
+followed by its actual return. It runs no Store body, SQL, child close or parent
+close. A prior operation-only recovery does not clear the Store mirror; only
+this actual reconciliation does. No-pending is a separate observation, never
+an inferred physical ACK. The original failure remains sticky and normal
+dispatch stays unavailable. Retained children may then perform their own
+cleanup before Database, Root, Library and parent retirement.
+
 A failed constructor retains the same Database DATA alias independently of
 its failed-open field until both physical child close and original scope return
 are confirmed. Cleanup may clear a constructor field only while this original
