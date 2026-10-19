@@ -133,6 +133,10 @@ function hostJournalNativeStructureRequests(input) {
   const bindBeforeActive = checked((boundStatements - 1n) * retainedBindRequests);
   const generatedPayload = checked(D + B + 19644n);
   const translatedPayload = checked(2n * generatedPayload + 2n);
+  // One-source fixed WHERE shapes under the selected source's default
+  // planner20000+1000 budget. This is not a changed public work limit.
+  const plannerLoopUsable = hostJournalNativeUsableUpper(208n);
+  const plannerTermsUsable = hostJournalNativeUsableUpper(256n);
 
   return freeze({
     qualification:'partial-native-request-vectors', completePhase:false,
@@ -171,6 +175,35 @@ function hostJournalNativeStructureRequests(input) {
       p4UsablePerStatement:checked(p4Slots * p4UsableEach),
       metadataArrayRequest:6720n, metadataTextBlocks:120n, metadataTextRequest,
       savedSqlRequest:1625n}),
+    preparation:freeze({completePrepare:false,
+      // Reprepare builds pNew while the old complete VM remains live, then
+      // swaps/finalizes it. Fifty sequential retries are work/history, not
+      // fifty simultaneous replacement VMs. Schema/bind payloads are not
+      // automatically duplicated when the same Mem ownership is transferred.
+      reprepare:freeze({retainedPreparedVms:P, activeReplacementVms:1n,
+        simultaneousVmOriginals:checked(P + 1n),
+        eachReplacementUsesStatementVector:true,
+        activeMainGrowingOldOpRequest:24n * mainH,
+        duplicatedBindingPayloadSets:0n,
+        schemaRetryLimit:50n, retryReturnsBackingCredit:false}),
+      planner:freeze({candidateLoops:21000n,
+        eachLoopRequest:208n, eachSeparateTermPointerRequest:256n,
+        eachLoopUsableUpper:plannerLoopUsable,
+        eachTermPointerUsableUpper:plannerTermsUsable,
+        activeOldPointerRequestUpper:256n,
+        // Inline eight WhereTerms, one level and builder template already
+        // reside in the combined WhereInfo. Grown arrays remain linked on
+        // pMemToFree, including BOTH16 and32-slot allocations until reset.
+        combinedInfoRequestUpper:2080n, solverRequestUpper:176n,
+        grown16TermRequest:1680n, grown32TermRequest:3344n,
+        retainedGrownTermRequestSum:5024n,
+        heapUsableSubsetUpper:checked(21000n * (plannerLoopUsable + plannerTermsUsable) +
+          plannerTermsUsable + hostJournalNativeUsableUpper(2080n) +
+          hostJournalNativeUsableUpper(176n) + hostJournalNativeUsableUpper(1680n) +
+          hostJournalNativeUsableUpper(3344n)),
+        secondStat4PassRetainsFirstCandidates:false,
+        resetReturnsRegionCredit:false}),
+    }),
     bindings:freeze({boundStatements, variableSlots:14n,
       retainedRequestSumPerStatement:retainedBindRequests,
       retainedHeapUsableSumPerStatement:retainedBindUsable,

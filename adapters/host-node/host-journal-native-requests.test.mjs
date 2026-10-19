@@ -212,3 +212,31 @@ test('fixed foreign-key and trigger holdings keep coallocations and transferred 
   assert(Object.isFrozen(s.foreignKeys));
   assert(Object.isFrozen(s.triggers));
 });
+
+test('reprepare retains one replacement beside existing VMs without multiplying bindings or retry credit', () => {
+  const p = calculate(input()).preparation;
+  assert.equal(p.completePrepare,false);
+  assert.equal(p.reprepare.retainedPreparedVms,10n);
+  assert.equal(p.reprepare.activeReplacementVms,1n);
+  assert.equal(p.reprepare.simultaneousVmOriginals,11n);
+  assert.equal(p.reprepare.activeMainGrowingOldOpRequest,309504n);
+  assert.equal(p.reprepare.duplicatedBindingPayloadSets,0n);
+  assert.equal(p.reprepare.schemaRetryLimit,50n);
+  assert.equal(p.reprepare.retryReturnsBackingCredit,false);
+  assert.throws(() => calculate(input({preparedStatements:9223372036854775807n})),unavailable);
+});
+
+test('planner keeps all linked grown arrays and only one active old pointer resize', () => {
+  const p = calculate(input()).preparation.planner;
+  assert.equal(p.candidateLoops,21000n);
+  assert.equal(p.eachLoopUsableUpper,224n);
+  assert.equal(p.eachTermPointerUsableUpper,256n);
+  assert.equal(p.activeOldPointerRequestUpper,256n);
+  assert.equal(p.grown16TermRequest,1680n);
+  assert.equal(p.grown32TermRequest,3344n);
+  assert.equal(p.retainedGrownTermRequestSum,5024n);
+  assert.equal(p.heapUsableSubsetUpper,10088640n);
+  assert.equal(p.secondStat4PassRetainsFirstCandidates,false);
+  assert.equal(p.resetReturnsRegionCredit,false);
+  assert(Object.isFrozen(p));
+});
