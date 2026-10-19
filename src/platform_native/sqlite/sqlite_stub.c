@@ -92,9 +92,12 @@ typedef struct {
   int64_t selected_heap_bytes;
 } actql_native_sqlite_library;
 
+typedef struct actql_native_store_operation actql_native_store_operation;
+
 typedef struct {
   actql_native_sqlite_library *library;
   sqlite3 *database;
+  actql_native_store_operation *store_operation;
   char *error;
   unsigned char *result_body;
   int32_t result_body_length;
@@ -132,8 +135,6 @@ typedef struct {
   bool journal_pin_close_unknown;
   int journal_pin_descriptor;
 } actql_native_sqlite_database;
-
-#include "store_operation_original.inc"
 
 /* Read-only necessary subset for the selected command's actual compiled
  * receiver ABI. Later SQL/cache/graph demand and all outside-domain holdings
@@ -188,6 +189,8 @@ static bool actql_library_available(actql_native_sqlite_library *library) {
 static bool actql_database_library_available(actql_native_sqlite_library *library) {
   return library == NULL || !library->selected_component || actql_library_available(library);
 }
+#include "store_operation_original.inc"
+
 static void *actql_adapter_allocate(actql_native_sqlite_library *library, size_t bytes) {
   if (library == NULL || !library->selected_component) return malloc(bytes);
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR
@@ -455,8 +458,11 @@ int32_t actql_native_sqlite_close_checked(
   if (database->lookup_generation != 0) return 0;
   if (database->database == NULL) {
     actql_retire_result_storage(database);
-    return database->journal_descriptor_ack == NULL ||
+    bool ack = database->journal_descriptor_ack == NULL ||
       database->journal_descriptor_ack(NULL) == ACTQL_SQLITE_COMPONENT_OK;
+    if (ack && database->store_operation != NULL)
+      database->store_operation->database_closed = true;
+    return ack;
   }
   database->test_checked_close_count++;
   if (database->test_close_failures > 0) {
@@ -472,8 +478,11 @@ int32_t actql_native_sqlite_close_checked(
   database->database = NULL;
   database->opened = false;
   actql_retire_result_storage(database);
-  return database->journal_descriptor_ack == NULL ||
+  bool ack = database->journal_descriptor_ack == NULL ||
     database->journal_descriptor_ack(NULL) == ACTQL_SQLITE_COMPONENT_OK;
+  if (ack && database->store_operation != NULL)
+    database->store_operation->database_closed = true;
+  return ack;
 }
 
 // Whitebox observation only, never a physical-close ACK or a settlement port.
@@ -517,6 +526,8 @@ int32_t actql_native_sqlite_test_checked_close_count(
 
 static void actql_native_sqlite_database_finalize(void *value) {
   actql_native_sqlite_database *database = value;
+  if (database->store_operation != NULL &&
+      !database->store_operation->database_closed) return;
   actql_native_sqlite_database_close(database);
   if (database->library != NULL && database->library->selected_component &&
       (database->database != NULL || database->journal_pin_close_unknown ||
@@ -528,6 +539,10 @@ static void actql_native_sqlite_database_finalize(void *value) {
   database->error = NULL;
   database->result_body = NULL;
   database->result_key = NULL;
+  if (database->store_operation != NULL) {
+    moonbit_decref(database->store_operation);
+    database->store_operation = NULL;
+  }
   if (database->library != NULL) {
     if (database->library_child) {
       database->library->database_children--;
@@ -1010,7 +1025,8 @@ static void *actql_open_database(
   int mode,
   uint64_t expected_device,
   uint64_t expected_inode,
-  bool journal_exclusive
+  bool journal_exclusive,
+  actql_native_store_operation *store_operation
 ) {
   if (!actql_library_current(library) || (library != NULL && library->selected_component &&
       !actql_library_available(library))) return NULL;
@@ -1025,6 +1041,12 @@ static void *actql_open_database(
     moonbit_incref(library);
     library->database_children++;
     database->library_child = true;
+  }
+  if (store_operation != NULL) {
+    database->store_operation = store_operation;
+    moonbit_incref(store_operation);
+    store_operation->binding_attempted = true;
+    store_operation->bound_database = database;
   }
   database->max_body_bytes = max_body_bytes;
   database->diagnostic_ceiling = library == NULL ? 0 : library->diagnostic_ceiling;
@@ -1138,7 +1160,7 @@ void *actql_native_sqlite_open_database(
   int32_t length,
   int64_t max_body_bytes
 ) {
-  return actql_open_database(library, path, length, max_body_bytes, 0, 0, 0, false);
+  return actql_open_database(library, path, length, max_body_bytes, 0, 0, 0, false, NULL);
 }
 
 void *actql_native_sqlite_open_existing_database(
@@ -1147,7 +1169,7 @@ void *actql_native_sqlite_open_existing_database(
   int32_t length,
   int64_t max_body_bytes
 ) {
-  return actql_open_database(library, path, length, max_body_bytes, 1, 0, 0, false);
+  return actql_open_database(library, path, length, max_body_bytes, 1, 0, 0, false, NULL);
 }
 
 // Only the exact exclusively created, still-empty file may receive a schema.
@@ -1160,7 +1182,7 @@ void *actql_native_sqlite_initialize_owned_database(
   uint64_t inode,
   int64_t max_body_bytes
 ) {
-  return actql_open_database(library, path, length, max_body_bytes, 2, device, inode, false);
+  return actql_open_database(library, path, length, max_body_bytes, 2, device, inode, false, NULL);
 }
 
 /* Selected original Local Result Store only. Its existing Store Owner retains
@@ -1171,28 +1193,47 @@ void *actql_native_sqlite_open_local_store_database(
   actql_native_sqlite_library *library, moonbit_bytes_t path, int32_t length,
   int64_t max_body_bytes
 ) {
-  return actql_open_database(library, path, length, max_body_bytes, 0, 0, 0, true);
+  return actql_open_database(library, path, length, max_body_bytes, 0, 0, 0, true, NULL);
 }
 
 void *actql_native_sqlite_open_existing_local_store_database(
   actql_native_sqlite_library *library, moonbit_bytes_t path, int32_t length,
   int64_t max_body_bytes
 ) {
-  return actql_open_database(library, path, length, max_body_bytes, 1, 0, 0, true);
+  return actql_open_database(library, path, length, max_body_bytes, 1, 0, 0, true, NULL);
 }
 
 void *actql_native_sqlite_open_existing_journal_database(
   actql_native_sqlite_library *library, moonbit_bytes_t path, int32_t length,
   int64_t max_body_bytes
 ) {
-  return actql_open_database(library, path, length, max_body_bytes, 1, 0, 0, true);
+  return actql_open_database(library, path, length, max_body_bytes, 1, 0, 0, true, NULL);
 }
 
 void *actql_native_sqlite_initialize_owned_journal_database(
   actql_native_sqlite_library *library, moonbit_bytes_t path, int32_t length,
   uint64_t device, uint64_t inode, int64_t max_body_bytes
 ) {
-  return actql_open_database(library, path, length, max_body_bytes, 2, device, inode, true);
+  return actql_open_database(library, path, length, max_body_bytes, 2, device, inode, true, NULL);
+}
+
+/* Same original one-shot binding before the first Database acquisition. A
+ * failed scope or open retains this original; it cannot mint a replacement. */
+MOONBIT_FFI_EXPORT void *actql_native_sqlite_open_original_store_database(
+  actql_native_sqlite_library *library, actql_native_store_operation *original,
+  moonbit_bytes_t path, int32_t length, int64_t max_body_bytes, int32_t existing
+) {
+  if (!actql_store_operation_thread(original) || original->library != library ||
+      original->closed || original->open_attempted || original->binding_attempted ||
+      !original->activated || original->cleanup || original->failed ||
+      !original->flight || original->sql || (existing != 0 && existing != 1)) return NULL;
+  original->open_attempted = true;
+  if (actql_store_operation_enter_sql(original, 0) != 0) return NULL;
+  void *database = actql_open_database(library, path, length, max_body_bytes,
+    existing, 0, 0, true, original);
+  /* Keep SQL entered until the typed caller has captured this exact ready or
+   * failed-open reply and diagnostic. Its explicit finish then returns Read. */
+  return database;
 }
 
 // Whitebox-only loss of one schema constituent in an owner-created fixture.

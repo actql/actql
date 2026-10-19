@@ -49,3 +49,15 @@ pub fn NativeStoreOperationOriginal::cleanup_code(
 ) -> Int {
   -1
 }
+
+///|
+pub fn Library::open_original_local_store_database_with_custody(
+  _self : Library,
+  _original : NativeStoreOperationOriginal,
+  _path : String,
+  _max_body_bytes : Int64,
+  existing? : Bool = false,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  ignore(existing)
+  Err({ original_issue: UnsupportedTarget, database: None, })
+}

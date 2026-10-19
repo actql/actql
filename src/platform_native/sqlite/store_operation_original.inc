@@ -1,17 +1,17 @@
 #include "store_operation_original.h"
 #include <pthread.h>
 
-typedef struct {
+struct actql_native_store_operation {
   actql_native_sqlite_library *library;
   void *receiver;
   actql_native_store_operation_route route;
   pid_t process;
   pthread_t thread;
   void *bound_database;
-  bool binding_attempted, database_closed;
-  bool attempted, activated, flight, sql, cleanup, cleanup_ready, failed, closed, calling;
+  bool open_attempted, binding_attempted, database_closed;
+  bool attempted, activated, flight, sql, sql_ready, cleanup, cleanup_ready, failed, closed, calling;
   int32_t primary_code, cleanup_code;
-} actql_native_store_operation;
+};
 
 /* No finalizer invokes callbacks, changes a physical scope or manufactures an
  * ACK. The original coordinator and Database retain their existing duties. */
@@ -88,6 +88,7 @@ MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_enter(
   if (code == 0) {
     value->flight = true;
     value->sql = false;
+    value->sql_ready = false;
     value->cleanup = cleanup != 0;
     value->cleanup_ready = cleanup != 0;
   }
@@ -124,4 +125,61 @@ MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_primary(
 MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_cleanup(
     actql_native_store_operation *value) {
   return actql_store_operation_thread(value) ? value->cleanup_code : -1;
+}
+
+static int32_t actql_store_operation_enter_sql(
+    actql_native_store_operation *value, int32_t cleanup_allowed) {
+  if (!actql_store_operation_thread(value) || value->closed ||
+      !value->activated || !value->flight || value->sql) return -1;
+  if (value->calling) return actql_store_operation_failed(value, -2);
+  if ((value->failed && !value->cleanup) ||
+      (value->cleanup && (!value->cleanup_ready || !cleanup_allowed))) return -1;
+  value->sql = true; /* Attempted scope, retained until its actual return ACK. */
+  value->sql_ready = false;
+  int32_t code = actql_store_operation_route(value, 1);
+  if (code == 0 && !actql_library_available(value->library))
+    return actql_store_operation_failed(value, -4);
+  if (code == 0) value->sql_ready = true;
+  return code;
+}
+static int32_t actql_store_operation_leave_sql(actql_native_store_operation *value) {
+  if (!actql_store_operation_thread(value) || value->closed ||
+      !value->flight || !value->sql || !value->sql_ready || value->calling) return -1;
+  int32_t code = actql_store_operation_route(value, 2);
+  if (code == 0) { value->sql = false; value->sql_ready = false; }
+  return code;
+}
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_database_enter_store_sql(
+    actql_native_sqlite_database *database, int32_t cleanup_allowed) {
+  if (database == NULL) return 0;
+  actql_native_store_operation *value = database->store_operation;
+  if (value == NULL) return 0; /* Preserve the unselected original entrance. */
+  if (value->bound_database != database || value->library != database->library)
+    return -1;
+  return actql_store_operation_enter_sql(value, cleanup_allowed);
+}
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_database_leave_store_sql(
+    actql_native_sqlite_database *database) {
+  if (database == NULL) return 0;
+  actql_native_store_operation *value = database->store_operation;
+  if (value == NULL) return 0;
+  if (value->bound_database != database || value->library != database->library)
+    return -1;
+  return actql_store_operation_leave_sql(value);
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_finish_open(
+    actql_native_store_operation *value) {
+  return actql_store_operation_leave_sql(value);
+}
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_database_has_store_operation(
+    actql_native_sqlite_database *database) {
+  return database != NULL && database->store_operation != NULL;
+}
+MOONBIT_FFI_EXPORT void actql_native_sqlite_database_fence_original_store(
+    actql_native_sqlite_database *database) {
+  if (database == NULL) return;
+  actql_native_store_operation *value = database->store_operation;
+  if (actql_store_operation_thread(value) && value->bound_database == database &&
+      value->library == database->library) database->transaction_fenced = 1;
 }
