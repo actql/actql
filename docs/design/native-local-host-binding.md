@@ -2129,3 +2129,12 @@ normal use refuses. Its close acknowledgement does not retire the retained
 Runtime, module, mapping or interpreter lifetime. Declared Host limits still
 require their separate actual backing and do not come from initial-control
 service identity or successful Runtime initialization.
+
+The same Python-specific initial currentness also precedes original backing
+borrowing, backing-current observation and new physical scope entry. The Host
+holds its existing call exclusion during that observation. A refused current
+check cannot invoke the foreign backing operation or create a replacement
+loan. Leaving an already entered scope and returning the stopped original loan
+remain cleanup operations through their existing Native Owner; neither needs
+to revive normal initial currentness. Those acknowledgements remain distinct
+from Host close, default restoration and process-lived allocator retirement.

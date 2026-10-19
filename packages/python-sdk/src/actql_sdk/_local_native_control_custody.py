@@ -137,7 +137,7 @@ class _OriginalControlCustody:
             # declared Host limits still require their actual backing later.
             _python_initial._bind_control_host(host)
             host._python_initial_original = _python_initial
-        host._enter()
+        host._enter(require_initial=True)
         known: _OriginalControlError | None = None
         try:
             code = prepare(source_units, 40, recipe_bytes, 32, generation, size,
@@ -206,12 +206,21 @@ class _OriginalControlCustody:
     def __reduce__(self) -> NoReturn:
         raise TypeError('Original Native control custody cannot be serialized')
 
-    def _enter(self) -> None:
+    def _enter(self, *, require_initial: bool = False) -> None:
         if getpid() != self._process or current_thread() is not self._thread or self._busy:
             raise ValueError('Original Native control call scope is unavailable')
         if self._unknown is not None:
             raise self._unknown
         self._busy = True
+        if require_initial and self._python_initial_original is not None:
+            try:
+                # Keep the Host exclusion while observing this same Runtime.
+                # Refusal performs no foreign operation and keeps its original
+                # initial carrier; cleanup callers retain their separate path.
+                self._python_initial_original.require_control_current()
+            except BaseException:
+                self._busy = False
+                raise
 
     def _mark_unknown(self) -> _OriginalControlError:
         if self._unknown is None:
@@ -234,9 +243,7 @@ class _OriginalControlCustody:
         return _OriginalArenaFact(operation, issue)
 
     def current(self) -> _OriginalArenaFact:
-        if self._python_initial_original is not None:
-            self._python_initial_original.require_control_current()
-        self._enter()
+        self._enter(require_initial=True)
         if self._closed or self._original.value is None or self._reply.value is not None:
             self._busy = False
             raise ValueError('Original Native control current observation is unavailable')
@@ -267,9 +274,7 @@ class _OriginalControlCustody:
                 or descriptor.close_attempted or type(descriptor.value) is not int
                 or not 0 <= descriptor.value <= 2**31 - 1):
             raise ValueError('Original borrowed control descriptor is unavailable')
-        if self._python_initial_original is not None:
-            self._python_initial_original.require_control_current()
-        self._enter()
+        self._enter(require_initial=True)
         if (self._closed or self._acquire_started or self._original.value is None
                 or self._reply.value is not None):
             self._busy = False
