@@ -236,6 +236,8 @@ pub fn release_allocation(Ledger, Holding) -> Result[Unit, LedgerIssue]
 
 pub fn release_shared_capacity(SharedAllocation) -> Result[Unit, LedgerIssue]
 
+pub fn relocate_imported_child_cleanup_usage(ImportedChildLedger) -> Result[Unit, ImportedChildLedgerIssue]
+
 pub fn[P, C] report_backed_execution_delegation(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], LedgerUsage) -> Result[Unit, BackedExecutionIssue]
 
 pub fn[P, C, R] report_backed_execution_live_child(BackedExecutionLiveProjection[P, C, R], R, LedgerUsage) -> Result[Unit, BackedExecutionIssue]

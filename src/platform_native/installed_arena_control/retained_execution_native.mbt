@@ -1,4 +1,7 @@
 ///|
+extern "C" fn retained_execution_control_scope_clear_ffi() -> Int = "actql_bootstrap_control_scope_clear"
+
+///|
 pub(all) enum InstalledArenaRetainedExecutionIssue {
   Domain(@bootstrap.NativeBackedExecutionIssue)
   Child(@resources.ImportedChildLedgerIssue)
@@ -278,6 +281,17 @@ pub fn InstalledArenaHost::close_domain_retained_execution(
     }
   }
   if !record.physical_retired {
+    // Snapshot replacement must allocate in the existing outer control, never
+    // in this child or a sibling Read. Logical stop supplies no physical ACK.
+    if retained_execution_control_scope_clear_ffi() != 1 {
+      return Err(Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)))
+    }
+    if record.frame is Some(frame) {
+      match @resources.relocate_imported_child_cleanup_usage(frame) {
+        Err(issue) => return Err(Child(issue))
+        Ok(_) => ()
+      }
+    }
     let close = domain.backing.close_backed_read_context(self, original, domain)
     match
       domain.backing.require_backed_read_context_retired(self, original, domain) {

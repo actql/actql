@@ -15,6 +15,7 @@ fn retained_execution_physical_work(
   execution : InstalledArenaRetainedExecution,
   page : Int64,
   retained : Ref[Array[Int]?],
+  snapshot : Ref[@resources.LedgerUsage?],
 ) -> Unit raise {
   host
   .enter_domain_retained_execution(execution)
@@ -40,6 +41,7 @@ fn retained_execution_physical_work(
     "retained stage 14: original reservation settled",
   )
   retained.val = Some(Array::make(32, 17))
+  snapshot.val = Some(@resources.ledger_usage(ledger))
   host
   .leave_domain_retained_execution(execution)
   .retained_execution_value("retained stage 15: actual leave")
@@ -129,7 +131,8 @@ test "actual in-process domain supplies one entered ledger and retains original 
   assert_true(host.prepare_domain_retained_execution(domain) is Err(_))
   assert_true(host.borrow_domain_retained_execution_ledger(execution) is Err(_))
   let retained : Ref[Array[Int]?] = Ref(None)
-  retained_execution_physical_work(host, execution, page, retained)
+  let snapshot : Ref[@resources.LedgerUsage?] = Ref(None)
+  retained_execution_physical_work(host, execution, page, retained, snapshot)
   assert_true(
     host.close_domain_after_owner_ack(domain)
     is Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending)),
@@ -140,6 +143,10 @@ test "actual in-process domain supplies one entered ledger and retains original 
     host.require_domain_retained_execution_current(execution) is Err(_),
   )
   retained.val = None
+  // Replacing the control snapshot does not retire an escaped old snapshot.
+  assert_true(host.close_domain_retained_execution(execution) is Err(_))
+  assert_false(execution.physical_retired || execution.closed)
+  snapshot.val = None
   match host.close_domain_retained_execution(execution) {
     Ok(_) => ()
     Err(Domain(@bootstrap.Bootstrap(@bootstrap.Physical(code)))) =>
