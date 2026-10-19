@@ -140,9 +140,13 @@ test "actual in-process domain supplies one entered ledger and retains original 
     host.require_domain_retained_execution_current(execution) is Err(_),
   )
   retained.val = None
-  host
-  .close_domain_retained_execution(execution)
-  .retained_execution_value("retained stage 18: component/frame cleanup")
+  match host.close_domain_retained_execution(execution) {
+    Ok(_) => ()
+    Err(Domain(@bootstrap.Bootstrap(@bootstrap.Physical(code)))) =>
+      fail("retained stage 18: physical cleanup code \{code}")
+    Err(Domain(_)) => fail("retained stage 18: domain cleanup issue")
+    Err(Child(_)) => fail("retained stage 18: original child cleanup issue")
+  }
   assert_true(
     execution.closed && execution.physical_retired && execution.reported,
   )
