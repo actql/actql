@@ -61,12 +61,50 @@ fn[T] NativeLocalValuesOriginalAccess::in_original_read(
     !self.operation.receiver.closing else {
     return Err(self.retain(OriginalOperation(None, StoreOperationUnavailable)))
   }
-  match bridge.enter_store() {
-    Err(issue) =>
-      return Err(
-        self.retain(OriginalOperation(None, self.routing_issue(issue))),
+  let (_, original) = match
+    self.operation.receiver.originals(self.operation.receiver.library, false) {
+    Ok(value) => value
+    Err(issue) => return Err(self.retain(OriginalOperation(None, issue)))
+  }
+  // Publication predicates can run inside this same Store's Read flight or
+  // the original Journal fence. Borrow only that actual entered Read. They
+  // neither open a second flight nor acknowledge the caller's return.
+  let borrowed = if original.host.observe_local_host_consuming_read_scope(
+      original.pair,
+      original.read,
+    )
+    is Ok(@arena.ReadEntered) {
+    let same_flight = match original.store_operation {
+      Some(active) =>
+        physical_equal(active, self.operation.receiver) &&
+        self.operation.receiver.phase == StoreRouteRead &&
+        bridge.pending_scope() is Ok(true)
+      None =>
+        self.operation.receiver.phase == StoreRouteIdle &&
+        bridge.pending_scope() is Ok(false)
+    }
+    if !same_flight ||
+      !(original.active_phase is Some(@arena.HostRead)) ||
+      !(original.host.observe_domain_retained_execution_scope(
+        self.operation.receiver.execution,
       )
-    Ok(_) => ()
+      is Ok(@bootstrap.BackedReadUnentered)) {
+      return Err(
+        self.retain(OriginalOperation(None, StoreOperationUnavailable)),
+      )
+    }
+    true
+  } else {
+    false
+  }
+  if !borrowed {
+    match bridge.enter_store() {
+      Err(issue) =>
+        return Err(
+          self.retain(OriginalOperation(None, self.routing_issue(issue))),
+        )
+      Ok(_) => ()
+    }
   }
   // Publish the actual Work result before a later original Read/current/leave
   // can fail. A committed claim remains one-shot even if that return is lost.
@@ -120,7 +158,7 @@ fn[T] NativeLocalValuesOriginalAccess::in_original_read(
     (Ok(_), Some(value)) => value
     (Ok(_), None) => Err(OriginalOperation(None, StoreOperationUnavailable))
   }
-  let after = bridge.leave_store()
+  let after = if borrowed { Ok(()) } else { bridge.leave_store() }
   let result = match after {
     Ok(_) => body
     Err(issue) =>
