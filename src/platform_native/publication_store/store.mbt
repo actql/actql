@@ -33,6 +33,7 @@ pub(all) enum NativePublicationStoreIssue {
   ExistingDeliveryAttempt
   DeliveryAttemptUnresolved
   OperationRouting(NativePublicationStoreIssue?, @sqlite.NativeSqliteIssue)
+  OperationCleanup(NativePublicationStoreIssue?, NativePublicationStoreIssue)
 }
 
 ///|

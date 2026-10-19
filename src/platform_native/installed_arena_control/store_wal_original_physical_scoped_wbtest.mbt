@@ -9,7 +9,9 @@ struct StoreWalReceiver {
   mut cleanup : Bool
   mut sql : Bool
   mut sql_entries : Int
+  mut normal_entries : Int
   mut fail_cleanup_return : Bool
+  mut fail_normal_return : Bool
   mut return_ack_pending : Bool
 }
 
@@ -69,6 +71,7 @@ fn store_wal_route(
         return 12
       }
       receiver.active = true
+      receiver.normal_entries += 1
       0
     }
     1 => {
@@ -103,6 +106,11 @@ fn store_wal_route(
         return 15
       }
       receiver.active = false
+      if !receiver.cleanup && receiver.fail_normal_return {
+        receiver.fail_normal_return = false
+        receiver.return_ack_pending = true
+        return 33
+      }
       if receiver.cleanup && receiver.fail_cleanup_return {
         receiver.fail_cleanup_return = false
         receiver.return_ack_pending = true
@@ -117,6 +125,9 @@ fn store_wal_route(
         return 16
       }
       receiver.cleanup = true
+      // Only the actual same original leave ACK captured by this receiver is
+      // consumed. Recovery enters cleanup, never a normal or replacement use.
+      receiver.return_ack_pending = false
       receiver.active = true
       0
     }
@@ -130,6 +141,7 @@ fn store_wal_payload_work(
   original : @sqlite.NativeStoreOperationOriginal,
   receiver : StoreWalReceiver,
   path : String,
+  normal_probe : Bool,
 ) -> Bool {
   let authority = "sha256:" + "1".repeat(64)
   let store = @store.open_original_local_store_with_custody(
@@ -167,11 +179,26 @@ fn store_wal_payload_work(
   // Routing metadata cannot acknowledge the still-open original Database.
   let original_busy = original.close_checked() is Err(_)
   let retained_alias = store
-  let first_close_pending = store.close() is Err(@store.OperationRouting(_, _))
+  let first_close_pending = if normal_probe {
+    receiver.fail_normal_return = true
+    let pending = store.capacity_usage() is Err(@store.OperationRouting(_, _))
+    pending && store.capacity_usage() is Err(@store.CleanupPending)
+  } else {
+    store.close() is Err(@store.OperationRouting(_, _))
+  }
   let sql_after_first = receiver.sql_entries
+  let normal_after_first = receiver.normal_entries
   let second_close = store.close().unwrap()
   let third_close = store.close().unwrap()
-  let no_replay = receiver.sql_entries == sql_after_first
+  // Normal failed-return recovery performs ONLY necessary cleanup SQL, not
+  // the failed capacity read again or any business/payload operation.
+  let no_replay = if normal_probe {
+    receiver.cleanup &&
+    !receiver.return_ack_pending &&
+    receiver.normal_entries == normal_after_first
+  } else {
+    receiver.sql_entries == sql_after_first
+  }
   // The separately retained closed carrier still owns its Database DATA shell.
   let library_busy = library.close_checked() is Err(_)
   let alias_closed = retained_alias.close().unwrap()
@@ -194,6 +221,7 @@ fn store_wal_original_work(
   host : InstalledArenaHost,
   sqlite : InstalledArenaSqliteLibrary,
   path : String,
+  normal_probe : Bool,
 ) -> Bool {
   let library = sqlite.library.unwrap()
   let receiver : StoreWalReceiver = {
@@ -204,7 +232,9 @@ fn store_wal_original_work(
     cleanup: false,
     sql: false,
     sql_entries: 0,
-    fail_cleanup_return: true,
+    normal_entries: 0,
+    fail_cleanup_return: !normal_probe,
+    fail_normal_return: false,
     return_ack_pending: false,
   }
   let original = store_wal_prepare_original(library, receiver, fn(
@@ -215,18 +245,20 @@ fn store_wal_original_work(
     store_wal_route(receiver, library, tag)
   })
   original.activate().unwrap()
-  let result = store_wal_payload_work(library, original, receiver, path)
+  let result = store_wal_payload_work(
+    library, original, receiver, path, normal_probe,
+  )
   result &&
   receiver.sql_entries > 0 &&
   !receiver.active &&
   !receiver.sql &&
   receiver.cleanup &&
   !receiver.return_ack_pending &&
-  original.primary_code() == 44
+  original.primary_code() == (if normal_probe { 33 } else { 44 })
 }
 
 ///|
-test "selected original Store WAL payload and separate physical cleanup" {
+fn store_wal_physical_case(normal_probe : Bool) -> Unit raise {
   let root = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap()
   let component = @env.get_env_var("ACTQL_TEST_SQLITE_COMPONENT").unwrap()
   let page = domain_page_bytes()
@@ -285,7 +317,12 @@ test "selected original Store WAL payload and separate physical cleanup" {
     ReadySqlite(value) => value
     PendingSqlite(_, _) => fail("original Store WAL Library pending")
   }
-  let result = store_wal_original_work(host, sqlite, root + "/store")
+  let result = store_wal_original_work(
+    host,
+    sqlite,
+    root + "/store",
+    normal_probe,
+  )
   let children = store_wal_library_children(sqlite.library.unwrap())
   match host.close_sqlite_library(sqlite) {
     Ok(_) => ()
@@ -306,4 +343,14 @@ test "selected original Store WAL payload and separate physical cleanup" {
   host.try_close().retained_execution_value("Store WAL Host ACK")
   assert_eq(process_test_close(descriptor), 0)
   assert_true(result)
+}
+
+///|
+test "selected original Store WAL payload and separate physical cleanup" {
+  store_wal_physical_case(false)
+}
+
+///|
+test "normal Store return failure reaches same-original cleanup without normal revival" {
+  store_wal_physical_case(true)
 }
