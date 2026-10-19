@@ -3799,7 +3799,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "89920f0bf77a828abd00297df599dcf9ba2d5553a414bc10c3187c18f8e6c2ce",
+      "sha256": "9ddcaa9a6900ea12098287d6d46662b37a5699e4f0e2e6eae4c0f067d0be17ee",
       "exports": [
         "assertInitialControlHostPreparation",
         "assertOriginalHostPublicationOwnershipCurrent",
@@ -3943,6 +3943,11 @@
           "name": "connectEmbeddedLocal/preparation/init:prepareHostJournal/init:prepareHostJournal/init:prepareHostJournal",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:publicationOwnership/init:publicationOwnership",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "connectEmbeddedLocal/preparation/init:readAsset/init:readAsset",
@@ -4128,12 +4133,27 @@
           "async": true
         },
         {
+          "name": "openInstalledHost/closeHostPublicationOwnership",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/closeHostRequestJournal",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/hostConnection/hostConnection",
           "parameters": [
             "actual",
             "connection",
             "ref"
           ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/hostJournalExclusion",
+          "parameters": [],
           "async": false
         },
         {
@@ -5453,6 +5473,13 @@
             "request"
           ],
           "async": false
+        },
+        {
+          "name": "openInstalledHost/openHostRequestJournal",
+          "parameters": [
+            "journalOptions"
+          ],
+          "async": true
         },
         {
           "name": "openInstalledHost/openInstalledHost",
@@ -6968,13 +6995,9 @@
         {
           "operations": [
             "assertInitialControlHostPreparation",
+            "assertSourceManagedHostPreparation",
             "connectEmbeddedLocal/connectEmbeddedLocal",
             "connectEmbeddedLocal/initialControl/init:close/init:close",
-            "connectEmbeddedLocal/preparation/init:retainReferenceRetirement/init:retainReferenceRetirement",
-            "connectEmbeddedLocal/releaseUnadopted",
-            "connectEmbeddedLocal/retirePreparationReferences",
-            "openInstalledHost/retireModelPreparationReferences",
-            "assertSourceManagedHostPreparation",
             "connectEmbeddedLocal/preparation/init:bindSourceRequest/init:bindSourceRequest",
             "connectEmbeddedLocal/preparation/init:installMockModels/init:installMockModels",
             "connectEmbeddedLocal/preparation/init:installMockModels/init:installMockModels/init:installMockModels",
@@ -6984,9 +7007,18 @@
             "connectEmbeddedLocal/preparation/init:openRequestJournal/init:openRequestJournal",
             "connectEmbeddedLocal/preparation/init:prepareHostJournal/init:prepareHostJournal",
             "connectEmbeddedLocal/preparation/init:prepareHostJournal/init:prepareHostJournal/init:prepareHostJournal",
+            "connectEmbeddedLocal/preparation/init:publicationOwnership/init:publicationOwnership",
             "connectEmbeddedLocal/preparation/init:retainHostJournalPreparation/init:retainHostJournalPreparation",
             "connectEmbeddedLocal/preparation/init:retainHostJournalPreparation/init:retainHostJournalPreparation/view/init:assertCurrent/init:assertCurrent",
+            "connectEmbeddedLocal/preparation/init:retainReferenceRetirement/init:retainReferenceRetirement",
             "connectEmbeddedLocal/preparation/init:sourcePreparation/init:sourcePreparation",
+            "connectEmbeddedLocal/releaseUnadopted",
+            "connectEmbeddedLocal/retirePreparationReferences",
+            "openInstalledHost/closeHostPublicationOwnership",
+            "openInstalledHost/closeHostRequestJournal",
+            "openInstalledHost/hostJournalExclusion",
+            "openInstalledHost/openHostRequestJournal",
+            "openInstalledHost/retireModelPreparationReferences",
             "originalSourceManagedHostRequest",
             "prepareInstalledMockSourcePreparation",
             "prepareInstalledMockSourcePreparation/assertCurrent/assertCurrent",
@@ -7083,6 +7115,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "  return profiles.hostJournalPreparation(originals.host, originals.installation,"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal and Store cleanup attempts remain independent."
               }
             ],
             "synchronization": [
@@ -7127,6 +7163,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "// this namespace. An export alone supplies neither admission nor authority."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "does not release shared exclusion while the same Journal's primary, secondary"
               }
             ],
             "extension": [
@@ -7151,6 +7191,10 @@
               {
                 "path": "adapters/host-node/host-journal-selected-constructor.test.mjs",
                 "anchor": "test('selected Journal uses the captured original factory and receiver exactly once',async()=>{"
+              },
+              {
+                "path": "adapters/host-node/host-journal-root-custody.test.mjs",
+                "anchor": "test('actual unselected Host Store call adopts its same earlier ordinary ownership'"
               }
             ]
           }
@@ -7316,7 +7360,7 @@
             "responsibility": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "The selected public-entry consumer initially supports omitted `open` input."
+                "anchor": "The selected public-entry consumer supports omitted and own-DATA `open` input."
               }
             ],
             "inputsOutputs": [
@@ -7344,7 +7388,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "try { record.openStateDirectory = resolve('.actql'); }"
+                "anchor": "try { record.openWorkingDirectory = resolve('.'); }"
               }
             ],
             "failure": [
@@ -7379,6 +7423,10 @@
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
                 "anchor": "test('the selected Host consumer forwards admitted connect and omitted open without a raw observation'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('captured open refuses inherited options added during initialization without reading them'"
               }
             ]
           }

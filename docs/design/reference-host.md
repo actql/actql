@@ -566,15 +566,22 @@ private selected namespace exposes a pure bounded snapshot reader so the
 actual startup can capture its exact Source, rather than accept an application
 callback as the reader. This operation cannot issue the operational admission.
 
-The selected public-entry consumer initially supports omitted `open` input.
-It forwards that same `undefined` to the existing candidate's begin exactly
-once. The operational supplier, not a public default argument or facade copy,
-owns the empty packet's acquisition. The original path observation remains
-before initialization awaits, under the independently admitted prior startup
-envelope; its result or failure stays with the same preparation record through
-partial failure. After nominal/current admission, only that original empty
-packet becomes the existing Local mode/owner and project-local state-directory
-options. A nonempty replacement packet refuses without dropping its fields.
+The selected public-entry consumer supports omitted and own-DATA `open` input.
+It forwards that same original to the existing candidate's begin exactly once.
+The operational supplier, not a public default argument or facade copy, owns
+the empty or explicit packet's acquisition. Call-time working-directory
+observation remains before initialization awaits, under the independently
+admitted prior startup envelope; its result or failure stays with the same
+preparation record through partial failure. After nominal/current admission,
+only the captured own DATA supplies stateDir, installation, durability and
+consent references. Existing closed-field and type validation remains intact.
+An inherited option added during initialization refuses without invoking its
+getter; freezing the captured record does not freeze its prototype. The Local
+mode/owner and installation projection have null prototypes and cannot borrow
+later inherited profile or authorization values. The captured stateDir is
+resolved against that original working directory, not a later process cwd.
+Omitted input still requires its original empty packet; a nonempty replacement
+refuses without dropping fields.
 The returned Client and `info.stateDir` describe that same registry Host and
 directory; no second open, candidate, installation or scope is issued. This
 finite producer support does not redefine other valid public option objects
