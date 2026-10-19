@@ -360,6 +360,14 @@ static void *inspection_open_bounded_original(
     inspection_error(owner, "invalid inspection path");
     return owner;
   }
+  /* This command's physical Root/member path selection is bounded to 4096
+   * encoded bytes. Enforce that same precondition before retained source/WAL/
+   * rollback path allocations; never truncate or rename the original path.
+   * The generic Coordinator inspection retains its existing input domain. */
+  if (command_selected && length > 4096) {
+    inspection_error(owner, "original command inspection path unavailable");
+    return owner;
+  }
   /* The command entry captured this original before the first covered
    * acquisition. Never re-read the environment after admission. Refusal here
    * precedes even opening the source; this same receiver still owns cleanup.
