@@ -173,3 +173,31 @@ pub fn NativeLocalHostConnection::bind_original_run_publisher(
     )
   })
 }
+
+///|
+/// Sample one material/fence correlation using the selected publisher's same
+/// original Library and current Read. The digest retains the existing SHA-256
+/// preimage; it is DATA, never a publication grant or a replacement attempt.
+pub fn NativeLocalPublisherBinding::sample_original_generation_cid(
+  self : NativeLocalPublisherBinding,
+) -> Result[String, NativeLocalPublisherBindingIssue] {
+  guard self.operation is Some(operation) else { return Err(InvalidOriginal) }
+  operation.with_publisher_read((host, operations) => {
+    if !physical_equal(host, self.authority.host) ||
+      !self.current_in_mode(false, reads=Some(operations.reads)) {
+      return Err(AuthorizationDenied)
+    }
+    let nonce = match self.authority.crypto.random_bytes(32) {
+      Ok(bytes) => bytes
+      Err(issue) => return Err(Adoption(Crypto(issue)))
+    }
+    // The existing bounded pure digest has no physical Hasher child to lose
+    // when a later current/return fence refuses. The actual random sample is
+    // still obtained only through this Library's selected physical component.
+    let generation = "sha256:" + @sha.hex(nonce)
+    if !self.current_in_mode(false, reads=Some(operations.reads)) {
+      return Err(AuthorizationDenied)
+    }
+    Ok(generation)
+  })
+}

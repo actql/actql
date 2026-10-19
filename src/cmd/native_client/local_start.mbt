@@ -188,6 +188,11 @@ fn local_submission_start(
   let reference = selection.reference
   let attempt = selection.attempt
   let observe_original = () => {
+    if business is Some(_) {
+      // Saved-state recovery has its own original read admission. Do not
+      // enter an unscoped legacy lookup after a selected admission refusal.
+      stop("LocalOriginalRunStateUnavailable")
+    }
     let reply = if selection.fresh {
       local_submission_lookup_selected(host, settings, crypto, () => reference)
     } else {
@@ -615,34 +620,39 @@ fn local_submission_start(
     let managed = local_host_result(managed_path).unwrap_or_else(() => {
       stop("LocalManagedRootRequired")
     })
-    let root = @local_filesystem.open_private_root(managed).unwrap_or_else(() => {
-      stop("LocalManagedRootUntrusted")
-    })
-    if root
-      .inspect_directory(run.store_name)
-      .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
-      is None {
-      root
-      .create_directory(run.store_name)
-      .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
-      |> ignore
+    let store = match business {
+      Some(original) => original.open_store(sqlite, managed, run)
+      None => {
+        let root = @local_filesystem.open_private_root(managed).unwrap_or_else(() => {
+          stop("LocalManagedRootUntrusted")
+        })
+        if root
+          .inspect_directory(run.store_name)
+          .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
+          is None {
+          root
+          .create_directory(run.store_name)
+          .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
+          |> ignore
+        }
+        root
+        .open_child(run.store_name)
+        .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
+        .private_ownership()
+        .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
+        |> ignore
+        @local_store.open_store(
+          sqlite,
+          managed + "/" + run.store_name,
+          run.store_authority_cid,
+          run.store_capacity_bytes,
+          run.store_objects,
+          run.store_record_bytes,
+        ).unwrap_or_else(() => stop("LocalResultStoreUnavailable"))
+      }
     }
-    root
-    .open_child(run.store_name)
-    .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
-    .private_ownership()
-    .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
-    |> ignore
-    let store = @local_store.open_store(
-      sqlite,
-      managed + "/" + run.store_name,
-      run.store_authority_cid,
-      run.store_capacity_bytes,
-      run.store_objects,
-      run.store_record_bytes,
-    ).unwrap_or_else(() => stop("LocalResultStoreUnavailable"))
     let reply = {
-      errdefer (if !(store.close() is Ok(true)) {
+      errdefer (if business is None && !(store.close() is Ok(true)) {
         stop("LocalResultStoreCleanupPending")
       })
       let binding = @local_host.install_native_client_cancellation_publication(
@@ -652,14 +662,34 @@ fn local_submission_start(
         8192,
         64,
       ).unwrap_or_else(() => stop("LocalPublicationBindingUnavailable"))
-      journal
-      .bind_installed_publication(request, binding, current)
-      .unwrap_or_else(() => stop("LocalPublicationBindingUnavailable"))
+      match business {
+        None =>
+          journal
+          .bind_installed_publication(request, binding, current)
+          .unwrap_or_else(() => stop("LocalPublicationBindingUnavailable"))
+        Some(original) =>
+          local_host_result(
+            original.capture.bind_installed_publication_in_original_read(
+              settings.principal,
+              settings.connection,
+              request,
+              binding,
+            ),
+          )
+      }
       if source_free {
-        local_execute_publish_values(
-          host, settings, run, prepared, compiled, definition, request, reference,
-          attempt, crypto, store, current,
-        )
+        match business {
+          Some(original) =>
+            local_execute_original_publish_values(
+              original, settings, run, compiled, definition, request, reference,
+              attempt, store,
+            )
+          None =>
+            local_execute_publish_values(
+              host, settings, run, prepared, compiled, definition, request, reference,
+              attempt, crypto, store, current,
+            )
+        }
       } else {
         let source = source.unwrap()
         guard host.authorize({
@@ -713,12 +743,16 @@ fn local_submission_start(
         result
       }
     }
-    if !(store.close() is Ok(true)) {
+    if business is None && !(store.close() is Ok(true)) {
       stop("LocalResultStoreCleanupPending")
     }
-    local_public_run_state_reply(
-      host, settings, crypto, reference, public_run, reply,
-    )
+    match business {
+      Some(_) => reply
+      None =>
+        local_public_run_state_reply(
+          host, settings, crypto, reference, public_run, reply,
+        )
+    }
   } catch {
     ClientStop(message) =>
       stop(local_run_submission_failure(selection, message))

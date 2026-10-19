@@ -65,6 +65,16 @@ test "Business child cleanup retries the same failed physical entry after origin
     store_root: None,
     store_root_failure: None,
     store_root_operation: None,
+    publication_publisher: None,
+    publication_service: None,
+    publication_results: None,
+    publication_pending: None,
+    publication_failure: None,
+    publication_commit_failure: None,
+    publication_cleanup_failure: None,
+    publication_attempted: false,
+    publication_result: None,
+    publication_retired: false,
     active: false,
   }
   // An actual entered parent excludes the child Read. The failed constructor

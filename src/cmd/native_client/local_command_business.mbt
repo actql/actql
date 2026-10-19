@@ -25,6 +25,18 @@ priv struct LocalCommandBusinessOriginal {
   mut store_root : @local_filesystem.Root?
   mut store_root_failure : @local_filesystem.NativeRootOpenFailure?
   mut store_root_operation : @local_sqlite.NativeStoreOperationOriginal?
+  mut publication_publisher : @local_host.NativeLocalPublisherBinding?
+  mut publication_service : @local_publication.NativeRunPublicationService?
+  mut publication_results : Array[
+    @local_publication.NativeCapturedResultPublicationContext,
+  ]?
+  mut publication_pending : @local_publication.NativePreparedCapturedRunPublication?
+  mut publication_failure : @local_host.NativeClientValuesPublicationIssue?
+  mut publication_commit_failure : @local_publication.NativeRunPublicationIssue?
+  mut publication_cleanup_failure : @local_publication.NativeCapturedRunPublicationCancellationIssue?
+  mut publication_attempted : Bool
+  mut publication_result : @local_publication.NativeRunPublicationResult?
+  mut publication_retired : Bool
   mut active : Bool
 }
 

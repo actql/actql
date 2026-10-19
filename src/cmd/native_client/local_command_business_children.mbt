@@ -150,15 +150,12 @@ fn LocalCommandPreparationOriginal::close_business_children(
   self : LocalCommandPreparationOriginal,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
   guard self.business is Some(business) else { return Ok(()) }
-  if business.values_work is Some(_) || business.values_failure is Some(_) {
-    guard self.host is Some(host) &&
-      business.execution is Some(execution) &&
-      business.operation is Some(operation) &&
-      !self.journal_read_open &&
-      !self.phase_open else {
-      return Err(CommandBusinessChildren)
-    }
-    // Settle only a recorded original flight. No SQL body or Work is retried.
+  if self.journal_read_open || self.phase_open {
+    return Err(CommandBusinessChildren)
+  }
+  // A Store open can fail before Work exists. Reconcile the same outstanding
+  // route before either its publication children or failed DB are retired.
+  if business.operation is Some(operation) {
     match operation.pending_scope() {
       Err(issue) => return Err(CommandStoreOperation(issue))
       Ok(true) =>
@@ -167,6 +164,19 @@ fn LocalCommandPreparationOriginal::close_business_children(
           Ok(_) => ()
         }
       Ok(false) => ()
+    }
+  }
+  match business.close_publication_children() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if business.values_work is Some(_) || business.values_failure is Some(_) {
+    guard self.host is Some(host) &&
+      business.execution is Some(execution) &&
+      business.operation is Some(_) &&
+      !self.journal_read_open &&
+      !self.phase_open else {
+      return Err(CommandBusinessChildren)
     }
     match business.enter_children_cleanup(host) {
       Err(issue) => return Err(issue)
