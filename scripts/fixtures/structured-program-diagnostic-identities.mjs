@@ -13,7 +13,8 @@ const cid = value => 'sha256:' + createHash('sha256').update(sorted(value)).dige
 const catalog = JSON.parse(readFileSync(root + 'spec/contracts/actql-check-reason-catalog.json'));
 const registry = JSON.parse(readFileSync(root + 'spec/contracts/actql-protocol-schemas.json'));
 const fixed = JSON.parse(readFileSync(root + 'portability/corpus/text-enumeration-identities.json'));
-const current = JSON.parse(readFileSync(root + 'portability/corpus/signed64-identities.json'));
+const current = JSON.parse(readFileSync(root + 'scripts/fixtures/check-consumer-condition-historical.json'));
+const preceding = JSON.parse(readFileSync(root + 'portability/corpus/signed64-identities.json'));
 const reason = structuredClone(catalog.reason_schema);
 for (const variant of reason.properties.facts.oneOf) {
   if (variant.properties.admission) variant.properties.admission.properties.contract_schema_cid.const = cid(registry.schemas.canonical_value_contract);
@@ -66,4 +67,17 @@ test('pre-enum structured contexts keep both original checked schema bindings', 
   assert.deepEqual(retained.map(preimage => 'ctx:' + createHmac('sha256',
     new Uint8Array(32).fill(7)).update(sorted(preimage)).digest('hex')),
     fixed.previousStructuredCheckContexts.map(value => value.reference));
+});
+
+// New binding-condition contexts do not rewrite the complete Signed64 originals.
+test('preceding Signed64 structured contexts retain their original schema pair and Unicode bytes', () => {
+  assert.deepEqual(preceding.checkSchemas.reason.body, current.reason);
+  assert.deepEqual(preceding.checkSchemas.outcome.body, current.outcome);
+  const retained = vectors.map(({preimage}) => ({...preimage,
+    reason_schema_cid: preceding.checkSchemas.reason.cid,
+    outcome_schema_cid: preceding.checkSchemas.outcome.cid}));
+  assert.deepEqual(retained, preceding.currentStructuredCheckContexts.map(value => value.preimage));
+  assert.deepEqual(retained.map(preimage => 'ctx:' + createHmac('sha256',
+    new Uint8Array(32).fill(7)).update(sorted(preimage)).digest('hex')),
+  preceding.currentStructuredCheckContexts.map(value => value.reference));
 });

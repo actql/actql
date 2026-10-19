@@ -76,7 +76,18 @@ violations remain rejections with their original typed causes.
 
 Typed execution-value Requirements retain the original Parameter declarations.
 Defaults are admitted by the existing declaration owner; invented values do
-not stand in for missing input. Runtime resource/publication binding and
+not stand in for missing input. Take count and offset demands additionally retain
+private, constructor-closed conditions tied to the same complete template,
+Program, declaration and operation obligation. Indexed nominal membership makes
+the projection constant-time without equating copied descriptors. A condition
+survives even a valid default because a later override still requires ordinary
+bound admission. Default zero is an admitted declaration value, not a missing
+value or template type failure; its positive-count use fails only when bound.
+The public `parameter_consumer_condition` projects the existing safe-integer
+minimum/range and count/offset role, with an optional original declaration
+location. It does not disclose an executable predicate or fabricate a SQL
+operation span. Every condition is counted in the same requirement budget;
+truncated reports cannot verify or become runnable. Runtime resource/publication binding and
 enforcement owners remain retained separately. Template verification cannot
 construct executable Units, authorize a Run or Submission, validate runtime
 observations, or trigger automatic execution/resending. Supplementation enters

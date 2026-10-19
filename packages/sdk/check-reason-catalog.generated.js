@@ -3,8 +3,8 @@
 const freeze = value => { if (value && typeof value === "object") {Object.values(value).forEach(freeze); Object.freeze(value);} return value; };
 const info = freeze({
   "version": "actql-check-reason-catalog/0.1",
-  "revision": "2026-10-16.1",
-  "reasonSchemaCid": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf"
+  "revision": "2026-10-19.1",
+  "reasonSchemaCid": "sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5"
 });
 const entries = freeze({
   "analysis_budget_exhausted": {
@@ -624,6 +624,34 @@ const entries = freeze({
       {
         "file": "adapters/host-node/client-check.test.mjs",
         "scenario": "operation parameter violations explain owned domains and input origins"
+      }
+    ]
+  },
+  "parameter_consumer_condition": {
+    "code": "parameter_consumer_condition",
+    "condition": "A complete template retains an original Take safe-integer count or offset condition for actual binding; declaration/default admission does not discharge a future override.",
+    "facts_schema": "#/reason_schema",
+    "disclosure": "Only the original Common template and its exact operation obligation may emit this binding condition. The optional location identifies the admitted declaration, not an inferred SQL operation span. No value, private predicate or execution authority is disclosed.",
+    "locations": [
+      "parameter_declarations:structured (original declaration pointer)",
+      "program:structured (original declaration pointer)"
+    ],
+    "default_severity": "info",
+    "family": "requirement",
+    "presentation": {
+      "default": {
+        "key": "reason.parameter_consumer_condition",
+        "english": [
+          "A parameter must satisfy its operation-specific binding condition.",
+          "Supply a value within the stated safe-integer range and check the complete bound input again."
+        ]
+      },
+      "variants": []
+    },
+    "examples": [
+      {
+        "file": "adapters/host-node/client-check-text-boundary.test.mjs",
+        "scenario": "Take defaults and overrides retain separate binding conditions"
       }
     ]
   },

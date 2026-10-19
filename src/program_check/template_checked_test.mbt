@@ -234,7 +234,7 @@ test "complete template closure uses admitted defaults and refuses unsupported s
   )
   for
     unsupported in [
-      ",{\"dedupe_rows\":{\"by\":[\"n\"],\"order_by\":[{\"n\":\"asc\"}]}}", ",{\"take\":{\"$param\":\"x\"}}",
+      ",{\"dedupe_rows\":{\"by\":[\"n\"],\"order_by\":[{\"n\":\"asc\"}]}}",
     ] {
     let (program, environment, limits) = complete_template_fixture(
       suffix=unsupported,
@@ -442,5 +442,83 @@ test "complete template DISTINCT keeps original equality types and publication o
       limits,
     )
     is TemplateOnly(Rejected(_)),
+  )
+}
+
+///|
+test "Take template conditions retain original obligations independently of defaults" {
+  let suffix = ",{\"take\":{\"count\":{\"$param\":\"x\"},\"offset\":{\"$param\":\"x\"}}}"
+  for default_value in ["", ",\"default\":0", ",\"default\":1"] {
+    let (program, environment, limits) = complete_template_fixture(
+      suffix~,
+      default_value~,
+    )
+    let prepared = @program_check.prepare_template_declarations(
+      program, environment, limits,
+    ).unwrap()
+    let checked = @program_check.complete_template_check(prepared).unwrap()
+    assert_eq(@program_check.template_checked_condition_count(checked), 2)
+    assert_eq(
+      @program_check.template_checked_input_count(checked),
+      if default_value == "" {
+        1
+      } else {
+        0
+      },
+    )
+    let count = @program_check.template_checked_condition_at(checked, 0).unwrap()
+    let offset = @program_check.template_checked_condition_at(checked, 1).unwrap()
+    assert_true(@program_check.template_condition_matches(checked, count))
+    assert_true(@program_check.template_condition_matches(checked, offset))
+    assert_true(physical_equal(count.program, program))
+    assert_true(physical_equal(count.declaration, offset.declaration))
+    assert_eq((count.minimum, offset.minimum), (1L, 0L))
+    assert_eq((count.stage, count.step), (0, 3))
+    assert_eq(
+      @decode.cursor_path(@program_check.template_condition_source(count)),
+      [
+        @source.Key("stages"),
+        @source.Index(0),
+        @source.Key("steps"),
+        @source.Index(3),
+        @source.Key("take"),
+        @source.Key("count"),
+      ],
+    )
+    let other = @program_check.complete_template_check(prepared).unwrap()
+    assert_true(!@program_check.template_condition_matches(other, count))
+    assert_true(
+      @program_check.template_checked_condition_at(checked, 2) is None,
+    )
+    let work = @program_check.template_checked_usage(checked).0
+    let tight = @program_check.prepare_template_declarations(
+      program,
+      environment,
+      { ..limits, compilation: { ..limits.compilation, work: work - 1, }, },
+    ).unwrap()
+    assert_true(@program_check.complete_template_check(tight) is Err(_))
+  }
+}
+
+///|
+test "previously unresolved shorthand Take retains its original binding demand" {
+  let (program, environment, limits) = complete_template_fixture(
+    suffix=",{\"take\":{\"$param\":\"x\"}}",
+  )
+  guard @program_check.check_parsed_scoped(
+      program,
+      environment,
+      TemplateOnly,
+      None,
+      limits,
+    )
+    is TemplateOnly(Verified(checked)) else {
+    fail("original shorthand Take closes with a retained demand")
+  }
+  assert_eq(@program_check.template_checked_input_count(checked), 1)
+  assert_eq(@program_check.template_checked_condition_count(checked), 1)
+  assert_eq(
+    @program_check.template_checked_condition_at(checked, 0).unwrap().minimum,
+    1L,
   )
 }

@@ -16724,7 +16724,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/check-outcome.verdict-must-agree-with-evidence",
-      "statement_sha256": "f10445e5070b32144fe5b1e69f4b677f0411397055be2d770e23ab6724665b69",
+      "statement_sha256": "52e63caee78c246c7e21e73d73aafc9b18a653e1c8c6c5031739c63a6c631471",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -16732,6 +16732,17 @@
         "anchor": "ranked-search-contract",
         "kind": "prose"
       }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/check-outcome.bound-input-no-requirements",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the Common consumer and independent positive and negative evidence.",
+      "source": {
+        "anchor": "ranked-search-contract",
+        "kind": "prose"
+      },
+      "statement_sha256": "e2c6d59304d41970840bf329dbef36b3a54a77b92446cde778a4ef10ee826aa7"
     },
     {
       "requirement_id": "actql.protocol.contracts/check-outcome.partial-report-must-not-verify",
@@ -16842,6 +16853,127 @@
         "anchor": "ranked-search-contract",
         "kind": "prose"
       }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/public-check.take-condition-facts",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the Common consumer and independent positive and negative evidence.",
+      "source": {
+        "anchor": "ranked-search-contract",
+        "kind": "prose"
+      },
+      "statement_sha256": "4b34e466f2f9578f315487464de3af6d9ef26d77f0a5330341956448101db0fd"
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/public-check.take-condition-original-membership",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the Common consumer and independent positive and negative evidence.",
+      "source": {
+        "anchor": "ranked-search-contract",
+        "kind": "prose"
+      },
+      "statement_sha256": "140502dcc4f8cd4c28fdcf15f329dd4f3a788c7dbe6c1a2d10fbe9469387757e"
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/public-check.take-condition-foreign-refusal",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the Common consumer and independent positive and negative evidence.",
+      "source": {
+        "anchor": "ranked-search-contract",
+        "kind": "prose"
+      },
+      "statement_sha256": "ba45575e535f63c40bcad57cd59275b8248d629b4dd905906f7fb9b47f14d247"
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/public-check.take-condition-default-separation",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the Common consumer and independent positive and negative evidence.",
+      "source": {
+        "anchor": "ranked-search-contract",
+        "kind": "prose"
+      },
+      "statement_sha256": "e5b3b8b2d77c0d45e7b58aea93172fd4bd5c84dcba31cc919a0f43cebb18e639"
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/public-check.take-condition-default-not-missing",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the Common consumer and independent positive and negative evidence.",
+      "source": {
+        "anchor": "ranked-search-contract",
+        "kind": "prose"
+      },
+      "statement_sha256": "d45d049ffe158dba72951b562b64bdc0c5e3844d8ee4e3f3ccc4d95d6adf296b"
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/public-check.take-condition-bound-recheck",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the Common consumer and independent positive and negative evidence.",
+      "source": {
+        "anchor": "ranked-search-contract",
+        "kind": "prose"
+      },
+      "statement_sha256": "dad84fff5c553e239fc94cdb993736e9600b834ca927409c787a0ed4ceea18cb"
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/public-check.take-condition-not-runnable",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the Common consumer and independent positive and negative evidence.",
+      "source": {
+        "anchor": "ranked-search-contract",
+        "kind": "prose"
+      },
+      "statement_sha256": "f415db75c8333a7c7679603fc22c7c80f26de8c2aca56a203f908b3820d0fd50"
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/public-check.take-condition-missing-separate",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the Common consumer and independent positive and negative evidence.",
+      "source": {
+        "anchor": "ranked-search-contract",
+        "kind": "prose"
+      },
+      "statement_sha256": "82934a8e8b3cebdb9c75b0a968f80875dc8dffb654433e33bbeb33fb65e7afb9"
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/public-check.take-condition-report-complete",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the Common consumer and independent positive and negative evidence.",
+      "source": {
+        "anchor": "ranked-search-contract",
+        "kind": "prose"
+      },
+      "statement_sha256": "79bed646875d0eca9460157c3e48742dfb6013384930f5012aeff572aa71ec42"
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/public-check.take-condition-report-limit",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the Common consumer and independent positive and negative evidence.",
+      "source": {
+        "anchor": "ranked-search-contract",
+        "kind": "prose"
+      },
+      "statement_sha256": "243439c949b1030e962836bc78f381c32f344a0b36ac33453c5028b35a1d3db5"
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/public-check.take-condition-absent-compatibility",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the Common consumer and independent positive and negative evidence.",
+      "source": {
+        "anchor": "ranked-search-contract",
+        "kind": "prose"
+      },
+      "statement_sha256": "72790d5e5cbee3c7a94a38bf370ffdca3c34c754c241debf08d564e5576bf2e0"
     },
     {
       "requirement_id": "actql.protocol.contracts/ranked-search-contract.admission",
@@ -17087,7 +17219,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "515e30481866a9393a9ff9b03553aa08d61401dd84cb1f5750bf09d078d5f25a",
+      "statement_sha256": "f3c531974a8729c409d52f41d8bba66bdee562cdd094a87a858c7d183d94e5d8",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
