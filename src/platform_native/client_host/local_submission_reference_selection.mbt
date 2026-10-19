@@ -100,7 +100,7 @@ fn NativeLocalHostConnection::lookup_submission_reference_by_request_id_with_ope
             self.journal.database,
             "client_submitted_intents",
             request_id,
-            reads,
+            reads~,
           ) {
           Ok(Some(value)) => value
           Ok(None) => return Ok(None)
