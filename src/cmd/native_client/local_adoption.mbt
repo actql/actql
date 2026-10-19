@@ -178,6 +178,7 @@ fn execute_native_local_adoption(
   packaged_runtime? : @local_host.NativeLocalPackagedRuntime? = None,
   initial_crypto? : InitialCryptoOriginal? = None,
   preparation? : LocalCommandPreparationOriginal? = None,
+  preparation_runtime? : LocalPackagedRuntime? = None,
 ) -> String raise ClientStop {
   let root = required(matches, "config-root")
   let name = required(matches, "config-file")
@@ -272,8 +273,19 @@ fn execute_native_local_adoption(
       }
     }
     return original.execute_adopted_command(
-      operation, settings, root, name, configuration, environment_file, environment,
-      selected_files, additional, input_root, child,
+      operation,
+      settings,
+      root,
+      name,
+      configuration,
+      environment_file,
+      environment,
+      selected_files,
+      additional,
+      input_root,
+      child,
+      public_run=matches.subcommand is Some(("run", _)),
+      preparation_runtime~,
     )
   }
   let (sqlite_path, crypto_path) = match packaged_runtime {

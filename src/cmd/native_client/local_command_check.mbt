@@ -87,7 +87,13 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   matches : @argparse.Matches,
   operation : String,
 ) -> String raise ClientStop {
-  if operation != "check" && operation != "explain" && operation != "adopt" {
+  let public_run = operation == local_run_original_operation() &&
+    matches.subcommand is Some(("run", _)) &&
+    self.business is Some(_)
+  if operation != "check" &&
+    operation != "explain" &&
+    operation != "adopt" &&
+    !public_run {
     stop("LocalCommandPreparationOperationUnavailable")
   }
   if !(matches.sources.get("config-root") is Some(@argparse.Default)) {
@@ -180,6 +186,7 @@ fn LocalCommandPreparationOriginal::execute_product_command(
     child,
     packaged_runtime=Some(physical),
     preparation=Some(self),
+    preparation_runtime=Some(runtime),
   )
 }
 
@@ -200,6 +207,8 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
   selected_additional : Array[(String, Bytes)],
   input_root : String,
   child : @argparse.Matches,
+  public_run? : Bool = false,
+  preparation_runtime? : LocalPackagedRuntime? = None,
 ) -> String raise ClientStop {
   let session = command_preparation_result(
     self.prepare_adoption(
@@ -257,6 +266,34 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
         } else if operation == "explain" {
           local_check_context(host, crypto, name, capture=Some(capture)).explain(
             input_root, child,
+          )
+        } else if public_run && operation == local_run_original_operation() {
+          let runtime = preparation_runtime.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let selection = self.prepare_business_submission(
+            host, capture, name, runtime, input_root, operation, child,
+          )
+          let physical = self.host.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let pair = self.pair.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let sqlite = physical
+            .borrow_local_host_sqlite(pair)
+            .unwrap_or_else(() => stop("LocalBusinessOriginalUnavailable"))
+          local_submission_start(
+            host,
+            settings,
+            crypto,
+            sqlite,
+            selection.environment,
+            input_root,
+            operation,
+            child,
+            public_run=true,
+            business=Some(selection),
           )
         } else {
           let runtime = self.runtime.unwrap()
