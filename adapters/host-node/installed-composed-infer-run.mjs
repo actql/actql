@@ -139,7 +139,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       submission, declaredResults, principalId, unitId: 'composed-source-input', signal,
       currentRun: () => {try {assertCurrent(); return !signal.aborted;} catch {return false;}}});
     const originals = input.sources.map(source => ({occurrence: source.occurrence,
-      preparedSource: source.preparedSource}));
+      preparedSource: source.preparedSource, adapter: source.adapter}));
     for (const source of input.sources) sourceContinuation.accessFor(source.access, source.occurrence);
     await sourceContinuation.prepared(originals);
     for (const [index, source] of input.sources.entries()) {
