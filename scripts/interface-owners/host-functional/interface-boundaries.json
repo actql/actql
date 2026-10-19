@@ -64306,6 +64306,304 @@
         }
       ],
       "referenceQualification": "Private same-module directory view and original native custody only. Source/test anchors are responsibility references, not operational admission, funding or execution evidence."
+    },
+    {
+      "module": "adapters/host-node/host-journal-native-image.cjs",
+      "sha256": "83fcf09a333e5bff2f12f046d2a6fc61244a20994cd71d6f2db17908919c4973",
+      "exports": [],
+      "operations": [
+        {
+          "name": "call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "currentBindings",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "currentBindings/currentBindings",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadHostJournalDirectoryNative",
+          "parameters": [
+            "packageRoot",
+            "expected",
+            "limits",
+            "assertRuntimeCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadHostJournalDirectoryNative/acquired/acquired",
+          "parameters": [
+            "fd"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadHostJournalDirectoryNative/cleanup/cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadHostJournalDirectoryNative/close/close",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadHostJournalDirectoryNative/fence/fence",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadHostJournalDirectoryNative/hashCopy/hashCopy",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadHostJournalDirectoryNative/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadHostJournalDirectoryNative/init:assertCurrent/init:assertCurrent/init:assertCurrent",
+          "parameters": [
+            "name",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadHostJournalDirectoryNative/observeCleanup/observeCleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadHostJournalDirectoryNative/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadHostJournalDirectoryNative/status/status/status",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "operations/operations",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "same/same",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:buffer",
+        "node:crypto",
+        "node:fs",
+        "node:path",
+        "node:process",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [
+        "dynamic CommonJS export value"
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing selected Node Host/Resource filesystem and native module custody Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "call/call",
+            "currentBindings",
+            "currentBindings/currentBindings",
+            "fail/fail",
+            "loadHostJournalDirectoryNative",
+            "loadHostJournalDirectoryNative/acquired/acquired",
+            "loadHostJournalDirectoryNative/cleanup/cleanup",
+            "loadHostJournalDirectoryNative/close/close",
+            "loadHostJournalDirectoryNative/fence/fence",
+            "loadHostJournalDirectoryNative/hashCopy/hashCopy",
+            "loadHostJournalDirectoryNative/init:assertCurrent/init:assertCurrent",
+            "loadHostJournalDirectoryNative/init:assertCurrent/init:assertCurrent/init:assertCurrent",
+            "loadHostJournalDirectoryNative/observeCleanup/observeCleanup",
+            "loadHostJournalDirectoryNative/status/status",
+            "loadHostJournalDirectoryNative/status/status/status",
+            "operations/operations",
+            "own/own",
+            "same/same"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The private directory image loader keeps native binary facts separate from JS"
+              },
+              {
+                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "anchor": "// Private selected image custody, not operational admission. The real prefix"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "anchor": "function loadHostJournalDirectoryNative(packageRoot, expected, limits, assertRuntimeCurrent) {"
+              },
+              {
+                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "anchor": "entry.view = freeze({operations: native, assertCurrent() {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "anchor": "const same = (a, b) => a.dev === b.dev && a.ino === b.ino && a.size === b.size &&"
+              },
+              {
+                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "anchor": "if (selected.root !== packageRoot || selected.sha256 !== sha256 || selected.bytes !== bytes ||"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "anchor": "const entry = selected = {root: packageRoot, sha256, bytes, runtimeCurrent: assertRuntimeCurrent,"
+              },
+              {
+                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "anchor": "entry.loadAttempted = true;"
+              },
+              {
+                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "anchor": "apply(dlopen, processOriginal, [entry.module, entry.path]);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "anchor": "const fence = () => { currentBindings(); apply(assertRuntimeCurrent, undefined, []); };"
+              },
+              {
+                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "anchor": "close('writer');"
+              },
+              {
+                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "anchor": "hashCopy();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "anchor": "invalidated = true; fail('HostJournalNativeImageChanged');"
+              },
+              {
+                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "anchor": "if (selected.failed) throw selected.failure;"
+              },
+              {
+                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "anchor": "entry.failed = true;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "anchor": "duty.consumed = true;"
+              },
+              {
+                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "anchor": "carrier.cleanupHandle = freeze({status, retry: observeCleanup});"
+              },
+              {
+                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "anchor": "// No source acquisition, loading or consumed close is repeated here."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "anchor": "const backing = apply(allocate, Buffer, [bytes]), lookahead = apply(allocate, Buffer, [1]);"
+              },
+              {
+                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "anchor": "const working = apply(allocate, Buffer, [Math.min(65536, bytes)]);"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "outcomes independently of the process-lived loaded image and native allocator"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "issue the missing complete operational disposition."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "disable code-signing or platform policy. No filename or writable descriptor is"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-journal-native-image-loader.test.mjs",
+                "anchor": "private image custody retains one actual native instance and fences detected loader replacement"
+              },
+              {
+                "path": "adapters/host-node/host-journal-native-image-loader.test.mjs",
+                "anchor": "actual source-FD consumed-close uncertainty prevents loading and is never retried"
+              },
+              {
+                "path": "adapters/host-node/host-journal-native-image-loader.test.mjs",
+                "anchor": "an error after actual native initialization keeps that original attempt without a replacement load"
+              },
+              {
+                "path": "adapters/host-node/host-journal-native-image-loader.test.mjs",
+                "anchor": "initial current reentry observes the original initialization without a second load"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Private native image custody and original lifecycle references only. Anchors do not establish actual loader coverage, operational Journal admission, normal Host execution, allocation success or funding."
     }
   ],
   "generated": [],
@@ -64318,10 +64616,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 147,
-    "operations": 3659,
+    "modules": 148,
+    "operations": 3677,
     "exports": 942,
-    "explicitContractGroups": 182
+    "explicitContractGroups": 183
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }
