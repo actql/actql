@@ -36,6 +36,26 @@ fn original_read_managed_graph() -> OriginalReadManagedGraph {
 }
 
 ///|
+fn original_read_managed_graph_checksum(
+  graph : OriginalReadManagedGraph,
+) -> Int {
+  let mut sum = 0
+  for strings in graph.text {
+    for text in strings {
+      sum += text.length()
+    }
+  }
+  for blocks in graph.bytes {
+    for block in blocks {
+      for byte in block {
+        sum += byte.to_int()
+      }
+    }
+  }
+  sum
+}
+
+///|
 fn original_read_consumer_fixture(
   label : String,
 ) -> OriginalReadConsumerFixture raise {
@@ -197,6 +217,8 @@ test "actual original read retires nested managed graphs only after their last a
   assert_eq(held.pending_extents, 0L)
   assert_eq(graph.val.unwrap().text[63][31], "s-2047")
   assert_eq(graph.val.unwrap().bytes[63][15][0], 78.to_byte())
+  // Independent fixed corpus: 11178 UTF16 units + 359424 byte values.
+  assert_eq(original_read_managed_graph_checksum(graph.val.unwrap()), 370602)
   graph.val = None
   let one = host.observe_domain_original_read_cleanup(fixture.read).unwrap()
   assert_eq(one.managed_live_blocks, 1L)
