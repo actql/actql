@@ -17,14 +17,16 @@ static int facility_protect(void *address, size_t bytes, int protection) {
 static int cases;
 #define CHECK(text, value) do { if (!(value)) { \
     fprintf(stderr, "facility failure: %s\n", text); return 1; } cases++; } while (0)
-int main(void) {
+int main(int argc, char **argv) {
     size_t page = (size_t)sysconf(_SC_PAGESIZE);
     unsigned char recipe[32] = {61};
     int modes = 3;
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)
     modes = 4;
 #endif
-    for (int mode = 0; mode < modes; mode++) {
+    int first = argc == 2 && strcmp(argv[1], "--entered-read") == 0 ? 3 : 0;
+    if ((argc != 1 && first == 0) || first >= modes) return 2;
+    for (int mode = first; mode < modes; mode++) {
         char path[] = "/tmp/actql-read-facility-XXXXXX";
         int fd = mkstemp(path);
         CHECK("private backing", fd >= 0 && unlink(path) == 0 &&
