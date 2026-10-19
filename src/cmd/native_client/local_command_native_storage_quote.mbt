@@ -17,10 +17,8 @@ priv struct LocalCommandNativeStorageBounds {
   // Original Read-backed native buffers/receivers and cleanup-only carriers.
   // Includes inspection's five retained strings and transient path/IO overlap.
   native_read_execution_bytes : Int64?
-  // Same SQLite heap's DB/schema/cache/statement/lookaside/result/bindings,
-  // including original FD nodes; excluding only the derived WAL index/recovery
-  // terms below.
-  sqlite_other_heap_bytes : Int64?
+  // An explicit selection, never inferred from remaining heap capacity.
+  sqlite_heap_selection : LocalCommandSqliteHeapSelection?
   // SQLite domain's original context, Library/DB receivers and managed aliases
   // outside the configured SQLite heap. No loader or heap duplicate here.
   sqlite_external_execution_bytes : Int64?
@@ -28,6 +26,20 @@ priv struct LocalCommandNativeStorageBounds {
   // existing actual control envelope, not once per Library or phase.
   shared_control_bytes : Int64?
 }
+
+///|
+// Both branches require the same actual backed heap before first SQLite use.
+// Facility capacity may exhaust; it is not an all-input demand guarantee.
+priv enum LocalCommandSqliteHeapSelection {
+  SqliteDemandBound(Int64)
+  SqliteFiniteFacility
+}
+
+///|
+priv enum LocalCommandSqlitePayloadRequirement {
+  SqliteDemandPayload(Int64)
+  SqliteNecessaryPayload(Int64)
+} derive(Eq, Show)
 
 ///|
 priv enum LocalCommandNativeStorageIssue {
@@ -56,7 +68,7 @@ priv struct LocalCommandNativeStorageQuote {
   records : Int
   wal_frames : Int64
   wal_regions : Int64
-  sqlite_heap_payload_bytes : Int64
+  sqlite_payload_requirement : LocalCommandSqlitePayloadRequirement
   sqlite_execution_bytes : Int64
   read_execution_bytes : Int64
   platform_required_bytes : Int64
@@ -229,15 +241,15 @@ fn quote_local_command_native_storage(
   guard bounds.native_read_execution_bytes is Some(native) && native > 0L else {
     return Err(NativeStorageReadMissing)
   }
-  guard bounds.sqlite_other_heap_bytes is Some(other) && other > 0L else {
+  guard bounds.sqlite_heap_selection is Some(selection) else {
     return Err(NativeStorageSqliteHeapMissing)
   }
   // The original Journal admits 131072-byte bodies and 512-byte scan keys.
   // sqlite_stub.c allocates BOTH retained result copies before finalizing the
   // same statement. They use this same MEMSYS5 heap, not Read or a new credit.
-  // This is only a necessary subset of `other`: SQLite's live VM/column data,
-  // schema/cache, descriptors, bindings, paths and diagnostics remain included
-  // independently in the complete caller-supplied bound.
+  // In the demand branch these are a subset of the derived other-heap bound.
+  // In the facility branch they remain necessary simultaneous payload only;
+  // VM/cache/schema/fragmentation can still exhaust the same finite heap.
   let result_body = match native_storage_mem5_block(131072L) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -250,8 +262,17 @@ fn quote_local_command_native_storage(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if other < result_copies {
-    return Err(NativeStorageInsufficient)
+  let other = match selection {
+    SqliteDemandBound(bytes) => {
+      if bytes <= 0L {
+        return Err(NativeStorageSqliteHeapMissing)
+      }
+      if bytes < result_copies {
+        return Err(NativeStorageInsufficient)
+      }
+      bytes
+    }
+    SqliteFiniteFacility => result_copies
   }
   guard bounds.sqlite_external_execution_bytes is Some(external) &&
     external > 0L else {
@@ -278,10 +299,11 @@ fn quote_local_command_native_storage(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
-  // Original descriptor carriers, statements, page/cache and bound/result
-  // buffers are part of `other`, inside this same heap. Native inspection
-  // source/output/index-creation FDs and their carriers stay separate Read
-  // children. A DB close never acknowledges those siblings.
+  // The facility branch checks only mandatory coexistence here. It neither
+  // subtracts WAL from H nor fills an unknown demand with residual capacity.
+  // Descriptor/VM/cache/result allocations must remain in the same heap with
+  // no allocator fallback, enlargement or fresh reopen on exhaustion.
+  // Inspection FDs remain separate Read children with their own cleanup ACKs.
   let payload = match
     native_storage_sum([regions * 32768L, array, array, recovery, other]) {
     Err(issue) => return Err(issue)
@@ -331,7 +353,10 @@ fn quote_local_command_native_storage(
     records: bounds.max_records,
     wal_frames: frames,
     wal_regions: regions,
-    sqlite_heap_payload_bytes: payload,
+    sqlite_payload_requirement: match selection {
+      SqliteDemandBound(_) => SqliteDemandPayload(payload)
+      SqliteFiniteFacility => SqliteNecessaryPayload(payload)
+    },
     sqlite_execution_bytes: sqlite,
     read_execution_bytes: read,
     platform_required_bytes: platform,

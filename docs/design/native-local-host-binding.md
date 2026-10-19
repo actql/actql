@@ -1551,6 +1551,16 @@ statement/cache, bindings/results, original descriptor metadata and the private
 WAL index. Recovery and old/new pointer-array overlap are included within that
 same heap. Heap capacity is not added again for each phase or borrower.
 
+The private quote distinguishes a derived demand bound from a selected finite
+SQLite facility. The latter supplies the same actual backed heap before first
+initialization; it does not promise that every bounded input fits. Known WAL,
+recovery, realloc and scan-copy coexistence remains a necessary minimum, not
+worst-case demand. Residual heap capacity cannot fill an unknown demand term.
+MEMSYS5 control and fragmentation are not usable payload. Exhaustion refuses
+under the original cleanup semantics without fallback, enlargement or a fresh
+open. This selection supplies neither external holdings nor input/work bounds;
+the complete external envelope and an actual ordinary command remain required.
+
 A snapshot bound constrains WAL frames, not the index to one region. The first
 region holds 4062 frames, later regions 4096; each region requests 32768 bytes.
 MEMSYS5 rounds requests within the selected heap and consumes its own control

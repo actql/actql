@@ -41,7 +41,7 @@ fn native_storage_arithmetic_profile() -> LocalCommandPreparationProfile {
       managed_read_execution_bytes: Some(11L),
       loader_platform_execution_bytes: Some(19L),
       native_read_execution_bytes: Some(131072L),
-      sqlite_other_heap_bytes: Some(131584L),
+      sqlite_heap_selection: Some(SqliteDemandBound(131584L)),
       sqlite_external_execution_bytes: Some(17L),
       shared_control_bytes: Some(29L),
     },
@@ -114,7 +114,7 @@ test "Native storage missing originals are not replaced with zero" {
     quote_local_command_native_storage({ ..profile, native_storage: missing, })
     is Err(NativeStorageManagedMissing),
   )
-  let missing = { ..profile.native_storage, sqlite_other_heap_bytes: None, }
+  let missing = { ..profile.native_storage, sqlite_heap_selection: None, }
   assert_true(
     quote_local_command_native_storage({ ..profile, native_storage: missing, })
     is Err(NativeStorageSqliteHeapMissing),
@@ -128,7 +128,7 @@ test "Native storage shared heaps count once and platform never charges Read" {
   assert_eq(quote.read_execution_bytes, profile.crypto_heap_bytes + 131083L)
   assert_eq(quote.platform_required_bytes, 19L)
   assert_eq(quote.sqlite_execution_bytes, profile.sqlite_heap_bytes + 17L)
-  assert_eq(quote.sqlite_heap_payload_bytes, 295456L)
+  assert_eq(quote.sqlite_payload_requirement, SqliteDemandPayload(295456L))
   assert_eq(quote.shared_control_bytes, 29L)
 }
 
@@ -260,7 +260,7 @@ test "Native storage cannot place Journal scan result copies outside the same he
   // already a MEMSYS5 power-of-two block. No VM/cache/DB adequacy is claimed.
   let too_small = {
     ..profile.native_storage,
-    sqlite_other_heap_bytes: Some(131583L),
+    sqlite_heap_selection: Some(SqliteDemandBound(131583L)),
   }
   assert_true(
     quote_local_command_native_storage({ ..profile, native_storage: too_small, })
@@ -268,13 +268,13 @@ test "Native storage cannot place Journal scan result copies outside the same he
   )
   let exact = {
     ..profile.native_storage,
-    sqlite_other_heap_bytes: Some(131584L),
+    sqlite_heap_selection: Some(SqliteDemandBound(131584L)),
   }
   let quote = quote_local_command_native_storage({
     ..profile,
     native_storage: exact,
   }).unwrap()
-  assert_eq(quote.sqlite_heap_payload_bytes, 295456L)
+  assert_eq(quote.sqlite_payload_requirement, SqliteDemandPayload(295456L))
   // A large separate Read or outer platform value cannot repair this deficit.
   assert_true(
     quote_local_command_native_storage({
@@ -286,5 +286,57 @@ test "Native storage cannot place Journal scan result copies outside the same he
       },
     })
     is Err(NativeStorageInsufficient),
+  )
+}
+
+///|
+test "Native SQLite finite capacity is distinct from derived demand" {
+  let profile = native_storage_arithmetic_profile()
+  let bounds = {
+    ..profile.native_storage,
+    sqlite_heap_selection: Some(SqliteFiniteFacility),
+  }
+  let facility = { ..profile, native_storage: bounds, }
+  let quote = quote_local_command_native_storage(facility).unwrap()
+  assert_eq(quote.sqlite_payload_requirement, SqliteNecessaryPayload(295456L))
+  assert_eq(quote.sqlite_execution_bytes, profile.sqlite_heap_bytes + 17L)
+  // Capacity selection cannot supply physical current/platform authority.
+  assert_true(
+    prepare_local_command_preparation_original(facility)
+    is Err(CommandNativeStorage(NativeStoragePlatformUnadmitted)),
+  )
+  // Known mandatory same-heap coexistence remains required, even with large
+  // separate Read/platform allowances. The heap is never all usable payload.
+  assert_true(
+    quote_local_command_native_storage({
+      ..facility,
+      sqlite_heap_bytes: 295456L,
+    })
+    is Err(NativeStorageInsufficient),
+  )
+  let missing_external = { ..bounds, sqlite_external_execution_bytes: None, }
+  assert_true(
+    quote_local_command_native_storage({
+      ..profile,
+      native_storage: missing_external,
+    })
+    is Err(NativeStorageSqliteExternalMissing),
+  )
+  // A genuine demand bound can require more than this finite facility.
+  let excessive = {
+    ..bounds,
+    sqlite_heap_selection: Some(SqliteDemandBound(profile.sqlite_heap_bytes)),
+  }
+  assert_true(
+    quote_local_command_native_storage({ ..profile, native_storage: excessive, })
+    is Err(NativeStorageInsufficient),
+  )
+  let missing_platform = { ..bounds, loader_platform_execution_bytes: None, }
+  assert_true(
+    quote_local_command_native_storage({
+      ..profile,
+      native_storage: missing_platform,
+    })
+    is Err(NativeStoragePlatformMissing),
   )
 }
