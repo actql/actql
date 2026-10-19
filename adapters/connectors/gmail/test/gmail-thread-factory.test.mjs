@@ -18,13 +18,16 @@ test('Gmail installed reader uses actual original Account Site and RowRun with s
   const uses = result.observations.map(response => f.site.credential.journal.inspect(response.useCid));
   assert.notEqual(uses[0].grantCid, uses[1].grantCid); assert.equal(uses[1].grantCid, uses[2].grantCid);
   assert.notEqual(uses[1].useId, uses[2].useId); assert.equal(uses[1].useOrdinal, 1); assert.equal(uses[2].useOrdinal, 2);
-  assert.equal(f.state.charges, 3); f.row.finish(); assert.equal(f.row.captureCount(), 2);
+  assert.equal(f.state.charges, 3); f.row.finish();
+  // Completed typed rows are not a physical cleanup/capture ACK. The fixture
+  // deliberately retains the original raw/callback graph and its reservation.
+  f.row.assertNoCapture();
   assert.equal(reader.observe().transportClosed, true); assert.equal(reader.observe().cleanupConfirmed, false);
   await assert.rejects(reader.read(), {code: 'InstalledGmailThreadReaderAlreadyStarted'});
 });
 
 test('Gmail installed reader captures original methods receivers and does not repeat its acquisition', async t => {
-  const f = await threadFactoryFixture(t), moon = {...f.options.moon};
+  const f = await threadFactoryFixture(t), moon = {...f.provider};
   const prepare = moon.gmailPrepareThreadRead;
   moon.gmailPrepareThreadRead = function(...args) {assert.equal(this, moon); return prepare(...args);};
   const factory = f.makeFactory({moon}), reader = factory.prepare(f.options);

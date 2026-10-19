@@ -74,5 +74,5 @@ export async function threadFactoryFixture(t, {account = 'allow'} = {}) {
       reason: 'Original raw, row, callback and error aliases remain retained; no retirement receipt',
       usage: row.usage().map(value => typeof value === 'bigint' ? value.toString() : value)}));
   });
-  return {...f, site, suppliedSite, authorization, row, rowRun, options, hooks, decisions, grants, capacity, makeFactory};
+  return {...f, provider: f.options.moon, site, suppliedSite, authorization, row, rowRun, options, hooks, decisions, grants, capacity, makeFactory};
 }
