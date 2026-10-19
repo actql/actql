@@ -9,7 +9,9 @@ import unittest
 from unittest.mock import Mock, patch
 
 from actql_sdk import AsyncClient, Client, ClientError
-from actql_sdk._local_distribution import LocalInstallationError
+from actql_sdk._local_distribution import (
+    LocalInstallationError, LocalComponentReadCleanupPending, _read_file,
+)
 from actql_sdk._local_core import LocalCoreInitializationError
 from actql_sdk._local_worker_funding import LocalWorkerFundingUnavailable
 from actql_sdk._local_product import InstalledLocalHost, LocalProductCleanupPending, _private_state_directory
@@ -18,6 +20,37 @@ import test_local_product_operation_port as host_fixture
 
 
 class LocalFactoryResourcesTests(unittest.TestCase):
+    def test_public_factory_keeps_original_component_fd_cleanup_failure(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / 'original-input'
+            path.write_bytes(b'original input')
+            real_open, real_close = os.open, os.close
+            opened = []
+            def capture(*args, **kwargs):
+                descriptor = real_open(*args, **kwargs)
+                opened.append(descriptor)
+                return descriptor
+            failure = OSError('Original input close is unconfirmed')
+            def close(descriptor):
+                if descriptor in opened: raise failure
+                return real_close(descriptor)
+            try:
+                # Exercise the public error/custody path with an actual fresh
+                # input reader. This does not supply initial funding or a Host.
+                with patch.object(InstalledLocalHost, 'installed',
+                                  side_effect=lambda **options: _read_file(path, maximum=64)), \
+                     patch('actql_sdk._local_distribution.os.open', side_effect=capture), \
+                     patch('actql_sdk._local_distribution.os.close', side_effect=close):
+                    with self.assertRaises(ClientError) as caught: Client.open()
+                self.assertEqual(caught.exception.code, 'LocalInstallationUnavailable')
+                original = caught.exception.original_error
+                self.assertIsInstance(original, LocalComponentReadCleanupPending)
+                self.assertIs(original.cleanup_error, failure)
+                self.assertEqual(opened, [original.cleanup_descriptor.value])
+                self.assertEqual(os.fstat(opened[0]).st_ino, path.stat().st_ino)
+            finally:
+                for descriptor in opened: real_close(descriptor)
+
     def test_missing_initial_funding_refuses_before_cohort_discovery(self):
         with patch('actql_sdk._local_product.installed_local_components',
                    side_effect=AssertionError('Discovery before initial funding')) as resolve:

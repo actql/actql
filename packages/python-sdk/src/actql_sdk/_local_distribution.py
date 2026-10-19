@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from ._local_image_recipe import _SelectedImageRecipe
+    from ._local_worker_slot import _OriginalDescriptor
 
 from ._local_core import LOCAL_CORE_ABI
 
@@ -27,6 +28,16 @@ _NOTICES = ('LICENSE', 'DUCKDB-LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-N
 
 class LocalInstallationError(RuntimeError):
     """Refuse an unavailable or inconsistent installed Local release cohort."""
+
+
+class LocalComponentReadCleanupPending(LocalInstallationError):
+    """Keep the original input FD after an unconfirmed one-shot close."""
+
+    def __init__(self, descriptor: _OriginalDescriptor) -> None:
+        self.cleanup_descriptor = descriptor
+        self.original_error: BaseException | None = None
+        self.cleanup_error: BaseException | None = None
+        super().__init__('Installed Local component reader cleanup is unconfirmed')
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,10 +71,17 @@ def _read_file(path: Path, *, maximum: int, expected: int | None = None,
                digest: str | None = None, capture: bool = False, prefix: int = 0) -> bytes:
     if type(prefix) is not int or prefix < 0 or prefix > maximum or capture and prefix:
         raise LocalInstallationError('Invalid installed Local prefix read')
-    # Installed wheels are ordinary files. Never extract a zip, follow a
-    # component symlink, or search a development/Node installation.
-    with os.fdopen(os.open(path, os.O_RDONLY | os.O_NOFOLLOW), 'rb') as source:
-        before = os.fstat(source.fileno())
+    from ._local_worker_slot import _OriginalDescriptor
+    # Prepare the same existing physical FD carrier before acquisition. Avoid a
+    # second buffered-reader constructor that could fail after open but before
+    # accepting ownership. These records supply no capacity or installation.
+    source = _OriginalDescriptor(-1)
+    pending = LocalComponentReadCleanupPending(source)
+    primary: BaseException | None = None
+    # Installed wheels are ordinary nofollow files, never extracted archives.
+    source.value = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    try:
+        before = os.fstat(source.value)
         if (not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= maximum
                 or expected is not None and before.st_size != expected):
             raise LocalInstallationError('Invalid installed Local component size')
@@ -71,20 +89,33 @@ def _read_file(path: Path, *, maximum: int, expected: int | None = None,
         captured = bytearray() if digest is None or capture or prefix else None
         remaining = before.st_size
         while remaining:
-            block = source.read(min(65536, remaining))
+            block = os.read(source.value, min(65536, remaining))
             if not block:
                 raise LocalInstallationError('Incomplete installed Local component')
             checksum.update(block)
             remaining -= len(block)
             if captured is not None:
                 captured.extend(block[:max(0, prefix - len(captured))] if prefix else block)
-        after = os.fstat(source.fileno())
-        if (source.read(1) or (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns,
+        after = os.fstat(source.value)
+        if (os.read(source.value, 1) or (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns,
                               before.st_ctime_ns) != (after.st_dev, after.st_ino, after.st_size,
                                                       after.st_mtime_ns, after.st_ctime_ns)
                 or digest is not None and checksum.hexdigest() != digest):
             raise LocalInstallationError('Installed Local component changed or digest mismatched')
         return bytes(captured) if captured is not None else b''
+    except BaseException as failure:
+        primary = failure
+        raise
+    finally:
+        try:
+            source.close()
+        except BaseException as cleanup:
+            # Failure does not establish whether close consumed the OS FD.
+            # Keep both causes and the original one-shot carrier; no retry on
+            # the same integer after possible descriptor-number reuse.
+            pending.original_error = primary
+            pending.cleanup_error = cleanup
+            raise pending from cleanup
 
 
 def _component(root: Path, value: Any, filename: str, maximum: int) -> tuple[Path, str]:

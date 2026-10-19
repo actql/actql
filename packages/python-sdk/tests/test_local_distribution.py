@@ -4,6 +4,7 @@ import hashlib
 from importlib import metadata
 import importlib.util
 import json
+import os
 from pathlib import Path
 import struct
 import tempfile
@@ -15,6 +16,7 @@ from image_fixture import IMAGE, ORIGINAL, descriptor
 
 from actql_sdk._local_distribution import (
     inspect_local_components, installed_local_components, load_local_module, LocalInstallationError,
+    LocalComponentReadCleanupPending, _read_file,
 )
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -50,6 +52,95 @@ class LocalDistributionTests(unittest.TestCase):
 
     def inspect(self):
         return inspect_local_components(self.directory, package_version='0.0.0.dev0')
+
+    def test_installed_reader_keeps_fd_custody_without_buffered_handoff(self):
+        path = self.directory / 'reader-original'
+        path.write_bytes(b'original input')
+        opened = []
+        real_open = os.open
+        def capture(*args, **kwargs):
+            descriptor = real_open(*args, **kwargs)
+            opened.append(descriptor)
+            return descriptor
+        try:
+            with patch('actql_sdk._local_distribution.os.open', side_effect=capture), \
+                 patch('actql_sdk._local_distribution.os.fdopen',
+                       side_effect=MemoryError('Buffered handoff failed')) as buffered:
+                self.assertEqual(_read_file(path, maximum=64), b'original input')
+            buffered.assert_not_called()
+            self.assertEqual(len(opened), 1)
+            with self.assertRaises(OSError): os.fstat(opened[0])
+        finally:
+            # The red probe also owns its actual descriptor; a failed assertion
+            # must not leave the fresh fixture's original open.
+            for descriptor in opened:
+                try: os.close(descriptor)
+                except OSError: pass
+
+    def test_input_construction_failure_closes_the_same_actual_fd(self):
+        path = self.directory / 'reader-original'
+        path.write_bytes(b'original input')
+        opened = []
+        real_open = os.open
+        def capture(*args, **kwargs):
+            descriptor = real_open(*args, **kwargs)
+            opened.append(descriptor)
+            return descriptor
+        failure = MemoryError('Checksum construction failed')
+        with patch('actql_sdk._local_distribution.os.open', side_effect=capture), \
+             patch('actql_sdk._local_distribution.hashlib.sha256', side_effect=failure):
+            with self.assertRaises(MemoryError) as caught: _read_file(path, maximum=64)
+        self.assertIs(caught.exception, failure)
+        self.assertEqual(len(opened), 1)
+        with self.assertRaises(OSError): os.fstat(opened[0])
+
+    def test_input_close_loss_keeps_original_and_never_closes_reused_number(self):
+        path = self.directory / 'reader-original'
+        path.write_bytes(b'original input')
+        real_close = os.close
+        closed = []
+        failure = OSError('Close acknowledgement lost')
+        def lose_reply(descriptor):
+            real_close(descriptor)
+            closed.append(descriptor)
+            raise failure
+        with patch('actql_sdk._local_distribution.os.close', side_effect=lose_reply) as close:
+            with self.assertRaises(LocalComponentReadCleanupPending) as caught:
+                _read_file(path, maximum=64)
+            original = caught.exception.cleanup_descriptor
+            self.assertIs(caught.exception.cleanup_error, failure)
+            self.assertIsNone(caught.exception.original_error)
+            self.assertTrue(original.close_attempted)
+            self.assertFalse(original.closed)
+            self.assertEqual(closed, [original.value])
+            replacement = os.open(path, os.O_RDONLY | os.O_CLOEXEC)
+            try:
+                self.assertEqual(replacement, original.value)
+                # Observation/cleanup must not issue another close, even if the
+                # OS has already reused the old original's descriptor number.
+                with self.assertRaises(RuntimeError): original.close()
+                self.assertEqual(close.call_count, 1)
+                self.assertEqual(os.fstat(replacement).st_ino, path.stat().st_ino)
+            finally:
+                real_close(replacement)
+
+    def test_input_primary_and_unconfirmed_close_retain_both_original_causes(self):
+        path = self.directory / 'reader-original'
+        path.write_bytes(b'original input')
+        primary = OSError('Original read failed')
+        cleanup = OSError('Original close failed')
+        with patch('actql_sdk._local_distribution.os.read', side_effect=primary), \
+             patch('actql_sdk._local_distribution.os.close', side_effect=cleanup) as close:
+            with self.assertRaises(LocalComponentReadCleanupPending) as caught:
+                _read_file(path, maximum=64)
+            original = caught.exception.cleanup_descriptor
+            self.assertIs(caught.exception.original_error, primary)
+            self.assertIs(caught.exception.cleanup_error, cleanup)
+            self.assertEqual(close.call_count, 1)
+            self.assertEqual(os.fstat(original.value).st_ino, path.stat().st_ino)
+        # This fixture's original close is known not to have executed. Dispose
+        # only the fixture outside the failed production carrier.
+        os.close(original.value)
 
     def test_exact_installed_component_paths_without_engine_import(self):
         with patch('actql_sdk._local_core.import_module', side_effect=AssertionError('Engine imported')):

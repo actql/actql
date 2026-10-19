@@ -12463,6 +12463,7 @@
         "Any",
         "DUCKDB_VERSION",
         "LOCAL_CORE_ABI",
+        "LocalComponentReadCleanupPending",
         "LocalComponents",
         "LocalInstallationError",
         "Path",
@@ -12487,6 +12488,7 @@
       "imports": [
         "._local_core",
         "._local_image_recipe",
+        "._local_worker_slot",
         "__future__",
         "dataclasses",
         "hashlib",
@@ -12503,6 +12505,19 @@
       "module": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
       "responsibilityFacet": "primary",
       "operations": [
+        {
+          "async": false,
+          "name": "LocalComponentReadCleanupPending",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "LocalComponentReadCleanupPending/__init__",
+          "parameters": [
+            "self",
+            "descriptor"
+          ]
+        },
         {
           "async": false,
           "name": "LocalComponents",
@@ -12588,7 +12603,7 @@
           ]
         }
       ],
-      "sha256": "670b4c29bb2597f9085926324bf82449105928ec4aafb231de0d13c24833f006",
+      "sha256": "0a31d7dfd4933d157872254abba898c1ce4e2bc7f4a26f724f87e6f6187d1965",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -13516,6 +13531,22 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
                 "anchor": "def _read_file(path: Path, *, maximum: int, expected: int | None = None,"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_installed_reader_keeps_fd_custody_without_buffered_handoff("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_input_construction_failure_closes_the_same_actual_fd("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_input_close_loss_keeps_original_and_never_closes_reused_number("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_input_primary_and_unconfirmed_close_retain_both_original_causes("
               }
             ]
           }
@@ -14171,6 +14202,153 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
                 "anchor": "\"\"\"Installed component integrity; no admission, policy or execution permission.\"\"\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "LocalComponentReadCleanupPending",
+            "LocalComponentReadCleanupPending/__init__"
+          ],
+          "exports": [
+            "LocalComponentReadCleanupPending"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Execution boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Execution boundary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Handles are never serialized Client references"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Failed stop or cleanup retains the same"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Interrupted physical bridge calls"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Transfer custody"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_artifact_producer.py",
+                "anchor": "def test_fixed_originals_copy_and_stage_through_existing_recipe_without_engine_loading("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_capacity_original.py",
+                "anchor": "def test_exact_original_bytes_and_existing_six_field_projection("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_exact_installed_component_paths_without_engine_import("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_input_close_loss_keeps_original_and_never_closes_reused_number("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_input_primary_and_unconfirmed_close_retain_both_original_causes("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_public_factory.py",
+                "anchor": "def test_public_factory_keeps_original_component_fd_cleanup_failure("
               }
             ]
           }
