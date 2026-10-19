@@ -138,6 +138,25 @@ retains caller input and releases only the frame's temporary holdings. Conversio
 scratch and original operand/result aliases overlap under the existing phase;
 a slot bound or logical release is not physical byte capacity or cleanup ACK.
 
+### Original query invocation time
+
+The zero-child CurrentTimestamp expression retains its authored operation.
+An optional opaque QueryEvaluationTime belongs to the original expression
+frame and carries the existing Run owner's checked Timestamp; the evaluator
+does not accept a timestamp String or a sampler callback. A demanded leaf
+without that context refuses. An undemanded lazy branch performs no clock
+read. The shared result event accounts for the borrowed checked value and its
+result root, and frame closure drops its context reference separately from
+escaped values and physical cleanup.
+
+The checked typing traversal records whether any declared expression node
+requires query time, including lazy branches. The bounded preparation getter
+uses the existing typed expression-slot inventory across all Carrier consumers;
+it does not scan text or JSON keys, and budget exhaustion never means false.
+Static compilation can retain that declared dependency, while actual Source
+binding and dispatch still require the same original preparation and admitted
+Run. No scope, clock authority or resource grant follows from the flag.
+
 ### Exact Decimal quantization
 
 QUANTIZE retains one checked Decimal child and the original closed rounding

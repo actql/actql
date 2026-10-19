@@ -225,6 +225,7 @@ fn scalar_call(
     raise Abort(UnsupportedFunction)
   }
   match upper(path[0].value) {
+    "CURRENT_TIMESTAMP" => ("CURRENT_TIMESTAMP", "current_timestamp", 0, 0)
     "VECTOR_SCORE" => ("VECTOR_SCORE", "vector_score", 3, 3)
     "VECTOR_COSINE_SIMILARITY" =>
       ("VECTOR_COSINE_SIMILARITY", "vector_score", 2, 2)
@@ -272,6 +273,8 @@ fn scalar_call(
     "STRPOS" => ("STRPOS", "strpos", 2, 2)
     "DATE_DIFF" => ("DATE_DIFF", "date_diff", 3, 3)
     "DATE_ADD" => ("DATE_ADD", "date_add", 3, 3)
+    "TIMESTAMP_ADD" => ("TIMESTAMP_ADD", "timestamp_add", 2, 2)
+    "TIMESTAMP_SUB" => ("TIMESTAMP_SUB", "timestamp_sub", 2, 2)
     "DATE_TRUNC" => ("DATE_TRUNC", "date_trunc", 2, 2)
     "TO_NUMBER" => ("TO_NUMBER", "to_number", 1, 1)
     "TO_STRING" => ("TO_STRING", "to_string", 1, 1)
@@ -454,8 +457,25 @@ fn append_resolved(
   // binding's role; other expressions never become macro arguments. This
   // avoids rescanning a nested argument for every enclosing call.
   let references : Array[Int?] = Array::make(count, None)
+  let interval_roots : Array[Int?] = Array::make(count, None)
+  let allowed_intervals = Array::make(count, false)
   for i in 0..<count {
     let node = @query.expression_node(ast, i).unwrap()
+    match node.kind {
+      Interval(_, _) => interval_roots[i] = Some(i)
+      Parenthesized(child) => interval_roots[i] = interval_roots[child]
+      _ => ()
+    }
+    let selected_interval = match node.kind {
+      Binary("+" | "-", _, right) => interval_roots[right]
+      Call(path, args) if path.length() == 1 &&
+        ["TIMESTAMP_ADD", "TIMESTAMP_SUB"].contains(upper(path[0].value)) &&
+        args.length() == 2 => interval_roots[args[1]]
+      _ => None
+    }
+    if selected_interval is Some(interval) {
+      allowed_intervals[interval] = true
+    }
     match node.kind {
       Reference(_) => references[i] = Some(i)
       Parenthesized(child) => references[i] = references[child]
@@ -481,6 +501,7 @@ fn append_resolved(
   // Grouping preserves an atom's role in the common IN literal array. Keep
   // this classification in the bounded postorder pass rather than reopening
   // the AST or treating arbitrary expression nodes as parameter holes.
+  let intervals : Array[String?] = []
   let numbers : Array[Double?] = []
   let strings : Array[String?] = []
   let parameters : Array[Bool] = []
@@ -500,6 +521,7 @@ fn append_resolved(
       let mut numeric : Double? = None
       let mut text_literal : String? = None
       let mut parameter = false
+      let mut interval : String? = None
       let result = match node.kind {
         Null | Boolean(_) | Number(_) | StringLiteral(_) => {
           let raw = lowering.add(
@@ -617,6 +639,7 @@ fn append_resolved(
           lowering.form("$param", lowering.add(String(name)))
         }
         Parenthesized(child) => {
+          interval = intervals[child]
           literal = literals[child]
           numeric = numbers[child]
           text_literal = strings[child]
@@ -672,9 +695,32 @@ fn append_resolved(
               }
             _ => raise Abort(InvalidArguments)
           }
+        Interval(child, unit) => {
+          if !allowed_intervals[i] {
+            raise Abort(InvalidArguments)
+          }
+          interval = Some(unit)
+          nodes[child]
+        }
         Binary(op, left, right) => {
           let (name, inverted) = binary_call(op)
-          let value = lowering.arguments(name, [nodes[left], nodes[right]])
+          let value = if intervals[right] is Some(unit) &&
+            ["+", "-"].contains(op) {
+            lowering.arguments(
+              if op == "+" {
+                "timestamp_add"
+              } else {
+                "timestamp_sub"
+              },
+              [
+                nodes[left],
+                nodes[right],
+                lowering.form("literal", lowering.add(String(unit))),
+              ],
+            )
+          } else {
+            lowering.arguments(name, [nodes[left], nodes[right]])
+          }
           if inverted {
             lowering.form("not", value)
           } else {
@@ -687,6 +733,10 @@ fn append_resolved(
             None => {
               let (public_name, name, minimum, maximum) = scalar_call(path)
               if args.length() < minimum || args.length() > maximum {
+                raise Abort(InvalidArguments)
+              }
+              if ["timestamp_add", "timestamp_sub"].contains(name) &&
+                intervals[args[1]] is None {
                 raise Abort(InvalidArguments)
               }
               if ["to_decimal", "try_decimal"].contains(name) &&
@@ -722,7 +772,14 @@ fn append_resolved(
                 current = @query.expression_origin(ast, args[2])
                 raise Abort(InvalidArguments)
               }
-              if ["to_number", "to_string", "to_boolean", "to_timestamp"].contains(
+              if ["timestamp_add", "timestamp_sub"].contains(name) {
+                let unit = intervals[args[1]].unwrap()
+                lowering.arguments(name, [
+                  nodes[args[0]],
+                  nodes[args[1]],
+                  lowering.form("literal", lowering.add(String(unit))),
+                ])
+              } else if ["to_number", "to_string", "to_boolean", "to_timestamp"].contains(
                   name,
                 ) {
                 // These public spellings use the existing Common CAST contract.
@@ -1064,6 +1121,7 @@ fn append_resolved(
       literals.push(literal)
       numbers.push(numeric)
       strings.push(text_literal)
+      intervals.push(interval)
       parameters.push(parameter)
     }
     Ok(nodes[@query.expression_root(ast)])

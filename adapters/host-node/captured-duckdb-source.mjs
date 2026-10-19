@@ -8,6 +8,7 @@ import {validateLimits} from '../connectors/duckdb/node/configuration.mjs';
 import {checkDuckDBAcquisitionPlanning, freezeAcquisitionDiagnostic, selectInstalledDuckDBAcquisition} from '../connectors/duckdb/node/acquisition-planning.mjs';
 import {computePhysicalCapacity} from '../connectors/duckdb/node/physical-capacity.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {prepareOriginalSourceQuery} from './original-query-preparation.mjs';
 import {acquisitionFailure, acquisitionOutcome} from '../host-common/acquisition-outcome.mjs';
 import {ExecutionAuthorizationError} from
   '../host-common/authorization-gate.mjs';
@@ -58,6 +59,7 @@ function selectAcquisition(inputs) {
 // handle can only be consumed with the same checked Program and Host profile.
 export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   preparedEffect,
+  queryTimePreparation, requestIdentity,
   registry, values, fragment, ordered, database, schema, table,
   sourceAccess, transportLimits, acquisitionPlanning, requireImmediateReadAuthorization = false,
   occurrence = {stage: 0, input: 0, task: 0}}) {
@@ -72,20 +74,14 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   if (![occurrence.stage, occurrence.input, occurrence.task].every(Number.isSafeInteger) ||
       occurrence.stage < 0 || occurrence.input !== 0 || occurrence.task !== occurrence.stage ||
       occurrence.task > 1) throw new TypeError('InvalidAcquisitionOccurrence');
-  const effectful = preparedEffect !== undefined;
-  const checkedOwner = preparedEffect ?? preparedProgram;
   // This installed profile has one captured source at the first task. The
   // owner rejects a different checked source rather than using file settings
   // as a substitute for the Program's source declaration.
-  checked(effectful
-    ? moon.clientProgramEffectPrepareQueryAcquisition(checkedOwner, occurrence.stage, occurrence.input)
-    : moon.clientProgramPrepareQueryAcquisition(checkedOwner, occurrence.stage, occurrence.input));
-  const requirement = checked(
-    effectful
-      ? moon.clientProgramEffectPrepareLocalQueryRequirement(checkedOwner,
-        occurrence.stage, occurrence.input, registry, values, fragment, ordered)
-      : moon.clientProgramPrepareLocalQueryRequirement(checkedOwner,
-        occurrence.stage, occurrence.input, registry, values, fragment, ordered));
+  const effectful = preparedEffect !== undefined;
+  const checkedOwner = preparedEffect ?? preparedProgram;
+  const {requirement} = prepareOriginalSourceQuery({moon,
+    preparedProgram, preparedEffect, stage: occurrence.stage, input: occurrence.input,
+    registry, values, fragment, ordered, queryTimePreparation, requestIdentity});
   const sourceFacts = checked(
     moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
   if (!Array.isArray(sourceFacts) || sourceFacts.length !== 6 ||

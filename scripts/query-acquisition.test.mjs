@@ -5,6 +5,7 @@ import test from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {contract} from './query-acquisition-contract.mjs';
+import {queryTimeAcquisitionVectors} from './query-time-acquisition-vectors.mjs';
 
 const read = p => JSON.parse(readFileSync(p, 'utf8'));
 const corpus = read('portability/corpus/query-acquisition.json');
@@ -148,6 +149,92 @@ test('closed shapes reject unknown/missing fields and proposals', () => {
   assert.equal(admit(wrong),'OutputMismatch');
 });
 
+test('query-time owner extends only the complete legacy owner and retains old absent preimages', () => {
+  const previous = read('scripts/fixtures/query-time-source/acquisition-predecessor.json');
+  assert.equal(cid(previous), 'sha256:ad68f7ceafeed528a29c05e726db799d0031ef46152c0385f64468d38094c606');
+  const stripped = structuredClone(contract);
+  for (const schema of Object.values(stripped.schemas)) delete schema.properties.owner.properties.run_definition_cid;
+  delete stripped.semantics.query_time_owner;
+  assert.deepEqual(stripped, previous, 'all other complete legacy contract fields remain exact');
+  assert.equal(Object.hasOwn(requirement.owner, 'run_definition_cid'), false);
+  assert.ok(matches(previous.schemas.requirement, requirement));
+  assert.ok(matches(contract.schemas.requirement, requirement));
+});
+
+test('independent query-time requirement and observation bind one Run, not equal query data', () => {
+  const records = queryTimeAcquisitionVectors(read('portability/corpus/query-acquisition-identities.json'));
+  assert.deepEqual(read('portability/corpus/query-time-acquisition-identities.json'), records);
+  const [first, completed, second, foreign] = records.map(row => row.body);
+  for (const value of [first, second]) assert.ok(matches(contract.schemas.requirement, value));
+  for (const value of [completed, foreign]) assert.ok(matches(contract.schemas.completed_observation, value));
+  const original = (capture, required) => capture.requirement_cid === cid(required) &&
+    canonicalText(capture.owner) === canonicalText(required.owner);
+  assert.ok(original(completed, first));
+  assert.equal(original(foreign, first), false);
+  assert.notEqual(cid(first), cid(second));
+  assert.deepEqual(first.filter, second.filter);
+  assert.deepEqual(first.request, second.request);
+  assert.deepEqual(completed.output, foreign.output);
+  const absent = structuredClone(completed); delete absent.owner.run_definition_cid;
+  assert.equal(original(absent, first), false);
+  for (const invalid of [null, false, 'now', '', first.owner.run_definition_cid.toUpperCase()]) {
+    for (const [schema, body] of [['requirement', first], ['completed_observation', completed]]) {
+      const value = structuredClone(body); value.owner.run_definition_cid = invalid;
+      assert.equal(matches(contract.schemas[schema], value), false);
+    }
+  }
+});
+
+test('current query fixtures change only declared containing-expression and evidence identities', () => {
+  const prior = read('scripts/fixtures/query-time-source/acquisition-instance-predecessor.json');
+  const restore = (current, original, paths) => {
+    const restored = structuredClone(current);
+    for (const path of paths) {
+      const keys = path.split('/'); let target = restored, saved = original;
+      for (const key of keys.slice(0, -1)) {target = target[key]; saved = saved[key];}
+      target[keys.at(-1)] = structuredClone(saved[keys.at(-1)]);
+    }
+    assert.deepEqual(restored, original);
+  };
+  const originalOwner = prior['query-acquisition-owner'];
+  assert.equal(originalOwner.stage_semantics.expression_contract_cid,
+    'sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35');
+  restore(read(ownerPath), originalOwner, ['stage_semantics/expression_contract_cid',
+    'program_semantics/expression_contract_cid',
+    'program_semantics/program_template/stages/0/stage_semantics_cid',
+    'program_semantics_cid','program_definition/program_semantics_cid',
+    'program_definition_cid','owner/program_source_cid']);
+  const paths = [['owner/program_source_cid'],
+    ['owner/program_source_cid','requirement_cid','actual_access/scope_cid'],
+    ['owner/program_source_cid','requirement_cid','actual_access/scope_cid'], [],
+    ['requirement_cid'], ['requirement_cid'], ['expression_contract_cid'],
+    ['expression_contract_cid','program_template/stages/0/stage_semantics_cid'], ['program_semantics_cid']];
+  const current = read('portability/corpus/query-acquisition-identities.json');
+  assert.equal(current.length, paths.length);
+  for (const [i, row] of current.entries()) {
+    assert.equal(cid(row.body), row.cid);
+    const old = prior['query-acquisition-identities'][i]; assert.equal(cid(old.body), old.cid);
+    restore(row.body, old.body, paths[i]);
+  }
+  for (const [i, row] of read('portability/corpus/query-process-evidence.json').entries()) {
+    assert.equal(cid(row.body), row.cid);
+    restore(row.body, prior['query-process-evidence'][i].body,
+      ['requirement_cid','actual_access/scope_cid']);
+  }
+  const two = read('portability/corpus/query-two-receipt.json'), oldTwo = prior['query-two-receipt'];
+  restore(two.requirement.body, oldTwo.requirement.body, ['owner/program_source_cid']);
+  for (const [i, row] of two.receipts.entries()) {
+    assert.equal(cid(row.body), row.cid); restore(row.body, oldTwo.receipts[i].body, ['requirement_cid']);
+  }
+  for (const [i, row] of two.records.entries()) {
+    assert.equal(cid(row.body), row.cid); restore(row.body, oldTwo.records[i].body, ['requirement_cid','accesses']);
+  }
+  assert.equal(cid(two.observation.body), two.observation.cid);
+  restore(two.observation.body, oldTwo.observation.body, ['owner/program_source_cid',
+    'requirement_cid','accesses','evidence_contract_cid','coverage/source_validation_evidence_cid',
+    'coverage/filter_evidence_cid','coverage/select_evidence_cid']);
+});
+
 for (const c of corpus.cases) test(c.id, () => {
   const rows = structuredClone(corpus.rows);
   if (c.mutation === 'invalid_unused') rows[1].amount = 'invalid';
@@ -188,6 +275,12 @@ const vectors = [requirement, observation('native'), observation('broad'),scanSc
 const vectorPath = 'portability/corpus/query-acquisition-identities.json';
 // Independent canonical JSON oracle; never reads product output.
 if (process.argv.includes('--write')) writeFileSync(vectorPath,JSON.stringify(vectors,null,2)+'\n');
+if (process.argv.includes('--write')) {
+  const queryTime = queryTimeAcquisitionVectors(vectors);
+  writeFileSync('portability/corpus/query-time-acquisition-identities.json', JSON.stringify(queryTime, null, 2) + '\n');
+  writeFileSync('src/canonical_json/query_time_acquisition.generated_test.mbt',
+    generateQueryEvidenceVectors('query_time_acquisition', queryTime));
+}
 test('fixed preimages and CIDs match independent canonical JSON oracle', () => assert.deepEqual(read(vectorPath),vectors));
 test('public derivation names the exact shared contract', () => {
   assert.ok(readFileSync('src/sourceview_resolution/query_acquisition.mbt','utf8').includes(cid(contract)));

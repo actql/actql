@@ -301,3 +301,10 @@ integer       = ? unsigned decimal or 0x/0X hexadecimal integer within the adopt
 numeric_token = ? decimal numeric token or 0x/0X hexadecimal integer token; raw spelling is retained and exact admission is separate ? ;
 parameter_token = ? existing query named parameter token ? ;
 query_string  = ? one or more whitespace/comment-separated single-, double- or triple-quoted Unicode scalar string chunks, with per-chunk optional r/R raw prefix and the selected GoogleSQL decoding rules in query-text.md; decoded octal escapes use exactly three digits with first digit 0..3 (maximum \377) ? ;
+
+(* A fixed interval is an operand role only at the shared Timestamp consumers;
+   integral tokens retain their exact signed spelling before Common admission. *)
+fixed_interval = "INTERVAL", ( [ "+" | "-" ], interval_integer | parameter_token | path ), fixed_interval_unit ;
+interval_integer = ? exact decimal or 0x/0X hexadecimal integer token, admitted in signed64 context without binary64 conversion ? ;
+fixed_interval_unit = "NANOSECOND" | "MICROSECOND" | "MILLISECOND"
+                    | "SECOND" | "MINUTE" | "HOUR" | "DAY" ;

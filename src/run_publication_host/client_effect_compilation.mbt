@@ -188,7 +188,7 @@ fn issue_client_effect_compilation_internal(
   let mut acquired = (prefix == 1 && units >= 2) || (prefix == 2 && units > 2)
   if acquired {
     for stage in 0..<prefix {
-      if prepare_client_query_acquisition(
+      if prepare_client_query_acquisition_shape(
           client_effect_program_view(owner),
           stage,
           0,

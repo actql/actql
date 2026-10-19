@@ -10,12 +10,13 @@ const canonical = value => Array.isArray(value) ? '['+value.map(canonical).join(
 const hash = text => 'sha256:'+createHash('sha256').update(text).digest('hex');
 const cid = value => hash(canonical(value));
 const before = read('scripts/fixtures/date-add-source/predecessor.json');
+const beforeQueryTime = Object.fromEntries(read('scripts/fixtures/query-time-source/predecessor.json').contracts.map(item=>[item.id,item.body]));
 
 test('DATE_ADD retains complete prior scalar/AoA/grammar bodies and only the adopted exact-duration law changes',()=>{
   assert.equal(cid(before.scalar),'sha256:65e19916636e8d7dcf3bc7a1f8640762ef2dee048105c7b869878bd0fdf4d8fe');
   assert.equal(cid(before.aoa),'sha256:899be6a80ef655f4460e4a0414ec2ef861110b63c19f257de7a5579efa09470c');
   assert.deepEqual(before.grammar,read('scripts/fixtures/date-trunc-source/identities.json').after);
-  const current = read('spec/dependencies/aoa-rela-scalar-laws.json');
+  const current = beforeQueryTime.scalar_law_manifest;
   const {date_add: rule,...oldTime} = current.time;
   assert.deepEqual({...current,time:oldTime},before.scalar);
   assert.deepEqual(rule,{
@@ -27,7 +28,7 @@ test('DATE_ADD retains complete prior scalar/AoA/grammar bodies and only the ado
     examples:{aligned_seconds_0_125:'success',aligned_milliseconds_0_5:'success',binary64_seconds_0_1:'ArithmeticFailure',binary64_seconds_1e_minus_9:'ArithmeticFailure'},
   });
   assert.notEqual(cid(current),cid(before.scalar));
-  const aoa=read('spec/contracts/actql-aoa.json');
+  const aoa=beforeQueryTime.aoa_contract;
   assert.equal(aoa.rela_scalar_law_manifest_cid,cid(current));
   assert.deepEqual({...aoa,rela_scalar_law_manifest_cid:before.aoa.rela_scalar_law_manifest_cid},before.aoa);
   assert.equal(current.time.timestamp_date_diff,before.scalar.time.timestamp_date_diff);

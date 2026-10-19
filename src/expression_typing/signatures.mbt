@@ -449,6 +449,7 @@ fn infer(
       primitive(t, StringType, nullable, source)
     }
     "#null" => put(t, Hole, true, source)
+    "current_timestamp" => primitive(t, TimestampType, false, source)
     "typed_literal" => {
       let text = string(part(node.body, "value"))
       let (value, nodes, _) = match
@@ -925,6 +926,31 @@ fn infer(
         nullable = nullable || divisor.nullable
       }
       typed(t, @contract.with_nullability(target, nullable), source)
+    }
+    "timestamp_add" | "timestamp_sub" => {
+      let value = require_type(t, nodes, node.children[0], "timestamp")
+      let amount = nodes[node.children[1]]
+      // The interval's immediate canonical integer atom receives only this
+      // consumer's exact int64 context. Text fields/expressions do not promote.
+      if amount.tag == "literal" && @decode.view(amount.body) is TextValue(_) {
+        let contract = @contract.primitive(Signed64Type, nullable=false)
+        match
+          @value.admit(contract, amount.body, {
+            max_nodes: t.budget.limits.max_nodes,
+            max_depth: t.budget.limits.max_depth,
+            max_text_bytes: t.budget.text,
+          }) {
+          Ok(_) => amount.inferred = typed(t, contract, amount.source)
+          Err(_) =>
+            fail(
+              amount.source,
+              TypeMismatch("canonical signed64 interval integer"),
+            )
+        }
+      }
+      let amount = require_type(t, nodes, node.children[1], "int64")
+      ignore(require_type(t, nodes, node.children[2], "string"))
+      primitive(t, TimestampType, value.nullable || amount.nullable, source)
     }
     "date_trunc" | "date_add" | "date_diff" => {
       let vi = if tag == "date_trunc" { 1 } else { 0 }

@@ -116,6 +116,11 @@ fn emit_frames(
         @encode.key(output, "body")
         pending.push(EndObject)
         match expr.body {
+          CurrentTimestamp => {
+            pending.push(Op("current_timestamp"))
+            @encode.begin_array(output)
+            @encode.end_array(output)
+          }
           Field(name, _) => {
             pending.push(Op("field"))
             @encode.string_value(output, name)
@@ -336,6 +341,8 @@ fn emit_frames(
                   Between => "between"
                   DateDifference => "date_diff"
                   DateAddition => "date_add"
+                  TimestampAddition => "timestamp_add"
+                  TimestampSubtraction => "timestamp_sub"
                 },
               ),
             )

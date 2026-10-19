@@ -17279,7 +17279,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:a89eb0e3bcf22dff553b4feb649d62c6a6dbfc1d21886c7388e67f032f3a2593",
+  "artifact_registry_cid": "sha256:3f54ec5700b9fd27b4bab9bd62007529fded95ebdc03d39eabd54487b24c313a",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77",
@@ -17289,7 +17289,7 @@
     "observation_set": "sha256:a2a967e39998c2d2037b035d81aab0eb5dce50b308c6d0c08f8b88512307f59c",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:9780f9423f41edecb7d920e49b3b6dd122dc916c1ab7ee3720de790357b43d4c",
+    "executable_plan": "sha256:93bb2224a47e9032616e73e9ca563f71879d74fe570d3c44d564f19c09f6c6d6",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
@@ -17313,7 +17313,7 @@
     "verified_checkpoint_resolution": "sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76",
     "result_manifest": "sha256:bd718c411677e83cdf33258176d09c6dd690789b3cc7bb897cbff2b629290e02",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:b7ef9aa8bde3be48f82ba74b6cdb253fa936050881285fe5f53f942946b65f08",
+    "plan_document": "sha256:df877a3076d5ce7feff78327651f553bc2c3da22a10b2b06c63a2ba8db945565",
     "plan_result": "sha256:692b481d25e23400f0f81e0ddade946aba2dafca4dd2f1fe6c22c7e15e5122c1",
     "run_state": "sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2",
     "captured_run": "sha256:a37894cfc6919e1562be6b44293871f349085e6b94e27281eec26b7af8d0514c",
@@ -26776,6 +26776,107 @@
                           }
                         }
                       }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "current_timestamp"
+                      ],
+                      "properties": {
+                        "current_timestamp": {
+                          "type": "array",
+                          "minItems": 0,
+                          "maxItems": 0,
+                          "items": false
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "timestamp_add"
+                      ],
+                      "properties": {
+                        "timestamp_add": {
+                          "type": "array",
+                          "minItems": 3,
+                          "maxItems": 3,
+                          "items": false,
+                          "prefixItems": [
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "literal"
+                              ],
+                              "properties": {
+                                "literal": {
+                                  "enum": [
+                                    "ns",
+                                    "us",
+                                    "ms",
+                                    "s",
+                                    "m",
+                                    "h",
+                                    "d"
+                                  ]
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "timestamp_sub"
+                      ],
+                      "properties": {
+                        "timestamp_sub": {
+                          "type": "array",
+                          "minItems": 3,
+                          "maxItems": 3,
+                          "items": false,
+                          "prefixItems": [
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "literal"
+                              ],
+                              "properties": {
+                                "literal": {
+                                  "enum": [
+                                    "ns",
+                                    "us",
+                                    "ms",
+                                    "s",
+                                    "m",
+                                    "h",
+                                    "d"
+                                  ]
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
                     }
                   ]
                 },
@@ -32600,6 +32701,107 @@
                           "items": {
                             "$ref": "#/$defs/value_expression"
                           }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "current_timestamp"
+                      ],
+                      "properties": {
+                        "current_timestamp": {
+                          "type": "array",
+                          "minItems": 0,
+                          "maxItems": 0,
+                          "items": false
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "timestamp_add"
+                      ],
+                      "properties": {
+                        "timestamp_add": {
+                          "type": "array",
+                          "minItems": 3,
+                          "maxItems": 3,
+                          "items": false,
+                          "prefixItems": [
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "literal"
+                              ],
+                              "properties": {
+                                "literal": {
+                                  "enum": [
+                                    "ns",
+                                    "us",
+                                    "ms",
+                                    "s",
+                                    "m",
+                                    "h",
+                                    "d"
+                                  ]
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "timestamp_sub"
+                      ],
+                      "properties": {
+                        "timestamp_sub": {
+                          "type": "array",
+                          "minItems": 3,
+                          "maxItems": 3,
+                          "items": false,
+                          "prefixItems": [
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "literal"
+                              ],
+                              "properties": {
+                                "literal": {
+                                  "enum": [
+                                    "ns",
+                                    "us",
+                                    "ms",
+                                    "s",
+                                    "m",
+                                    "h",
+                                    "d"
+                                  ]
+                                }
+                              }
+                            }
+                          ]
                         }
                       }
                     }
@@ -58493,6 +58695,107 @@
                               }
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "current_timestamp"
+                          ],
+                          "properties": {
+                            "current_timestamp": {
+                              "type": "array",
+                              "minItems": 0,
+                              "maxItems": 0,
+                              "items": false
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "timestamp_add"
+                          ],
+                          "properties": {
+                            "timestamp_add": {
+                              "type": "array",
+                              "minItems": 3,
+                              "maxItems": 3,
+                              "items": false,
+                              "prefixItems": [
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "literal"
+                                  ],
+                                  "properties": {
+                                    "literal": {
+                                      "enum": [
+                                        "ns",
+                                        "us",
+                                        "ms",
+                                        "s",
+                                        "m",
+                                        "h",
+                                        "d"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "timestamp_sub"
+                          ],
+                          "properties": {
+                            "timestamp_sub": {
+                              "type": "array",
+                              "minItems": 3,
+                              "maxItems": 3,
+                              "items": false,
+                              "prefixItems": [
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "literal"
+                                  ],
+                                  "properties": {
+                                    "literal": {
+                                      "enum": [
+                                        "ns",
+                                        "us",
+                                        "ms",
+                                        "s",
+                                        "m",
+                                        "h",
+                                        "d"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
                         }
                       ]
                     },
@@ -64317,6 +64620,107 @@
                               "items": {
                                 "$ref": "#/$defs/value_expression"
                               }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "current_timestamp"
+                          ],
+                          "properties": {
+                            "current_timestamp": {
+                              "type": "array",
+                              "minItems": 0,
+                              "maxItems": 0,
+                              "items": false
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "timestamp_add"
+                          ],
+                          "properties": {
+                            "timestamp_add": {
+                              "type": "array",
+                              "minItems": 3,
+                              "maxItems": 3,
+                              "items": false,
+                              "prefixItems": [
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "literal"
+                                  ],
+                                  "properties": {
+                                    "literal": {
+                                      "enum": [
+                                        "ns",
+                                        "us",
+                                        "ms",
+                                        "s",
+                                        "m",
+                                        "h",
+                                        "d"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "timestamp_sub"
+                          ],
+                          "properties": {
+                            "timestamp_sub": {
+                              "type": "array",
+                              "minItems": 3,
+                              "maxItems": 3,
+                              "items": false,
+                              "prefixItems": [
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "literal"
+                                  ],
+                                  "properties": {
+                                    "literal": {
+                                      "enum": [
+                                        "ns",
+                                        "us",
+                                        "ms",
+                                        "s",
+                                        "m",
+                                        "h",
+                                        "d"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
                             }
                           }
                         }

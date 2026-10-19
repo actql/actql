@@ -14,6 +14,7 @@ import {
   "actql/actql/relation_evidence",
   "actql/actql/relation_results",
   "actql/actql/relation_schema",
+  "actql/actql/run_publication",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
@@ -230,6 +231,8 @@ pub fn bind_completed_output_export(CompletedOutputExportReceipt, RetainedOutput
 pub fn bind_completed_relation_export(CompletedRelationExportReceipt, RetainedOutputMaterial) -> Result[CompletedOutput, CompletedExportIssue]
 
 pub fn bind_generated_numeric_execution(GeneratedSequence, NumericAggregateExecution) -> GeneratedSequence
+
+pub fn bind_generated_sequence_query_time(GeneratedSequence, @run_publication.QueryEvaluationTime, Int, Int) -> Result[GeneratedSequence, SequenceRunIssue]
 
 pub fn bind_infer_captured_input(@lowering_relation.PreparedInferInputs, @lowering_relation.BoundPrepared, @pipeline_typing.Target, CapturedRows) -> Result[InferRowInput, InferPreparationIssue]
 
@@ -744,6 +747,8 @@ pub fn generated_sequence_is_projection_only(GeneratedSequence) -> Bool
 pub fn generated_sequence_match_limits(GeneratedSequence, Int) -> (Int64, Int64)?
 
 pub fn generated_sequence_owner(GeneratedSequence) -> @lowering_relation.BoundPrepared
+
+pub fn generated_sequence_query_time(GeneratedSequence) -> @run_publication.QueryEvaluationTime?
 
 pub fn generated_sequence_requirements(GeneratedSequence, Int) -> Result[@lowering_relation.SequenceRequirements, @lowering_relation.SequenceRequirementsIssue]
 
@@ -1367,11 +1372,11 @@ pub fn start_completed_result_relation_export(CompletedOutput, ManagedResultOccu
 
 pub fn start_completed_table_input_relation_export(CompletedOutput, ManagedTableInputOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedTableInputRelationExportPreparation, CompletedExportIssue]
 
-pub fn start_expression_execution(@lowering_relation.Expression, Map[String, Value], Array[Value], Int, Int, Int) -> Result[ExpressionExecution, EvalIssue]
+pub fn start_expression_execution(@lowering_relation.Expression, Map[String, Value], Array[Value], Int, Int, Int, query_time? : @run_publication.QueryEvaluationTime?) -> Result[ExpressionExecution, EvalIssue]
 
 pub fn start_infer_rows_preparation(@bounded_execution.Control, InferRowInput, InferPreparationLimits) -> Result[InferRowsPreparation, InferPreparationIssue]
 
-pub fn start_predicate_expression(@lowering_relation.Expression, Map[String, Value], Int, Int, Int) -> Result[PredicateExpressionExecution, EvalIssue]
+pub fn start_predicate_expression(@lowering_relation.Expression, Map[String, Value], Int, Int, Int, query_time? : @run_publication.QueryEvaluationTime?) -> Result[PredicateExpressionExecution, EvalIssue]
 
 pub fn start_prepare_producer_read(@lowering_relation.BoundPrepared, BoundProducerInput, Int, Int) -> Result[ProducerReadPreparation, ProducerReadIssue]
 
@@ -1922,6 +1927,7 @@ pub(all) enum EvalIssueKind {
   Scalar(ScalarIssue)
   LogicalEntry(LogicalBudgetIssue)
   LogicalValue(LogicalBudgetIssue)
+  QueryEvaluationTimeUnavailable
 } derive(Eq, @debug.Debug)
 
 pub struct ExecutionCapacity {

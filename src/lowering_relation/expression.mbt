@@ -28,6 +28,7 @@ pub enum ExpressionBody {
   Many(ManyOperator, Array[Expression])
   Conditional(Expression, Expression, Expression)
   Case(Array[(Expression, Expression)], Expression)
+  CurrentTimestamp
 }
 
 ///|
@@ -142,6 +143,8 @@ pub(all) enum ManyOperator {
   Between
   DateDifference
   DateAddition
+  TimestampAddition
+  TimestampSubtraction
 } derive(Eq, Debug)
 
 ///|
@@ -202,6 +205,7 @@ pub fn expression_view_entries(value : Expression) -> Int {
     Field(_, _)
     | Literal(_)
     | TypedNull
+    | CurrentTimestamp
     | EmptyArray
     | Property(_, _, _)
     | Subscript(_, _)
@@ -248,7 +252,8 @@ fn expression_tag(
   source : @decode.Cursor,
 ) -> Unit raise ExpressionStop {
   match tag {
-    "field"
+    "current_timestamp"
+    | "field"
     | "literal"
     | "typed_literal"
     | "$param"
@@ -346,6 +351,8 @@ fn expression_tag(
     | "case"
     | "date_diff"
     | "date_add"
+    | "timestamp_add"
+    | "timestamp_sub"
     | "date_trunc" => ()
     "array" | "empty_array" | "object" | "property" | "subscript" => ()
     other => expression_fail(source, ExpressionNotImplemented(other))
@@ -390,7 +397,12 @@ fn expression_children(
       }
       children
     }
-    "empty_array" | "literal" | "typed_literal" | "field" | "$param" => []
+    "empty_array"
+    | "literal"
+    | "typed_literal"
+    | "field"
+    | "$param"
+    | "current_timestamp" => []
     "decimal_divide" => {
       let obj = @decode.open_object(body).unwrap()
       [
@@ -937,6 +949,7 @@ fn lower_typed_expression_measured(
           }
           Property(args[0], name, ordinal)
         }
+        "current_timestamp" => CurrentTimestamp
         "field" => {
           let name = @decode.text(body).unwrap()
           guard fields.get(name) is Some(target) else {
@@ -1091,6 +1104,8 @@ fn lower_typed_expression_measured(
         "strpos" => Binary(Strpos, args[0], args[1])
         "date_diff" => Many(DateDifference, args)
         "date_add" => Many(DateAddition, args)
+        "timestamp_add" => Many(TimestampAddition, args)
+        "timestamp_sub" => Many(TimestampSubtraction, args)
         "date_trunc" => Binary(DateTruncate, args[0], args[1])
         "contains" => Binary(Contains, args[0], args[1])
         "starts_with" => Binary(StartsWith, args[0], args[1])
@@ -1187,7 +1202,11 @@ fn lower_typed_expression_measured(
           Case(clauses, otherwise) =>
             otherwise.uses_veca ||
             clauses.any(pair => pair.0.uses_veca || pair.1.uses_veca)
-          Field(_, _) | Literal(_) | TypedNull | EmptyArray => false
+          Field(_, _)
+          | Literal(_)
+          | TypedNull
+          | EmptyArray
+          | CurrentTimestamp => false
         },
       }
     }
