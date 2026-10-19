@@ -984,6 +984,36 @@ for (const entrance of ['local', 'http']) {
     }
   });
 
+  test(`${entrance}: public query time and fixed intervals retain the checked source contract`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    const clock = "CAST('1970-01-01T00:00:00.000Z' AS TIMESTAMP)";
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        'SELECT CURRENT_TIMESTAMP() AS now',
+        'SELECT TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 1 DAY) AS since',
+        `SELECT TIMESTAMP_ADD(${clock}, INTERVAL 9007199254740993 NANOSECOND) AS shifted`,
+        `SELECT ${clock} - INTERVAL -0x8000000000000000 NANOSECOND AS shifted`,
+        `SELECT ${clock} + INTERVAL @amount NANOSECOND AS shifted`,
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@amount') ? {parameterDeclarations: {amount: {type: 'int64', nullable: false}},
+            parameters: {amount: '9007199254740993'}} : {})});
+        assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+        assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      const wrong = await client.check(`SELECT ${clock} + INTERVAL @amount SECOND AS shifted`,
+        {kind: 'text', scope: 'bound_input', format,
+          parameterDeclarations: {amount: {type: 'number'}}, parameters: {amount: 1}});
+      assert.equal(wrong.report.verdict, 'invalid');
+      assert.equal(wrong.report.reasons[0].code, 'type_mismatch');
+      const arity = await client.check('SELECT CURRENT_TIMESTAMP(1) AS now',
+        {kind: 'text', scope: 'bound_input', format});
+      assert.equal(arity.report.verdict, 'invalid');
+    }
+    // Checking proves no execution-time value, new Run, permission or dispatch.
+  });
+
   test(`${entrance}: public DATE_ADD retains the original fixed-unit operation`, async t => {
     const {client} = await publicCheck(t, entrance);
     const clock = "CAST('1969-12-31T23:59:59.999999999Z' AS TIMESTAMP)";
