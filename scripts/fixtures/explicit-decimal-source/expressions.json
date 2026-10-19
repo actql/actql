@@ -1,0 +1,34 @@
+[
+  {
+    "value": {
+      "cast": {
+        "value": {
+          "$param": "amount"
+        },
+        "target": {
+          "type": "decimal",
+          "precision": 4,
+          "scale": 2
+        }
+      }
+    },
+    "preimage": "{\"cast\":{\"target\":{\"precision\":4,\"scale\":2,\"type\":\"decimal\"},\"value\":{\"$param\":\"amount\"}}}",
+    "cid": "sha256:270ec551bd518c1b53437641adee8d8ab451c6bea5e3079afa8ecab1b1620151"
+  },
+  {
+    "value": {
+      "cast": {
+        "value": {
+          "literal": null
+        },
+        "target": {
+          "type": "decimal",
+          "precision": 38,
+          "scale": 0
+        }
+      }
+    },
+    "preimage": "{\"cast\":{\"target\":{\"precision\":38,\"scale\":0,\"type\":\"decimal\"},\"value\":{\"literal\":null}}}",
+    "cid": "sha256:81c66f8260ffab1895adf264a2ea65917fe816bce0df14ce5fcab3720040c71f"
+  }
+]
