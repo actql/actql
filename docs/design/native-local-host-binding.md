@@ -1724,6 +1724,16 @@ FILE/lock/TLS bookkeeping, output permission or a retirement acknowledgement.
 The existing actual write and flush checks remain separate, and no covered
 caller reconfigures the streams or replenishes this initial storage.
 
+Before the first buffer setter, the selected entry checks both standard FILEs
+against the selected Darwin libc's original array, descriptors and pristine
+write-only state. Prior buffers, output or replacement FILEs refuse before
+either setter, rather than asking libc to release or rebind earlier storage.
+The entry retains their original auxiliary-record, cookie and operation
+bindings and checks them during current use, independently of buffer identity.
+The generic buffer-binding helper remains separate. These process-lived FILE
+observations cannot supply libc lock/TLS coverage or admit the whole initial
+envelope; those holdings remain mandatory before the selected setup.
+
 Selected inspection resolves its source and scratch directories with bounded
 descriptor-based kernel path observations. It keeps the original containment
 comparison, refuses unsupported filesystems without a realpath fallback and

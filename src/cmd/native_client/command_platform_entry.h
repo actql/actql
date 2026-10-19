@@ -8,6 +8,7 @@
 #include "command_output.h"
 #include "command_initial_parser_volume.h"
 #include "command_initial_stack.h"
+#include "command_initial_stdio.h"
 #include <stdatomic.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -44,6 +45,7 @@ struct actql_native_command_platform_original {
   size_t initial_parser_allocation_volume;
   actql_native_initial_managed_original *initial_managed;
   actql_bootstrap_command_stack initial_stack;
+  actql_bootstrap_command_stdio initial_stdio;
   actql_bootstrap_command_output output_control;
   bool closing;
   actql_native_command_platform_load loads[2];
@@ -142,7 +144,8 @@ __attribute__((constructor)) static void actql_command_capture_process_entry(voi
     /* Allocator setup may itself emit a diagnostic. Bind the same original
      * static stream buffers before that first covered call, without treating
      * this setup as the allocator/Host admission or a flush acknowledgement. */
-    if (!actql_bootstrap_bind_command_output(
+    if (!actql_bootstrap_bind_initial_command_output(
+        &actql_command_entry.initial_stdio,
         &actql_command_entry.output_control, stdout, stderr))
       actql_command_initial_refusal();
   }
@@ -207,6 +210,8 @@ actql_native_command_platform_current(void) {
       !actql_native_initial_managed_current(entry->initial_managed)) return NULL;
   if (!actql_bootstrap_command_output_current(
       &entry->output_control, stdout, stderr)) return NULL;
+  if (!actql_bootstrap_command_stdio_current(
+      &entry->initial_stdio, stdout, stderr)) return NULL;
 #endif
   return actql_command_entry_thread(entry) &&
     entry->initial_envelope_admitted && !entry->closing ? entry : NULL;
