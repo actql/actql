@@ -24,7 +24,7 @@ const closure = localModuleGraphInputs(repository, entries);
 const nativeRoot = process.env.ACTQL_DIRECTORY_NATIVE_DIAGNOSTIC_ROOT;
 
 async function fixture(label, {replaceBeforeJournalCapture, managedCompute = false,
-  resultPublication = false} = {}) {
+  resultPublication = false, localMockModel = false} = {}) {
   const scratch = await createOwnedScratch({parent: tmpdir(),
     prefix: 'actql-journal-ordinary-service-', label});
   const root = join(scratch.path, 'node_modules/@actql/local-node');
@@ -117,6 +117,20 @@ async function fixture(label, {replaceBeforeJournalCapture, managedCompute = fal
       return 'sha256:'+'a'.repeat(64);
     }
     `}
+    ${!localMockModel ? '' : `
+    let modelCandidate;
+    export function readHostLocalMockModelRunRequirements(value, prepared, candidate, recipe) {
+      originalSourceManagedHostRequest(value,prepared);
+      if(candidate!==modelCandidate||recipe.kind!=='selected-node-local-original-mock-model-service')
+        throw new Error('ForeignControlledModelCandidate');
+      return Object.freeze({planningWork:100000,attempts:3,holdings:3,
+        transferBytes:1000000n,retainedBytes:252808192n,executionBytes:536870912n});
+    }
+    export function assertHostLocalMockModelRunCurrent(value,prepared,candidate) {
+      originalSourceManagedHostRequest(value,prepared);
+      if(candidate!==modelCandidate)throw new Error('ForeignControlledModelCandidate');
+    }
+    `}
     export {snapshotInitialControlHostInput as readInitialControlHostInput} from './initial-control-host-input.mjs';
     export {openClientRequestJournal as openOriginalHostRequestJournal,
       observeOriginalClientRequestJournalCustody as observeOriginalHostRequestJournalCustody,
@@ -148,6 +162,7 @@ async function fixture(label, {replaceBeforeJournalCapture, managedCompute = fal
         assertCompute(view){assertManagedComputeInstallationCurrent(view,originals);},
         assertSource(view){assertSourceManagedInstallationCurrent(view,originals);},
         bindPrepared(prepared,request){preparedRequests.set(prepared,request);}`}
+        ${!localMockModel ? '' : ',bindModelCandidate(candidate){modelCandidate=candidate;}'}
       });
     }
   `));
@@ -328,6 +343,81 @@ test('source-free Compute original precedes SDK snapshot and cannot issue Source
     assert.notEqual(ports.status(0),0);
     assert.throws(()=>root.prepareManagedComputeInstallation(client.originals));
     assert.equal((await journalDuty.close()).pending,false);
+    assert.equal((await client.scope.close()).pending,false);
+  `);
+  f.scratch.passed();
+});
+
+// Actual prefix/SQLite/native custody with a controlled semantic Host. These
+// private-port cases do not execute Common Model code, issue permission, or
+// establish installed INFER/co-phase supply for the full embedded Host.
+test('separate local Mock service binds one same-Host request without converting Compute ports', async () => {
+  const f = await fixture('same original separate local Mock service',
+    {managedCompute: true, localMockModel: true});
+  f.run(`
+    import assert from 'node:assert/strict'; import {createRequire} from 'node:module';
+    import {connect} from '@actql/local-node'; const require=createRequire(import.meta.url);
+    const client=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
+    const root=require(${JSON.stringify(join(f.root, 'adapters/host-node/node-public-initial-control-bootstrap.cjs'))});
+    const journal=await client.prepareJournal(); await journal.admitRootFormat(client.root);
+    await journal.openRequestJournal(client.root+'/requests',{});
+    const original=root.prepareManagedComputeInstallation(client.originals);
+    const receipt=root.beforeManagedComputeSnapshot(original,client.originals,'aql','SELECT 1',
+      Object.freeze({format:'sql',parameters:null}));
+    const body=Object.freeze({kind:'aql',input:Object.freeze({text:'SELECT 1',format:'sql'}),parameters:null});
+    root.bindManagedComputeSnapshot(original,client.originals,receipt,body);
+    const request=Object.freeze({originalPendingRequest:true});
+    root.bindManagedComputeRequest(original,client.originals,receipt,body,request);
+    const prepared=Object.freeze({controlledCheckedPrepared:true}); client.bindPrepared(prepared,request);
+    const candidate=Object.freeze({controlledCompiledModel:true}); client.bindModelCandidate(candidate);
+    const run=root.prepareSourceLocalMockModelRun(original,client.originals,prepared,candidate);
+    assert.equal(root.prepareOriginalManagedRunPorts(run,prepared),null);
+    assert.equal(root.prepareOriginalLocalMockModelRunPorts(run,{}),null);
+    const ports=root.prepareOriginalLocalMockModelRunPorts(run,prepared);
+    assert.equal(ports.limit(1),3n);
+    assert.equal(root.prepareOriginalLocalMockModelRunPorts(run,prepared),null);
+    assert.throws(()=>root.prepareManagedComputeRun(original,client.originals,prepared));
+    assert.match(root.readLocalMockModelNow(client.originals),/^\\d{4}-.*Z$/);
+    assert.equal(ports.cancelUnpublished(),0);
+    root.finishManagedComputeProducer(original,client.originals,receipt,'returned');
+    assert.equal((await root.closeManagedComputeInstallation(original,client.originals)).pending,false);
+    assert.equal((await journal.close()).pending,false);
+    assert.equal((await client.scope.close()).pending,false);
+  `);
+  f.scratch.passed();
+});
+
+test('local Mock service clock substitution retires the same original without blocking unpublished cleanup', async () => {
+  const f = await fixture('same local Mock clock original and partial cleanup',
+    {managedCompute: true, localMockModel: true});
+  f.run(`
+    import assert from 'node:assert/strict'; import {createRequire} from 'node:module';
+    import {connect} from '@actql/local-node'; const require=createRequire(import.meta.url);
+    const client=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
+    const root=require(${JSON.stringify(join(f.root, 'adapters/host-node/node-public-initial-control-bootstrap.cjs'))});
+    const journal=await client.prepareJournal(); await journal.admitRootFormat(client.root);
+    await journal.openRequestJournal(client.root+'/requests',{});
+    const original=root.prepareManagedComputeInstallation(client.originals);
+    const receipt=root.beforeManagedComputeSnapshot(original,client.originals,'aql','SELECT 1',
+      Object.freeze({format:'sql',parameters:null}));
+    const body=Object.freeze({kind:'aql',input:Object.freeze({text:'SELECT 1',format:'sql'}),parameters:null});
+    root.bindManagedComputeSnapshot(original,client.originals,receipt,body);
+    const request=Object.freeze({originalPendingRequest:true});
+    root.bindManagedComputeRequest(original,client.originals,receipt,body,request);
+    const prepared=Object.freeze({controlledCheckedPrepared:true}); client.bindPrepared(prepared,request);
+    const candidate=Object.freeze({controlledCompiledModel:true}); client.bindModelCandidate(candidate);
+    const run=root.prepareSourceLocalMockModelRun(original,client.originals,prepared,candidate);
+    const ports=root.prepareOriginalLocalMockModelRunPorts(run,prepared);
+    const iso=Date.prototype.toISOString; let entered=0;
+    Date.prototype.toISOString=function(){entered++;throw new Error('ReplacementMustNotRun');};
+    assert.throws(()=>root.readLocalMockModelNow(client.originals),{code:'LocalMockModelPreparationUnavailable'});
+    Date.prototype.toISOString=iso;
+    assert.throws(()=>root.readLocalMockModelNow(client.originals),{code:'LocalMockModelPreparationUnavailable'});
+    assert.equal(entered,0); assert.notEqual(ports.status(1),0);
+    assert.equal(ports.cancelUnpublished(),0);
+    root.finishManagedComputeProducer(original,client.originals,receipt,'failed');
+    assert.equal((await root.closeManagedComputeInstallation(original,client.originals)).pending,false);
+    assert.equal((await journal.close()).pending,false);
     assert.equal((await client.scope.close()).pending,false);
   `);
   f.scratch.passed();

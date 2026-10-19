@@ -28,6 +28,8 @@ const {declareSourceManagedPhaseEnvelope,declareSourceComputePhaseEnvelope,
 const {declareHostJournalServiceRecipe} = require('./host-journal-service-recipe.cjs');
 const {declareHostResultServiceRecipe, facilityFields: resultFacilityFields}
   = require('./host-result-service-recipe.cjs');
+const {declareHostLocalMockModelServiceRecipe}
+  = require('./host-local-mock-model-service-recipe.cjs');
 const fail = code => {throw Object.assign(new TypeError(code), {code});};
 const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');
 const inputUnavailable = () => fail('NodeInitialControlInputUnavailable');
@@ -47,6 +49,7 @@ let managedComputeInstallation;
 let journalInstallation;
 let journalService;
 let resultService, resultInstallation;
+let localMockModelService;
 const journalUnavailable = () => fail('HostJournalPreparationUnavailable');
 const journalPromise = Promise, journalPromiseResolve = Promise.resolve;
 const journalPromiseThen = Promise.prototype.then;
@@ -181,6 +184,72 @@ function assertJournalServiceCurrent(original) {
 }
 
 const resultUnavailable = () => fail('HostResultPublicationUnavailable');
+const localMockModelUnavailable = () => fail('LocalMockModelPreparationUnavailable');
+function beginLocalMockModelService(recipe, journal, result, runtime) {
+  if (localMockModelService !== undefined || state !== undefined ||
+      journal !== journalService || result !== resultService ||
+      recipe.sharedControl !== journal.declaration || recipe.result !== result.recipe ||
+      recipe.sourceCompute !== result.recipe.sourceCompute || journal.runtime !== runtime) {
+    localMockModelUnavailable();
+  }
+  // The selected startup retains the actual stock clock before namespace or
+  // Model callbacks. This is not caller clock DATA or trusted-now authority.
+  const dateProperty = descriptor(globalThis, 'Date');
+  const date = dateProperty?.value, prototype = descriptor(date, 'prototype');
+  const iso = prototype?.value === undefined ? undefined : descriptor(prototype.value, 'toISOString');
+  if (typeof date !== 'function' || isProxy(date) || typeof iso?.value !== 'function' ||
+      isProxy(iso.value) || apply(intrinsicSource, date, []) !== 'function Date() { [native code] }' ||
+      apply(intrinsicSource, iso.value, []) !== 'function toISOString() { [native code] }') {
+    localMockModelUnavailable();
+  }
+  return localMockModelService = {recipe, journal, result, runtime,
+    process: processOriginal, module: loadingModule, delivery, phase: 'declared',
+    dateProperty: freeze(dateProperty), date, prototype: freeze(prototype), iso: freeze(iso),
+    namespace: undefined, callbacks: undefined};
+}
+function bindLocalMockModelServiceNamespace(original, namespace) {
+  if (original !== localMockModelService || original.phase !== 'declared') localMockModelUnavailable();
+  const requirements = descriptor(namespace, 'readHostLocalMockModelRunRequirements');
+  const current = descriptor(namespace, 'assertHostLocalMockModelRunCurrent');
+  // A namespace without the actual semantic/current/custody consumer cannot
+  // receive a Model service by borrowing its Source/Compute qualification.
+  if ([requirements, current].some(property => property === undefined || !own(property, 'value') ||
+      typeof property.value !== 'function')) return;
+  original.namespace = namespace;
+  original.callbacks = freeze({requirements: requirements.value, current: current.value});
+  original.phase = 'bound';
+}
+function assertLocalMockModelServiceCurrent(original, held) {
+  if (original !== localMockModelService) localMockModelUnavailable();
+  try {
+    if (original.phase !== 'bound' || state?.localMockModelService !== original ||
+        state.localMockModelServiceRecipe !== original.recipe || state.runtime !== original.runtime ||
+        state.namespace !== original.namespace || original.process !== processOriginal ||
+        original.module !== loadingModule || original.delivery !== delivery) localMockModelUnavailable();
+    assertSamePreparation(held);
+    assertJournalServiceCurrent(original.journal);
+    if (original.result !== resultService || original.recipe.result !== original.result.recipe) localMockModelUnavailable();
+    const journal = journalCurrent(journalInstallation?.original, held);
+    if (journal.journal === undefined || journal.ownership === undefined) localMockModelUnavailable();
+    const date = descriptor(globalThis, 'Date'), prototype = descriptor(original.date, 'prototype');
+    const iso = descriptor(original.prototype.value, 'toISOString');
+    for (const [actual, expected] of [[date, original.dateProperty], [prototype, original.prototype], [iso, original.iso]]) {
+      if (actual === undefined || actual.value !== expected.value || actual.get !== expected.get ||
+          actual.set !== expected.set || actual.writable !== expected.writable ||
+          actual.enumerable !== expected.enumerable || actual.configurable !== expected.configurable) {
+        localMockModelUnavailable();
+      }
+    }
+  } catch (cause) {
+    original.phase = 'retiring';
+    throw cause;
+  }
+}
+function localMockModelNow(held) {
+  const original = localMockModelService;
+  assertLocalMockModelServiceCurrent(original, held);
+  return apply(original.iso.value, new original.date(), []);
+}
 function beginResultService(recipe, journal, runtime) {
   if (resultService !== undefined || state !== undefined || journal !== journalService ||
       recipe.sharedControl !== journal.declaration || recipe.journal !== journal.recipe ||
@@ -1301,7 +1370,7 @@ function claimManagedComputeRun(original, held, derived) {
   const request = apply(state.compute.request, state.namespace, [held, derived]);
   if (producer.request !== request) sourceUnavailable();
   const run = producer.managedRun;
-  run.claimed = true; run.derived = derived; run.request = request;
+  run.claimed = true; run.derived = derived; run.request = request; run.purpose = 'source-compute';
   try {
     const required = apply(state.compute.requirements, state.namespace, [held, derived]);
     const names = ['planningWork', 'attempts', 'holdings', 'transferBytes', 'retainedBytes', 'executionBytes'];
@@ -1333,6 +1402,12 @@ function managedRunCurrent(run) {
   if (run.entry !== entry || entry.receipt !== run.producer ||
       run.producer.managedRun !== run || run.stopped ||
       run.request !== run.producer.request || run.derived === undefined) sourceUnavailable();
+  if (run.purpose === 'local-mock-model') {
+    assertLocalMockModelServiceCurrent(run.modelService, entry.originals);
+    const observation = apply(run.modelService.callbacks.current, state.namespace,
+      [entry.originals, run.derived, run.modelCandidate]);
+    if (observation !== undefined) localMockModelUnavailable();
+  }
 }
 function claimManagedRun(original,held,derived) {
   const entry = sourceCurrent(original,held), request = assertSourceRequest(entry,derived);
@@ -1341,7 +1416,7 @@ function claimManagedRun(original,held,derived) {
   // This is a claim of the pre-snapshot original, not a late Compute issuer.
   // Retain the exact opaque prepared/request pointers before the fixed Owner's
   // fallible sizing/current fences. A failure never issues another original.
-  run.claimed = true;run.derived = derived;run.request = request;
+  run.claimed = true;run.derived = derived;run.request = request;run.purpose = 'source-compute';
   try {
     const required = apply(state.runRequirements,state.namespace,[held,derived]);
     const bounds = state.sourceComputeEnvelope.limits;
@@ -1366,12 +1441,59 @@ function claimManagedRun(original,held,derived) {
     throw cause;
   }
 }
-function prepareOriginalManagedRunPorts(original,prepared) {
+function claimLocalMockModelRun(original, held, derived, candidate) {
+  // The request original can belong to a Source-bearing or source-free Host.
+  // Neither original supplies Model capacity: the separately selected service
+  // below must bind this SAME request and semantic candidate before use.
+  const entry = sourceInstallation?.original === original ? sourceCurrent(original, held) :
+    managedComputeCurrent(original, held);
+  const request = entry === sourceInstallation ? assertSourceRequest(entry, derived) :
+    apply(state.compute.request, state.namespace, [held, derived]);
+  if (entry.receipt?.request !== request) localMockModelUnavailable();
+  const run = entry.receipt.managedRun;
+  if (run === undefined || run.claimed) localMockModelUnavailable();
+  assertLocalMockModelServiceCurrent(localMockModelService, held);
+  // One original parent, consumed before the fixed semantic Owner's fallible
+  // projection. The candidate itself is not an issuer or self-authentication.
+  run.claimed = true; run.derived = derived; run.request = request;
+  run.purpose = 'local-mock-model'; run.modelCandidate = candidate;
+  run.modelService = localMockModelService;
+  try {
+    const required = apply(localMockModelService.callbacks.requirements, state.namespace,
+      [held, derived, candidate, localMockModelService.recipe]);
+    const names = ['planningWork', 'attempts', 'holdings', 'transferBytes', 'retainedBytes', 'executionBytes'];
+    if (required === null || typeof required !== 'object' || isProxy(required) || !Object.isFrozen(required)) {
+      localMockModelUnavailable();
+    }
+    const quotas = [];
+    for (let index = 0; index < names.length; index++) {
+      const property = descriptor(required, names[index]);
+      if (property === undefined || !own(property, 'value')) localMockModelUnavailable();
+      const value = property.value;
+      if (index < 3 ? !Number.isSafeInteger(value) || value < 0 || value > 2147483647 :
+          typeof value !== 'bigint' || value < 0n || value > 9223372036854775807n) localMockModelUnavailable();
+      appendSourceOriginal(quotas, BigInt(value));
+    }
+    run.quotas = freeze(quotas);
+    managedRunCurrent(run);
+    return run.original;
+  } catch (cause) {
+    sourceFailure(entry, cause); entry.closing = true;
+    throw cause;
+  }
+}
+function prepareOriginalManagedRunPorts(original, prepared) {
+  return prepareOriginalRunPorts(original, prepared, 'source-compute');
+}
+function prepareOriginalLocalMockModelRunPorts(original, prepared) {
+  return prepareOriginalRunPorts(original, prepared, 'local-mock-model');
+}
+function prepareOriginalRunPorts(original,prepared,purpose) {
   const sourceRun=sourceInstallation?.receipt?.managedRun;
   const entry=sourceRun?.original===original ? sourceInstallation : managedComputeInstallation;
   const run=entry?.receipt?.managedRun;
   if (run===undefined || run.original!==original || run.derived!==prepared || !run.claimed ||
-      run.quotas===undefined || run.portsTaken || run.stopped) return null;
+      run.quotas===undefined || run.portsTaken || run.stopped || run.purpose !== purpose) return null;
   try {managedRunCurrent(run);} catch(cause) {
     sourceFailure(entry,cause);entry.closing=true;return null;
   }
@@ -1694,8 +1816,14 @@ const table = module.exports = {
   },
   prepareSourceManagedRead: prepareSourceRead,
   prepareSourceManagedRun: claimManagedRun,
+  prepareSourceLocalMockModelRun: claimLocalMockModelRun,
+  assertLocalMockModelPreparationCurrent(held) {
+    assertLocalMockModelServiceCurrent(localMockModelService, held);
+  },
+  readLocalMockModelNow: localMockModelNow,
   prepareOriginalSourceChildPorts,
   prepareOriginalManagedRunPorts,
+  prepareOriginalLocalMockModelRunPorts,
 };
 Object.setPrototypeOf(table,null);
 // Same synchronous receiver handoff for the Host namespace while it loads;
@@ -1727,6 +1855,10 @@ try {
   const resultServiceRecipe = declareHostResultServiceRecipe(declaration, journalServiceRecipe,
     sourceComputeEnvelope, managedComputeEnvelope);
   const originalResultService = beginResultService(resultServiceRecipe, originalJournalService, runtime);
+  const localMockModelServiceRecipe = declareHostLocalMockModelServiceRecipe(declaration,
+    sourceComputeEnvelope, resultServiceRecipe);
+  const originalLocalMockModelService = beginLocalMockModelService(localMockModelServiceRecipe,
+    originalJournalService, originalResultService, runtime);
   // Retain selected builtin constructor identities before namespace callbacks.
   // This is module/control custody only: no DatabaseSync is constructed and
   // no writable Journal capacity is issued by loading this builtin.
@@ -1804,8 +1936,10 @@ try {
   freeze(journal);
   const journalDisposition = bindJournalServiceNamespace(originalJournalService, namespace, journal);
   bindResultServiceNamespace(originalResultService, namespace);
+  bindLocalMockModelServiceNamespace(originalLocalMockModelService, namespace);
   state = {declaration,runtime,envelope,sourceEnvelope,sourceComputeEnvelope,runRequirements,
     managedComputeEnvelope,compute,resultServiceRecipe,resultService:originalResultService,
+    localMockModelServiceRecipe,localMockModelService:originalLocalMockModelService,
     inventory,images,namespace,consumer,validator,reader,source,journal,journalNative,journalServiceRecipe,
     journalService:originalJournalService,journalDisposition,prefixIntrinsics,
     directoryNativeImageLoader:field(directoryNativeImage,'loadHostJournalDirectoryNative')};
@@ -1815,4 +1949,5 @@ try {
   firstFailure = freeze({cause});
   if (journalService !== undefined) journalService.phase = 'failed';
   if (resultService !== undefined) resultService.phase = 'failed';
+  if (localMockModelService !== undefined) localMockModelService.phase = 'failed';
 }
