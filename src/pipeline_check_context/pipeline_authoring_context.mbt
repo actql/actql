@@ -7,6 +7,13 @@ pub enum PipelineAuthoringContextIssue {
   Values(ValuesCapacityIssue)
   Capacity(@capacity.PreparationIssue)
   Context(Issue)
+  Orders(OperationOrderIssue)
+}
+
+///|
+priv struct AuthoringOrderLink {
+  requirement : AuthoringOrderRequirement
+  resolution : @pipeline.ContextualOrder
 }
 
 ///|
@@ -19,6 +26,7 @@ struct PipelineAuthoringContext {
   orders : PipelineOrderPreparation
   material : ValuesCapacityMaterial
   context : PipelineContext
+  order_links : Array[AuthoringOrderLink]
   work : Int
 }
 
@@ -62,6 +70,47 @@ pub fn prepare_pipeline_authoring_context(
     return Err(BudgetExceeded)
   }
   let mut work = authoring.work + orders.work + 1
+  // Use the already resolved producer orders for exactly this pipeline. Static
+  // operation requirements are not runtime facts or independently re-inferred
+  // ordering, and their original requirement owner remains retained.
+  let producer = @pipeline.contextual_closure_at(producers, 0).unwrap()
+  let order_links : Array[AuthoringOrderLink] = []
+  let mut previous_step = -1
+  let mut indexed = empty_operation_orders()
+  for i in 0..<authoring.orders.length() {
+    let requirement = authoring.orders[i]
+    if work == limits.max_work {
+      return Err(BudgetExceeded)
+    }
+    work += 1
+    if requirement.step != previous_step {
+      guard @pipeline.contextual_order_count(producer, requirement.step)
+        is Some(count) else {
+        return Err(Orders(ForeignOwner(i)))
+      }
+      if work == limits.max_work || count > limits.max_work - work - 1 {
+        return Err(BudgetExceeded)
+      }
+      work += count + 1
+      indexed = empty_operation_orders()
+      for index in 0..<count {
+        let resolution = @pipeline.contextual_order_at(
+          producer,
+          requirement.step,
+          index,
+        ).unwrap()
+        if !retain_operation_order(indexed, resolution) {
+          return Err(Orders(AmbiguousResolution(i)))
+        }
+      }
+      previous_step = requirement.step
+    }
+    guard select_operation_order(indexed, requirement.demand)
+      is Some(resolution) else {
+      return Err(Orders(MissingResolution(i, requirement.demand)))
+    }
+    order_links.push({ requirement, resolution, })
+  }
   let material = match
     derive_values_capacity_material(
       pipeline,
@@ -110,7 +159,7 @@ pub fn prepare_pipeline_authoring_context(
     Err(issue) => return Err(Context(issue))
   }
   work += context.work - context_prefix
-  Ok({ authoring, orders, material, context, work, })
+  Ok({ authoring, orders, material, context, order_links, work, })
 }
 
 ///|
@@ -139,4 +188,30 @@ pub fn pipeline_authoring_context_usage(
   value : PipelineAuthoringContext,
 ) -> (Int, Int, Int) {
   (value.work, value.material.metadata_bytes, value.material.metadata_nodes)
+}
+
+///|
+/// Static links retain the exact operation obligation and contextual producer
+/// resolution. They confer no execution-value or authority facts.
+pub fn pipeline_authoring_context_order_count(
+  value : PipelineAuthoringContext,
+) -> Int {
+  value.order_links.length()
+}
+
+///|
+pub fn pipeline_authoring_context_order_at(
+  value : PipelineAuthoringContext,
+  index : Int,
+) -> (Int, @pipeline.OperationObligations, Int, @pipeline.ContextualOrder)? {
+  value.order_links
+  .get(index)
+  .map(link => {
+    (
+      link.requirement.step,
+      link.requirement.owner,
+      link.requirement.index,
+      link.resolution,
+    )
+  })
 }

@@ -61,6 +61,8 @@ pub fn open_journal_with_custody(@sqlite.Library, String, Int64, @remote_site_pr
 
 pub fn prepare_native_output_file_custody(@remote_site_protocol.DispatchRequest, String, @filesystem.NativeFileGeneration, String, String, @physical_manifest.PhysicalManifest) -> Result[NativeOutputFileCustody, NativeRemoteJournalIssue]
 
+pub fn prepare_sqlite_journal_source_inspection(String, Int64, Int64) -> Result[CoordinatorInitializationCleanup, NativeRemoteJournalIssue]
+
 pub fn prepare_sqlite_source_inspection(String, Int64, Int64) -> Result[CoordinatorInitializationCleanup, NativeRemoteJournalIssue]
 
 pub fn recovered_coordinator_dispatch_evidence(RecoveredCoordinatorDispatch) -> @remote_site_protocol.RemoteExecutionEvidence?

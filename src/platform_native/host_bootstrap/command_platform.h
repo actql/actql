@@ -1,0 +1,149 @@
+#ifndef ACTQL_NATIVE_COMMAND_PLATFORM_H
+#define ACTQL_NATIVE_COMMAND_PLATFORM_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+/* Private connection between the selected Native entry and the existing
+ * filesystem/component owners. There is deliberately no constructor accepting
+ * a path, identity, quote or limit. The entry retains the actual initial
+ * operational original; the filesystem owner retains the observed member.
+ * Neither opaque type can be reconstructed from public DATA. */
+typedef struct actql_native_command_platform_original
+  actql_native_command_platform_original;
+typedef struct actql_native_command_platform_load
+  actql_native_command_platform_load;
+typedef struct actql_native_initial_managed_original
+  actql_native_initial_managed_original;
+typedef struct actql_native_observed_component_member
+  actql_native_observed_component_member;
+
+enum actql_native_command_component_kind {
+  ACTQL_NATIVE_COMMAND_SQLITE_COMPONENT = 1,
+  ACTQL_NATIVE_COMMAND_CRYPTO_COMPONENT = 2
+};
+
+/* Filesystem-owner projections of its SAME retained Runtime/member. These
+ * getters do not create an original or permission. Text is borrowed, bounded
+ * and NUL-terminated by that owner (path 4096, source 40, hashes 64). Runtime
+ * association is nominal, retained by the caller; it is never a serialized
+ * identity. current includes the original Root/stat/namespace/Read checks. */
+int actql_native_observed_component_member_current(
+  actql_native_observed_component_member *member);
+enum actql_native_command_component_kind
+actql_native_observed_component_member_kind(
+  actql_native_observed_component_member *member);
+const void *actql_native_observed_component_member_runtime(
+  actql_native_observed_component_member *member);
+const char *actql_native_observed_component_member_path(
+  actql_native_observed_component_member *member);
+const char *actql_native_observed_component_member_source(
+  actql_native_observed_component_member *member);
+const char *actql_native_observed_component_member_sha256(
+  actql_native_observed_component_member *member);
+const char *actql_native_observed_component_member_manifest_sha256(
+  actql_native_observed_component_member *member);
+
+
+/* Borrow the selected entry's existing original. Missing selection, incomplete
+ * envelope, retirement, fork inheritance or a foreign thread returns NULL.
+ * Looking up the original never creates, renews or replenishes it. */
+actql_native_command_platform_original *
+actql_native_command_platform_current(void);
+
+/* Borrow the SAME actual early startup generation before managed setup or
+ * later Runtime adoption. This checks the selected original entry, process,
+ * main thread, executable and retained input; it does not admit operational
+ * coverage, issue OS/byte capacity or depend on phase-two platform_current. */
+actql_native_command_platform_original *
+actql_native_command_platform_initial_current(void);
+
+/* Private pre-acquisition observation only. The actual original stays with
+ * this Owner and is required again by every load; this is not a constructor,
+ * transferable capacity or a substitute for the complete selected envelope. */
+bool actql_native_command_platform_available(void);
+
+/* The existing trusted entry's initial selection, BEFORE managed module init.
+ * Exactly four initially-zero size_t slots: reserved payload bytes, separately
+ * covered allocator metadata/backing bytes, maximum source-bounded request,
+ * setups=1. The selected binding consumes one actual mapping: payload plus a
+ * separate 32 MiB metadata segment and at most 32 MiB alignment retention.
+ * These are necessary subsets, not the complete external/TLS/control quote.
+ * The reader accepts only its actual source/backend/process/thread original
+ * with complete initial coverage. It must not call managed_current or depend
+ * on phase-two platform_current: begin itself supplies that conjunct later.
+ * These DATA are not a constructor, backing or an authority grant. A missing
+ * original/selection returns false without modifying the output slots. */
+bool actql_native_command_platform_managed_selection(
+  actql_native_command_platform_original *entry, size_t out[4]);
+
+/* Existing bootstrap Owner's selected pinned allocator binding. No numeric
+ * public factory or caller-defined allocator callbacks. A refused/duplicate
+ * begin returns NULL; after an allocator attempt, its SAME retained partial
+ * original is returned even on failure and must not be replaced or retried.
+ * The selected profile refuses ambient allocator options before setup. The
+ * executable includes initial_managed.inc in its one original entry TU and
+ * must stop on refusal before later automatic allocator/module initializers;
+ * returning from the constructor into them is not a refusal boundary. */
+actql_native_initial_managed_original *actql_native_initial_managed_begin(
+  actql_native_command_platform_original *entry);
+bool actql_native_initial_managed_current(
+  actql_native_initial_managed_original *original);
+int actql_native_initial_managed_issue(
+  actql_native_initial_managed_original *original);
+
+/* 1 acknowledges ONLY restoration of the same previous default (or confirmed
+ * no switch on partial setup). The heap, exclusive reservation and allocator
+ * parent/registration metadata remain process-lived, retained and non-refilled.
+ * Negative is invalid/pending; no result here acknowledges their retirement.
+ * A foreign default is never replaced, and a completed restore has no effects. */
+int actql_native_initial_managed_restore(
+  actql_native_initial_managed_original *original);
+
+/* Same entry's bounded, immutable initial TMPDIR selection (including the
+ * existing /tmp default for absent/empty input). Borrowed for this original
+ * process lifetime; at most 4096 bytes plus NUL. Missing/foreign/non-current
+ * originals return NULL. Neither this text nor a match admits directory I/O. */
+const char *actql_native_command_platform_scratch_directory(
+  actql_native_command_platform_original *original);
+
+/* Before dlopen, including all module initializers. The same Runtime has
+ * already observed and hashed this member through its retained Root/Reader.
+ * The implementation checks that actual member again through its filesystem
+ * owner, together with the entry/installation/generation/recipe association.
+ * Refusal creates no load permission. A consumed attempt cannot be replaced;
+ * shared process/thread coverage is never refilled by a child phase or close.
+ * The accepted load retains this member until its own module acknowledgment;
+ * the component receiver and enclosing command retain their original Runtime. */
+actql_native_command_platform_load *actql_native_command_platform_begin_load(
+  actql_native_command_platform_original *original,
+  enum actql_native_command_component_kind kind,
+  actql_native_observed_component_member *member);
+
+/* Record this exact dlopen result before symbol binding or initialization.
+ * The same component receiver retains the handle even if origin validation
+ * fails. NULL records a failed attempt, rather than allowing another load.
+ * This observation is not validation of the component's symbols or API. */
+int actql_native_command_platform_observe_load(
+  actql_native_command_platform_load *load, void *module);
+
+/* Same original process/thread/member checks before initialization and use.
+ * Component owners additionally validate every fixed symbol's actual image
+ * origin before invoking it. Failure of this NORMAL current check does not
+ * discard or prevent cleanup of the same partial receiver. Cleanup retains
+ * the original thread, handle and existing component/Read obligations. */
+int actql_native_command_platform_load_current(
+  actql_native_command_platform_load *load);
+
+/* Only after the same component owner receives its actual module-reference
+ * release ACK. A failed/unconfirmed dlclose is not passed here as success.
+ * NULL is accepted only for a previously observed failed load that acquired no
+ * module; it cannot stand in for a lost module acknowledgment. This drops the
+ * load's retained member alias, after which it must never dereference that
+ * member or its borrowed Runtime. Only process-lived accounting and the spent
+ * attempt remain. This does not acknowledge component/TLS shutdown, complete
+ * image retirement, Read/context/backing cleanup or return initial coverage. */
+int actql_native_command_platform_module_released(
+  actql_native_command_platform_load *load, void *module);
+
+#endif

@@ -132,14 +132,28 @@ fn NativeLocalConfigurationSelection::check_source(
 fn NativeLocalConfigurationSelection::persist(
   self : NativeLocalConfigurationSelection,
   database : @sqlite.Database,
+  bootstrap? : NativeClientJournalBootstrapAccess? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  match database.insert("client_local_settings", "manifest", self.manifest) {
+  match
+    insert_bootstrap_journal_value(
+      database,
+      "client_local_settings",
+      "manifest",
+      self.manifest,
+      bootstrap,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
   for file in self.files {
     match
-      database.insert("client_local_settings", "file:" + file.name, file.body) {
+      insert_bootstrap_journal_value(
+        database,
+        "client_local_settings",
+        "file:" + file.name,
+        file.body,
+        bootstrap,
+      ) {
       Ok(_) => ()
       Err(issue) => return Err(Physical(issue))
     }

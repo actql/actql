@@ -102,10 +102,10 @@ fn new_local_adoption_open_failure() -> NativeLocalAdoptionOpenFailure {
 }
 
 ///|
-/// Inspect an existing original only. This entrance cannot initialize a missing
-/// Host. Success is the existing Session, not final retirement of its escaped
-/// readers/Roots or an operational signing/dispatch capability.
-fn begin_existing_native_local_host_adoption_original_roots(
+// Shared original constructor and partial-acquisition custody. Public existing
+// entrances keep existing_only=true; the explicit installer may select false.
+// Scope selection never supplies initialization or signing authority.
+fn begin_native_local_host_adoption_with_original_root_custody(
   parent_path : String,
   state_name : String,
   source_path : String,
@@ -113,6 +113,7 @@ fn begin_existing_native_local_host_adoption_original_roots(
   account_id : String,
   crypto : @crypto.Library,
   root_opening : NativeLocalAdoptionRootOpening,
+  existing_only? : Bool = true,
   configuration_files? : Array[String] = [],
   managed_root_path? : String? = None,
 ) -> Result[NativeLocalAdoptionSession, NativeLocalAdoptionOpenFailure] {
@@ -127,7 +128,7 @@ fn begin_existing_native_local_host_adoption_original_roots(
       crypto,
       configuration_files~,
       managed_root_path~,
-      existing_only=true,
+      existing_only~,
       custody=Some(custody),
       root_opening~,
     ) {

@@ -9,11 +9,19 @@ fn NativeLocalJournalCapture::inspect_original_retained_journal(
   let inspection = match
     original.stage(@arena.HostRead, fn() {
       match
-        @journal.prepare_sqlite_source_inspection(
-          self.session.state_path + "/client.sqlite3",
-          131072L,
-          self.max_snapshot_bytes,
-        ) {
+        (if self.command_preparation_journal {
+          @journal.prepare_sqlite_journal_source_inspection(
+            self.session.state_path + "/client.sqlite3",
+            131072L,
+            self.max_snapshot_bytes,
+          )
+        } else {
+          @journal.prepare_sqlite_source_inspection(
+            self.session.state_path + "/client.sqlite3",
+            131072L,
+            self.max_snapshot_bytes,
+          )
+        }) {
         Err(issue) => Err(Inspection(Inspection(issue, None)))
         Ok(value) => {
           self.opening_inspection = Some(value)

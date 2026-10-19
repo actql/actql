@@ -176,6 +176,8 @@ pub fn diagnostic_predicate_origin(CheckDiagnostic, @stage_syntax.Program, @prog
 
 pub fn diagnostic_predicate_origin_from_source(CheckDiagnostic, @program_source_builder.Source) -> @frontend_source_map.Origin?
 
+pub fn diagnostic_take_count_parameter(CheckDiagnostic, @stage_syntax.Program) -> String?
+
 pub fn diagnostic_undeclared_parameter(CheckDiagnostic) -> String?
 
 pub fn effect_computation_catalog_references(EffectComputationCandidate) -> @check_environment.CatalogReferences

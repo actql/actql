@@ -42,6 +42,10 @@ int actql_native_owned_control_bytes(actql_owned_capacity *lease, uint64_t *out)
  * availability, exportable alias or cleanup acknowledgement. */
 int actql_native_owned_inventory(actql_owned_capacity *lease, uint64_t *out,
                                   size_t count);
+/* Reduce the same original's allocation ceiling once, before payload use.
+ * Includes allocator controls and pending extents; never a capacity issuer.
+ * Requires the entered original scope. Invalid first selections are consumed. */
+int actql_native_owned_bound_allocations(actql_owned_capacity *lease, size_t bytes);
 int actql_native_owned_rounded_bytes(actql_owned_capacity *lease, size_t bytes,
                                     uint64_t *out);
 /* Exact existing domain transfer, with its original immutable material kept

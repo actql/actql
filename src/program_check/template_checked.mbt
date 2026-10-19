@@ -277,6 +277,11 @@ pub fn complete_template_check(
         Ok(value) => value
         Err(issue) => raise TemplateStop(Context(stage, issue))
       }
+      let order_count = @context.pipeline_authoring_context_order_count(context)
+      if order_count > remaining_requirements {
+        raise TemplateStop(BudgetExceeded)
+      }
+      remaining_requirements -= order_count
       let (_, bytes, nodes) = @context.pipeline_authoring_context_usage(context)
       template_artifacts(b, bytes, nodes)
       let port_prefix = @publication.ports_usage(ports).work

@@ -3,6 +3,7 @@
 // Host and selected files, not a Run, authorization grant or public hash.
 priv struct LocalCheckContext {
   host : @local_host.NativeLocalHostConnection
+  capture : @local_host.NativeLocalJournalCapture?
   crypto : @local_crypto.Library
   key : Bytes
   configuration_name : String
@@ -49,23 +50,31 @@ fn local_check_context(
   host : @local_host.NativeLocalHostConnection,
   crypto : @local_crypto.Library,
   configuration_name : String,
+  capture? : @local_host.NativeLocalJournalCapture? = None,
 ) -> LocalCheckContext raise ClientStop {
-  let configuration_body = local_host_result(
-    host.selected_configuration(configuration_name),
-  )
+  let selected = fn(name : String) {
+    match capture {
+      None => host.selected_configuration(name)
+      Some(original) => original.selected_configuration_in_original_read(name)
+    }
+  }
+  let configuration_body = local_host_result(selected(configuration_name))
   let configuration = local_check_original_text(configuration_body)
   let settings = local_host_settings(configuration)
   let (environment_name, evidence) = local_configuration(configuration)
-  let environment_body = local_host_result(
-    host.selected_configuration(environment_name),
-  )
+  let environment_body = local_host_result(selected(environment_name))
   let environment = @run_host.admit_client_check_environment(
     local_check_original_text(environment_body),
     evidence,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap_or_else(() => stop("LocalCheckContextUnavailable"))
-  let account = local_host_result(host.configuration())
+  let account = local_host_result(
+    match capture {
+      None => host.configuration()
+      Some(original) => original.configuration_in_original_read()
+    },
+  )
   if account.account_id() != settings.account_id {
     stop("LocalCheckContextUnavailable")
   }
@@ -74,6 +83,7 @@ fn local_check_context(
     .unwrap_or_else(() => stop("LocalCheckContextUnavailable"))
   let context : LocalCheckContext = {
     host,
+    capture,
     crypto,
     key,
     configuration_name,
@@ -92,11 +102,23 @@ fn local_check_context(
 
 ///|
 fn LocalCheckContext::current(self : LocalCheckContext) -> Bool {
-  self.host.check_binding() is Ok(_) &&
-  self.host.selected_configuration(self.configuration_name) is Ok(configuration) &&
-  configuration == self.configuration_body &&
-  self.host.selected_configuration(self.environment_name) is Ok(environment) &&
-  environment == self.environment_body
+  match self.capture {
+    None =>
+      self.host.check_binding() is Ok(_) &&
+      self.host.selected_configuration(self.configuration_name)
+      is Ok(configuration) &&
+      configuration == self.configuration_body &&
+      self.host.selected_configuration(self.environment_name) is Ok(environment) &&
+      environment == self.environment_body
+    Some(original) =>
+      original.check_current_in_original_read() is Ok(_) &&
+      original.selected_configuration_in_original_read(self.configuration_name)
+      is Ok(configuration) &&
+      configuration == self.configuration_body &&
+      original.selected_configuration_in_original_read(self.environment_name)
+      is Ok(environment) &&
+      environment == self.environment_body
+  }
 }
 
 ///|
@@ -292,8 +314,9 @@ fn local_check_for_host(
   configuration_name : String,
   input_root : String,
   child : @argparse.Matches,
+  capture? : @local_host.NativeLocalJournalCapture? = None,
 ) -> String raise ClientStop {
-  let context = local_check_context(host, crypto, configuration_name)
+  let context = local_check_context(host, crypto, configuration_name, capture~)
   let format = @frontend.select_format(required(child, "format")).unwrap_or_else(() => {
       stop("UnsupportedLocalSourceFormat")
     },

@@ -7,6 +7,9 @@ test "Read Crypto cleanup does not turn unclaimed closing or copied carriers int
   assert_false(
     cleanup_installed_arena_read_crypto_original(host, pair, read, component),
   )
+  assert_true(
+    host.close_local_host_read_crypto_component(pair, read, component) is Err(_),
+  )
   // These are unacquired negative carriers. The flags do not supply an actual
   // consumer, backed use, context, entered frame or physical acknowledgement.
   host.local_host_resources = Some(pair)
@@ -38,6 +41,20 @@ test "Read Crypto cleanup does not turn unclaimed closing or copied carriers int
     }),
   )
   assert_true(pair.closing && read.closing && !pair.closed && !read.closed)
+  for
+    (selected_pair, selected_read, selected_component) in [
+      (pair, read, component),
+      ({ ..pair, }, read, component),
+      (pair, { ..read, }, component),
+      (pair, read, { ..component, }),
+    ] {
+    assert_true(
+      host.close_local_host_read_crypto_component(
+        selected_pair, selected_read, selected_component,
+      )
+      is Err(_),
+    )
+  }
   assert_false(component.closed || read.physical_retired.val)
   // Undo only the never-entered negative fixture's flags. Actual live/failed
   // cleanup remains monotonic and is exercised by the matching physical caller.

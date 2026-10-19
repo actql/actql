@@ -23,29 +23,45 @@ fn named_submission_index(
 // Fresh installer initialization only. Absence on restore is never repaired.
 fn initialize_native_client_submitted_names(
   database : @sqlite.Database,
+  bootstrap? : NativeClientJournalBootstrapAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
-  if database.transaction_fenced() {
+  if client_journal_transaction_fenced(
+      database,
+      bootstrap_journal_reads(bootstrap),
+    ) {
     return Err(Fenced)
   }
   for
     namespace_id in [
       "client_submission_name_custody", "client_submission_names",
     ] {
-    match database.scan_after(namespace_id, "") {
+    match
+      scan_client_journal_value(
+        database,
+        namespace_id,
+        "",
+        bootstrap_journal_reads(bootstrap),
+      ) {
       Err(@sqlite.NotFound) => ()
       Ok(_) => return Err(CustodyLost)
       Err(issue) => return Err(Physical(issue))
     }
   }
-  match database.insert("client_submission_name_custody", "issued", b"0") {
+  match
+    insert_bootstrap_journal_value(
+      database, "client_submission_name_custody", "issued", b"0", bootstrap,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
-  match database.insert("client_submission_name_custody", "retained", b"0") {
+  match
+    insert_bootstrap_journal_value(
+      database, "client_submission_name_custody", "retained", b"0", bootstrap,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
-  if !submission_name_install_ffi(database) {
+  if !install_bootstrap_submission_name_schema(database, bootstrap) {
     return Err(CustodyLost)
   }
   Ok(())

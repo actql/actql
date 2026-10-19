@@ -8,6 +8,8 @@ import {
 }
 
 // Values
+pub fn command_backing_control_necessary_bytes(Int64) -> Int64?
+
 pub fn[T] prepare_installed_arena_supplier(T, String, Bytes, Int64, Int64, @physical_resources.LedgerLimits, Int64) -> Result[NativeInstalledArenaSupplier[T], NativeBootstrapIssue]
 
 // Errors
@@ -153,7 +155,7 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_live_channel_before_spawn(Self[
 pub fn[T, C, R] NativeHostBootstrap::prepare_backed_live_child(Self[T], T, NativeBackedExecutionDomain[T, C], C, R) -> Result[NativeBackedLiveChildAcquisition[T, C, R], NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::prepare_backed_original_channel_ledger(Self[T], T, NativeBackedLiveChannel[T, C]) -> Result[@physical_resources.ImportedChildLedger, NativeBackedOriginalReadIssue]
 pub fn[T, C, R] NativeHostBootstrap::prepare_backed_original_read_ledger(Self[T], T, NativeBackedLiveChild[T, C, R], R) -> Result[@physical_resources.ImportedChildLedger, NativeBackedOriginalReadIssue]
-pub fn[T, C] NativeHostBootstrap::prepare_backed_read_context(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::prepare_backed_read_context(Self[T], T, NativeBackedExecutionDomain[T, C], C, execution_ceiling? : Int64) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C, R] NativeHostBootstrap::prepare_backed_read_live_child(Self[T], T, NativeBackedExecutionDomain[T, C], C, R) -> Result[NativeBackedLiveChildAcquisition[T, C, R], NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::prepared_process_region_descriptor(Self[T], T, NativeBackedProcessRegion[T, C]) -> Result[Int, NativeBackedProcessRegionIssue]
 pub fn[T, C] NativeHostBootstrap::project_backed_extent(Self[T], T, NativeBackedExecutionLoan[T, C], C) -> Result[NativeBackedExtentTransport, NativeBackedExecutionIssue]

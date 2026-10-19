@@ -16,6 +16,16 @@ extern "C" fn crypto_component_load_ffi(
 ) -> OriginalCryptoComponent = "actql_native_crypto_component_load"
 
 ///|
+#borrow(path, component)
+extern "C" fn crypto_command_component_load_ffi(
+  path : Bytes,
+  length : Int,
+  heap_bytes : Int64,
+  diagnostic_ceiling : Int,
+  component : @filesystem.NativeObservedComponentMember,
+) -> OriginalCryptoComponent = "actql_native_crypto_component_load_command"
+
+///|
 #borrow(component)
 extern "C" fn crypto_component_ready_ffi(
   component : OriginalCryptoComponent,
@@ -57,6 +67,7 @@ pub fn load_current_crypto_component(
   path : String,
   heap_bytes : Int64,
   diagnostic_ceiling : Int,
+  command_member? : @filesystem.NativeObservedComponentMember? = None,
 ) -> Result[NativeCryptoComponentAcquisition, NativeSignatureIssue] {
   let encoded = @utf8.encode(path)
   if encoded.length() == 0 ||
@@ -73,12 +84,23 @@ pub fn load_current_crypto_component(
   if !crypto_scope_available_ffi() {
     return Err(LibraryLoad("original scoped Crypto provider unavailable"))
   }
-  let original = crypto_component_load_ffi(
-    encoded,
-    encoded.length(),
-    heap_bytes,
-    diagnostic_ceiling,
-  )
+  let original = match command_member {
+    Some(component) =>
+      crypto_command_component_load_ffi(
+        encoded,
+        encoded.length(),
+        heap_bytes,
+        diagnostic_ceiling,
+        component,
+      )
+    None =>
+      crypto_component_load_ffi(
+        encoded,
+        encoded.length(),
+        heap_bytes,
+        diagnostic_ceiling,
+      )
+  }
   if crypto_component_ready_ffi(original) {
     Ok(ReadyCryptoComponent(original))
   } else {

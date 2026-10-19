@@ -2,12 +2,29 @@
 type Library
 
 ///|
+pub fn command_domain_necessary_bytes(
+  _domain_bytes : Int64,
+  _heap_bytes : Int64,
+) -> Int64? {
+  None
+}
+
+///|
 struct Database {
   unsupported : Unit
 }
 
 ///|
 pub fn Library::open_inspection_database(
+  _self : Library,
+  _path : String,
+  _max_body_bytes : Int64,
+) -> Database {
+  { unsupported: (), }
+}
+
+///|
+pub fn Library::open_journal_inspection_database(
   _self : Library,
   _path : String,
   _max_body_bytes : Int64,
@@ -46,6 +63,7 @@ pub fn load_current_component_with_custody(
   _path : String,
   heap_bytes : Int64,
   diagnostic_ceiling : Int,
+  command_member? : @filesystem.NativeObservedComponentMember? = None,
 ) -> Result[Library, NativeSqliteLibraryLoadError] {
   if heap_bytes < 4096L || heap_bytes > 2147483647L || diagnostic_ceiling <= 0 {
     return Err(RefusedBeforeAcquisition(InvalidLimit))
@@ -133,6 +151,25 @@ pub fn Library::initialize_owned_database(
 
 ///|
 pub fn Library::initialize_owned_database_with_custody(
+  _self : Library,
+  _path : String,
+  _ownership : @filesystem.NativeFileOwnership,
+  _max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  Err({ original_issue: UnsupportedTarget, database: None, })
+}
+
+///|
+pub fn Library::open_existing_journal_database_with_custody(
+  _self : Library,
+  _path : String,
+  _max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  Err({ original_issue: UnsupportedTarget, database: None, })
+}
+
+///|
+pub fn Library::initialize_owned_journal_database_with_custody(
   _self : Library,
   _path : String,
   _ownership : @filesystem.NativeFileOwnership,

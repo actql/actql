@@ -31,7 +31,14 @@ struct NativeLocalJournalCapture {
   session : NativeLocalAdoptionSession
   library : @sqlite.Library?
   original_resources : NativeLocalJournalOriginalResources?
+  command_preparation_journal : Bool
+  initial_signing : (
+    NativeLocalInitialSigningMaterial,
+    @host.ClientLocalSigningBootstrapPolicy,
+  )?
+  mut read_operation_issue : NativeLocalAdoptionIssue?
   mut opening_database : @sqlite.Database?
+  mut opening_physical_failure : @sqlite.NativeSqliteOpenFailure?
   mut opening_inspection : @journal.CoordinatorInitializationCleanup?
   crypto : @crypto.Library
   ttl_ms : Double
@@ -65,7 +72,11 @@ pub fn prepare_native_local_journal_capture(
     session,
     library: Some(library),
     original_resources: None,
+    command_preparation_journal: false,
+    initial_signing: None,
+    read_operation_issue: None,
     opening_database: None,
+    opening_physical_failure: None,
     opening_inspection: None,
     crypto,
     ttl_ms,
@@ -117,6 +128,7 @@ pub fn NativeLocalJournalCapture::open(
       // The acquired Host or Session-owned failure now retains the same DB.
       // Clear this temporary alias only after publishing that original state.
       self.opening_database = None
+      self.opening_physical_failure = None
       self.opening_inspection = None
     }
     _ => ()
@@ -138,6 +150,10 @@ pub fn NativeLocalJournalCapture::check_current(
 ) -> NativeLocalJournalCaptureReply {
   let issue = if self.closing {
     Some(JournalCaptureClosed)
+  } else if self.read_operation_issue is Some(original) {
+    // A failed preparation exchange is cleanup-only. A later observation may
+    // not erase that first failure by attempting the protected fence again.
+    Some(JournalAdoption(original))
   } else {
     match self.opening {
       JournalNotAttempted => Some(JournalNotOpened)

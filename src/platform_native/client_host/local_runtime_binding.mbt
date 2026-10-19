@@ -73,27 +73,68 @@ fn local_runtime_original_assets(
 }
 
 ///|
-fn local_runtime_binding_current(
+// Private synchronous access preserves the original current/Account/selected
+// file operations while an acquired Journal routes each SQL call through its
+// own SQLite phase. It is never stored in the binding or accepted publicly.
+priv struct NativeLocalRuntimeBindingAccess {
+  scope : (String, String) -> Result[String, NativeLocalAdoptionIssue]
+  read_allowed : (String, String) -> Bool
+  selected : (String) -> Result[
+    NativeLocalSelectedFile,
+    NativeClientRunJournalIssue,
+  ]
+}
+
+///|
+fn native_local_runtime_binding_access(
   host : NativeLocalHostConnection,
+) -> NativeLocalRuntimeBindingAccess {
+  {
+    scope: (principal, connection) => {
+      host.authority_scope_cid(principal, connection, host.epoch.crypto)
+    },
+    read_allowed: (principal, connection) => {
+      host.authorize({
+        principal,
+        connection,
+        resource: "run",
+        operation: "read",
+      })
+      is Ok(@authorization.Allow(_))
+    },
+    selected: name => local_run_policy_selected(host, name),
+  }
+}
+
+///|
+fn local_runtime_binding_current_with_access(
   binding : NativeLocalRuntimeBinding,
+  access : NativeLocalRuntimeBindingAccess,
 ) -> Bool {
   if binding.current.check_current() is Err(_) ||
-    !local_policy_upgrade_current(
-      host,
-      host.epoch.crypto,
-      binding.principal,
-      binding.connection,
-      binding.scope,
-      false,
-    ) {
+    !((access.scope)(binding.principal, binding.connection) is Ok(scope) &&
+    scope == binding.scope) ||
+    !(access.read_allowed)(binding.principal, binding.connection) {
     return false
   }
   for file in binding.files {
-    if !(host.selected_configuration(file.name) is Ok(body) && body == file.body) {
+    if !((access.selected)(file.name) is Ok(current) &&
+      current.body == file.body) {
       return false
     }
   }
   binding.current.check_current() is Ok(_)
+}
+
+///|
+fn local_runtime_binding_current(
+  host : NativeLocalHostConnection,
+  binding : NativeLocalRuntimeBinding,
+) -> Bool {
+  local_runtime_binding_current_with_access(
+    binding,
+    native_local_runtime_binding_access(host),
+  )
 }
 
 ///|
@@ -119,19 +160,35 @@ pub fn NativeLocalHostConnection::bind_packaged_runtime(
   run_file : String,
   runtime_file : String,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
-  let scope = match
-    self.authority_scope_cid(principal, connection, self.epoch.crypto) {
+  self.bind_packaged_runtime_with_access(
+    current,
+    principal,
+    connection,
+    environment_file,
+    run_file,
+    runtime_file,
+    native_local_runtime_binding_access(self),
+  )
+}
+
+///|
+fn NativeLocalHostConnection::bind_packaged_runtime_with_access(
+  self : NativeLocalHostConnection,
+  current : NativeLocalPackagedRuntime,
+  principal : String,
+  connection : String,
+  environment_file : String,
+  run_file : String,
+  runtime_file : String,
+  access : NativeLocalRuntimeBindingAccess,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  let scope = match (access.scope)(principal, connection) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  if !local_policy_upgrade_current(
-      self,
-      self.epoch.crypto,
-      principal,
-      connection,
-      scope,
-      false,
-    ) {
+  if !((access.scope)(principal, connection) is Ok(current_scope) &&
+    current_scope == scope) ||
+    !(access.read_allowed)(principal, connection) {
     return Err(AuthorizationDenied)
   }
   let files : Array[NativeLocalSelectedFile] = []
@@ -139,7 +196,7 @@ pub fn NativeLocalHostConnection::bind_packaged_runtime(
     if files.any(file => file.name == name) {
       return Err(CustodyLost)
     }
-    match local_run_policy_selected(self, name) {
+    match (access.selected)(name) {
       Ok(file) => files.push(file)
       Err(issue) => return Err(issue)
     }
@@ -195,7 +252,7 @@ pub fn NativeLocalHostConnection::bind_packaged_runtime(
     }
   }
   let binding = { current, files, pair, principal, connection, scope, }
-  if !local_runtime_binding_current(self, binding) {
+  if !local_runtime_binding_current_with_access(binding, access) {
     return Err(AuthorizationDenied)
   }
   // Rebinding cannot replace another physical observation or original role set.
