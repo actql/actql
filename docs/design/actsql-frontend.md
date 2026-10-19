@@ -87,3 +87,13 @@ existing ordered Common operation. Parameters remain original operands, never
 unit selectors. The frontend does not evaluate or quantize a duration. The
 Common Number/temporal owners apply exact evaluated-binary64 duration admission,
 Date day-only rules and the existing result, demand and failure boundaries.
+
+### Explicit Decimal conversion calls
+
+TO_DECIMAL(value, precision, scale) selects the same Common CAST target as
+explicit DECIMAL(P,S) syntax. Precision and scale retain literal semantic roles;
+only the original value subtree is an evaluated operand. The frontend checks
+the existing bounded target shape and never evaluates or rounds the value.
+The public lookup's omitted-target spelling is not resolved by fabricating
+precision/scale: it keeps its implementation limitation. TRY_DECIMAL, QUANTIZE
+and DECIMAL_DIVIDE remain separate existing conversion/rounding responsibilities.

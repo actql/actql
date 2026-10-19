@@ -335,6 +335,16 @@ only integral day amounts. No frontend temporal evaluator or decimal spelling
 reinterpretation is introduced. Existing structured Program and expression-text
 forms retain their bytes and meanings.
 
+`TO_DECIMAL(value, precision, scale)` uses the existing explicit Decimal target
+form. Precision and scale are original integral Number literals with
+`1 <= precision <= 38` and `0 <= scale <= precision`; transparent parentheses
+retain the literal role. A Parameter, field or computed Number cannot select
+the target contract. Lowering emits the existing `cast` with the original
+operand and `decimal(precision, scale)` target, exactly as explicit
+`CAST(value AS DECIMAL(precision, scale))`. The ordinary Common conversion
+retains exact coefficient/scale checks, NULL and failure laws; no frontend
+value conversion, rounding or numeric-domain promotion is introduced.
+
 `TO_STRING(value)`, `TO_BOOLEAN(value)` and `TO_TIMESTAMP(value)` each take
 exactly one operand and lower to the existing Common `cast` node with target
 `{"type":"string"}`, `{"type":"boolean"}` or `{"type":"timestamp"}` respectively.

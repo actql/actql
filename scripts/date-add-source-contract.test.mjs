@@ -56,11 +56,11 @@ test('DATE_ADD independent rational Number vectors distinguish exact dyadics fro
 });
 
 test('DATE_ADD source rule has a genuine new grammar identity without changing existing expression/Program shapes',()=>{
-  const current=read('spec/manifests/actql-grammar-0.1.json');
+  const current=read('scripts/fixtures/explicit-decimal-source/predecessor.json');
   for(const grammar of [before.grammar,current]){
     const {grammar_manifest_cid,...body}=grammar;assert.equal(cid(body),grammar_manifest_cid);
   }
-  assert.equal(current.query_text_rules_sha256,hash(readFileSync('docs/spec/query-text.md')).slice(7));
+  // This complete DATE_ADD predecessor retains its original query-rule pin.
   assert.deepEqual({...current,grammar_manifest_cid:before.grammar.grammar_manifest_cid,query_text_rules_sha256:before.grammar.query_text_rules_sha256},before.grammar);
   const source={date_add:[{field:'clock'},{$param:'amount'},{literal:'s'}]};
   assert.equal(canonical(source),'{"date_add":[{"field":"clock"},{"$param":"amount"},{"literal":"s"}]}');

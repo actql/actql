@@ -277,6 +277,7 @@ fn scalar_call(
     "TO_STRING" => ("TO_STRING", "to_string", 1, 1)
     "TO_BOOLEAN" => ("TO_BOOLEAN", "to_boolean", 1, 1)
     "TO_TIMESTAMP" => ("TO_TIMESTAMP", "to_timestamp", 1, 1)
+    "TO_DECIMAL" => ("TO_DECIMAL", "to_decimal", 1, 3)
     "SPLIT" => ("SPLIT", "split", 1, 2)
     "SUBSTR" | "SUBSTRING" => ("SUBSTR", "substring", 2, 3)
     "LEFT" => ("LEFT", "left", 2, 2)
@@ -685,6 +686,15 @@ fn append_resolved(
               if args.length() < minimum || args.length() > maximum {
                 raise Abort(InvalidArguments)
               }
+              if name == "to_decimal" && args.length() == 1 {
+                // The public lookup also lists an omitted-target spelling.
+                // This explicit-target connection cannot invent its P/S.
+                // Keep that existing implementation frontier, not a new ban.
+                raise Abort(UnsupportedFunction)
+              }
+              if name == "to_decimal" && args.length() != 3 {
+                raise Abort(InvalidArguments)
+              }
               if name == "date_trunc" &&
                 !(strings[args[1]] is Some("ms" | "s" | "m" | "h" | "d")) {
                 current = @query.expression_origin(ast, args[1])
@@ -714,6 +724,37 @@ fn append_resolved(
                     (
                       "target",
                       lowering.object([("type", lowering.add(String(target)))]),
+                    ),
+                  ]),
+                )
+              } else if name == "to_decimal" {
+                // Precision/scale are the existing literal target role, not
+                // evaluated operands or inferred properties of the input.
+                guard numbers[args[1]] is Some(precision) &&
+                  precision >= 1.0 &&
+                  precision <= 38.0 &&
+                  precision.trunc() == precision else {
+                  current = @query.expression_origin(ast, args[1])
+                  raise Abort(InvalidArguments)
+                }
+                guard numbers[args[2]] is Some(scale) &&
+                  scale >= 0.0 &&
+                  scale <= precision &&
+                  scale.trunc() == scale else {
+                  current = @query.expression_origin(ast, args[2])
+                  raise Abort(InvalidArguments)
+                }
+                lowering.form(
+                  "cast",
+                  lowering.object([
+                    ("value", nodes[args[0]]),
+                    (
+                      "target",
+                      lowering.object([
+                        ("type", lowering.add(String("decimal"))),
+                        ("precision", lowering.add(Number(precision))),
+                        ("scale", lowering.add(Number(scale))),
+                      ]),
                     ),
                   ]),
                 )
