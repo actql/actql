@@ -290,7 +290,7 @@ test('included native sum keeps old/new originals without adding the retained ha
   assert.equal(n.retainedStatements,708141090n);
   assert.equal(n.retainedBindings,4760320n);
   assert.equal(n.activePrepare,40057861669n);
-  assert.equal(n.heapUsableUpper,5004289557542n);
+  assert.equal(n.heapUsableUpper,5004289557542n+27168n);
   assert.equal(n.sameInodeWalMappingBytes,32768n);
 });
 
@@ -460,7 +460,7 @@ test('same-connection active phases are alternatives beside retained VMs, schema
   assert.equal(n.activeAlternative,[n.activePrepare,n.activeExecution,n.activeBinding]
     .reduce((high,value) => high > value ? high : value));
   assert.equal(n.heapUsableUpper,n.cache+n.wal+n.savepoint+n.workspaces+n.pagerControls+
-    n.connection+n.retainedSchema+n.retainedStatements+n.retainedBindings+n.activeAlternative);
+    n.connection+n.retainedSchema+n.retainedStatements+n.retainedBindings+n.activeAlternative+n.nodeWrapperSubset);
   assert(n.activeAlternative < n.activePrepare+n.activeExecution+n.activeBinding);
   // Includes one full replacement VM plus one active old/new opcode pair,
   // not fifty retained copies for sequential schema retries.
@@ -519,5 +519,48 @@ test('larger saved payloads can select execution rather than preparation without
   assert(n.activeExecution > n.activePrepare);
   assert.equal(n.activeAlternative,n.activeExecution);
   assert.equal(n.heapUsableUpper,n.cache+n.wal+n.savepoint+n.workspaces+n.pagerControls+
-    n.connection+n.retainedSchema+n.retainedStatements+n.retainedBindings+n.activeExecution);
+    n.connection+n.retainedSchema+n.retainedStatements+n.retainedBindings+n.activeExecution+n.nodeWrapperSubset);
+});
+
+test('Node wrapper lifetime counts attempted iterator history rather than one active iterator', () => {
+  const value = calculate(input()), n = value.nodeWrappers;
+  assert.equal(n.database.request,256n);
+  assert.equal(n.statementAttempts,10n);
+  assert.equal(n.eachStatement.request,128n);
+  assert.equal(n.iteratorAttempts,100n);
+  assert.equal(n.eachIterator.request,64n);
+  assert.equal(n.wrapperOriginals,111n);
+  assert.equal(n.pointerDataOriginals,111n);
+  assert.equal(n.eachPointerData.request,24n);
+  assert.equal(n.nativeCloseRetiresWrappers,false);
+  assert.equal(n.replenishedOnClose,false);
+  assert.equal(n.newPointerDataPerStrongAlias,false);
+  assert.equal(calculate(input({statementCalls:1n})).nodeWrappers.iteratorAttempts,1n);
+  assert.equal(calculate(input({statementCalls:1n})).nodeWrappers.statementAttempts,10n);
+});
+
+test('statement membership retains separate nodes and cumulative old/new bucket attempts', () => {
+  const value = calculate(input()), n = value.nodeWrappers;
+  assert.equal(n.membershipNodes,10n);
+  assert.equal(n.eachMembershipNode.request,32n);
+  assert.equal(n.membershipGrowthAttempts,10n);
+  assert.equal(n.eachMembershipGrowth.previousMaximum.request,704n);
+  assert.equal(n.eachMembershipGrowth.nextMaximum.request,704n);
+  const expected = usable(256n)+10n*usable(128n)+100n*usable(64n)+111n*usable(24n)+
+    10n*usable(32n)+10n*(usable(704n)+usable(704n));
+  assert.equal(value.includedNativeComponents.nodeWrapperSubset,expected);
+  assert.equal(n.dynamicNamedParameterMaps,0n);
+  assert.equal(n.backupOrSessionEntries,0n);
+  assert(Object.isFrozen(n));
+  assert.equal(n.eachMembershipGrowth.immediateCredit,false);
+});
+
+test('native wrapper bytes do not stand in for V8 cells, result backing, paths or allocator regions', () => {
+  const n = calculate(input()).nodeWrappers;
+  assert.equal(n.persistentHandleCells,111n);
+  for (const name of ['completeNativeControl','coversV8HandleBlocks','coversResultBacking',
+    'coversPathBacking','coversAllocatorRegions']) assert.equal(n[name],false);
+  const subset = calculate(input()).includedNativeComponents.nodeWrapperSubset;
+  assert.equal(subset,27168n);
+  assert(calculate(input({preparedStatements:100n})).includedNativeComponents.nodeWrapperSubset > subset);
 });

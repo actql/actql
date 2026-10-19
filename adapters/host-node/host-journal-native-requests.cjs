@@ -188,13 +188,22 @@ function includedNativeComponents(value) {
   // alternatives for this connection. Different retained connections remain
   // separate co-phase originals; this is not a max across their whole heaps.
   const activeAlternative = greater(activePrepare, greater(activeExecution, activeBinding));
+  const node = value.nodeWrappers;
+  const nodeWrapperSubset = checked(node.database.heapUsableUpper +
+    node.statementAttempts * node.eachStatement.heapUsableUpper +
+    node.iteratorAttempts * node.eachIterator.heapUsableUpper +
+    node.pointerDataOriginals * node.eachPointerData.heapUsableUpper +
+    node.membershipNodes * node.eachMembershipNode.heapUsableUpper +
+    node.membershipGrowthAttempts * (node.eachMembershipGrowth.previousMaximum.heapUsableUpper +
+      node.eachMembershipGrowth.nextMaximum.heapUsableUpper));
   return freeze({qualification:'included-stock-usable-subtotal-only', completeJournal:false,
     cache, wal, savepoint, workspaces, pagerControls, connection, activeParserBackings, activePrepareGraph,
     retainedSchema, eachRetainedStatement, retainedStatements, retainedBindings,
-    activePrepare, activeExecution, activeBinding, activeAlternative,
+    activePrepare, activeExecution, activeBinding, activeAlternative, nodeWrapperSubset,
     activePhaseCombination:'maximum-of-same-connection-alternatives',
     heapUsableUpper:checked(cache + wal + savepoint + workspaces + pagerControls +
-      connection + retainedSchema + retainedStatements + retainedBindings + activeAlternative),
+      connection + retainedSchema + retainedStatements + retainedBindings + activeAlternative +
+      nodeWrapperSubset),
     // Same-inode WAL mappings are not heap malloc blocks and are not another
     // per-connection credit. Root must compose each real connection/copy and
     // the shared mapping once, together with all remaining facility terms.
@@ -301,10 +310,45 @@ function hostJournalNativeStructureRequests(input) {
   const temporaryWork = checked(2n * hostJournalNativeUsableUpper(temporaryPage + 8n) +
     3n * hostJournalNativeUsableUpper(temporaryPage) +
     hostJournalNativeUsableUpper(7n * temporaryPage));
+  // Conditional ordinary LP64 Node/libc++ object-layout uppers, NOT observed
+  // sizeof or a selected native allocator extent. BaseObject's vptr, Global,
+  // Realm/PointerData pointers and intrusive two-pointer list fit48 bytes.
+  // The fixed database fields/string/two empty trees/hash control fit256;
+  // statement BaseObject/pointers/flags/optional tree fit128; iterator fits64.
+  // No dynamic map, session, backup or user function is admitted by the fixed
+  // positional-only Journal receiver. Keep actual ABI/allocator/control and
+  // the separate path String backing requirements before operational use.
+  const wrapperOriginals = checked(1n + P + X);
+  // Default load factor1 and insertion-only pointer membership: growth is
+  // requested only when old buckets < next size<=P. Doubling/prime growth
+  // stays below8*(P+1) slots; include a full old/new pair for EVERY attempted
+  // insertion rather than assuming reset/clear/GC retires native storage.
+  const membershipBucketRequest = checked(64n * checked(P + 1n));
 
   const value = freeze({
     qualification:'partial-native-request-vectors', completePhase:false,
     replenishedOnClose:false,
+    nodeWrappers:freeze({
+      qualification:'conditional-lp64-node-libcxx-wrapper-subset', completeNativeControl:false,
+      database:allocation(256n), statementAttempts:P, eachStatement:allocation(128n),
+      iteratorAttempts:X, eachIterator:allocation(64n),
+      wrapperOriginals, pointerDataOriginals:wrapperOriginals, eachPointerData:allocation(24n),
+      membershipNodes:P, eachMembershipNode:allocation(32n),
+      membershipGrowthAttempts:P,
+      eachMembershipGrowth:preservingGrowth(membershipBucketRequest, membershipBucketRequest),
+      // Strong pointers borrow existing original metadata, not a new control
+      // allocation for every db_/stmt_ alias. Conservatively allow one native
+      // PointerData allocation for EACH wrapper, including partial attempts.
+      newPointerDataPerStrongAlias:false,
+      dynamicNamedParameterMaps:0n, backupOrSessionEntries:0n,
+      persistentHandleCells:wrapperOriginals,
+      // V8 persistent-cell blocks and LocalVector allocators belong to the
+      // SAME selected runtime/control domain. They are not supplied by the
+      // fixed C++ wrapper requests and must not mint another whole VM heap.
+      coversV8HandleBlocks:false, coversResultBacking:false, coversPathBacking:false,
+      coversAllocatorRegions:false, nativeCloseRetiresWrappers:false,
+      replenishedOnClose:false,
+    }),
     connectionInitialization:freeze({
       qualification:'selected-ordinary-builtins-registration-subset', completeConnection:false,
       // Actual selected openDatabase requests808 bytes; aDbStatic and the
