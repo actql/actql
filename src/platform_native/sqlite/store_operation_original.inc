@@ -9,8 +9,8 @@ struct actql_native_store_operation {
   pthread_t thread;
   void *bound_database;
   bool open_attempted, binding_attempted, database_closed;
-  bool attempted, activated, flight, sql, sql_ready, cleanup, cleanup_ready, failed, closed, calling;
-  int32_t primary_code, cleanup_code;
+  bool attempted, activated, flight, sql, sql_ready, cleanup, cleanup_ready, failed, closed, calling, callback_failed;
+  int32_t primary_code, cleanup_code, callback_code;
 };
 
 /* No finalizer invokes callbacks, changes a physical scope or manufactures an
@@ -27,6 +27,10 @@ static bool actql_store_operation_thread(actql_native_store_operation *value) {
 static int32_t actql_store_operation_failed(
     actql_native_store_operation *value, int32_t code) {
   if (code == 0) code = -1;
+  if (value->calling) {
+    value->callback_failed = true;
+    if (value->callback_code == 0) value->callback_code = code;
+  }
   if (value->primary_code == 0) value->primary_code = code;
   else if (value->cleanup_code == 0) value->cleanup_code = code;
   value->failed = true;
@@ -37,13 +41,19 @@ static int32_t actql_store_operation_route(
   if (!actql_store_operation_thread(value) || value->closed ||
       value->receiver == NULL || value->route == NULL) return -1;
   if (value->calling) return actql_store_operation_failed(value, -2);
+  /* Observe failures newly latched by THIS callback, independently of a
+   * previous failure under which legitimate cleanup is still permitted. */
+  value->callback_failed = false;
+  value->callback_code = 0;
   value->calling = true;
   /* The selected generated FuncRef trampoline borrows its parameters, as do
    * the existing Native coordinator roots. The retained fields keep them live
    * throughout this guarded call; per-call increfs would leak child aliases. */
   int32_t code = value->route(value->receiver, value->library, tag);
   value->calling = false;
-  return code == 0 ? 0 : actql_store_operation_failed(value, code);
+  if (code != 0) return actql_store_operation_failed(value, code);
+  if (value->callback_failed) return value->callback_code;
+  return 0;
 }
 MOONBIT_FFI_EXPORT void *actql_native_sqlite_prepare_store_operation(
     void *library, void *receiver, actql_native_store_operation_route route) {
@@ -62,8 +72,9 @@ MOONBIT_FFI_EXPORT void *actql_native_sqlite_prepare_store_operation(
 }
 MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_activate(
     actql_native_store_operation *value) {
-  if (!actql_store_operation_thread(value) || value->closed || value->attempted)
-    return -1;
+  if (!actql_store_operation_thread(value) || value->closed) return -1;
+  if (value->calling) return actql_store_operation_failed(value, -2);
+  if (value->attempted) return -1;
   value->attempted = true;
   if (value->library == NULL || !value->library->selected_component ||
       value->library->selected_process != getpid())
@@ -74,9 +85,9 @@ MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_activate(
 }
 MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_enter(
     actql_native_store_operation *value, int32_t cleanup) {
-  if (!actql_store_operation_thread(value) || value->closed ||
-      !value->activated) return -1;
+  if (!actql_store_operation_thread(value) || value->closed) return -1;
   if (value->calling) return actql_store_operation_failed(value, -2);
+  if (!value->activated) return -1;
   if (cleanup != 0 && cleanup != 1) return -1;
   if (!cleanup && (value->failed || value->flight || value->sql)) return -1;
   /* Cleanup may recover the SAME failed flight only after its coordinator
@@ -97,9 +108,9 @@ MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_enter(
 }
 MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_leave(
     actql_native_store_operation *value) {
-  if (!actql_store_operation_thread(value) || value->closed ||
-      !value->flight || value->sql) return -1;
+  if (!actql_store_operation_thread(value) || value->closed) return -1;
   if (value->calling) return actql_store_operation_failed(value, -2);
+  if (!value->flight || value->sql) return -1;
   if (value->failed && !value->cleanup) return -1;
   if (value->cleanup && !value->cleanup_ready) return -1;
   int32_t code = actql_store_operation_route(value, 3);
@@ -110,7 +121,8 @@ MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_close(
     actql_native_store_operation *value) {
   if (!actql_store_operation_thread(value)) return -1;
   if (value->closed) return 0;
-  if (value->calling || value->flight || value->sql ||
+  if (value->calling) return actql_store_operation_failed(value, -2);
+  if (value->flight || value->sql ||
       (value->binding_attempted && !value->database_closed)) return -1;
   value->closed = true;
   /* Metadata retirement is not Database/Store/Library/parent retirement. */
@@ -130,9 +142,9 @@ MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_cleanup(
 
 static int32_t actql_store_operation_enter_sql(
     actql_native_store_operation *value, int32_t cleanup_allowed) {
-  if (!actql_store_operation_thread(value) || value->closed ||
-      !value->activated || !value->flight || value->sql) return -1;
+  if (!actql_store_operation_thread(value) || value->closed) return -1;
   if (value->calling) return actql_store_operation_failed(value, -2);
+  if (!value->activated || !value->flight || value->sql) return -1;
   if ((value->failed && !value->cleanup) ||
       (value->cleanup && (!value->cleanup_ready || !cleanup_allowed))) return -1;
   value->sql = true; /* Attempted scope, retained until its actual return ACK. */
@@ -144,8 +156,9 @@ static int32_t actql_store_operation_enter_sql(
   return code;
 }
 static int32_t actql_store_operation_leave_sql(actql_native_store_operation *value) {
-  if (!actql_store_operation_thread(value) || value->closed ||
-      !value->flight || !value->sql || !value->sql_ready || value->calling) return -1;
+  if (!actql_store_operation_thread(value) || value->closed) return -1;
+  if (value->calling) return actql_store_operation_failed(value, -2);
+  if (!value->flight || !value->sql || !value->sql_ready) return -1;
   int32_t code = actql_store_operation_route(value, 2);
   if (code == 0) { value->sql = false; value->sql_ready = false; }
   return code;
