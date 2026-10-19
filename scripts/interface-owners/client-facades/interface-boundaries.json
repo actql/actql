@@ -2772,7 +2772,7 @@
     {
       "module": "packages/node/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8d94f0b9a516f14973cefddca792c45985e10b0d54d6565186c8d7fa4672cfe8",
+      "sha256": "6982fe826ab1657f9ffced5bf100437f81e21e8d067abca5b1a86867b2995b20",
       "exports": [
         "ClientError",
         "RequestHeld",
@@ -2787,6 +2787,13 @@
             "stringOptions"
           ],
           "async": true
+        },
+        {
+          "name": "connectHost",
+          "parameters": [
+            "args"
+          ],
+          "async": false
         },
         {
           "name": "localProvider",
@@ -2810,6 +2817,7 @@
       ],
       "imports": [
         "./initial-control-public-dispatch.cjs",
+        "@actql/sdk/_internal/client-errors",
         "node:module",
         "node:path"
       ],
@@ -2825,6 +2833,7 @@
           "operations": [
             "<module>",
             "connect",
+            "connectHost",
             "localProvider",
             "open",
             "open/open"
@@ -8811,9 +8820,10 @@
     {
       "module": "packages/sdk/internal/errors.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a22627a4c4e0d5e190cbc21568ca2392f46eceb010c4d48ed59f6cd90dbd24c9",
+      "sha256": "c3ca3de47a0fe4d01f903e48352701cd1092d7b0ee25abedc796a9858520d130",
       "exports": [
         "ClientError",
+        "RequestHeld",
         "fail",
         "isOwnedClientFailure",
         "markOwnedFailure",
@@ -8874,6 +8884,14 @@
             "cause"
           ],
           "async": false
+        },
+        {
+          "name": "RequestHeld/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "held",
+            "lookupContext"
+          ],
+          "async": false
         }
       ],
       "imports": [],
@@ -8892,10 +8910,12 @@
             "markOwnedFailure/markOwnedFailure",
             "ownedClientFailure/ownedClientFailure",
             "ownedFailureCode/ownedFailureCode",
-            "requestCancellationCause/requestCancellationCause"
+            "requestCancellationCause/requestCancellationCause",
+            "RequestHeld/constructor:constructor/constructor:constructor"
           ],
           "exports": [
             "ClientError",
+            "RequestHeld",
             "fail",
             "isOwnedClientFailure",
             "markOwnedFailure",
@@ -10341,7 +10361,7 @@
     {
       "module": "packages/sdk/internal/submission-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "64326f07589b075379a825b847adad2686ee197200769fe982e088762314887f",
+      "sha256": "561c783a1ed7e78bba7db4b1f623f84509705e56d23e8577315749a3ecbe507d",
       "exports": [
         "RequestHeld",
         "createSubmissionOperations",
@@ -10638,14 +10658,6 @@
           "async": false
         },
         {
-          "name": "RequestHeld/constructor:constructor/constructor:constructor",
-          "parameters": [
-            "held",
-            "lookupContext"
-          ],
-          "async": false
-        },
-        {
           "name": "requestRecoveryTarget/requestRecoveryTarget",
           "parameters": [
             "value"
@@ -10779,7 +10791,6 @@
             "recoveryData/recoveryData",
             "recoveryData/recoveryData/recoveryData",
             "recoveryData/recoveryData/recoveryData#2",
-            "RequestHeld/constructor:constructor/constructor:constructor",
             "requestRecoveryTarget/requestRecoveryTarget",
             "retainRequestCancellationExplanation/retainRequestCancellationExplanation",
             "retainRequestLookupExplanation/retainRequestLookupExplanation",
