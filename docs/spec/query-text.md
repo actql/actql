@@ -428,6 +428,18 @@ case-insensitive and quoted function lookup applies; a foreign namespace does
 not select this conversion. This spelling does not add another machine node or
 change any previously admitted canonical expression body.
 
+`TRY_NUMBER(value)` takes exactly one original operand and lowers to the
+existing closed Common `{try_number: {value: operand}}` body. It does not
+parse, evaluate, duplicate or replace the operand in the frontend. The existing
+text-time owner retains String-domain typing, nullable Number result, canonical
+number grammar, strict child demand and the rule that only a non-null
+unparsable String becomes NULL. Parameter binding, missing/foreign names,
+profile admission, finite input/output envelope, Host policy and ordinary
+control/workspace limits remain with their existing owners; lowering a call
+supplies none of those facts. Ordinary case-insensitive and quoted lookup
+applies, with no foreign-namespace alias. No Common expression contract or
+previously admitted body is changed.
+
 `CONTAINS(value, part)` selects ActQL's existing ordered binary `contains`
 String predicate. It performs exact substring matching without normalization,
 case folding or collation; an empty part matches every non-NULL String.
