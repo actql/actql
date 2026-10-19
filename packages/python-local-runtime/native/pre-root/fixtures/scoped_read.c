@@ -646,6 +646,36 @@ static void linux_stock_finite_slots(void) {
     void *again=actql_native_file_scoped_allocate(1);assert(again);
     actql_native_file_scoped_free(again);
 }
+struct linux_stock_competitor {
+    void *original;
+    void *allocated;
+    int released;
+    bool known;
+};
+static void *linux_stock_competing_call(void *raw) {
+    struct linux_stock_competitor *result=raw;
+    result->allocated=actql_native_file_scoped_allocate(7);
+    result->released=release_stock_file(result->original);
+    result->known=known_stock_file(result->original);
+    return NULL;
+}
+static void linux_stock_concurrent_entry(void) {
+    void *original=actql_native_file_scoped_allocate(29);assert(original);
+    memset(original,71,29);
+    struct linux_stock_competitor result={original,NULL,99,true};
+    size_t allocations=stock_file_allocations,frees=stock_file_frees;
+    assert(enter_stock_files());
+    pthread_t thread;
+    assert(pthread_create(&thread,NULL,linux_stock_competing_call,&result)==0);
+    assert(pthread_join(thread,NULL)==0);
+    assert(result.allocated==NULL && result.released==ACTQL_OWNED_BUSY && !result.known);
+    assert(stock_file_allocations==allocations && stock_file_frees==frees);
+    for(size_t i=0;i<29;i++) assert(((unsigned char *)original)[i]==71);
+    leave_stock_files();
+    assert(known_stock_file(original));
+    actql_native_file_scoped_free(original);
+    assert(!known_stock_file(original));
+}
 static void linux_stock_entry_snapshot(void) {
     void *plain=actql_native_file_scoped_allocate(19);assert(plain);
     assert(enter_stock_files());
@@ -671,6 +701,11 @@ int main(int argc,char **argv) {
     struct rlimit core={0,0}; assert(setrlimit(RLIMIT_CORE,&core)==0);
     setbuf(stdout,NULL);
 #if defined(__linux__) && defined(ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN)
+    if(argc==2 && strcmp(argv[1],"--linux-stock-concurrency-only")==0) {
+        linux_stock_concurrent_entry();
+        puts("{\"case\":\"linux-stock-concurrency\",\"passed\":1,\"failed\":0}");
+        return 0;
+    }
     if(argc==2 && strcmp(argv[1],"--linux-stock-provenance-only")==0) {
         linux_stock_originals();
         linux_stock_finite_slots();
