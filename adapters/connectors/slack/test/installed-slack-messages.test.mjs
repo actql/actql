@@ -9,6 +9,7 @@ async function fixture(t,{account='allow',resource='messages'}={}){
   // each selected conversation. This explicit component bound is not normal
   // physical funding or proof of escaped raw/callback retirement.
   f.profile.limits={...f.profile.limits,maxPages:8};
+  f.state.conversations=[{id:'C1',is_im:false,is_mpim:false},{id:'D1',is_im:true,is_mpim:false}];
   f.state.messages={C1:[{type:'message',ts:'1.000001',text:'parent',reply_count:1}],
     D1:[{type:'message',ts:'3.000000001',text:'direct'}]};
   f.state.replies={C1:[{type:'message',ts:'1.000001',thread_ts:'1.000001',text:'parent',reply_count:1},
@@ -16,8 +17,7 @@ async function fixture(t,{account='allow',resource='messages'}={}){
   D1:[{type:'message',ts:'3.000000001',text:'direct'}]};
   f.state.beforeResponse=async(request,response)=>{
     const url=new URL(request.url,f.scope.resourceOrigin);let body;
-    if(url.pathname==='/api/conversations.list')body={ok:true,channels:[
-      {id:'C1',is_im:false,is_mpim:false},{id:'D1',is_im:true,is_mpim:false}],response_metadata:{next_cursor:null}};
+    if(url.pathname==='/api/conversations.list')body={ok:true,channels:f.state.conversations,response_metadata:{next_cursor:null}};
     if(url.pathname==='/api/conversations.history')body={ok:true,messages:f.state.messages[url.searchParams.get('channel')],
       has_more:false,response_metadata:{next_cursor:null}};
     if(url.pathname==='/api/conversations.replies')body={ok:true,messages:f.state.replies[url.searchParams.get('channel')],
@@ -55,9 +55,12 @@ test('installed Slack messages uses original messages Account decisions and one 
 });
 
 test('installed Slack channels Account permission cannot substitute for messages permission',async t=>{
-  const f=await fixture(t,{resource:'channels'}),source=await f.load();
-  await assert.rejects(f.prepare(source,{resource:'messages',selection:'id, text'}),{code:'ACTQL_E_ACCOUNT_DENIED'});
-  assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
+  for(const [options,code] of [[{resource:'channels'},'ACTQL_E_ACCOUNT_NO_MATCH'],
+    [{resource:'messages',account:'deny'},'ACTQL_E_ACCOUNT_DENIED']]){
+    const f=await fixture(t,options),source=await f.load();
+    await assert.rejects(f.prepare(source,{resource:'messages',selection:'id, text'}),{code});
+    assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
+  }
 });
 
 test('installed Slack broad messages realization refuses invalid excluded rows rather than hiding them behind a residual filter',async t=>{
@@ -78,4 +81,38 @@ test('installed Slack messages preserves the original finite exchange ceiling wi
   await assert.rejects(source.openCapture(p),error=>{recovery=error.recovery;return recovery!==undefined;});
   await f.retain(recovery,p.ledger);
   assert.equal(f.state.requests.length,7);assert.equal(recovery.cleanupPending(),true);
+});
+
+test('installed Slack messages lost original reply keeps recovery and never resends the exchange',async t=>{
+  const f=await fixture(t),before=f.state.beforeResponse;
+  f.state.beforeResponse=async(request,response)=>{
+    if(request.url.startsWith('/api/conversations.replies?')){request.socket.destroy();return;}
+    await before(request,response);
+  };
+  const source=await f.load(),p=await f.prepare(source,{selection:'id'});let recovery;
+  await assert.rejects(source.openCapture(p),error=>{recovery=error.recovery;return recovery!==undefined;});
+  await f.retain(recovery,p.ledger);
+  assert.equal(f.state.requests.length,5);assert.equal(recovery.cleanupPending(),true);
+  await assert.rejects(source.openCapture(p));assert.equal(f.state.requests.length,5);
+});
+
+test('installed Slack messages stop after the last response cannot publish a partial original prefix',async t=>{
+  const f=await fixture(t),stop=new AbortController();
+  f.state.afterResponse=request=>{
+    const url=new URL(request.url,f.scope.resourceOrigin);
+    if(url.pathname==='/api/conversations.replies'&&url.searchParams.get('channel')==='D1')stop.abort(new Error('OriginalMessagesStop'));
+  };
+  const source=await f.load(),p=await f.prepare(source,{selection:'id'});let recovery;
+  await assert.rejects(source.openCapture({...p,signal:stop.signal}),error=>{recovery=error.recovery;return recovery!==undefined;});
+  await f.retain(recovery,p.ledger);
+  assert.equal(f.state.requests.length,8);assert.equal(recovery.cleanupPending(),true);
+});
+
+test('installed Slack messages empty original conversation extent captures no synthetic message',async t=>{
+  const f=await fixture(t);f.state.conversations=[];
+  const source=await f.load(),p=await f.prepare(source,{selection:'id'}),opened=await source.openCapture(p);
+  await f.retain(opened,p.ledger);
+  const exported=checked(f.common.clientProgramExportSourceCapture(opened.capture.source(),opened.requirement,'slack-empty-messages'));
+  assert.deepEqual(f.common.clientProgramSourceCaptureExportRows(exported),[]);
+  assert.equal(f.state.requests.length,2);assert.equal(f.state.resolutions,2);
 });
