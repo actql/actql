@@ -498,6 +498,41 @@ publication amounts/counters and bounded reservation-map scan overlap with
 Source, DAG, Model and Result holdings in the Host recipe. They are not free
 metadata, a numerical profile, a physical issuer or a cleanup acknowledgement.
 
+###### Ordinary Host composition
+
+The ordinary trusted Host selects the local Mock purpose through its fixed
+Resource entry, not through a Source/Compute admission, profile label or caller
+Boolean. It retains the original checked request and compiles its Run once.
+That same compiled Run, definition and INFER graph establish the original read
+Scope before either Source creates a child. Both captures, the Local DAG and
+the no-I/O Mock component borrow this one Run Ledger. Local remains the task
+scheduler; the component does not invent an asynchronous Provider or egress
+notification merely to enter a physical-provider path.
+
+The read descriptor is issued later, synchronously when Local passes the
+actual prefix inputs to the Model component. Its snapshot must include the
+Source/Compute changes already made on that Ledger. Issuing a read before
+those changes would make its original-state claim stale. Descriptor issuance
+and the subsequent claim are one-shot; failure retains the original admission,
+Scope and cleanup rather than reissuing or falling back to an unowned start.
+
+The ordinary Run combines the existing Source/Compute and Model managed
+ceilings, with separate bootstrap and input-read reservations. These counters
+are not physical allocation coefficients, pre-reserved RAM or an allocation
+success guarantee. The trusted platform supplies ordinary allocation; actual
+FileHandles, native objects, pending operations and partial failures retain
+their existing cleanup duties. A larger parent does not enlarge the Model's
+per-purpose attempts, wire or byte ceilings.
+
+Durable Model binding uses the same Mock profile's canonical installation,
+configuration-contract and configuration originals. Equal replacement bytes
+cannot adopt its Task, answer inventory or currentness. Existing Account,
+Entry, settlement, saved-original and no-resend checks remain independent.
+The Model child settles its read only after its own cleanup; the Run's final
+census/bootstrap retirement also waits for the other children. Closing one
+Source, dropping a JavaScript reference or retiring that read cannot acknowledge
+its sibling or the whole Run.
+
 The existing Model Owner admits the selected `task`/`answers` document against
 the same original public Task declaration's output Contract. `default` and
 every `by_key` value, including unused entries, are checked under aggregate
