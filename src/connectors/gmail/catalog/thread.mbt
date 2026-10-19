@@ -21,6 +21,7 @@ pub(all) enum GmailThreadIssue {
   ForeignThread
   DuplicateMessage
   UnsupportedDate
+  InvalidSelection(String)
 } derive(Eq, Debug)
 
 ///|
@@ -355,5 +356,82 @@ pub fn gmail_thread_value_at(
     None
   } else {
     Some(thread.values[index])
+  }
+}
+
+///|
+pub fn gmail_thread_rows_wire(
+  thread : GmailThreadProjection,
+  names : Array[String],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, GmailThreadIssue] {
+  if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  let columns = gmail_thread_column_names()
+  let selected : Array[(String, Int)] = []
+  for name in names {
+    if selected.any(entry => entry.0 == name) {
+      return Err(InvalidSelection(name))
+    }
+    let mut found = None
+    for index, column in columns {
+      if name == column {
+        found = Some(index)
+      }
+    }
+    guard found is Some(index) else { return Err(InvalidSelection(name)) }
+    selected.push((name, index))
+  }
+  let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
+    _ => return Err(BudgetExceeded)
+  }
+  try {
+    @encode.begin_array(writer)
+    @encode.begin_object(writer)
+    for (name, index) in selected {
+      @encode.key(writer, name)
+      @admitted.emit_checked_wire_value(thread.values[index], writer)
+    }
+    @encode.end_object(writer)
+    @encode.end_array(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      Err(BudgetExceeded)
+    }
+  }
+}
+
+///|
+pub fn gmail_thread_schema_wire(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, GmailThreadIssue] {
+  if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  let columns = gmail_thread_column_names()
+  let contracts = gmail_thread_contracts()
+  let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
+    _ => return Err(BudgetExceeded)
+  }
+  try {
+    @encode.begin_ordered_object(writer)
+    for index, name in columns {
+      @encode.ordered_key(writer, name)
+      @contract.emit_checked(contracts[index], writer)
+    }
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      Err(BudgetExceeded)
+    }
   }
 }

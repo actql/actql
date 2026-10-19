@@ -52,10 +52,30 @@ test "Gmail full thread projects first subject exact count label union and maxim
   )
   assert_true(gmail_thread_value_at(thread, -1) is None)
   assert_true(gmail_thread_value_at(thread, 5) is None)
+  assert_eq(
+    gmail_thread_rows_wire(thread, ["subject", "message_count"], 1024, 20, 8).unwrap(),
+    (
+      #|[{"subject":"Original é","message_count":"2"}]
+    ),
+  )
+  assert_true(
+    gmail_thread_rows_wire(thread, ["id", "id"], 1024, 20, 8)
+    is Err(InvalidSelection("id")),
+  )
+  assert_true(
+    gmail_thread_rows_wire(thread, ["foreign"], 1024, 20, 8)
+    is Err(InvalidSelection("foreign")),
+  )
 }
 
 ///|
 test "Gmail complete empty thread is nullable but absent partial or null messages is not empty" {
+  assert_eq(
+    gmail_thread_schema_wire(4096, 100, 8).unwrap(),
+    (
+      #|{"id":{"nullable":false,"type":"string"},"labels":{"items":{"nullable":false,"type":"string"},"nullable":false,"type":"array"},"last_message_date":{"nullable":true,"type":"timestamp"},"message_count":{"nullable":false,"type":"int64"},"subject":{"nullable":true,"type":"string"}}
+    ),
+  )
   assert_eq(
     thread_values_wire(
       thread_project("{\"id\":\"t/+\",\"messages\":[]}").unwrap(),
