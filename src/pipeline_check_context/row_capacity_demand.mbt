@@ -7,6 +7,7 @@ pub enum RowCapacityIssue {
   Extension(Int, @wire.ProgramExtensionIssue)
   GraphInputs(Int, @graph_input.Issue)
   Dependencies(Int, @wire.ProgramDependencyIssue)
+  InvalidTakeCountBinding(@syntax.Program, String)
 }
 
 ///|
@@ -522,10 +523,25 @@ fn derive_row_capacity(
                       | @step_bounds.UnresolvedCount
                       | @step_bounds.LawMismatch
                     ) => None
-                    Err(issue) =>
+                    Err(issue) => {
+                      if issue is @step_bounds.InvalidBoundCount &&
+                        @pipeline.step_at(pipeline, index)
+                        is Some({ operation: Unary(operation), .. }) &&
+                        @relation.row_operation(operation)
+                        is Some(Take(count=Parameter(name), ..)) {
+                        raise RowCapacityStop(
+                          InvalidTakeCountBinding(
+                            @stages.program(
+                              @stage_results.local_source_source(prepared),
+                            ),
+                            name,
+                          ),
+                        )
+                      }
                       raise RowCapacityStop(
                         Construction(stage, index, Application(issue)),
                       )
+                    }
                   }
                   if derivation is Some(derivation) {
                     spend(derivation.input_count)

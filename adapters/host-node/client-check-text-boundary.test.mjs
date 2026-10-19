@@ -655,6 +655,32 @@ for (const entrance of ['local', 'http']) {
     assert.deepEqual(outcomes[1], outcomes[2]);
   });
 
+  test(`${entrance}: LIMIT count parameter diagnostics keep the original supplied and default inputs`, async t => {
+    const {client} = await publicCheck(t, entrance, {visibility: 'allowed'});
+    const text = 'SELECT id FROM records ORDER BY id LIMIT @count';
+    for (const type of ['number', 'int64']) {
+      for (const defaulted of [false, true]) {
+        const zero = type === 'number' ? 0 : '0';
+        const declarations = {count: {type, ...(defaulted ? {default: zero} : {})}};
+        const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql',
+          parameterDeclarations: declarations, ...(defaulted ? {} : {parameters: {count: zero}})});
+        assert.equal(outcome.outcome, 'completed');
+        assert.equal(outcome.report.verdict, 'invalid');
+        const [reason] = outcome.report.reasons;
+        assert.deepEqual({code: reason.code, facts: reason.facts}, {code: 'operation_parameter_invalid',
+          facts: {parameter: 'count', domain: 'positive_safe_integer'}});
+        const documentId = defaulted ? 'parameter_declarations' : 'parameters';
+        assert.deepEqual(reason.location, {kind: 'structured', document_id: documentId,
+          revision: outcome.report.inputs.find(input => input.document_id === documentId).revision,
+          pointer: defaulted ? '/count/default' : '/count'});
+        assert.ok(resolveCheckLocation(outcome, reason.location));
+        assert.equal(explainCheckReason(reason).hint, 'Supply an integer from 1 through 9007199254740991.');
+        assert.equal(resolveCheckLocation(structuredClone(outcome), reason.location), undefined);
+        assert.deepEqual(outcome.report.requirements, []);
+      }
+    }
+  });
+
   test(`${entrance}: scoped SQL and AQL templates close complete obligations and retain runtime Requirements`, async t => {
     const {client} = await publicCheck(t, entrance);
     for (const format of ['sql', 'aql-text']) {

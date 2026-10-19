@@ -40,6 +40,14 @@ and literal bodies are unchanged. This admission does not extend other
 operation-parameter types, arithmetic or operational clocks, and a selection
 limit does not narrow the original Source scan's admission extent.
 
+An invalid bound `take` count can be rejected during row-capacity derivation
+before the general operation-scalar closure. That rejection retains the exact
+parsed Program and checked Parameter name. The public check projection uses
+the existing positive-safe-integer reason only for that same Program, then
+uses its already admitted binding origin to locate either the supplied value
+or its declaration default. Equal Program bytes are not original membership;
+no input value, generated SQL location or execution authority is inferred.
+
 `default` and annotation `meta` belong only to named declarations, not nested
 type contracts. Metadata is nonempty canonical JSON-model data with reserved
 top-level `actql_` keys rejected; it never participates in binding decisions.
