@@ -70,6 +70,7 @@ pub fn prepare_client_task_dispatch(
   task_attempt : Int,
   dispatch_id : String,
   selected : ClientValuesSiteSelection,
+  source? : ClientSourcePreparation? = None,
 ) -> Result[@remote.DispatchRequest, ClientTaskDispatchIssue] {
   client_task_dispatch_with_input(
     prepared,
@@ -82,6 +83,7 @@ pub fn prepare_client_task_dispatch(
     dispatch_id,
     selected,
     () => prepare_client_task_input_binding(prepared, task),
+    source,
   )
 }
 
@@ -97,6 +99,7 @@ fn client_task_dispatch_with_input(
   dispatch_id : String,
   selected : ClientValuesSiteSelection,
   load_input : () -> Result[@remote.RemoteInputBinding, ClientTaskDispatchIssue],
+  source : ClientSourcePreparation?,
 ) -> Result[@remote.DispatchRequest, ClientTaskDispatchIssue] {
   let binding = match
     bind_client_task_run(prepared, compilation, admission, definition) {
@@ -106,7 +109,7 @@ fn client_task_dispatch_with_input(
   let identity = prepared_client_identity(prepared)
   if client_request_program_cid(request) != identity.program_definition_cid ||
     client_request_parameters_cid(request) != identity.parameter_values_cid ||
-    client_request_input_cid(request) != source_free_caller_input_intent_cid() {
+    !client_task_dispatch_source_request_matches(prepared, request, source) {
     return Err(ForeignRequest)
   }
   if client_task_compilation_infer(compilation) is Some(_) {
@@ -146,4 +149,35 @@ fn client_task_dispatch_with_input(
     selected.evidence_issuer_capability_cid,
     selected.grant_cid,
   ).map_err(issue => Protocol(issue))
+}
+
+///|
+/// A non-sentinel input is accepted only from its original opaque Source
+/// preparation and the same nominal checked computation. The independently
+/// retained request must match the request reconstructed by that Owner.
+fn client_task_dispatch_source_request_matches(
+  prepared : PreparedClientProgram,
+  request : ClientRequestIdentity,
+  source : ClientSourcePreparation?,
+) -> Bool {
+  match source {
+    None =>
+      client_request_input_cid(request) == source_free_caller_input_intent_cid()
+    Some(original) => {
+      guard original.preparation is Pure(current) else { return false }
+      if !physical_equal(current, prepared) {
+        return false
+      }
+      match
+        client_source_computation_request(
+          original,
+          client_request_authority_scope_cid(request),
+          client_request_caller_id(request),
+        ) {
+        Ok(expected) =>
+          client_request_identity_relation(expected, request) == SameRequest
+        Err(_) => false
+      }
+    }
+  }
 }
