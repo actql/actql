@@ -14,14 +14,36 @@ pub fn NativeLocalHostConnection::resolve_result_policy_original(
   @publication.CapturedEffectDependencyBody,
   NativeClientRunJournalIssue,
 ] {
+  self.resolve_result_policy_original_with_operations(
+    crypto, principal, connection, request, store, facts,
+  )
+}
+
+///|
+fn NativeLocalHostConnection::resolve_result_policy_original_with_operations(
+  self : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  request : @host.ClientRequestIdentity,
+  store : @publication_store.Store,
+  facts : @result_access.NativeResultReadFacts,
+  operations? : NativeClientJournalOperationAccess? = None,
+  capture? : NativeLocalJournalCapture? = None,
+) -> Result[
+  @publication.CapturedEffectDependencyBody,
+  NativeClientRunJournalIssue,
+] {
+  let reads = operations.map(value => value.reads)
   let authority = match
-    native_local_policy_authority(
+    native_local_policy_authority_for(
       self,
       crypto,
       principal,
       connection,
       request,
-      Some(facts.request.result_name),
+      ReadResultPolicy(facts.request.result_name),
+      capture~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -30,7 +52,7 @@ pub fn NativeLocalHostConnection::resolve_result_policy_original(
     facts.request.authority_scope_cid != authority.scope {
     return Err(AuthorizationDenied)
   }
-  let record = match self.journal.lookup(request, true) {
+  let record = match self.journal.lookup_with_reads(request, true, reads~) {
     Ok(Retained(value)) => value
     Ok(UnresolvedHistory) => return Err(CustodyLost)
     Err(issue) => return Err(issue)
@@ -93,5 +115,6 @@ pub fn NativeLocalHostConnection::resolve_result_policy_original(
     request,
     resolved.read.effective_data_policy_cid,
     authority,
+    reads~,
   )
 }

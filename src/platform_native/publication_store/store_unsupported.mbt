@@ -39,6 +39,20 @@ type ConfirmedPayloadDelivery
 type ResultDelivery
 
 ///|
+pub fn Store::reconcile_original_return(
+  _self : Store,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Store::retry_pending_result_delivery_cleanup(
+  _self : Store,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn open_store(
   _library : @sqlite.Library,
   _root_path : String,
@@ -503,4 +517,61 @@ pub fn Store::custody_location(
   _self : Store,
 ) -> Result[(String, UInt64, UInt64), NativePublicationStoreIssue] {
   Err(UnsupportedTarget)
+}
+
+///|
+pub fn Store::matches_original_operation(
+  _self : Store,
+  _original : @sqlite.NativeStoreOperationOriginal,
+) -> Bool {
+  false
+}
+
+///|
+pub fn open_local_store_with_custody(
+  _library : @sqlite.Library,
+  _root_path : String,
+  _authority_cid : String,
+  _capacity_bytes : Int64,
+  _max_objects : Int64,
+  _max_record_bytes : Int64,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Store, NativePublicationStoreOpenError] {
+  if diagnostic_ceiling is Some(value) && value <= 0 {
+    return Err(RefusedBeforeAcquisition(Filesystem(@filesystem.InvalidLimit)))
+  }
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
+}
+
+///|
+pub fn open_existing_local_store_with_custody(
+  _library : @sqlite.Library,
+  _root_path : String,
+  _authority_cid : String,
+  _capacity_bytes : Int64,
+  _max_objects : Int64,
+  _max_record_bytes : Int64,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Store, NativePublicationStoreOpenError] {
+  if diagnostic_ceiling is Some(value) && value <= 0 {
+    return Err(RefusedBeforeAcquisition(Filesystem(@filesystem.InvalidLimit)))
+  }
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
+}
+
+///|
+pub fn open_original_local_store_with_custody(
+  _library : @sqlite.Library,
+  _original : @sqlite.NativeStoreOperationOriginal,
+  _root_path : String,
+  _authority_cid : String,
+  _capacity_bytes : Int64,
+  _max_objects : Int64,
+  _max_record_bytes : Int64,
+  existing? : Bool = false,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Store, NativePublicationStoreOpenError] {
+  ignore(existing)
+  ignore(diagnostic_ceiling)
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
 }

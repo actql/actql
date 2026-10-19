@@ -46,6 +46,7 @@ fn result_manifest_publisher_kind(
     Journal(issue) => original_selection_journal_kind(issue)
     InvalidOriginal => "InvalidOriginal"
     SelectionMismatch => "SelectionMismatch"
+    OriginalOperation(_, _) => "OriginalOperation"
     AuthorizationDenied => "AuthorizationDenied"
   }
 }

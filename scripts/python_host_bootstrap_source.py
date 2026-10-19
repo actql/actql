@@ -17,6 +17,7 @@ import subprocess
 INPUTS = (
     'src/platform_native/host_bootstrap/moon.pkg',
     'src/platform_native/host_bootstrap/bootstrap_native.mbt',
+    'src/platform_native/host_bootstrap/execution_domain_minimum_native.mbt',
     'src/platform_native/host_bootstrap/backed_region_native.mbt',
     'src/platform_native/host_bootstrap/backed_view_native.mbt',
     'src/platform_native/host_bootstrap/backed_domain_native.mbt',
@@ -35,6 +36,7 @@ INPUTS = (
     'packages/python-local-runtime/native/pre-root/owned_image.c',
     'packages/python-local-runtime/native/pre-root/owned_rust_heap.inc',
     'src/platform_native/host_bootstrap/component_domain_minimum.h',
+    'src/platform_native/host_bootstrap/read_cleanup_observation_native.mbt',
 )
 MANIFEST = 'packages/python-local-runtime/native/pre-root/host-bootstrap-source.json'
 

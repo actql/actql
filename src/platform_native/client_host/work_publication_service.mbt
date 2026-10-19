@@ -24,6 +24,17 @@ fn[E] install_native_client_work_publication_service(
     @publication.PublicationRequestContext,
     @native_publication.NativeRunPublicationAuthorization,
   ) -> Bool)? = None,
+  bind_original? : ((String) -> Result[Unit, E])? = None,
+  fence_original? : ((
+    String,
+    () -> Result[
+      @native_publication.NativeRunPublicationResult,
+      @native_publication.NativeRunPublicationIssue,
+    ],
+  ) -> Result[
+    @native_publication.NativeRunPublicationResult,
+    @native_publication.NativeRunPublicationIssue,
+  ])? = None,
 ) -> Result[
   @native_publication.NativeRunPublicationService,
   NativeClientWorkPublicationServiceIssue[E],
@@ -40,9 +51,17 @@ fn[E] install_native_client_work_publication_service(
     Err(issue) => return Err(Journal(issue))
   }
   let binding = observation.binding.unwrap()
-  match journal.bind_publication(request, binding, current_authorization) {
-    Ok(_) => ()
-    Err(issue) => return Err(Journal(issue))
+  match bind_original {
+    None =>
+      match journal.bind_publication(request, binding, current_authorization) {
+        Ok(_) => ()
+        Err(issue) => return Err(Journal(issue))
+      }
+    Some(bind) =>
+      match bind(binding) {
+        Ok(_) => ()
+        Err(issue) => return Err(Work(issue))
+      }
   }
   let authorize_original = (
     fact : @native_publication.NativeRunPublicationAuthorization,
@@ -84,9 +103,13 @@ fn[E] install_native_client_work_publication_service(
     max_depth,
     client_request=Some(request),
     commit_guard=commit => {
-      journal.fence_publication(
-        request, definition, binding, current_authorization, commit,
-      )
+      match fence_original {
+        None =>
+          journal.fence_publication(
+            request, definition, binding, current_authorization, commit,
+          )
+        Some(fence) => fence(binding, commit)
+      }
     },
   ).map_err(issue => Service(issue))
 }

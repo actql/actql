@@ -124,7 +124,7 @@ int32_t actql_native_client_status_watch_progress(moonbit_bytes_t bytes, int32_t
 
 // Build metadata only. The trusted Local producer pins this immutable literal
 // to its exact compiled source; it is not installation/current authority. A raw
-// preargument constructor may borrow it without a Moon String allocation. The
+// bounded input capture may borrow it without a Moon String allocation. The
 // ordinary unselected diagnostic build supplies no synthetic replacement pin.
 const char *actql_native_client_selected_source(void) {
 #ifdef ACTQL_NATIVE_CLIENT_SOURCE_SHA
@@ -196,9 +196,8 @@ static bool actql_command_quote_arguments(int argc, const char *const *argv) {
 }
 #endif
 
-/* The same entry invokes this before generated managed module startup. Capture
- * bytes, not environment pointers that a later initializer could replace. The
- * finite static storage and allocator class observations admit no arena. */
+/* Normal main bounds and copies the selected input before command parsing.
+ * These finite input checks are not startup provenance or resource authority. */
 static void actql_native_client_capture_initial_input(void) {
   if (actql_command_early_input_attempted) return;
   actql_command_early_input_attempted = true;
@@ -272,6 +271,7 @@ int32_t actql_native_client_measure_prearguments(
     int32_t maximum_storage_bytes, int32_t maximum_context_bytes) {
   if (actql_command_input_attempted) return actql_command_input_status;
   actql_command_input_attempted = true;
+  actql_native_client_capture_initial_input();
   if (!actql_command_early_input_attempted) return actql_command_input_status;
   actql_command_input_status = actql_command_early_input_status;
   if (actql_command_input_status != ACTQL_COMMAND_INPUT_OK)

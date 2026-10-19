@@ -165,7 +165,9 @@ test "Selected command preparation frontend does not acquire before covered oper
     arguments in [
       ["original", "--mode", "remote", "check", "SELECT 1"],
       ["original", "--mode", "local", "connect"],
-      ["original", "--mode", "local", "status", "--run-id", "unbound"],
+      [
+        "original", "--mode", "local", "lookup-request", "--request-id", "unbound",
+      ],
     ] {
     let control = parse_native_initial_arguments(arguments, false)
     let matches = control.matches.unwrap()
@@ -178,6 +180,15 @@ test "Selected command preparation frontend does not acquire before covered oper
     false,
   )
   assert_true(local_command_preparation_selected(control.matches.unwrap()))
+  // Saved status now has its own original Read route. Selection grants no
+  // RunRead or physical acquisition; preserve an actually unsupported private
+  // lookup above as the negative fixture rather than rejecting valid status.
+  let saved_status = parse_native_initial_arguments(
+    ["original", "--mode", "local", "status", "--run-id", "unbound"],
+    false,
+  )
+  assert_true(local_command_preparation_selected(saved_status.matches.unwrap()))
+  assert_true(command_preparation_invocation.val is None)
   let initialization = parse_native_initial_arguments(
     ["original", "--mode", "local", "adopt", "--initialize-signing"],
     false,

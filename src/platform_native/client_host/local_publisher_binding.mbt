@@ -5,6 +5,10 @@ pub(all) enum NativeLocalPublisherBindingIssue {
   InvalidOriginal
   SelectionMismatch
   AuthorizationDenied
+  OriginalOperation(
+    NativeLocalPublisherBindingIssue?,
+    NativeLocalStoreOperationIssue
+  )
 }
 
 ///|
@@ -21,6 +25,7 @@ struct NativeLocalPublisherBinding {
   target_cid : String
   store : @publication_store.Store
   store_binding : String
+  operation : NativeLocalStoreOperation?
 }
 
 ///|
@@ -80,7 +85,31 @@ pub fn NativeLocalHostConnection::bind_run_publisher(
   installation_file : String,
   store : @publication_store.Store,
 ) -> Result[NativeLocalPublisherBinding, NativeLocalPublisherBindingIssue] {
-  match self.check_binding() {
+  self.bind_run_publisher_with_operations(
+    crypto, principal, connection, request, definition, installation_file, store,
+  )
+}
+
+///|
+fn NativeLocalHostConnection::bind_run_publisher_with_operations(
+  self : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  request : @host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  installation_file : String,
+  store : @publication_store.Store,
+  operations? : NativeClientJournalOperationAccess? = None,
+  capture? : NativeLocalJournalCapture? = None,
+  operation? : NativeLocalStoreOperation? = None,
+) -> Result[NativeLocalPublisherBinding, NativeLocalPublisherBindingIssue] {
+  let reads = operations.map(value => value.reads)
+  let current = match capture {
+    None => self.check_binding()
+    Some(original) => original.check_current_in_original_read()
+  }
+  match current {
     Ok(_) => ()
     Err(issue) => return Err(Adoption(issue))
   }
@@ -92,6 +121,7 @@ pub fn NativeLocalHostConnection::bind_run_publisher(
       connection,
       request,
       PublishRun,
+      capture~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
@@ -120,7 +150,11 @@ pub fn NativeLocalHostConnection::bind_run_publisher(
     Err(issue) => return Err(Journal(issue))
   }
   let record = match
-    self.journal.lookup(request, authority.current_for(self.journal, request)) {
+    self.journal.lookup_with_reads(
+      request,
+      authority.current_for(self.journal, request),
+      reads~,
+    ) {
     Ok(Retained(value)) => value
     Ok(UnresolvedHistory) => return Err(Journal(CustodyLost))
     Err(issue) => return Err(Journal(issue))
@@ -147,6 +181,7 @@ pub fn NativeLocalHostConnection::bind_run_publisher(
     target_cid,
     store,
     store_binding,
+    operation,
   }
   if !binding.current() {
     return Err(AuthorizationDenied)
@@ -159,7 +194,7 @@ pub fn NativeLocalHostConnection::bind_run_publisher(
 pub fn NativeLocalPublisherBinding::current(
   self : NativeLocalPublisherBinding,
 ) -> Bool {
-  self.current_in_mode(false)
+  self.current_checked_in_mode(false)
 }
 
 ///|
@@ -168,18 +203,24 @@ pub fn NativeLocalPublisherBinding::current(
 fn NativeLocalPublisherBinding::current_in_owned_transaction(
   self : NativeLocalPublisherBinding,
 ) -> Bool {
-  let journal = self.authority.host.journal
-  journal.transaction_active &&
-  !journal.fenced &&
-  !journal.database.transaction_fenced() &&
-  self.current_in_mode(true)
+  self.current_checked_in_mode(true)
 }
 
 ///|
 fn NativeLocalPublisherBinding::current_in_mode(
   self : NativeLocalPublisherBinding,
   join_owned_transaction : Bool,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Bool {
+  let journal = self.authority.host.journal
+  if join_owned_transaction &&
+    (
+      !journal.transaction_active ||
+      journal.fenced ||
+      client_journal_transaction_fenced(journal.database, reads)
+    ) {
+    return false
+  }
   let host = self.authority.host
   // This material is local to this single predicate and is not retained by
   // the publisher. Each of the three original authority checks still invokes
@@ -195,8 +236,7 @@ fn NativeLocalPublisherBinding::current_in_mode(
     ) ||
     host.session.source_body != self.account_body ||
     host.session.configuration.configuration_cid() != self.policy_cid ||
-    !(host.selected_configuration(self.file.name) is Ok(body) &&
-    body == self.file.body) {
+    !(self.selected_original() is Ok(body) && body == self.file.body) {
     return false
   }
   guard self.store.custody_location() is Ok((target, device, inode)) &&
@@ -216,10 +256,10 @@ fn NativeLocalPublisherBinding::current_in_mode(
     return false
   }
   let retained = if join_owned_transaction {
-    host.journal.retained(self.request)
+    host.journal.retained(self.request, reads~)
   } else {
     host.journal
-    .lookup(self.request, true)
+    .lookup_with_reads(self.request, true, reads~)
     .map(value => {
       match value {
         Retained(value) => Some(value)

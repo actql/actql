@@ -285,6 +285,8 @@ pub fn select_client_duckdb_acquisition(@query_planning.QueryRequirement, String
 
 pub fn single_captured_local_ledger_limits(@run_publication_host.PreparedClientProgram, @host.NativeHostConfiguration, String, String, String?, String?) -> @physical_resources.LedgerLimits?
 
+pub fn single_source_free_local_ledger_limits(@run_publication_host.PreparedClientProgram, String, String, String?, String?) -> @physical_resources.LedgerLimits?
+
 pub fn start_client_acquired_infer_input(@run_publication_host.PreparedClientProgram, Int, Int, @execution_query.CapturedInputSource, String, String, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits, fragment_body? : String?, ordered_body? : String?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
 
 pub fn start_client_acquired_serialization_prefix(@run_publication_host.PreparedClientProgram, Int, Int, @execution_query.CapturedInputSource, String, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @physical_resources.Ledger, workspace? : @execution_relation.ExecutionCapacity?, keyed? : @run_publication_host.ClientKeyedLookupInput?) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue]

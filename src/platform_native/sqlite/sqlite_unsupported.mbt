@@ -433,3 +433,21 @@ pub fn Database::begin_deferred(
 ) -> Result[Unit, NativeSqliteIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn Library::open_local_store_database_with_custody(
+  _self : Library,
+  _path : String,
+  _max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  Err({ original_issue: UnsupportedTarget, database: None, })
+}
+
+///|
+pub fn Library::open_existing_local_store_database_with_custody(
+  _self : Library,
+  _path : String,
+  _max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  Err({ original_issue: UnsupportedTarget, database: None, })
+}

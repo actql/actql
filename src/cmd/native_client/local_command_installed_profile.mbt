@@ -2,7 +2,8 @@
 // A closed installer candidate for static command preparation. These finite
 // facilities are selected before their actual FD/mapping/context acquisitions;
 // they do not estimate all-input demand or grant a business Run any capacity.
-// The process retains its separate initial managed/OS originals throughout.
+// Ordinary runtime values use the trusted platform allocator. Explicit native
+// domains retain their own actual backing, currentness and cleanup duties.
 fn local_command_installed_profile(
   source : String,
   manifest : String,
@@ -94,13 +95,27 @@ fn local_command_installed_profile(
 }
 
 ///|
-// Select the covered static check/explain and explicit adoption routes. This choice
-// performs no project/configuration lookup and cannot create a physical Owner.
+// Select static preparation, explicit adoption and the admitted public Run
+// scope. This choice performs no IO and creates no physical original.
 fn local_command_preparation_selected(
   matches : @argparse.Matches,
 ) -> Bool raise ClientStop {
   if !(matches.subcommand is Some(("check", _)) ||
     matches.subcommand is Some(("explain", _)) ||
+    matches.subcommand is Some(("run", _)) ||
+    local_checkpoint_action_selected(matches, "approve") ||
+    local_checkpoint_action_selected(matches, "reject") ||
+    (
+      matches.subcommand is Some(("result", child)) &&
+      optional(child, "run") is Some(_)
+    ) ||
+    (
+      matches.subcommand is Some(("status", child)) &&
+      (
+        optional(child, "run") is Some(_) ||
+        optional(child, "run-id") is Some(_)
+      )
+    ) ||
     matches.subcommand is Some(("adopt", _))) {
     return false
   }
@@ -118,6 +133,17 @@ fn prepare_native_command_invocation(
   if !local_command_preparation_selected(matches) {
     return
   }
+  if (
+      matches.subcommand is Some(("run", _)) ||
+      matches.subcommand is Some(("status", _)) ||
+      matches.subcommand is Some(("result", _))
+    ) &&
+    matches.sources.get("config-file") is Some(@argparse.Argv) {
+    // The selected Run uses the original packaged installation. An explicit
+    // legacy configuration has no corresponding operational supplier here;
+    // it must not fall through to raw Library loading after this selection.
+    stop("ExplicitLocalConfigurationRequiresOriginalSupplier")
+  }
   let context = match command_preargument_retained_context() {
     Ok(None) => return // Separate unselected compatibility entrance only.
     Ok(Some(value)) => value
@@ -134,10 +160,20 @@ fn prepare_native_command_invocation(
   if source != actual_source || platform != "darwin-arm64" {
     stop("PackagedLocalRuntimeChanged")
   }
+  let static_profile = local_command_installed_profile(actual_source, manifest)
+  // The full business candidate exists before backing/domain/Root acquisition,
+  // not after epoch issuance, Program admission or first-start claims.
+  let (profile, business) = if matches.subcommand is Some(("run", _)) ||
+    matches.subcommand is Some(("result", _)) {
+    let (profile, business) = local_command_source_free_business_profile(
+      static_profile,
+    )
+    (profile, Some(business))
+  } else {
+    (static_profile, None)
+  }
   let original = command_preparation_result(
-    prepare_local_command_preparation_original(
-      local_command_installed_profile(actual_source, manifest),
-    ),
+    prepare_local_command_preparation_original(profile, business~),
   )
   command_preparation_invocation.val = Some(original)
   command_preparation_result(original.acquire(root, source, platform, manifest))

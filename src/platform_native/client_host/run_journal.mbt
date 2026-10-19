@@ -256,8 +256,9 @@ fn initialize_native_client_run_journal(
   }
   for
     table in [
-      "client_effect_response_meta", "client_effect_response_bytes", "client_effect_row_receipt",
-      "client_cancellations", "client_cancel_custody", "client_cancel_originals",
+      "client_checkpoint_id_index", "client_effect_response_meta", "client_effect_response_bytes",
+      "client_effect_row_receipt", "client_cancellations", "client_cancel_custody",
+      "client_cancel_originals",
     ] {
     match
       scan_client_journal_value(
@@ -502,9 +503,15 @@ fn extract_run_policy_wire(
 fn NativeClientRunJournal::retained_policy_wire(
   self : NativeClientRunJournal,
   requested : @host.ClientRequestIdentity,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[(String?, RunPolicyRequestComparison), NativeClientRunJournalIssue] {
   let row = match
-    self.database.read("client_runs", @host.client_request_scope_cid(requested)) {
+    read_client_journal_value(
+      self.database,
+      "client_runs",
+      @host.client_request_scope_cid(requested),
+      reads,
+    ) {
     Ok(value) => value
     Err(@sqlite.NotFound) => return Err(CustodyLost)
     Err(issue) => return Err(Physical(issue))
@@ -518,12 +525,22 @@ pub fn NativeClientRunJournal::lookup(
   requested : @host.ClientRequestIdentity,
   current_authorization : Bool,
 ) -> Result[NativeClientRunLookup, NativeClientRunJournalIssue] {
+  self.lookup_with_reads(requested, current_authorization)
+}
+
+///|
+fn NativeClientRunJournal::lookup_with_reads(
+  self : NativeClientRunJournal,
+  requested : @host.ClientRequestIdentity,
+  current_authorization : Bool,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[NativeClientRunLookup, NativeClientRunJournalIssue] {
   if !current_authorization {
     return Err(AuthorizationDenied)
   }
   if self.publication_read_locked {
     return self
-      .retained(requested)
+      .retained(requested, reads~)
       .map(record => {
         match record {
           Some(value) => Retained(value)
@@ -531,16 +548,19 @@ pub fn NativeClientRunJournal::lookup(
         }
       })
   }
-  self.transaction(() => {
-    self
-    .retained(requested)
-    .map(record => {
-      match record {
-        Some(value) => Retained(value)
-        None => UnresolvedHistory
-      }
-    })
-  })
+  self.transaction_with_reads(
+    () => {
+      self
+      .retained(requested, reads~)
+      .map(record => {
+        match record {
+          Some(value) => Retained(value)
+          None => UnresolvedHistory
+        }
+      })
+    },
+    reads~,
+  )
 }
 
 ///|
@@ -591,8 +611,10 @@ fn NativeClientRunJournal::bind_run_locked(
   request : @host.ClientRequestIdentity,
   definition : @publication.PublicationContract,
   run_observation_originals? : String? = None,
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
-  match self.retained(request) {
+  let reads = operations.map(value => value.reads)
+  match self.retained(request, reads~) {
     Err(issue) => return Err(issue)
     Ok(Some(retained)) => {
       if @publication.publication_contract_identity(definition) !=
@@ -604,7 +626,7 @@ fn NativeClientRunJournal::bind_run_locked(
     Ok(None) => ()
   }
   let (count, revision) = match
-    run_journal_custody(self.database, self.max_records) {
+    run_journal_custody(self.database, self.max_records, reads~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -613,7 +635,8 @@ fn NativeClientRunJournal::bind_run_locked(
   }
   let mut cursor = ""
   while true {
-    let row = match self.database.scan_after("client_runs", cursor) {
+    let row = match
+      scan_client_journal_value(self.database, "client_runs", cursor, reads) {
       Ok(value) => value
       Err(@sqlite.NotFound) => break
       Err(issue) => return Err(Physical(issue))
@@ -648,18 +671,22 @@ fn NativeClientRunJournal::bind_run_locked(
     Err(issue) => return Err(issue)
   }
   let revision = match
-    self.database.compare_exchange(
+    compare_exchange_client_journal_value(
+      self.database,
       "client_run_custody",
       "issued",
       revision,
       @utf8.encode((count + 1).to_string()),
+      operations,
     ) {
     Ok(_) =>
       match
-        self.database.insert(
+        insert_client_journal_value(
+          self.database,
           "client_runs",
           @host.client_request_scope_cid(request),
           body,
+          operations,
         ) {
         Ok(value) => value
         Err(issue) => return Err(Physical(issue))
@@ -674,16 +701,35 @@ fn NativeClientRunJournal::save(
   self : NativeClientRunJournal,
   record : NativeClientRunRecord,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
-  match
-    self.database.read(
+  self.save_with_operations(record)
+}
+
+///|
+fn NativeClientRunJournal::save_with_operations(
+  self : NativeClientRunJournal,
+  record : NativeClientRunRecord,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  if !self.transaction_active {
+    return Err(CustodyLost)
+  }
+  let reads = operations.map(value => value.reads)
+  let before = match
+    read_client_journal_value(
+      self.database,
       "client_runs",
       @host.client_request_scope_cid(record.request),
+      reads,
     ) {
-    Ok(current) if current.revision == record.revision => ()
+    Ok(current) if current.revision == record.revision =>
+      match read_run_record(current) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
     Ok(_) => return Err(Physical(@sqlite.Collision))
     Err(issue) => return Err(Physical(issue))
   }
-  match confirm_effect_ledger_custody(self.database, record) {
+  match confirm_effect_ledger_custody(self.database, record, reads~) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -691,15 +737,20 @@ fn NativeClientRunJournal::save(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  self.database
-  .compare_exchange(
-    "client_runs",
-    @host.client_request_scope_cid(record.request),
-    record.revision,
-    body,
-  )
-  .map(revision => { ..record, revision, })
-  .map_err(issue => Physical(issue))
+  let revision = match
+    compare_exchange_client_journal_value(
+      self.database,
+      "client_runs",
+      @host.client_request_scope_cid(record.request),
+      record.revision,
+      body,
+      operations,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Physical(issue))
+  }
+  let next = { ..record, revision, }
+  self.save_checkpoint_id_index(before, next, operations~).map(_ => next)
 }
 
 ///|
@@ -708,35 +759,53 @@ pub fn NativeClientRunJournal::reserve_dispatch(
   request : @host.ClientRequestIdentity,
   current_authorization : Bool,
 ) -> Result[@host.ClientRunStartAction, NativeClientRunJournalIssue] {
+  self.reserve_dispatch_with_operations(request, current_authorization)
+}
+
+///|
+fn NativeClientRunJournal::reserve_dispatch_with_operations(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  current_authorization : Bool,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[@host.ClientRunStartAction, NativeClientRunJournalIssue] {
+  let reads = operations.map(value => value.reads)
   if !current_authorization {
     return Err(AuthorizationDenied)
   }
-  self.transaction(() => {
-    let record = match self.retained(request) {
-      Ok(Some(record)) => record
-      Ok(None) => return Err(CustodyLost)
-      Err(issue) => return Err(issue)
-    }
-    let action = match
-      @host.prepare_client_run_start(
-        request,
-        record.request,
-        record.definition,
-        @publication.publication_contract_identity(record.definition),
-        record.dispatch_reserved,
-        current_authorization,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(Start(issue))
-    }
-    if action == @host.ReserveDispatch {
-      match self.save({ ..record, dispatch_reserved: true, }) {
-        Ok(_) => ()
+  self.transaction_with_reads(
+    () => {
+      let record = match self.retained(request, reads~) {
+        Ok(Some(record)) => record
+        Ok(None) => return Err(CustodyLost)
         Err(issue) => return Err(issue)
       }
-    }
-    Ok(action)
-  })
+      let action = match
+        @host.prepare_client_run_start(
+          request,
+          record.request,
+          record.definition,
+          @publication.publication_contract_identity(record.definition),
+          record.dispatch_reserved,
+          current_authorization,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Start(issue))
+      }
+      if action == @host.ReserveDispatch {
+        match
+          self.save_with_operations(
+            { ..record, dispatch_reserved: true, },
+            operations~,
+          ) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+      }
+      Ok(action)
+    },
+    reads~,
+  )
 }
 
 ///|
@@ -747,40 +816,58 @@ pub fn NativeClientRunJournal::claim_physical_start(
   request : @host.ClientRequestIdentity,
   current_authorization : Bool,
 ) -> Result[Bool, NativeClientRunJournalIssue] {
+  self.claim_physical_start_with_operations(request, current_authorization)
+}
+
+///|
+fn NativeClientRunJournal::claim_physical_start_with_operations(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  current_authorization : Bool,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[Bool, NativeClientRunJournalIssue] {
+  let reads = operations.map(value => value.reads)
   if !current_authorization {
     return Err(AuthorizationDenied)
   }
-  self.transaction(() => {
-    let record = match self.retained(request) {
-      Ok(Some(record)) => record
-      Ok(None) => return Err(CustodyLost)
-      Err(issue) => return Err(issue)
-    }
-    let eligible = match
-      @host.prepare_client_run_physical_start(
-        request,
-        record.request,
-        record.definition,
-        @publication.publication_contract_identity(record.definition),
-        record.dispatch_reserved,
-        !record.physical_start_claimed,
-        current_authorization,
-        cancellation_requested=record.cancellation_requested,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(Start(issue))
-    }
-    if eligible {
-      // A waiting/resuming continuation is owned by its original Checkpoint;
-      // the initial physical-start seam cannot dispatch it again.
-      if record.checkpoint is Some(_) {
-        return Err(Checkpoint(NeedsOriginalContinuation))
-      }
-      match self.save({ ..record, physical_start_claimed: true, }) {
-        Ok(_) => ()
+  self.transaction_with_reads(
+    () => {
+      let record = match self.retained(request, reads~) {
+        Ok(Some(record)) => record
+        Ok(None) => return Err(CustodyLost)
         Err(issue) => return Err(issue)
       }
-    }
-    Ok(eligible)
-  })
+      let eligible = match
+        @host.prepare_client_run_physical_start(
+          request,
+          record.request,
+          record.definition,
+          @publication.publication_contract_identity(record.definition),
+          record.dispatch_reserved,
+          !record.physical_start_claimed,
+          current_authorization,
+          cancellation_requested=record.cancellation_requested,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Start(issue))
+      }
+      if eligible {
+        // A waiting/resuming continuation is owned by its original Checkpoint;
+        // the initial physical-start seam cannot dispatch it again.
+        if record.checkpoint is Some(_) {
+          return Err(Checkpoint(NeedsOriginalContinuation))
+        }
+        match
+          self.save_with_operations(
+            { ..record, physical_start_claimed: true, },
+            operations~,
+          ) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+      }
+      Ok(eligible)
+    },
+    reads~,
+  )
 }

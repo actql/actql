@@ -7,13 +7,24 @@ fn local_delivery_lookup_allowed(
   crypto : @local_crypto.Library,
   scope : String,
   result_name : String,
+  capture? : @local_host.NativeLocalJournalCapture? = None,
 ) -> Bool {
-  local_run_operation_allowed(host, settings, crypto, scope, "read") &&
-  host.authorize({
-    principal: settings.principal,
-    connection: settings.connection,
-    resource: "result/" + result_name,
-    operation: "read",
+  local_run_operation_allowed(host, settings, crypto, scope, "read", capture~) &&
+  (match capture {
+    None =>
+      host.authorize({
+        principal: settings.principal,
+        connection: settings.connection,
+        resource: "result/" + result_name,
+        operation: "read",
+      })
+    Some(original) =>
+      original.authorize_in_original_read({
+        principal: settings.principal,
+        connection: settings.connection,
+        resource: "result/" + result_name,
+        operation: "read",
+      })
   })
   is Ok(Allow(_))
 }
