@@ -1732,6 +1732,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "createChannelReader",
             "createChannelReader/handle/init:observe/init:observe",
             "createChannelReader/handle/init:read/init:read",
