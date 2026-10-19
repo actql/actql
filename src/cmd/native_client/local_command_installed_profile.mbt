@@ -102,6 +102,13 @@ fn local_command_preparation_selected(
   if !(matches.subcommand is Some(("check", _)) ||
     matches.subcommand is Some(("explain", _)) ||
     matches.subcommand is Some(("run", _)) ||
+    (
+      matches.subcommand is Some(("status", child)) &&
+      (
+        optional(child, "run") is Some(_) ||
+        optional(child, "run-id") is Some(_)
+      )
+    ) ||
     matches.subcommand is Some(("adopt", _))) {
     return false
   }
@@ -119,7 +126,10 @@ fn prepare_native_command_invocation(
   if !local_command_preparation_selected(matches) {
     return
   }
-  if matches.subcommand is Some(("run", _)) &&
+  if (
+      matches.subcommand is Some(("run", _)) ||
+      matches.subcommand is Some(("status", _))
+    ) &&
     matches.sources.get("config-file") is Some(@argparse.Argv) {
     // The selected Run uses the original packaged installation. An explicit
     // legacy configuration has no corresponding operational supplier here;

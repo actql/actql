@@ -64,3 +64,26 @@ test "Selected public Run refuses an unsupplied explicit legacy configuration be
   assert_eq(issue, "ExplicitLocalConfigurationRequiresOriginalSupplier")
   assert_true(command_preparation_invocation.val is None)
 }
+
+///|
+test "Saved status selects the same static original without selecting a business Run" {
+  let parsed = command().parse(argv=[
+    "--mode", "local", "status", "original-run", "--json",
+  ])
+  assert_true(local_command_preparation_selected(parsed))
+  assert_true(
+    local_command_preparation_operation_selected(parsed, "status", false),
+  )
+  assert_false(
+    local_command_preparation_operation_selected(
+      parsed,
+      local_run_original_operation(),
+      true,
+    ),
+  )
+  normalize_native_status_arguments(parsed)
+  assert_true(
+    local_command_preparation_operation_selected(parsed, "status", false),
+  )
+  assert_true(command_preparation_invocation.val is None)
+}

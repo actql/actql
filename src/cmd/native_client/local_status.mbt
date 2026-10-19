@@ -27,12 +27,25 @@ fn local_saved_run_status(
   input_root : String,
   child : @argparse.Matches,
   state_only? : Bool = false,
+  capture? : @local_host.NativeLocalJournalCapture? = None,
 ) -> String raise ClientStop {
   let scope = local_host_result(
-    host.authority_scope_cid(settings.principal, settings.connection, crypto),
+    match capture {
+      None =>
+        host.authority_scope_cid(
+          settings.principal,
+          settings.connection,
+          crypto,
+        )
+      Some(original) =>
+        original.authority_scope_cid_in_original_read(
+          settings.principal,
+          settings.connection,
+        )
+    },
   )
   let current = () => {
-    local_run_operation_allowed(host, settings, crypto, scope, "read")
+    local_run_operation_allowed(host, settings, crypto, scope, "read", capture~)
   }
   let (reference, submission, state) = match optional(child, "run-id") {
     Some(id) => {
@@ -41,14 +54,26 @@ fn local_saved_run_status(
         optional(child, "submission-ref-file") is Some(_) {
         stop("InvalidLocalStatusSelection")
       }
-      let selected = match
-        host.lookup_submitted_run_state_by_id(
-          crypto,
-          settings.principal,
-          settings.connection,
-          id,
-          @env.now().to_double(),
-        ) {
+      let lookup = match capture {
+        None =>
+          host.lookup_submitted_run_state_by_id(
+            crypto,
+            settings.principal,
+            settings.connection,
+            id,
+            @env.now().to_double(),
+          )
+        Some(original) =>
+          local_host_result(
+            original.lookup_submitted_run_state_by_id_in_original_read(
+              settings.principal,
+              settings.connection,
+              id,
+              @env.now().to_double(),
+            ),
+          )
+      }
+      let selected = match lookup {
         Ok(value) => value
         Err(issue) => stop(local_saved_state_issue(issue))
       }
@@ -59,6 +84,9 @@ fn local_saved_run_status(
       )
     }
     None => {
+      if capture is Some(_) {
+        stop("LocalOriginalStatusReferenceSupplierUnavailable")
+      }
       let selected = local_original_run_selection(
         host, input_root, child, scope, current,
       )

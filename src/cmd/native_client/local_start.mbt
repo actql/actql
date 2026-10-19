@@ -33,7 +33,23 @@ fn local_run_operation_allowed(
   crypto : @local_crypto.Library,
   scope : String,
   operation : String,
+  capture? : @local_host.NativeLocalJournalCapture? = None,
 ) -> Bool {
+  if capture is Some(original) {
+    return original.authority_scope_cid_in_original_read(
+        settings.principal,
+        settings.connection,
+      )
+      is Ok(current) &&
+      current == scope &&
+      original.authorize_in_original_read({
+        principal: settings.principal,
+        connection: settings.connection,
+        resource: "run",
+        operation,
+      })
+      is Ok(Allow(_))
+  }
   host.authority_scope_cid(settings.principal, settings.connection, crypto)
   is Ok(current) &&
   current == scope &&

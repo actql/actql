@@ -284,6 +284,15 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
           local_check_context(host, crypto, name, capture=Some(capture)).explain(
             input_root, child,
           )
+        } else if operation == "status" {
+          local_saved_run_status_command(
+            host,
+            settings,
+            crypto,
+            input_root,
+            child,
+            capture=Some(capture),
+          )
         } else if public_run && operation == local_run_original_operation() {
           let runtime = preparation_runtime.unwrap_or_else(() => {
             stop("LocalBusinessOriginalUnavailable")
