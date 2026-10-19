@@ -58,7 +58,11 @@ pub fn NativeLocalJournalCapture::authority_scope_cid_in_original_read(
   principal : String,
   connection : String,
 ) -> Result[String, NativeLocalAdoptionIssue] {
-  self.with_current_adoption_material_in_original_read((host, material, _operations) => {
+  self.with_current_adoption_material_in_original_read((
+    host,
+    material,
+    _operations,
+  ) => {
     let body = match
       @host.client_local_adopted_authority_scope_body(
         material,
@@ -80,7 +84,11 @@ pub fn NativeLocalJournalCapture::authorize_in_original_read(
   self : NativeLocalJournalCapture,
   request : @authorization.AccessTuple,
 ) -> Result[@authorization.AccountOutcome, NativeLocalAdoptionIssue] {
-  self.with_current_adoption_material_in_original_read((host, material, _operations) => {
+  self.with_current_adoption_material_in_original_read((
+    host,
+    material,
+    _operations,
+  ) => {
     @host.client_local_adopted_account_outcome(material, host.database, request).map_err(
       local_current_material_issue,
     )
@@ -99,10 +107,18 @@ pub fn NativeLocalJournalCapture::issue_epoch_in_original_read(
   expected_scope : String,
   now : Double,
 ) -> Result[NativeClientSubmissionEpoch, NativeLocalAdoptionIssue] {
-  self.with_current_adoption_material_in_original_read((host, material, operations) => {
-    let body = match @host.client_local_adopted_authority_scope_body(
-      material, host.database, principal, connection,
-    ) {
+  self.with_current_adoption_material_in_original_read((
+    host,
+    material,
+    operations,
+  ) => {
+    let body = match
+      @host.client_local_adopted_authority_scope_body(
+        material,
+        host.database,
+        principal,
+        connection,
+      ) {
       Ok(body) => body
       Err(issue) => return Err(local_current_material_issue(issue))
     }
@@ -113,15 +129,24 @@ pub fn NativeLocalJournalCapture::issue_epoch_in_original_read(
     if current_scope != expected_scope {
       return Err(Epoch(ScopeMismatch))
     }
-    let allowed = match @host.client_local_adopted_account_outcome(
-      material, host.database, { principal, connection, resource: "run", operation: "submit", },
-    ) {
+    let allowed = match
+      @host.client_local_adopted_account_outcome(material, host.database, {
+        principal,
+        connection,
+        resource: "run",
+        operation: "submit",
+      }) {
       Ok(Allow(_)) => true
       Ok(_) => false
       Err(issue) => return Err(local_current_material_issue(issue))
     }
-    host.epoch.issue_epoch_with_operations(
-      expected_scope, allowed, now, operations=Some(operations),
-    ).map_err(issue => Epoch(issue))
+    host.epoch
+    .issue_epoch_with_operations(
+      expected_scope,
+      allowed,
+      now,
+      operations=Some(operations),
+    )
+    .map_err(issue => Epoch(issue))
   })
 }

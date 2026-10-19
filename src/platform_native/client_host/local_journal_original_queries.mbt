@@ -203,7 +203,10 @@ fn NativeLocalJournalReadQueries::operation_access(
   {
     reads: self.access(),
     compare_exchange: (table, key, revision, body) => {
-      match self.query(() => self.database.compare_exchange(table, key, revision, body)) {
+      match
+        self.query(() => {
+          self.database.compare_exchange(table, key, revision, body)
+        }) {
         Ok(value) => value
         Err(issue) => Err(issue)
       }

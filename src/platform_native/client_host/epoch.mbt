@@ -304,7 +304,8 @@ fn NativeClientEpochAuthority::clock(
   if !valid_epoch_clock(now) {
     return Err(InvalidInput)
   }
-  match client_journal_transaction_operation(self.database, JournalBegin, reads) {
+  match
+    client_journal_transaction_operation(self.database, JournalBegin, reads) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
@@ -316,7 +317,12 @@ fn NativeClientEpochAuthority::clock(
         Err(issue) => Err(issue)
         Ok(body) =>
           compare_exchange_client_journal_value(
-            self.database, "client_submission_epoch", "authority", revision, body, operations,
+            self.database,
+            "client_submission_epoch",
+            "authority",
+            revision,
+            body,
+            operations,
           )
           .map(_ => (key, clock))
           .map_err(issue => Physical(issue))
@@ -325,7 +331,12 @@ fn NativeClientEpochAuthority::clock(
   }
   match result {
     Ok(value) =>
-      match client_journal_transaction_operation(self.database, JournalCommit, reads) {
+      match
+        client_journal_transaction_operation(
+          self.database,
+          JournalCommit,
+          reads,
+        ) {
         Ok(_) => Ok(value)
         Err(_) => {
           self.fenced = true
@@ -334,7 +345,12 @@ fn NativeClientEpochAuthority::clock(
         }
       }
     Err(issue) =>
-      match client_journal_transaction_operation(self.database, JournalRollback, reads) {
+      match
+        client_journal_transaction_operation(
+          self.database,
+          JournalRollback,
+          reads,
+        ) {
         Ok(_) => Err(issue)
         Err(_) => {
           self.fenced = true
@@ -352,7 +368,9 @@ pub fn NativeClientEpochAuthority::issue_epoch(
   current_authorization : Bool,
   now : Double,
 ) -> Result[NativeClientSubmissionEpoch, NativeClientEpochIssue] {
-  self.issue_epoch_with_operations(authority_scope_cid, current_authorization, now)
+  self.issue_epoch_with_operations(
+    authority_scope_cid, current_authorization, now,
+  )
 }
 
 ///|
