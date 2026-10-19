@@ -59,7 +59,7 @@ class _OriginalPythonPreparation:
     """
     __slots__ = ('_original', '_process', '_thread', '_interpreter', '_build',
                  '_allocators', '_attempted', '_retired', '_failure',
-                 '_state_dir', '_state_dir_bytes', '_adopted')
+                 '_state_dir', '_state_dir_bytes', '_adopted', '_native_attempted')
 
     def __init__(self) -> None:
         if (sys.implementation.name != 'cpython'
@@ -75,6 +75,7 @@ class _OriginalPythonPreparation:
         self._allocators = _allocator_snapshot()
         self._attempted = self._retired = False
         self._adopted = False
+        self._native_attempted = False
         self._failure: BaseException | None = None
         self._state_dir: str | None = None
         self._state_dir_bytes: bytes | None = None
@@ -89,7 +90,14 @@ class _OriginalPythonPreparation:
         raise TypeError('Original Python preparation cannot be serialized')
 
     def require_current(self) -> None:
-        if (self._original is not self or self._retired
+        if self._retired:
+            raise ValueError('Retired original Python preparation input')
+        self.require_service_current()
+
+    def require_service_current(self) -> None:
+        # Input DATA retirement neither retires nor reissues this service or
+        # the separate Native original retained by its startup caller.
+        if (self._original is not self
                 or self._process != os.getpid() or self._thread is not current_thread()
                 or self._build != (sys.version, sys.implementation.cache_tag, sys.abiflags,
                        sys.getfilesystemencoding(), sys.getfilesystemencodeerrors())
@@ -98,6 +106,20 @@ class _OriginalPythonPreparation:
             raise ValueError('Foreign or retired original Python preparation')
         if self._failure is not None:
             raise _PythonPreparationPending(self) from self._failure
+
+    def begin_native_attempt(self) -> None:
+        self.require_current()
+        if self._native_attempted:
+            raise ValueError('Original Python Native startup was already attempted')
+        self._native_attempted = True
+
+    def require_cleanup_service(self) -> None:
+        # No fresh allocator observation or normal-current recovery is needed
+        # to restore the same Native default after a partial/failed startup.
+        if (self._original is not self or self._process != os.getpid()
+                or self._thread is not current_thread()
+                or self._interpreter != _interpreter()):
+            raise ValueError('Foreign original Python preparation')
 
     def capture_state_dir(self, value: object) -> None:
         self.require_current()
@@ -126,10 +148,7 @@ class _OriginalPythonPreparation:
     def retire_input(self) -> None:
         # This retires only this bounded DATA carrier. It is never a Native,
         # worker, descriptor, allocator-pool or interpreter retirement ACK.
-        if (self._original is not self or self._process != os.getpid()
-                or self._thread is not current_thread()
-                or self._interpreter != _interpreter()):
-            raise ValueError('Foreign original Python preparation')
+        self.require_cleanup_service()
         self._state_dir = self._state_dir_bytes = None
         self._retired = True
 

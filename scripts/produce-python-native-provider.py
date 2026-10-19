@@ -301,6 +301,9 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
         raise ValueError('Exact committed clean Native provider source required')
     run([sys.executable, str(ROOT / 'scripts/generate-local-native-runtime-binding.py'), '--check'])
     run([sys.executable, str(ROOT / 'scripts/generate-local-native-shim-bindings.py'), '--check'])
+    if python_initial_control:
+        run([sys.executable, str(ROOT / 'scripts/generate-local-native-shim-bindings.py'),
+             '--python-initial', '--check'])
     run([sys.executable, str(ROOT / 'scripts/generate-local-native-memory-binding.py'), '--check'])
     pin = json.loads((ROOT / 'toolchain.json').read_text())
     marker = json.loads((moon_home / 'installed.json').read_text())
@@ -396,6 +399,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
             common += ['-DACTQL_PYTHON_INITIAL_OPERATIONAL_ENTRY']
         if initial is not None and name == 'python_initial_platform':
             common += ['-I' + str(initial['include']),
+                       '-include', str(ROOT / ENTRY / 'python_initial_abi.generated.h'),
                        '-DACTQL_PYTHON_INITIAL_SOURCE_SHA="' + source + '"',
                        '-DACTQL_PYTHON_INITIAL_RECIPE_SHA="' + str(initial['sha256']) + '"']
         if allocator is not None:

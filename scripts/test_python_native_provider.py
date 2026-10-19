@@ -151,7 +151,7 @@ class NativeProviderRecipeTests(unittest.TestCase):
 class NativeProviderRegistryCallerTests(unittest.TestCase):
     """Reach the actual build caller before input capture; no compiler runs."""
 
-    def exercise(self, spelling):
+    def exercise(self, spelling, *, python_initial=False):
         class ReachedInputCapture(Exception):
             pass
         with tempfile.TemporaryDirectory() as directory:
@@ -164,7 +164,9 @@ class NativeProviderRegistryCallerTests(unittest.TestCase):
             first = root / 'src' / sorted(PRODUCER.PACKAGES)[0].removeprefix('actql/actql/')
             first.mkdir(parents=True); (first / 'original.mbt').write_text('fixture source\n')
             source = '1' * 40
+            observed_commands = []
             def command(args, **kwargs):
+                observed_commands.append(args)
                 output = ''
                 if args[:3] == ['git', 'rev-parse', 'HEAD']: output = source + '\n'
                 elif args[:2] == ['git', 'status']: pass
@@ -194,12 +196,25 @@ class NativeProviderRegistryCallerTests(unittest.TestCase):
                  patch.object(PRODUCER.platform, 'machine', return_value='arm64'), \
                  patch.object(PRODUCER.subprocess, 'run', side_effect=command), \
                  patch.object(PRODUCER, 'prepare_allocator_source', return_value=(None, {})), \
+                 patch.object(PRODUCER, 'prepare_python_initial_component', return_value={
+                     'include': '/selected/include', 'sha256': '2' * 64,
+                     'runtime': '/selected/derived-runtime.o'}) as initial, \
                  patch.object(PRODUCER, 'original', side_effect=ReachedInputCapture), \
                  patch.object(PRODUCER, 'require_emission_registry', wraps=PRODUCER.require_emission_registry) as gate:
                 expected = ValueError if spelling == 'foreign' else ReachedInputCapture
                 with self.assertRaises(expected):
-                    PRODUCER.build(source, moon, Path('/selected/clang'), sdk, destination, 30)
+                    PRODUCER.build(source, moon, Path('/selected/clang'), sdk, destination, 30,
+                                   python_initial_control=python_initial)
                 gate.assert_called_once()
+                selected_checks = [args for args in observed_commands
+                                   if '--python-initial' in args]
+                if python_initial:
+                    self.assertEqual(len(selected_checks), 1)
+                    self.assertEqual(selected_checks[0][-2:], ['--python-initial', '--check'])
+                    initial.assert_called_once_with(source, moon, destination)
+                else:
+                    self.assertEqual(selected_checks, [])
+                    initial.assert_not_called()
 
     def test_actual_builder_accepts_ordinary_relative_registry(self):
         self.exercise('relative')
@@ -209,6 +224,9 @@ class NativeProviderRegistryCallerTests(unittest.TestCase):
 
     def test_actual_builder_refuses_foreign_registry_before_input_capture(self):
         self.exercise('foreign')
+
+    def test_selected_builder_requires_initial_abi_without_changing_default_entrance(self):
+        self.exercise('relative', python_initial=True)
 
 
 if __name__ == '__main__':

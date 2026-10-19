@@ -2444,6 +2444,20 @@ to that component. Loading or compiling this variant does not cover the
 preceding loader/prelude, complete outside-arena startup, or Worker/VM demand;
 the ordinary factory still needs those separate actual suppliers.
 
+Python binds this selected entrance through a separately generated closed ABI,
+without requiring its symbols on the older diagnostic component. Its startup
+caller retains the same interpreter preparation, library and persistent output
+slot. All error/slot storage precedes acquisition. Reply loss never repeats
+begin; only restoration of the published same original can be attempted.
+Duplicate refusal grants no custody of the first receiver's original. A new
+reentrant refusal cannot be masked by an outer success, including during
+cleanup, while cleanup after an earlier failure remains available.
+
+Retiring bounded startup-input DATA does not retire or recreate its interpreter
+service. The Native caller retains that same service and its callbacks until
+its own separate lifetime ends. Default restoration, input retirement and
+mapping/module/process retirement have distinct meanings and carriers.
+
 ### Bounded private worker selections
 
 The installed worker preparation ports accept exact path text, rather than
