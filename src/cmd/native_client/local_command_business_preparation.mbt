@@ -142,12 +142,15 @@ fn LocalCommandBusinessPreparation::current(
     self.original.closing ||
     self.original.closed ||
     self.original.primary is Some(_) ||
-    !self.original.journal_read_open ||
     settings.principal != self.principal ||
     settings.connection != self.connection {
     return false
   }
   guard self.original.host is Some(physical) &&
+    self.original.pair is Some(pair) &&
+    self.original.read is Some(read) &&
+    physical.observe_local_host_consuming_read_scope(pair, read)
+    is Ok(@initial_arena.ReadEntered) &&
     self.original.business is Some(business) &&
     business.execution is Some(execution) &&
     physical.require_domain_retained_execution_current(execution) is Ok(_) else {
