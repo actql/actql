@@ -22,6 +22,7 @@ pub(all) enum ClientInstalledManagedRunIssue {
   InsufficientCapacity
   Resource(@resources.ImportedChildLedgerIssue)
   Ledger(@resources.LedgerIssue)
+  ModelRead(@publication_host.ClientModelReadPreparationIssue)
 }
 
 ///|
@@ -189,7 +190,8 @@ pub fn begin_installed_managed_run(
   prepared : @publication_host.PreparedClientProgram,
   request : @publication_host.ClientRequestIdentity,
 ) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
-  match @resources.check_node_managed_run_preparation(admission, prepared) {
+  match
+    @resources.check_node_source_compute_run_preparation(admission, prepared) {
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
   }
@@ -207,6 +209,18 @@ pub fn begin_installed_managed_run(
     Err(issue) => return Err(Resource(issue))
     Ok(value) => value
   }
+  Ok(new_installed_managed_run(admission, prepared, request, ledger))
+}
+
+///|
+fn new_installed_managed_run(
+  admission : @resources.NodeManagedRunAdmission[
+    @publication_host.PreparedClientProgram,
+  ],
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  ledger : @resources.Ledger,
+) -> ClientInstalledManagedRun {
   let value : ClientInstalledManagedRun = {
     original: None,
     admission,
@@ -221,7 +235,7 @@ pub fn begin_installed_managed_run(
     ),
   }
   value.original = Some(value)
-  Ok(value)
+  value
 }
 
 ///|

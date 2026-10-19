@@ -2,9 +2,16 @@
 /// The fixed selected Node installer prepares this existing imported child
 /// under a separately admitted Source/managed-Compute recipe. It is not a
 /// Source-only child, numerical profile, permission or another Resource owner.
+priv enum NodeManagedRunPurpose {
+  SourceCompute
+  LocalMockModel
+}
+
+///|
 pub struct NodeManagedRunAdmission[P] {
   priv mut original : NodeManagedRunAdmission[P]?
   priv prepared : P
+  priv purpose : NodeManagedRunPurpose
   priv child : ImportedChildLedger
   priv abort_unpublished : () -> Result[Unit, ImportedChildLedgerIssue]
   priv mut attempted : Bool
@@ -21,10 +28,12 @@ fn[P] prepare_node_managed_run_original(
   child : ImportedChildLedger,
   prepared : P,
   abort_unpublished : () -> Result[Unit, ImportedChildLedgerIssue],
+  purpose? : NodeManagedRunPurpose = SourceCompute,
 ) -> NodeManagedRunAdmission[P] {
   let value : NodeManagedRunAdmission[P] = {
     original: None,
     prepared,
+    purpose,
     abort_unpublished,
     child,
     attempted: false,
@@ -288,6 +297,43 @@ pub fn[P] check_node_managed_run_preparation(
     Ok(())
   } else {
     Err(ForeignOriginal)
+  }
+}
+
+///|
+/// A separate selection, not conversion of an existing Source/Compute child.
+/// Only the fixed Node supplier can create the corresponding purpose below.
+/// This check does not start a child, reserve bytes or authorize Model use.
+pub fn[P] check_node_local_mock_model_run_preparation(
+  value : NodeManagedRunAdmission[P],
+  prepared : P,
+) -> Result[Unit, ImportedChildLedgerIssue] {
+  match check_node_managed_run_preparation(value, prepared) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if value.purpose is LocalMockModel {
+    Ok(())
+  } else {
+    Err(Unavailable)
+  }
+}
+
+///|
+/// Keep the old purpose's entry closed to a separately admitted Model child.
+/// Neither purpose may silently stand in for the other, even at equal limits.
+pub fn[P] check_node_source_compute_run_preparation(
+  value : NodeManagedRunAdmission[P],
+  prepared : P,
+) -> Result[Unit, ImportedChildLedgerIssue] {
+  match check_node_managed_run_preparation(value, prepared) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if value.purpose is SourceCompute {
+    Ok(())
+  } else {
+    Err(Unavailable)
   }
 }
 

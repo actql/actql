@@ -974,6 +974,19 @@ children to retire before bootstrap settlement. This does not relax the park
 fence, clear uncertain usage, reset serials or acknowledge external backing.
 The admission's resident optional reference and attempt latch, bootstrap,
 census and constructor overlap belong to the selected phase even when absent.
+
+A local no-I/O OriginalMock Model purpose is a separate fixed Root selection,
+not a conversion of the Source/Compute purpose. Its Resource admission retains
+that distinction even when the actual imported Ledger ABI and limits match.
+The Host retains the original admission before starting the one Run, verifies
+the exact prepared Program, request, compiled Run, Definition and infer graph,
+and installs the existing Model read Scope with the first retained bootstrap
+before Source children. Failed Scope construction or post-current checks stay
+under the same admission cleanup; they cannot issue a replacement Run or late
+census. Neither this binding nor its opaque returned Scope supplies the actual
+Model service, a generic/async Provider, permission, or an allocation-success
+guarantee. Missing separately selected Root supply remains unavailable without
+falling back to Source/Compute ports.
 Reserving these bytes supplies neither a missing operational purpose nor
 Model or Account authority. The Host's normal Run retirement uses the same
 admission cleanup rather than separately stopping around this retained duty.
