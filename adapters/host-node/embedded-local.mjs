@@ -1711,11 +1711,13 @@ async function openInstalledHost(originalInstallation, preparation) {
         const graph = checked(moon.clientProgramInstalledComposedInferPlanGraph(occurrence, execution));
         const observeAccount = () => observeInstalledAccount(moon, authorization);
         const account = observeAccount();
+        const providerBinding = admitInstalledModelProviderBinding(moon, 'mock', {
+          bindingOriginals: mockModels.providerBindingOriginalsForRuntime(moon)});
         const selection = Object.freeze({localMock: true, step: selectedStep,
           occurrence, graph, computePrefix: runtimeOptionalField(segments, 0),
           computeSuffix: runtimeField(segments, 1),
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
-          account, observeAccount,
+          account, observeAccount, providerBinding,
           currentProvider() {mockModels.originalsForRuntime(moon); return true;}});
         if (retain) inferSelections.set(preparedProgram, selection);
         return selection;

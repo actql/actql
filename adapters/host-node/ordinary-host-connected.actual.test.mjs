@@ -134,9 +134,11 @@ test('ordinary actual Mock Host runs original Quickstart INFER without applying 
     const query = source.slice(0, source.indexOf('|> EFFECT')).trimEnd() + ';';
     assert.deepEqual(await client.sql(query).all(), [
       {id: '001Acme', notes: 'Evaluating a competitor; usage down since June.', active_users: '4', trend: 'down',
-        risk: {outcome: 'ok', value: {level: 'high', reason: 'falling usage and a competitor evaluation'}}},
+        risk: {input_key: {id: '001Acme'}, outcome: 'ok',
+          value: {level: 'high', reason: 'falling usage and a competitor evaluation'}}},
       {id: '001Globex', notes: 'Several support tickets about the new pricing.', active_users: '12', trend: 'flat',
-        risk: {outcome: 'ok', value: {level: 'high', reason: 'support tickets about pricing'}}},
+        risk: {input_key: {id: '001Globex'}, outcome: 'ok',
+          value: {level: 'high', reason: 'support tickets about pricing'}}},
     ]);
     const original = JSON.parse(await readFile('mock/data.json', 'utf8'));
     assert.deepEqual(original.salesforce.Account.rows.map(row => row.Churn_Risk__c), ['low', 'medium']);

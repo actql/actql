@@ -152,6 +152,7 @@ export async function loadInstalledProjectMockAnswers(moon,project,profile,
         failed:false,failure:undefined,value:undefined,retired:false};
       modelBinding=state;
       const modelCall=(name,...args)=>Reflect.apply(state.callbacks[name],moon,args);
+      const profileOriginalsPort=moon.clientProgramMockProfileOriginals;
       const currentModels=(runtime,receiver)=>{
         if(runtime!==moon||receiver!==state.value)fail('ForeignInstalledMockModelOriginal');
         if(retired||state.retired)fail('InstalledMockModelsRetired');
@@ -196,6 +197,20 @@ export async function loadInstalledProjectMockAnswers(moon,project,profile,
         state.entries=Object.freeze(state.entries);
         state.value=Object.freeze({
           originalsForRuntime(runtime){return currentModels(runtime,this);},
+          providerBindingOriginalsForRuntime(runtime){
+            currentModels(runtime,this);
+            if(typeof profileOriginalsPort!=='function')fail('InstalledMockModelRuntimeUnavailable');
+            const material=Reflect.apply(profileOriginalsPort,moon,[state.profile]);
+            if(material===undefined)fail('ForeignInstalledMockModelOriginal');
+            const fields=Array.from({length:6},(_,index)=>runtimeField(material,index));
+            if(fields.some(value=>typeof value!=='string'))fail('InvalidHostRuntimeResult');
+            currentModels(runtime,this);
+            return Object.freeze({
+              installationRevision:Object.freeze({wire:fields[0],cid:fields[1]}),
+              configurationContract:Object.freeze({wire:fields[2],cid:fields[3]}),
+              configuration:Object.freeze({wire:fields[4],cid:fields[5]}),
+            });
+          },
           forTaskCid(runtime,taskCid){
             const entries=currentModels(runtime,this);
             if(typeof taskCid!=='string')fail('InvalidInstalledMockModelTask');

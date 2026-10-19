@@ -71,6 +71,25 @@ test('actual public Mock Task binds the same checked answers and ignores configu
   assert.strictEqual(f.bind(),bound);
 });
 
+test('actual Mock provider binding uses its same profile originals and refuses lost currentness',async t => {
+  const f=await fixture(t),bound=f.bind();
+  const originals=bound.providerBindingOriginalsForRuntime(moon);
+  const value=checked(moon.clientProgramModelProviderBinding('mock',
+    originals.installationRevision.wire,originals.configurationContract.wire,
+    originals.configuration.wire));
+  const body=JSON.parse(moon.strategyRunEvidenceJson(value));
+  assert.equal(body.provider_id,'mock');
+  assert.equal(body.installation_revision_cid,originals.installationRevision.cid);
+  assert.equal(body.configuration_contract_cid,originals.configurationContract.cid);
+  assert.equal(body.configuration_cid,originals.configuration.cid);
+  assert.equal(JSON.parse(originals.configurationContract.wire).network,false);
+  assert.throws(() => bound.providerBindingOriginalsForRuntime.call({},moon),
+    {code:'ForeignInstalledMockModelOriginal'});
+  f.loseCurrent();
+  assert.throws(() => bound.providerBindingOriginalsForRuntime(moon),
+    {code:'OriginalMockHostCurrentRefused'});
+});
+
 test('actual Mock Model refuses equal-wire foreign Task instead of replacing the original answers',async t => {
   const f=await fixture(t),bound=f.bind(),entry=bound.originalsForRuntime(moon)[0];
   const foreign=checked(moon.clientProgramReadPublicModelTask(
