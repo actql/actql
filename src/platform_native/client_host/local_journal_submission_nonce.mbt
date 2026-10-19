@@ -18,7 +18,7 @@ pub fn NativeLocalJournalCapture::submission_nonce_in_original_read(
         host, material, principal, connection, expected_scope,
       ) {
       Ok(true) => self.crypto.random_bytes(32).map_err(issue => Crypto(issue))
-      Ok(false) => Err(AuthorizationDenied)
+      Ok(false) => Err(Journal(AuthorizationDenied))
       Err(issue) => Err(issue)
     }
   })
@@ -37,7 +37,7 @@ pub fn NativeLocalJournalCapture::submission_nonce_in_original_read(
         host, material, principal, connection, expected_scope,
       ) {
       Ok(true) => Ok(nonce)
-      Ok(false) => Err(AuthorizationDenied)
+      Ok(false) => Err(Journal(AuthorizationDenied))
       Err(issue) => Err(issue)
     }
   })
