@@ -31,7 +31,7 @@ test "explicit DECIMAL_DIVIDE preserves original static target mode and refusal 
   }
   for
     text in [
-      "DECIMAL_DIVIDE(amount,2)", "DECIMAL_DIVIDE(amount,2,2)", "ACTQL.DECIMAL_DIVIDE(amount,2,4,2,'floor')",
+      "DECIMAL_DIVIDE(amount,2)", "ACTQL.DECIMAL_DIVIDE(amount,2,4,2,'floor')",
     ] {
     assert_true(
       lower(fixture(text), path => Some(path[0].value), limits())
@@ -49,4 +49,25 @@ test "explicit DECIMAL_DIVIDE preserves original static target mode and refusal 
     })
     is Err({ issue: WorkLimit, .. }),
   )
+}
+
+///|
+test "exact division public SQL target is static and three arguments equal full body" {
+  for scale in ["0", "3", "38"] {
+    assert_eq(
+      emit("`DeCiMaL_DiViDe`(@left,amount,(" + scale + "))"),
+      emit("DECIMAL_DIVIDE(@left,amount,38," + scale + ",'exact')"),
+    )
+  }
+  for
+    text in [
+      "DECIMAL_DIVIDE(a,b,@s)", "DECIMAL_DIVIDE(a,b,s)", "DECIMAL_DIVIDE(a,b,1+1)",
+      "DECIMAL_DIVIDE(a,b,39)", "DECIMAL_DIVIDE(a,b,-1)", "DECIMAL_DIVIDE(a,b,1.5)",
+      "DECIMAL_DIVIDE(a,b,'2')", "QUANTIZE(a,38,2,'exact')",
+    ] {
+    assert_true(
+      lower(fixture(text), path => Some(path[0].value), limits())
+      is Err({ issue: InvalidArguments, .. }),
+    )
+  }
 }

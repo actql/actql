@@ -32,7 +32,7 @@ export function interfaceGenerationFreshness(root) {
     'generate-interactive-run-control-wire.mjs', 'generate-python-client-wire.mjs',
     'lowering-registry-vectors.mjs', 'native-cli-default-assets.mjs',
     'catalog-body-dependencies.mjs', 'check-stage-semantics.mjs',
-    'compilation-manifests.mjs', 'current-timestamp-expression-contract.mjs', 'query-acquisition-contract.mjs',
+    'compilation-manifests.mjs', 'current-timestamp-expression-contract.mjs', 'decimal-division-exact-contract.mjs', 'query-acquisition-contract.mjs',
     'query-process-evidence.mjs', 'query-two-receipt.mjs',
     'query-resource-scopes.mjs', 'check-query-evidence-fixtures.mjs',
     'fixed-compute-capacity.mjs', 'managed-runtime-vectors.mjs'];

@@ -854,10 +854,45 @@ for (const entrance of ['local', 'http']) {
           ...(text.includes('@whole') ? {parameterDeclarations:{whole:{type:'int64'}},parameters:{whole:'9007199254740993'}} : {})});
         assert.equal(checked.report.verdict,'invalid',text);
       }
-      for (const text of ["SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2) AS quotient","SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2,2) AS quotient","SELECT ACTQL.DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2,6,2,'floor') AS quotient"]) {
+      for (const text of ["SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2) AS quotient","SELECT ACTQL.DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2,6,2,'floor') AS quotient"]) {
         const checked = await client.check(text,{kind:'text',scope:'bound_input',format});
         assert.equal(checked.report.verdict,'undetermined');
         assert.equal(checked.report.coverage.limits[0].code,'implementation_limit');
+      }
+    }
+  });
+
+  test(`${entrance}: exact-at-scale DECIMAL_DIVIDE keeps original typed operands and static scale`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        "SELECT DECIMAL_DIVIDE(CAST('1' AS DECIMAL(1,0)),8,3) AS quotient",
+        "SELECT DECIMAL_DIVIDE(CAST('-1' AS DECIMAL(1,0)),4,(2)) AS quotient",
+        "SELECT DECIMAL_DIVIDE(NULL,NULL,3) AS quotient",
+        "SELECT DECIMAL_DIVIDE(@amount,@divisor,3) AS quotient",
+        "SELECT CAST('1' AS DECIMAL(1,0)) AS amount |> SELECT DECIMAL_DIVIDE(amount,8,3) AS quotient",
+        "SELECT DECIMAL_DIVIDE(CAST('1' AS DECIMAL(1,0)),8,38,3,'exact') AS quotient",
+      ]) {
+        const checked = await client.check(text, {kind:'text',scope:'bound_input',format,
+          ...(text.includes('@amount') ? {parameterDeclarations:{amount:{type:'decimal',precision:1,scale:0},divisor:{type:'number'}},parameters:{amount:'1',divisor:8}} : {})});
+        assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+        assert.deepEqual(checked.report.runnable, {verdict:'yes',reasons:[]});
+        assert.deepEqual(checked.report.coverage, {limits:[],unresolved:[]});
+        assert.equal(getCheckInput(checked,'source').text,text);
+      }
+      for (const text of [
+        'SELECT DECIMAL_DIVIDE(1,8,3) AS bad',
+        "SELECT DECIMAL_DIVIDE(CAST('1' AS DECIMAL(1,0)),'8',3) AS bad",
+        "SELECT DECIMAL_DIVIDE(CAST('1' AS DECIMAL(1,0)),@whole,3) AS bad",
+        "SELECT DECIMAL_DIVIDE(CAST('1' AS DECIMAL(1,0)),8,@scale) AS bad",
+        "SELECT DECIMAL_DIVIDE(CAST('1' AS DECIMAL(1,0)),8,1+2) AS bad",
+        "SELECT DECIMAL_DIVIDE(CAST('1' AS DECIMAL(1,0)),8,39) AS bad",
+        "SELECT QUANTIZE(CAST('1' AS DECIMAL(1,0)),38,3,'exact') AS bad",
+      ]) {
+        const checked = await client.check(text, {kind:'text',scope:'bound_input',format,
+          ...(text.includes('@whole') ? {parameterDeclarations:{whole:{type:'int64'}},parameters:{whole:'8'}} : {}),
+          ...(text.includes('@scale') ? {parameterDeclarations:{scale:{type:'number'}},parameters:{scale:3}} : {})});
+        assert.equal(checked.report.verdict,'invalid',text);
       }
     }
   });

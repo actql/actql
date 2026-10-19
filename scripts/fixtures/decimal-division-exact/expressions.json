@@ -1,0 +1,53 @@
+[
+  {
+    "value": {
+      "decimal_divide": {
+        "left": {
+          "field": "amount"
+        },
+        "right": {
+          "literal": 8
+        },
+        "precision": 38,
+        "scale": 3,
+        "rounding": "exact"
+      }
+    },
+    "preimage": "{\"decimal_divide\":{\"left\":{\"field\":\"amount\"},\"precision\":38,\"right\":{\"literal\":8},\"rounding\":\"exact\",\"scale\":3}}",
+    "cid": "sha256:d4ed34453d7ee3de048545328ab47673227633b860b4abb9e723ae5cf9b32f1e"
+  },
+  {
+    "value": {
+      "decimal_divide": {
+        "left": {
+          "$param": "left"
+        },
+        "right": {
+          "$param": "right"
+        },
+        "precision": 38,
+        "scale": 0,
+        "rounding": "exact"
+      }
+    },
+    "preimage": "{\"decimal_divide\":{\"left\":{\"$param\":\"left\"},\"precision\":38,\"right\":{\"$param\":\"right\"},\"rounding\":\"exact\",\"scale\":0}}",
+    "cid": "sha256:4606ab550ad5a53083120b3c71bea088fc7d6dbc486d3328d285ec857a7b9852"
+  },
+  {
+    "value": {
+      "decimal_divide": {
+        "left": {
+          "literal": null
+        },
+        "right": {
+          "literal": null
+        },
+        "precision": 38,
+        "scale": 38,
+        "rounding": "exact"
+      }
+    },
+    "preimage": "{\"decimal_divide\":{\"left\":{\"literal\":null},\"precision\":38,\"right\":{\"literal\":null},\"rounding\":\"exact\",\"scale\":38}}",
+    "cid": "sha256:3cf531f0439d6be2b234479bf96d5c8a7ef1f44fa3daa0ce72ffbfaa53c158b6"
+  }
+]
