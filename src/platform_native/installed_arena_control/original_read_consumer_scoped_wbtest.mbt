@@ -216,7 +216,7 @@ test "actual original read retires nested managed graphs only after their last a
   assert_eq(held.active, 0L)
   assert_eq(held.pending_extents, 0L)
   assert_eq(graph.val.unwrap().text[63][31], "s-2047")
-  assert_eq(graph.val.unwrap().bytes[63][15][0], 78.to_byte())
+  assert_eq(graph.val.unwrap().bytes[63][15][0], (78).to_byte())
   // Independent fixed corpus: 11178 UTF16 units + 359424 byte values.
   assert_eq(original_read_managed_graph_checksum(graph.val.unwrap()), 370602)
   graph.val = None
