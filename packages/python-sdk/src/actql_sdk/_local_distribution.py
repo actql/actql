@@ -218,18 +218,24 @@ def installed_local_components() -> LocalComponents:
         # The cohort builder writes this source-qualified binding into the SDK
         # wheel. An independently changed runtime manifest cannot self-authorize
         # its image by changing both the declared recipe and file checksums.
-        binding = _closed(json.loads(_read_file(sdk_root / '_local_release_binding.json',
-            maximum=65536), object_pairs_hook=_pairs),
-            ('source_sha', 'package_version', 'core_abi', 'artifact_sha256', 'host_capacity_sha256'))
+        decoded = json.loads(_read_file(sdk_root / '_local_release_binding.json',
+            maximum=65536), object_pairs_hook=_pairs)
+        platform_runtime = type(decoded) is dict and 'runtime_allocation' in decoded
+        binding = _closed(decoded,
+            ('source_sha', 'package_version', 'core_abi', 'artifact_sha256',
+             'runtime_allocation' if platform_runtime else 'host_capacity_sha256'))
         if (not _hex(binding['source_sha'], 40) or binding['package_version'] != version
                 or type(binding['core_abi']) is not int or binding['core_abi'] != LOCAL_CORE_ABI
                 or not _hex(binding['artifact_sha256'], 64)
-                or not _hex(binding['host_capacity_sha256'], 64)):
+                or (binding['runtime_allocation'] != 'platform' if platform_runtime
+                    else not _hex(binding['host_capacity_sha256'], 64))):
             raise LocalInstallationError('Installed SDK Local cohort binding is incompatible')
         components = inspect_local_components(root, package_version=version,
             artifact_sha256=binding['artifact_sha256'])
         if components.source_sha != binding['source_sha']:
             raise LocalInstallationError('Installed SDK and Local source do not match')
+        if platform_runtime != (components.image_recipe.runtime_allocation == 'platform'):
+            raise LocalInstallationError('Installed SDK and runtime allocation differ')
         return components
     except (OSError, ValueError, UnicodeError, RecursionError) as original:
         raise LocalInstallationError('Installed SDK Local cohort binding is unavailable or invalid') from original

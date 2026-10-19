@@ -2615,3 +2615,19 @@ the documented trusted state-directory option, including PathLike, once before
 component acquisition and preserves its spelling and encoded path bound.
 Reopen uses the existing durable installation validation, locks and saved Run
 originals; it neither recreates missing authority nor retries uncertain work.
+
+The ordinary image recipe explicitly selects `runtime_allocation: "platform"`
+and the existing pinned Wasmtime dependency. Its provider fields are absent
+originals, represented by null, rather than a fabricated Native holding or a
+zero-capacity provider. Source/module/ABI, target, Engine settings, exact native
+library and compiled-image hashes remain bound together. A mismatching image
+is refused; it does not trigger JIT compilation or another runtime at load.
+
+The existing maintainer compiler may prepare that ordinary image using actual
+platform Config/pool/Engine/Module handles. It closes those handles and does
+not create a Wasm instance, business permission or worker funding. Packaging
+binds the artifact digest into the matching SDK wheel and retains the declared
+Wasmtime dependency. It does not ship an unused private runtime, import an
+unused Host-capacity declaration or claim installed execution from compilation.
+The original arena-backed recipe, private provider-link checks and strong
+same-image physical verifier remain distinct and unchanged in meaning.

@@ -314,6 +314,35 @@ class LocalDistributionTests(unittest.TestCase):
             with self.assertRaisesRegex(LocalInstallationError, 'source do not match'):
                 installed_local_components()
 
+    def test_platform_binding_requires_same_recipe_without_a_fabricated_capacity(self):
+        original = json.loads(ORIGINAL)
+        original.update(runtime_allocation='platform', provider_library_sha256=None,
+                        provider_library_bytes=None)
+        encoded = json.dumps(original).encode()
+        (self.directory / 'engine-recipe.json').write_bytes(encoded)
+        self.body['engine_recipe'].update(bytes=len(encoded), sha256=hashlib.sha256(encoded).hexdigest())
+        self.body['compiled_image'].update(runtime_allocation='platform', provider_library_sha256=None)
+        self.write_manifest()
+        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 74,
+                   'artifact_sha256': hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest(),
+                   'runtime_allocation': 'platform'}
+        path = self.directory / '_local_release_binding.json'
+        path.write_text(json.dumps(binding))
+        versions = {'actql': '0.0.0.dev0', 'actql-sdk': '0.0.0.dev0',
+                    'actql-local-runtime': '0.0.0.dev0', 'wasmtime': '38.0.0'}
+        with patch('actql_sdk._local_distribution.metadata.version', side_effect=versions.__getitem__), \
+                patch('actql_sdk._local_distribution.resources.files', return_value=self.directory):
+            selected = installed_local_components()
+            self.assertEqual(selected.image_recipe.runtime_allocation, 'platform')
+            self.assertFalse((self.directory / '_local_host_capacity.json').exists())
+            for change in ({'runtime_allocation': 'native-owned'}, {'host_capacity_sha256': 'c' * 64}):
+                path.write_text(json.dumps(binding | change))
+                with self.assertRaises(LocalInstallationError): installed_local_components()
+            path.write_text(json.dumps({k: v for k, v in binding.items() if k != 'runtime_allocation'}
+                                      | {'host_capacity_sha256': 'c' * 64}))
+            with self.assertRaisesRegex(LocalInstallationError, 'allocation differ'):
+                installed_local_components()
+
     def test_recipe_and_sdk_versions_dependencies_are_one_cohort(self):
         sdk = tomllib.loads((ROOT / 'packages/python-sdk/pyproject.toml').read_text())['project']
         runtime = tomllib.loads((ROOT / 'packages/python-local-runtime/pyproject.toml').read_text())['project']

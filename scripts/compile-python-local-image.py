@@ -63,6 +63,7 @@ def _compiler_configuration_header(recipe: _SelectedImageRecipe) -> bytes:
     module, instance, funding or physical acceptance is issued here.
     """
     settings = _selected_engine_settings(recipe)
+    provider_digest, _ = recipe.owned_provider()
     lines = [
         '/* Generated from the original validated Python Engine Owner. */',
         '#ifndef ACTQL_COMPILER_CONFIGURATION_GENERATED_H',
@@ -75,7 +76,7 @@ def _compiler_configuration_header(recipe: _SelectedImageRecipe) -> bytes:
     lines.append(f'#define ACTQL_COMPILER_IMAGE_MAX_BYTES {recipe.image_bytes_limit}ULL')
     for name, value in (('MODULE', recipe.module_sha256),
                         ('RUNTIME', recipe.runtime_library_sha256),
-                        ('PROVIDER', recipe.provider_library_sha256),
+                        ('PROVIDER', provider_digest),
                         ('ENGINE', hashlib.sha256(recipe.engine_body).hexdigest())):
         lines.append(f'#define ACTQL_COMPILER_{name}_SHA256 "{value}"')
     lines += ['static inline wasmtime_error_t *actql_compiler_configure(',
@@ -541,7 +542,8 @@ def _acquire_compiler_holding(original: dict[str, Any],
     return holding
 
 
-def verify(core_receipt: Path, expected_source: str) -> dict[str, Any]:
+def verify(core_receipt: Path, expected_source: str, *,
+           runtime_allocation: str = 'native-owned') -> dict[str, Any]:
     if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT):
         raise ValueError('Compile the image from committed clean source')
     source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
@@ -559,7 +561,10 @@ def verify(core_receipt: Path, expected_source: str) -> dict[str, Any]:
         raise ValueError('Original image compiler module path is unavailable')
     assembly.component(module, digest, 32 * 1024 * 1024, 'client_host_wasm.wasm')
     version = read_cohort(ROOT)
-    original = assembly.recipe.image_recipe_original(ROOT, source)
+    original = (assembly.recipe.image_recipe_original(ROOT, source)
+        if runtime_allocation == 'native-owned' else
+        assembly.recipe.image_recipe_original(ROOT, source,
+            runtime_allocation=runtime_allocation))
     recipe = _recipe_from_original(original, source_sha=source,
                                    package_version=version, module_sha256=digest)
     return {'source': source, 'module': module, 'module_sha256': digest,
@@ -577,6 +582,7 @@ class _CompilerRuntime(NamedTuple):
 
 def _runtime_files(directory: Path, recipe: _SelectedImageRecipe) -> tuple[tuple[str, int, str], ...]:
     """Snapshot/check only the output of the shared original staging routine."""
+    provider_digest, provider_bytes = recipe.owned_provider()
     if (not directory.is_absolute() or directory.resolve() != directory
             or directory.is_symlink() or not directory.is_dir()):
         raise ValueError('Original compiler private runtime directory is unavailable')
@@ -592,7 +598,7 @@ def _runtime_files(directory: Path, recipe: _SelectedImageRecipe) -> tuple[tuple
             'actql_local_runtime/_wasmtime/darwin-aarch64/_libwasmtime.dylib':
                 (recipe.runtime_library_bytes, recipe.runtime_library_sha256),
             'actql_local_runtime/_wasmtime/darwin-aarch64/libactql_native_control.dylib':
-                (recipe.provider_library_bytes, recipe.provider_library_sha256),
+                (provider_bytes, provider_digest),
         }.get(name)
         if selected is not None:
             size, digest = selected
@@ -820,7 +826,11 @@ class _CompilerCustody:
     not an acknowledgment and does not permit replay of that foreign call.
     """
 
-    def __init__(self, holding: _NativeHoldingLease) -> None:
+    def __init__(self, holding: _NativeHoldingLease | None, *,
+                 runtime_allocation: str = 'native-owned') -> None:
+        if (runtime_allocation not in ('native-owned', 'platform')
+                or (holding is None) != (runtime_allocation == 'platform')):
+            raise ValueError('Compiler allocation selection does not match its original')
         self.holding = holding
         self.preparation: _CompilerRuntime | None = None
         self.runtime_modules: tuple[Any, ...] = ()
@@ -835,6 +845,8 @@ class _CompilerCustody:
     def scoped(self, operation: Any) -> Any:
         if self._unknown is not None:
             raise self._unknown
+        if self.holding is None:
+            return operation()
         scope = self.holding._scope()
         try:
             scope.__enter__()
@@ -890,7 +902,8 @@ class _CompilerCustody:
             self.scoped(self._close_handles)
         # Once all handles and scope leave are confirmed, a known retirement
         # refusal retries only this same holding, without reentering its TLS.
-        self.holding.close()
+        if self.holding is not None:
+            self.holding.close()
         self._closed = True
 
 
@@ -904,6 +917,75 @@ def _verify_compiler_holding(original: dict[str, Any], holding: _NativeHoldingLe
     if (not isinstance(provider, CDLL) or type(provider._name) is not str
             or Path(provider._name) != original['provider_library']):
         raise ValueError('Original compiler holding uses a different selected provider')
+
+
+def compile_platform_image(core_receipt: Path, expected_source: str,
+                           destination: Path) -> dict[str, object]:
+    """Prepare the ordinary image using the pinned platform runtime service.
+
+    This creates real Config/pool/Engine/Module handles and closes them. It
+    supplies no arena, worker, Run result or final installed acceptance.
+    """
+    from actql_sdk._local_engine import _platform_runtime_library
+    original = verify(core_receipt, expected_source, runtime_allocation='platform')
+    selected = original['recipe']
+    if selected.runtime_allocation != 'platform' or destination.exists():
+        raise ValueError('Select a fresh ordinary platform image preparation')
+    library = _platform_runtime_library(selected)
+    wasm = _read_file(original['module'], maximum=32 * 1024 * 1024,
+                     digest=original['module_sha256'], capture=True)
+    custody = _CompilerCustody(None, runtime_allocation='platform')
+    primary: BaseException | None = None
+    encoded: bytes | bytearray | None = None
+    try:
+        runtime = import_module('wasmtime')
+        ffi = import_module('wasmtime._ffi')
+        if Path(ffi.filename) != library or Path(ffi.dll._name) != library:
+            raise ValueError('Compiler loaded another platform runtime')
+        _platform_runtime_library(selected)
+        custody.ffi = ffi
+        custody.config = runtime.Config()
+        custody.pool = ffi.wasmtime_pooling_allocation_config_new()
+        if not custody.pool:
+            raise RuntimeError('Platform compiler pool allocation failed')
+        _configure_selected_engine(custody.config, custody.pool, ffi, runtime, selected)
+        custody.close_pool()
+        custody.engine = runtime.Engine(custody.config)
+        custody.config = None
+        custody.module = runtime.Module(custody.engine, wasm)
+        _validate_core_module(runtime, custody.module)
+        encoded = custody.module.serialize()
+        if not isinstance(encoded, (bytes, bytearray)) or not 0 < len(encoded) <= selected.image_bytes_limit:
+            raise ValueError('Compiled image exceeds the selected file limit')
+    except BaseException as error:
+        primary = error
+    try:
+        custody.close()
+    except BaseException as cleanup_error:
+        raise ImageCompilerCleanupError(custody, primary) from cleanup_error
+    if primary is not None:
+        raise primary
+    assert encoded is not None
+    final = verify(core_receipt, expected_source, runtime_allocation='platform')
+    if (final['recipe'] != selected or _platform_runtime_library(selected) != library
+            or final['core_receipt_sha256'] != original['core_receipt_sha256']):
+        raise ValueError('Ordinary image compiler inputs changed')
+    destination.mkdir()
+    image = destination / 'client_host_wasm.cwasm'
+    with image.open('xb') as output:
+        output.write(encoded)
+    image_hash = hashlib.sha256(encoded).hexdigest()
+    _read_file(image, maximum=selected.image_bytes_limit, expected=len(encoded), digest=image_hash)
+    result: dict[str, object] = {'source_sha': expected_source,
+        'module_sha256': original['module_sha256'], 'core_abi': LOCAL_CORE_ABI,
+        'wasmtime_version': WASMTIME_VERSION, 'runtime_allocation': 'platform',
+        'runtime_library_sha256': selected.runtime_library_sha256,
+        'provider_library_sha256': None,
+        'engine_sha256': hashlib.sha256(selected.engine_body).hexdigest(),
+        'image': str(image.resolve()), 'image_sha256': image_hash,
+        'compiled': True, 'runtime_executed': False, 'public_local_acceptance': False}
+    (destination / 'image-receipt.json').write_text(json.dumps(result, indent=2) + '\n')
+    return result
 
 
 def compile_image(core_receipt: Path, expected_source: str, destination: Path, *,
@@ -1273,6 +1355,7 @@ if __name__ == '__main__':
     mode.add_argument('--prepare-c-config', action='store_true')
     mode.add_argument('--prepare-c-program', action='store_true')
     mode.add_argument('--compile', action='store_true')
+    mode.add_argument('--compile-platform', action='store_true')
     args = parser.parse_args()
     if args.compile and (not math.isfinite(args.cleanup_seconds) or args.cleanup_seconds <= 0):
         parser.error('Select a finite positive failed-child cleanup window')
@@ -1291,6 +1374,11 @@ if __name__ == '__main__':
             bindings_source=args.bindings_source, native_libraries=args.native_libraries,
             preparation=args.preparation, c_api_headers=args.c_api_headers,
             clang=args.clang, sdk=args.sdk, seconds=args.seconds)))
+    elif args.compile_platform:
+        if any((args.bindings_source, args.native_libraries, args.preparation,
+                args.c_api_headers, args.clang, args.sdk)):
+            parser.error('Platform compiler uses only the original pinned dependency')
+        print(json.dumps(compile_platform_image(args.core_receipt, args.source, args.destination)))
     else:
         try:
             compiled = compile_from_original(args.core_receipt, args.source, args.destination,

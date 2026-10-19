@@ -97,12 +97,26 @@ def _checked_installed_image_file(components: LocalComponents) -> _InstalledImag
 
 
 def _verify_original_provider(library: Path, recipe: _SelectedImageRecipe) -> None:
+    digest, size = recipe.owned_provider()
     provider = library.parent / 'libactql_native_control.dylib'
     for directory in (library.parent.parent, library.parent):
         if directory.is_symlink() or not directory.is_dir():
             raise LocalInstallationError('Installed original native provider directory is invalid')
-    _read_file(provider, maximum=recipe.provider_library_bytes,
-               expected=recipe.provider_library_bytes, digest=recipe.provider_library_sha256)
+    _read_file(provider, maximum=size, expected=size, digest=digest)
+
+
+def _platform_runtime_library(recipe: _SelectedImageRecipe) -> Path:
+    """Resolve the existing pinned dependency, without loading native code."""
+    recipe.validate()
+    if metadata.version('wasmtime') != WASMTIME_VERSION:
+        raise LocalInstallationError('Installed image runtime version mismatch')
+    root = resources.files('wasmtime')
+    if not isinstance(root, Path):
+        raise LocalInstallationError('Installed image runtime requires ordinary wheel files')
+    library = root / 'darwin-aarch64/_libwasmtime.dylib'
+    _read_file(library, maximum=recipe.runtime_library_bytes,
+               expected=recipe.runtime_library_bytes, digest=recipe.runtime_library_sha256)
+    return library
 
 
 def _installed_runtime_library(components: LocalComponents, *, native: bool = False) -> Path:
@@ -116,6 +130,7 @@ def _installed_runtime_library(components: LocalComponents, *, native: bool = Fa
         raise LocalInstallationError('Installed image original component binding mismatch')
     _read_file(components.module, maximum=32 * 1024 * 1024, digest=components.module_sha256)
     if native:
+        recipe.owned_provider()
         # Do not import the private bindings to discover their directory. Their
         # generated functions capture DLL addresses at import, after the trusted
         # supplier has acquired and transferred the original native holding.
@@ -126,12 +141,7 @@ def _installed_runtime_library(components: LocalComponents, *, native: bool = Fa
         # can resolve it. These bytes confer no physical funding or authority.
         _verify_original_provider(root / 'darwin-aarch64/_libwasmtime.dylib', recipe)
     else:
-        if metadata.version('wasmtime') != WASMTIME_VERSION:
-            raise LocalInstallationError('Installed image runtime version mismatch')
-        selected_root = resources.files('wasmtime')
-        if not isinstance(selected_root, Path):
-            raise LocalInstallationError('Installed image runtime requires ordinary wheel files')
-        root = selected_root
+        return _platform_runtime_library(recipe)
     library = root / 'darwin-aarch64/_libwasmtime.dylib'
     _read_file(library, maximum=recipe.runtime_library_bytes,
                expected=recipe.runtime_library_bytes, digest=recipe.runtime_library_sha256)
