@@ -5,7 +5,6 @@
 fn shared_mock_test_parent() -> @resources.LedgerLimits {
   let base = standard_limits().model.ledger
   {
-    ..base,
     planning_work: 10100,
     attempts: 5,
     holdings: 101,

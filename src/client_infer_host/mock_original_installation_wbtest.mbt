@@ -133,7 +133,7 @@ fn original_mock_fixture(
     ..original_limits,
     model: {
       ..original_limits.model,
-      ledger: purpose_ledger.or_else({
+      ledger: purpose_ledger.unwrap_or_else(() => {
         ..original_limits.model.ledger,
         attempts: 4,
         transfer_bytes: 133072L,
