@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shlex
 import stat
 import subprocess
@@ -256,11 +257,114 @@ def build(source: str, archive: Path, provider_receipt: Path, clang: Path, sdk: 
     return record
 
 
+PROCESS_IMPORTS = frozenset('actql_' + name for name in (
+    'native_owned_current', 'native_owned_retire', 'native_file_scoped_allocate',
+    'native_file_scoped_free', 'read_context_retain',
+    'read_context_release_after_owner_ack', 'bootstrap_current_read_context'))
+
+
+def inspect_process_component(library: Path, *, execute: Any = subprocess.check_output) -> dict[str, Any]:
+    """Check the component image only; no process provider or physical admission."""
+    observed = identity(library, 64 * 1024 * 1024)
+    def read(tool: str, arguments: list[str]) -> str:
+        return cast(str, execute([tool, *arguments], text=True))
+    names = {line.split()[-1] for line in read('/usr/bin/nm', ['-gU', str(library)]).splitlines()}
+    require(names == EXPORTS, 'Unexpected process SQLite component exports')
+    undefined = set(read('/usr/bin/nm', ['-u', str(library)]).split())
+    require({name for name in undefined if name.startswith('_actql_')} ==
+            {'_' + name for name in PROCESS_IMPORTS},
+            'Original process SQLite provider imports differ')
+    links = read('/usr/bin/otool', ['-L', str(library)])
+    dependencies = [line.strip().split(' (', 1)[0] for line in links.splitlines()[1:]]
+    require(dependencies == ['@rpath/' + LIBRARY, '/usr/lib/libSystem.B.dylib'],
+            'Process SQLite component has another provider or library dependency')
+    loads = read('/usr/bin/otool', ['-l', str(library)])
+    require('cmd LC_RPATH' not in loads, 'Process SQLite component has an ambient search path')
+    minimum = re.search(r'cmd LC_BUILD_VERSION\s+cmdsize \d+\s+platform 1\s+minos ([0-9.]+)', loads)
+    if minimum is None or minimum[1] != '11.0':
+        raise ValueError('Process SQLite component deployment identity differs')
+    require(identity(library, 64 * 1024 * 1024) == observed,
+            'Process SQLite component changed during inspection')
+    return {'library': observed, 'exports': sorted(names),
+            'provider_imports': sorted(PROCESS_IMPORTS), 'links': links,
+            'minimum_macos': minimum[1]}
+
+
+def build_process_import(source: str, archive: Path, clang: Path, sdk: Path,
+                         destination: Path, seconds: int) -> dict[str, Any]:
+    """Compile for the existing Native executable namespace, never another DLL.
+
+    The same original process provider is still mandatory at actual bind. This
+    does not satisfy the stronger Python bundle or its final loader gates.
+    """
+    require(sys.platform == 'darwin' and platform.machine() == 'arm64',
+            'Process SQLite component requires selected darwin-arm64')
+    require(type(seconds) is int and seconds > 0 and _hex(source, 40),
+            'Invalid process SQLite build selection')
+    require(subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip() == source
+            and not subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT),
+            'Use the exact committed clean process SQLite producer source')
+    require(not destination.exists() and not destination.is_symlink(), 'SQLite output already exists')
+    destination.mkdir(parents=True, exist_ok=False)
+    stage = destination / 'source'
+    staged = STAGE.prepare(archive, stage)
+    inputs = {str(path): identity(path, maximum) for path, maximum in (
+        (archive, 5 * 1024 * 1024), (clang, 512 * 1024 * 1024),
+        (sdk / 'SDKSettings.json', 1024 * 1024), (SOURCE / 'source.json', 65536),
+        (ROOT / 'scripts/produce-python-sqlite-component.py', 65536),
+        (ROOT / 'packages/python-local-runtime/native/pre-root/owned_capacity.h', 65536))}
+    deadline = time.monotonic() + seconds
+    steps: list[dict[str, Any]] = []
+    environment = {'PATH': '/usr/bin:/bin:/usr/sbin:/sbin', 'SDKROOT': str(sdk),
+                   'MACOSX_DEPLOYMENT_TARGET': '11.0', 'LANG': 'C', 'LC_ALL': 'C'}
+    def run(name: str, arguments: list[str]) -> None:
+        remaining = deadline - time.monotonic()
+        require(remaining > 0, 'Process SQLite build budget exhausted')
+        result = subprocess.run(arguments, cwd=ROOT, env=environment, capture_output=True,
+                                text=True, timeout=remaining)
+        (destination / (name + '.stdout')).write_text(result.stdout)
+        (destination / (name + '.stderr')).write_text(result.stderr)
+        steps.append({'name': name, 'command': arguments, 'exit': result.returncode})
+        (destination / 'steps.json').write_text(json.dumps(steps, indent=2) + '\n')
+        require(result.returncode == 0, 'Process SQLite command failed: ' + name)
+    obj, library = destination / 'component.o', destination / LIBRARY
+    common = [str(clang), '-std=c11', '-O0', '-fPIC', '-fvisibility=hidden',
+              '-mmacosx-version-min=11.0', '-isysroot', str(sdk), '-I' + str(stage),
+              '-I' + str(ROOT / 'packages/python-local-runtime/native/pre-root')]
+    run('compile', common + ['-MD', '-MF', str(destination / 'component.d'),
+                            '-c', str(stage / 'component.c'), '-o', str(obj)])
+    run('link-process-imports', common + ['-dynamiclib', str(obj),
+        '-Wl,-undefined,dynamic_lookup', '-Wl,-install_name,@rpath/' + LIBRARY, '-o', str(library)])
+    inspected = inspect_process_component(library)
+    dependencies = shlex.split((destination / 'component.d').read_text().replace('\\\n', ' ').split(':', 1)[1])
+    compiled = {path: compiled_input(Path(path), sdk) for path in sorted(set(dependencies))}
+    for path, expected in inputs.items():
+        require(identity(Path(path), 512 * 1024 * 1024) == expected, 'Process SQLite build input changed')
+    for path, expected in compiled.items():
+        require(compiled_input(Path(path), sdk) == expected, 'Process SQLite compiler input changed')
+    checked_copy(stage / 'NOTICE', destination / NOTICE, identity(stage / 'NOTICE', 1024 * 1024), 1024 * 1024)
+    require(subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip() == source
+            and not subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT),
+            'Process SQLite build source changed')
+    record = {'source_sha': source, 'target': staged['target'],
+              'provider_binding': 'same original process namespace; actual binding required before use',
+              'recipe_sha256': staged['recipe_sha256'], 'stage': staged,
+              **inspected, 'object': identity(obj, 128 * 1024 * 1024),
+              'inputs': inputs, 'compiled_inputs': compiled,
+              'notice': identity(destination / NOTICE, 1024 * 1024),
+              'compile': 1, 'link': 1, 'loaded': False, 'initialized': False,
+              'normal_profile': None, 'installed_supplier': False, 'public_E2E': 0}
+    (destination / 'process-producer.json').write_text(json.dumps(record, indent=2) + '\n')
+    return record
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', required=True)
     parser.add_argument('--archive', type=Path, required=True)
-    parser.add_argument('--provider-receipt', type=Path, required=True)
+    binding = parser.add_mutually_exclusive_group(required=True)
+    binding.add_argument('--provider-receipt', type=Path)
+    binding.add_argument('--process-provider', action='store_true')
     parser.add_argument('--clang', type=Path, required=True)
     parser.add_argument('--sdk', type=Path, required=True)
     parser.add_argument('--destination', type=Path, required=True)
@@ -268,6 +372,13 @@ if __name__ == '__main__':
     parser.add_argument('--diagnostic-retained-provider-source',
                         help='Explicit mixed-source candidate only; never a matching release cohort')
     args = parser.parse_args()
-    print(json.dumps(build(args.source, args.archive, args.provider_receipt, args.clang,
-        args.sdk, args.destination, args.seconds,
-        retained_provider_source=args.diagnostic_retained_provider_source)))
+    if args.process_provider:
+        require(args.diagnostic_retained_provider_source is None,
+                'Process component cannot borrow a diagnostic provider source')
+        result = build_process_import(args.source, args.archive, args.clang,
+            args.sdk, args.destination, args.seconds)
+    else:
+        result = build(args.source, args.archive, args.provider_receipt, args.clang,
+            args.sdk, args.destination, args.seconds,
+            retained_provider_source=args.diagnostic_retained_provider_source)
+    print(json.dumps(result))
