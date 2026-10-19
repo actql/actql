@@ -508,6 +508,8 @@ fn store_failed_open_original_work(
     original.primary_code() == 55 &&
     original.cleanup_code() == 56 &&
     unentered_close_refused
+  } else if probe == 6 {
+    store_result_return_work(library, original, receiver, path)
   } else if probe == 5 {
     let authority = "sha256:" + "1".repeat(64)
     let store = @store.open_original_local_store_with_custody(

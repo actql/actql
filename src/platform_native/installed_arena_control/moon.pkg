@@ -16,4 +16,9 @@ import {
   "moonbitlang/core/env",
   "actql/actql/platform_native/publication_store" @store,
   "actql/actql/publication_payload" @payload,
+  "actql/actql/run_publication" @publication,
+  "actql/actql/sha256" @sha,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/source_value" @source,
+  "actql/actql/canonical_json" @json,
 } for "wbtest"
