@@ -18,6 +18,13 @@ const expired = ref => Object.assign(new Error('ClientEffectRunExpired'),
   {code: 'ClientEffectRunExpired', ref});
 const unsupported = () => Object.assign(new Error('ClientProgramUnsupported'),
   {code: 'ClientProgramUnsupported'});
+// The installed module retains its actual wall-clock constructor and receiver
+// operation before any invocation await. This is computation DATA only, not
+// an authorization clock, a resource issuer, or an extension of valid_until.
+const QueryClockDate = Date;
+const queryClockIso = Date.prototype.toISOString;
+const queryClockApply = Reflect.apply;
+const sampleOriginalQueryTime = () => queryClockApply(queryClockIso, new QueryClockDate(), []);
 
 export function installNodeClientEffectRun({moon,
   publicationControl: control = runtimeCore(moon).publicationControl,
@@ -44,6 +51,30 @@ export function installNodeClientEffectRun({moon,
   }
   const startRun = installNodeClientRunStart({journal, requestControl: moon,
     publicationControl: control, authorizeRunStart});
+  const queryTimeNames = ['clientProgramEffectRequiresQueryTime',
+    'clientProgramPrepareEffectQueryTime', 'clientProgramQueryTimeCreatedAt',
+    'clientProgramBindEffectQueryTime', 'clientProgramRestoreEffectQueryTimePreparation',
+    'clientProgramQueryTimeContext'];
+  const queryTimePorts = queryTimeNames.map(name => Object.getOwnPropertyDescriptor(moon, name)?.value);
+  const hasQueryTime = queryTimePorts.some(value => value !== undefined);
+  if (hasQueryTime && queryTimePorts.some(value => typeof value !== 'function')) {
+    throw new TypeError('InvalidClientEffectRunInstallation');
+  }
+  const queryTimeCall = (index, args) => Reflect.apply(queryTimePorts[index], moon, args);
+  const queryTimeRequired = prepared => {
+    if (!hasQueryTime) return false;
+    const required = checked(queryTimeCall(0, [prepared, limits.maxNodes, limits.maxNodes]));
+    if (typeof required !== 'boolean') throw denied();
+    return required;
+  };
+  const restoreQueryTime = (required, prepared, allowed, definition, identity) => {
+    if (!required) return {};
+    const queryTimePreparation = checked(queryTimeCall(4,
+      [prepared, allowed, definition, identity]));
+    const queryTime = queryTimeCall(5, [queryTimePreparation]);
+    if (queryTime === undefined) throw denied();
+    return {queryTimePreparation, queryTime};
+  };
   const handles = new WeakMap();
   const compilations = new WeakMap();
   const compile = prepared => {
@@ -135,9 +166,19 @@ export function installNodeClientEffectRun({moon,
         requestedStop = moon.clientSubmittedIntentRequestsCommitStop(intent);
       }
       const compiled = () => compile(prepared);
+      const requiresQueryTime = queryTimeRequired(prepared);
       const accepted = await journal.admitOrLookupDefinition(identity, {
         namespaceId, lookupExpiresAt, submission,
         issueDefinition() {
+          // This callback runs only after the same Journal lookup selected a
+          // new invocation. A policy's old creation time is not a fresh query
+          // sample. Keep the one preparation before dependent compilation;
+          // a race/lookup later restores the winning saved original instead.
+          const queryTimePreparation = requiresQueryTime
+            ? checked(queryTimeCall(1, [prepared, identity, sampleOriginalQueryTime()]))
+            : undefined;
+          const createdAt = queryTimePreparation === undefined ? policy.createdAt
+            : queryTimeCall(2, [queryTimePreparation]);
           // The installed Host selects an actual Result policy original before
           // this new Run is recorded. A retained Run reuses its saved original.
           const resultPolicyOriginal = resultPolicyOriginalFor?.(prepared);
@@ -145,7 +186,10 @@ export function installNodeClientEffectRun({moon,
             compiled(), policy.executionContextCid, policy.hostPolicyCid,
             policy.expiresAt));
           const definition = checked(moon.clientProgramIssueEffectRunDefinition(
-            allowed, namespaceId, randomUUID(), policy.createdAt, policy.expiresAt));
+            allowed, namespaceId, randomUUID(), createdAt, policy.expiresAt));
+          if (queryTimePreparation !== undefined) {
+            checked(queryTimeCall(3, [queryTimePreparation, prepared, allowed, definition, identity]));
+          }
           if (!moon.clientProgramEffectRunStartCurrent(allowed,
             definition, now())) throw expired();
           const runDefinition = control.admit('run_definition',
@@ -189,7 +233,7 @@ export function installNodeClientEffectRun({moon,
         durability: accepted.durability, revision: accepted.revision,
         lookupExpiresAt: accepted.lookupExpiresAt});
       handles.set(handle, {prepared, identity, namespaceId, principalId,
-        connection, compile: compiled});
+        connection, compile: compiled, requiresQueryTime});
       return handle;
     },
     async start(handle, {beforePhysicalStart, started, signal} = {}) {
@@ -200,7 +244,7 @@ export function installNodeClientEffectRun({moon,
           started !== undefined && typeof started !== 'function') {
         throw denied();
       }
-      const {prepared, identity, namespaceId, principalId, connection, compile} = owned;
+      const {prepared, identity, namespaceId, principalId, connection, compile, requiresQueryTime} = owned;
       const start = await startRun({identity, namespaceId, principalId, connection});
       const retained = journal.resolveDefinition(identity, {namespaceId}, moon, control);
       if (retained.physicalStartReserved !== false ||
@@ -225,6 +269,7 @@ export function installNodeClientEffectRun({moon,
         admitEvidence('prepared_invocation', evidence.prepared),
         admitEvidence('run_authorization', evidence.authorization)));
       const definition = definitionToken(retained.runDefinition);
+      const queryTime = restoreQueryTime(requiresQueryTime, prepared, allowed, definition, identity);
       const owner = checked(moon.clientProgramBindCompiledEffectRun(
         prepared, allowed, definition));
       // Recheck current start authority immediately before the atomic physical
@@ -259,6 +304,7 @@ export function installNodeClientEffectRun({moon,
         try {
           preparedExecution = prepareExecution(Object.freeze({ref: start.ref,
             identity, owner, prepared, compilation, allowed, definition,
+            ...queryTime,
             runDefinition: retained.runDefinition,
             originalSubmittedIntent,
             ...original,
@@ -301,6 +347,7 @@ export function installNodeClientEffectRun({moon,
       // No catch path resets the durable physical-start claim.
       const value = await execute(Object.freeze({ref: start.ref, identity,
         owner, prepared, compilation, allowed, definition,
+        ...queryTime,
         ...original,
         runDefinition: retained.runDefinition, originalSubmittedIntent,
         preparedExecution, signal}));
@@ -313,7 +360,7 @@ export function installNodeClientEffectRun({moon,
     async restoreComputation(handle) {
       const owned = handles.get(handle);
       if (owned === undefined) throw denied();
-      const {prepared, identity, namespaceId, principalId, connection, compile} = owned;
+      const {prepared, identity, namespaceId, principalId, connection, compile, requiresQueryTime} = owned;
       const retained = journal.resolveDefinition(identity, {namespaceId}, moon, control);
       if (retained?.ref.runDefinitionCid !== handle.ref.runDefinitionCid ||
           retained.physicalStartReserved !== true ||
@@ -334,6 +381,7 @@ export function installNodeClientEffectRun({moon,
         admitEvidence('prepared_invocation', evidence.prepared),
         admitEvidence('run_authorization', evidence.authorization)));
       const definition = definitionToken(retained.runDefinition);
+      const queryTime = restoreQueryTime(requiresQueryTime, prepared, allowed, definition, identity);
       const owner = checked(moon.clientProgramBindCompiledEffectRun(prepared, allowed, definition));
       const current = await authorizeRunStart(Object.freeze({namespaceId,
         principalId, connection, ref: retained.ref, runDefinition: retained.runDefinition}));
@@ -344,6 +392,7 @@ export function installNodeClientEffectRun({moon,
         throw expired(retained.ref);
       }
       const facts = {ref: retained.ref, identity, owner, prepared, compilation,
+        ...queryTime,
         ...original,
         allowed, definition, runDefinition: retained.runDefinition,
         originalSubmittedIntent,

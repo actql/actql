@@ -7595,6 +7595,172 @@ pub fn client_program_issue_effect_run_definition(
 }
 
 ///|
+#export_name("clientProgramRequiresQueryTime")
+pub fn client_program_requires_query_time(
+  owner : @publication_host.PreparedClientProgram,
+  max_work : Int,
+  max_expressions_per_task : Int,
+) -> Result[Bool, @publication_host.ClientQueryTimeIssue] {
+  @publication_host.prepared_client_requires_query_time(
+    owner, max_work, max_expressions_per_task,
+  )
+}
+
+///|
+#export_name("clientProgramEffectRequiresQueryTime")
+pub fn client_program_effect_requires_query_time(
+  owner : @publication_host.PreparedClientEffectComputation,
+  max_work : Int,
+  max_expressions_per_task : Int,
+) -> Result[Bool, @publication_host.ClientQueryTimeIssue] {
+  @publication_host.prepared_client_effect_requires_query_time(
+    owner, max_work, max_expressions_per_task,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareQueryTime")
+pub fn client_program_prepare_query_time(
+  owner : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  created_at : String,
+) -> Result[
+  @publication_host.ClientQueryTimePreparation,
+  @publication_host.ClientQueryTimeIssue,
+] {
+  @publication_host.prepare_client_query_time(owner, request, created_at)
+}
+
+///|
+#export_name("clientProgramPrepareEffectQueryTime")
+pub fn client_program_prepare_effect_query_time(
+  owner : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  created_at : String,
+) -> Result[
+  @publication_host.ClientQueryTimePreparation,
+  @publication_host.ClientQueryTimeIssue,
+] {
+  @publication_host.prepare_client_effect_query_time(owner, request, created_at)
+}
+
+///|
+#export_name("clientProgramQueryTimeCreatedAt")
+pub fn client_program_query_time_created_at(
+  preparation : @publication_host.ClientQueryTimePreparation,
+) -> String {
+  @publication_host.client_query_time_preparation_created_at(preparation)
+}
+
+///|
+#export_name("clientProgramQueryTimeContext")
+pub fn client_program_query_time_context(
+  preparation : @publication_host.ClientQueryTimePreparation,
+) -> @publication.QueryEvaluationTime? {
+  @publication_host.client_query_time_preparation_context(preparation)
+}
+
+///|
+#export_name("clientProgramBindQueryTime")
+pub fn client_program_bind_query_time(
+  preparation : @publication_host.ClientQueryTimePreparation,
+  owner : @publication_host.PreparedClientProgram,
+  compilation : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[
+  @publication.QueryEvaluationTime,
+  @publication_host.ClientQueryTimeIssue,
+] {
+  @publication_host.bind_client_query_evaluation_time(
+    preparation, owner, compilation, definition, request,
+  )
+}
+
+///|
+#export_name("clientProgramBindEffectQueryTime")
+pub fn client_program_bind_effect_query_time(
+  preparation : @publication_host.ClientQueryTimePreparation,
+  owner : @publication_host.PreparedClientEffectComputation,
+  allowed : @publication_host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[
+  @publication.QueryEvaluationTime,
+  @publication_host.ClientQueryTimeIssue,
+] {
+  @publication_host.bind_client_effect_query_evaluation_time(
+    preparation, owner, allowed, definition, request,
+  )
+}
+
+///|
+#export_name("clientProgramRestoreQueryTimePreparation")
+pub fn client_program_restore_query_time_preparation(
+  owner : @publication_host.PreparedClientProgram,
+  compilation : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[
+  @publication_host.ClientQueryTimePreparation,
+  @publication_host.ClientQueryTimeIssue,
+] {
+  @publication_host.restore_client_query_time_preparation(
+    owner, compilation, definition, request,
+  )
+}
+
+///|
+#export_name("clientProgramRestoreEffectQueryTimePreparation")
+pub fn client_program_restore_effect_query_time_preparation(
+  owner : @publication_host.PreparedClientEffectComputation,
+  allowed : @publication_host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[
+  @publication_host.ClientQueryTimePreparation,
+  @publication_host.ClientQueryTimeIssue,
+] {
+  @publication_host.restore_client_effect_query_time_preparation(
+    owner, allowed, definition, request,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareQueryAcquisitionAtQueryTime")
+pub fn client_program_prepare_query_acquisition_at_query_time(
+  owner : @publication_host.PreparedClientProgram,
+  stage : Int,
+  input : Int,
+  preparation : @publication_host.ClientQueryTimePreparation,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[
+  @acquisition.QueryAcquisition,
+  @publication_host.ClientAcquisitionIssue,
+] {
+  @publication_host.prepare_client_query_acquisition_at_query_time(
+    owner, stage, input, preparation, request,
+  )
+}
+
+///|
+#export_name("clientProgramEffectPrepareQueryAcquisitionAtQueryTime")
+pub fn client_program_effect_prepare_query_acquisition_at_query_time(
+  owner : @publication_host.PreparedClientEffectComputation,
+  stage : Int,
+  input : Int,
+  preparation : @publication_host.ClientQueryTimePreparation,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[
+  @acquisition.QueryAcquisition,
+  @publication_host.ClientAcquisitionIssue,
+] {
+  @publication_host.prepare_client_effect_query_acquisition_at_query_time(
+    owner, stage, input, preparation, request,
+  )
+}
+
+///|
 #export_name("clientProgramBindCompiledEffectRun")
 pub fn client_program_bind_compiled_effect_run(
   owner : @publication_host.PreparedClientEffectComputation,
