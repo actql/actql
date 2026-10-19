@@ -187,11 +187,21 @@ fn[T] Store::with_original_read(
   self.operation_body_active = true
   let result = call()
   self.operation_body_active = false
+  self.complete_original_return(original, result)
+}
+
+///|
+fn[T] Store::complete_original_return(
+  self : Store,
+  original : @sqlite.NativeStoreOperationOriginal,
+  result : Result[T, NativePublicationStoreIssue],
+  prior_primary? : NativePublicationStoreIssue? = None,
+) -> Result[T, NativePublicationStoreIssue] {
   // Register this duty before invoking a callback that can fail or reenter.
   // Physical child close alone does not acknowledge the original return.
   self.operation_return_pending = true
   self.operation_return_primary = match result {
-    Ok(_) => None
+    Ok(_) => prior_primary
     Err(primary) => Some(primary)
   }
   match original.leave_store() {
@@ -4399,8 +4409,29 @@ pub fn Store::close(self : Store) -> Result[Bool, NativePublicationStoreIssue] {
     // Retry only this same return. No Store body, SQL, open or replacement is
     // replayed while its acknowledgement remains uncertain.
     match original.leave_store() {
-      Err(issue) =>
-        return Err(OperationRouting(self.operation_return_primary, issue))
+      Err(issue) => {
+        if self.closed {
+          return Err(OperationRouting(self.operation_return_primary, issue))
+        }
+        // A failed NORMAL return cannot pass C's ordinary leave fence. Only
+        // the existing same-original tag4 recovery can acknowledge that old
+        // flight and establish cleanup Read; it never resumes business.
+        let prior = self.operation_return_primary
+        match original.enter_cleanup() {
+          Err(cleanup) => return Err(OperationRouting(prior, cleanup))
+          Ok(_) => ()
+        }
+        self.operation_body_active = true
+        let result = self
+          .close_in_scope()
+          .map_err(cleanup => OperationCleanup(prior, cleanup))
+        self.operation_body_active = false
+        return self.complete_original_return(
+          original,
+          result,
+          prior_primary=prior,
+        )
+      }
       Ok(_) => {
         self.operation_return_pending = false
         self.operation_return_primary = None
