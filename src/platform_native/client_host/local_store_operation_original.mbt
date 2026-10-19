@@ -65,14 +65,19 @@ extern "C" fn prepare_store_operation_ffi(
 extern "C" fn store_operation_control_clear_ffi() -> Int = "actql_bootstrap_control_scope_clear"
 
 ///|
-/// Retain the partial carrier first. Only activate checks the existing actual
-/// Host/pair/Library/business/runtime originals; construction issues nothing.
+/// Construct routing custody only in the original outer control scope. The
+/// receiver and bridge outlive individual Read/business entries, so neither
+/// may be allocated in one of those child scopes. Activation separately checks
+/// the existing actual Host/pair/Library/business/runtime originals.
 pub fn prepare_native_local_store_operation(
   capture : NativeLocalJournalCapture,
   execution : @arena.InstalledArenaRetainedExecution,
   runtime : NativeLocalPackagedRuntime,
   library : @sqlite.Library,
-) -> NativeLocalStoreOperation {
+) -> Result[NativeLocalStoreOperation, NativeLocalStoreOperationIssue] {
+  if store_operation_control_clear_ffi() != 1 {
+    return Err(StoreOperationUnavailable)
+  }
   let receiver = {
     capture,
     execution,
@@ -96,7 +101,7 @@ pub fn prepare_native_local_store_operation(
   ) {
     original.route(library, tag)
   })
-  { receiver, bridge: Some(bridge), }
+  Ok({ receiver, bridge: Some(bridge), })
 }
 
 ///|
