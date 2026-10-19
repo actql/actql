@@ -135,19 +135,32 @@ fn claim_native_client_retained_work_first_start(
   request : @host.ClientRequestIdentity,
   current_authorization : () -> Bool,
 ) -> Result[NativeClientWorkFirstStart, NativeClientSourceWorkIssue] {
+  claim_native_client_retained_work_first_start_with_operations(
+    journal, request, current_authorization,
+  )
+}
+
+///|
+fn claim_native_client_retained_work_first_start_with_operations(
+  journal : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  current_authorization : () -> Bool,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[NativeClientWorkFirstStart, NativeClientSourceWorkIssue] {
+  let reads = operations.map(value => value.reads)
   // Recheck after callbacks and each durable boundary. A reservation alone
   // cannot authorize acquisition, and a false claim never opens another owner.
   if !current_authorization() {
     return Err(AuthorizationDenied)
   }
-  match journal.reserve_dispatch(request, true) {
+  match journal.reserve_dispatch_with_operations(request, true, operations~) {
     Ok(_) => ()
     Err(issue) => return Err(Journal(issue))
   }
   if !current_authorization() {
     return Err(AuthorizationDenied)
   }
-  match journal.claim_physical_start(request, true) {
+  match journal.claim_physical_start_with_operations(request, true, operations~) {
     Ok(true) => ()
     Ok(false) => return Err(NeedsOriginalReconciliation)
     Err(issue) => return Err(Journal(issue))
@@ -157,7 +170,7 @@ fn claim_native_client_retained_work_first_start(
   }
   // A callback may observe or admit cancellation itself. Confirm the original
   // retained start/fence facts after that callback, before opening acquisition.
-  match journal.lookup(request, true) {
+  match journal.lookup_with_reads(request, true, reads~) {
     Ok(Retained(record)) if record.physical_start_claimed &&
       !record.cancellation_requested &&
       record.checkpoint is None =>
