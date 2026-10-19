@@ -2770,7 +2770,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/README.md",
-                "anchor": "The existing Decimal(19,0) carrier"
+                "anchor": "The existing signed64 Value Owner"
               },
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
@@ -3193,7 +3193,7 @@
             "extension": [
               {
                 "path": "adapters/connectors/gcs/README.md",
-                "anchor": "The existing Decimal(19,0) carrier"
+                "anchor": "The existing signed64 Value Owner"
               },
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
@@ -5115,7 +5115,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/README.md",
-                "anchor": "The existing Decimal(19,0) carrier"
+                "anchor": "The existing signed64 Value Owner"
               },
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
