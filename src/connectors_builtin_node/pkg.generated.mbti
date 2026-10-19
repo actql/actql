@@ -719,6 +719,12 @@ pub fn client_program_effect_captured_source_matches(@run_publication_host.Prepa
 
 pub fn client_program_effect_captured_source_matches_at(@run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, Int) -> Bool
 
+pub fn client_program_effect_checked_proposal_row(@physical_strategy.CapturedEffectProposalPlan, @physical_strategy.CapturedEffectLocalResultExport, @execution_relation.CompletedOutputExportOriginalRow, Int, Int, Int, Int, Int) -> Result[@physical_strategy.CapturedEffectCheckedProposalRow, @physical_strategy.CapturedEffectCheckedProposalIssue]
+
+pub fn client_program_effect_checked_proposal_row_available(@physical_strategy.CapturedEffectCheckedProposalRow) -> Bool
+
+pub fn client_program_effect_checked_proposal_row_retire(@physical_strategy.CapturedEffectCheckedProposalRow) -> Unit
+
 pub fn client_program_effect_command_content_borrow(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, Int, String, Int, Int) -> Result[@run_publication_host.ClientEffectCommandContent, @run_publication_host.ClientEffectCommandContentIssue]
 
 pub fn client_program_effect_command_content_borrow_workspace(@run_publication_host.ClientEffectCommandContent, @value_admission.CheckedValue, @physical_resources.SharedCapacity, @physical_resources.SharedAllocation) -> Result[@physical_resources.SharedBorrow, @run_publication_host.ClientEffectCommandContentIssue]
@@ -801,6 +807,8 @@ pub fn client_program_effect_input_export_next(@execution_relation.CompletedOutp
 
 pub fn client_program_effect_input_export_next_canonical_row(@execution_relation.CompletedOutputExport, Int, Int, Int) -> Result[(Int, String, @canonical_json.CanonicalValue)?, @execution_relation.CompletedExportIssue]
 
+pub fn client_program_effect_input_export_next_original_row(@execution_relation.CompletedOutputExport, Int, Int, Int) -> Result[(Int, String, @execution_relation.CompletedOutputExportOriginalRow)?, @execution_relation.CompletedExportIssue]
+
 pub fn client_program_effect_input_export_ready(@execution_relation.CompletedResultRelationExportPreparation) -> Result[@execution_relation.CompletedOutputExport, @execution_relation.CompletedExportIssue]
 
 pub fn client_program_effect_input_export_release_receipt(@execution_relation.CompletedRelationExportReceipt) -> Unit
@@ -870,6 +878,16 @@ pub fn client_program_effect_managed_input_finish(ClientEffectManagedInputImport
 pub fn client_program_effect_member_descriptor(@run_publication_host.PreparedClientEffectComputation, Int, String, Int) -> Result[(Int, String, String, String, String, String, String?, String, String?), @run_publication_host.ClientEffectMemberDescriptorIssue]
 
 pub fn client_program_effect_member_descriptor_issue_code(@run_publication_host.ClientEffectMemberDescriptorIssue) -> String
+
+pub fn client_program_effect_notion_date_range_write(@physical_strategy.CapturedEffectCheckedProposalRow, Int, Int, @actql/actql/connectors/notion/catalog.NotionDataSourceCatalog, Int, @actql/actql/connectors/notion/catalog.NotionPropertyWriteLimits) -> Result[ClientEffectNotionPropertyWrite, ClientEffectNotionPropertyIssue]
+
+pub fn client_program_effect_notion_property_write(@physical_strategy.CapturedEffectCheckedProposalRow, Int, @actql/actql/connectors/notion/catalog.NotionDataSourceCatalog, Int, @actql/actql/connectors/notion/catalog.NotionPropertyWriteLimits) -> Result[ClientEffectNotionPropertyWrite, ClientEffectNotionPropertyIssue]
+
+pub fn client_program_effect_notion_writes_json(@physical_strategy.CapturedEffectCheckedProposalRow, @actql/actql/connectors/notion/catalog.NotionDataSourceCatalog, Array[ClientEffectNotionPropertyWrite], @actql/actql/connectors/notion/catalog.NotionPropertyWriteLimits) -> Result[String, ClientEffectNotionPropertyIssue]
+
+pub fn client_program_effect_original_row_available(@physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectLocalResultExport, @execution_relation.CompletedOutputExportOriginalRow) -> Bool
+
+pub fn client_program_effect_original_row_retire(@execution_relation.CompletedOutputExportOriginalRow) -> Unit
 
 pub fn client_program_effect_plan_advance(ClientEffectPlanPreparation, Int) -> Result[(Bool, Int), ClientEffectPlanStreamIssue]
 
@@ -1970,6 +1988,14 @@ pub fn client_program_normalize_mock_task(@check_environment.PublicModelTaskDecl
 pub fn client_program_normalize_project_model_task(@run_publication_host.ClientProjectModelTaskSelection, @run_publication_host.ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration, @run_publication_host.ClientModelProviderDefaults, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@check_environment.NormalizedPublicModelTask, @check_environment.ModelTaskIssue]
 
 pub fn client_program_normalized_public_model_task_materials(@check_environment.NormalizedPublicModelTask) -> (String, String, String, String)
+
+pub fn client_program_notion_database_limits(Int, Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/notion/catalog.NotionDatabaseLimits
+
+pub fn client_program_notion_project_data_source(@actql/actql/connectors/notion/catalog.NotionDatabaseCatalog, Int, Bytes, @actql/actql/connectors/notion/catalog.NotionDatabaseLimits) -> Result[@actql/actql/connectors/notion/catalog.NotionDataSourceCatalog, @actql/actql/connectors/notion/catalog.NotionDatabaseIssue]
+
+pub fn client_program_notion_project_database(Bytes, @actql/actql/connectors/notion/catalog.NotionDatabaseLimits) -> Result[@actql/actql/connectors/notion/catalog.NotionDatabaseCatalog, @actql/actql/connectors/notion/catalog.NotionDatabaseIssue]
+
+pub fn client_program_notion_property_write_limits(Int, Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/notion/catalog.NotionPropertyWriteLimits
 
 pub fn client_program_observe_infer_raw_capture(@model_execution.ModelPhysicalCall, @run_publication_host.ClientModelRawCaptureRegistration, String, Int, Int, Bool, String) -> Result[@model_execution.ModelRawCaptureSave, @model_execution.ModelRawCaptureSaveIssue]
 
@@ -4557,6 +4583,16 @@ pub(all) enum ClientEffectManagedInputIssue {
   Bridge(@execution_relation.ManagedProducerBridgeIssue)
   Export(@execution_relation.CompletedExportIssue)
 }
+
+pub(all) enum ClientEffectNotionPropertyIssue {
+  NotReady
+  ForeignOriginal
+  InvalidField
+  BudgetExceeded
+  Codec(@actql/actql/connectors/notion/catalog.NotionPropertyWriteIssue)
+} derive(@debug.Debug)
+
+type ClientEffectNotionPropertyWrite
 
 pub(all) enum ClientEffectOriginalBridgeIssue {
   Manifests(@run_publication_host.ClientCompilationManifestIssue)

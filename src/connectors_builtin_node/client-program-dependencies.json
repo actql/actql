@@ -71,6 +71,10 @@
     {
       "path": "actql/actql/connectors/bigquery/read",
       "alias": "bigquery_read"
+    },
+    {
+      "path": "actql/actql/connectors/notion/catalog",
+      "alias": "notion_catalog"
     }
   ]
 }

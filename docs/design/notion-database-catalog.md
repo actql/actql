@@ -1231,3 +1231,77 @@ collection/self reference, source hashes and all checked Contracts. Whole-map
 parse workspace, per-member Contract admission and hash workspace also overlap.
 Limits bound work/retention; they are neither a physical reservation nor proof
 of cleanup, GC reclamation or a normal numerical supplier.
+
+## Original Captured Mapping property values
+
+Original typed projection belongs to the existing Result export, Captured
+Effect/Mapping and Notion Catalog owners. The private Node codec view only
+connects those owners inside one matching runtime. It does not admit a target,
+bind a read declaration as a writable Mapping, or issue permission, approval,
+an overwrite guard or a physical send. Selecting a property index is explicit
+DATA; the installed publication/Effect caller must independently prove its
+original target, Mapping-to-property correspondence and current authority.
+
+Inputs retain the original proposal Plan, local Result export and its issued
+row token, plus the selected original Notion Catalog/property occurrence. The
+output is the existing bounded Notion property-write body. A Date range keeps
+both original checked fields. The bridge exposes no raw CheckedValue getter
+or constructor, and no canonical JSON re-admission supplies a typed value.
+
+Identity follows the exact checked Result occurrence, projection/order and
+row index. A second equal export, another Plan row or equal re-admitted Catalog
+does not replace an original. Typed cells are rechecked under their original
+Result field Contract; Text spellings never become Date, Decimal or Signed64.
+Original inline literals remain attached to their own Mapping rule. A declared
+conversion-law CID is not an installed converter; unsupported conversions
+refuse instead of relabelling the value. Vendor payloads keep original property
+ids, not display labels or a representative row.
+
+Ownership remains with the original export and Effect pins while a callback
+consumes a row. The row token keeps its stream and canonical view; the checked
+Mapping row retains its original terminal, selector and target/value pairs.
+The private codec captures its methods, receiver, Catalog, current fence and
+typed limits. Each returned handle belongs to that view and row; copied or
+foreign handles do not enter its property inventory.
+
+Synchronization checks both the original stream and original Effect/export
+membership before and after the awaited row consumer. Physical availability
+and derived-view callbacks are followed by callback-free retention checks.
+A live stream cannot replace retired Effect pins. Advancing to another row,
+retiring the export or cancelling the original preparation invalidates the
+previous row before further encoding or row-byte publication. This current
+fence does not replace the caller's Account/operation-specific authority check.
+
+Failure retains the existing typed refusal or original callback error. No
+fallback parses Text as a temporal/numeric value, substitutes an equal Catalog,
+reopens a consumed export or turns an inexact Number into Decimal. The scalar
+and date-pair codecs retain their original domain, null, option and vendor
+request bounds. Duplicate property ids refuse before returning a complete body.
+
+Cancellation stops publication after the same awaited consumer and retires
+that row's own aliases in the existing exporter finalizer. Original stream,
+receipt and managed-import cleanup remain under their existing owners. A
+prepared property body is not a dispatch attempt, and its refusal issues no
+retry or cleanup permission. Retiring DATA is not a physical acknowledgement.
+
+Resources cover one shared Mapping work/node/text ceiling across selector,
+mapped fields and original literals, including lookup, recheck and sort work.
+The codec view separately bounds total issued rows and property handles per
+row. All escaped tokens may overlap the original stream/table/Result, canonical
+row, checked values/Contracts, literal inventory, Catalog/schema response,
+property documents, selected-write arrays and encoded Strings. Callback/receiver
+records and encode/decode/hash workspace overlap these holdings. Bounds do not
+reserve that phase, and WeakMaps, retirement or GC do not establish free bytes.
+
+Extension uses the same original Captured/Mapping reader and existing Notion
+scalar/date-pair codecs. A new conversion or physical target supplier must bind
+its actual original before it can be consumed; a source hash or matching body
+does not supply that binding. No new wire/version, identity domain, authority
+Owner or permission rule is introduced by this projection.
+
+Verification separates actual Result/Captured and typed Notion codec counters
+from ABI doubles for the JS view. It must cover exact Decimal tokens beyond
+binary64, nullable Date pairs, Text/domain refusal, equal foreign originals,
+row advancement and pin/export retirement after an awaited consumer. Those
+component checks do not prove installed target issuance, approved writes,
+recovery, live Provider I/O or normal resource funding.

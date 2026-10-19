@@ -2271,7 +2271,7 @@
     },
     {
       "module": "adapters/host-node/effect-input-export.mjs",
-      "sha256": "149e6e2e2cf3ec205c0aeab74ff63e4b760d95e035ac301d2e9b21aa65f5fb70",
+      "sha256": "0f1d54c80af0efe5b7638c76008c2b8f3d202b52c4a81e7d218666e47f3e3d63",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -2332,6 +2332,8 @@
             "onReceipt",
             "onCanonicalRow",
             "canonicalRowLimits",
+            "onOriginalRow",
+            "originalRowLimits",
             "prepareProposal",
             "commandWorkspace",
             "signal",
@@ -2341,14 +2343,26 @@
           "async": true
         },
         {
+          "name": "exportPinnedResult/assertOriginal/assertOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "exportPinnedResult/exportPinnedResult",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "exportPinnedResult/exportPinnedResult#2",
           "parameters": [
             "row"
           ],
           "async": false
         },
         {
-          "name": "exportPinnedResult/exportPinnedResult#2",
+          "name": "exportPinnedResult/exportPinnedResult#3",
           "parameters": [],
           "async": false
         },
@@ -2827,8 +2841,10 @@
             "exportPinnedEffectInput",
             "exportPinnedEffectLocalResult",
             "exportPinnedResult",
+            "exportPinnedResult/assertOriginal/assertOriginal",
             "exportPinnedResult/exportPinnedResult",
             "exportPinnedResult/exportPinnedResult#2",
+            "exportPinnedResult/exportPinnedResult#3",
             "prepareDependentEffectSourceSet",
             "prepareDependentEffectSourceSet/orderedUnits/orderedUnits",
             "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet",
@@ -2846,8 +2862,8 @@
             "preparePinnedEffectSourceHoldings/holdings/holdings",
             "preparePinnedEffectSourceHoldings/init:commit/init:commit",
             "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit",
-            "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit#2",
             "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit/init:commit",
+            "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit#2",
             "preparePinnedEffectSourceHoldings/inventory/inventory",
             "preparePinnedEffectSourceHoldings/memberPayloads/memberPayloads",
             "preparePinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings",
@@ -2856,6 +2872,7 @@
             "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry",
             "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry/init:retry",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
+            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#10",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#2",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#3",
@@ -2865,7 +2882,6 @@
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#7",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#8",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#9",
-            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
             "preparePinnedEffectSourcePayloadOwned/retainText/retainText",
             "preparePinnedEffectSourcePayloadOwned/summary/init:onChunk/init:onChunk",
             "preparePinnedEffectSourcePayloadOwned/summary/init:prepareProposal/init:prepareProposal",
@@ -2921,6 +2937,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Original typed projection belongs to the existing Result export"
               }
             ],
             "inputsOutputs": [
@@ -2947,6 +2967,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Inputs retain the original proposal Plan"
               }
             ],
             "identity": [
@@ -2969,6 +2993,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Identity follows the exact checked Result occurrence"
               }
             ],
             "ownership": [
@@ -2991,6 +3019,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Ownership remains with the original export and Effect pins"
               }
             ],
             "synchronization": [
@@ -3013,6 +3045,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Synchronization checks both the original stream and original Effect/export"
               }
             ],
             "failure": [
@@ -3035,6 +3071,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Failure retains the existing typed refusal or original callback error"
               }
             ],
             "cancellation": [
@@ -3057,6 +3097,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Cancellation stops publication after the same awaited consumer"
               }
             ],
             "resources": [
@@ -3083,6 +3127,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Resources cover one shared Mapping work/node/text ceiling"
               }
             ],
             "extension": [
@@ -3105,6 +3153,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Extension uses the same original Captured/Mapping reader"
               }
             ],
             "verification": [
@@ -3147,6 +3199,10 @@
               {
                 "path": "adapters/host-node/effect-command-target-callers.test.mjs",
                 "anchor": "original target refusal happens before physical rows"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Verification separates actual Result/Captured and typed Notion codec counters"
               }
             ]
           }
@@ -3159,7 +3215,8 @@
         "../host-common/runtime-result.mjs",
         "./effect-command-key.mjs",
         "node:crypto",
-        "node:timers/promises"
+        "node:timers/promises",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []

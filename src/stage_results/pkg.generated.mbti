@@ -188,6 +188,14 @@ pub fn effect_mapping_shapes_environment(EffectMappingShapes) -> @check_environm
 
 pub fn effect_mapping_shapes_work(EffectMappingShapes) -> Int
 
+pub fn effect_plan_checked_row_changes_wire(EffectPlanCheckedRow, Int, Int, Int) -> Result[String, EffectPlanCheckedRowIssue]
+
+pub fn effect_plan_checked_row_field_at(EffectPlanCheckedRow, Int) -> (String, @value_admission.CheckedValue)?
+
+pub fn effect_plan_checked_row_field_count(EffectPlanCheckedRow) -> Int
+
+pub fn effect_plan_checked_row_selector(EffectPlanCheckedRow) -> @value_admission.CheckedValue
+
 pub fn effect_plan_pipeline_cid(EffectPlanTerminal, Int, Int, Int) -> String raise @encode_core.EncodeFailure
 
 pub fn effect_plan_row_field_at(EffectPlanRow, Int) -> (String, @canonical_json.CanonicalValue)?
@@ -309,6 +317,8 @@ pub fn prepare_local_program(@stage_parameters.Source, LocalProgramLimits, envir
 pub fn prepare_local_source(@stage_syntax.Program, @decode_core.Cursor?, max_parameters~ : Int, LocalProgramLimits, environment? : @check_environment.WireEnvironment?, calendar_profile? : @calendar_profile.Profile?, model_tasks? : @check_environment.ModelTasks?) -> Result[PreparedLocalSource, LocalSourceIssue]
 
 pub fn project_effect_command_row(EffectCommandInputBinding, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, published_target? : EffectPublishedStoreTarget?) -> Result[(String, String), EffectCommandRowIssue]
+
+pub fn project_effect_plan_checked_row(EffectPlanTerminal, EffectMappingLiterals, Int, (String, Int, @value_admission.Limits) -> (@value_admission.CheckedValue, Int, Int, Int)?, Int, Int, @value_admission.Limits) -> Result[EffectPlanCheckedRow, EffectPlanCheckedRowIssue]
 
 pub fn project_effect_plan_row(EffectPlanTerminal, @canonical_json.CanonicalValue, Int, Int, Int) -> Result[EffectPlanRow, EffectPlanRowIssue]
 
@@ -655,6 +665,26 @@ pub(all) enum EffectPlanChangeIssue {
   IncompleteChanges
   WorkLimit
   OutputLimit
+} derive(Eq, @debug.Debug)
+
+pub struct EffectPlanCheckedRow {
+  terminal : EffectPlanTerminal
+  source_row_index : Int
+  selector : @value_admission.CheckedValue
+  fields : Array[(String, @value_admission.CheckedValue)]
+}
+
+pub(all) enum EffectPlanCheckedRowIssue {
+  InvalidLimits
+  WorkLimit
+  FieldLimit
+  ForeignLiterals
+  IncompleteChanges
+  MissingSourceField(String)
+  ForeignSourceContract(String)
+  InvalidReadUsage
+  ValueLimit
+  Encoding
 } derive(Eq, @debug.Debug)
 
 pub(all) struct EffectPlanIdentityLimits {

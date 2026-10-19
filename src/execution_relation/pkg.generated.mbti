@@ -490,6 +490,16 @@ pub fn completed_output(CompletedSequence, @pipeline_typing.Target) -> Completed
 
 pub fn completed_output_available(CompletedOutput) -> Bool
 
+pub fn completed_output_export_original_row_available(CompletedOutputExportOriginalRow) -> Bool
+
+pub fn completed_output_export_original_row_canonical(CompletedOutputExportOriginalRow) -> @canonical_json.CanonicalValue?
+
+pub fn completed_output_export_original_row_checked_field(CompletedOutputExportOriginalRow, String, Int, Int, @value_admission.Limits) -> Result[@value_admission.CheckedValue, CompletedExportOriginalRowIssue]
+
+pub fn completed_output_export_original_row_checked_field_usage(CompletedOutputExportOriginalRow, String, Int, Int, @value_admission.Limits) -> Result[(@value_admission.CheckedValue, Int, Int, Int), CompletedExportOriginalRowIssue]
+
+pub fn completed_output_export_original_row_index(CompletedOutputExportOriginalRow) -> Int
+
 pub fn completed_output_export_poll_steps(CompletedOutputExport) -> Int
 
 pub fn completed_output_export_rows_complete(CompletedOutputExport) -> Result[Bool, CompletedExportIssue]
@@ -546,9 +556,13 @@ pub fn completed_relation_export_snapshot(CompletedOutputExport, CompletedRelati
 
 pub fn completed_relation_identity_scan_work(CompletedRelationIdentityScan) -> Int64
 
+pub fn completed_result_export_preparation_matches_original_row(CompletedResultRelationExportPreparation, CompletedOutputExportOriginalRow) -> Bool
+
 pub fn completed_result_export_preparation_matches_owner(CompletedResultRelationExportPreparation, ManagedResultOccurrence, CompletedOutput) -> Bool
 
 pub fn completed_result_export_preparation_matches_receipt(CompletedResultRelationExportPreparation, CompletedRelationExportReceipt) -> Bool
+
+pub fn completed_result_export_preparation_retains_original_row(CompletedResultRelationExportPreparation, CompletedOutputExportOriginalRow) -> Bool
 
 pub fn completed_result_key_validation_matches(CompletedResultKeyValidation, CompletedResultRelationExportPreparation, @relation_schema.Field) -> Bool
 
@@ -974,6 +988,8 @@ pub fn next_completed_output_export(CompletedOutputExport) -> Result[String?, Co
 
 pub fn next_completed_output_export_canonical_row(CompletedOutputExport, Int, Int, Int) -> Result[(Int, String, @canonical_json.CanonicalValue)?, CompletedExportIssue]
 
+pub fn next_completed_output_export_original_row(CompletedOutputExport, Int, Int, Int) -> Result[(String, CompletedOutputExportOriginalRow)?, CompletedExportIssue]
+
 pub fn numeric_aggregate_execution((Int, String, Int, Array[Double], Int, Int) -> Result[@numeric_reduction.Outcome, @numeric_reduction.ReductionIssue]?) -> NumericAggregateExecution
 
 pub fn numeric_aggregate_execution_with_seal((Int, String, Int, Array[Double], Int, Int) -> Result[@numeric_reduction.Outcome, @numeric_reduction.ReductionIssue]?, (Int, String, Int) -> Bool) -> NumericAggregateExecution
@@ -1267,6 +1283,8 @@ pub fn retained_producer_scan_reuse_current(RetainedProducerScan) -> Bool
 pub fn retained_producer_scan_schema(RetainedProducerScan) -> @relation_schema.Schema
 
 pub fn retained_storage_canonical_copy_matches(ProducerStorage, String, Int, Int) -> Bool
+
+pub fn retire_completed_output_export_original_row(CompletedOutputExportOriginalRow) -> Unit
 
 pub fn reuse_retained_scan_identity(RetainedProducerScan, RetainedScanReuse) -> Bool
 
@@ -1832,6 +1850,15 @@ pub(all) enum CompletedExportIssue {
   CanonicalRow
 }
 
+pub(all) enum CompletedExportOriginalRowIssue {
+  InvalidLimits
+  Unavailable
+  FieldLimit
+  WorkLimit
+  MissingField
+  InvalidValue
+} derive(Eq, @debug.Debug)
+
 pub(all) enum CompletedImportIssue {
   Unavailable
   NotRetainedRepresentation
@@ -1853,6 +1880,8 @@ pub(all) struct CompletedOutputExportAdvance {
   complete : Bool
   steps : Int
 }
+
+type CompletedOutputExportOriginalRow
 
 type CompletedOutputExportPreparation
 
