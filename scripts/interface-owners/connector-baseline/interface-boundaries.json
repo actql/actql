@@ -4106,7 +4106,7 @@
     {
       "module": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "057db483489a22fbc4038e5e21fd2ae027efb034d650ba9e5546106b4f4017a1",
+      "sha256": "02413f8e6fca1deb356b7b33f082890cfc8b17daee765bf783e387b11d5a65f1",
       "role": "connector-semantics",
       "owner": "GCS profile and declaration inputs; Common RowSource declaration seals catalogs/schema/capabilities",
       "exports": [
@@ -4287,7 +4287,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
-                "anchor": "type: 'decimal', precision: 19"
+                "anchor": "type: 'int64'"
               }
             ],
             "identity": [
@@ -4723,7 +4723,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
-                "anchor": "type: 'decimal', precision: 19"
+                "anchor": "type: 'int64'"
               },
               {
                 "path": "docs/design/file-listing-report-custody.md",
