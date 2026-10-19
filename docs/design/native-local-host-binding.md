@@ -1592,6 +1592,25 @@ separate acknowledgements. Dropping a successfully released module's member
 alias does not replenish the once-counted process/thread-lived initial terms,
 acknowledge every image/TLS retirement, or release the parent Read or backing.
 
+The same initial control also covers the selected pinned allocator's finite
+bootstrap, arena-registration, heap-descriptor and process/thread metadata.
+These external parent/backing terms are distinct from the exclusive managed
+payload and from Read, SQLite and Crypto storage. Before allocator initialization,
+the actual entry retains its original process/thread and complete source-bound
+selection. Its one-shot physical binding initializes that allocator, captures
+the actual parent default heap, reserves the exclusive payload and selects the
+heap created in that same reservation before managed module initialization.
+An absent or incomplete selection cannot perform allocator setup.
+
+Partial setup retains that same receiver and any acquired reservation or heap;
+a duplicate or refused receiver inherits none of its cleanup responsibility.
+Normal current checks require the original thread, unchanged entry selection,
+actual reservation and selected default heap. Cleanup may restore only its own
+previous default, never an unrelated replacement. This restoration has a separate
+acknowledgment: escaped managed aliases, heap descriptors, arena registration and
+their process-lived backing remain retained, without credit or another setup.
+No heap destruction, child close or process exit supplies their retirement ACK.
+
 The command Runtime retains its stronger filesystem selection through current
 checks. Its selected Darwin/APFS census uses `getattrlistbulk` with one fixed
 65536-byte buffer and the existing bounded expected-name bitmap, both allocated

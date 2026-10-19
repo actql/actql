@@ -16,6 +16,13 @@ bool actql_native_command_platform_available(void) {
   return actql_native_command_platform_current() != NULL;
 }
 
+__attribute__((weak)) bool actql_native_command_platform_managed_selection(
+    actql_native_command_platform_original *entry, size_t out[4]) {
+  (void)entry;
+  (void)out;
+  return false;
+}
+
 __attribute__((weak)) const char *
 actql_native_command_platform_scratch_directory(
     actql_native_command_platform_original *original) {
