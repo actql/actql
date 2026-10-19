@@ -257,5 +257,26 @@
     }
   },
   "normal_profile": null,
-  "installed_supplier": false
+  "installed_supplier": false,
+  "source_targets": {
+    "aarch64-unknown-linux-gnu": {
+      "deployment_target": null,
+      "required_defines": [
+        "MOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC",
+        "ACTQL_SCOPED_READ_ALLOCATOR",
+        "_GNU_SOURCE",
+        "ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN"
+      ],
+      "binary_inputs": {
+        "lib/libmoonbitrun.o": {
+          "bytes": 173056,
+          "sha256": "d49d0147b3b414e8ae547a359500e5e480cb59c12636452d426892cc8fd9fafd"
+        },
+        "lib/libbacktrace.a": {
+          "bytes": 956034,
+          "sha256": "7ce3aedd32e1e08f3e32e1a6ef38398e8d6f943806ad1a617f69d8f25c8c5a17"
+        }
+      }
+    }
+  }
 }

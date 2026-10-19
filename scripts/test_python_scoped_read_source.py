@@ -58,9 +58,58 @@ class ScopedReadSourceTests(unittest.TestCase):
             'outputs': {'owned.c': entry(b'abc\n'), 'runtime.h': entry(b'abcd\n')},
         }
 
-    def prepare(self):
+    def prepare(self, target=None):
         (self.provider / 'scoped-read-source.json').write_text(json.dumps(self.manifest))
-        return PREPARE.prepare(self.moonbit, self.destination, provider=self.provider)
+        return PREPARE.prepare(self.moonbit, self.destination, provider=self.provider, target=target)
+
+    def add_linux_binaries(self):
+        (self.moonbit / 'lib').mkdir()
+        binaries = {'lib/libmoonbitrun.o': b'linux-object',
+                    'lib/libbacktrace.a': b'linux-archive'}
+        for path, data in binaries.items():
+            (self.moonbit / path).write_bytes(data)
+            output = Path(path).name
+            self.manifest['inputs'].append({'root': 'moonbit', 'path': path,
+                                           'output': output, **entry(b'darwin-input')})
+            self.manifest['outputs'][output] = entry(b'darwin-input')
+        self.manifest['source_targets'] = {'aarch64-unknown-linux-gnu': {
+            'deployment_target': None,
+            'required_defines': ['DERIVED_READ', '_GNU_SOURCE',
+                                 'ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN'],
+            'binary_inputs': {path: entry(data) for path, data in binaries.items()},
+        }}
+
+    def test_linux_selection_requires_its_exact_binaries_and_explicit_defines(self):
+        self.add_linux_binaries()
+        result = self.prepare('aarch64-unknown-linux-gnu')
+        self.assertEqual(result['target'], 'aarch64-unknown-linux-gnu')
+        self.assertIsNone(result['deployment_target'])
+        self.assertIn('ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN', result['required_defines'])
+        self.assertEqual((self.destination / 'libmoonbitrun.o').read_bytes(), b'linux-object')
+        self.assertEqual(result['compiled'], 0)
+        self.assertIs(result['installed_supplier'], False)
+
+    def test_linux_objects_do_not_satisfy_default_darwin_selection(self):
+        self.add_linux_binaries()
+        with self.assertRaisesRegex(ValueError, 'mismatch'):
+            self.prepare()
+        self.assertFalse(self.destination.exists())
+
+    def test_linux_wrong_binary_cannot_fall_back_to_darwin(self):
+        self.add_linux_binaries()
+        (self.moonbit / 'lib/libmoonbitrun.o').write_bytes(b'darwin-input')
+        with self.assertRaisesRegex(ValueError, 'mismatch'):
+            self.prepare('aarch64-unknown-linux-gnu')
+        self.assertFalse(self.destination.exists())
+
+    def test_unknown_target_and_incomplete_linux_recipe_refuse(self):
+        with self.assertRaisesRegex(ValueError, 'Unknown source closure target'):
+            self.prepare('unknown')
+        self.add_linux_binaries()
+        del self.manifest['source_targets']['aarch64-unknown-linux-gnu']['binary_inputs']['lib/libbacktrace.a']
+        with self.assertRaisesRegex(ValueError, 'Invalid selected source target recipe'):
+            self.prepare('aarch64-unknown-linux-gnu')
+        self.assertFalse(self.destination.exists())
 
     def test_exact_patch_copy_preserves_originals_and_is_not_an_installed_supplier(self):
         result = self.prepare()

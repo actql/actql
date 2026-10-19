@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import os
@@ -53,7 +54,40 @@ def _read(root: Path, name: str, expected: dict[str, object]) -> bytes:
         os.close(fd)
 
 
-def prepare(moonbit: Path, destination: Path, *, provider: Path = HERE) -> dict[str, object]:
+def _select_target(manifest: dict[str, object], target: str | None) -> dict[str, object]:
+    """Select pinned bytes only; target selection grants no execution authority."""
+    selected = copy.deepcopy(manifest)
+    if target is None or target == manifest['target']:
+        return selected
+    if target != 'aarch64-unknown-linux-gnu':
+        raise ValueError('Unknown source closure target')
+    variant = manifest.get('source_targets', {}).get(target)
+    if (type(variant) is not dict
+            or set(variant) != {'deployment_target', 'required_defines', 'binary_inputs'}
+            or variant['deployment_target'] is not None
+            or variant['required_defines'] != [*manifest['required_defines'],
+                                               '_GNU_SOURCE',
+                                               'ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN']
+            or set(variant['binary_inputs']) != {'lib/libmoonbitrun.o', 'lib/libbacktrace.a'}):
+        raise ValueError('Invalid selected source target recipe')
+    replaced = set()
+    for item in selected['inputs']:
+        if item['root'] == 'moonbit' and item['path'] in variant['binary_inputs']:
+            expected = variant['binary_inputs'][item['path']]
+            if set(expected) != {'bytes', 'sha256'}:
+                raise ValueError('Invalid selected binary identity')
+            item.update(expected)
+            selected['outputs'][item['output']] = expected
+            replaced.add(item['path'])
+    if replaced != set(variant['binary_inputs']):
+        raise ValueError('Incomplete selected binary inputs')
+    selected.update(target=target, deployment_target=None,
+                    required_defines=variant['required_defines'])
+    return selected
+
+
+def prepare(moonbit: Path, destination: Path, *, provider: Path = HERE,
+            target: str | None = None) -> dict[str, object]:
     """Publish only a fully verified copy. No installed source is overwritten."""
     if destination.exists() or destination.is_symlink():
         raise ValueError('Source closure destination already exists')
@@ -65,6 +99,7 @@ def prepare(moonbit: Path, destination: Path, *, provider: Path = HERE) -> dict[
     if (manifest['status'] != 'review-source-only' or manifest['normal_profile'] is not None
             or manifest['installed_supplier'] is not False):
         raise ValueError('Source closure is not a review-only recipe')
+    manifest = _select_target(manifest, target)
     patch = _read(provider, manifest['patch']['path'], manifest['patch'])
     originals: dict[str, bytes] = {}
     for item in manifest['inputs']:
@@ -114,5 +149,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--moonbit', type=Path, required=True)
     parser.add_argument('--destination', type=Path, required=True)
+    parser.add_argument('--target', choices=['aarch64-apple-darwin',
+                                              'aarch64-unknown-linux-gnu'])
     args = parser.parse_args()
-    print(json.dumps(prepare(args.moonbit, args.destination)))
+    print(json.dumps(prepare(args.moonbit, args.destination, target=args.target)))
