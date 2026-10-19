@@ -1,4 +1,5 @@
 import {captureReadOptions, captureResultRead} from './result-schema.mjs';
+import {captureQueryResultRead, collectCapturedResult} from './internal/result-read.mjs';
 
 // A query composes existing admission, observation and Result owners. It never
 // resubmits, reconciles a Run, answers a Checkpoint, or retries a Result read.
@@ -35,7 +36,7 @@ function collectAfterQuery(query, retainResult, capture, read) {
 }
 
 export function sourceQuery(startSource, ClientError, retainResult, retainFailure,
-  format, text, parameters, options = {}) {
+  format, text, parameters, options = {}, beforeResultRead, assertResultReadCurrent) {
   let requestId, admission, signal, selectedResult;
   try {
     requestId = options?.submissionRef?.nonce ?? options?.requestId;
@@ -106,19 +107,28 @@ export function sourceQuery(startSource, ClientError, retainResult, retainFailur
     return result;
   });
   retainResult(admission, query);
+  const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,
+    retainResult, () => captureQueryResultRead(beforeResultRead, assertResultReadCurrent,
+      kind, schemaOrOptions, options), (result, token) => collectCapturedResult(result, token));
   // Keep one native Promise. Native chaining/assimilation and repeated awaits
   // share this operation; each explicitly requested collection opens a read.
   Object.defineProperties(query, {
     requestId: {value: requestId, enumerable: true},
-    all: {value: (schemaOrOptions, options) => collectAfterQuery(query, retainResult,
+    all: {value: (schemaOrOptions, options) => beforeResultRead !== undefined
+      ? collectSelected('all', schemaOrOptions, options)
+      : collectAfterQuery(query, retainResult,
       () => captureResultRead(ClientError, schemaOrOptions, options),
       (result, captured) => captured.validate === undefined
         ? result.all(captured.options)
         : result.all({'~standard': {version: 1, vendor: 'actql-captured',
           validate: captured.validate}}, captured.options))},
-    one: {value: options => collectAfterQuery(query, retainResult,
+    one: {value: options => beforeResultRead !== undefined
+      ? collectSelected('one', options, undefined)
+      : collectAfterQuery(query, retainResult,
       () => captureReadOptions(options), (result, captured) => result.one(captured))},
-    scalar: {value: options => collectAfterQuery(query, retainResult,
+    scalar: {value: options => beforeResultRead !== undefined
+      ? collectSelected('scalar', options, undefined)
+      : collectAfterQuery(query, retainResult,
       () => captureReadOptions(options), (result, captured) => result.scalar(captured))},
   });
   return Object.freeze(query);

@@ -170,7 +170,9 @@ export function createExecutionFactory(selected, confirmed, transport, lifecycle
 
     const result = createResultFactory({ref, limits: confirmed.limits,
       lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef},
-      redactErrors: selected.redactCredentialErrors === true, typedRows: transport.typedRows},
+      redactErrors: selected.redactCredentialErrors === true, typedRows: transport.typedRows,
+      beforeResultRead: transport.sourcePreparation?.beforeResultRead,
+      assertResultReadCurrent: transport.sourcePreparation?.assertResultReadCurrent},
     {runRequest, responseValue}, lifecycle, () => handle);
     const handle = Object.freeze({
       ref, profile: runProfile, result,

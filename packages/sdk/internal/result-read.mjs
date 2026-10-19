@@ -4,7 +4,7 @@ import {projectDeliveryExplanation, projectDeliveryLookupFailure, projectReadExp
   localizeOperation} from '../operation-presentation.mjs';
 import {contentCid} from '../checkpoints.mjs';
 import {jsonValueWireContractCid} from '../json-value-wire.generated.mjs';
-import {awaitValidation, captureResultRead, validationOutcome} from '../result-schema.mjs';
+import {awaitValidation, captureReadOptions, captureResultRead, validationOutcome} from '../result-schema.mjs';
 import {captureResponse, freezeInput, positive, structuralKey} from './data.mjs';
 import {ClientError, fail, ownedClientFailure, markOwnedFailure, ownedFailureCode,
   requestCancellationCause} from './errors.mjs';
@@ -109,7 +109,29 @@ function retainedValueBytes(value) {
   return new TextEncoder().encode(JSON.stringify(value)).byteLength + nodes * 64;
 }
 
-export function createResultFactory({ref, limits, lookupContext, redactErrors, typedRows},
+// Only this module's original Result owns these continuations. The association
+// preserves an eager query's captured options; it issues no resource admission.
+const capturedResultReads = new WeakMap();
+const capturedQueryReads = new WeakMap();
+export function captureQueryResultRead(before, current, kind, schemaOrOptions, options) {
+  before(schemaOrOptions, options);
+  const captured = kind === 'all' ? captureResultRead(ClientError, schemaOrOptions, options)
+    : captureReadOptions(schemaOrOptions);
+  const token = Object.freeze({});
+  capturedQueryReads.set(token, {before, current, kind, captured});
+  return token;
+}
+export function collectCapturedResult(result, token) {
+  const target = capturedResultReads.get(result), original = capturedQueryReads.get(token);
+  if (target === undefined || original === undefined || target.before !== original.before ||
+      target.current !== original.current) fail('InvalidResult');
+  capturedQueryReads.delete(token);
+  original.current();
+  return target.read(original.kind, original.captured);
+}
+
+export function createResultFactory({ref, limits, lookupContext, redactErrors, typedRows,
+  beforeResultRead, assertResultReadCurrent},
   {runRequest, responseValue}, {activeReaders, readerCleanups}, getExecution) {
   return name => {
     if (typeof name !== 'string' || !name) fail('InvalidResultName');
@@ -158,6 +180,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
       };
       const iterate = async function* (ownedReader) {
         if (state !== 'not_started') fail('ReadAttemptAlreadyStarted');
+        assertResultReadCurrent?.();
         state = 'opening';
         const abort = () => controller.abort();
         options.signal?.addEventListener('abort', abort, {once: true});
@@ -362,11 +385,15 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
       return reader;
     };
 
-    const rows = (schemaOrOptions, options) =>
-      readRows(captureResultRead(ClientError, schemaOrOptions, options));
+    const rows = (schemaOrOptions, options) => {
+      beforeResultRead?.(schemaOrOptions, options);
+      return readRows(captureResultRead(ClientError, schemaOrOptions, options));
+    };
 
-    const batches = (options = {}) => {
-      const reader = rows(options);
+    const batches = options => {
+      beforeResultRead?.(options, undefined);
+      if (options === undefined) options = {};
+      const reader = readRows(captureResultRead(ClientError, options));
       let rowsYielded = 0;
       const maxRows = tighter(options.maxBatchRows,
         limits.maxBatchRows);
@@ -409,8 +436,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
         }});
     };
 
-    const all = async (schemaOrOptions, options) => {
-      const captured = captureResultRead(ClientError, schemaOrOptions, options);
+    const allCaptured = async captured => {
       const reader = readRows(captured, {
         maxRows: tighter(captured.options.maxRows, limits.maxRows),
         maxBytes: tighter(captured.options.maxRetainedValueBytes,
@@ -424,25 +450,32 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
         throw readFailure(cause, readerContexts.get(reader), 0, readExplanations.get(cause));
       }
     };
-    return Object.freeze({
+    const all = async (schemaOrOptions, options) => {
+      beforeResultRead?.(schemaOrOptions, options);
+      return allCaptured(captureResultRead(ClientError, schemaOrOptions, options));
+    };
+    const oneCaptured = async options => {
+      const values = await allCaptured(captureResultRead(ClientError, {...options,
+        maxRows: Math.min(2, limits.maxRows)}));
+      if (values.length !== 1) fail('ExpectedOneRow');
+      return values[0];
+    };
+    const scalarCaptured = async options => {
+      const row = await oneCaptured(options);
+      if (row === null || typeof row !== 'object' ||
+          Array.isArray(row) || Object.keys(row).length !== 1) fail('ExpectedOneColumn');
+      return Object.values(row)[0];
+    };
+    const result = Object.freeze({
       ref: Object.freeze({run: ref, resultName: name}),
       execution: getExecution(), rows, batches, all,
       one: async options => {
-        const values = await all({...options,
-          maxRows: Math.min(2, limits.maxRows)});
-        if (values.length !== 1) fail('ExpectedOneRow');
-        return values[0];
+        beforeResultRead?.(options, undefined);
+        return oneCaptured(options);
       },
       scalar: async options => {
-        const values = await all({...options,
-          maxRows: Math.min(2, limits.maxRows)});
-        if (values.length !== 1) fail('ExpectedOneRow');
-        const row = values[0];
-        if (row === null || typeof row !== 'object' ||
-            Array.isArray(row) || Object.keys(row).length !== 1) {
-          fail('ExpectedOneColumn');
-        }
-        return Object.values(row)[0];
+        beforeResultRead?.(options, undefined);
+        return scalarCaptured(options);
       },
       describe: async ({signal, format = 'jsonl',
         ...requestedLimits} = {}) => {
@@ -525,5 +558,13 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
         }
       },
     });
+    capturedResultReads.set(result, {before: beforeResultRead, current: assertResultReadCurrent,
+      read(kind, captured) {
+        if (kind === 'all') return allCaptured(captured);
+        if (kind === 'one') return oneCaptured(captured);
+        if (kind === 'scalar') return scalarCaptured(captured);
+        fail('InvalidResult');
+      }});
+    return result;
   };
 }
