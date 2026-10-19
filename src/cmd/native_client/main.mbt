@@ -1359,6 +1359,9 @@ extern "C" fn exit_failure_ffi() -> Unit = "actql_native_client_exit_failure"
 fn execute_and_write_native_reply(
   matches : @argparse.Matches,
 ) -> Unit raise ClientStop {
+  // The same carrier is registered before the first project/runtime/Store IO.
+  // Help/version and parse errors have already terminated without acquisition.
+  prepare_native_command_invocation(matches)
   let selected = execute_native_project_selection(matches)
   let value = match selected {
     Ok(value) => value

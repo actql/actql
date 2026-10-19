@@ -314,10 +314,14 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
     command_preparation_value(
       read_preparation.map_err(issue => CommandDomain(issue)),
     )
+    let sqlite_preparation = match
+      self.native_storage.sqlite_domain_facility_ceiling {
+      Some(ceiling) =>
+        host.prepare_domain_read(sqlite_domain, execution_ceiling=ceiling)
+      None => host.prepare_domain_read(sqlite_domain)
+    }
     command_preparation_value(
-      host
-      .prepare_domain_read(sqlite_domain)
-      .map_err(issue => CommandDomain(issue)),
+      sqlite_preparation.map_err(issue => CommandDomain(issue)),
     )
     let acquired = command_preparation_value(
       host

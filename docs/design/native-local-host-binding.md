@@ -1881,3 +1881,38 @@ changes refuse normal use permanently for that original; they neither create a
 new lifetime nor acknowledge partial modules, TLS users or backing retirement.
 The later Runtime/member bindings and each original cleanup carrier remain
 separate from this initial selection.
+
+### Static command preparation facilities
+
+The trusted selected installer fixes a command-preparation candidate after the
+pinned original parser succeeds and before its first physical acquisition. The
+initial entry's managed arena and OS-service lifetime remain separate. Help,
+version, parser errors and unselected compatibility calls do not acquire the
+command Host, Journal, Root or Read.
+
+The selected static-check candidate has a 208 MiB original file-backed Host,
+with distinct 128 MiB Read and 64 MiB SQLite child mappings. The actual parent's
+control layout must fit alongside both children before acquisition. The Read
+occupied-page ceiling is 96 MiB; the SQLite-domain ceiling is 48 MiB and contains
+its 32 MiB SQLite heap. Crypto's 2 MiB heap is contained in the Read facility.
+These are capacities, not additive demand estimates or guarantees that every
+bounded input fits. Child mappings/loans share their original parent backing;
+neither their aliases nor embedded heaps issue independent capacity credit.
+
+Both domain ceilings are installed on their original leases before their first
+context allocation. The physical SQLite Owner derives its necessary total from
+its actual control, context and receiver layouts and the maximum of pre-bind
+path text versus post-bind heap/Library/DB coexistence. That total already
+includes the SQLite heap. The old demand branch remains explicit; no residual
+capacity fills its external-demand field. Unsupported layout queries refuse
+before backing acquisition. Runtime/configuration/Task/Common graphs, returned
+values and cleanup-only carriers must remain within the same actual facilities;
+exhaustion preserves the existing refusal/fail-stop and cleanup responsibilities.
+
+The invocation retains its exact compiled source and originally captured
+launcher context, then registers its original carrier before the first backing
+call. Runtime/member observations must independently confirm those originals.
+Project discovery uses that same entered Read. Matches and reply values retire
+before child-first physical cleanup; a parse, output or process result is not a
+Root, Reader, domain, Library, descriptor or Lock acknowledgement. This selection
+does not resolve Mock/Account/Source suppliers or permit business execution.

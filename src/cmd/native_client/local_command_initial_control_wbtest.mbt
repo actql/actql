@@ -158,3 +158,27 @@ test "Initial command control preserves exact application text copy" {
   assert_eq(copied.code_units().to_array(), original.code_units().to_array())
   assert_eq(command_control_copy_text(""), "")
 }
+
+///|
+test "Selected command preparation frontend does not acquire before covered operation" {
+  for
+    arguments in [
+      ["original", "--mode", "remote", "check", "SELECT 1"],
+      ["original", "--mode", "local", "adopt"],
+      ["original", "--mode", "local", "status", "--run-id", "unbound"],
+    ] {
+    let control = parse_native_initial_arguments(arguments, false)
+    let matches = control.matches.unwrap()
+    assert_false(local_command_preparation_selected(matches))
+    prepare_native_command_invocation(matches)
+    assert_true(command_preparation_invocation.val is None)
+  }
+  let control = parse_native_initial_arguments(
+    ["original", "--mode", "local", "check", "SELECT 1"],
+    false,
+  )
+  assert_true(local_command_preparation_selected(control.matches.unwrap()))
+  // The unselected test process cannot fabricate the initial launcher input.
+  prepare_native_command_invocation(control.matches.unwrap())
+  assert_true(command_preparation_invocation.val is None)
+}

@@ -40,6 +40,7 @@ fn native_storage_arithmetic_profile() -> LocalCommandPreparationProfile {
       max_records: 8,
       read_selection: CommandReadDemand,
       platform_selection: CommandPlatformDemand,
+      sqlite_domain_selection: CommandSqliteDomainDemand,
       managed_read_execution_bytes: Some(11L),
       loader_platform_execution_bytes: Some(19L),
       native_read_execution_bytes: Some(131072L),
@@ -489,5 +490,50 @@ test "Native platform OS facility is not a numerical reservation" {
       native_storage: { ..bounds, sqlite_external_execution_bytes: None, },
     })
     is Err(NativeStorageSqliteExternalMissing),
+  )
+}
+
+///|
+test "Native command SQLite domain facility never fills external demand" {
+  let profile = native_storage_arithmetic_profile()
+  let page = native_storage_page_bytes()
+  let bounds = {
+    ..profile.native_storage,
+    sqlite_domain_selection: CommandSqliteDomainFiniteFacility(page),
+  }
+  assert_true(
+    quote_local_command_native_storage({ ..profile, native_storage: bounds, })
+    is Err(NativeStorageInvalidInput),
+  )
+  let missing = {
+    ..bounds,
+    sqlite_domain_selection: CommandSqliteDomainDemand,
+    sqlite_external_execution_bytes: None,
+  }
+  assert_true(
+    quote_local_command_native_storage({ ..profile, native_storage: missing, })
+    is Err(NativeStorageSqliteExternalMissing),
+  )
+  for invalid in [0L, -1L, page + 1L] {
+    assert_true(
+      quote_local_command_native_storage({
+        ..profile,
+        native_storage: {
+          ..bounds,
+          sqlite_domain_selection: CommandSqliteDomainFiniteFacility(invalid),
+          sqlite_external_execution_bytes: None,
+        },
+      })
+      is Err(NativeStorageInvalidInput),
+    )
+  }
+  // This ordinary unselected test binary has no selected physical provider.
+  // A facility declaration cannot manufacture its compiled layout or admission.
+  assert_true(
+    quote_local_command_native_storage({
+      ..profile,
+      native_storage: { ..bounds, sqlite_external_execution_bytes: None, },
+    })
+    is Err(NativeStorageSqliteDomainMissing),
   )
 }

@@ -10,6 +10,7 @@ priv struct LocalCommandNativeStorageBounds {
   max_records : Int
   read_selection : LocalCommandReadStorageSelection
   platform_selection : LocalCommandPlatformStorageSelection
+  sqlite_domain_selection : LocalCommandSqliteDomainStorageSelection
   // Full retained Runtime/configuration/Journal/Common managed graphs,
   // including copies, decoding, callbacks and escaped diagnostics.
   // Demand selection only; never a residual facility capacity.
@@ -57,6 +58,18 @@ priv enum LocalCommandReadPayloadRequirement {
 ///|
 // Both branches require the same actual backed heap before first SQLite use.
 // Facility capacity may exhaust; it is not an all-input demand guarantee.
+priv enum LocalCommandSqliteDomainStorageSelection {
+  CommandSqliteDomainDemand
+  CommandSqliteDomainFiniteFacility(Int64)
+}
+
+///|
+priv enum LocalCommandSqliteDomainPayloadRequirement {
+  CommandSqliteDomainDemandPayload(Int64)
+  CommandSqliteDomainNecessaryPayload(Int64)
+}
+
+///|
 priv enum LocalCommandSqliteHeapSelection {
   SqliteDemandBound(Int64)
   SqliteFiniteFacility
@@ -80,6 +93,7 @@ priv enum LocalCommandNativeStorageIssue {
   NativeStorageSqliteExternalMissing
   NativeStorageControlMissing
   NativeStorageInsufficient
+  NativeStorageSqliteDomainMissing
 }
 
 ///|
@@ -97,6 +111,8 @@ priv struct LocalCommandNativeStorageQuote {
   wal_regions : Int64
   sqlite_payload_requirement : LocalCommandSqlitePayloadRequirement
   sqlite_execution_bytes : Int64
+  sqlite_domain_payload_requirement : LocalCommandSqliteDomainPayloadRequirement
+  sqlite_domain_facility_ceiling : Int64?
   read_execution_bytes : Int64
   read_payload_requirement : LocalCommandReadPayloadRequirement
   read_facility_ceiling : Int64?
@@ -327,9 +343,21 @@ fn quote_local_command_native_storage(
     }
     SqliteFiniteFacility => result_copies
   }
-  guard bounds.sqlite_external_execution_bytes is Some(external) &&
-    external > 0L else {
-    return Err(NativeStorageSqliteExternalMissing)
+  let sqlite_external_demand = match bounds.sqlite_domain_selection {
+    CommandSqliteDomainDemand => {
+      guard bounds.sqlite_external_execution_bytes is Some(external) &&
+        external > 0L else {
+        return Err(NativeStorageSqliteExternalMissing)
+      }
+      Some(external)
+    }
+    CommandSqliteDomainFiniteFacility(_) => {
+      // Capacity cannot fill the old external-demand field with a residual.
+      if bounds.sqlite_external_execution_bytes is Some(_) {
+        return Err(NativeStorageInvalidInput)
+      }
+      None
+    }
   }
   guard bounds.shared_control_bytes is Some(control) && control > 0L else {
     return Err(NativeStorageControlMissing)
@@ -383,9 +411,37 @@ fn quote_local_command_native_storage(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
-  let sqlite = match native_storage_sum([sqlite_extent, external]) {
-    Err(issue) => return Err(issue)
-    Ok(value) => value
+  let (sqlite, sqlite_requirement, sqlite_ceiling) = match
+    bounds.sqlite_domain_selection {
+    CommandSqliteDomainDemand => {
+      let bytes = match
+        native_storage_sum([sqlite_extent, sqlite_external_demand.unwrap()]) {
+        Err(issue) => return Err(issue)
+        Ok(value) => value
+      }
+      (bytes, CommandSqliteDomainDemandPayload(bytes), None)
+    }
+    CommandSqliteDomainFiniteFacility(bytes) => {
+      let page = native_storage_page_bytes()
+      if bytes <= 0L || page <= 0L || bytes % page != 0L {
+        return Err(NativeStorageInvalidInput)
+      }
+      // The physical Owner computes actual control/context/receiver layouts
+      // and the maximum of pre-bind path text versus post-bind heap coexistence.
+      // This TOTAL already includes the heap: never add it a second time.
+      guard @local_sqlite.command_domain_necessary_bytes(
+          profile.sqlite_domain_bytes,
+          profile.sqlite_heap_bytes,
+        )
+        is Some(minimum) &&
+        minimum > 0L else {
+        return Err(NativeStorageSqliteDomainMissing)
+      }
+      if bytes < minimum {
+        return Err(NativeStorageInsufficient)
+      }
+      (bytes, CommandSqliteDomainNecessaryPayload(minimum), Some(bytes))
+    }
   }
   // The one Crypto heap serves both original Libraries, all hooked OpenSSL
   // allocations, realloc overlap and cleanup. Native buffers remain separate.
@@ -449,6 +505,8 @@ fn quote_local_command_native_storage(
       SqliteFiniteFacility => SqliteNecessaryPayload(payload)
     },
     sqlite_execution_bytes: sqlite,
+    sqlite_domain_payload_requirement: sqlite_requirement,
+    sqlite_domain_facility_ceiling: sqlite_ceiling,
     read_execution_bytes: read,
     read_payload_requirement: read_requirement,
     read_facility_ceiling: read_ceiling,
