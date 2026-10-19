@@ -295,10 +295,13 @@ test('original UPDATE selection custody preserves prior combined identity', () =
   assert.equal(canonicalText(expression.body), expression.canonicalPreimage);
   assert.equal(machineCid(expression.body), expression.cid);
   assert.equal(currentManifest.expression_contract_cid, machineCid(currentExpression));
+  assert.equal(currentManifest.expression_text_grammar_sha256, currentExpression.grammar_sha256);
+  assert.equal(sha(readFileSync(currentExpression.grammar)).slice(7), currentExpression.grammar_sha256);
   const currentAligned = {...currentManifest};
   for (const key of ['grammar_manifest_cid', 'query_text_grammar_sha256',
     'query_text_rules_sha256', 'expression_text_rules_sha256',
-    'source_grammar_cid', 'expression_contract_cid']) currentAligned[key] = integrated.after[key];
+    'source_grammar_cid', 'expression_contract_cid',
+    'expression_text_grammar_sha256']) currentAligned[key] = integrated.after[key];
   assert.deepEqual(currentAligned, integrated.after);
   for (const value of [integrated.frozen_before, integrated.main_before, integrated.after]) {
     const {grammar_manifest_cid: expected, ...body} = value;
