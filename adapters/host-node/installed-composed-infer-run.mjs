@@ -43,10 +43,9 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     if (pendingSetup !== undefined) {
       moon.strategyHostStop(pendingSetup);
       moon.strategyHostCloseOutputs(pendingSetup);
-      if (moon.strategyHostUsage(pendingSetup).slice(4).some(value => value !== 0n)) {
-        return false;
-      }
-      pendingSetup = undefined;
+      // The same parent can still own the original Model Scope/bootstrap.
+      // Drain its real children below before testing whole-parent quiescence;
+      // otherwise this setup would wait on cleanup it itself prevents.
     }
     // Copies must finish their handoff before original capture custody ends.
     for (const child of children) {
@@ -102,7 +101,11 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     }
     if (restoredSource !== undefined) {await restoredSource.close(); restoredSource = undefined;}
     if (sourceContinuation !== undefined) {await sourceContinuation.close(); sourceContinuation = undefined;}
-    if (originalPreparation !== undefined) originalPreparation.retire();
+    if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;
+    if (pendingSetup !== undefined) {
+      if (moon.strategyHostUsage(pendingSetup).slice(4).some(value => value !== 0n)) return false;
+      pendingSetup = undefined;
+    }
     released = true;
     return true;
   }

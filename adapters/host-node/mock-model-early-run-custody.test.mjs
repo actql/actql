@@ -10,7 +10,7 @@ const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
 const outer=tree.body.find(node=>node.type==='ExportNamedDeclaration'&&
   node.declaration?.id?.name==='installPreparedProjectMockSources').declaration;
 const functions=['sameRun','prepareManagedRun','prepareManagedMockModelRun','modelPreparation','retireModelRead',
-  'closeSource','closeRead','close'];
+  'closeSource','closeRead','close','retireRunRecord'];
 const slices=outer.body.body.flatMap(node=>{
   if(node.type==='FunctionDeclaration'&&functions.includes(node.id.name))return[source.slice(node.start,node.end)];
   if(node.type==='VariableDeclaration'&&['sameRun','close'].includes(node.declarations[0].id.name))return[source.slice(node.start,node.end)];
@@ -47,7 +47,8 @@ function fixture({afterFactoryFailure,readFailure}={}){
     assert.strictEqual(g,graph);assert.strictEqual(s,scope);calls.push('read');
     if(readFailure)throw readFailure;return read;
   },stopCheckedClientInferOriginalReadPreparation(){calls.push('stop-read');},
-  settleCheckedClientInferOriginalReadPreparation(){calls.push('settle-read');}};
+  settleCheckedClientInferOriginalReadPreparation(){calls.push('settle-read');},
+  finishCheckedClientInferOriginalReadScope(){calls.push('finish-scope');return true;}};
   const api=new Function('current','records','fail','checked','sourceManaged','moon','runtimeField','sources','closedSources',
     'let closing=false;'+slices+';return {prepareManagedMockModelRun,modelPreparation,close,closeSource};')(
       current,records,fail,checked,sourceManaged,moon,(value,index)=>value[index],sources,closedSources);
@@ -122,7 +123,7 @@ test('Mock close keeps both originals until Source and Model cleanup acknowledge
   assert.equal(f.calls.includes('settle-read'),false);
   // This port models the SAME Model child's completed cleanup, not primary
   // Source close, currentness, a copied Boolean or a new resource original.
-  preparation.retire();
+  assert.equal(await preparation.retire(),true);
   await f.close();
   assert.equal(f.records.size,0);
   assert.equal(record.original,undefined);assert.equal(model.scope,undefined);

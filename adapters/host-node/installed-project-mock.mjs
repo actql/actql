@@ -229,7 +229,18 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
             modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes});
         } catch (error) {model.readFailure = error; throw error;}
       },
-      retire() {retireModelRead(model);}});
+      async retire() {
+        if (model.closed || run.retired) return true;
+        retireModelRead(model);
+        // Source capture can still be borrowed by the Local DAG. Its own
+        // retirement/FD checks, not Model completion, decide when each read
+        // is closed. The same scope then checks the whole original census.
+        for (const read of run.reads) await closeRead(read);
+        if (model.control.finishCheckedClientInferOriginalReadScope(model.compiled,
+          model.runDefinition, model.graph, model.scope, true) !== true) return false;
+        retireRunRecord(run);
+        return true;
+      }});
   }
   function retireModelRead(model) {
     if (model.read === undefined) return;
@@ -238,6 +249,12 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     model.control.settleCheckedClientInferOriginalReadPreparation(model.compiled,
       model.runDefinition, model.graph, model.read, true);
     model.read = undefined;
+  }
+  function retireRunRecord(record) {
+    if (record.retired) return;
+    if (record.value !== undefined) checked(moon.clientProgramInstalledManagedRunRetire(record.value));
+    else if (record.admission !== undefined) checked(moon.clientProgramNodeManagedRunCleanup(record.admission));
+    record.retired = true;
   }
   async function closeSource(index) {
     for (const record of records.values()) await closeRead(record.reads[index]);
@@ -270,10 +287,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           if (record.model.taken) fail('InstalledMockModelCleanupPending');
           retireModelRead(record.model);
         }
-        if (record.value !== undefined) checked(moon.clientProgramInstalledManagedRunRetire(record.value));
-        else if (record.admission !== undefined) {
-          checked(moon.clientProgramNodeManagedRunCleanup(record.admission));
-        }
+        retireRunRecord(record);
       } catch (error) {failures.push(error);}
     }
     if (failures.length) throw new AggregateError(failures, 'InstalledMockSourceCleanupPending');
