@@ -1048,6 +1048,15 @@ The native module, loader and all native/managed aliases require their own
 pre-use correspondence and complete facility coverage; the inspector's private
 membership or bounds do not issue that admission.
 
+The same inspector captures a finite cumulative acquisition allowance before
+its first callback. Each accepted invocation consumes one attempt before
+currentness or native open, including known refusal and failed construction.
+Successful close does not refill it. This bounds construction history as well
+as one live enumeration: native wrappers, buffers and returned immutable names
+may outlive descriptor close until their separate original lifetimes retire.
+Mutating a later limits record cannot increase the captured allowance. These
+private recipe conditions do not change unselected Journal or public limits.
+
 Physical directory close is consumed once before entering the native call.
 A failed or uncertain result retains the same original and pending duty; retry
 only observes that outcome and never closes a possibly reused numeric FD.

@@ -11,7 +11,7 @@ import {openClientRequestJournal} from './client-request-journal.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const require = createRequire(import.meta.url);
-const limits = Object.freeze({maxEntries: 4, maxNameBytes: 1024, maxWork: 8192});
+const limits = Object.freeze({maxEntries: 4, maxNameBytes: 1024, maxWork: 8192, maxInspections: 256});
 // One explicitly selected matching-target diagnostic; not a normal package
 // build, selected startup, resource original or installed Host acceptance.
 test('actual Darwin directory original bounds names/currentness and owns one-shot close', async () => {
@@ -62,7 +62,7 @@ test('actual Darwin directory original bounds names/currentness and owns one-sho
   // this same private inspector; no stock Dir fallback on selected refusal.
   // This diagnostic supplies no operational Host/Run admission or funding.
   const requests = join(scratch.path, 'requests');
-  const selectedLimits = {maxEntries: 64, maxNameBytes: 1024, maxWork: 65536};
+  const selectedLimits = {maxEntries: 64, maxNameBytes: 1024, maxWork: 65536, maxInspections: 256};
   const selected = createHostJournalDirectoryInspector(native, selectedLimits, () => {});
   const options = {maxInspectionEntries: 64, primaryDirectoryInspection: selected};
   let journal = openClientRequestJournal(requests, options);

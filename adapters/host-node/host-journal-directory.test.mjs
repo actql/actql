@@ -5,7 +5,7 @@ import {createHostJournalDirectoryInspector, assertHostJournalDirectoryInspector
 
 // Explicit native-port fixtures: these test the consumer's custody protocol,
 // not a Darwin syscall, an operational issuer or an installed Host.
-const limits = Object.freeze({maxEntries: 3, maxNameBytes: 32, maxWork: 100});
+const limits = Object.freeze({maxEntries: 3, maxNameBytes: 32, maxWork: 100, maxInspections: 8});
 function fixture(names = ['b', 'a'], selected = limits) {
   let reads = 0, opens = 0, closes = 0, currents = 0;
   const handle = Object.freeze({});
@@ -152,4 +152,49 @@ test('private view membership and its exact bound cannot be replaced by a callab
     {code: 'HostJournalDirectoryUnavailable'});
   assert.equal(f.count().opens, 0);
   assert.deepEqual(inspectHostJournalDirectory(inspect, '/original', 3), ['a', 'b']);
+});
+
+test('confirmed closes do not refill the captured original inspection allowance', () => {
+  const selected = {...limits, maxInspections: 2}, f = fixture(['a'], selected);
+  const inspect = createHostJournalDirectoryInspector(f.native, selected, () => {});
+  selected.maxInspections = 100;
+  assert.deepEqual(inspect('/original'), ['a']);
+  assert.deepEqual(inspect('/original'), []);
+  assert.throws(() => inspect('/original'), {code: 'HostJournalDirectoryUnavailable'});
+  assert.equal(f.count().opens, 2); assert.equal(f.count().closes, 2);
+});
+
+test('pre-open current refusal consumes the same attempt without creating or retrying a native original', () => {
+  const selected = {...limits, maxInspections: 1}, f = fixture([], selected);
+  const cause = new Error('OriginalBeforeOpenCurrentRefusal');
+  let currents = 0;
+  const inspect = createHostJournalDirectoryInspector(f.native, selected, () => { currents++; throw cause; });
+  assert.throws(() => inspect('/original'), error => error === cause);
+  assert.throws(() => inspect('/original'), {code: 'HostJournalDirectoryUnavailable'});
+  assert.equal(currents, 1); assert.equal(f.count().opens, 0); assert.equal(f.count().closes, 0);
+});
+
+test('native opening refusal cannot restart the exhausted inspection original', () => {
+  const selected = {...limits, maxInspections: 1}, f = fixture([], selected);
+  const cause = new Error('OriginalNativeOpenRefusal');
+  let opens = 0;
+  f.native.open = function () { assert.strictEqual(this, f.native); opens++; throw cause; };
+  const inspect = createHostJournalDirectoryInspector(f.native, selected, () => {});
+  assert.throws(() => inspect('/original'), error => error === cause);
+  assert.throws(() => inspect('/original'), {code: 'HostJournalDirectoryUnavailable'});
+  assert.equal(opens, 1); assert.equal(f.count().closes, 0);
+});
+
+test('finite inspection history is required before native acquisition without invoking getters', () => {
+  const f = fixture();
+  for (const maxInspections of [undefined, 0, -1, 1.5, NaN, Infinity, 2 ** 53]) {
+    assert.throws(() => createHostJournalDirectoryInspector(f.native,
+      {...limits, maxInspections}, () => {}), {code: 'HostJournalDirectoryUnavailable'});
+  }
+  let getters = 0;
+  const getter = {...limits};
+  Object.defineProperty(getter, 'maxInspections', {get() { getters++; return 1; }});
+  assert.throws(() => createHostJournalDirectoryInspector(f.native, getter, () => {}),
+    {code: 'HostJournalDirectoryUnavailable'});
+  assert.equal(getters, 0); assert.equal(f.count().opens, 0);
 });

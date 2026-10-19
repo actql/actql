@@ -26,15 +26,20 @@ export function createHostJournalDirectoryInspector(native, limits, assertCurren
   const open = own(native, 'open'), next = own(native, 'next');
   const current = own(native, 'current'), close = own(native, 'close');
   const maxEntries = own(limits, 'maxEntries'), maxNameBytes = own(limits, 'maxNameBytes');
-  const maxWork = own(limits, 'maxWork');
+  const maxWork = own(limits, 'maxWork'), maxInspections = own(limits, 'maxInspections');
   if ([open, next, current, close, assertCurrent].some(value => typeof value !== 'function') ||
       !integer(maxEntries) || maxEntries < 1 || !integer(maxNameBytes) || maxNameBytes < 1 ||
-      !integer(maxWork) || maxWork < maxEntries) fail('HostJournalDirectoryUnavailable');
-  let active = false, pendingDuty;
+      !integer(maxWork) || maxWork < maxEntries ||
+      !integer(maxInspections) || maxInspections < 1) fail('HostJournalDirectoryUnavailable');
+  let active = false, pendingDuty, inspections = 0;
   const inspect = function inspect(directory) {
     if (active || pendingDuty !== undefined || typeof directory !== 'string' || directory.length === 0 ||
         directory.length > 4096 ||
-        directory.includes('\0')) fail('HostJournalDirectoryUnavailable');
+        directory.includes('\0') || inspections === maxInspections) fail('HostJournalDirectoryUnavailable');
+    // Charge before the first fallible current/open callback. A known refusal,
+    // closed FD or collected wrapper does not replenish this original view's
+    // finite native-wrapper/name-buffer construction history.
+    inspections++;
     active = true;
     let original, closeAttempted = false, closeOutcome, closeFailure;
     let primary, failed = false, entries;

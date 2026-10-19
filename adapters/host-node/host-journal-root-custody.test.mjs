@@ -137,7 +137,7 @@ async function fixture({covered = true, open, read, current, nativeCurrent, load
     journalDisposition: covered ? Object.freeze({
     ownershipBounds: Object.freeze({maxWireBytes: 16384, maxDirectoryEntries: 64}),
     directoryImageLimits: Object.freeze({maxImageBytes: imageFact.bytes, temporaryDirectory: tmpdir(),
-      maxEntries: 100000, maxNameBytes: 1024, maxWork: 268435456}),
+      maxEntries: 100000, maxNameBytes: 1024, maxWork: 268435456, maxInspections: 4096}),
     argumentsForOriginalJournal(actual, options, originalDirectoryInspection) {
       assert.strictEqual(actual, subject);
       return {...options, maxInspectionEntries: 100000, primaryDirectoryInspection: originalDirectoryInspection};
