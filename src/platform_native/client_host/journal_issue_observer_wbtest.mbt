@@ -409,6 +409,13 @@ fn test_observe_sql(
     BodyTooLarge => emit(1209)
     CapacityExceeded => emit(1210)
     Physical(_) => emit(1211)
+    OperationRoutingBefore(_) => emit(1212)
+    OperationRoutingAfter(primary, _) => {
+      emit(1213)
+      if primary is Some(original) {
+        test_observe_sql(original, emit, depth - 1)
+      }
+    }
   }
 }
 

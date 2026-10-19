@@ -78,7 +78,8 @@ pub fn InstalledArenaHost::prepare_domain_original_read(
   if domain.crypto_component is Some(_) ||
     domain.sqlite_library is Some(_) ||
     domain.live_channel is Some(_) ||
-    domain.original_read is Some(_) {
+    domain.original_read is Some(_) ||
+    domain.retained_execution is Some(_) {
     return Err(Domain(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed)))
   }
   if budget.bootstrap_retained <= 0L ||
@@ -374,6 +375,18 @@ pub fn InstalledArenaHost::close_domain_original_read(
   // Common return may remain pending because this live projection still owns
   // the same use. Observe physical retirement explicitly, never from Err alone.
   if !record.physical_retired.val {
+    // The same Ledger can retain immutable usage snapshots allocated during
+    // this Read. Copy only its stopped control DATA outside every child frame
+    // before asking C to retire that frame. Escaped old aliases remain BUSY.
+    if original_read_control_scope_clear_ffi() != 1 {
+      return Err(Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)))
+    }
+    if record.frame is Some(frame) {
+      match @resources.relocate_imported_child_cleanup_usage(frame) {
+        Err(issue) => return Err(Child(issue))
+        Ok(_) => ()
+      }
+    }
     let context_close = domain.backing.close_backed_read_context(
       self, original, domain,
     )
@@ -453,3 +466,6 @@ pub fn InstalledArenaHost::close_domain_original_read(
   record.closed = true
   Ok(())
 }
+
+///|
+extern "C" fn original_read_control_scope_clear_ffi() -> Int = "actql_bootstrap_control_scope_clear"

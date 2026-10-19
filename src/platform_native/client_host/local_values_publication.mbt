@@ -23,11 +23,20 @@ fn local_values_publication_policy(
     Ok(value) => value
     Err(issue) => return Err(Policy(issue))
   }
-  let record = match
-    work.start.journal.lookup(work.start.request, (work.current)()) {
+  let lookup = match work.original_access {
+    None =>
+      work.start.journal
+      .lookup(work.start.request, (work.current)())
+      .map_err(issue => NativeClientValuesPublicationIssue::Policy(issue))
+    Some(access) =>
+      access
+      .lookup()
+      .map_err(issue => NativeClientValuesPublicationIssue::Work(issue))
+  }
+  let record = match lookup {
     Ok(Retained(value)) => value
     Ok(UnresolvedHistory) => return Err(Policy(CustodyLost))
-    Err(issue) => return Err(Policy(issue))
+    Err(issue) => return Err(issue)
   }
   guard record.publication_policy_originals is Some(original) else {
     return Err(Policy(PublicationPolicy(@checked.MissingDependency)))
@@ -95,6 +104,27 @@ pub fn NativeClientValuesWork::install_publication_service(
   @native_publication.NativeRunPublicationService,
   NativeClientValuesPublicationIssue,
 ] {
+  let bind_original : ((String) -> Result[Unit, NativeClientValuesWorkIssue])? = match
+    self.original_access {
+    None => None
+    Some(access) => Some(binding => access.bind_publication(binding))
+  }
+  let fence_original : ((
+    String,
+    () -> Result[
+      @native_publication.NativeRunPublicationResult,
+      @native_publication.NativeRunPublicationIssue,
+    ],
+  ) -> Result[
+    @native_publication.NativeRunPublicationResult,
+    @native_publication.NativeRunPublicationIssue,
+  ])? = match self.original_access {
+    None => None
+    Some(access) =>
+      Some((binding, commit) => {
+        access.fence_publication(self.definition, binding, commit)
+      })
+  }
   install_native_client_work_publication_service(
     self.start.journal,
     self.start.request,
@@ -108,6 +138,8 @@ pub fn NativeClientValuesWork::install_publication_service(
     max_nodes,
     max_depth,
     request_authorize~,
+    bind_original~,
+    fence_original~,
   ).map_err(issue => {
     match issue {
       Work(issue) => NativeClientValuesPublicationIssue::Work(issue)

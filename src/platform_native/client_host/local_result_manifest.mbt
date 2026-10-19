@@ -12,6 +12,24 @@ pub fn NativeLocalHostConnection::lookup_original_result_names_json(
   store : @publication_store.Store,
   namespace_id : String,
 ) -> Result[String?, NativeClientRunJournalIssue] {
+  self.lookup_original_result_names_json_with_operations(
+    crypto, principal, connection, original, store, namespace_id,
+  )
+}
+
+///|
+fn NativeLocalHostConnection::lookup_original_result_names_json_with_operations(
+  self : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  original : NativeClientOriginalRunSelection,
+  store : @publication_store.Store,
+  namespace_id : String,
+  operations? : NativeClientJournalOperationAccess? = None,
+  capture? : NativeLocalJournalCapture? = None,
+) -> Result[String?, NativeClientRunJournalIssue] {
+  let reads = operations.map(value => value.reads)
   let authority = match
     native_local_policy_authority_for(
       self,
@@ -20,6 +38,7 @@ pub fn NativeLocalHostConnection::lookup_original_result_names_json(
       connection,
       original.request,
       ReadRunMaterials,
+      capture~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -33,27 +52,31 @@ pub fn NativeLocalHostConnection::lookup_original_result_names_json(
   // Return only the small binding. Retire the decoded Submission/Run and
   // validation scratch before reading the index and manifest below.
   let original_binding = match
-    self.journal.transaction(() => {
-      if !authority.current_for(self.journal, original.request) {
-        return Err(AuthorizationDenied)
-      }
-      let (_, run) = match
-        self.journal.saved_run_state_locked(
-          original.reference,
-          original.request,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      if @publication.publication_contract_identity(run.definition) !=
-        definition_cid {
-        return Err(ForeignRun)
-      }
-      if !authority.current_for(self.journal, original.request) {
-        return Err(AuthorizationDenied)
-      }
-      Ok(run.publication_binding)
-    }) {
+    self.journal.transaction_with_reads(
+      () => {
+        if !authority.current_for(self.journal, original.request) {
+          return Err(AuthorizationDenied)
+        }
+        let (_, run) = match
+          self.journal.saved_run_state_locked(
+            original.reference,
+            original.request,
+            reads~,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        if @publication.publication_contract_identity(run.definition) !=
+          definition_cid {
+          return Err(ForeignRun)
+        }
+        if !authority.current_for(self.journal, original.request) {
+          return Err(AuthorizationDenied)
+        }
+        Ok(run.publication_binding)
+      },
+      reads~,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

@@ -9,8 +9,8 @@ priv struct LocalCommandParsedInput {
 }
 
 ///|
-// Bind bounded input to the same entry captured before module initialization.
-// The complete initial envelope remains separate; this issues no admission.
+// Connect bounded input from normal main before physical Host acquisition.
+// This command connection does not issue capacity or authorization.
 extern "C" fn command_capture_native_entry() -> Unit = "actql_native_client_capture_command_entry"
 
 ///|

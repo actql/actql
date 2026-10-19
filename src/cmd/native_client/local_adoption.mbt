@@ -178,6 +178,7 @@ fn execute_native_local_adoption(
   packaged_runtime? : @local_host.NativeLocalPackagedRuntime? = None,
   initial_crypto? : InitialCryptoOriginal? = None,
   preparation? : LocalCommandPreparationOriginal? = None,
+  preparation_runtime? : LocalPackagedRuntime? = None,
 ) -> String raise ClientStop {
   let root = required(matches, "config-root")
   let name = required(matches, "config-file")
@@ -259,7 +260,11 @@ fn execute_native_local_adoption(
     root, settings,
   )
   if preparation is Some(original) {
-    if operation != "check" && operation != "explain" && operation != "adopt" {
+    if !local_command_preparation_operation_selected(
+        matches,
+        operation,
+        original.business is Some(_),
+      ) {
       stop("LocalCommandPreparationOperationUnavailable")
     }
     let additional : Array[(String, Bytes)] = []
@@ -272,8 +277,19 @@ fn execute_native_local_adoption(
       }
     }
     return original.execute_adopted_command(
-      operation, settings, root, name, configuration, environment_file, environment,
-      selected_files, additional, input_root, child,
+      operation,
+      settings,
+      root,
+      name,
+      configuration,
+      environment_file,
+      environment,
+      selected_files,
+      additional,
+      input_root,
+      child,
+      public_run=matches.subcommand is Some(("run", _)),
+      preparation_runtime~,
     )
   }
   let (sqlite_path, crypto_path) = match packaged_runtime {
@@ -443,6 +459,8 @@ fn execute_native_local_adoption(
       local_submission_lookup(host, settings, crypto, input_root, child)
     } else if operation == "lookup-request" {
       local_request_lookup(host, settings, crypto, child)
+    } else if operation == "approve" || operation == "reject" {
+      local_checkpoint_answer_by_id(host, settings, crypto, operation, child)
     } else if operation == "checkpoint-state" {
       local_checkpoint_metadata_lookup(
         host, settings, crypto, input_root, child,

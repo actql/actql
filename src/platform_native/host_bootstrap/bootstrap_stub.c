@@ -148,6 +148,28 @@ int64_t actql_bootstrap_component_domain_necessary_bytes(
 #endif
 }
 
+MOONBIT_FFI_EXPORT int64_t actql_bootstrap_execution_domain_necessary_bytes(
+    int64_t domain_bytes, int64_t payload_bytes) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR) && defined(ACTQL_SCOPED_READ_PROVIDER) && \
+    !defined(ACTQL_BOOTSTRAP_IMPORT_PROVIDER)
+    long selected_page = sysconf(_SC_PAGESIZE);
+    if (selected_page <= 0 || domain_bytes <= 0 || payload_bytes <= 0 ||
+        (uint64_t)domain_bytes > PTRDIFF_MAX ||
+        (uint64_t)payload_bytes > PTRDIFF_MAX) return -1;
+    size_t page = (size_t)selected_page, control, context, payload, total;
+    if (!component_domain_control((size_t)domain_bytes, page, &control) ||
+        !component_minimum_round(sizeof(actql_read_context), page, &context) ||
+        !component_minimum_round((size_t)payload_bytes, page, &payload) ||
+        !component_minimum_add(control, context, &total) ||
+        !component_minimum_add(total, payload, &total) || total > INT64_MAX)
+        return -1;
+    return (int64_t)total;
+#else
+    (void)domain_bytes; (void)payload_bytes;
+    return -1;
+#endif
+}
+
 MOONBIT_FFI_EXPORT void *actql_bootstrap_acquire(int64_t bytes,
                                                int64_t generation,
                                                const unsigned char *recipe) {
@@ -497,6 +519,95 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_context_entered(
 #endif
 }
 
+/* This original's physical scope state, not proof that every other scope is
+ * clear. The nominal Owner checks current/lifetime and excludes concurrent
+ * retirement. A different active frame never counts as this original entered. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_context_scope(
+    actql_bootstrap_domain *record) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (record == NULL || record->read_context == NULL || !record->read_user ||
+        record->read_prepare_scope) return ACTQL_OWNED_INVALID;
+    actql_read_context *context = actql_read_context_current();
+    actql_owned_capacity *lease = actql_native_owned_current();
+    if (record->read_active == 0 && context != record->read_context &&
+        lease != record->lease) return 0;
+    if (record->read_active != 0 && context == record->read_context &&
+        lease == record->lease) return 1;
+    return ACTQL_OWNED_BUSY;
+#else
+    (void)record;
+    return ACTQL_OWNED_INVALID;
+#endif
+}
+
+/* Same-original cleanup can outlive the original retained Read user: that user
+ * may already have returned while escaped aliases still keep try_close BUSY.
+ * Observe the retained context/frame only; issue no user, current or ACK. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_context_cleanup_scope(
+    actql_bootstrap_domain *record) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (record == NULL || !record->read_attempted ||
+        record->read_context == NULL || record->read_prepare_scope)
+        return ACTQL_OWNED_INVALID;
+    actql_read_context *context = actql_read_context_current();
+    actql_owned_capacity *lease = actql_native_owned_current();
+    if (record->read_active == 0 && context != record->read_context &&
+        lease != record->lease) return 0;
+    if (record->read_active != 0 && context == record->read_context &&
+        lease == record->lease) return 1;
+    return ACTQL_OWNED_BUSY;
+#else
+    (void)record;
+    return ACTQL_OWNED_INVALID;
+#endif
+}
+
+/* A closed metadata projection of the same retained original after failed
+ * close. It does not enter/leave, return a user or acknowledge retirement. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_cleanup_thread_current(
+    actql_bootstrap_domain *record) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (record == NULL || !record->read_attempted || record->read_context == NULL ||
+        record->read_prepare_scope) return ACTQL_OWNED_INVALID;
+    return actql_read_context_cleanup_thread_current(record->read_context);
+#else
+    (void)record;
+    return ACTQL_OWNED_INVALID;
+#endif
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_cleanup_snapshot(
+    actql_bootstrap_domain *record, int64_t *output, int32_t count) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (record == NULL || output == NULL || count != 16 ||
+        !record->read_attempted || record->read_context == NULL ||
+        record->read_prepare_scope) return ACTQL_OWNED_INVALID;
+    for (int32_t index = 0; index < count; index++)
+        if (output[index] != 0) return ACTQL_OWNED_INVALID;
+    uint64_t values[16] = {0};
+    int status = actql_read_context_cleanup_snapshot(record->read_context, values, 16);
+    if (status != ACTQL_OWNED_OK) return status;
+    for (int32_t index = 0; index < count; index++) output[index] = (int64_t)values[index];
+    return ACTQL_OWNED_OK;
+#else
+    (void)record; (void)output; (void)count;
+    return ACTQL_OWNED_INVALID;
+#endif
+}
+
+/* Actual selected public runtime-header facts only. They are neither a
+ * complete managed-object inventory nor a capacity/initial-service issuer. */
+MOONBIT_FFI_EXPORT int64_t actql_bootstrap_managed_value_layout(int32_t field) {
+    switch (field) {
+    case 0: return (int64_t)sizeof(struct moonbit_object);
+    case 1: return (int64_t)sizeof(uint16_t);
+    case 2: return (int64_t)sizeof(uint16_t); /* Selected String terminator. */
+    case 3: return (int64_t)sizeof(struct moonbit_valtype_array_header);
+    case 4: return (int64_t)sizeof(void *);
+    default: return -1;
+    }
+}
+
 /* Registration control is prepared before any Read/owned scope on this
  * thread. This observes only the same original's unentered state: it does not
  * enter a context, allocate control or acknowledge any owner retirement. */
@@ -593,6 +704,31 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_leave_read_context(
     status = actql_native_owned_leave(record->lease);
     if (status != ACTQL_OWNED_OK) record->read_prepare_scope = true;
     return status;
+#else
+    (void)record;
+    return ACTQL_OWNED_INVALID;
+#endif
+}
+
+/* Cleanup of a failed entry only: confirm that THIS original never retained
+ * an entered Read frame. A recorded failed unwind may return only its own
+ * owned scope. No context/user/extent is released and no current is issued. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_finish_failed_read_entry_cleanup(
+    actql_bootstrap_domain *record) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (record == NULL || !record->read_attempted || record->lease == NULL ||
+        record->read_context == NULL || record->read_active != 0)
+        return ACTQL_OWNED_INVALID;
+    if (actql_read_context_current() != NULL) return ACTQL_OWNED_BUSY;
+    if (record->read_prepare_scope) {
+        if (actql_native_owned_current() != record->lease)
+            return ACTQL_OWNED_BUSY;
+        int status = actql_native_owned_leave(record->lease);
+        if (status != ACTQL_OWNED_OK) return status;
+        record->read_prepare_scope = false;
+    }
+    return actql_native_owned_current() == NULL &&
+        actql_read_context_current() == NULL ? ACTQL_OWNED_OK : ACTQL_OWNED_BUSY;
 #else
     (void)record;
     return ACTQL_OWNED_INVALID;

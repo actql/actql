@@ -28,6 +28,7 @@ struct InstalledArenaDomain {
   mut crypto_component : InstalledArenaCryptoComponent?
   mut sqlite_library : InstalledArenaSqliteLibrary?
   mut original_read : InstalledArenaOriginalRead?
+  mut retained_execution : InstalledArenaRetainedExecution?
   mut process : InstalledArenaProcess?
   mut closed : Bool
 }
@@ -75,6 +76,7 @@ pub fn InstalledArenaHost::prepare_domain(
     crypto_component: None,
     sqlite_library: None,
     original_read: None,
+    retained_execution: None,
     process: None,
     closed: false,
   }
@@ -313,6 +315,9 @@ pub fn InstalledArenaHost::close_domain_after_owner_ack(
   if record.original_read is Some(read) && !read.closed {
     return Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending))
   }
+  if record.retained_execution is Some(execution) && !execution.closed {
+    return Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending))
+  }
   if record.domain is Some(domain) {
     match record.backing.close_backed_domain(self, domain, record) {
       Err(issue) => return Err(issue)
@@ -356,6 +361,7 @@ pub fn InstalledArenaHost::close_domain_after_owner_ack(
   record.crypto_component = None
   record.sqlite_library = None
   record.original_read = None
+  record.retained_execution = None
   record.process = None
   record.closed = true
   Ok(())

@@ -15,6 +15,13 @@ fn local_run_random_nonce(
   let bytes = crypto
     .random_bytes(32)
     .unwrap_or_else(() => stop("LocalSubmissionNonceUnavailable"))
+  local_run_nonce_text(bytes)
+}
+
+///|
+// Encoding only. The selected caller obtains these bytes from its actual
+// captured Library, rather than importing another Library into the Read.
+fn local_run_nonce_text(bytes : Bytes) -> String {
   let out = StringBuilder()
   out.write_string("cli-")
   for byte in bytes {
@@ -36,6 +43,7 @@ fn local_select_run_submission(
   input_root : String,
   child : @argparse.Matches,
   public_run : Bool,
+  business? : LocalCommandBusinessPreparation? = None,
 ) -> LocalRunSubmission raise ClientStop {
   match
     (
@@ -63,16 +71,45 @@ fn local_select_run_submission(
       if optional(child, "request-id") is Some(_) {
         stop("OriginalSubmissionReferenceRequired")
       }
-      if !local_submit_allowed(host, settings, crypto, scope) {
+      let current = () => {
+        match business {
+          None => local_submit_allowed(host, settings, crypto, scope)
+          Some(original) =>
+            original.current(host, settings, original.environment)
+        }
+      }
+      if !current() {
         stop("LocalSubmissionAuthorizationDenied")
       }
-      let authority = local_host_result(host.epoch_authority())
-      let epoch = match
-        authority.issue_epoch(
-          scope,
-          local_submit_allowed(host, settings, crypto, scope),
-          @env.now().to_double(),
-        ) {
+      let issued = match business {
+        None => {
+          let authority = local_host_result(host.epoch_authority())
+          authority.issue_epoch(scope, current(), @env.now().to_double())
+        }
+        Some(original) => {
+          if original.scope != scope || !current() {
+            stop("LocalSubmissionAuthorizationDenied")
+          }
+          match
+            original.capture.issue_epoch_in_original_read(
+              settings.principal,
+              settings.connection,
+              scope,
+              @env.now().to_double(),
+            ) {
+            Ok(epoch) => Ok(epoch)
+            Err(@local_host.Epoch(issue)) => Err(issue)
+            Err(
+              @local_host.InstallationReadTransactionFailure(
+                _,
+                TransactionUnknown
+              )
+            ) => Err(TransactionUnknown)
+            Err(_) => stop("LocalSubmissionEpochUnavailable")
+          }
+        }
+      }
+      let epoch = match issued {
         Ok(value) => value
         Err(TransactionUnknown) => stop("LocalSubmissionEpochUnknown")
         Err(Fenced) => stop("LocalSubmissionEpochFenced")
@@ -81,10 +118,34 @@ fn local_select_run_submission(
       }
       let reference = @local_host.prepare_native_client_submission_reference(
         epoch,
-        local_run_random_nonce(crypto),
+        match business {
+          None => local_run_random_nonce(crypto)
+          Some(original) =>
+            local_run_nonce_text(
+              local_host_result(
+                original.capture.submission_nonce_in_original_read(
+                  settings.principal,
+                  settings.connection,
+                  scope,
+                ),
+              ),
+            )
+        },
       ).unwrap_or_else(() => stop("InvalidSubmissionRef"))
-      let attempt = local_run_random_nonce(crypto)
-      if !local_submit_allowed(host, settings, crypto, scope) {
+      let attempt = match business {
+        None => local_run_random_nonce(crypto)
+        Some(original) =>
+          local_run_nonce_text(
+            local_host_result(
+              original.capture.submission_nonce_in_original_read(
+                settings.principal,
+                settings.connection,
+                scope,
+              ),
+            ),
+          )
+      }
+      if !current() {
         stop("LocalSubmissionAuthorizationDenied")
       }
       { reference, attempt, fresh: true, }

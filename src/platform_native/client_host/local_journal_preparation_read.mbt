@@ -6,7 +6,9 @@ pub fn[T] NativeLocalJournalCapture::with_original_read(
   self : NativeLocalJournalCapture,
   operation : (NativeLocalHostConnection) -> T,
 ) -> Result[T, NativeLocalAdoptionIssue] {
-  if self.closing || self.read_operation_issue is Some(_) {
+  if self.closing ||
+    self.read_callback_active ||
+    self.read_operation_issue is Some(_) {
     return Err(
       self.read_operation_issue.unwrap_or(OriginalResourceScopePending),
     )
@@ -15,6 +17,9 @@ pub fn[T] NativeLocalJournalCapture::with_original_read(
     self.original_resources is Some(original) else {
     return Err(InvalidInput)
   }
+  if original.store_operation is Some(_) {
+    return Err(OriginalResourceScopePending)
+  }
   match original.check_journal_current(host) {
     Err(issue) => {
       self.read_operation_issue = Some(issue)
@@ -22,6 +27,7 @@ pub fn[T] NativeLocalJournalCapture::with_original_read(
     }
     Ok(_) => ()
   }
+  self.read_callback_active = true
   let result = original.stage(@arena.HostRead, fn() {
     let value = operation(host)
     match self.read_operation_issue {
@@ -32,6 +38,7 @@ pub fn[T] NativeLocalJournalCapture::with_original_read(
   if result is Err(issue) && self.read_operation_issue is None {
     self.read_operation_issue = Some(issue)
   }
+  self.read_callback_active = false
   result
 }
 

@@ -1336,6 +1336,15 @@ cannot revive it. The same pair retains the consuming view and never restores
 its spent available-read port. Scope leave does not retire managed aliases or
 acknowledge material, domain, Library or Host cleanup.
 
+Each Read context may retain one managed-page search hint in its original
+backed context storage. It is only a placement candidate: under the existing
+context/capacity locks, allocation rechecks the exact context, process, live
+extent and fitting free block. A miss preserves the complete remaining search
+and original page acquisition. Free may update only that page's original
+context hint; final retirement clears it before physical cleanup. Neither a
+cached index nor restoration of free space issues capacity, permits an alias,
+changes current scope or acknowledges retirement.
+
 Small managed Moon allocations may share pages inside that same original Read
 domain. The existing provider owns these pages; headers, alignment, splitting,
 fragmentation and serial metadata consume their original physical capacity.
@@ -1982,3 +1991,134 @@ cleanup frame. The Database finalizer must observe that actual context before
 it can retire its Library child. Dropping a reference, leaving a frame or
 closing a descriptor alone is not that acknowledgement; the Library, both
 contexts and the original backing still retain their separate close duties.
+
+An original-routed Store separately retains physical child close and its
+original scope-return duty. A failed final return cannot make a later public
+close terminal. The same handle retries that return; a failed normal return
+can reach only the existing same-original cleanup recovery, never normal
+resumption or replay of the failed operation. Primary and cleanup failures
+remain distinct. After physical Database, descriptor and result-storage ACKs
+and the original return are confirmed, its last managed alias may retire the
+empty Database DATA shell without calling the component from an outer frame.
+A retained closed alias still keeps the Library child busy. Residual storage,
+an unconfirmed physical close or a pending scope keeps that responsibility.
+
+Result acquisition also retains its exact owning child before a fallible Store
+return. The Store keeps that ResultDelivery, including its Reader, until the
+return succeeds and the caller receives the same child, or its cleanup-only
+path confirms child close and the associated return. A count cannot replace
+the child and retry cannot acquire a new Reader or delivery attempt. Parent
+Store close refuses while this retained child duty remains. The temporary
+Store-to-child custody edge is removed only after those acknowledgements; a
+failed call cannot silently drop it.
+
+Return-only reconciliation belongs to that same Store. It invokes only the
+original return and, if required, the existing same-original cleanup entry
+followed by its actual return. It runs no Store body, SQL, child close or parent
+close. A prior operation-only recovery does not clear the Store mirror; only
+this actual reconciliation does. No-pending is a separate observation, never
+an inferred physical ACK. The original failure remains sticky and normal
+dispatch stays unavailable. Retained children may then perform their own
+cleanup before Database, Root, Library and parent retirement.
+
+A failed constructor retains the same Database DATA alias independently of
+its failed-open field until both physical child close and original scope return
+are confirmed. Cleanup may clear a constructor field only while this original
+alias duty remains held. The generic Remote operation entrance preserves its
+existing open/restore policy; selecting an original route does not select the
+Local Journal's exclusive-WAL policy or supply a new physical scope.
+
+The Store's original-association observation joins its stored route to the
+same Database/Library and existing process/thread identity without entering a
+phase. This metadata can remain associated after physical Store close and
+cannot supply currentness, business permission or an additional close ACK.
+
+A failed SQL transition inside cleanup keeps its attempted SQL flight even
+when it never became ready. Only that failed original may reach the existing
+cleanup recovery while its Read cleanup flight is still active. The coordinator
+must reconcile the physical transition to the same cleanup Read before the
+SQL latch is cleared. A refused recovery retains both the flight and original
+failure; healthy duplicate entry still refuses and normal execution never
+resumes through this path.
+
+An in-process retained execution keeps its original delegated Ledger. Ordinary
+copied Moon values use the trusted runtime allocator even during an entered
+Read; the explicit `ACTQL_RUNTIME_MANAGED_VALUES` build selection must agree
+across generated Core, runtime and FFI objects. Their last Host reference can
+retire without claiming that process allocator caches have been returned.
+Native/File buffers, shared components and zero-copy aliases still use their
+actual original Read/domain and keep it busy until their real release. The
+separate scoped-managed diagnostic selection retains its original arena alias
+semantics; its objects cannot be mixed with ordinary-mode objects. Neither
+selection creates capacity, authority or a physical acknowledgement.
+
+Logical stop precedes
+physical retirement, and both remain distinct from the original usage report,
+parent loan, Host and descriptor acknowledgements. Entering another phase never
+creates a new Ledger or restores consumed capacity.
+
+The original Read user may already have returned while escaped aliases keep
+its context physically busy. Cleanup-only scope observation checks that same
+retained context and its actual entered frame, agreeing with the nominal
+active latch; it issues no normal currentness, Ledger borrow or retirement ACK.
+Normal scope observation retains its stronger current-user requirement. The
+Store operation's separate pending-scope observation reports only its original
+calling/flight/SQL lifecycle: a sticky failure alone is not a pending scope,
+and an invalid observation is never inactivity. Neither an idle scope nor a
+successful return acknowledges Database, Library, domain or parent cleanup.
+
+Selecting cleanup also irreversibly spends that original operation's normal
+route when the cleanup callback succeeds without an error. This selection is
+retained separately from the current flight and from primary/cleanup failures.
+Returning a cleanup flight cannot clear it: subsequent cleanup work selects
+the same cleanup-only coordinator entry, while normal entry refuses. A spent
+normal route alone is neither a pending physical scope nor a retirement ACK.
+
+A failed entry can retain a nominal active flight without having entered its
+physical Read frame. Its cleanup completion must confirm that exact original
+context has no active frame and that any recorded owned-scope unwind completed.
+It refuses while another scope is active and cannot replace an actual entered
+frame's original leave. This completion spends normal use and preserves the
+failure; it acknowledges no context, report, parent or descriptor retirement.
+
+The Ledger's immutable usage snapshots can themselves have been allocated in
+that child domain. After confirmed logical stop and outside every child
+allocation scope, cleanup may copy those scalar snapshots into the existing
+outer control lifetime. This preserves the same nominal Ledger, exact charges,
+quantity limits, serials and report state. An uncertain report or stop refuses
+this operation. It retires no physical allocation: an escaped old snapshot or
+output still keeps its original domain busy until its actual alias is released.
+The joined original Read applies this same relocation after stopping its claim
+and child Ledger, before its physical context close. Its workspace, read claim,
+inventory, report and parent-use acknowledgements still follow the actual
+physical retirement observation; relocation acknowledges none of them.
+
+The same retained Read can expose one constructor-thread cleanup snapshot under
+the existing provider locks. It observes users, active frames, live generic
+extents, live managed blocks and their requested-size range, and pending
+retirement extents. It reads only original allocator metadata: foreign payloads,
+released pages, managed payloads and addresses are not projected. Unknown,
+foreign-thread, inherited-process or retired contexts refuse without publishing
+a partial snapshot. The extra constructor-thread field belongs to the same
+context allocation; its actual size remains part of the original acquisition.
+
+The trusted caller covers the fixed snapshot and its copy in the existing outer
+initial control before calling, outside every Read/owned frame. Zero live counts
+remain observations, including when pending retirement or a retained context
+still prevents close. Observation never releases a user, enters a scope,
+acknowledges a parent, issues capacity or resumes normal use. Public runtime
+header sizes can likewise describe the selected implementation; Array wrapper
+and element lowering, complete simultaneous controls and actual backing remain
+separate requirements.
+
+The private process-import SQLite preparation may select Linux AArch64 GNU as a
+separate derived recipe. It retains the exact pinned SQLite, component and
+provider-header inputs; the Darwin recipe and Python provider-bundle checks
+remain distinct. The ELF shared image has a closed component export set and
+imports its physical ports from the original executable. It has no component
+TLS, automatic initializer or ambient library search path, and cannot resolve a
+second SQLite or allocator provider. Inspection and compilation establish none
+of the actual binding, initial-control, heap, current or cleanup facts: the
+selected Native caller must obtain those from its same original provider before
+using the Library. A component built for another source or target cannot supply
+that correspondence.

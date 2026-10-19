@@ -43,9 +43,16 @@ fn command_preparation_cleanup_kind(
     CommandHost(_) => "host"
     CommandDomain(_) => "domain"
     CommandRead(_) => "read"
+    CommandRetainedExecution(_) => "business-execution"
+    CommandStoreOperation(_) => "business-operation"
+    CommandBusinessChildren => "business-children"
+    CommandBusinessPublication => "business-publication"
+    CommandBusinessStore(_) => "business-store"
+    CommandBusinessResult(_) => "business-result"
     CommandPair(value) =>
       match value {
-        @initial_arena.Read(_) => "pair-read"
+        @initial_arena.Read(read) =>
+          "pair-read-" + command_preparation_read_cleanup_kind(read)
         @initial_arena.Sqlite(_) => "pair-sqlite"
         @initial_arena.Domain(_) => "pair-domain"
       }
@@ -64,13 +71,71 @@ fn command_preparation_cleanup_kind(
 }
 
 ///|
+// Preserve the original failed cleanup family without exposing messages,
+// payloads, paths or opaque receivers. Physical status is the original code,
+// not an inferred acknowledgement or a replacement cleanup operation.
+fn command_preparation_read_cleanup_kind(
+  issue : @initial_arena.InstalledArenaOriginalReadIssue,
+) -> String {
+  match issue {
+    Domain(@initial_bootstrap.Bootstrap(@initial_bootstrap.Physical(code))) =>
+      "domain-physical(" + code.to_string() + ")"
+    Domain(@initial_bootstrap.Bootstrap(_)) => "domain-bootstrap"
+    Domain(@initial_bootstrap.Accounting(_)) => "domain-accounting"
+    Child(_) => "child-ledger"
+    Read(@initial_resources.CleanupPending) => "read-ledger-pending"
+    Read(_) => "read-ledger"
+    Buffer(_) => "workspace"
+  }
+}
+
+///|
 fn[T] command_preparation_result(
   result : Result[T, LocalCommandPreparationIssue],
 ) -> T raise ClientStop {
   match result {
     Ok(value) => value
+    // read_command retains the original public ClientStop across its physical
+    // return. Preserve that application failure after the return completes;
+    // it must not become an unrelated preparation/supplier error.
+    Err(CommandApplication(message)) => stop(message)
     Err(_) => stop("LocalCommandPreparationUnavailable")
   }
+}
+
+///|
+// Selection only: the downstream original/current/Account admissions remain
+// mandatory. A private submission or an absent business original cannot select
+// the public Run's operational route.
+fn local_command_preparation_operation_selected(
+  matches : @argparse.Matches,
+  operation : String,
+  business_selected : Bool,
+) -> Bool raise ClientStop {
+  operation == "check" ||
+  operation == "explain" ||
+  operation == "adopt" ||
+  local_checkpoint_action_selected(matches, operation) ||
+  (
+    operation == "status" &&
+    matches.subcommand is Some(("status", child)) &&
+    (optional(child, "run") is Some(_) || optional(child, "run-id") is Some(_)) &&
+    optional(child, "ref-file") is None &&
+    optional(child, "submission-ref-file") is None
+  ) ||
+  (
+    operation == "result" &&
+    matches.subcommand is Some(("result", child)) &&
+    optional(child, "run") is Some(_) &&
+    business_selected &&
+    optional(child, "ref-file") is None &&
+    optional(child, "submission-ref-file") is None
+  ) ||
+  (
+    operation == local_run_original_operation() &&
+    matches.subcommand is Some(("run", _)) &&
+    business_selected
+  )
 }
 
 ///|
@@ -82,7 +147,11 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   matches : @argparse.Matches,
   operation : String,
 ) -> String raise ClientStop {
-  if operation != "check" && operation != "explain" && operation != "adopt" {
+  if !local_command_preparation_operation_selected(
+      matches,
+      operation,
+      self.business is Some(_),
+    ) {
     stop("LocalCommandPreparationOperationUnavailable")
   }
   if !(matches.sources.get("config-root") is Some(@argparse.Default)) {
@@ -175,6 +244,7 @@ fn LocalCommandPreparationOriginal::execute_product_command(
     child,
     packaged_runtime=Some(physical),
     preparation=Some(self),
+    preparation_runtime=Some(runtime),
   )
 }
 
@@ -195,6 +265,8 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
   selected_additional : Array[(String, Bytes)],
   input_root : String,
   child : @argparse.Matches,
+  public_run? : Bool = false,
+  preparation_runtime? : LocalPackagedRuntime? = None,
 ) -> String raise ClientStop {
   let session = command_preparation_result(
     self.prepare_adoption(
@@ -252,6 +324,76 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
         } else if operation == "explain" {
           local_check_context(host, crypto, name, capture=Some(capture)).explain(
             input_root, child,
+          )
+        } else if operation == "approve" || operation == "reject" {
+          local_checkpoint_answer_by_id(
+            host,
+            settings,
+            crypto,
+            operation,
+            child,
+            capture=Some(capture),
+          )
+        } else if operation == "status" {
+          local_saved_run_status_command(
+            host,
+            settings,
+            crypto,
+            input_root,
+            child,
+            capture=Some(capture),
+          )
+        } else if operation == "result" {
+          let runtime = preparation_runtime.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let physical = self.host.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let pair = self.pair.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let sqlite = physical
+            .borrow_local_host_sqlite(pair)
+            .unwrap_or_else(() => stop("LocalBusinessOriginalUnavailable"))
+          let selected = self.prepare_original_result(
+            host, capture, settings, name, runtime, sqlite, child,
+          )
+          local_public_result(
+            host,
+            settings,
+            crypto,
+            sqlite,
+            child,
+            prepared=Some(selected),
+          )
+        } else if public_run && operation == local_run_original_operation() {
+          let runtime = preparation_runtime.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let selection = self.prepare_business_submission(
+            host, capture, name, runtime, input_root, operation, child,
+          )
+          let physical = self.host.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let pair = self.pair.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let sqlite = physical
+            .borrow_local_host_sqlite(pair)
+            .unwrap_or_else(() => stop("LocalBusinessOriginalUnavailable"))
+          local_submission_start(
+            host,
+            settings,
+            crypto,
+            sqlite,
+            selection.environment,
+            input_root,
+            operation,
+            child,
+            public_run=true,
+            business=Some(selection),
           )
         } else {
           let runtime = self.runtime.unwrap()

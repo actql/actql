@@ -920,6 +920,28 @@ fn command() -> @argparse.Command {
       @argparse.Command("lookup-submission", options=[
         @argparse.OptionArg("submission-ref-file", required=true),
       ]),
+      @argparse.Command(
+        "approve",
+        flags=[@argparse.FlagArg("wait"), @argparse.FlagArg("json")],
+        positionals=[
+          @argparse.PositionArg(
+            "checkpoint-id",
+            num_args=@argparse.ValueRange::single(),
+          ),
+        ],
+        options=[@argparse.OptionArg("signer")],
+      ),
+      @argparse.Command(
+        "reject",
+        flags=[@argparse.FlagArg("json")],
+        positionals=[
+          @argparse.PositionArg(
+            "checkpoint-id",
+            num_args=@argparse.ValueRange::single(),
+          ),
+        ],
+        options=[@argparse.OptionArg("signer")],
+      ),
       @argparse.Command("checkpoint-state", options=[
         @argparse.OptionArg("submission-ref-file", required=true),
         @argparse.OptionArg("ref-file", required=true),
@@ -1360,6 +1382,7 @@ fn execute_and_write_native_reply(
   matches : @argparse.Matches,
   pending_reply : Ref[String?],
 ) -> Unit raise ClientStop {
+  command_check_invalid_exit.val = false
   // The same carrier is registered before the first project/runtime/Store IO.
   // Help/version and parse errors have already terminated without acquisition.
   prepare_native_command_invocation(matches)
@@ -1404,8 +1427,8 @@ fn execute_and_write_native_reply(
 
 ///|
 fn main {
-  // Join the bounded raw input retained by the actual pre-module entry.
-  // Replaced argv cannot be adopted after the original startup observation.
+  // Bound and retain ordinary process input before constructing the parser.
+  // No pre-main provenance or private libc state is required.
   // These selected Darwin input ceilings include argv0 and terminal bytes;
   // they are not the initial-control or physical-capacity admission itself.
   // Help/version and argument failure acquire no Host/Root/Read resources.
@@ -1453,11 +1476,17 @@ fn main {
       Some(original) => original.cleanup_stage
       None => "original-retained"
     }
+    let observed = match (issue, command_preparation_invocation.val) {
+      (CommandPair(@initial_arena.Read(_)), Some(original)) =>
+        original.cleanup_read_observation()
+      _ => ""
+    }
     fail_command(
       "LocalCommandPreparationCleanupPending: " +
       stage +
       ": " +
-      command_preparation_cleanup_kind(issue),
+      command_preparation_cleanup_kind(issue) +
+      observed,
     )
   }
   if !crypto_closed {
@@ -1474,4 +1503,9 @@ fn main {
     pending_reply.val = None
   }
   command_initial_control_keep_alive(control)
+  // The invalid report has already been written/flushed, and all original
+  // child cleanup has acknowledged. Run-state outcomes never set this flag.
+  if command_check_invalid_exit.val {
+    exit_failure_ffi()
+  }
 }

@@ -16,6 +16,7 @@ priv struct NativeLocalPolicyAuthority {
   connection : String
   scope : String
   purpose : NativeLocalPolicyAuthorityPurpose
+  capture : NativeLocalJournalCapture?
 }
 
 ///|
@@ -46,7 +47,23 @@ fn NativeLocalPolicyAuthority::current_material_for(
     @host.client_request_authority_scope_cid(request) != self.scope {
     return None
   }
-  self.host.adopted_current_material().to_option()
+  match self.capture {
+    None => self.host.adopted_current_material().to_option()
+    Some(capture) =>
+      capture
+      .with_current_adoption_material_in_original_read((
+        host,
+        material,
+        _operations,
+      ) => {
+        if physical_equal(host, self.host) {
+          Ok(material)
+        } else {
+          Err(CustodyLost)
+        }
+      })
+      .to_option()
+  }
 }
 
 ///|
@@ -121,6 +138,7 @@ fn native_local_policy_authority_for(
   connection : String,
   request : @host.ClientRequestIdentity,
   purpose : NativeLocalPolicyAuthorityPurpose,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[NativeLocalPolicyAuthority, NativeClientRunJournalIssue] {
   if purpose is ReadResultPolicy(name) &&
     (name.is_empty() || name.length() > 128) {
@@ -133,6 +151,7 @@ fn native_local_policy_authority_for(
     connection,
     scope: @host.client_request_authority_scope_cid(request),
     purpose,
+    capture,
   }
   if !authority.current_for(host.journal, request) {
     return Err(AuthorizationDenied)

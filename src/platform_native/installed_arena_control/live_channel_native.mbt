@@ -20,6 +20,9 @@ pub fn InstalledArenaHost::prepare_live_channel(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  if record.retained_execution is Some(_) {
+    return Err(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed))
+  }
   let result = record.backing.prepare_backed_live_channel(
     self,
     record.domain.unwrap(),
@@ -58,6 +61,9 @@ pub fn InstalledArenaHost::prepare_live_channel_before_spawn(
   match self.require_domain_current(record) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  if record.retained_execution is Some(_) {
+    return Err(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed))
   }
   let result = record.backing.prepare_backed_live_channel_before_spawn(
     self,
