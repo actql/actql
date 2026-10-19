@@ -84,6 +84,25 @@ pub fn diagnostic_origin(value : CheckDiagnostic) -> DiagnosticOrigin? {
 }
 
 ///|
+/// Retain the rejected count's original Program membership. Matching names or
+/// canonical bytes in another Program cannot attribute a caller's parameter.
+pub fn diagnostic_take_count_parameter(
+  value : CheckDiagnostic,
+  program : @syntax.Program,
+) -> String? {
+  guard value.cause
+    is Source(
+      SourceView(
+        Context(Stages(RowCapacity(InvalidTakeCountBinding(original, name))))
+      )
+    ) &&
+    physical_equal(original, program) else {
+    return None
+  }
+  Some(name)
+}
+
+///|
 /// Location extraction does not reparse input or allocate a path during
 /// rejection. Ambiguous auto-format failures have alternatives, not a primary.
 pub fn diagnostic_location(value : CheckDiagnostic) -> DiagnosticLocation? {

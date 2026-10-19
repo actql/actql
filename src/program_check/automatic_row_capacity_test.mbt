@@ -135,13 +135,7 @@ test "bound count document and parsed rejection preserves its typed input cause"
           @program_check.diagnostic_cause(diagnostic)
           is @program_check.LocalConstructionFailure::Source(
             SourceView(
-              Context(
-                Stages(
-                  RowCapacity(
-                    Construction(_, _, Application(InvalidBoundCount))
-                  )
-                )
-              )
+              Context(Stages(RowCapacity(InvalidTakeCountBinding(_, _))))
             )
           ),
         )
@@ -162,6 +156,30 @@ test "bound count document and parsed rejection preserves its typed input cause"
       )
     }
   }
+}
+
+///|
+test "take count diagnostic belongs only to the original parsed Program" {
+  let (text, _, environment, _, limits) = public_input_fixture()
+  let source = text.replace(old="\"take\":1", new="\"take\":{\"$param\":\"n\"}")
+  let original = @syntax.parse(source, limits.input, format=Json).unwrap()
+  guard @program_check.check_parsed(
+      original,
+      environment,
+      Some(request_values("{\"n\":0}")),
+      limits,
+    )
+    is Rejected(diagnostic) else {
+    fail("invalid count must reject")
+  }
+  assert_eq(
+    @program_check.diagnostic_take_count_parameter(diagnostic, original),
+    Some("n"),
+  )
+  let copied = @syntax.parse(source, limits.input, format=Json).unwrap()
+  assert_true(
+    @program_check.diagnostic_take_count_parameter(diagnostic, copied) is None,
+  )
 }
 
 ///|
