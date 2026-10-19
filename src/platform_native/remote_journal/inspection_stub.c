@@ -77,6 +77,18 @@ typedef struct {
   char error[256];
 } actql_journal_inspection;
 
+/* Private pre-acquisition layout observations for this exact Native consumer.
+ * No allocation, current selection, funding or cleanup ACK is issued here. */
+int64_t actql_journal_inspection_layout_field(int32_t field) {
+  switch (field) {
+    case 0: return (int64_t)sizeof(actql_journal_inspection);
+    case 1: return (int64_t)(sizeof(struct moonbit_object) +
+      sizeof(void (*)(void *)));
+    case 2: return PATH_MAX;
+    default: return -1;
+  }
+}
+
 static void inspection_error(actql_journal_inspection *owner, const char *text) {
   snprintf(owner->error, sizeof(owner->error), "%s", text);
 }

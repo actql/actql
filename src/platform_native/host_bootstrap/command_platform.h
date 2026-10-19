@@ -2,6 +2,7 @@
 #define ACTQL_NATIVE_COMMAND_PLATFORM_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 /* Private connection between the selected Native entry and the existing
  * filesystem/component owners. There is deliberately no constructor accepting
@@ -12,6 +13,8 @@ typedef struct actql_native_command_platform_original
   actql_native_command_platform_original;
 typedef struct actql_native_command_platform_load
   actql_native_command_platform_load;
+typedef struct actql_native_initial_managed_original
+  actql_native_initial_managed_original;
 typedef struct actql_native_observed_component_member
   actql_native_observed_component_member;
 
@@ -52,6 +55,37 @@ actql_native_command_platform_current(void);
  * this Owner and is required again by every load; this is not a constructor,
  * transferable capacity or a substitute for the complete selected envelope. */
 bool actql_native_command_platform_available(void);
+
+/* The existing trusted entry's initial selection, BEFORE managed module init.
+ * Exactly four initially-zero size_t slots: reserved payload bytes, separately
+ * covered allocator metadata bytes, maximum source-bounded request, setups=1.
+ * The reader accepts only its actual source/backend/process/thread original
+ * with complete initial coverage. It must not call managed_current or depend
+ * on phase-two platform_current: begin itself supplies that conjunct later.
+ * These DATA are not a constructor, backing or an authority grant. A missing
+ * original/selection returns false without modifying the output slots. */
+bool actql_native_command_platform_managed_selection(
+  actql_native_command_platform_original *entry, size_t out[4]);
+
+/* Existing bootstrap Owner's selected pinned allocator binding. No numeric
+ * public factory or caller-defined allocator callbacks. A refused/duplicate
+ * begin returns NULL; after an allocator attempt, its SAME retained partial
+ * original is returned even on failure and must not be replaced or retried.
+ * The executable includes initial_managed.inc in its one original entry TU. */
+actql_native_initial_managed_original *actql_native_initial_managed_begin(
+  actql_native_command_platform_original *entry);
+bool actql_native_initial_managed_current(
+  actql_native_initial_managed_original *original);
+int actql_native_initial_managed_issue(
+  actql_native_initial_managed_original *original);
+
+/* 1 acknowledges ONLY restoration of the same previous default (or confirmed
+ * no switch on partial setup). The heap, exclusive reservation and allocator
+ * parent/registration metadata remain process-lived, retained and non-refilled.
+ * Negative is invalid/pending; no result here acknowledges their retirement.
+ * A foreign default is never replaced, and a completed restore has no effects. */
+int actql_native_initial_managed_restore(
+  actql_native_initial_managed_original *original);
 
 /* Same entry's bounded, immutable initial TMPDIR selection (including the
  * existing /tmp default for absent/empty input). Borrowed for this original

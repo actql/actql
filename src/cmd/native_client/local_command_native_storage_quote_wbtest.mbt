@@ -40,7 +40,7 @@ fn native_storage_arithmetic_profile() -> LocalCommandPreparationProfile {
       max_records: 8,
       managed_read_execution_bytes: Some(11L),
       loader_platform_execution_bytes: Some(19L),
-      native_read_execution_bytes: Some(13L),
+      native_read_execution_bytes: Some(131072L),
       sqlite_other_heap_bytes: Some(32L),
       sqlite_external_execution_bytes: Some(17L),
       shared_control_bytes: Some(29L),
@@ -125,7 +125,7 @@ test "Native storage missing originals are not replaced with zero" {
 test "Native storage shared heaps count once and platform never charges Read" {
   let profile = native_storage_arithmetic_profile()
   let quote = quote_local_command_native_storage(profile).unwrap()
-  assert_eq(quote.read_execution_bytes, profile.crypto_heap_bytes + 24L)
+  assert_eq(quote.read_execution_bytes, profile.crypto_heap_bytes + 131083L)
   assert_eq(quote.platform_required_bytes, 19L)
   assert_eq(quote.sqlite_execution_bytes, profile.sqlite_heap_bytes + 17L)
   assert_eq(quote.sqlite_heap_payload_bytes, 163904L)
@@ -188,7 +188,7 @@ test "Native storage original page alignment is preserved for both heaps" {
   }
   let quote = quote_local_command_native_storage(profile).unwrap()
   assert_eq(quote.sqlite_execution_bytes, 134217728L + page + 17L)
-  assert_eq(quote.read_execution_bytes, 1048576L + page + 24L)
+  assert_eq(quote.read_execution_bytes, 1048576L + page + 131083L)
   assert_eq(quote.platform_required_bytes, 19L)
 }
 
@@ -203,4 +203,52 @@ test "Native storage original page alignment rejects overflow and false page" {
   )
   assert_eq(native_storage_page_round(16384L, 16384L).unwrap(), 16384L)
   assert_eq(native_storage_page_round(16385L, 16384L).unwrap(), 32768L)
+}
+
+///|
+test "Native storage inspection keeps separate file pages and receiver" {
+  assert_true(native_inspection_layout_field(0) > 0L)
+  assert_true(native_inspection_layout_field(1) > 0L)
+  assert_true(
+    native_inspection_layout_field(0) + native_inspection_layout_field(1) <
+    4096L,
+  )
+  assert_eq(native_storage_inspection_minimum(4096L).unwrap(), 53248L)
+  assert_eq(native_storage_inspection_minimum(16384L).unwrap(), 114688L)
+  assert_true(
+    native_storage_inspection_minimum(0L) is Err(NativeStorageInvalidInput),
+  )
+}
+
+///|
+test "Native storage inspection subset refuses a positive underquote" {
+  let profile = native_storage_arithmetic_profile()
+  let required = native_storage_inspection_minimum(native_storage_page_bytes()).unwrap()
+  let below = {
+    ..profile.native_storage,
+    native_read_execution_bytes: Some(required - 1L),
+  }
+  assert_true(
+    quote_local_command_native_storage({ ..profile, native_storage: below, })
+    is Err(NativeStorageInsufficient),
+  )
+  let exact = {
+    ..profile.native_storage,
+    native_read_execution_bytes: Some(required),
+  }
+  let quote = quote_local_command_native_storage({
+    ..profile,
+    native_storage: exact,
+  }).unwrap()
+  assert_eq(
+    quote.read_execution_bytes,
+    profile.crypto_heap_bytes + 11L + required,
+  )
+  assert_true(
+    prepare_local_command_preparation_original({
+      ..profile,
+      native_storage: exact,
+    })
+    is Err(CommandNativeStorage(NativeStoragePlatformUnadmitted)),
+  )
 }
