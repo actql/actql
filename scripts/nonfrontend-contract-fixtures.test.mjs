@@ -50,15 +50,20 @@ test('resident physical Source environments advertise their exact normative two-
 
 test('current Catalog dependency fixtures pin the normative environment grammar', () => {
   const expected = cid(json('spec/contracts/actql-check-environment.json'));
-  assert.equal(expected, 'sha256:b513c6a3f6746e20822c51f3fc7dab2327e5ecfe339549b50e98976c11d21804');
+  assert.equal(expected, 'sha256:f4da89fcdbc07708d1b8c2bf08758b5efe404837d15244b306393853f0f26f47');
   for (const name of ['catalog_body_dependencies_test', 'lookup_body_dependencies_test']) {
     hasPin('src/check_environment/' + name + '.mbt', expected);
   }
+  const valueSchema = json('spec/contracts/actql-protocol-schemas.json').schemas.canonical_value_contract;
+  const valuePin = cid(valueSchema);
+  assert.equal(valuePin, 'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1');
+  assert.equal(json('spec/contracts/actql-check-environment.json').value_contract_bodies.schema.cid, valuePin);
+  hasPin('src/check_environment/catalog_body_dependencies_test.mbt', valuePin);
 });
 
 test('current expression fixture resolves only the normative root', () => {
   const expected = cid(json('spec/contracts/actql-expressions.json'));
-  assert.equal(expected, 'sha256:e7645d18471d4436b7542302adce28303a8a634ce29e9f5fd849f5cee8d1159e');
+  assert.equal(expected, 'sha256:6ccd3d3e87cf65610f96b81ce3a11844f1d12a6bee3166df66726a3c11e571f8');
   hasPin('src/check_environment/expression_dependencies_test.mbt', expected);
   assert.notEqual(expected, 'sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289');
 });
@@ -67,13 +72,13 @@ test('current Program roots pin the normative closed source schema', () => {
   const body = json('spec/contracts/actql-protocol-schemas.json').artifact_schemas
     .executable_plan.properties.execution_material.properties.program;
   const expected = cid(body);
-  assert.equal(expected, 'sha256:0160e902a462b4cb69aa9ee3e1f2205d25299a55b5a442d74f41b472fd84fd89');
+  assert.equal(expected, 'sha256:acf5924c443028dd822112903e1d542154a939fbe013bf58b60f756285796ad4');
   hasPin('src/pipeline_check_context/core_contracts_test.mbt', expected);
 });
 
 test('managed completion fixture pins the complete normative profile', () => {
   const expected = cid(json('spec/contracts/actql-managed-retained-execution.json'));
-  assert.equal(expected, 'sha256:0c727bf78c1ab4cb1a62243e35ee49cd841e49b1fa3d66aa2f381f4222b17573');
+  assert.equal(expected, 'sha256:edec788d429772c76faebfd977aeba394971a8f23761a3ec30c593e28a74f3c8');
   hasPin('src/execution_relation/managed_completion_wbtest.mbt', expected);
 });
 
