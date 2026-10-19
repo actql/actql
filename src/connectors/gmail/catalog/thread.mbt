@@ -88,22 +88,27 @@ fn gmail_thread_message_date(
 }
 
 ///|
+fn gmail_thread_limits_valid(limits : GmailThreadLimits) -> Bool {
+  limits.max_bytes > 0 &&
+  limits.max_nodes > 0 &&
+  limits.max_depth > 0 &&
+  limits.max_messages >= 0 &&
+  limits.max_labels >= 0 &&
+  limits.max_headers >= 0 &&
+  limits.max_header_units >= 0 &&
+  limits.max_comment_depth >= 0 &&
+  limits.max_value_nodes > 0 &&
+  limits.max_value_text_bytes >= 0
+}
+
+///|
 pub fn project_gmail_thread(
   bytes : Bytes,
   targets : GmailThreadListPage,
   target_index : Int,
   limits : GmailThreadLimits,
 ) -> Result[GmailThreadProjection, GmailThreadIssue] {
-  if limits.max_bytes <= 0 ||
-    limits.max_nodes <= 0 ||
-    limits.max_depth <= 0 ||
-    limits.max_messages < 0 ||
-    limits.max_labels < 0 ||
-    limits.max_headers < 0 ||
-    limits.max_header_units < 0 ||
-    limits.max_comment_depth < 0 ||
-    limits.max_value_nodes <= 0 ||
-    limits.max_value_text_bytes < 0 {
+  if !gmail_thread_limits_valid(limits) {
     return Err(InvalidLimits)
   }
   guard gmail_thread_list_id_at(targets, target_index) is Some(expected_id) else {
