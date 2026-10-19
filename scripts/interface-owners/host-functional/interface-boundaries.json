@@ -43438,7 +43438,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/installed-project-mock.mjs",
-                "anchor": "else if (record.admission !== undefined) {"
+                "anchor": "else if (record.admission !== undefined) checked(moon.clientProgramNodeManagedRunCleanup(record.admission));"
               }
             ],
             "verification": [
