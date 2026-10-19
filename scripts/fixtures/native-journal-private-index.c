@@ -5,11 +5,16 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#ifdef __APPLE__
+#include <sys/attr.h>
+#include <sys/mount.h>
+#endif
 
 _Noreturn void moonbit_panic(void) { abort(); }
 
@@ -18,6 +23,24 @@ static int fail_close;
 static int observed_descriptor = -1;
 static int close_count;
 static int stat_fault_count;
+#ifdef __APPLE__
+static int path_fault;
+static int path_observations;
+static int controlled_path_attributes(int fd, struct attrlist *attributes,
+    void *buffer, size_t bytes, unsigned long options) {
+  path_observations++;
+  assert(attributes->commonattr == ATTR_CMN_FULLPATH);
+  assert(bytes == sizeof(uint32_t) + sizeof(attrreference_t) + PATH_MAX);
+  if (path_fault == 1) {errno = ENOTSUP; return -1;}
+  int result = fgetattrlist(fd, attributes, buffer, bytes, options);
+  if (result == 0 && path_fault == 2) {
+    uint32_t truncated = (uint32_t)bytes + 1;
+    memcpy(buffer, &truncated, sizeof(truncated));
+  }
+  return result;
+}
+#define fgetattrlist(...) controlled_path_attributes(__VA_ARGS__)
+#endif
 static int controlled_fstat(int fd, struct stat *info) {
   if (fail_stat) {
     fail_stat--;
@@ -45,6 +68,9 @@ static int controlled_close(int fd) {
 #include "../../src/platform_native/remote_journal/inspection_stub.c"
 #undef close
 #undef fstat
+#ifdef __APPLE__
+#undef fgetattrlist
+#endif
 
 int main(int argc, char **argv) {
   assert(argc == 3);
@@ -74,14 +100,41 @@ int main(int argc, char **argv) {
     moonbit_decref(refused);
     goto finish;
   }
-  if (strcmp(argv[1], "selected-scratch-original") == 0) {
+  if (strcmp(argv[1], "selected-scratch-original") == 0 ||
+      strncmp(argv[1], "selected-path-", 14) == 0) {
     /* Exercise the selected copy implementation with an explicit original
      * input. This is not an admitted bootstrap or an ordinary command. */
-    char *original_scratch = strdup(getenv("TMPDIR"));
+    char *original_scratch = strdup(strcmp(argv[1], "selected-path-overlap") == 0
+      ? argv[2] : getenv("TMPDIR"));
     assert(original_scratch != NULL);
     assert(setenv("TMPDIR", "/not-the-original-command-scratch", 1) == 0);
+#ifdef __APPLE__
+    path_fault = strcmp(argv[1], "selected-path-unsupported") == 0 ? 1 :
+      strcmp(argv[1], "selected-path-truncated") == 0 ? 2 : 0;
+    fail_close = strcmp(argv[1], "selected-path-close-unknown") == 0;
+#endif
     actql_journal_inspection *selected = inspection_open_bounded_original(
       path, (int32_t)strlen(source), 1024, original_scratch, 1);
+#ifdef __APPLE__
+    if (path_fault || strcmp(argv[1], "selected-path-overlap") == 0) {
+      assert(!selected->ready && selected->directory == NULL &&
+        selected->path_descriptor == -1 && !selected->path_close_errno);
+      assert(path_observations == 2 && inspection_close(selected));
+      moonbit_decref(selected);
+    } else if (strcmp(argv[1], "selected-path-close-unknown") == 0) {
+      assert(!selected->ready && selected->directory == NULL &&
+        selected->path_descriptor >= 0 && selected->path_close_errno == EIO &&
+        path_observations == 1);
+      int reused = open("/dev/null", O_RDONLY);
+      assert(reused == selected->path_descriptor);
+      int before = close_count;
+      assert(!inspection_close(selected) && !inspection_close(selected));
+      assert(close_count == before && fcntl(reused, F_GETFD) >= 0);
+      assert(fcntl(selected->descriptors[0], F_GETFD) >= 0);
+      assert(close(reused) == 0);
+      /* Keep this receiver and its source FD unacknowledged. Process exit is
+       * not path/source retirement, and the consumed path FD is not retried. */
+    } else {
     assert(selected->ready && !selected->absent);
     assert(strncmp(selected->directory, original_scratch,
       strlen(original_scratch)) == 0);
@@ -89,6 +142,11 @@ int main(int argc, char **argv) {
     assert(actql_journal_inspection_validate(selected));
     assert(inspection_close(selected));
     moonbit_decref(selected);
+    }
+#else
+    assert(!selected->ready && inspection_close(selected));
+    moonbit_decref(selected);
+#endif
     assert(setenv("TMPDIR", original_scratch, 1) == 0);
     free(original_scratch);
     goto finish;

@@ -1609,9 +1609,27 @@ descriptor itself closes; its numeric descriptor cannot be retried or inferred
 released from a sibling acknowledgment. Read/context/backing retirement remains
 separate from either descriptor close.
 
+Within the selected command entry, private Root and bootstrap-parent ACL
+observations use a fixed 4096-byte kernel attribute buffer on the same supported
+APFS selection. No libc filesec/ACL object or growing retrieval buffer is
+constructed. The complete external ACL representation is checked before the
+existing empty-ACL or deny-only rule is applied; malformed, truncated and
+unsupported observations refuse. Generic ACL callers retain their original
+platform path. The caller's bounded stack storage belongs to initial control,
+not unused Read capacity.
+
 Journal inspection uses the same entry's bounded original scratch selection,
 captured before physical acquisition. It never re-reads the current environment
 to choose another directory. The copied committed DB/WAL and scratch namespace
 retain their existing identity and cleanup responsibilities. Captured path text
 is input correspondence; it cannot issue the initial platform holding or pay for
 path-helper internals, ACL objects, Read buffers or other allocations.
+
+Selected inspection resolves its source and scratch directories with bounded
+descriptor-based kernel path observations. It keeps the original containment
+comparison, refuses unsupported filesystems without a realpath fallback and
+retains each temporary directory descriptor before observation. That
+descriptor's consumed close is separate from the DB/WAL, copy and private-index
+descriptors. An unconfirmed path close retains the same inspection receiver and
+prevents another path acquisition or successful cleanup; its number is never
+retried. Generic inspection keeps its existing canonical-path behavior.
