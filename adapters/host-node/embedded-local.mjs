@@ -66,7 +66,8 @@ import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 import {prepareInstalledProjectMock, installPreparedProjectMockSources}
   from './installed-project-mock.mjs';
 import {prepareSourceManagedInstallation, assertSourceManagedInstallationCurrent,
-  assertSourceManagedPreparationCurrent, assertManagedComputePreparationCurrent}
+  assertSourceManagedPreparationCurrent, prepareManagedComputeInstallation,
+  assertManagedComputeInstallationCurrent, assertManagedComputePreparationCurrent}
   from './node-source-managed-installation.mjs';
 import {installNodeInferRun} from './installed-infer-run.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
@@ -1040,6 +1041,13 @@ async function openInstalledHost(originalInstallation, preparation) {
     // Unselected Hosts retain the existing constructor. A directory or option
     // object cannot select a native constructor or issue resource admission.
     journal = await openHostRequestJournal(journalOptions);
+    // The distinct selected Compute purpose needs this SAME opened Journal
+    // before it covers SDK request/attempt control. It is not Source credit.
+    // Legacy unprepared Hosts keep their original path without a new await.
+    if (preparation !== undefined && originalSourcePreparation === undefined) {
+      await preparation.prepareManagedCompute();
+    }
+    const originalRequestPreparation = preparation?.requestPreparation();
     observation = installHostObservation(observationConnection, {journal,
       runId: ref => {
         const retained = journal.lookupRunDefinition(ref, moon, control);
@@ -2901,10 +2909,10 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (authorizedScope(value) === undefined) return found;
     return checkpoints.heldLookup(value.requestId) ?? found;
   };
-  const selectedSourcePreparation = preparation?.sourcePreparation();
+  const selectedRequestPreparation = preparation?.requestPreparation();
   // An unselected installed Host must supply no callback, not a no-op that
   // still selects the Source request/Promise retention path downstream.
-  const bindOwnedRequest = selectedSourcePreparation === undefined ? undefined :
+  const bindOwnedRequest = selectedRequestPreparation === undefined ? undefined :
     preparation.bindSourceRequest;
   const submissionService = installNodeClientSubmission({journal, moon,
     authorizedScope: value => hostConnection(value) ? authorizedScope(value) : undefined,
@@ -3676,12 +3684,12 @@ async function openInstalledHost(originalInstallation, preparation) {
     bindOwnedRequest,
     ...hostOperations, maxRowBytes: 1024 * 1024,
   });
-  const sourcePreparation = preparation?.sourcePreparation();
-  if (sourcePreparation !== selectedSourcePreparation) {
+  const requestPreparation = preparation?.requestPreparation();
+  if (requestPreparation !== selectedRequestPreparation) {
     throw clientOperationError('InstalledSourcePreparationChanged');
   }
-  const port = observation === undefined && sourcePreparation === undefined ? ingress : Object.freeze({
-    ...(sourcePreparation === undefined ? {} : {[sourcePreparationPort]: sourcePreparation}),
+  const port = observation === undefined && requestPreparation === undefined ? ingress : Object.freeze({
+    ...(requestPreparation === undefined ? {} : {[sourcePreparationPort]: requestPreparation}),
     perform: (operation, request, signal) => observation === undefined
       ? ingress.perform(operation, request, signal)
       : observation.run(operation, undefined, () => ingress.perform(operation, request, signal)),
@@ -3746,7 +3754,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       authorizeConnection: hostConnection,
       workspaceForPrincipal: () => workspaceId,
       negotiate, maxRowBytes: 1024 * 1024, observe: diagnostic,
-      bindOwnedRequest: originalSourcePreparation === undefined ? undefined :
+      bindOwnedRequest: originalRequestPreparation === undefined ? undefined :
         (parent,derived) => preparation.bindSourceRequest(parent,derived),
       async performInstalledRequest(operation,request,signal) {
         const opened = await activate();
@@ -3756,8 +3764,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       },
     });
     const bootstrapPort = Object.freeze({
-      ...(originalSourcePreparation === undefined ? {} :
-        {[sourcePreparationPort]: originalSourcePreparation}),
+      ...(originalRequestPreparation === undefined ? {} :
+        {[sourcePreparationPort]: originalRequestPreparation}),
       async perform(operation, request, signal) {
         if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
         return bootstrapIngress.perform(operation,request,signal);
@@ -3980,6 +3988,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   profiles.registerPreparation(host, originalInstallation, host);
   let control, controlClose, duty, observedClose, referenceRetirement;
   let moon, project, projectProfile, mockPreparation, sourceManaged, sourceManagedClose;
+  let computeManaged, computeManagedClose, computeManagedFlight;
   let hostJournal, hostJournalClose, hostJournalOpen, hostJournalOwnership, hostJournalFlight;
   let hostJournalAdmitRootFormat;
   let hostJournalOpenAttempted = false;
@@ -4027,6 +4036,23 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         throw clientOperationError('InstalledSourcePreparationCleanupPending');
       }
       sourceManaged = sourceManagedClose = undefined;
+    }
+    if (computeManaged !== undefined) {
+      // The acquired original survives a failed first callback observation.
+      // An observed close is captured once and cannot be replaced during
+      // another child's await. Closing the Journal is not this child's ACK.
+      computeManagedClose ??= computeManaged.close;
+      if (typeof computeManagedClose !== 'function') {
+        throw clientOperationError('InstalledComputePreparationCleanupPending');
+      }
+      const observation = await Reflect.apply(computeManagedClose, computeManaged, []);
+      const pending = observation !== null && typeof observation === 'object'
+        ? Object.getOwnPropertyDescriptor(observation, 'pending') : undefined;
+      if (pending === undefined || !Object.hasOwn(pending, 'value') || pending.value !== false) {
+        throw clientOperationError('InstalledComputePreparationCleanupPending');
+      }
+      computeManaged = computeManagedClose = computeManagedFlight = undefined;
+      record.computeManaged = undefined;
     }
     if (hostJournal !== undefined) {
       // Capture a successfully observed callback/receiver once, before the
@@ -4133,9 +4159,46 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return Reflect.apply(hostJournalOwnership, hostJournal, []);
     },
     bindSourceRequest(parent, derived) {
-      if (mockPreparation === undefined) return;
-      assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      if (mockPreparation !== undefined) {
+        assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      } else if (computeManaged !== undefined) {
+        assertManagedComputeInstallationCurrent(computeManaged, originals);
+      } else return;
       profiles.bindSourceRequest(host, originalInstallation, host, parent, derived);
+    },
+    prepareManagedCompute() {
+      assertInitialControlHostPreparation(originals);
+      if (mockPreparation !== undefined) throw clientOperationError('ForeignInstalledComputePreparation');
+      if (computeManagedFlight !== undefined) return computeManagedFlight;
+      // The real Host calls only after its original Journal opens. A failed
+      // factory/partial carrier stays on this same flight; no replacement.
+      computeManagedFlight = Promise.resolve().then(async () => {
+        const original = await prepareManagedComputeInstallation(originals);
+        if (original === undefined || original === null) {
+          throw clientOperationError('NodeManagedRunAdmissionUnavailable');
+        }
+        computeManaged = original;
+        record.computeManaged = original;
+        computeManagedClose = original.close;
+        if (typeof computeManagedClose !== 'function') {
+          throw clientOperationError('InstalledComputePreparationCleanupPending');
+        }
+        assertManagedComputeInstallationCurrent(original, originals);
+        assertInitialControlHostPreparation(originals);
+        return original;
+      });
+      return computeManagedFlight;
+    },
+    requestPreparation() {
+      // Reuse the one private SDK lineage protocol, not Source authority.
+      // Source installation/model selection below remains a separate entry.
+      if (mockPreparation !== undefined) {
+        assertSourceManagedInstallationCurrent(sourceManaged, originals);
+        return sourceManaged;
+      }
+      if (computeManaged === undefined) throw clientOperationError('NodeManagedRunAdmissionUnavailable');
+      assertManagedComputeInstallationCurrent(computeManaged, originals);
+      return computeManaged;
     },
     sourcePreparation() {
       if (mockPreparation === undefined) return undefined;
