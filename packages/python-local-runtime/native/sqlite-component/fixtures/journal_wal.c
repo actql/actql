@@ -30,7 +30,9 @@ int main(int argc, char **argv) {
     const char *name = argv[1], *component = argv[2], *directory = argv[3];
     assert(strcmp(name, "wal-copy") == 0 || strcmp(name, "missing-index") == 0 ||
         strcmp(name, "exclusive-conflict") == 0 ||
-        strcmp(name, "command-record-bounds") == 0);
+        strcmp(name, "command-record-bounds") == 0 ||
+        strcmp(name, "finite-facility-exhaustion") == 0);
+    const bool facility_exhaustion = strcmp(name, "finite-facility-exhaustion") == 0;
     const bool command_bounds = strcmp(name, "command-record-bounds") == 0;
     /* A predeclared component-only capacity candidate, not an installed entry
      * profile. Exercise the normal command's original 8-row/131072-byte inputs;
@@ -72,7 +74,40 @@ int main(int argc, char **argv) {
         (moonbit_bytes_t)"ns", 2, (moonbit_bytes_t)"key", 3,
         (moonbit_bytes_t)"original", 8) == 0);
 
-    if (command_bounds) {
+    if (facility_exhaustion) {
+        /* The diagnostic's declared finite facility may refuse. This is not
+         * an all-input demand bound or a command profile. Every held block is
+         * issued by this SAME component API and freed through that API. */
+        const actql_sqlite_component_api *original_api = library->selected_api;
+        sqlite3 *original_database = writer->database;
+        void *original_module = library->dynamic_library;
+        void *held[1024] = {0};
+        size_t held_count = 0;
+        const size_t requests[] = {8192, 1024, 128, 16};
+        for (size_t kind = 0; kind < sizeof(requests) / sizeof(requests[0]); kind++) {
+            while (held_count < 1024) {
+                void *block = original_api->allocate_memory(requests[kind]);
+                if (block == NULL) break;
+                held[held_count++] = block;
+            }
+            assert(held_count < 1024);
+        }
+        assert(held_count > 0 && original_api->allocate_memory(16) == NULL);
+        sqlite3_stmt *statement = NULL;
+        assert(original_api->prepare_v2(original_database,
+            "SELECT body FROM actql_records WHERE namespace='ns'",
+            -1, &statement, NULL) == SQLITE_NOMEM);
+        assert(statement == NULL);
+        assert(actql_native_sqlite_database_read(writer,
+            (moonbit_bytes_t)"ns", 2, (moonbit_bytes_t)"key", 3) == -1);
+        assert(writer->database == original_database && writer->opened);
+        assert(library->selected_api == original_api &&
+            library->dynamic_library == original_module && library->database_children == 1);
+        assert(library->component_close() == ACTQL_SQLITE_COMPONENT_BUSY);
+        for (size_t i = 0; i < held_count; i++) original_api->free_memory(held[i]);
+        /* No retry of the failed read, replacement heap, reopen or new bind.
+         * Only the original DB/Library and separate parent cleanup follow. */
+    } else if (command_bounds) {
         /* Both supplied bytes are original entered-Read allocations. The
          * adapter's own key/body copies live inside the SAME MEMSYS5 heap. */
         moonbit_bytes_t body = moonbit_make_bytes_raw(131072);
@@ -154,19 +189,21 @@ int main(int argc, char **argv) {
         moonbit_decref(snapshot);
     }
     close_database(writer);
-    /* Generic restoration remains the generic route and sees the same row. */
-    actql_native_sqlite_database *generic = actql_native_sqlite_open_existing_database(
-        library, (moonbit_bytes_t)path, (int32_t)strlen(path),
-        command_bounds ? 131072 : 65536);
-    assert(generic && actql_native_sqlite_database_ready(generic));
-    assert(generic->journal_descriptor_ack == NULL);
-    if (command_bounds) {
-        unsigned char key[512]; memset(key, 'k', sizeof(key)); key[511] = '0';
-        assert(actql_native_sqlite_database_read(generic,
-            (moonbit_bytes_t)"bounded", 7, key, sizeof(key)) == 0);
-        assert(generic->result_body_length == 131072 && generic->result_body[0] == 'A');
-    } else read_original(generic);
-    close_database(generic);
+    if (!facility_exhaustion) {
+        /* Generic restoration remains the generic route and sees the same row. */
+        actql_native_sqlite_database *generic = actql_native_sqlite_open_existing_database(
+            library, (moonbit_bytes_t)path, (int32_t)strlen(path),
+            command_bounds ? 131072 : 65536);
+        assert(generic && actql_native_sqlite_database_ready(generic));
+        assert(generic->journal_descriptor_ack == NULL);
+        if (command_bounds) {
+            unsigned char key[512]; memset(key, 'k', sizeof(key)); key[511] = '0';
+            assert(actql_native_sqlite_database_read(generic,
+                (moonbit_bytes_t)"bounded", 7, key, sizeof(key)) == 0);
+            assert(generic->result_body_length == 131072 && generic->result_body[0] == 'A');
+        } else read_original(generic);
+        close_database(generic);
+    }
     assert(actql_native_sqlite_library_close_checked(library) == 1);
     moonbit_decref(library);
     assert(actql_read_context_leave(context) == 0);
