@@ -1446,7 +1446,7 @@
     },
     {
       "module": "adapters/connectors/slack/site/channel-list-read.mjs",
-      "sha256": "062b4ddf72039bfb2728f7aebafcfe01a4e068f5164286932812e5069c1fedef",
+      "sha256": "3ef8e4daebe656205b988afe04151710245dad530d8b196f48c3a5fb89902907",
       "exports": [
         "SLACK_CHANNEL_LIST_OPERATION",
         "SLACK_WORKSPACE_IDENTITY_OPERATION",
@@ -1491,6 +1491,13 @@
           "async": false
         },
         {
+          "name": "createChannelReader/handle/init:read/init:read/result/result#3",
+          "parameters": [
+            "exchange"
+          ],
+          "async": false
+        },
+        {
           "name": "createChannelReader/handle/init:requestStop/init:requestStop",
           "parameters": [
             "reason"
@@ -1516,7 +1523,8 @@
           "parameters": [
             "prepared",
             "received",
-            "retainPage"
+            "retainPage",
+            "retainExchange"
           ],
           "async": true
         },
@@ -1533,14 +1541,14 @@
           "async": true
         },
         {
-          "name": "executeRead/request/request/response/response",
+          "name": "executeRead/request/request/request",
           "parameters": [
             "options"
           ],
           "async": false
         },
         {
-          "name": "executeRead/request/request/response/response/response",
+          "name": "executeRead/request/request/request/request",
           "parameters": [],
           "async": false
         },
@@ -1721,13 +1729,14 @@
             "createChannelReader/handle/init:read/init:read",
             "createChannelReader/handle/init:read/init:read/result/result",
             "createChannelReader/handle/init:read/init:read/result/result#2",
+            "createChannelReader/handle/init:read/init:read/result/result#3",
             "createChannelReader/handle/init:requestStop/init:requestStop",
             "createSlackChannelListReader",
             "createSlackChannelListReaderForHistory",
             "executeRead",
             "executeRead/request/request",
-            "executeRead/request/request/response/response",
-            "executeRead/request/request/response/response/response",
+            "executeRead/request/request/request",
+            "executeRead/request/request/request/request",
             "executeRead/verify/verify",
             "fail/fail",
             "originalChannel",
@@ -1928,6 +1937,10 @@
               {
                 "path": "adapters/connectors/slack/test/message-history-original-channel.test.mjs",
                 "anchor": "test('Slack history consumes its original completed channel occurrence through the actual HTTPS caller'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-history-original-channel.test.mjs",
+                "anchor": "test('Slack lost channel reply retains the original pending exchange and cannot issue a history selection'"
               }
             ]
           }
