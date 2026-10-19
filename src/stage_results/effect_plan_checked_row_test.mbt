@@ -37,13 +37,16 @@ test "checked Mapping row preserves original values literals and legacy proposal
   for literal in [false, true] {
     let (terminal, literals, original) = checked_plan_fixture(literal~)
     let reads = Ref(0)
+    let reader_arguments_valid = Ref(true)
     let row = project_effect_plan_checked_row(
       terminal,
       literals,
       0,
       fn(name, remaining, values) {
-        assert_eq(name, "amount")
-        assert_true(remaining > 0 && values.max_nodes > 0)
+        if name != "amount" || remaining <= 0 || values.max_nodes <= 0 {
+          reader_arguments_valid.val = false
+          return None
+        }
         reads.val += 1
         Some((original, 1, 1, 0))
       },
@@ -51,6 +54,7 @@ test "checked Mapping row preserves original values literals and legacy proposal
       10000,
       { max_nodes: 10, max_depth: 4, max_text_bytes: 100, },
     ).unwrap()
+    assert_true(reader_arguments_valid.val)
     assert_true(physical_equal(effect_plan_checked_row_selector(row), original))
     let (target, value) = effect_plan_checked_row_field_at(row, 0).unwrap()
     assert_eq(target, "Name")
@@ -127,7 +131,7 @@ test "checked Mapping row rejects equal foreign contracts and literal owners bef
 test "checked Mapping row shares the original finite work and value ceilings" {
   let (terminal, literals, original) = checked_plan_fixture()
   let reads = Ref(0)
-  let read = fn(_, _, values) {
+  let read = fn(_ : String, _ : Int, values : @value.Limits) {
     reads.val += 1
     if values.max_nodes == 0 {
       None
