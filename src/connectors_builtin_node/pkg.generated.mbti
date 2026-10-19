@@ -1339,6 +1339,8 @@ pub fn client_program_installed_managed_run_retire(@client_local_host.ClientInst
 
 pub fn client_program_installed_managed_run_source_read(@client_local_host.ClientInstalledManagedRun, Int) -> Result[@client_local_host.ClientInstalledSourceRead, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_mock_model_managed_run_begin(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Int64, Int64, Int, Int, Int) -> Result[(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope), @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_model_defaults_binding(@run_publication_host.ClientModelProviderDefaults) -> @run_publication.RunEvidenceValue
 
 pub fn client_program_installed_model_defaults_generation(@run_publication_host.ClientModelProviderDefaults, @check_environment.ResolvedModelProviderDefaults) -> @check_environment.ModelGeneration?
@@ -1988,6 +1990,8 @@ pub fn client_program_native_decision_request_binding(@model_execution.NativeDec
 pub fn client_program_native_decision_request_matches(@model_execution.NativeDecisionRequest, @model_execution.AdmittedModelProvider, @model_execution.ModelRequest) -> Bool
 
 pub fn client_program_native_decision_request_wires(@model_execution.NativeDecisionRequest) -> (String, String)?
+
+pub fn client_program_node_local_mock_model_run_prepare(@physical_resources.OriginalNodeManagedRunReference, @run_publication_host.PreparedClientProgram) -> Result[@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @physical_resources.ImportedChildLedgerIssue]
 
 pub fn client_program_node_managed_run_cleanup(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram]) -> Result[Unit, @physical_resources.ImportedChildLedgerIssue]
 

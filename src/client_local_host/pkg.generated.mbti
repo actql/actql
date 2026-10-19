@@ -49,6 +49,8 @@ pub fn begin_installed_managed_run(@physical_resources.NodeManagedRunAdmission[@
 
 pub fn begin_installed_managed_run_source_read(ClientInstalledManagedRun, Int) -> Result[ClientInstalledSourceRead, ClientInstalledManagedRunIssue]
 
+pub fn begin_installed_mock_model_managed_run(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Int64, Int64, Int, Int, Int) -> Result[(ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope), ClientInstalledManagedRunIssue]
+
 pub fn begin_installed_source_read(@physical_resources.ImportedChildLedger) -> Result[ClientInstalledSourceRead, ClientInstalledSourceReadIssue]
 
 pub fn bind_installed_source_read_effect_program(ClientInstalledSourceRead, @run_publication_host.PreparedClientEffectComputation) -> Result[Unit, ClientInstalledSourceReadIssue]
@@ -439,6 +441,7 @@ pub(all) enum ClientInstalledManagedRunIssue {
   InsufficientCapacity
   Resource(@physical_resources.ImportedChildLedgerIssue)
   Ledger(@physical_resources.LedgerIssue)
+  ModelRead(@run_publication_host.ClientModelReadPreparationIssue)
 }
 
 type ClientInstalledSourceRead

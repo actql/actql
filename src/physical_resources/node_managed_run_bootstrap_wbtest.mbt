@@ -3,6 +3,7 @@
 // tests issue no actual Node facility, Model purpose or public permission.
 fn managed_run_bootstrap_fixture(
   observe_current? : () -> Unit = () => (),
+  purpose? : NodeManagedRunPurpose = SourceCompute,
 ) -> (
   NodeManagedRunAdmission[Ref[Int]],
   Ref[Int],
@@ -48,11 +49,72 @@ fn managed_run_bootstrap_fixture(
     fixed_capacities=false,
   ).unwrap()
   let prepared = Ref(3)
-  let admission = prepare_node_managed_run_original(child, prepared, () => {
-    abort("PublishedBootstrapCannotAbortUnpublished")
-  })
+  let admission = prepare_node_managed_run_original(
+    child,
+    prepared,
+    () => abort("PublishedBootstrapCannotAbortUnpublished"),
+    purpose~,
+  )
   let ledger = start_node_managed_run_admission(admission).unwrap()
   (admission, prepared, ledger, current, calls, retire_at, reports)
+}
+
+///|
+test "managed purpose cannot convert the original Source Compute child to Mock Model" {
+  let (admission, prepared, ledger, _, _, _, reports) = managed_run_bootstrap_fixture()
+  check_node_source_compute_run_preparation(admission, prepared).unwrap()
+  let before = ledger_usage(ledger)
+  assert_true(
+    check_node_local_mock_model_run_preparation(admission, prepared)
+    is Err(Unavailable),
+  )
+  assert_eq(ledger_usage(ledger), before)
+  assert_eq(ledger.next_capacity_serial, Some(-1))
+  cleanup_node_managed_run_admission(admission).unwrap()
+  assert_eq(reports.length(), 1)
+}
+
+///|
+test "managed purpose binds the separately selected Mock original and its early bootstrap" {
+  let (admission, prepared, ledger, _, _, _, reports) = managed_run_bootstrap_fixture(
+    purpose=LocalMockModel,
+  )
+  check_node_local_mock_model_run_preparation(admission, prepared).unwrap()
+  assert_true(
+    check_node_source_compute_run_preparation(admission, prepared)
+    is Err(Unavailable),
+  )
+  let bootstrap = reserve_node_managed_run_read_bootstrap(
+    admission, prepared, ledger, 3L, 2L,
+  ).unwrap()
+  begin_original_ledger_inventory(ledger, bootstrap, 2, 0, 0).unwrap() |> ignore
+  let source_sibling = reserve_capacity(ledger, 5L, 4L).unwrap()
+  assert_true(cleanup_node_managed_run_admission(admission) is Err(Unavailable))
+  assert_true(capacity_reservation_open(bootstrap))
+  assert_eq(reports.length(), 0)
+  settle_capacity(ledger, source_sibling).unwrap()
+  cleanup_node_managed_run_admission(admission).unwrap()
+  assert_false(capacity_reservation_open(bootstrap))
+  assert_eq(reports.length(), 1)
+}
+
+///|
+test "managed purpose rejects copied admission and equal other preparation before resource changes" {
+  let (admission, prepared, ledger, _, _, _, _) = managed_run_bootstrap_fixture(
+    purpose=LocalMockModel,
+  )
+  let before = ledger_usage(ledger)
+  assert_true(
+    check_node_local_mock_model_run_preparation({ ..admission, }, prepared)
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    check_node_local_mock_model_run_preparation(admission, Ref(3))
+    is Err(ForeignOriginal),
+  )
+  assert_eq(ledger_usage(ledger), before)
+  assert_eq(ledger.next_capacity_serial, Some(-1))
+  cleanup_node_managed_run_admission(admission).unwrap()
 }
 
 ///|
