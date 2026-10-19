@@ -1950,3 +1950,13 @@ original expiry, material or keys. The original initialization Session still
 proves first-key eligibility and durable custody. Runtime binding, Account
 checks and reply-current fences remain in their existing owners and must use
 the same actual Read/SQLite phase exchange.
+
+The selected command copies at most one 1,048,576-code-unit metadata reply into
+its initial managed facility only after the original Read has left. The original
+Read body and the control copy coexist until their actual cleanup. Only after
+Journal, Libraries/component, contexts/domains, Host, backing descriptor and
+Lock cleanup acknowledge does main encode/write/flush that copy. Cleanup failure
+retains the original carrier and emits no staged success. The copied text,
+newline, UTF-8 buffer and static stdout buffer remain distinct simultaneous
+initial-control holdings; none is a physical cleanup acknowledgement. Streamed
+Result material remains outside this static metadata path.

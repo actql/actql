@@ -1358,6 +1358,7 @@ extern "C" fn exit_failure_ffi() -> Unit = "actql_native_client_exit_failure"
 // domain retirement after this return still checks all original escaped users.
 fn execute_and_write_native_reply(
   matches : @argparse.Matches,
+  pending_reply : Ref[String?],
 ) -> Unit raise ClientStop {
   // The same carrier is registered before the first project/runtime/Store IO.
   // Help/version and parse errors have already terminated without acquisition.
@@ -1375,6 +1376,19 @@ fn execute_and_write_native_reply(
     }
   }
   if local_payload_already_streamed(matches) {
+    return
+  }
+  if command_preparation_invocation.val is Some(original) {
+    // Static metadata is copied only after leaving its original Read. Keep the
+    // same physical carrier and all aliases until main confirms every cleanup;
+    // a partial close must never publish an adoption/check success beforehand.
+    command_preparation_result(original.leave())
+    if original.journal_read_open ||
+      pending_reply.val is Some(_) ||
+      value.length() > 1048576 {
+      stop("LocalCommandReplyUnavailable")
+    }
+    pending_reply.val = Some(command_control_copy_text(value))
     return
   }
   let reply = if matches.subcommand is Some(("read", _)) {
@@ -1410,8 +1424,13 @@ fn main {
       abort("native Client argument failure")
     }
   }
+  // At most one bounded UTF-16 metadata copy escapes into initial control.
+  // It overlaps the retained Read original until actual child cleanup ACKs.
+  let pending_reply : Ref[String?] = Ref(None)
   let failed = try {
-    control.consume_matches(execute_and_write_native_reply)
+    control.consume_matches(matches => {
+      execute_and_write_native_reply(matches, pending_reply)
+    })
     false
   } catch {
     ClientStop(message) => {
@@ -1428,7 +1447,6 @@ fn main {
   } else {
     false
   }
-  command_initial_control_keep_alive(control)
   if !command_closed {
     fail_command("LocalCommandPreparationCleanupPending")
   }
@@ -1438,4 +1456,12 @@ fn main {
   if failed {
     exit_failure_ffi()
   }
+  if pending_reply.val is Some(body) {
+    let bytes = @utf8.encode(body + "\n")
+    if !write_stdout_ffi(bytes, bytes.length()) {
+      fail_command("stdout write failed")
+    }
+    pending_reply.val = None
+  }
+  command_initial_control_keep_alive(control)
 }

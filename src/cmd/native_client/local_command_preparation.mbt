@@ -776,10 +776,13 @@ fn LocalCommandPreparationOriginal::close_checked(
         self.crypto_path = ""
         self.crypto_member = None
         if self.component is Some(component) {
+          guard self.pair is Some(pair) else { return Err(CommandUnavailable) }
+          // This caller already owns the exact original cleanup frame. Do not
+          // reenter the domain through the legacy owning close operation.
           command_preparation_value(
             host
-            .close_crypto_component(component)
-            .map_err(issue => CommandComponent(issue)),
+            .close_local_host_read_crypto_component(pair, read, component)
+            .map_err(issue => CommandReadCrypto(issue)),
           )
           self.component = None
         }
