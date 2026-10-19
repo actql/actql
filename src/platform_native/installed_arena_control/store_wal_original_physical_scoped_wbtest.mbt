@@ -9,6 +9,8 @@ struct StoreWalReceiver {
   mut cleanup : Bool
   mut sql : Bool
   mut sql_entries : Int
+  mut fail_cleanup_return : Bool
+  mut return_ack_pending : Bool
 }
 
 ///|
@@ -87,12 +89,25 @@ fn store_wal_route(
       0
     }
     3 => {
+      if receiver.return_ack_pending {
+        // Retry confirms only the SAME physical leave already observed below.
+        if receiver.active || receiver.sql || !receiver.cleanup {
+          return 18
+        }
+        receiver.return_ack_pending = false
+        return 0
+      }
       if !receiver.active ||
         receiver.sql ||
         receiver.host.leave_domain_read(receiver.domain) is Err(_) {
         return 15
       }
       receiver.active = false
+      if receiver.cleanup && receiver.fail_cleanup_return {
+        receiver.fail_cleanup_return = false
+        receiver.return_ack_pending = true
+        return 44
+      }
       0
     }
     4 => {
@@ -113,6 +128,7 @@ fn store_wal_route(
 fn store_wal_payload_work(
   library : @sqlite.Library,
   original : @sqlite.NativeStoreOperationOriginal,
+  receiver : StoreWalReceiver,
   path : String,
 ) -> Bool {
   let authority = "sha256:" + "1".repeat(64)
@@ -150,16 +166,27 @@ fn store_wal_payload_work(
   let usage = store.capacity_usage().unwrap()
   // Routing metadata cannot acknowledge the still-open original Database.
   let original_busy = original.close_checked() is Err(_)
-  let first_close = store.close().unwrap()
+  let retained_alias = store
+  let first_close_pending = store.close() is Err(@store.OperationRouting(_, _))
+  let sql_after_first = receiver.sql_entries
   let second_close = store.close().unwrap()
+  let third_close = store.close().unwrap()
+  let no_replay = receiver.sql_entries == sql_after_first
+  // The separately retained closed carrier still owns its Database DATA shell.
+  let library_busy = library.close_checked() is Err(_)
+  let alias_closed = retained_alias.close().unwrap()
   original.close_checked().unwrap()
   busy_writer &&
   busy_reader &&
   same_bytes &&
   original_busy &&
   usage.reserved_bytes == 0L &&
-  first_close &&
-  !second_close
+  first_close_pending &&
+  second_close &&
+  !third_close &&
+  no_replay &&
+  library_busy &&
+  !alias_closed
 }
 
 ///|
@@ -177,6 +204,8 @@ fn store_wal_original_work(
     cleanup: false,
     sql: false,
     sql_entries: 0,
+    fail_cleanup_return: true,
+    return_ack_pending: false,
   }
   let original = store_wal_prepare_original(library, receiver, fn(
     receiver,
@@ -186,14 +215,14 @@ fn store_wal_original_work(
     store_wal_route(receiver, library, tag)
   })
   original.activate().unwrap()
-  let result = store_wal_payload_work(library, original, path)
+  let result = store_wal_payload_work(library, original, receiver, path)
   result &&
   receiver.sql_entries > 0 &&
   !receiver.active &&
   !receiver.sql &&
   receiver.cleanup &&
-  original.primary_code() == 0 &&
-  original.cleanup_code() == 0
+  !receiver.return_ack_pending &&
+  original.primary_code() == 44
 }
 
 ///|

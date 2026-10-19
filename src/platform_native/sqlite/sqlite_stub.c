@@ -466,8 +466,11 @@ int32_t actql_native_sqlite_close_checked(
     actql_retire_result_storage(database);
     bool ack = database->journal_descriptor_ack == NULL ||
       database->journal_descriptor_ack(NULL) == ACTQL_SQLITE_COMPONENT_OK;
-    if (ack && database->store_operation != NULL)
+    if (ack && database->store_operation != NULL) {
+      actql_adapter_free(database->library, database->error);
+      database->error = NULL;
       database->store_operation->database_closed = true;
+    }
     return ack;
   }
   database->test_checked_close_count++;
@@ -486,8 +489,11 @@ int32_t actql_native_sqlite_close_checked(
   actql_retire_result_storage(database);
   bool ack = database->journal_descriptor_ack == NULL ||
     database->journal_descriptor_ack(NULL) == ACTQL_SQLITE_COMPONENT_OK;
-  if (ack && database->store_operation != NULL)
+  if (ack && database->store_operation != NULL) {
+    actql_adapter_free(database->library, database->error);
+    database->error = NULL;
     database->store_operation->database_closed = true;
+  }
   return ack;
 }
 
@@ -532,16 +538,25 @@ int32_t actql_native_sqlite_test_checked_close_count(
 
 static void actql_native_sqlite_database_finalize(void *value) {
   actql_native_sqlite_database *database = value;
-  if (database->store_operation != NULL &&
-      !database->store_operation->database_closed) return;
-  actql_native_sqlite_database_close(database);
-  if (database->library != NULL && database->library->selected_component &&
-      (database->database != NULL || database->journal_pin_close_unknown ||
-       (database->journal_descriptor_ack != NULL &&
-       database->journal_descriptor_ack(NULL) != ACTQL_SQLITE_COMPONENT_OK))) return;
-  actql_adapter_free(database->library, database->error);
-  actql_adapter_free(database->library, database->result_body);
-  actql_adapter_free(database->library, database->result_key);
+  if (database->store_operation != NULL) {
+    actql_native_store_operation *original = database->store_operation;
+    /* Last managed alias only: physical close, descriptor and result-storage
+     * ACKs were recorded in the original entered scope. Never call the
+     * component again from the outer context merely to retire this shell. */
+    if (!original->database_closed || original->flight || original->sql ||
+        database->database != NULL || database->journal_pin_close_unknown ||
+        database->lookup_generation != 0 || database->error != NULL ||
+        database->result_body != NULL || database->result_key != NULL) return;
+  } else {
+    actql_native_sqlite_database_close(database);
+    if (database->library != NULL && database->library->selected_component &&
+        (database->database != NULL || database->journal_pin_close_unknown ||
+         (database->journal_descriptor_ack != NULL &&
+         database->journal_descriptor_ack(NULL) != ACTQL_SQLITE_COMPONENT_OK))) return;
+    actql_adapter_free(database->library, database->error);
+    actql_adapter_free(database->library, database->result_body);
+    actql_adapter_free(database->library, database->result_key);
+  }
   database->error = NULL;
   database->result_body = NULL;
   database->result_key = NULL;
