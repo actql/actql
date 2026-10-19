@@ -301,7 +301,15 @@ async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
   }
   let readFailure;
   let readFailed = false;
+  let originalClose;
+  const captureClose = () => {
+    if (originalClose !== undefined) return;
+    const method = handle.close;
+    if (typeof method !== 'function') fail('PublicationMetadataReaderCleanupPending');
+    originalClose = method;
+  };
   try {
+    captureClose();
     signal?.throwIfAborted();
     const before = await handle.stat({bigint: true});
     signal?.throwIfAborted();
@@ -358,13 +366,15 @@ async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
     throw error;
   } finally {
     try {
-      if (await handle.close() === false) fail('PublicationMetadataReaderCleanupPending');
+      captureClose();
+      if (await originalApply(originalClose, handle, []) === false) fail('PublicationMetadataReaderCleanupPending');
     } catch (closeFailure) {
       // Retain exactly this failed FD, not a pathname reopen or another read.
       // As for the existing object reader, the original caller's reservation
       // and custody stay live until confirmed close. This control/frame and
       // any escaped error are part of the original funded read inventory.
       let original = handle;
+      let closeOriginal = originalClose;
       let retire = closed;
       let flight;
       const status = () => Object.freeze({pending: original !== undefined});
@@ -373,9 +383,18 @@ async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
         retry() {
           if (flight !== undefined) return flight;
           if (original === undefined) return Promise.resolve(status());
-          flight = Promise.resolve().then(() => original.close()).then(result => {
+          flight = Promise.resolve().then(() => {
+            // Retry the successfully captured original only. If its getter
+            // never yielded a method, custody stays with this same handle.
+            if (closeOriginal === undefined) {
+              const method = original.close;
+              if (typeof method !== 'function') fail('PublicationMetadataReaderCleanupPending');
+              closeOriginal = method;
+            }
+            return originalApply(closeOriginal, original, []);
+          }).then(result => {
             if (result === false) fail('PublicationMetadataReaderCleanupPending');
-            original = undefined;
+            original = closeOriginal = undefined;
             const acknowledge = retire;
             retire = undefined;
             acknowledge?.();
@@ -561,6 +580,7 @@ async function acquireStoreOwnership(root, bootstrap, key) {
       let ownershipDevice, ownershipInode;
       let retirementDirectory, retirementSynced = false;
       let ownerWriter, ownerWriterClose, ownerFileIdentity;
+      let retirementReadCleanup, retirementReadFailure;
       let ownerFileCreated = false, ownerWritten = false;
       const ownership = Object.freeze({
         async assertCurrent() {
@@ -589,6 +609,19 @@ async function acquireStoreOwnership(root, bootstrap, key) {
         },
         async release() {
           if (released) return false;
+          if (retirementReadCleanup !== undefined) {
+            const child = retirementReadCleanup;
+            const acknowledged = state => {
+              const pending = state !== null && typeof state === 'object'
+                ? Object.getOwnPropertyDescriptor(state, 'pending') : undefined;
+              return pending !== undefined && Object.hasOwn(pending, 'value') && pending.value === false;
+            };
+            if (child.status === undefined || child.retry === undefined) throw retirementReadFailure;
+            let state = await originalApply(child.status, child.handle, []);
+            if (!acknowledged(state)) state = await originalApply(child.retry, child.handle, []);
+            if (!acknowledged(state)) throw retirementReadFailure;
+            retirementReadCleanup = retirementReadFailure = undefined;
+          }
           // The opener owns this exact metadata writer even if writing or
           // closing failed before an ownership handle could be returned.
           if (ownerWriter !== undefined) {
@@ -625,8 +658,20 @@ async function acquireStoreOwnership(root, bootstrap, key) {
             if (!ownerRemoved) {
               if (ownerWritten) {
                 let existing;
-                try { existing = JSON.parse(await readFile(ownerPath, 'utf8')); }
+                try { existing = JSON.parse(bootstrap === undefined
+                  ? await readFile(ownerPath, 'utf8') : await readBounded(ownerPath, 4096)); }
                 catch (error) {
+                  const handle = error !== null && typeof error === 'object'
+                    ? Object.getOwnPropertyDescriptor(error, 'cleanupHandle')?.value : undefined;
+                  if (handle !== undefined) {
+                    const status = Object.getOwnPropertyDescriptor(handle, 'status')?.value;
+                    const retry = Object.getOwnPropertyDescriptor(handle, 'retry')?.value;
+                    retirementReadCleanup = {handle,
+                      status: typeof status === 'function' ? status : undefined,
+                      retry: typeof retry === 'function' ? retry : undefined};
+                    retirementReadFailure = error;
+                    throw error;
+                  }
                   if (error?.code === 'ENOENT') return false;
                   throw error;
                 }

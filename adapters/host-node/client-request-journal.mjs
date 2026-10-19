@@ -2,6 +2,7 @@
 // MoonBit supplies and re-admits the identity and decides intent conflicts.
 import {DatabaseSync, StatementSync} from 'node:sqlite';
 import * as facilityFs from 'node:fs';
+import * as facilityFsPromises from 'node:fs/promises';
 import * as facilityCrypto from 'node:crypto';
 import facilityFields from './host-journal-facility-fields.cjs';
 import {prepareInstalledRunStateObservation, issueInstalledRunControlObservation}
@@ -66,6 +67,7 @@ const facilityOperations = Object.freeze([
   property: facilityDescriptor(receiver, name)})));
 const facilityPlatformOperations = Object.freeze([
   ['fs',facilityFs],['crypto',facilityCrypto],['constants',facilityFs.constants],
+  ['promises',facilityFsPromises],
   ['directory',facilityFs.Dir.prototype],['hash',facilityCrypto.Hash.prototype],
   ['hmac',facilityCrypto.Hmac.prototype],['realpath',facilityRealpath],
 ].flatMap(([group,receiver]) => facilityFields[group].map(name => Object.freeze({

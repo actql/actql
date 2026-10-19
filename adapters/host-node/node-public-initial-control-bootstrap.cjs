@@ -277,9 +277,10 @@ function prepareJournal(held) {
     throw journalCarrier(entry, cause);
   }
 }
-function captureJournalNativeBindings(fsOriginal, cryptoOriginal) {
+function captureJournalNativeBindings(fsOriginal, cryptoOriginal, fsPromisesOriginal) {
   const bindings = Object.create(null);
   for (const [group,receiver] of [['fs',fsOriginal],['crypto',cryptoOriginal],
+    ['promises',fsPromisesOriginal],
     ['constants',field(fsOriginal,'constants')],
     ['directory',field(field(fsOriginal,'Dir'),'prototype')],
     ['realpath',field(fsOriginal,'realpathSync')],
@@ -1040,7 +1041,8 @@ try {
   const sqliteOriginal = require('node:sqlite');
   const journalNative = freeze({DatabaseSync:field(sqliteOriginal,'DatabaseSync'),
     StatementSync:field(sqliteOriginal,'StatementSync'),
-    bindings:captureJournalNativeBindings(require('node:fs'),require('node:crypto'))});
+    bindings:captureJournalNativeBindings(require('node:fs'),require('node:crypto'),
+      require('node:fs/promises'))});
   if (typeof journalNative.DatabaseSync !== 'function' ||
       typeof journalNative.StatementSync !== 'function') unavailable();
   // Adopt the separate joint Source recipe before namespace, managed Source

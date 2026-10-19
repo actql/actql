@@ -19,7 +19,7 @@ const limits = Object.freeze({maxDatabaseBytes: 1048576,
   primaryExecutionLimits: {maxStatementCalls: 1000, maxParameters: 32,
     maxParameterBytes: 262144, maxResultRows: 128}});
 const nativeBindings = () => Object.freeze(Object.fromEntries(
-  [['fs',fs],['crypto',crypto],['constants',fs.constants],['directory',fs.Dir.prototype],
+  [['fs',fs],['promises',fs.promises],['crypto',crypto],['constants',fs.constants],['directory',fs.Dir.prototype],
     ['hash',crypto.Hash.prototype],['hmac',crypto.Hmac.prototype],['realpath',fs.realpathSync]].map(([group,receiver]) =>
     [group,Object.freeze(Object.fromEntries(facilityFields[group].map(name =>
       [name,Object.getOwnPropertyDescriptor(receiver,name).value])))])));
@@ -67,6 +67,43 @@ test('foreign filesystem receipt accessors and proxies are refused without evalu
   assert.equal(reads,0);
 });
 
+test('same startup async filesystem originals cannot be replaced by an equal-shaped receipt', () => {
+  const held = {...nativeBindings(), promises: {...fs.promises, open() {}}};
+  assert.throws(() => assertOriginalClientRequestJournalFacilityCurrent(
+    DatabaseSync, StatementSync, held), {code: 'ClientRequestJournalFacilityUnavailable'});
+});
+
+test('selected async filesystem replacement is rejected and restoration does not revive it', () => {
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', `
+    import assert from 'node:assert/strict';
+    import fs from 'node:fs'; import crypto from 'node:crypto';
+    import {syncBuiltinESMExports} from 'node:module';
+    import {DatabaseSync,StatementSync} from 'node:sqlite';
+    import fields from ${JSON.stringify(new URL('./host-journal-facility-fields.cjs',import.meta.url).href)};
+    import {assertOriginalClientRequestJournalFacilityCurrent as current}
+      from ${JSON.stringify(new URL('./client-request-journal.mjs',import.meta.url).href)};
+    const held=Object.freeze(Object.fromEntries([
+      ['fs',fs],['crypto',crypto],['constants',fs.constants],['directory',fs.Dir.prototype],
+      ['hash',crypto.Hash.prototype],['hmac',crypto.Hmac.prototype],['realpath',fs.realpathSync]
+    ].map(([group,receiver])=>[group,Object.freeze(Object.fromEntries(fields[group].map(name=>
+      [name,Object.getOwnPropertyDescriptor(receiver,name).value])))])));
+    const selected=Object.freeze({...held,promises:Object.freeze({...fs.promises})});
+    current(DatabaseSync,StatementSync,selected);
+    const original=Object.getOwnPropertyDescriptor(fs.promises,'open');
+    try {
+      Object.defineProperty(fs.promises,'open',{...original,
+        value(){throw Error('MustNotDispatchReplacement');}});
+      syncBuiltinESMExports();
+      assert.throws(()=>current(DatabaseSync,StatementSync,selected),
+        {code:'ClientRequestJournalFacilityUnavailable'});
+    } finally {Object.defineProperty(fs.promises,'open',original);syncBuiltinESMExports();}
+    assert.throws(()=>current(DatabaseSync,StatementSync,selected),
+      {code:'ClientRequestJournalFacilityUnavailable'});
+  `], {encoding:'utf8',timeout:15000});
+  assert.equal(result.error,undefined);
+  assert.equal(result.status,0,result.stderr);
+});
+
 for (const selected of ['crypto','directory','realpath']) {
   test(`selected ${selected} operation replacement remains refused after restoration`, () => {
     const result = spawnSync(process.execPath,['--input-type=module','-e',`
@@ -78,7 +115,7 @@ for (const selected of ['crypto','directory','realpath']) {
       import {assertOriginalClientRequestJournalFacilityCurrent as current}
         from ${JSON.stringify(new URL('./client-request-journal.mjs',import.meta.url).href)};
       const held=Object.freeze(Object.fromEntries([
-        ['fs',fs],['crypto',crypto],['constants',fs.constants],['directory',fs.Dir.prototype],
+        ['fs',fs],['promises',fs.promises],['crypto',crypto],['constants',fs.constants],['directory',fs.Dir.prototype],
         ['hash',crypto.Hash.prototype],['hmac',crypto.Hmac.prototype],['realpath',fs.realpathSync]
       ].map(([group,receiver])=>[group,Object.freeze(Object.fromEntries(fields[group].map(name=>
         [name,Object.getOwnPropertyDescriptor(receiver,name).value])))])));

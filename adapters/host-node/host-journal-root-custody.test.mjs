@@ -170,7 +170,7 @@ async function fixture({covered = true, open, read, current, nativeCurrent, subj
   const root = make(state, actual => assert.strictEqual(actual, originals), join, journalFacilityFields,
     nativePackageRoot ?? '/explicit-fixture-package', runtimeCurrent, createHostJournalDirectoryInspector);
   state.journalNative = Object.freeze({DatabaseSync,StatementSync,
-    bindings:root.captureNative(fs,crypto)});
+    bindings:root.captureNative(fs,crypto,fs.promises)});
   return {scratch, originals, directory, root, state};
 }
 

@@ -1144,6 +1144,18 @@ inspection callers keep their existing temporary-directory behavior. The path
 alias coexists with the image, Journal, source and copy duties until their
 original close observations; alias retirement is not physical backing or ACK.
 
+The same startup also captures the asynchronous filesystem operations used by
+the prepared Store exclusion, separately from synchronous Journal filesystem
+operations. The fixed namespace checks those same originals before subject or
+ownership acquisition. A detected replacement does not revive on restoration;
+the correspondence table itself grants neither a facility nor authority.
+Selected ownership retirement reads its original token through the bounded
+metadata reader, never an unrestricted `readFile`. That reader captures the
+original FileHandle close and receiver before stat/read callbacks. A failed
+reader remains with the same ownership through its captured cleanup; no new
+read or owner removal precedes that original FD acknowledgement. This duty is
+distinct from Journal close, Store payload close and exclusion retirement.
+
 The loader keeps the original native instance, captured operations and runtime
 current fence. Detected loader replacement does not revive after restoration.
 An initialization attempt, including a failure after native entry, is never
