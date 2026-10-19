@@ -83,7 +83,10 @@ fn local_public_result(
         actual.owner.closed {
         stop("LocalReadOriginalCustodyUnavailable")
       }
-      local_host_result(actual.capture.check_current_in_original_read())
+      local_result_host_value(
+        actual.capture.check_current_in_original_read(),
+        "selected read current",
+      )
       (actual.scope, actual.original)
     }
     None => {
@@ -174,7 +177,7 @@ fn local_public_result(
           selected.namespace_id,
         )
       Some(actual) =>
-        local_host_result(
+        local_result_host_value(
           actual.capture.lookup_original_result_names_json_in_original_read(
             settings.principal,
             settings.connection,
@@ -182,6 +185,7 @@ fn local_public_result(
             store,
             selected.namespace_id,
           ),
+          "publication inventory",
         )
     }
     let names = match names_result {
