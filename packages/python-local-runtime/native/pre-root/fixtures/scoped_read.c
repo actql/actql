@@ -611,9 +611,114 @@ static bool managed_original_provenance(void) {
     finish(&lease,&b);return true;
 }
 
+#if defined(__linux__) && defined(ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN)
+static void linux_stock_originals(void) {
+    void *plain=actql_native_file_scoped_allocate(37);
+    unsigned char *zero=actql_native_file_scoped_callocate(7,9);
+    assert(plain && zero && known_stock_file(plain) && known_stock_file(zero));
+    assert((uintptr_t)plain % _Alignof(max_align_t)==0);
+    assert((uintptr_t)zero % _Alignof(max_align_t)==0);
+    for(size_t i=0;i<63;i++) assert(zero[i]==0);
+    assert(actql_native_file_scoped_callocate(SIZE_MAX,2)==NULL);
+    assert(!known_stock_file((unsigned char *)plain+1));
+    int foreign=0;
+    assert(release_stock_file(&foreign)==ACTQL_OWNED_INVALID);
+    assert(release_stock_file((unsigned char *)plain+1)==ACTQL_OWNED_INVALID);
+    actql_native_file_scoped_free(zero);
+    assert(!known_stock_file(zero));
+    assert(release_stock_file(zero)==ACTQL_OWNED_INVALID);
+    pid_t child=fork(); assert(child>=0);
+    if(child==0) { actql_native_file_scoped_free((unsigned char *)plain+1); _exit(94); }
+    assert(child_status(child,SIGABRT) && known_stock_file(plain));
+    actql_native_file_scoped_free(plain);
+}
+static void linux_stock_finite_slots(void) {
+    void *held[ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS]={0};
+    for(size_t i=0;i<ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS;i++) {
+        held[i]=actql_native_file_scoped_allocate(1);
+        assert(held[i]!=NULL);
+    }
+    size_t calls=stock_file_allocations;
+    assert(actql_native_file_scoped_allocate(1)==NULL);
+    assert(stock_file_allocations==calls); /* no extra allocation or fallback */
+    for(size_t i=0;i<ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS;i++)
+        actql_native_file_scoped_free(held[i]);
+    void *again=actql_native_file_scoped_allocate(1);assert(again);
+    actql_native_file_scoped_free(again);
+}
+struct linux_stock_competitor {
+    void *original;
+    void *allocated;
+    int released;
+    bool known;
+};
+static void *linux_stock_competing_call(void *raw) {
+    struct linux_stock_competitor *result=raw;
+    result->allocated=actql_native_file_scoped_allocate(7);
+    result->released=release_stock_file(result->original);
+    result->known=known_stock_file(result->original);
+    return NULL;
+}
+static void linux_stock_concurrent_entry(void) {
+    void *original=actql_native_file_scoped_allocate(29);assert(original);
+    memset(original,71,29);
+    struct linux_stock_competitor result={original,NULL,99,true};
+    size_t allocations=stock_file_allocations,frees=stock_file_frees;
+    assert(enter_stock_files());
+    pthread_t thread;
+    assert(pthread_create(&thread,NULL,linux_stock_competing_call,&result)==0);
+    assert(pthread_join(thread,NULL)==0);
+    assert(result.allocated==NULL && result.released==ACTQL_OWNED_BUSY && !result.known);
+    assert(stock_file_allocations==allocations && stock_file_frees==frees);
+    for(size_t i=0;i<29;i++) assert(((unsigned char *)original)[i]==71);
+    leave_stock_files();
+    assert(known_stock_file(original));
+    actql_native_file_scoped_free(original);
+    assert(!known_stock_file(original));
+}
+static void linux_stock_entry_snapshot(void) {
+    void *plain=actql_native_file_scoped_allocate(19);assert(plain);
+    assert(enter_stock_files());
+    assert(actql_native_file_scoped_allocate(1)==NULL);
+    assert(release_stock_file(plain)==ACTQL_OWNED_BUSY);
+    /* A fork during this entry is unsupported; it must refuse immediately,
+     * never acquire an inherited lock or traverse a changing metadata table. */
+    pid_t child=fork();assert(child>=0);
+    if(child==0) {
+        assert(!known_stock_file(plain));
+        assert(actql_native_file_scoped_allocate(1)==NULL);
+        assert(release_stock_file(plain)==ACTQL_OWNED_BUSY);
+        _exit(0);
+    }
+    assert(child_status(child,0));
+    leave_stock_files();
+    assert(known_stock_file(plain));
+    actql_native_file_scoped_free(plain);
+}
+#endif
+
 int main(int argc,char **argv) {
     struct rlimit core={0,0}; assert(setrlimit(RLIMIT_CORE,&core)==0);
     setbuf(stdout,NULL);
+#if defined(__linux__) && defined(ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN)
+    if(argc==2 && strcmp(argv[1],"--linux-stock-concurrency-only")==0) {
+        linux_stock_concurrent_entry();
+        puts("{\"case\":\"linux-stock-concurrency\",\"passed\":1,\"failed\":0}");
+        return 0;
+    }
+    if(argc==2 && strcmp(argv[1],"--linux-stock-provenance-only")==0) {
+        linux_stock_originals();
+        linux_stock_finite_slots();
+        linux_stock_entry_snapshot();
+        assert(fork_stock());
+        puts("{\"case\":\"linux-stock-provenance\",\"passed\":4,\"failed\":0}");
+        printf("{\"recordBytes\":%zu,\"recordAlignment\":%zu,\"slots\":%d,"
+               "\"tableBytes\":%zu,\"entryBytes\":%zu,\"normalProfile\":null}\n",
+            sizeof(struct stock_file_record),_Alignof(struct stock_file_record),
+            ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS,sizeof(stock_files),sizeof(stock_file_entry));
+        return 0;
+    }
+#endif
     if(argc==2 && strcmp(argv[1],"--fork-stock-only")==0) {
         bool ok=fork_stock();
         printf("{\"case\":\"fork-stock\",\"ok\":%s}\n",ok?"true":"false");

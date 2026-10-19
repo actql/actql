@@ -134,7 +134,7 @@
 +#endif
 --- /dev/null
 +++ b/scoped_read.inc
-@@ -0,0 +1,554 @@
+@@ -0,0 +1,657 @@
 +/* Derived selected-runtime read allocator, included once by the ORIGINAL
 + * owned_capacity.c. Selection still requires its source-bound recipe and
 + * original physical supplier. This is physical provenance
@@ -142,7 +142,82 @@
 +#include "scoped_read.h"
 +#include <stdlib.h>
 +#include <errno.h>
++#if defined(__APPLE__)
 +#include <malloc/malloc.h>
++#elif defined(__linux__) && defined(ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN)
++/* The trusted selected caller must bind this finite metadata to its original
++ * initial-control envelope before loading the provider. There is no default
++ * normal cardinality and no dynamically growing stock-allocation history. */
++#if !defined(ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS) || ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS < 1
++#error "Selected Linux File allocation requires a source-bound finite stock slot count"
++#endif
++struct stock_file_record {
++    void *pointer;
++    size_t bytes;
++    unsigned family;
++};
++_Static_assert(ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS <= SIZE_MAX / sizeof(struct stock_file_record),
++               "Stock File metadata size overflow");
++static struct stock_file_record stock_files[ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS];
++/* PID identifies an inherited physical entry fence, never a permission. A
++ * fork made during an active stock call is unsupported and refuses before any
++ * record traversal. A quiescent copied table needs no inherited lock/reset. */
++static _Atomic uint64_t stock_file_entry;
++static bool enter_stock_files(void) {
++    uint64_t process = (uint64_t)getpid();
++    if (process == 0 || process > UINT64_MAX / 2) return false;
++    uint64_t before = atomic_load_explicit(&stock_file_entry, memory_order_acquire);
++    if (before & 1) return false; /* concurrent/reentrant/inherited active call */
++    return atomic_compare_exchange_strong_explicit(&stock_file_entry, &before,
++        process * 2 + 1, memory_order_acq_rel, memory_order_acquire);
++}
++static void leave_stock_files(void) {
++    atomic_store_explicit(&stock_file_entry, (uint64_t)getpid() * 2, memory_order_release);
++}
++static void *allocate_stock_file(size_t bytes, bool zero) {
++    if (!enter_stock_files()) return NULL;
++    size_t index = 0;
++    while (index < ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS && stock_files[index].pointer != NULL)
++        index++;
++    void *pointer = NULL;
++    if (index != ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS) {
++        /* Original allocator family, exact requested size and returned start.
++         * Metadata is separate static control, not a prefix guessed from p. */
++        pointer = zero ? calloc(1, bytes) : malloc(bytes);
++        if (pointer != NULL) stock_files[index] = (struct stock_file_record){
++            pointer, bytes, zero ? 2u : 1u};
++    }
++    leave_stock_files();
++    return pointer;
++}
++static bool known_stock_file(const void *pointer) {
++    if (!enter_stock_files()) return false;
++    bool known = false;
++    for (size_t index = 0; index < ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS; index++)
++        if (stock_files[index].pointer == pointer && stock_files[index].family != 0) {
++            known = true; break;
++        }
++    leave_stock_files();
++    return known;
++}
++static int release_stock_file(void *pointer) {
++    if (pointer == NULL) return ACTQL_OWNED_OK;
++    if (!enter_stock_files()) return ACTQL_OWNED_BUSY;
++    int status = ACTQL_OWNED_INVALID;
++    for (size_t index = 0; index < ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS; index++) {
++        if (stock_files[index].pointer != pointer || stock_files[index].family == 0) continue;
++        /* Exclusion spans reclamation: no traversal can retain freed metadata.
++         * Reentrant entry refuses, and a fork snapshot of this active call is
++         * unsupported. The original malloc pointer is the only free target. */
++        free(pointer);
++        stock_files[index] = (struct stock_file_record){0};
++        status = ACTQL_OWNED_OK;
++        break;
++    }
++    leave_stock_files();
++    return status;
++}
++#endif
 +
 +/* Pinned libmoonbitrun.o exposes mimalloc217 and this public v2 ABI. */
 +extern bool mi_is_in_heap_region(const void *);
@@ -547,9 +622,13 @@
 +         * operation: zero means the pointer is outside that original zone.
 +         * Do not use malloc_zone_from_ptr: its documented precondition already
 +         * requires a malloc pointer, which cannot classify an arena pointer. */
++#if defined(__APPLE__)
 +        malloc_zone_t *zone = malloc_default_zone();
 +        return zone != NULL && zone->size != NULL && zone->size(zone, pointer) != 0
 +            ? 1 : ACTQL_OWNED_INVALID;
++#else
++        return known_stock_file(pointer) ? 1 : ACTQL_OWNED_INVALID;
++#endif
 +    }
 +    if (!lock_read_contexts()) return ACTQL_OWNED_INVALID;
 +    if (read_process != 0 && read_process != getpid()) {
@@ -658,6 +737,7 @@
 +             status != ACTQL_OWNED_PHYSICAL_FAILURE) moonbit_panic();
 +    /* BUSY/physical failure stays read_released in the original extent table. */
 +}
++#if defined(__APPLE__)
 +void *actql_native_file_scoped_allocate(size_t bytes) {
 +    return read_current == NULL ? malloc(bytes) : allocate_read_bytes(bytes, false);
 +}
@@ -672,6 +752,29 @@
 +    else if (status != ACTQL_OWNED_OK && status != ACTQL_OWNED_BUSY &&
 +             status != ACTQL_OWNED_PHYSICAL_FAILURE) moonbit_panic();
 +}
++#else
++void *actql_native_file_scoped_allocate(size_t bytes) {
++    if (read_current != NULL) return allocate_read_bytes(bytes, false);
++    return allocate_stock_file(bytes, false);
++}
++void *actql_native_file_scoped_callocate(size_t count, size_t bytes) {
++    if (bytes && count > SIZE_MAX / bytes) return NULL;
++    if (read_current == NULL) {
++        return allocate_stock_file(count * bytes, true);
++    }
++    return allocate_read_bytes(count * bytes, false); /* Original arena is zeroed. */
++}
++void actql_native_file_scoped_free(void *pointer) {
++    int status = release_read_bytes(pointer, false);
++    if (status == 1) {
++        status = release_stock_file(pointer);
++        /* A busy stock free has not retired anything. Fail-stop retains that
++         * same record; it is not an extent retirement that may be forgotten. */
++        if (status != ACTQL_OWNED_OK) moonbit_panic();
++    } else if (status != ACTQL_OWNED_OK && status != ACTQL_OWNED_BUSY &&
++             status != ACTQL_OWNED_PHYSICAL_FAILURE) moonbit_panic();
++}
++#endif
 +
 +actql_read_context *actql_read_context_current(void) {
 +    if (!lock_read_contexts()) return NULL;

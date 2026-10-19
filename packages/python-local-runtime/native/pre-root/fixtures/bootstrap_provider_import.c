@@ -17,7 +17,11 @@ static void require(bool condition, const char *message) {
 
 int main(void) {
     long page = sysconf(_SC_PAGE_SIZE);
+#if defined(__linux__)
+    char path[] = "/tmp/actql-import-provider-XXXXXX";
+#else
     char path[] = "/private/tmp/actql-import-provider-XXXXXX";
+#endif
     int fd = mkstemp(path);
     if (fd < 0 || page <= 0 || ftruncate(fd, 64 * page) != 0) return 3;
     printf("fixture:%s\n", path); fflush(stdout);

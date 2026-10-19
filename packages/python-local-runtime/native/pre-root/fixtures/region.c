@@ -22,7 +22,11 @@ static int fixture_unmap(void *address, size_t bytes) {
 } while (0)
 
 static int private_fd(size_t bytes) {
+#if defined(__linux__)
+    char path[] = "/tmp/actql-owned-region-XXXXXX";
+#else
     char path[] = "/private/tmp/actql-owned-region-XXXXXX";
+#endif
     int fd = mkstemp(path);
     if (fd < 0) return -1;
     if (unlink(path) != 0 || fchmod(fd, 0600) != 0 || ftruncate(fd, (off_t)bytes) != 0) {

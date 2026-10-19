@@ -1871,7 +1871,8 @@ export function issueRetainedTaskDispatch(prepared, compilation, admission,
   if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
     throw new TypeError('ForeignRunHostCompilation');
   }
-  const dispatch = checked(owner.clientValuesHostPrepareRetainedTaskDispatch(
+  const source = sourcePreparations.get(prepared);
+  const args = [
     requireHandle(preparations, prepared), compiled.value, admitted.value,
     requireHandle(definitions, definition), requireHandle(requests, request),
     task, selection.taskAttempt, selection.dispatchId, selection.siteKey,
@@ -1879,7 +1880,10 @@ export function issueRetainedTaskDispatch(prepared, compilation, admission,
     selection.connectorRegistration, selection.connectorRevision,
     selection.strategyRevision, selection.obligationsCid, selection.budgetCid,
     selection.evidenceIssuerCapabilityCid, selection.grantCid,
-    requireHandle(retainedTaskInputs, input)), 'RunHostRetainedTaskDispatchRejected');
+    requireHandle(retainedTaskInputs, input)];
+  const dispatch = checked(source === undefined
+    ? owner.clientValuesHostPrepareRetainedTaskDispatch(...args)
+    : owner.clientValuesHostPrepareRetainedTaskDispatchWithSource(...args, source.value), 'RunHostRetainedTaskDispatchRejected');
   return Object.freeze({cid: owner.clientValuesHostDispatchCid(dispatch),
     wire: checked(owner.clientValuesHostDispatchWire(dispatch),
       'RunHostRetainedTaskDispatchRejected')});
@@ -1903,7 +1907,8 @@ export function issueTaskDispatch(prepared, compilation, admission,
   if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
     throw new TypeError('ForeignRunHostCompilation');
   }
-  const dispatch = checked(owner.clientValuesHostPrepareTaskDispatch(
+  const source = sourcePreparations.get(prepared);
+  const args = [
     requireHandle(preparations, prepared), compiled.value, admitted.value,
     requireHandle(definitions, definition), requireHandle(requests, request),
     task, selection.taskAttempt, selection.dispatchId, selection.siteKey,
@@ -1911,7 +1916,10 @@ export function issueTaskDispatch(prepared, compilation, admission,
     selection.connectorRegistration, selection.connectorRevision,
     selection.strategyRevision, selection.obligationsCid,
     selection.budgetCid, selection.evidenceIssuerCapabilityCid,
-    selection.grantCid), 'RunHostDispatchRejected');
+    selection.grantCid];
+  const dispatch = checked(source === undefined
+    ? owner.clientValuesHostPrepareTaskDispatch(...args)
+    : owner.clientValuesHostPrepareTaskDispatchWithSource(...args, source.value), 'RunHostDispatchRejected');
   return Object.freeze({cid: owner.clientValuesHostDispatchCid(dispatch),
     wire: checked(owner.clientValuesHostDispatchWire(dispatch),
       'RunHostDispatchRejected')});
