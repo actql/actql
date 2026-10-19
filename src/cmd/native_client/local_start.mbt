@@ -208,25 +208,7 @@ fn local_submission_start(
         _ => stop("InvalidLocalRunInstallation")
       },
     )
-    let catalog = @checked.prepare_source_catalog(environment, {
-      max_work: @run_host.client_standard_program_preparation_limits().checking.compilation.work,
-      max_bytes: 65536,
-      max_nodes: 8192,
-      max_depth: 64,
-    }).unwrap_or_else(() => stop("LocalSourceCatalogNotAdmitted"))
-    let context = @frontend.bind_query_context(
-      [],
-      @checked.checking_environment_cid(environment),
-      source_catalog=Some(@checked.source_catalog_contracts(catalog)),
-      model_tasks=@checked.checking_environment_model_tasks(environment),
-    ).unwrap_or_else(() => stop("InvalidLocalQueryContext"))
-    let preparation = @local_host.prepare_native_client_submitted_program(
-      intent,
-      environment,
-      Some(context),
-      [],
-      @run_host.client_standard_effect_computation_limits(),
-    ).unwrap_or_else(() => stop("LocalPreparationNotReady"))
+    let preparation = local_prepare_submitted_run_program(intent, environment)
     guard @local_host.native_client_submitted_preparation(preparation)
       is Computation(prepared) else {
       match
