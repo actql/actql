@@ -26,7 +26,7 @@
   "sga_identity_law_manifest_cid": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
   "graph_law_manifest_cid": "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34",
   "pipeline_registry_file": "spec/dependencies/aoa-pipeline-registry.json",
-  "pipeline_registry_cid": "sha256:6ac022c095afc96bbdd2ae54f97a48c75f243f169cbb6c9785425b887a0afa1f",
+  "pipeline_registry_cid": "sha256:be6755818fa396c085f95f6b081233b4e77296ee903cd38e9b179db3b55eadf5",
   "target_module_contract_cid": "sha256:ae21e53e9cd0727435f707f49efb2ffc9fa1665abda9adde0ff57312265e06e1",
   "local_family_execution_profile": {
     "version": "actql-local-family-execution/0.1",
@@ -311,7 +311,7 @@
         "ordered_bindings": {
           "file": "spec/contracts/actql-aoa.json",
           "pointer": "/execution_contracts/REL.derive.ordered",
-          "cid": "sha256:ca0efbfa9f05c7ea971834e451291575fac9706e079dfa069bbfa311b520a2d3"
+          "cid": "sha256:b3769a00693d83fdb1c7d32a28e11a398fe4fba5be9946491e1e29c2e1681ca7"
         }
       }
     },
@@ -1433,17 +1433,17 @@
         "expression_contract": {
           "file": "spec/contracts/actql-expressions.json",
           "pointer": "",
-          "cid": "sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35"
+          "cid": "sha256:d6b7858803ca124096f4be943c3f7510e4eb6cc4b162c43552778f6cb2029b49"
         },
         "expression_node": {
           "file": "spec/contracts/actql-expressions.json",
           "pointer": "/schemas/expression_node",
-          "cid": "sha256:c37306c98c772f79f11782503522843430c0867b0bf903248fe9933cb477fb6f"
+          "cid": "sha256:7b8fb6524ddc4aa3486f8882fa8793b8aad981bcab8fd20025a3a65273b98a6a"
         },
         "source_expression": {
           "file": "spec/contracts/actql-expressions.json",
           "pointer": "/schemas/expression",
-          "cid": "sha256:5c7ab5c2189768003f4cc1cf5665b3c42ef1bc47497e606a46938fc1dfa40c77"
+          "cid": "sha256:dcb3f1699f21265002dde07687247fecd64143df52d6c55d01d8ed68d5c51d1d"
         },
         "derive_binding": {
           "file": "spec/contracts/actql-stage-contracts.json",
