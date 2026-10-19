@@ -9340,7 +9340,7 @@
     },
     {
       "module": "adapters/host-node/infer-operation.mjs",
-      "sha256": "94abebfc3a9ce93a1137b9969486bcd2bf3a1577df0456c8faf348fca3c25aa4",
+      "sha256": "81970facff4a5c64d20b69a528bee5cc3c50c0e5eb9a43a04f5634c5aaedc9b9",
       "role": "physical-io",
       "exports": [
         "openNodeComposedInferProvider",
@@ -9422,6 +9422,11 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "openNodeComposedInferProvider/provider/provider/provider",
+          "parameters": [],
           "async": false
         },
         {
@@ -10338,7 +10343,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "codecInt/codecInt",
             "codecLimits/codecLimits",
             "codecLimits/codecLimits/codecLimits",
@@ -10588,6 +10592,94 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openNodeComposedInferProvider/provider/provider/provider"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -10596,7 +10688,8 @@
         "./infer-io-notification.mjs",
         "./infer-original-installation.mjs",
         "./infer-raw-capture.mjs",
-        "node:timers/promises"
+        "node:timers/promises",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
