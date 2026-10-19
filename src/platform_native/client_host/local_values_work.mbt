@@ -11,6 +11,7 @@ struct NativeClientValuesWork {
   run : @strategy.CapturedDAG
   execution : @local.LocalValuesExecution
   current : () -> Bool
+  original_access : NativeLocalValuesOriginalAccess?
 }
 
 ///|
@@ -23,6 +24,10 @@ pub(all) enum NativeClientValuesWorkIssue {
   Normalization(@host.ClientLocalNormalizationIssue)
   Execution(@local.LocalValuesExecutionIssue)
   Export(@local.LocalValuesResultExportIssue)
+  OriginalOperation(
+    NativeClientValuesWorkIssue?,
+    NativeLocalStoreOperationIssue
+  )
 }
 
 ///|
@@ -32,6 +37,8 @@ struct NativeClientValuesWorkFailure {
   issue : NativeClientValuesWorkIssue
   cleanup : () -> Bool
   mut cleaned : Bool
+  mut original_access : NativeLocalValuesOriginalAccess?
+  requires_execution_scope : Bool
 }
 
 ///|
@@ -46,6 +53,10 @@ pub fn NativeClientValuesWorkFailure::close(
   self : NativeClientValuesWorkFailure,
 ) -> Bool {
   if !self.cleaned {
+    if self.requires_execution_scope &&
+      !values_original_cleanup_entered(self.original_access) {
+      return false
+    }
     self.cleaned = (self.cleanup)()
   }
   self.cleaned
@@ -55,8 +66,10 @@ pub fn NativeClientValuesWorkFailure::close(
 fn local_values_work_failure(
   issue : NativeClientValuesWorkIssue,
   cleanup? : () -> Bool = () => true,
+  original_access? : NativeLocalValuesOriginalAccess? = None,
+  requires_execution_scope? : Bool = false,
 ) -> NativeClientValuesWorkFailure {
-  { issue, cleanup, cleaned: false, }
+  { issue, cleanup, cleaned: false, original_access, requires_execution_scope, }
 }
 
 ///|
@@ -96,9 +109,14 @@ fn open_native_client_local_values_work(
   max_finalization_rounds : Int,
   current : () -> Bool,
   ledger? : @resources.Ledger? = None,
+  original_access? : NativeLocalValuesOriginalAccess? = None,
 ) -> Result[NativeClientValuesWork, NativeClientValuesWorkFailure] {
   if !current() {
-    return Err(local_values_work_failure(AuthorizationDenied))
+    return Err(
+      local_values_work_failure(
+        values_original_issue(original_access, AuthorizationDenied),
+      ),
+    )
   }
   if !native_client_local_values_profile_supported(prepared) ||
     finalization_quantum <= 0 ||
@@ -112,7 +130,11 @@ fn open_native_client_local_values_work(
   }
   // The existing acceptance transaction must already own this exact Run.
   // Unresolved history cannot be repaired by installing a supplied definition.
-  match journal.lookup(request, current()) {
+  let retained = match original_access {
+    Some(access) => access.lookup()
+    None => journal.lookup(request, current()).map_err(issue => Journal(issue))
+  }
+  match retained {
     Ok(Retained(record)) => {
       if @publication.publication_contract_identity(record.definition) !=
         @publication.publication_contract_identity(definition) {
@@ -128,7 +150,7 @@ fn open_native_client_local_values_work(
     }
     Ok(UnresolvedHistory) =>
       return Err(local_values_work_failure(Start(NeedsOriginalReconciliation)))
-    Err(issue) => return Err(local_values_work_failure(Journal(issue)))
+    Err(issue) => return Err(local_values_work_failure(issue))
   }
   let normalization = match
     @host.issue_prepared_client_local_normalization(prepared) {
@@ -161,32 +183,52 @@ fn open_native_client_local_values_work(
   let run = @driver.dispatch_driver_run(@builtin.configured_host_driver(setup))
   // Claim only the accepted immutable Run through its existing journal.
   if !current() {
-    stop_unstarted_values_setup(run)
-    return Err(local_values_work_failure(AuthorizationDenied))
+    return Err(
+      values_unstarted_failure(
+        run,
+        original_access,
+        values_original_issue(original_access, AuthorizationDenied),
+      ),
+    )
   }
-  let start = match
-    claim_native_client_retained_work_first_start(journal, request, current) {
+  let claimed = match original_access {
+    Some(access) => access.claim()
+    None =>
+      claim_native_client_retained_work_first_start(journal, request, current).map_err(issue => {
+          Start(issue)
+        },
+      )
+  }
+  let start = match claimed {
     Ok(value) => value
-    Err(issue) => {
-      stop_unstarted_values_setup(run)
-      return Err(local_values_work_failure(Start(issue)))
-    }
+    Err(issue) =>
+      return Err(values_unstarted_failure(run, original_access, issue))
   }
   let execution = match
     @local.execute_source_free_values_guarded(
       setup,
       finalization_quantum,
       max_finalization_rounds,
-      () => start.require_current(journal, request, current) is Ok(_),
+      () => {
+        values_original_current(
+          original_access, start, journal, request, current,
+        )
+        is Ok(_)
+      },
     ) {
     Ok(value) => value
     Err(failure) =>
       return Err(
         local_values_work_failure(
-          Execution(@local.local_values_execution_failure_issue(failure)),
+          values_original_issue(
+            original_access,
+            Execution(@local.local_values_execution_failure_issue(failure)),
+          ),
           cleanup=() => {
             @local.retry_local_values_execution_failure_cleanup(failure)
           },
+          original_access~,
+          requires_execution_scope=original_access is Some(_),
         ),
       )
   }
@@ -199,6 +241,7 @@ fn open_native_client_local_values_work(
     run,
     execution,
     current,
+    original_access,
   })
 }
 
@@ -297,9 +340,13 @@ fn NativeClientValuesWork::require_current(
     Ok(_) => ()
     Err(issue) => return Err(Journal(issue))
   }
-  self.start
-  .require_current(self.start.journal, self.start.request, self.current)
-  .map_err(issue => Start(issue))
+  values_original_current(
+    self.original_access,
+    self.start,
+    self.start.journal,
+    self.start.request,
+    self.current,
+  )
 }
 
 ///|
@@ -334,5 +381,8 @@ pub fn NativeClientValuesWork::usage(
 /// No authority is required to finish the original temporary cleanup. False
 /// preserves the same existing execution handle for retry, without rerunning it.
 pub fn NativeClientValuesWork::close(self : NativeClientValuesWork) -> Bool {
+  if !values_original_cleanup_entered(self.original_access) {
+    return false
+  }
   self.execution.close()
 }

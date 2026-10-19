@@ -196,6 +196,7 @@ fn NativeClientWorkFirstStart::require_current(
   journal : NativeClientRunJournal,
   request : @host.ClientRequestIdentity,
   current : () -> Bool,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeClientSourceWorkIssue] {
   if !physical_equal(self.journal, journal) ||
     !(@host.client_request_identity_relation(self.request, request)
@@ -203,7 +204,7 @@ fn NativeClientWorkFirstStart::require_current(
     return Err(Journal(ForeignRun))
   }
   let record = match
-    require_native_client_work_current_record(journal, request, current) {
+    require_native_client_work_current_record(journal, request, current, reads~) {
     Ok(record) => record
     Err(issue) => return Err(issue)
   }
@@ -400,11 +401,12 @@ fn require_native_client_work_current_record(
   journal : NativeClientRunJournal,
   request : @host.ClientRequestIdentity,
   current_authorization : () -> Bool,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeClientRunRecord, NativeClientSourceWorkIssue] {
   if !current_authorization() {
     return Err(AuthorizationDenied)
   }
-  match journal.lookup(request, true) {
+  match journal.lookup_with_reads(request, true, reads~) {
     Ok(Retained(record)) if record.physical_start_claimed &&
       !record.cancellation_requested => Ok(record)
     Ok(_) => Err(NeedsOriginalReconciliation)
