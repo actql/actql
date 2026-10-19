@@ -308,6 +308,17 @@ within the existing bounded String/finite Number domains. BYTES and distinct
 INT64 overloads remain coverage gaps. All spellings preserve one common child,
 operand nullability, lazy demand, failure, resources and cancellation.
 
+`TO_STRING(value)`, `TO_BOOLEAN(value)` and `TO_TIMESTAMP(value)` each take
+exactly one operand and lower to the existing Common `cast` node with target
+`{"type":"string"}`, `{"type":"boolean"}` or `{"type":"timestamp"}` respectively.
+Each is the same checked conversion as the corresponding scalar `CAST`, with
+one original operand and no frontend evaluation. Case-insensitive and quoted
+lookup, arity, nullable typing, invalid input, child failure, Parameter binding,
+lazy demand, work and value limits retain their existing owners. In particular,
+`TO_TIMESTAMP` does not broaden the admitted timestamp spellings, precision,
+offsets or operational clock domains. Foreign namespaces remain unsupported;
+no old CAST expression body or machine contract changes.
+
 `TO_NUMBER(value)` takes exactly one operand and lowers to the existing Common
 `cast` node with target `{"type":"number"}`, exactly as `CAST(value AS NUMBER)`.
 It preserves the original operand, Parameter binding, nullable type, evaluation

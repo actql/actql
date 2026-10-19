@@ -64,3 +64,9 @@ invalid text, failure, lazy demand and resource accounting remain in the
 existing Common owners. The frontend does not evaluate text or broaden the
 Number, Decimal or Signed64 domains. Existing CAST and Program bytes remain
 unchanged; only the query-text rules identity advances for the new connection.
+
+The remaining scalar function spellings `to_string`, `to_boolean` and
+`to_timestamp` use the same boundary and their respective existing CAST target
+schemas. No conversion runs during frontend lowering. Timestamp precision and
+admission, civil/offset domains and operational clocks remain independent
+existing-owner responsibilities; connecting the spelling does not widen them.
