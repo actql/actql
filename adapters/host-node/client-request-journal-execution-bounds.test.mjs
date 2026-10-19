@@ -150,3 +150,29 @@ test('failed original cursor close and pending database close retain the same na
   }, {cursorFailure: true, firstClosePending: true});
   scratch.passed();
 });
+
+test('selected current callback cannot reenter the same Journal before native preparation', async () => {
+  const {scratch, directory} = await fixture();
+  instrument(state => {
+    let journal, armed = false, nestedFailure, nestedAttempts = 0;
+    journal = openClientRequestJournal(directory, {...options(), primaryCurrent() {
+      if (!armed) return;
+      armed = false;
+      nestedAttempts++;
+      try { journal.lookupReconciliationState(ref); }
+      catch (cause) { nestedFailure = cause; }
+    }});
+    try {
+      const before = state.nativeCalls;
+      armed = true;
+      assert.equal(journal.lookupReconciliationState(ref), undefined);
+      assert.equal(nestedAttempts, 1);
+      assert.equal(nestedFailure?.code, 'ClientRequestJournalSqlCleanupPending');
+      assert.equal(state.nativeCalls, before + 1);
+      assert.equal(journal.lookupReconciliationState(ref), undefined);
+      assert.equal(state.nativeCalls, before + 2);
+    } finally { journal.close(); }
+    assert.equal(state.database.isOpen, false);
+  });
+  scratch.passed();
+});
