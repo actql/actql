@@ -966,6 +966,17 @@ must explicitly return an own-data pending-false result; replacement callbacks,
 exceptions or ambiguous observations cannot settle it. Cleanup retries retain
 the same owner and cannot disturb a successor after its original staged release.
 
+Every prepared selected Host defers Publication services, including an ordinary
+Host with no selected Source profile. Connection negotiation uses its existing
+Journal; it does not construct a Publication Store or acquire an evidence key.
+The first validated and currently authorized non-connect request enters the same
+single-flight initializer. Its missing Publication preparation still refuses
+before key or Store work; Journal preparation is not payload funding. A Source
+lineage callback or private Source symbol is present only for a Source-selected
+installation. Unprepared Hosts retain their existing eager initialization.
+Shutdown waits for any original initialization flight and retains its sticky
+failure and cleanup before closing the same Journal and shared exclusion.
+
 A failed Store constructor can retain a cleanup child whose ownership release
 depends on the acquired Journal. For that same pre-service constructor failure,
 Host initialization drains the original Journal independently of the dependent
