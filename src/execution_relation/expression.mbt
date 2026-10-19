@@ -86,7 +86,7 @@ priv enum Continuation {
   )
   BetweenArguments(BetweenArgumentsState)
   TextArguments(TextArgumentsState)
-  DateDifferenceArguments(DateDifferenceArgumentsState)
+  TemporalArguments(TemporalArgumentsState)
 }
 
 ///|
@@ -714,13 +714,14 @@ fn advance_expression_frame_impl(
             guard children.get(0) is Some(first) else {
               return Err({ kind: Scalar(InvalidOperand), expression: expr, })
             }
-            if op == @lower.DateDifference {
+            if op == @lower.DateDifference || op == @lower.DateAddition {
               if children.length() != 3 || !reserve_slots(workspace, 6) {
                 return Err({ kind: WorkspaceLimit, expression: expr, })
               }
               frame.stack.push(
-                DateDifferenceArguments({
+                TemporalArguments({
                   expression: expr,
+                  addition: op == @lower.DateAddition,
                   children,
                   values: [],
                   roots: [],
@@ -808,7 +809,12 @@ fn advance_expression_frame_impl(
             let initial = match op {
               And => Boolean(true)
               Or => Boolean(false)
-              Coalesce | Between | Greatest | Least | DateDifference => Null
+              Coalesce
+              | Between
+              | Greatest
+              | Least
+              | DateDifference
+              | DateAddition => Null
               Concat
               | ConcatStrict
               | Replace
@@ -963,7 +969,7 @@ fn advance_expression_frame_impl(
             frame.selection_pending = true
             frame.state = Return(selected)
           }
-          DateDifferenceArguments(args) => {
+          TemporalArguments(args) => {
             frame.active = args.expression
             if charge_value(value, frame.current_root) is Some(issue) {
               return Err({
@@ -976,7 +982,7 @@ fn advance_expression_frame_impl(
             frame.current_root = None
             args.index += 1
             if args.children.get(args.index) is Some(next) {
-              frame.stack.push(DateDifferenceArguments(args))
+              frame.stack.push(TemporalArguments(args))
               frame.state = Enter(next)
             } else {
               for operand in args.values {
@@ -1000,14 +1006,35 @@ fn advance_expression_frame_impl(
                   expression: args.expression,
                 })
               }
-              let result = match
-                temporal_difference(unit, args.values[0], args.values[1]) {
+              if args.addition && !reserve_slots(workspace, DATE_ADDITION_SLOTS) {
+                return Err({
+                  kind: WorkspaceLimit,
+                  expression: args.expression,
+                })
+              }
+              if args.addition && !spend_control(budget, 64) {
+                return Err({ kind: ControlLimit, expression: args.expression, })
+              }
+              let computed = if args.addition {
+                temporal_addition(
+                  args.expression,
+                  unit,
+                  args.values[0],
+                  args.values[1],
+                )
+              } else {
+                temporal_difference(unit, args.values[0], args.values[1])
+              }
+              let result = match computed {
                 Ok(result) => result
                 Err(issue) =>
                   return Err({
                     kind: Scalar(issue),
                     expression: args.expression,
                   })
+              }
+              if args.addition {
+                release_slots(workspace, DATE_ADDITION_SLOTS)
               }
               for root in args.roots {
                 if release(root) is Some(issue) {
@@ -1620,7 +1647,8 @@ fn advance_expression_frame_impl(
               | LPad
               | RPad
               | Between
-              | DateDifference =>
+              | DateDifference
+              | DateAddition =>
                 return Err({ kind: Scalar(InvalidOperand), expression: expr, })
               Coalesce => value
               Greatest | Least =>

@@ -79,3 +79,11 @@ original value subtree is neither evaluated nor copied. Legacy expression-text
 and structured Program bodies remain unit-first. There is no type-based order
 fallback. Common owns exact UTC bucket floor, Date day-only identity and all
 runtime failure, lazy-demand and resource behavior.
+
+### Fixed-unit DATE_ADD source connection
+
+SQL/Pipe DATE_ADD retains its authored value, amount and literal unit as the
+existing ordered Common operation. Parameters remain original operands, never
+unit selectors. The frontend does not evaluate or quantize a duration. The
+Common Number/temporal owners apply exact evaluated-binary64 duration admission,
+Date day-only rules and the existing result, demand and failure boundaries.

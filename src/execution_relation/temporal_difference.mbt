@@ -1,8 +1,9 @@
 ///|
 // Preserve all three original operands and their leases through left-to-right
 // eager evaluation, including the admitted literal unit and NULL operands.
-priv struct DateDifferenceArgumentsState {
+priv struct TemporalArgumentsState {
   expression : @lower.Expression
+  addition : Bool
   children : Array[@lower.Expression]
   values : Array[Value]
   roots : Array[ExpressionRootLease?]

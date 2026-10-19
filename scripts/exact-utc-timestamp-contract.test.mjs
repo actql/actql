@@ -44,7 +44,7 @@ test('the scalar law changes only the adopted exact temporal boundary',()=>{
     ...before.conversion_truth_table.to_timestamp,
     input:'canonical-YYYY-MM-DDTHH:mm:ss-with-three-to-nine-fractional-digits-Z-no-redundant-extra-trailing-zeros',
   }}};
-  const current=read('spec/dependencies/aoa-rela-scalar-laws.json');
+  const current=read('scripts/fixtures/date-add-source/predecessor.json').scalar;
   assert.deepEqual(current,expected);
   assert.equal(cid(current),'sha256:65e19916636e8d7dcf3bc7a1f8640762ef2dee048105c7b869878bd0fdf4d8fe');
   assert.equal(current.time.timestamp_date_diff,'fixed-unit-quotient-truncate-toward-zero');
@@ -54,11 +54,11 @@ test('the scalar law changes only the adopted exact temporal boundary',()=>{
 
 test('the containing AoA body adopts the complete new scalar law and no other change',()=>{
   // The complete UTC-adoption body precedes the separately adopted comparison
-  // extension. Its exact scalar edge is still the current scalar obligation.
+  // extension and the later exact-duration rule. Both complete bodies remain frozen.
   const comparisonHistory=JSON.parse(gunzipSync(readFileSync('scripts/fixtures/pre-int64-comparison-literal-identities.json.gz')));
   const current=comparisonHistory.records['spec/contracts/actql-aoa.json'];
-  assert.equal(read('spec/contracts/actql-aoa.json').rela_scalar_law_manifest_cid,current.rela_scalar_law_manifest_cid);
-  const scalar=read('spec/dependencies/aoa-rela-scalar-laws.json');
+  assert.equal(read('scripts/fixtures/date-add-source/predecessor.json').aoa.rela_scalar_law_manifest_cid,current.rela_scalar_law_manifest_cid);
+  const scalar=read('scripts/fixtures/date-add-source/predecessor.json').scalar;
   assert.deepEqual(current,{...original.aoa_contract,rela_scalar_law_manifest_cid:cid(scalar)});
   assert.notEqual(cid(current),cid(original.aoa_contract));
   assert.notEqual(cid(scalar),cid(original.scalar_law_manifest));

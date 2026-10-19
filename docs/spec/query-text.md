@@ -325,6 +325,16 @@ second, minute, hour or UTC day, rather than toward epoch zero. Date admits only
 value/work limits and cancellation retain their Common owners; operational
 clock domains and the separate quotient law of `date_diff` do not change.
 
+`DATE_ADD(value, amount, literal_unit)` preserves the three original Common
+children in that order. The literal unit is exactly `ms`, `s`, `m`, `h` or `d`;
+a Parameter or computed String cannot choose the operation unit. The existing
+Common temporal owner evaluates the original Number amount and interprets its
+binary64 bits exactly as a fixed-unit duration. A result not representable in
+nanoseconds or within the original calendar fails without rounding. Date allows
+only integral day amounts. No frontend temporal evaluator or decimal spelling
+reinterpretation is introduced. Existing structured Program and expression-text
+forms retain their bytes and meanings.
+
 `TO_STRING(value)`, `TO_BOOLEAN(value)` and `TO_TIMESTAMP(value)` each take
 exactly one operand and lower to the existing Common `cast` node with target
 `{"type":"string"}`, `{"type":"boolean"}` or `{"type":"timestamp"}` respectively.

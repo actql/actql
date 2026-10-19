@@ -89,7 +89,20 @@
     "event_clock": "same_original_Timestamp_to_exact_rational_UTC_epoch_milliseconds_not_public_Number_or_truncating_date_diff_preserve_payload_and_numeric_clock_domain",
     "millisecond_only_projection": "refuse_nonrepresentable_fraction_without_rounding_or_truncation",
     "operational_clocks": "trusted_now_expiry_deadline_rollback_provenance_keep_original_millisecond_contracts_and_issuers",
-    "conformance_boundary": "legacy_millisecond_conformance_does_not_prove_extended_fractional_consumers"
+    "conformance_boundary": "legacy_millisecond_conformance_does_not_prove_extended_fractional_consumers",
+    "date_add": {
+      "amount": "evaluate_original_Number_expression_then_interpret_resulting_finite_binary64_bits_exactly",
+      "duration": "exact_evaluated_Number_times_declared_fixed_unit_no_intermediate_binary64_unit_product_or_decimal_spelling_reinterpretation",
+      "representability": "nonintegral_nanosecond_result_fails_ArithmeticFailure_without_rounding_or_truncation",
+      "range": "exact_signed_carry_preserves_original_nanoseconds_calendar_overflow_fails",
+      "date": "integer_amount_and_d_only",
+      "examples": {
+        "aligned_seconds_0_125": "success",
+        "aligned_milliseconds_0_5": "success",
+        "binary64_seconds_0_1": "ArithmeticFailure",
+        "binary64_seconds_1e_minus_9": "ArithmeticFailure"
+      }
+    }
   },
   "unicode": {
     "data_version": "16.0",

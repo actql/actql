@@ -80,3 +80,24 @@ test "epoch milliseconds round trip the complete timestamp domain" {
     checked_timestamp_value("2001-02-29T00:00:00.000Z", contract) is None,
   )
 }
+
+///|
+test "generated Date retains its original checked non-null contract" {
+  let contract = @contract.primitive(@contract.DateType, nullable=false)
+  let checked = checked_date_value("0000-02-29", contract).unwrap()
+  assert_true(physical_equal(checked.contract, contract))
+  assert_true(checked.value is Date("0000-02-29"))
+  assert_true(checked_date_value("1900-02-29", contract) is None)
+  assert_true(checked_date_value("2000-01-01T00:00:00.000Z", contract) is None)
+  assert_true(
+    checked_date_value("2000-01-01", @contract.with_nullability(contract, true))
+    is None,
+  )
+  assert_true(
+    checked_date_value(
+      "2000-01-01",
+      @contract.primitive(@contract.TimestampType, nullable=false),
+    )
+    is None,
+  )
+}
