@@ -30,7 +30,7 @@ export class SlackChannelListReadFailure extends Error {
 }
 
 function prepareRead({moon, workspaceId, names, initialAuthorization, credential,
-  authorizationFor, limits, current, chargeResponse, consumeObservation, consumePage, signal}) {
+  authorizationFor, limits, current, chargeResponse, consumeObservation, consumePage, signal}, retainOriginal) {
   if (!Array.isArray(names) ||
       [authorizationFor,current,chargeResponse,consumeObservation,consumePage].some(fn=>typeof fn !== 'function') ||
       typeof workspaceId !== 'string' || !workspaceId.length ||
@@ -48,8 +48,8 @@ function prepareRead({moon, workspaceId, names, initialAuthorization, credential
     return (...args) => Reflect.apply(method,moon,args);
   };
   const provider = Object.freeze(Object.fromEntries(providerExports.map(name=>[name,capture(name)])));
-  const historyPrepare = capture('slackPrepareMessageHistoryFromChannel',true);
-  const historyMatches = capture('slackMessageHistoryMatchesChannel',true);
+  const historyPrepare = retainOriginal ? capture('slackPrepareMessageHistoryFromChannel',true) : undefined;
+  const historyMatches = retainOriginal ? capture('slackMessageHistoryMatchesChannel',true) : undefined;
   if ((historyPrepare === undefined) !== (historyMatches === undefined)) fail('InvalidSlackChannelListRead');
   const context = ownInvocationContext({authorization:initialAuthorization,credential,limits,
     callbacks:{authorizationFor,current,chargeResponse,consumeObservation,consumePage}});
@@ -62,7 +62,8 @@ function prepareRead({moon, workspaceId, names, initialAuthorization, credential
   const columns = Object.freeze(provider.slackChannelListColumnNames().slice());
   if (names.length > columns.length || new Set(names).size !== names.length ||
       names.some(name=>!columns.includes(name))) fail('InvalidSlackChannelListRead');
-  return Object.freeze({provider,moon,historyPrepare,historyMatches,context,workspaceId,names:Object.freeze(names.slice()),signal});
+  return Object.freeze({provider,context,workspaceId,names:Object.freeze(names.slice()),signal,
+    ...(retainOriginal ? {moon,historyPrepare,historyMatches} : {})});
 }
 
 async function executeRead(prepared, received, retainPage) {
@@ -130,10 +131,10 @@ async function executeRead(prepared, received, retainPage) {
       }
       const rows = JSON.parse(checked(provider.slackChannelListRowsWire(page,names,
         bound.maxRowsWireBytes,bound.maxRowsWireNodes,bound.maxRowsWireDepth)));
-      const retained = retainPage({page,response,charge,ids:Object.freeze(pageIds.slice()),consumed:false});
-      await context.callbacks.consumePage(rows,Object.freeze({charge,originalPage:retained.token}));
+      const retained = retainPage?.({page,response,charge,ids:Object.freeze(pageIds.slice()),consumed:false});
+      await context.callbacks.consumePage(rows,Object.freeze(retained === undefined ? {charge} : {charge,originalPage:retained.token}));
       await verify(SLACK_CHANNEL_LIST_OPERATION);
-      retained.consumed = true;
+      if (retained !== undefined) retained.consumed = true;
       totalRows += metadata.rowCount;
       if (metadata.nextCursor === null) return Object.freeze({pages:index+1,rowCount:totalRows,
         observations:Object.freeze(observations.slice())});
@@ -152,10 +153,21 @@ function originalReader(value) {
 }
 
 export function createSlackChannelListReader(options) {
-  const original = prepareRead(options), stop = new AbortController();
+  return createChannelReader(options,false);
+}
+
+// Explicit original-prefix custody for a later history reader. This is not a
+// claim that the returned pages cover every conversation in an installation.
+export function createSlackChannelListReaderForHistory(options) {
+  return createChannelReader(options,true);
+}
+
+function createChannelReader(options,retainOriginal) {
+  const original = prepareRead(options,retainOriginal), stop = new AbortController();
   const signal = original.signal === undefined ? stop.signal : AbortSignal.any([original.signal,stop.signal]);
   const state = {prepared:Object.freeze({...original,signal}),stop,phase:'ready',
-    receivedResponses:0,receivedBodyBytes:0n,pages:new Map(),result:undefined,failure:undefined};
+    receivedResponses:0,receivedBodyBytes:0n,
+    ...(retainOriginal ? {originals:{pages:new Map(),result:undefined,failure:undefined}} : {})};
   const handle = Object.freeze({
     async read() {
       const state = originalReader(this);
@@ -164,12 +176,16 @@ export function createSlackChannelListReader(options) {
       try {
         const result = await executeRead(state.prepared,response=>{
           state.receivedResponses++; state.receivedBodyBytes += BigInt(response.body.byteLength);
-        },record=>{
+        },retainOriginal ? record=>{
           const retained = {...record,token:Object.freeze({}),selected:new Set()};
-          state.pages.set(retained.token,retained);return retained;
-        });
-        state.result = result;state.phase = 'succeeded'; return result;
-      } catch (cause) {state.failure = cause;state.phase = 'failed'; throw cause;}
+          state.originals.pages.set(retained.token,retained);return retained;
+        } : undefined);
+        if (state.originals !== undefined) state.originals.result = result;
+        state.phase = 'succeeded'; return result;
+      } catch (cause) {
+        if (state.originals !== undefined) state.originals.failure = cause;
+        state.phase = 'failed'; throw cause;
+      }
     },
     requestStop(reason) {originalReader(this).stop.abort(reason);},
     observe() {
@@ -188,7 +204,7 @@ export function createSlackChannelListReader(options) {
 // prefix. Equal row text, a copied token, or a page from another reader cannot
 // create this nominal selection. It does not issue a credential or capacity.
 export function selectSlackOriginalChannel(reader, originalPage, index) {
-  const source = originalReader(reader), page = source.pages.get(originalPage);
+  const source = originalReader(reader), page = source.originals?.pages.get(originalPage);
   if (source.phase !== 'succeeded' || source.prepared.signal.aborted || !page?.consumed ||
       !Number.isSafeInteger(index) || index < 0 || index >= page.ids.length || page.selected.has(index)) {
     fail('ForeignSlackOriginalChannel');

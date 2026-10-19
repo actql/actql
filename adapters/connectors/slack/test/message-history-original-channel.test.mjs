@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {channelListFixture,channelPage} from './channel-list-read.fixture.mjs';
-import {selectSlackOriginalChannel} from '../site/channel-list-read.mjs';
+import {selectSlackOriginalChannel,createSlackChannelListReaderForHistory} from '../site/channel-list-read.mjs';
 import {createSlackMessageHistoryReaderFromChannel,SLACK_MESSAGE_HISTORY_OPERATION,
   SLACK_WORKSPACE_IDENTITY_OPERATION} from '../site/message-history-read.mjs';
 
@@ -26,7 +26,7 @@ async function fixture(t,{moon}={}) {
   };
   const consumeObservation=charge=>{assert.equal(charge,pending);pending=undefined;};
   let channels;
-  channels=f.create({moon:provider,chargeResponse,consumeObservation,consumePage:(value,{charge,originalPage})=>{
+  channels=createSlackChannelListReaderForHistory({...f.options,moon:provider,chargeResponse,consumeObservation,consumePage:(value,{charge,originalPage})=>{
     assert.equal(charge,pending);assert(value.length>0);pages.push(originalPage);
     assert.throws(()=>selectSlackOriginalChannel(channels,originalPage,0),{code:'ForeignSlackOriginalChannel'});
     pending=undefined;
@@ -103,4 +103,15 @@ test('Slack failed typed channel-history preparation is not rebound with a large
   assert.throws(()=>f.create(selected,{limits:{...f.options.limits,maxValueTextBytes:1}}),{code:'MoonBitHostFailure'});
   assert.throws(()=>f.create(selected),{code:'ForeignSlackOriginalChannel'});
   assert.equal(f.state.requests.length,2);f.assertNoPending();
+});
+
+test('Slack ordinary channel readers preserve their metadata shape and do not issue history selections',async t=>{
+  const f=await channelListFixture(t);
+  f.state.pages=[channelPage([{id:'C-ordinary'}],null)];
+  let metadata;
+  const reader=f.create({consumePage:(rows,original)=>{
+    metadata=original;assert.deepEqual(Object.keys(original),['charge']);f.options.consumePage(rows,original);
+  }});
+  await reader.read();f.row.finish();assert.equal(f.row.captureCount(),1);
+  assert.throws(()=>selectSlackOriginalChannel(reader,metadata.originalPage,0),{code:'ForeignSlackOriginalChannel'});
 });
