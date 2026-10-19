@@ -148,6 +148,15 @@ pub(all) enum NativeSqliteTransactionState {
   ActiveSqliteTransaction
 } derive(Eq)
 
+type NativeStoreOperationOriginal
+pub fn NativeStoreOperationOriginal::activate(Self) -> Result[Unit, NativeSqliteIssue]
+pub fn NativeStoreOperationOriginal::cleanup_code(Self) -> Int
+pub fn NativeStoreOperationOriginal::close_checked(Self) -> Result[Unit, NativeSqliteIssue]
+pub fn NativeStoreOperationOriginal::enter_cleanup(Self) -> Result[Unit, NativeSqliteIssue]
+pub fn NativeStoreOperationOriginal::enter_store(Self) -> Result[Unit, NativeSqliteIssue]
+pub fn NativeStoreOperationOriginal::leave_store(Self) -> Result[Unit, NativeSqliteIssue]
+pub fn NativeStoreOperationOriginal::primary_code(Self) -> Int
+
 // Type aliases
 
 // Traits
