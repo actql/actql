@@ -82,6 +82,8 @@ fn selected_policy_sqlite_issue(issue : @sqlite.NativeSqliteIssue) -> String {
     BodyTooLarge => "BodyTooLarge"
     CapacityExceeded => "CapacityExceeded"
     Physical(_) => "Physical"
+    OperationRoutingBefore(_) => "OperationRoutingBefore"
+    OperationRoutingAfter(_, _) => "OperationRoutingAfter"
   }
 }
 
