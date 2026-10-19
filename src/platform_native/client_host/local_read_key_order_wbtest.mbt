@@ -54,3 +54,41 @@ test "Native read preimage refuses shortlex-only reversed duplicate and malforme
     is Err(CapacityExceeded),
   )
 }
+
+///|
+test "Native material preimage binds receiver schema and ordering without changing stdout" {
+  let crypto = epoch_test_crypto()
+  let fields = [("a", @host.Text("original"))]
+  let stdout = local_read_preimage(crypto, fields.copy()).unwrap()
+  assert_eq(stdout.wire, "{\"a\":\"original\"}")
+  let material : NativeLocalReadMaterialOriginal = {
+    receiver_cid: "sha256:" + "a".repeat(64),
+    ordering_evidence_cid: "sha256:" + "b".repeat(64),
+    result_schema_cid: "sha256:" + "c".repeat(64),
+  }
+  let bound = local_read_preimage(
+    crypto,
+    fields.copy(),
+    material=Some(material),
+  ).unwrap()
+  assert_eq(
+    bound.wire,
+    "{\"a\":\"original\",\"material_receiver_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ordering_evidence_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"result_schema_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\"}",
+  )
+  assert_eq(
+    bound.cid,
+    "sha256:02c2d86d36408fb70e7c339bb55dc9a8a92a9c195c3f7f34b6b61ab65c90e31b",
+  )
+  assert_false(bound.cid == stdout.cid)
+  for
+    changed in [
+      { ..material, receiver_cid: "sha256:" + "d".repeat(64), },
+      { ..material, result_schema_cid: "sha256:" + "d".repeat(64), },
+      { ..material, ordering_evidence_cid: "sha256:" + "d".repeat(64), },
+    ] {
+    assert_false(
+      local_read_preimage(crypto, fields.copy(), material=Some(changed)).unwrap().cid ==
+      bound.cid,
+    )
+  }
+}

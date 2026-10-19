@@ -91,6 +91,7 @@ test "Native material retains typed rows only from the original admitted session
   assert_true(complete)
   assert_eq(receiver.table(256).unwrap(), "value\n-----\n7\n")
   assert_true(stages.contains("receipt"))
+  assert_true(session.next(1) is Err(InvalidProgress))
   // A material receipt cannot stand in for the independent output decision.
   assert_true(receiver.write_table(256) is Err(MaterialAccess(AccessDenied)))
   assert_true(receiver.write_table(256) is Err(MaterialOutputAlreadyAttempted))

@@ -31,6 +31,18 @@ bounded table write and flush. A stdout encoding receipt is not material
 custody, and an unsupported table or file destination refuses before durable
 Submission admission.
 
+The selected initial table route retains a distinct Material selection original.
+The saved Run still joins its original read-policy CID and expiry; the table
+selection does not replace that original or reuse its stdout permission. Its
+read preimages bind the actual receiver, committed schema and ordering. The
+receiver rechecks each copied row against those original field contracts and
+keeps the same Session/Store through receipt and cleanup. Material completion
+ends the payload reader; a separate current output decision and one actual
+stdout write/flush produce the table receipt without reopening the reader.
+A partial write, lost flush acknowledgement or failed current check never
+repeats output. Older installations missing the selected Material original
+refuse before submission instead of acquiring it through a read operation.
+
 This records the adopted trust and credential boundaries for the standard
 Native Local CLI. These are implementation requirements, not claims that Local
 execution or Provider approval has passed public acceptance. The existing

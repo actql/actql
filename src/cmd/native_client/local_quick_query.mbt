@@ -161,6 +161,10 @@ fn LocalCommandPreparationOriginal::execute_original_quick_query(
   if child.values.contains("output") {
     stop("LocalResultFileDeliveryUnavailable")
   }
+  if presentation == "table" &&
+    !settings.installation_files.contains("material-read.json") {
+    stop("LocalResultMaterialOriginalNotSelected")
+  }
   // JSON is the private material transfer encoding, never a stdout receipt
   // relabelled as a table. The selected receiver owns the checked rows.
   let format = if presentation == "table" { "json" } else { presentation }
