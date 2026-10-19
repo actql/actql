@@ -4549,3 +4549,18 @@ pub fn Store::custody_location(
     ),
   )
 }
+
+///|
+/// Same original association only. This metadata supplies no current scope,
+/// authority, physical grant or ACK; the consumer retains its original fences.
+pub fn Store::matches_original_operation(
+  self : Store,
+  original : @sqlite.NativeStoreOperationOriginal,
+) -> Bool {
+  match self.operation_original {
+    Some(owned) =>
+      physical_equal(owned, original) &&
+      self.database.matches_original_store_operation(original)
+    None => false
+  }
+}

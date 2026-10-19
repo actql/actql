@@ -34,6 +34,7 @@ pub fn Database::insert(Self, String, String, Bytes) -> Result[Int64, NativeSqli
 pub fn Database::insert_original_store_cleanup(Self, NativeStoreOperationOriginal, String, String, Bytes) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::inspection_status(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::lookup_claim_ordinal(Self, String, String) -> Result[Int64?, NativeSqliteIssue]
+pub fn Database::matches_original_store_operation(Self, NativeStoreOperationOriginal) -> Bool
 pub fn Database::owns_lookup_read(Self, NativeLookupRead) -> Bool
 pub fn Database::prepare_lookup_read(Self) -> Result[NativeLookupReadAcquisition, NativeSqliteIssue]
 pub fn Database::read(Self, String, String) -> Result[NativeJournalValue, NativeSqliteIssue]
