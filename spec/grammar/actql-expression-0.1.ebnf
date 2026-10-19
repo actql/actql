@@ -41,7 +41,8 @@ cast_type = "NUMBER" | "STRING" | "BOOLEAN" | "TIMESTAMP"
           | "DECIMAL", "(", integer, ",", integer, ")" ;
 searched_case = "CASE", case_arm, { case_arm }, [ "ELSE", expression ], "END" ;
 case_arm = "WHEN", expression, "THEN", expression ;
-call = function_name, "(", expression, { ",", expression }, ")" ;
+call = zero_argument_call | function_name, "(", expression, { ",", expression }, ")" ;
+zero_argument_call = "current_timestamp", "(", ")" ;
 (* trim, ltrim and rtrim take exactly one or two STRING expressions. Unary
    forms preserve their sole expression body; explicit sets retain both ordered
    operands as a two-element array. Other arities and BYTES are not admitted. *)
@@ -93,7 +94,9 @@ call = function_name, "(", expression, { ",", expression }, ")" ;
    is a string literal 'cosine', 'dot' or 'l2', lowered as a structural metric.
    vector_concat has at least two expression arguments. These spellings require
    the separately admitted VecA expression profile; grammar is not execution support. *)
-function_name = "len" | "contains" | "starts_with" | "ends_with" | "strpos" | "concat" | "concat_strict" | "safe_div" | "safe_divide" | "safe_add" | "safe_subtract" | "safe_multiply" | "safe_negate" | "sqrt" | "cbrt" | "sin" | "cos" | "tan" | "asin" | "acos" | "atan" | "atan2" | "sinh" | "cosh" | "tanh" | "asinh" | "acosh" | "atanh" | "pow" | "power" | "exp" | "ln" | "log" | "log10" | "abs" | "sign" | "round" | "trunc" | "greatest" | "least" | "floor"
+(* current_timestamp has exactly zero arguments. It retains the original Run
+   evaluation-time dependency, never an authored literal or frontend clock read. *)
+function_name = "current_timestamp" | "len" | "contains" | "starts_with" | "ends_with" | "strpos" | "concat" | "concat_strict" | "safe_div" | "safe_divide" | "safe_add" | "safe_subtract" | "safe_multiply" | "safe_negate" | "sqrt" | "cbrt" | "sin" | "cos" | "tan" | "asin" | "acos" | "atan" | "atan2" | "sinh" | "cosh" | "tanh" | "asinh" | "acosh" | "atanh" | "pow" | "power" | "exp" | "ln" | "log" | "log10" | "abs" | "sign" | "round" | "trunc" | "greatest" | "least" | "floor"
               | "lower" | "upper" | "trim" | "ltrim" | "rtrim" | "replace" | "left" | "right" | "lpad" | "rpad" | "split" | "byte_length" | "octet_length" | "unicode" | "chr" | "repeat" | "reverse" | "translate" | "instr" | "nullif" | "negate"
               | "vector_score" | "vector_concat"
               | "date_trunc" | "date_add" | "date_diff"

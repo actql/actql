@@ -3737,6 +3737,50 @@ Decimal `avg` is rejected: use `sum`, `count`, and explicit `decimal_divide`.
 Branches and array elements require one compatible closed decimal type;
 explicit `quantize` resolves different precision/scale choices.
 
+### Query invocation time
+
+<!-- requirement-block: scalar-expressions.query-time-signature -->
+`CURRENT_TIMESTAMP()` MUST select the zero-argument `current_timestamp`
+operation with non-null Timestamp result, preserving the closed authored
+`{current_timestamp: []}` and machine `{op: "current_timestamp", body: []}`
+forms without replacing the operation by a literal or hidden Parameter.
+
+<!-- requirement-block: scalar-expressions.query-time-original -->
+For an ordinary single-query-invocation Run, every demanded occurrence, row,
+fragment and continuation MUST use the same admitted Run definition's
+`created_at`, captured from the selected Host's actual original wall-clock
+sampler at new invocation admission before dependent Source requests or
+execution, retaining actual supported precision rather than a stale policy
+creation time, caller String, generic callback or manufactured finer digits.
+
+<!-- requirement-block: scalar-expressions.query-time-source-binding -->
+The existing Common preparation and request owners MUST bind that one
+original value to the same checked Program, request occurrence, Parameters,
+compilation and final Run definition before dispatch, retaining unresolved or
+foreign `UnboundRequest` refusal and using the same value in the physical
+predicate projection and downstream expression context without changing the
+authored graph or the meaning of resource-reference host bindings.
+
+<!-- requirement-block: scalar-expressions.query-time-recovery -->
+The same confirmed request Journal and Run materials MUST retain this
+original across pause, lookup, racing issuance and cold recovery; a winning
+saved Run supplies its saved value without resampling, replacing publication
+or issuing a second Run, while distinct query-invocation scopes remain distinct
+and old Runs without the operation retain their original bytes.
+
+<!-- requirement-block: scalar-expressions.query-time-demand -->
+Static checking, explaining, canonical emission and compilation MUST NOT
+sample a clock; a demanded operation without its original execution context
+remains unavailable, while surrounding lazy demand, original roots, logical
+value/control/workspace accounting, cancellation and child failures retain
+their existing laws.
+
+<!-- requirement-block: scalar-expressions.query-time-authority -->
+The stored query Timestamp MUST remain computation data, granting no
+Account, Source, Model, Effect, resource, expiry, retention or authorization
+authority and preserving the separate operational-clock purposes, currentness,
+rollback and deadline contracts even when a physical sampler is shared.
+
 <a id="value-construction"></a>
 
 ### Object and array construction
@@ -11295,7 +11339,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:0f0af6fe71e99c6f57999097203bd50eb370e09fb448768438c1397ce6de7136
+../../spec/contracts/actql-aoa.json# sha256:5aa95c02b8414bf101519dda28d2839e98a6921ba39b65f6c50325ff39d0a495
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11304,13 +11348,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:5c7ab5c2189768003f4cc1cf5665b3c42ef1bc47497e606a46938fc1dfa40c77
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:c37306c98c772f79f11782503522843430c0867b0bf903248fe9933cb477fb6f
+../../spec/contracts/actql-expressions.json# sha256:d6b7858803ca124096f4be943c3f7510e4eb6cc4b162c43552778f6cb2029b49
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:dcb3f1699f21265002dde07687247fecd64143df52d6c55d01d8ed68d5c51d1d
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:7b8fb6524ddc4aa3486f8882fa8793b8aad981bcab8fd20025a3a65273b98a6a
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:3f1929f52bc30393c75865d82bcec1d18afd76540dff3dc7786b253c0ce1487b
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:46609f6f81679938a14f2b79e6f750d242b841684f9a00d911568efded652905
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:e3b47a961be9b92970dd52c9415208821fbac6b9d7c3ea28e573e02603194fc9
+../../spec/contracts/actql-expressions.json#/laws sha256:05c5fac79987c9e012d3736ae7dafbcef447da85dc5f10826d99e6b7dc825a80
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:22b1a17f47afa095d89d048f55dea0fd27babb0df6d3a20feefd42feef50a57f
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:21377fca47fd7e91df0177f0197932baf4ba20377f96f9bdbcc5fa460ded068d
 ```
 
 <!-- stage-contract-pins:start -->

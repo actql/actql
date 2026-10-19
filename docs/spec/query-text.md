@@ -308,6 +308,17 @@ within the existing bounded String/finite Number domains. BYTES and distinct
 INT64 overloads remain coverage gaps. All spellings preserve one common child,
 operand nullability, lazy demand, failure, resources and cancellation.
 
+`CURRENT_TIMESTAMP()` selects the zero-argument Common
+`{current_timestamp: []}` operation and a non-null Timestamp type. Case-insensitive
+lookup and parentheses preserve this same node; arguments or foreign namespaces
+do not introduce an overload. Checking, explaining, emission and compilation
+retain its dependency without sampling time. Runtime evaluation reads the same
+admitted original query-invocation value across rows, fragments and recovery,
+as specified by [Query invocation time](language.md#query-invocation-time).
+It is not a frontend clock read, Timestamp literal, authored Parameter or
+authority for a Source/Effect or an operational clock. A missing original
+execution context remains an implementation limitation.
+
 `DATE_TRUNC(value, literal_unit)` is the SQL/Pipe spelling for fixed UTC
 truncation. The unit is an original string literal in `ms`, `s`, `m`, `h`, `d`;
 parentheses may preserve that literal but a Parameter, expression, alternate

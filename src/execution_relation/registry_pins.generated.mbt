@@ -13,4 +13,4 @@ let selected_ordered_contract_cid : String = "sha256:ca0efbfa9f05c7ea971834e4512
 let selected_fragment_contract_cid : String = "sha256:d1cbb2bfcb6c82bdd44da631a79777db09b7e0746bb064fa817afb58a953b115"
 
 ///|
-let selected_expression_contract_cid : String = "sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35"
+let selected_expression_contract_cid : String = "sha256:d6b7858803ca124096f4be943c3f7510e4eb6cc4b162c43552778f6cb2029b49"

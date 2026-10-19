@@ -8,16 +8,18 @@ const canonical=value=>Array.isArray(value)?'['+value.map(canonical).join(',')+'
     :JSON.stringify(value);
 const hash=text=>'sha256:'+createHash('sha256').update(text).digest('hex');
 const before=read('scripts/fixtures/decimal-division-source/predecessor.json');
+const successor=read('scripts/fixtures/query-time-source/predecessor.json');
+const grammarBeforeQueryTime=successor.contracts.find(item=>item.id==='grammar_manifest').body;
 
 test('explicit DECIMAL_DIVIDE source rules retain the complete preceding grammar and all existing machine shapes',()=>{
   assert.equal(before.grammar_manifest_cid,'sha256:3364a6382a8a3dd3a8ccc3c50fb38fd9c9ac706fec74b4e0f1b438a68dc739f9');
-  const current=read('spec/manifests/actql-grammar-0.1.json');
+  const current=grammarBeforeQueryTime;
   for(const grammar of [before,current]){
     const {grammar_manifest_cid,...body}=grammar;assert.equal(hash(canonical(body)),grammar_manifest_cid);
   }
   assert.deepEqual({...current,grammar_manifest_cid:before.grammar_manifest_cid,query_text_rules_sha256:before.query_text_rules_sha256},before);
   assert.notEqual(current.grammar_manifest_cid,before.grammar_manifest_cid);
-  assert.equal(current.query_text_rules_sha256,hash(readFileSync('docs/spec/query-text.md')).slice(7));
+  assert.equal(current.query_text_rules_sha256,hash(successor.query_rules).slice(7));
 });
 
 test('explicit DECIMAL_DIVIDE retains complete independent existing-operation preimages',()=>{
@@ -31,6 +33,6 @@ test('explicit DECIMAL_DIVIDE retains complete independent existing-operation pr
     assert.equal(Number.isInteger(record.value.decimal_divide.precision),true);
     assert.equal(Number.isInteger(record.value.decimal_divide.scale),true);
   }
-  assert.equal(before.expression_contract_cid,read('spec/manifests/actql-grammar-0.1.json').expression_contract_cid);
-  assert.equal(before.source_grammar_cid,read('spec/manifests/actql-grammar-0.1.json').source_grammar_cid);
+  assert.equal(before.expression_contract_cid,grammarBeforeQueryTime.expression_contract_cid);
+  assert.equal(before.source_grammar_cid,grammarBeforeQueryTime.source_grammar_cid);
 });

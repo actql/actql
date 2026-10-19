@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "3138560ad7c029b23bee2d7446f1ee8155520ead50281aae1493f0219db7bc5c",
+  "grammar_sha256": "819b6c603d4267a2f9e42c7be40e67feec9bdb58e6e73ae29dde5f48b174f152",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -5853,6 +5853,21 @@
                   "items": {
                     "$ref": "#/$defs/expression"
                   }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "current_timestamp"
+              ],
+              "properties": {
+                "current_timestamp": {
+                  "type": "array",
+                  "minItems": 0,
+                  "maxItems": 0,
+                  "items": false
                 }
               }
             }
@@ -12258,6 +12273,25 @@
                   "items": {
                     "$ref": "#/$defs/expression"
                   }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "current_timestamp"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 0,
+                  "maxItems": 0,
+                  "items": false
                 }
               }
             }
@@ -24129,6 +24163,21 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "current_timestamp"
+              ],
+              "properties": {
+                "current_timestamp": {
+                  "type": "array",
+                  "minItems": 0,
+                  "maxItems": 0,
+                  "items": false
+                }
+              }
             }
           ]
         },
@@ -29618,6 +29667,25 @@
                   "items": {
                     "$ref": "#/$defs/machine_expression"
                   }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "current_timestamp"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 0,
+                  "maxItems": 0,
+                  "items": false
                 }
               }
             }
@@ -37461,6 +37529,21 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "current_timestamp"
+              ],
+              "properties": {
+                "current_timestamp": {
+                  "type": "array",
+                  "minItems": 0,
+                  "maxItems": 0,
+                  "items": false
+                }
+              }
             }
           ]
         },
@@ -42952,6 +43035,25 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "current_timestamp"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 0,
+                  "maxItems": 0,
+                  "items": false
+                }
+              }
             }
           ]
         },
@@ -44072,6 +44174,17 @@
       "normalization": "Retain the original Number literal body and normalized source. Never reinterpret an earlier raw token or recover precision lost by Number admission: 9007199254740993 already normalized to 9007199254740992 keeps that value after emit/re-admit and cold reconstruction. Original typed int64 Parameters supply the full min/max and distinct adjacent domain.",
       "lowering": "Lower the contextually typed literal to an exact Signed64 value rechecked against its original checked contract, and emit the existing decimal-String int64 wire. Number contexts retain their original Number value and literal body. Retain every occurrence and charge context traversal, typed records, literal text and work in the existing owners.",
       "separation": "Nonliteral Number fields, Parameters, arithmetic, casts and computed Number expressions are not converted. Decimal and Text are not converted. No implicit int64 arithmetic, NULLIF overload, field promotion, Connector rewrite, new literal grammar, public authority or resource funding is introduced."
+    },
+    "current_timestamp": {
+      "signature": "Zero operands and a non-null Timestamp result. CURRENT_TIMESTAMP() and {current_timestamp:[]} select one canonical computation operation; static checking and compilation never sample a clock.",
+      "value": "For one original query invocation, every demanded occurrence, row, fragment and continuation reads the same admitted Run definition created_at. Keep the actual canonical UTC precision without manufacturing finer digits.",
+      "binding": "The same selected Host captures a fresh original wall-clock observation at new invocation admission, before dependent Source requests and execution. Existing preparation may retain that original before compilation; the final admitted Run definition must bind exactly the same created_at and checked Program, requests, compilation and invocation. A stale policy creation time, caller String, copied identity, generic callback or user flag is not that original.",
+      "source": "Discharge declared query-time dependencies only from the same original invocation preparation and final Run binding. Preserve unresolved or foreign UnboundRequest refusal; resource_ref host_bindings retain their original meaning. The physical predicate projection and downstream evaluator use the same original without rewriting the authored graph, introducing a hidden Parameter or evaluating SQL in a Host.",
+      "recovery": "Persist the admitted original through the same confirmed request Journal before dependent dispatch. Lookup, racing issuers and cold recovery use the winning saved Run, never a replacement sample or second Run. Distinct query-invocation scopes are not collapsed into one Run-level field. Old Runs without this operation retain their bytes.",
+      "evaluation": "Preserve surrounding lazy demand, original root lifetimes, logical value charges, control/workspace limits and cancellation. A demanded expression without its original execution context is unavailable; do not fabricate a value. An undemanded branch performs no clock read.",
+      "authority": "Query time is computation data only. It grants no Account, Source, Model, Effect, resource, expiry, retention or authorization-clock authority; operational clock contracts remain unchanged.",
+      "identity": "The closed source is {current_timestamp:[]} and the closed machine node is {op:current_timestamp,body:[]}. Retain that zero-argument node in canonical emission; never fold it to an authored Timestamp literal. Earlier complete contract bodies keep their original identities.",
+      "proof_status": "implementation-required-same-Run-Host-Source-and-recovery"
     }
   },
   "regex_ast_contract": {
