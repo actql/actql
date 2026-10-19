@@ -70,7 +70,7 @@ test "exact division NULL still demands original children and retires original r
   let logical = text_expression_budget(10000L, 10000L)
   let output = evaluate_expression_retained(
     root,
-    Map(),
+    Map([]),
     [],
     { remaining: 10000, max_frames: 20, },
     workspace,
@@ -86,7 +86,7 @@ test "exact division NULL still demands original children and retires original r
   assert_true(
     evaluate_expression_with_workspace(
       root,
-      Map(),
+      Map([]),
       [],
       { remaining: 10000, max_frames: 20, },
       small,
@@ -94,7 +94,7 @@ test "exact division NULL still demands original children and retires original r
     is Err({ kind: WorkspaceLimit, .. }),
   )
   assert_eq(small.live, 0)
-  let execution = start_expression_execution(root, Map(), [], 10000, 100, 100).unwrap()
+  let execution = start_expression_execution(root, Map([]), [], 10000, 100, 100).unwrap()
   assert_true(cancel_expression_execution(execution))
   assert_eq(execution.frame.workspace.live, 0)
 }
