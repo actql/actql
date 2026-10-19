@@ -9,7 +9,7 @@ from __future__ import annotations
 from ctypes import ArgumentError, CDLL, c_char_p, c_void_p, cast
 from dataclasses import dataclass
 import hashlib
-from importlib import metadata, resources
+from importlib import metadata
 from pathlib import Path
 import json
 from typing import Any
@@ -108,9 +108,12 @@ def _verify_original_provider(library: Path, recipe: _SelectedImageRecipe) -> No
 def _platform_runtime_library(recipe: _SelectedImageRecipe) -> Path:
     """Resolve the existing pinned dependency, without loading native code."""
     recipe.validate()
-    if metadata.version('wasmtime') != WASMTIME_VERSION:
+    distribution = metadata.distribution('wasmtime')
+    if distribution.version != WASMTIME_VERSION:
         raise LocalInstallationError('Installed image runtime version mismatch')
-    root = resources.files('wasmtime')
+    # resources.files imports a named package; Wasmtime's initializer loads its
+    # DLL. Distribution metadata locates wheel files without that side effect.
+    root = distribution.locate_file('wasmtime')
     if not isinstance(root, Path):
         raise LocalInstallationError('Installed image runtime requires ordinary wheel files')
     library = root / 'darwin-aarch64/_libwasmtime.dylib'
@@ -160,14 +163,7 @@ def _checked_installed_image(components: LocalComponents) -> _InstalledImageInpu
         raise LocalInstallationError('Installed image original component binding mismatch')
     try:
         _read_file(components.module, maximum=32 * 1024 * 1024, digest=components.module_sha256)
-        if metadata.version('wasmtime') != WASMTIME_VERSION:
-            raise LocalInstallationError('Installed image runtime version mismatch')
-        root = resources.files('wasmtime')
-        if not isinstance(root, Path):
-            raise LocalInstallationError('Installed image runtime requires ordinary wheel files')
-        library = root / 'darwin-aarch64/_libwasmtime.dylib'
-        _read_file(library, maximum=recipe.runtime_library_bytes,
-                   expected=recipe.runtime_library_bytes, digest=recipe.runtime_library_sha256)
+        library = _platform_runtime_library(recipe)
         # The recipe belongs to the same SDK-bound artifact manifest. Recheck
         # its fields and exact image bytes before the unsafe native loader.
         body = json.loads(_read_file(components.image.parent / 'artifact.json', maximum=65536),
