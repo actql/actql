@@ -114,32 +114,37 @@ class CapacityOriginalTests(unittest.TestCase):
             with self.assertRaises(LocalInstallationError):
                 _selected_capacity_original(replace(self.components, source_sha='c' * 40))
 
-    def test_public_capacity_declaration_cannot_replace_physical_worker_funding(self):
-        from actql_sdk._local_worker_funding import LocalWorkerFundingUnavailable
+    def test_ordinary_factory_does_not_import_declared_capacity_as_physical_funding(self):
         self.stage(); core = Mock()
         with patch('actql_sdk._local_capacity_original.resources.files', return_value=self.directory), \
+                patch('actql_sdk._local_capacity_original._selected_capacity_original',
+                      side_effect=AssertionError('No declared backing import')) as physical, \
                 patch('actql_sdk._local_product.installed_local_components', return_value=self.components) as resolve, \
                 patch.object(LocalCore, '_from_installed_image', return_value=core) as construct, \
                 patch('actql_sdk._local_product._default_directory', return_value=self.directory), \
                 patch.object(InstalledLocalHost, '__init__', return_value=None):
-            with self.assertRaises(LocalWorkerFundingUnavailable): InstalledLocalHost.installed()
-        resolve.assert_not_called()
-        # Independently valid release-bound declaration, but no actual physical
-        # supplier. No Engine/Root may be constructed from these numbers alone.
-        original = _capacity_from_source(self.original(), self.components)
-        self.assertEqual(original.host_capacity_bytes, 4096)
-        construct.assert_not_called()
+            InstalledLocalHost.installed()
+        resolve.assert_called_once_with()
+        physical.assert_not_called()
+        self.assertEqual(construct.call_count, 1)
+        limits = construct.call_args.kwargs['resources']
+        self.assertTrue(limits.valid())
+        self.assertNotIn('_physical_holding', construct.call_args.kwargs)
+        self.assertNotIn('_host_capacity_bytes', construct.call_args.kwargs)
 
-    def test_missing_or_foreign_original_refuses_before_vm_and_store(self):
+    def test_missing_physical_declaration_does_not_bypass_actual_runtime_acquisition(self):
         self.stage(); (self.directory / '_local_host_capacity.json').unlink()
+        failure = LocalInstallationError('Actual selected Engine is unavailable')
         with patch('actql_sdk._local_capacity_original.resources.files', return_value=self.directory), \
                 patch('actql_sdk._local_product.installed_local_components', return_value=self.components) as resolve, \
-                patch.object(LocalCore, '_from_installed_image', side_effect=AssertionError('VM')) as construct, \
-                patch('actql_sdk._local_product._default_directory', side_effect=AssertionError('Store')) as store:
+                patch.object(LocalCore, '_from_installed_image', side_effect=failure) as construct, \
+                patch('actql_sdk._local_product._default_directory') as store:
             with self.assertRaises(LocalInstallationError): _selected_capacity_original(self.components)
-            with self.assertRaises(LocalWorkerFundingUnavailable): InstalledLocalHost.installed()
-        resolve.assert_not_called()
-        self.assertEqual((construct.call_count, store.call_count), (0, 0))
+            with self.assertRaises(LocalInstallationError) as caught: InstalledLocalHost.installed()
+        self.assertIs(caught.exception, failure)
+        resolve.assert_called_once_with()
+        construct.assert_called_once()
+        store.assert_not_called()
 
     def script(self):
         spec = importlib.util.spec_from_file_location('capacity_cohort_recipe', ROOT / 'scripts/build-python-product-wheels.py')

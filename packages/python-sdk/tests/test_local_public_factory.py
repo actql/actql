@@ -6,7 +6,7 @@ import os
 import stat
 from tempfile import TemporaryDirectory
 import unittest
-from unittest.mock import ANY, Mock, patch
+from unittest.mock import Mock, patch
 
 from actql_sdk import AsyncClient, Client, ClientError
 from actql_sdk._local_distribution import (
@@ -51,25 +51,34 @@ class LocalFactoryResourcesTests(unittest.TestCase):
             finally:
                 for descriptor in opened: real_close(descriptor)
 
-    def test_missing_initial_funding_refuses_before_cohort_discovery(self):
+    def test_ordinary_factory_checks_installed_components_without_startup_original(self):
+        failure = LocalInstallationError('Missing selected component')
         with patch('actql_sdk._local_product.installed_local_components',
-                   side_effect=AssertionError('Discovery before initial funding')) as resolve:
-            with self.assertRaises(LocalWorkerFundingUnavailable):
+                   side_effect=failure) as resolve, \
+             patch('actql_sdk._local_product._private_state_directory') as state:
+            with self.assertRaises(LocalInstallationError) as caught:
                 InstalledLocalHost.installed(state_dir='.actql')
-        resolve.assert_not_called()
+        self.assertIs(caught.exception, failure)
+        resolve.assert_called_once_with()
+        state.assert_not_called()
 
-    def test_missing_initial_funding_refuses_before_module_capture_vm_directory_or_fallback(self):
+    def test_normal_engine_allocation_failure_does_not_create_store_or_fallback(self):
         case = components_fixture.LocalDistributionTests()
-        case.setUp();self.addCleanup(case.doCleanups)
+        case.setUp(); self.addCleanup(case.doCleanups)
         components = case.inspect()
+        failure = MemoryError('Actual Engine allocation failed')
         with patch('actql_sdk._local_product.installed_local_components', return_value=components) as resolve, \
-             patch('actql_sdk._local_product.LocalCore._from_installed_image', side_effect=AssertionError('No module capture')) as capture, \
-             patch('actql_sdk._local_product.LocalCore', side_effect=AssertionError('No VM')) as vm, \
-             patch('actql_sdk._local_product._default_directory', side_effect=AssertionError('No Store')) as state:
-            with self.assertRaises(LocalWorkerFundingUnavailable):
+             patch('actql_sdk._local_product.LocalCore._from_installed_image', side_effect=failure) as construct, \
+             patch('actql_sdk._local_product._default_directory') as state:
+            with self.assertRaises(MemoryError) as caught:
                 InstalledLocalHost.installed()
-            resolve.assert_not_called()
-            self.assertEqual((capture.call_count, vm.call_count, state.call_count), (0, 0, 0))
+        self.assertIs(caught.exception, failure)
+        resolve.assert_called_once_with()
+        self.assertEqual(construct.call_count, 1)
+        self.assertTrue(construct.call_args.kwargs['resources'].valid())
+        self.assertNotIn('_physical_holding', construct.call_args.kwargs)
+        self.assertNotIn('_child_control', construct.call_args.kwargs)
+        state.assert_not_called()
 
     def test_public_factories_allow_signer_without_host_token_path_or_capacity_arguments(self):
         self.assertEqual(set(inspect.signature(Client.open).parameters), {'state_dir', 'signer'})
@@ -79,17 +88,27 @@ class LocalFactoryResourcesTests(unittest.TestCase):
                 with self.assertRaises(TypeError): Client.open(**options)
             self.assertEqual(build.call_count, 0)
 
-    def test_explicit_directory_does_not_bypass_original_funding_or_create_store(self):
-        case = components_fixture.LocalDistributionTests()
-        case.setUp(); self.addCleanup(case.doCleanups)
-        components = case.inspect()
-        with patch('actql_sdk._local_product.installed_local_components', return_value=components), \
-             patch('actql_sdk._local_product.LocalCore._from_installed_image', side_effect=AssertionError('No VM')) as vm, \
-             patch('actql_sdk._local_product._private_state_directory', side_effect=AssertionError('No Store')) as state:
-            with self.assertRaises(LocalWorkerFundingUnavailable):
-                InstalledLocalHost.installed(state_dir='.actql')
-        vm.assert_not_called()
-        state.assert_not_called()
+    def test_pathlike_is_captured_once_before_actual_component_acquisition(self):
+        class SelectedPath:
+            calls = 0
+            def __fspath__(self):
+                self.calls += 1
+                return '.actql'
+        selected = SelectedPath()
+        failure = LocalInstallationError('No selected installed runtime')
+        with patch('actql_sdk._local_product.installed_local_components', side_effect=failure) as resolve:
+            with self.assertRaises(LocalInstallationError):
+                InstalledLocalHost.installed(state_dir=selected)
+        self.assertEqual(selected.calls, 1)
+        resolve.assert_called_once_with()
+
+    def test_invalid_or_oversized_path_refuses_before_component_acquisition(self):
+        with patch('actql_sdk._local_product.installed_local_components') as resolve:
+            for selected in ('', 'a\x00b', 'a' * 4097, '\U0001f642' * 1025, b'bytes'):
+                with self.subTest(selected=repr(selected)[:40]):
+                    with self.assertRaises((ValueError, TypeError)):
+                        InstalledLocalHost.installed(state_dir=selected)
+        resolve.assert_not_called()
 
     def test_selected_store_is_private_and_keeps_existing_original_files(self):
         with TemporaryDirectory() as directory:
@@ -144,11 +163,7 @@ class AsyncLocalFactoryTests(unittest.IsolatedAsyncioTestCase):
                 async with await AsyncClient.open() as client:
                     self.assertIs(client._local_host, host)
                     self.assertEqual(client.profile['mode'], 'local')
-                build.assert_called_once_with(_initial_preparation=ANY)
-                original = build.call_args.kwargs['_initial_preparation']
-                original.require_current()
-                self.assertIsNone(original._state_dir)
-                self.addCleanup(original.retire_input)
+                build.assert_called_once_with()
             self.assertTrue(core._closed)
             self.assertFalse(host._run_loans)
             self.assertFalse(any(name in ('cancel', 'start', 'reserve_task') for _, name in events[before:]))
@@ -211,11 +226,7 @@ class SyncLocalFactoryTests(unittest.TestCase):
             with patch.object(InstalledLocalHost, 'installed', side_effect=LocalProductCleanupPending(host)) as build:
                 with self.assertRaises(ClientError) as failure:
                     actql.open(state_dir=selected)
-            build.assert_called_once_with(state_dir=selected, _initial_preparation=ANY)
-            original = build.call_args.kwargs['_initial_preparation']
-            self.assertIs(original._state_dir, selected)
-            original.require_current()
-            self.addCleanup(original.retire_input)
+            build.assert_called_once_with(state_dir=selected)
             client = failure.exception.cleanup_client
             self.assertIsInstance(client, Client)
             self.assertIs(client._client._local_host, host)
@@ -232,10 +243,7 @@ class SyncLocalFactoryTests(unittest.TestCase):
                 with Client.open() as client:
                     self.assertIs(client._client._local_host, host)
                     self.assertEqual(client.profile['mode'], 'local')
-                build.assert_called_once_with(_initial_preparation=ANY)
-                original = build.call_args.kwargs['_initial_preparation']
-                original.require_current()
-                self.addCleanup(original.retire_input)
+                build.assert_called_once_with()
             self.assertTrue(core._closed)
             self.assertFalse(any(name == 'cancel' for _, name in events))
 

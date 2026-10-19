@@ -45,7 +45,10 @@ class LocalCoreInitializationError(RuntimeError):
 
 @dataclass(frozen=True, slots=True)
 class LocalCoreResources:
-    """Trusted installed Host limits, independent of instruction fuel."""
+    """Managed Host allowances, independent of fuel and physical acquisition.
+
+    They are not an allocation, original native holding or hard RSS bound.
+    """
 
     planning_work: int
     attempts: int
@@ -331,8 +334,9 @@ class LocalCore:
     """Serialize calls into one instance and preserve its physical custody.
 
     This bridge does not implement Client routing, admission, recovery, or a
-    global memory guarantee. The installed Host must reserve the full Wasm
-    allowance and its other holdings in the existing shared capacity Owner.
+    global memory guarantee. The installed Host accounts for its Wasm and copy
+    allowances through the existing Owner, acquires real runtime resources and
+    keeps any explicitly supplied native holding until its actual cleanup ACK.
     """
 
     @classmethod

@@ -50,6 +50,32 @@ _LOCAL_SELECTION = {'mode': 'local', 'owner': 'local', 'durability': 'durable',
                     'consentRefs': [], 'runners': []}
 
 
+def _ordinary_core_limits() -> LocalCoreResources:
+    """Managed work/copy allowances, not reserved heap or a hard RSS ceiling.
+
+    Config/Engine/Store and their linear memory are actually acquired by Core.
+    Python/runtime caches belong to the trusted platform. Native workers and
+    shared zero-copy holdings, when selected, retain their separate originals.
+    """
+    return LocalCoreResources(planning_work=1_000_000, attempts=4096,
+        holdings=4096, transfer_bytes=64 * 1024 * 1024,
+        retained_bytes=64 * 1024 * 1024, execution_bytes=64 * 1024 * 1024)
+
+
+def _state_directory_option(value: str | os.PathLike[str] | None) -> Path | None:
+    """Capture the documented trusted PathLike once before acquisition."""
+    if value is None:
+        return None
+    text = os.fspath(value)
+    if not isinstance(text, str) or not text or '\x00' in text or len(text) > 4096:
+        raise ValueError('Invalid Python Local state directory')
+    # Preserve the filesystem spelling, including surrogateescaped Unix names.
+    # This is the ordinary selected stdlib codec, not a provenance issuer.
+    if len(os.fsencode(text)) > 4096:
+        raise ValueError('Python Local state directory exceeds its encoded limit')
+    return Path(text)
+
+
 @dataclass(eq=False)
 class _PayloadCustody:
     # Physical metadata and original Core loans only; no payload/Run state.
@@ -211,7 +237,7 @@ class InstalledLocalHost:
                   resources: LocalCoreResources | None = None,
                   _initial_preparation: _OriginalPythonPreparation | None = None) -> InstalledLocalHost:
         """Resolve the selected cohort with no endpoint/token/internal paths."""
-        if resources is None:
+        if resources is None and _initial_preparation is not None:
             from ._local_worker_funding import LocalWorkerFundingUnavailable
             from ._local_initial_preparation import _OriginalPythonPreparation, _capture_initial_preparation
             initial = _initial_preparation
@@ -236,15 +262,19 @@ class InstalledLocalHost:
                 cleanup_preparation=initial)
         if _initial_preparation is not None:
             raise ValueError('Initial Python original cannot be transferred to diagnostic resources')
+        directory_option = _state_directory_option(state_dir)
+        if resources is None:
+            resources = _ordinary_core_limits()
         components = installed_local_components()
-        # This explicit-resource route is a private diagnostic. It is not the
-        # ordinary product factory, pre-spawn funding or installed acceptance.
+        # The selected installed Core acquires real Config/Engine/Store/VM
+        # resources. Limits do not stand in for those acquisitions, native
+        # worker originals or any operation's current permission.
         core = LocalCore._from_installed_image(components,
             transfer_capacity=12 * 1024 * 1024, slots=64,
             resources=resources)
         try:
-            directory = (_default_directory() if state_dir is None
-                         else _private_state_directory(Path(state_dir)))
+            directory = (_default_directory() if directory_option is None
+                         else _private_state_directory(directory_option))
             now = lambda: time.time_ns() // 1_000_000
             observed_at = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
             return cls(core, directory, now=now, observed_at=observed_at, sdk_finite=True)

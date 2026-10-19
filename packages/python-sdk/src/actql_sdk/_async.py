@@ -101,32 +101,21 @@ class AsyncClient:
     async def open(cls, *, state_dir=None, signer=None):
         """Open the installed Local product with an optional Store directory.
 
-        The original runtime/profile supplier must be complete. An unavailable
-        capacity original fails before module capture or physical VM creation;
-        this method does not substitute a private fixture or inferred allowance.
+        The installed runtime acquires its real Core and durable Store through
+        the existing factory. Managed limits do not supply a worker, permission
+        or a shared native holding. Partial cleanup retains the same Host.
         """
         selected_signer = None if signer is None else capture_signer(signer)
-        from ._local_initial_preparation import _capture_initial_preparation
         from ._local_worker_funding import LocalWorkerFundingUnavailable
-        try:
-            initial = _capture_initial_preparation(state_dir)
-        except LocalWorkerFundingUnavailable as failure:
-            raise ClientError('LocalExecutionFundingUnavailable', original_error=failure) from None
         try:
             from ._local_product import InstalledLocalHost, LocalProductCleanupPending
             from ._local_core import LocalCoreInitializationError
             from ._local_distribution import LocalInstallationError
         except Exception as failure:
-            initial.retain_import_failure(failure)
-            unavailable = LocalWorkerFundingUnavailable(
-                'Original Local Host preparation import is unavailable',
-                cleanup_preparation=initial)
-            unavailable.__cause__ = failure
-            raise ClientError('LocalExecutionFundingUnavailable',
-                              original_error=unavailable) from None
+            raise ClientError('LocalInstallationUnavailable', original_error=failure) from None
         try:
             options = {} if state_dir is None else {'state_dir': state_dir}
-            host = InstalledLocalHost.installed(_initial_preparation=initial, **options)
+            host = InstalledLocalHost.installed(**options)
         except LocalProductCleanupPending as failure:
             client = cls._from_local_host(failure.cleanup_host)
             client._closed = True

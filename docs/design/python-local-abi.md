@@ -2590,3 +2590,28 @@ selected. The separate trusted control envelope remains explicit; this does
 not assert that all Python/loader/OS allocations are paid from the arena.
 The final producer and ordinary Local factory keep their existing physical
 and normal-supplier refusals until those independent owners are complete.
+
+### Ordinary Python Host resources
+
+The ordinary Host follows the trusted platform boundary. Its public factory
+loads the integrity-checked installed Core and actually acquires the selected
+Config, Engine, Store, linear memory, File roots and durable byte Store. Missing
+or inconsistent installed components still refuse; there is no raw-module,
+Remote or diagnostic-resource fallback. Allocation failure is a real failure,
+and partial acquisition retains the same cleanup carrier.
+
+The existing Resource Ledger accounts for managed work, transfer/copy bytes,
+retained bytes and concurrent holdings. Those limits are not a Native extent,
+reserved CPython heap, worker delegation or hard RSS guarantee. Shared modules
+and allocator caches remain platform-owned. Any selected native arena, worker
+or zero-copy buffer still requires its actual original acquisition and release;
+these ordinary limits cannot satisfy an imported-VM or worker-funding port.
+
+Normal initialization does not consume the private CPython initial-preparation
+carrier or require an exact patch build, allocator callback census, prior
+imports or a one-shot process history. That explicit private mechanism retains
+its original lifetime for callers that selected it. The normal factory copies
+the documented trusted state-directory option, including PathLike, once before
+component acquisition and preserves its spelling and encoded path bound.
+Reopen uses the existing durable installation validation, locks and saved Run
+originals; it neither recreates missing authority nor retries uncertain work.
