@@ -6,6 +6,16 @@ extern actql_native_observed_component_member *fixture_member(int,int,int *);
 extern void fixture_member_stop(actql_native_observed_component_member *);
 extern int fixture_member_checks(void);
 
+static void *foreign_stack_thread(void *raw) {
+  const actql_bootstrap_command_stack *original = raw;
+  assert(!actql_bootstrap_command_stack_current(original));
+  actql_bootstrap_command_stack refused = {0};
+  assert(!actql_bootstrap_capture_command_stack(&refused));
+  assert(refused.attempted && !refused.captured);
+  assert(!actql_bootstrap_capture_command_stack(&refused));
+  return NULL;
+}
+
 static void *foreign_thread(void *raw) {
   actql_native_command_platform_load *load = raw;
   assert(actql_native_command_platform_current() == NULL);
@@ -35,6 +45,46 @@ int main(int argc, char **argv) {
     refused_selection[2] == 33 && refused_selection[3] == 44);
   assert(!actql_command_entry.initial_coverage_complete);
   assert(actql_command_entry.initial_managed == NULL);
+  if (strcmp(argv[1], "initial-stack") == 0) {
+    actql_bootstrap_command_stack *original = &actql_command_entry.initial_stack;
+    volatile unsigned char marker = 0;
+    assert(original->attempted && original->captured);
+    assert(original->process == getpid());
+    assert(pthread_equal(original->thread, pthread_self()));
+    assert(original->upper == (uintptr_t)pthread_get_stackaddr_np(pthread_self()));
+    assert(original->bytes == pthread_get_stacksize_np(pthread_self()));
+    assert(original->lower == original->upper - original->bytes);
+    assert((uintptr_t)&marker >= original->lower && (uintptr_t)&marker < original->upper);
+    assert(actql_bootstrap_command_stack_current(original));
+    uintptr_t lower = original->lower, upper = original->upper;
+    size_t bytes = original->bytes;
+    assert(!actql_bootstrap_capture_command_stack(original));
+    assert(original->lower == lower && original->upper == upper && original->bytes == bytes);
+    pthread_t other;
+    assert(pthread_create(&other, NULL, foreign_stack_thread, original) == 0);
+    assert(pthread_join(other, NULL) == 0);
+    assert(actql_bootstrap_command_stack_current(original));
+    pid_t child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+      assert(!actql_bootstrap_command_stack_current(original));
+      _exit(0);
+    }
+    int status = -1;
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+    original->lower += 1;
+    assert(!actql_bootstrap_command_stack_current(original));
+    original->lower = lower;
+    assert(actql_bootstrap_command_stack_current(original));
+    assert(!actql_command_entry.initial_coverage_complete);
+    assert(!actql_command_entry.initial_envelope_admitted);
+    assert(actql_native_command_platform_current() == NULL);
+    printf("original stack bytes=%zu entry bytes=%zu\n", original->bytes,
+      sizeof(actql_command_entry));
+    puts("original entry record passed");
+    return 0;
+  }
   if (strcmp(argv[1], "initial-volume") == 0) {
     size_t observed = 0, expected = 0;
     assert(actql_command_initial_parser_volume(

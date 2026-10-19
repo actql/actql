@@ -7,6 +7,7 @@
 #include "../../platform_native/host_bootstrap/command_platform.h"
 #include "command_output.h"
 #include "command_initial_parser_volume.h"
+#include "command_initial_stack.h"
 #include <stdatomic.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -42,6 +43,7 @@ struct actql_native_command_platform_original {
   /* Parser allocation volume only; never promotes initial coverage. */
   size_t initial_parser_allocation_volume;
   actql_native_initial_managed_original *initial_managed;
+  actql_bootstrap_command_stack initial_stack;
   actql_bootstrap_command_output output_control;
   bool closing;
   actql_native_command_platform_load loads[2];
@@ -73,6 +75,7 @@ bool actql_native_command_platform_managed_selection(
       !pthread_equal(entry->thread, pthread_self()) ||
       entry->source != actql_command_input_source ||
       actql_command_early_input_status != ACTQL_COMMAND_INPUT_OK ||
+      !actql_bootstrap_command_stack_current(&entry->initial_stack) ||
       !entry->initial_coverage_complete) return false;
   for (size_t index = 0; index < 4; ++index)
     out[index] = entry->initial_managed_selection[index];
@@ -87,6 +90,10 @@ __attribute__((constructor)) static void actql_command_capture_process_entry(voi
   int expected = 0;
   if (!atomic_compare_exchange_strong_explicit(&actql_command_entry_state,
       &expected, -2, memory_order_acq_rel, memory_order_acquire)) return;
+  /* Capture the same OS-created main-thread stack before bounded input and
+   * parser work. Failed capture remains with this one entry; compatibility
+   * selection is still decided by its original input below. */
+  (void)actql_bootstrap_capture_command_stack(&actql_command_entry.initial_stack);
   actql_native_client_capture_initial_input();
 #if defined(__APPLE__)
   const char *source = actql_native_client_selected_source();
@@ -106,6 +113,14 @@ __attribute__((constructor)) static void actql_command_capture_process_entry(voi
   extern const struct mach_header_64 _mh_execute_header;
   actql_command_entry.image = &_mh_execute_header;
   actql_command_entry.source = source;
+  if (actql_command_early_input_status != ACTQL_COMMAND_INPUT_NOT_SELECTED &&
+      !actql_bootstrap_command_stack_current(&actql_command_entry.initial_stack)) {
+    atomic_store_explicit(&actql_command_entry_state, -1, memory_order_release);
+#if defined(ACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY)
+    actql_command_initial_refusal();
+#endif
+    return;
+  }
   if (actql_command_early_input_status != ACTQL_COMMAND_INPUT_NOT_SELECTED &&
       !actql_command_initial_parser_volume(
       actql_command_input.input.arguments, actql_command_input.input.storage_bytes,
@@ -180,7 +195,8 @@ static bool actql_command_entry_thread(
     const actql_native_command_platform_original *entry) {
   return entry == &actql_command_entry &&
     atomic_load_explicit(&actql_command_entry_state, memory_order_acquire) == 2 &&
-    entry->process == getpid() && pthread_equal(entry->thread, pthread_self());
+    entry->process == getpid() && pthread_equal(entry->thread, pthread_self()) &&
+    actql_bootstrap_command_stack_current(&entry->initial_stack);
 }
 
 actql_native_command_platform_original *

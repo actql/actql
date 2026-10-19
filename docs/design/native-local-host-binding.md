@@ -1594,6 +1594,17 @@ platform entrance, positive bounds remain insufficient and command preparation
 refuses before physical acquisition. No scalar, source label or successful
 component test supplies that missing original.
 
+The trusted early entry captures the original OS-created main-thread stack
+before argument/control work, retaining its complete reported extent with the
+original process and thread. Current use requires that same thread, process,
+OS extent and an actual current stack address within it. Foreign threads,
+fork-inherited records and changed extents cannot consume that original. This
+process-lived holding has no child-close or refill operation. Its size is
+supplied stack capacity, not a measured call-chain high-water mark, another
+allocator's backing or a guarantee that every possible call chain fits. The
+subordinate stack record does not admit the complete initial envelope: loader,
+TLS, FILE and all other external controls retain their separate requirements.
+
 
 The same early entry retains a source-bound managed allocation-volume sum for
 its captured argc, original byte total and four original allocator-class terms.
