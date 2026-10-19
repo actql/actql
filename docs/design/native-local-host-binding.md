@@ -5,6 +5,26 @@ Native Local CLI. These are implementation requirements, not claims that Local
 execution or Provider approval has passed public acceptance. The existing
 Native Remote CLI, its wire contracts and distribution remain intact.
 
+## Ordinary product startup boundary
+
+The [ordinary Embedded Host contract](../spec/execution.md#initial-node-control-preparation)
+and its [decision rationale](embedded-host-trust-boundary.md) apply to the public
+Native CLI as well as Node and Python. A normal main entry, supported loader,
+standard libraries and OS are trusted. Public output uses supported write/flush
+APIs, bounded encoding and error handling; libc-private FILE fields, pristine
+stdio, pre-main allocation provenance and process-wide arena coverage are not
+command admission requirements.
+
+Actual shared native buffers, SQLite/crypto contexts, FDs and in-flight work
+retain their explicit ownership and release rules. In particular, do not
+convert a real busy arena/context with live users into a false release ACK.
+Legacy complete-process bootstrap descriptions below are selected implementation
+material, superseded as ordinary startup requirements. Preserve applicable
+per-resource containment rather than extending them to libc or runtime caches.
+Trusted explicit Mock initialization may perform the adopted limited setup
+through the existing adoption/signing Owners; retained reopen never regenerates
+missing adopted configuration, keys or authority.
+
 ## Explicit configuration adoption
 
 The operator explicitly selects the configuration, execution account and private
@@ -1885,30 +1905,22 @@ checks. Those existing stronger checks remain required on their original route.
 Neither image construction nor its import census admits the command's initial
 control, external holdings, account authority or normal numerical profile.
 
-### Selected initial OS facility and managed arena
+### Selected native resource facilities
 
-The selected Darwin Native entry retains one actual process/main-thread OS
-service original before allocator setup and before later initializers. Its
-closed recipe requires the same executable/source entry, original stack and
-bounded raw arguments, pristine standard streams, supported loader environment,
-and the preselected MI217 arena geometry. The checked Local producer selects
-this recipe only at its original entry object; an operational flag, source
-label or captured OS record alone does not satisfy those conjunctions.
-
-The platform service original covers the already selected loader/TLS/control
-lifetime without representing byte reservation or a numerical demand. The
-managed payload remains a distinct actual exclusive mapping. Its finite
-candidate is not a guarantee that every bounded input fits. Loader environment
-changes refuse normal use permanently for that original; they neither create a
-new lifetime nor acknowledge partial modules, TLS users or backing retirement.
-The later Runtime/member bindings and each original cleanup carrier remain
-separate from this initial selection.
+An ordinary command acquires the native facilities it actually uses through
+normal initialization. A selected exclusive mapping or arena can supply bounded
+ActQL computation or FFI storage. Its actual geometry, allocations, borrowers
+and release status remain explicit, without claiming that the mapping backs
+libc, prior process allocations, the language runtime or unrelated libraries.
+Normal argument parsing and supported I/O do not require a pristine-stream or
+pre-main constructor witness. Compatibility and integrity checks apply to the
+actual executable/component interfaces, not to an invented platform history.
 
 ### Static command preparation facilities
 
 The trusted selected installer fixes a command-preparation candidate after the
 pinned original parser succeeds and before its first physical acquisition. The
-initial entry's managed arena and OS-service lifetime remain separate. Help,
+command-owned mappings and trusted runtime lifetime remain separate. Help,
 version, parser errors and unselected compatibility calls do not acquire the
 command Host, Journal, Root or Read.
 
@@ -1956,10 +1968,12 @@ its initial managed facility only after the original Read has left. The original
 Read body and the control copy coexist until their actual cleanup. Only after
 Journal, Libraries/component, contexts/domains, Host, backing descriptor and
 Lock cleanup acknowledge does main encode/write/flush that copy. Cleanup failure
-retains the original carrier and emits no staged success. The copied text,
-newline, UTF-8 buffer and static stdout buffer remain distinct simultaneous
-initial-control holdings; none is a physical cleanup acknowledgement. Streamed
-Result material remains outside this static metadata path.
+retains the original carrier and emits no staged success. The managed output
+text and UTF-8 encoding remain bounded, but libc's output
+buffer and process caches are not Host-owned physical release duties. Write and
+flush failures are reported using public APIs. A delivery failure does not erase
+a confirmed business outcome or authorize resending it. Streamed Result material
+retains its actual producer/buffer lifetime outside this static metadata path.
 
 A closed Journal can still retain its original managed Database alias. After
 Read-side Session, Root and Crypto Library cleanup has acknowledged, retire the

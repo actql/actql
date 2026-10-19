@@ -18,7 +18,8 @@ This document owns capture, admission, run-identity-model, checkpoint-invariants
 
 - [Terms](#execution-terms)
 - [Run execution](#effects-and-execution)
-- [Scoped initial Node control preparation](#initial-node-control-preparation)
+- [Ordinary Embedded Host trust and resources](#initial-node-control-preparation)
+- [Initial Local Mock authorization](#initial-local-mock-authorization)
 - [Managed retained execution profile](#managed-retained-execution)
 - [Capture, execution, and replay](#capture-and-replay)
 - [Program and stage execution](#stage-execution)
@@ -102,41 +103,126 @@ against the materialized Results instead.
 
 <a id="initial-node-control-preparation"></a>
 
-### Scoped initial Node control preparation
+### Ordinary Embedded Host trust and resources
 
-The selected trusted Node startup may include bounded original Project,
-configuration and Task intake, normalization and Host preparation records in
-its finite initial control scope. This is an explicit scoped implementation
-assumption, not a universal V8/RSS lease or adoption of a Native arena.
-A separate per-object V8 physical lease is not required merely to initialize
-this declared scope. Numerical release profiles remain independently selected.
+Ordinary Node and Python embedding and the Native CLI trust the supported OS,
+language runtime, standard libraries and embedding application. Program text,
+Parameters, acquired data, Provider responses and persisted records remain
+untrusted inputs to their respective admissions. This boundary intentionally
+replaces the former startup-wide Node control-envelope requirements. It does
+not claim equivalent whole-runtime physical coverage.
 
-<!-- requirement-block: initial-node-control.original-before-work -->
-The existing Host/Resource installer MUST issue an installation-only nominal
-operational admission from the actual selected startup, source, backend,
-recipe, Host, installation and generation before the covered work, rather than
-issuing or reconstructing it from DATA, runtime references, a Boolean, a CID,
-a Ledger or a future Run reservation.
+<!-- requirement-block: ordinary-host.trusted-platform -->
+An ordinary Host MUST establish its instance through normal public
+initialization on a supported runtime, without requiring a special preload,
+proof of pre-entry execution history, pristine standard-stream internals,
+or physical provenance for every runtime allocation. Runtime compatibility
+checks must identify required APIs, ABI and supported platforms; reproducible
+build pins alone do not restrict all consumers to one runtime patch version.
 
-<!-- requirement-block: initial-node-control.complete-selected-envelope -->
-Admission MUST cover the complete same-phase simultaneous holdings and overlap
-of the selected raw and decoded inputs, parser and normalizer intermediates,
-original records, closures, actual module/runtime/library domains and partial
-failure custody, refusing an unbounded or unaccounted selected component and
-never retrospectively funding an earlier import, discovery or installation.
+<!-- requirement-block: ordinary-host.instance-lifecycle -->
+The Host MUST validate documented options and retain an internal configuration
+before asynchronous use, maintain instance-local active/closing/closed state,
+reject use of retired handles, and support reopening and independent Hosts
+within one process. State-directory locks and shared-resource ownership remain
+effective; opening another Host cannot reset an existing Run's cumulative
+budgets, send history or durable identity.
 
-<!-- requirement-block: initial-node-control.scope-separation -->
-This initial admission MUST NOT supply capacity or authority for metadata HTTP,
-Source acquisition, Result handling, a business Run, Model invocation, Content
-or its physical driver, or an external VM; each retains its independently
-admitted original supplier, scope and current authorization.
+<!-- requirement-block: ordinary-host.input-boundary -->
+The Host MUST bound untrusted encoded input before parsing and enforce the
+applicable type, depth, size and semantic contracts. Trusted embedding options
+and callbacks are not an adversarial same-process sandbox: their acquisition
+does not require a prior proof of the caller object's complete closure graph,
+nor does application code become untrusted wire data merely by passing options.
 
-<!-- requirement-block: initial-node-control.retained-custody -->
-Preparation aliases MUST remain accounted to the same original lifetime until
-real owning cleanup acknowledgement or an explicitly admitted transfer accounts
-for overlapping responsibility, preserving current checks, child-first cleanup
-and uncertain duties without treating close initiation, Promise settlement,
-reference retirement or garbage collection as physical acknowledgement.
+<!-- requirement-block: ordinary-host.managed-limits -->
+The existing execution Owners MUST enforce admitted limits on the units they
+control, including input and output sizes, rows, work, transfer, retained managed
+buffers, queues, concurrency, calls, tokens and deadlines where selected.
+Accounting must state its subject and coverage; a scalar reservation or declared
+envelope does not establish actual allocation, available capacity or a hard
+bound on process RSS, runtime heaps, JIT or library caches.
+
+<!-- requirement-block: ordinary-host.real-acquisition -->
+The normal product Host MUST supply its required resources through ordinary
+allocation, file, database, crypto and worker facilities, retaining partial
+acquisitions for cleanup and reporting actual failures. Missing diagnostic
+issuers cannot be replaced with fabricated capacity, successful ACKs or an
+unconditional fallback; ordinary initialization itself may create the real
+owned resources without an earlier process-wide physical-admission proof.
+
+<!-- requirement-block: ordinary-host.resource-lifetimes -->
+The Host MUST retain explicit duties for open databases, statements, FDs,
+sockets, active work and native or zero-copy shared buffers until their owning
+APIs establish the applicable completion or release. Ordinary copied managed
+values end the Host's retention duty when its owned references are released;
+their GC completion and process-wide caches are not Host-close conditions.
+An alias still accessing a native shared buffer is not an ordinary copied value.
+
+<!-- requirement-block: ordinary-host.outcome-separation -->
+The Host MUST distinguish confirmed business outcomes, pending cleanup and
+external-send uncertainty. Unobserved managed-memory reclamation cannot by
+itself turn a confirmed operation into an unknown external outcome, and
+cleanup failure or reopening cannot authorize replay of a possibly sent call.
+Live native users and unfinished physical cleanup retain their real duties.
+
+<!-- requirement-block: ordinary-host.authorization-preservation -->
+Ordinary initialization MUST preserve checked types, current Account and egress
+authority, exact Preview/Checkpoint/approval binding, key-purpose separation,
+durable Run/Result integrity and no-resend recovery. A trusted runtime,
+successful allocation or matching content CID grants none of that authority.
+
+<!-- requirement-block: ordinary-host.isolation -->
+A deployment accepting hostile executable extensions, arbitrary native code
+or mutually untrusted tenants MUST use an appropriate isolation boundary rather
+than treating SDK object checks as that boundary. An OS quota or worker limit
+must be described by its actual coverage and failure behavior; ordinary
+embedding does not promise a universal whole-process memory ceiling.
+
+<a id="initial-local-mock-authorization"></a>
+
+### Initial Local Mock authorization
+
+Explicit Mock selection by the trusted CLI or embedding application consents
+to the following initial Local profile. A Program value or a merely discovered
+untrusted Project setting is not that consent. The concrete shared profile body,
+identifier and CID belong to the existing Account/profile Owner.
+
+<!-- requirement-block: initial-mock.authority-scope -->
+The initial profile MUST grant only the selected Mock Sources' reads, selected
+Mock Task/answers' inference, and necessary Local Run/Result/control operations
+for that Project, installation and initialization principal. Its selected Mock
+UPDATE uses existing Delegate/Checkpoint approval before application. The
+profile grants no live service, arbitrary-file, external-egress or unselected
+operation authority and performs no live Credential or Provider fallback.
+
+<!-- requirement-block: initial-mock.installation-and-recovery -->
+The Host MUST bind those grants to the selected Mock backend, installation,
+Local principal, Project/managed area, resources and contracts, not aliases or
+a profile CID alone. Restart may reconstruct handles from the validated durable
+installation and current authority; it does not require persistent pointer
+identity. Existing Runs reuse their saved inputs, answers and Previews, while
+new Runs may use contract-compatible changed data without a new grant.
+
+<!-- requirement-block: initial-mock.exclusive-adoption -->
+Initial setup MUST exclusively create the selected new managed area, persist
+its initialization intent before non-transactional configuration creation,
+avoid overwriting operator configuration, and confirm adoption against the
+created configuration and installation. A concurrent or interrupted initializer
+observes or recovers that same intent rather than issuing a second adoption.
+Missing configuration, keys or Store after adoption cannot trigger automatic
+regrant, key replacement or a fresh Run; current Deny and restrictions remain
+effective without automatic policy expansion.
+
+<!-- requirement-block: initial-mock.reviewer-and-signing -->
+Fresh setup MUST prepare the initialization principal's scoped Local Reviewer
+registration and actual signing key through the existing distinct Account and
+signing Owners, without requiring external login or manual key registration.
+Only an explicit authorized approve action signs the same Checkpoint/Preview;
+setup and run cannot approve automatically. One valid approval may satisfy
+coincident review restrictions on that same Preview. Signer absence blocks
+approval and update, not otherwise authorized reads or Mock inference that
+need no Reviewer signature.
 
 <a id="managed-retained-execution"></a>
 
