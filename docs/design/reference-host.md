@@ -858,6 +858,15 @@ amounts, and cannot obtain a Source read. The supported two-Source path keeps
 its original acquisition correspondence. Other unsupported backend shapes are
 not invalid public Programs and do not silently fall back to accounting limits.
 
+The Host retains the original admission before beginning the Run. A failed
+begin keeps that same admission's unpublished or started cleanup, never a
+replacement attempt. The source-free dispatcher opens its configured Compute
+Host through this opaque Run and rechecks the original Ledger after sequence
+preparation. It cannot use the legacy scalar constructor on refusal. Successful
+cleanup callbacks and receivers are captured before another child can await;
+the original Run retires only after dispatch/DAG cleanup, before its installation
+scope closes. Unknown retirement retains both duties and their aliases.
+
 Both private views retain their fixed purpose-specific startup callbacks.
 Currentness for a Source view cannot authenticate a Compute view or vice versa.
 Shared process/module domains remain one original, with packet, preparation,

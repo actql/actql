@@ -2154,6 +2154,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     faultInjection: authorization?.faultInjection,
     fragment, ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
     runInfer, runContent, retainedRelationOutput, observation,
+    managedComputeRequired: originalRequestPreparation !== undefined && originalSourcePreparation === undefined,
     computeConfigurations: {local:localSnapshotConfiguration}});
   const startDispatch = dispatchOwner.start;
   const recoverEffectCapture = (ref, signal) => {
@@ -2556,6 +2557,10 @@ async function openInstalledHost(originalInstallation, preparation) {
       // not issued after compilation or reconstructed from graph limits.
       sourceProfile.prepareManagedRun(submission.preparedProgram, requested);
     }
+    const managedRun = preparation !== undefined && acquisitionCount === 0 &&
+      !inferSelections.has(submission.preparedProgram) &&
+      moon.clientProgramSerializationOccurrences(submission.preparedProgram).length === 0
+      ? preparation.prepareManagedComputeRun(moon, submission.preparedProgram, requested) : undefined;
     const preparedSources = acquisitionCount === 2
       ? await prepareAcquisitions(submission.preparedProgram) : undefined;
     const keyedPrepared = keyedAcquisition === undefined ? undefined :
@@ -2617,7 +2622,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           revision: existing.revision};
       }
     }
-    const held = {preparedSource, preparedSources, keyedSource,
+    const held = {preparedSource, preparedSources, keyedSource, managedRun,
       preparedSourceAccess: preparedSource === undefined ? undefined :
         installedSourceFor(sourceProfile, preparedSource.checkedSource.sourceRef).sourceAccess};
     const accepted = await admitDefinition(submission, requested,
@@ -4038,6 +4043,14 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       sourceManaged = sourceManagedClose = undefined;
     }
     if (computeManaged !== undefined) {
+      const run = record.computeRun;
+      if (run !== undefined && !run.closed) {
+        // Dispatch has stopped/reclaimed its DAG before this initial duty.
+        // A failed begin still owns its SAME Resource admission without Run.
+        if (run.value !== undefined) checked(Reflect.apply(run.retire, run.runtime, [run.value]));
+        else if (run.admission !== undefined) checked(Reflect.apply(run.cleanup, run.runtime, [run.admission]));
+        run.closed = true;
+      }
       // The acquired original survives a failed first callback observation.
       // An observed close is captured once and cannot be replaced during
       // another child's await. Closing the Journal is not this child's ACK.
@@ -4199,6 +4212,43 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       if (computeManaged === undefined) throw clientOperationError('NodeManagedRunAdmissionUnavailable');
       assertManagedComputeInstallationCurrent(computeManaged, originals);
       return computeManaged;
+    },
+    prepareManagedComputeRun(runtime, prepared, request) {
+      if (runtime !== moon || computeManaged === undefined || mockPreparation !== undefined) {
+        throw clientOperationError('ForeignInstalledComputePreparation');
+      }
+      assertManagedComputeInstallationCurrent(computeManaged, originals);
+      let run = record.computeRun;
+      if (run !== undefined) {
+        if (run.failure !== undefined) throw run.failure;
+        if (run.closed || run.runtime !== runtime || run.prepared !== prepared) {
+          throw clientOperationError('ForeignInstalledComputeRun');
+        }
+        checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
+        return run.value;
+      }
+      run = {runtime, prepared, request, original: undefined, admission: undefined,
+        value: undefined, failure: undefined, closed: false};
+      record.computeRun = run;
+      try {
+        // Capture cleanup before acquiring the original. Failure after start
+        // cannot be repaired by issuing another admission or a zero report.
+        run.retire = runtime.clientProgramInstalledManagedRunRetire;
+        run.cleanup = runtime.clientProgramNodeManagedRunCleanup;
+        run.check = runtime.clientProgramInstalledManagedRunCheck;
+        run.prepare = runtime.clientProgramNodeManagedRunPrepare;
+        run.begin = runtime.clientProgramInstalledManagedRunBegin;
+        if (![run.retire, run.cleanup, run.check, run.prepare, run.begin].every(value => typeof value === 'function')) {
+          throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+        }
+        run.original = computeManaged.prepareRun(prepared);
+        assertManagedComputeInstallationCurrent(computeManaged, originals);
+        run.admission = checked(Reflect.apply(run.prepare, runtime, [run.original, prepared]));
+        run.value = checked(Reflect.apply(run.begin, runtime, [run.admission, prepared, request]));
+        assertManagedComputeInstallationCurrent(computeManaged, originals);
+        checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
+        return run.value;
+      } catch (error) {run.failure = error; throw error;}
     },
     sourcePreparation() {
       if (mockPreparation === undefined) return undefined;

@@ -29198,7 +29198,7 @@
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "421b163816f7420eeff00c6428eda2ce8582d4e8fa7af3324082c252e31b284f",
+      "sha256": "27f4fb4644e29ed99504825f6464b5752922e146ee16fcae8759fb7349625312",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -29266,6 +29266,7 @@
             "runContent",
             "computeConfigurations",
             "observation",
+            "managedComputeRequired",
             "retainedRelationOutput",
             "runPublished"
           ],
@@ -29778,6 +29779,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host through this opaque Run and rechecks the original Ledger after sequence"
               }
             ],
             "inputsOutputs": [
@@ -29788,6 +29793,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "held.managedRun, preparedProgram, requested, registry, values,"
               }
             ],
             "identity": [
@@ -29798,6 +29807,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "prepare_installed_managed_run_ledger("
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "check_installed_managed_run(value, prepared, request)"
               }
             ],
             "ownership": [
@@ -29808,6 +29825,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "entry.pendingSetup = setup;"
               }
             ],
             "synchronization": [
@@ -29818,6 +29839,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "// Retain before the reservation/fault boundary: cancellation can"
               }
             ],
             "failure": [
@@ -29828,6 +29853,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "throw new Error('InstalledManagedComputeHostUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "actual dispatcher propagates missing/foreign/parked original refusal without fallback"
               }
             ],
             "cancellation": [
@@ -29838,6 +29871,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the original Run retires only after dispatch/DAG cleanup, before its installation"
               }
             ],
             "resources": [
@@ -29848,6 +29885,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "acquisition_ledger=Some(ledger),"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "preparation. It cannot use the legacy scalar constructor on refusal."
               }
             ],
             "extension": [
@@ -29858,6 +29903,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "or Content storage, Model, Effect and external I/O keep their separate actual"
               }
             ],
             "verification": [
@@ -29872,6 +29921,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "actual dispatcher opens its opaque Run without the legacy accounting constructor"
               }
             ]
           }
@@ -36494,7 +36547,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "7c2587249f95cb0bea6e1e7d511f54a6cfe6327fb506128427836eeb4e5565f9",
+      "sha256": "3e6ea3f3fe0db7fe746ac2ea4ab47c64128607ccb1c6aa0a0a10ab7462164352",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -36506,6 +36559,7 @@
         "closeOriginalHostPublicationOwnership",
         "connectEmbeddedLocal",
         "connectInitialControlHostPreparation",
+        "managedComputeSubmittedIntentCid",
         "observeOriginalHostRequestJournalCustody",
         "openInstalledRemoteHttpHost",
         "openOriginalHostRequestJournal",
@@ -36517,6 +36571,7 @@
         "readHostJournalPreparation",
         "readInitialControlHostInput",
         "readInstalledMockPreparation",
+        "readManagedComputeRunRequirements",
         "readSourceManagedOriginalInput",
         "readSourceManagedRunRequirements",
         "snapshotInitialControlHostInput",
@@ -36650,6 +36705,32 @@
           "async": true
         },
         {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedCompute/init:prepareManagedCompute",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedCompute/init:prepareManagedCompute/init:prepareManagedCompute",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "connectEmbeddedLocal/preparation/init:publicationOwnership/init:publicationOwnership",
           "parameters": [],
           "async": false
@@ -36663,6 +36744,11 @@
         },
         {
           "name": "connectEmbeddedLocal/preparation/init:readEnvironmentSource/init:readEnvironmentSource",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:requestPreparation/init:requestPreparation",
           "parameters": [],
           "async": false
         },
@@ -36745,6 +36831,15 @@
         {
           "name": "localStateRoot",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "managedComputeSubmittedIntentCid",
+          "parameters": [
+            "originals",
+            "originalComputeInstallation",
+            "body"
+          ],
           "async": false
         },
         {
@@ -38441,6 +38536,35 @@
           "name": "readInstalledMockPreparation",
           "parameters": [
             "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "readManagedComputeRunRequirements",
+          "parameters": [
+            "originals",
+            "checkedPrepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "readManagedComputeRunRequirements/asset/asset",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "readManagedComputeRunRequirements/readManagedComputeRunRequirements",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readManagedComputeRunRequirements/readManagedComputeRunRequirements#2",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -43018,6 +43142,118 @@
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
                 "anchor": "test('captured open refuses inherited options added during initialization without reading them'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:prepareManagedCompute/init:prepareManagedCompute",
+            "connectEmbeddedLocal/preparation/init:prepareManagedCompute/init:prepareManagedCompute/init:prepareManagedCompute",
+            "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun",
+            "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun",
+            "connectEmbeddedLocal/preparation/init:requestPreparation/init:requestPreparation",
+            "managedComputeSubmittedIntentCid",
+            "readManagedComputeRunRequirements",
+            "readManagedComputeRunRequirements/asset/asset",
+            "readManagedComputeRunRequirements/readManagedComputeRunRequirements",
+            "readManagedComputeRunRequirements/readManagedComputeRunRequirements#2"
+          ],
+          "exports": [
+            "managedComputeSubmittedIntentCid",
+            "readManagedComputeRunRequirements"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Host retains the original admission before beginning the Run."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareManagedComputeRun(runtime, prepared, request) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function readManagedComputeRunRequirements("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "run.closed || run.runtime !== runtime || run.prepared !== prepared"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "record.computeRun = run;"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "record.computeManaged = original;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "computeManagedFlight = Promise.resolve().then(async () => {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const originalRequestPreparation = preparation?.requestPreparation();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "} catch (error) {run.failure = error; throw error;}"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "failed begin retains the admission and original cleanup through Unknown without reissuing"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "checked(Reflect.apply(run.cleanup, run.runtime, [run.admission]));"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "pub fn retire_installed_managed_run("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "pub fn open_installed_managed_source_free_host("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Shared process/module domains remain one original, with packet, preparation,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "or Content storage, Model, Effect and external I/O keep their separate actual"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "actual preparation binds one original Run and closes it before its same Root"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "actual Host acquires its same Journal before Compute and before publishing the SDK receiver"
               }
             ]
           }

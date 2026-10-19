@@ -2811,6 +2811,36 @@ pub fn client_program_open_source_free_local_retained_host(
 }
 
 ///|
+/// Open source-free Compute through the same original Resource Run. This is
+/// not the legacy scalar-accounting Host constructor or a second Ledger.
+#export_name("clientProgramOpenInstalledManagedSourceFreeHost")
+pub fn client_program_open_installed_managed_source_free_host(
+  value : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  retained_output : Bool,
+) -> Result[
+  @builtin.ConfiguredComputeHost[@strategy.RunIssue]?,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.open_installed_managed_source_free_host(
+    value,
+    prepared,
+    request,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    retained_output,
+    provider_factory=installed_client_family_providers,
+  )
+}
+
+///|
 /// The Local compute owner consumes a verified source from the installed
 /// physical acquisition adapter, preserving the checked Program graph.
 #export_name("clientProgramOpenCapturedLocalHost")

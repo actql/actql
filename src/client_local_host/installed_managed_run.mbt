@@ -372,6 +372,55 @@ pub fn prepare_installed_managed_run_ledger(
 }
 
 ///|
+/// Open source-free Compute on the same admitted Run. The original Ledger is
+/// checked again after sequence preparation; no scalar fallback can replace it.
+pub fn open_installed_managed_source_free_host(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  retained_output : Bool,
+  provider_factory? : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ] = _ => [],
+) -> Result[
+  @builtin.ConfiguredComputeHost[@strategy.RunIssue]?,
+  ClientInstalledManagedRunIssue,
+] {
+  if !value.reads.is_empty() {
+    return Err(Unsupported)
+  }
+  let ledger = match
+    prepare_installed_managed_run_ledger(
+      value, prepared, request, [], [], [], registry_body, values_body, fragment_body,
+      ordered_body,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(ledger) => ledger
+  }
+  Ok(
+    open_checked_local_host(
+      prepared,
+      None,
+      registry_body,
+      values_body,
+      1L,
+      0L,
+      0L,
+      0L,
+      fragment_body~,
+      ordered_body~,
+      retained_output~,
+      provider_factory~,
+      acquisition_ledger=Some(ledger),
+    ),
+  )
+}
+
+///|
 /// Managed retirement after all Source capture duties, actual Compute usage
 /// report and the original logical stop. This does not acknowledge FD/backing
 /// release, an uncertain operation, or another Run's remaining holdings.

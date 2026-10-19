@@ -103,6 +103,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
   faultInjection, runInfer, runContent, computeConfigurations = {},
   observation,
+  managedComputeRequired = false,
   retainedRelationOutput = false,
   runPublished = runPublishedCapturedStrategy}) {
   const entries = new Map();
@@ -653,12 +654,26 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       let acquiredInfer;
       let acquiredContent;
       if (!acquiring && !inferring && !serializing) {
-        const open = retainedRelationOutput
-          ? moon.clientProgramOpenSourceFreeLocalRetainedHost
-          : moon.clientProgramOpenSourceFreeLocalHost;
-        setup = open(
-          preparedProgram, registry, values, 1n, 0n, 0n, 0n,
-          fragment, ordered);
+        if (managedComputeRequired && held.managedRun === undefined) {
+          throw new Error('InstalledManagedComputeRunUnavailable');
+        }
+        if (held.managedRun !== undefined) {
+          if (typeof moon.clientProgramOpenInstalledManagedSourceFreeHost !== 'function') {
+            throw new Error('InstalledManagedComputeHostUnavailable');
+          }
+          // This opaque Run already owns the original operational Ledger.
+          // Missing/foreign/parked originals cannot fall back to accounting.
+          setup = checked(moon.clientProgramOpenInstalledManagedSourceFreeHost(
+            held.managedRun, preparedProgram, requested, registry, values,
+            fragment, ordered, retainedRelationOutput));
+        } else {
+          const open = retainedRelationOutput
+            ? moon.clientProgramOpenSourceFreeLocalRetainedHost
+            : moon.clientProgramOpenSourceFreeLocalHost;
+          setup = open(
+            preparedProgram, registry, values, 1n, 0n, 0n, 0n,
+            fragment, ordered);
+        }
         if (setup === undefined) throw new Error('ClientProgramNeedsInputs');
         // Retain before the reservation/fault boundary: cancellation can
         // arrive there before runPublished transfers execution custody.
