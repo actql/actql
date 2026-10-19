@@ -336,11 +336,15 @@ function hostJournalNativeStructureRequests(input) {
   // stays below8*(P+1) slots; include a full old/new pair for EVERY attempted
   // insertion rather than assuming reset/clear/GC retires native storage.
   const membershipBucketRequest = checked(64n * checked(P + 1n));
-  // sqlite3_column_count returns the original Vdbe's u16 nResColumn. This
-  // representation upper does not promote an observed22 to a future24 bound,
-  // or alter a supported public/SQL column limit. The separate fixed-template
-  // P4 metadata argument retains its own conditional qualification.
-  const resultColumns = 65535n;
+  // The u16 representation permits65535 columns in general. This private
+  // vector is conditional on the SAME closed authored SQL/own-DDL originals:
+  // their output lists have at most22 scalar columns, star expands only the
+  // exact owned ordinary tables, and the fixed pragmas return at most6.
+  // Retain24 conservatively from that SOURCE argument, not an observed row
+  // width. A different SQL/schema/receiving graph cannot inherit this term.
+  // Neither this condition nor its numbers issue an operational admission or
+  // impose a public SQL/Value limit. Keep the representation fallback visible.
+  const representationColumns = 65535n, resultColumns = 24n;
   const resultRows = checked(X * checked(L + 1n));
   const resultCopies = checked(resultRows * resultColumns);
 
@@ -348,8 +352,10 @@ function hostJournalNativeStructureRequests(input) {
     qualification:'partial-native-request-vectors', completePhase:false,
     replenishedOnClose:false,
     nodeResults:freeze({
-      qualification:'conditional-ordinary-node-result-backing-subset', completeResultFacility:false,
-      columnRepresentationUpper:resultColumns,
+      qualification:'conditional-fixed-owned-sql-node-result-backing-subset', completeResultFacility:false,
+      columnRepresentationUpper:representationColumns, fixedSqlColumnsUpper:resultColumns,
+      requiresOriginalFixedSqlClosure:true, arbitrarySqlCovered:false,
+      representationValueCopiesUpper:checked(resultRows * representationColumns),
       rowHistoryUpper:resultRows, maximumValueCopies:resultCopies,
       keyConversionsUpper:resultCopies,
       iteratorProtocolObjectsUpper:checked(X * checked(L + 2n)),

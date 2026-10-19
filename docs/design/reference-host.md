@@ -924,6 +924,14 @@ allowances. Native single-row conversion, schema/connection/cache/transaction
 workspace and the optional observation connection still require their complete
 selected facility coverage before acquisition.
 
+A conditional native result estimate may use the same fixed authored SQL's
+output lists, exact admitted own-schema wildcard expansion and selected pragma
+definitions. It must not extrapolate a measured result width to future queries
+or confuse a representation ceiling with that narrower source argument. The
+original SQL/schema and receiving graph remain dependencies of the estimate;
+changing them requires renewed correspondence. Neither estimate selects a
+public column limit or supplies allocator, managed-result or physical capacity.
+
 The physical request-Journal Owner also observes custody for its own actual
 factory results. This private nominal observation separates logical Journal
 closure from the confirmed native database close and records whether the
