@@ -1601,6 +1601,12 @@ selection. Its one-shot physical binding initializes that allocator, captures
 the actual parent default heap, reserves the exclusive payload and selects the
 heap created in that same reservation before managed module initialization.
 An absent or incomplete selection cannot perform allocator setup.
+The profile selects the pinned allocator defaults and refuses ambient allocator
+options before setup, including case variants and unsupported option names.
+Its bounded startup environment observation allocates no storage and rewrites
+no option. On refusal, the entry must stop before subsequent automatic allocator
+or module initializers; returning into those initializers cannot establish a
+pre-acquisition refusal.
 
 Partial setup retains that same receiver and any acquired reservation or heap;
 a duplicate or refused receiver inherits none of its cleanup responsibility.

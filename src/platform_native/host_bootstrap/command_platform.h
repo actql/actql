@@ -71,7 +71,10 @@ bool actql_native_command_platform_managed_selection(
  * public factory or caller-defined allocator callbacks. A refused/duplicate
  * begin returns NULL; after an allocator attempt, its SAME retained partial
  * original is returned even on failure and must not be replaced or retried.
- * The executable includes initial_managed.inc in its one original entry TU. */
+ * The selected profile refuses ambient allocator options before setup. The
+ * executable includes initial_managed.inc in its one original entry TU and
+ * must stop on refusal before later automatic allocator/module initializers;
+ * returning from the constructor into them is not a refusal boundary. */
 actql_native_initial_managed_original *actql_native_initial_managed_begin(
   actql_native_command_platform_original *entry);
 bool actql_native_initial_managed_current(
