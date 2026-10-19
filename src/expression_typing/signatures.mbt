@@ -449,6 +449,7 @@ fn infer(
       primitive(t, StringType, nullable, source)
     }
     "#null" => put(t, Hole, true, source)
+    "current_timestamp" => primitive(t, TimestampType, false, source)
     "typed_literal" => {
       let text = string(part(node.body, "value"))
       let (value, nodes, _) = match

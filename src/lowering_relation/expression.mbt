@@ -28,6 +28,7 @@ pub enum ExpressionBody {
   Many(ManyOperator, Array[Expression])
   Conditional(Expression, Expression, Expression)
   Case(Array[(Expression, Expression)], Expression)
+  CurrentTimestamp
 }
 
 ///|
@@ -202,6 +203,7 @@ pub fn expression_view_entries(value : Expression) -> Int {
     Field(_, _)
     | Literal(_)
     | TypedNull
+    | CurrentTimestamp
     | EmptyArray
     | Property(_, _, _)
     | Subscript(_, _)
@@ -248,7 +250,8 @@ fn expression_tag(
   source : @decode.Cursor,
 ) -> Unit raise ExpressionStop {
   match tag {
-    "field"
+    "current_timestamp"
+    | "field"
     | "literal"
     | "typed_literal"
     | "$param"
@@ -390,7 +393,12 @@ fn expression_children(
       }
       children
     }
-    "empty_array" | "literal" | "typed_literal" | "field" | "$param" => []
+    "empty_array"
+    | "literal"
+    | "typed_literal"
+    | "field"
+    | "$param"
+    | "current_timestamp" => []
     "decimal_divide" => {
       let obj = @decode.open_object(body).unwrap()
       [
@@ -937,6 +945,7 @@ fn lower_typed_expression_measured(
           }
           Property(args[0], name, ordinal)
         }
+        "current_timestamp" => CurrentTimestamp
         "field" => {
           let name = @decode.text(body).unwrap()
           guard fields.get(name) is Some(target) else {
@@ -1187,7 +1196,11 @@ fn lower_typed_expression_measured(
           Case(clauses, otherwise) =>
             otherwise.uses_veca ||
             clauses.any(pair => pair.0.uses_veca || pair.1.uses_veca)
-          Field(_, _) | Literal(_) | TypedNull | EmptyArray => false
+          Field(_, _)
+          | Literal(_)
+          | TypedNull
+          | EmptyArray
+          | CurrentTimestamp => false
         },
       }
     }

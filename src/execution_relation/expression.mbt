@@ -33,6 +33,7 @@ pub(all) enum EvalIssueKind {
   Scalar(ScalarIssue)
   LogicalEntry(LogicalBudgetIssue)
   LogicalValue(LogicalBudgetIssue)
+  QueryEvaluationTimeUnavailable
 } derive(Eq, Debug)
 
 ///|
@@ -197,6 +198,7 @@ fn evaluate_expression_with_workspace(
   budget : ControlBudget,
   workspace : RowWorkspace,
   logical_work? : LogicalBudget? = None,
+  query_time? : @publication.QueryEvaluationTime? = None,
 ) -> Result[Value, EvalIssue] {
   release_expression_result(
     root,
@@ -207,6 +209,7 @@ fn evaluate_expression_with_workspace(
       budget,
       workspace,
       logical_work~,
+      query_time~,
     ),
   )
 }
@@ -238,10 +241,17 @@ fn evaluate_expression_retained(
   budget : ControlBudget,
   workspace : RowWorkspace,
   logical_work? : LogicalBudget? = None,
+  query_time? : @publication.QueryEvaluationTime? = None,
 ) -> Result[EvaluatedValue, EvalIssue] {
   let scope = logical_work.map(b => expression_roots(b, budget.max_frames))
   let result = evaluate_expression_impl(
-    root, input, slots, budget, workspace, scope,
+    root,
+    input,
+    slots,
+    budget,
+    workspace,
+    scope,
+    query_time~,
   )
   check_expression_result(root, result, logical_work)
 }
@@ -288,6 +298,7 @@ priv struct ExpressionFrame {
   budget : ControlBudget
   workspace : RowWorkspace
   scope : ExpressionRoots?
+  mut query_time : @publication.QueryEvaluationTime?
   stack : Array[Continuation]
   arrays : Array[@admitted.ArrayBuilder]
   objects : Array[@admitted.ObjectBuilder]
@@ -312,6 +323,7 @@ fn expression_frame(
   budget : ControlBudget,
   workspace : RowWorkspace,
   scope : ExpressionRoots?,
+  query_time? : @publication.QueryEvaluationTime? = None,
 ) -> Result[ExpressionFrame, EvalIssue] {
   expression_frame_with_input(
     root,
@@ -320,6 +332,7 @@ fn expression_frame(
     budget,
     workspace,
     scope,
+    query_time~,
   )
 }
 
@@ -331,6 +344,7 @@ fn expression_frame_with_input(
   budget : ControlBudget,
   workspace : RowWorkspace,
   scope : ExpressionRoots?,
+  query_time? : @publication.QueryEvaluationTime? = None,
 ) -> Result[ExpressionFrame, EvalIssue] {
   if budget.remaining < 0 ||
     budget.max_frames < 0 ||
@@ -346,6 +360,7 @@ fn expression_frame_with_input(
     budget,
     workspace,
     scope,
+    query_time,
     stack: [],
     arrays: [],
     objects: [],
@@ -382,6 +397,7 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
   frame.membership_context = 0
   frame.stack.clear()
   frame.current_root = None
+  frame.query_time = None
   frame.selection_root = None
   frame.selection_pending = false
   match frame.state {
@@ -444,9 +460,10 @@ fn evaluate_expression_impl(
   budget : ControlBudget,
   workspace : RowWorkspace,
   scope : ExpressionRoots?,
+  query_time? : @publication.QueryEvaluationTime? = None,
 ) -> Result[EvaluatedValue, EvalIssue] {
   let frame = match
-    expression_frame(root, input, slots, budget, workspace, scope) {
+    expression_frame(root, input, slots, budget, workspace, scope, query_time~) {
     Ok(frame) => frame
     Err(issue) => return Err(issue)
   }
@@ -530,7 +547,7 @@ fn advance_expression_frame_impl(
         }
         let body = @lower.expression_body(expr)
         let leaf = match body {
-          Field(_, _) | Literal(_) | TypedNull => true
+          Field(_, _) | Literal(_) | TypedNull | CurrentTimestamp => true
           Unary(_, _)
           | Array(_)
           | EmptyArray
@@ -588,6 +605,17 @@ fn advance_expression_frame_impl(
             frame.state = Return(value)
           }
           Literal(value) => frame.state = Return(capture(value.value))
+          CurrentTimestamp => {
+            guard frame.query_time is Some(original) else {
+              return Err({
+                kind: QueryEvaluationTimeUnavailable,
+                expression: expr,
+              })
+            }
+            frame.state = Return(
+              capture(@publication.query_evaluation_time_value(original).value),
+            )
+          }
           TypedNull => frame.state = Return(Null)
           Property(child, name, index) => {
             frame.object_context += 1

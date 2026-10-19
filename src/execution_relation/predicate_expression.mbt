@@ -22,6 +22,7 @@ pub fn start_predicate_expression(
   max_work : Int,
   max_frames : Int,
   max_workspace_slots : Int,
+  query_time? : @publication.QueryEvaluationTime? = None,
 ) -> Result[PredicateExpressionExecution, EvalIssue] {
   start_predicate_expression_with_input(
     expression,
@@ -29,6 +30,7 @@ pub fn start_predicate_expression(
     max_work,
     max_frames,
     max_workspace_slots,
+    query_time~,
   )
 }
 
@@ -41,6 +43,7 @@ fn start_predicate_expression_with_input(
   max_work : Int,
   max_frames : Int,
   max_workspace_slots : Int,
+  query_time? : @publication.QueryEvaluationTime? = None,
 ) -> Result[PredicateExpressionExecution, EvalIssue] {
   expression_frame_with_input(
     expression,
@@ -49,6 +52,7 @@ fn start_predicate_expression_with_input(
     { remaining: max_work, max_frames, },
     row_workspace(max_workspace_slots),
     None,
+    query_time~,
   ).map(frame => {
     let inner : ExpressionExecution = { frame, finished: false, }
     { inner, finished: false, }

@@ -145,7 +145,8 @@ fn expression_role(
     | "date_diff"
     | "array"
     | "split"
-    | "vector_concat" => Arguments(tag)
+    | "vector_concat"
+    | "current_timestamp" => Arguments(tag)
     "to_decimal"
     | "typed_literal"
     | "join_field"
@@ -181,6 +182,7 @@ fn arity(
   origin : Origin,
 ) -> Unit raise Stop {
   let valid = match tag {
+    "current_timestamp" => size == 0
     "array" => true
     "instr" => size >= 2 && size <= 4
     "translate" => size == 3

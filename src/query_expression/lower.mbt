@@ -225,6 +225,7 @@ fn scalar_call(
     raise Abort(UnsupportedFunction)
   }
   match upper(path[0].value) {
+    "CURRENT_TIMESTAMP" => ("CURRENT_TIMESTAMP", "current_timestamp", 0, 0)
     "VECTOR_SCORE" => ("VECTOR_SCORE", "vector_score", 3, 3)
     "VECTOR_COSINE_SIMILARITY" =>
       ("VECTOR_COSINE_SIMILARITY", "vector_score", 2, 2)
