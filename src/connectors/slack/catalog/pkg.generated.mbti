@@ -71,6 +71,8 @@ pub fn slack_command_request_path(SlackCommandRequest) -> String
 
 pub fn slack_message_column_names() -> Array[String]
 
+pub fn slack_message_facts_wire() -> String
+
 pub fn slack_message_history_matches_channel(SlackMessageHistory, SlackChannelListPage, Int) -> Bool
 
 pub fn slack_message_history_request_channel(SlackMessageHistoryRequest) -> String

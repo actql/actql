@@ -183,6 +183,12 @@ pub fn slack_message_column_names() -> Array[String] {
 }
 
 ///|
+#export_name("slackMessageRelationFactsWire")
+pub fn slack_message_relation_facts_wire() -> String {
+  @catalog.slack_message_facts_wire()
+}
+
+///|
 #export_name("slackMessageSchemaWire")
 pub fn slack_message_schema_wire(
   max_bytes : Int,

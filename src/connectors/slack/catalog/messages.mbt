@@ -614,6 +614,13 @@ fn message_rows_wire(
 }
 
 ///|
+// A selected messages acquisition still checks its whole original response
+// prefix and coalesces repeated thread observations before publishing rows.
+pub fn slack_message_facts_wire() -> String {
+  "{\"relation_keys\":{\"candidate_keys\":[[\"id\"]]}}"
+}
+
+///|
 pub fn slack_message_schema_wire(
   max_bytes : Int,
   max_nodes : Int,

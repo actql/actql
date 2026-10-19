@@ -54,6 +54,8 @@ pub fn slack_message_projection_row_count(@catalog.SlackMessageProjection) -> In
 
 pub fn slack_message_projection_rows_wire(@catalog.SlackMessageProjection, Array[String], Int, Int, Int) -> Result[String, @catalog.SlackMessagePageIssue]
 
+pub fn slack_message_relation_facts_wire() -> String
+
 pub fn slack_message_replies_matches_original(@catalog.SlackMessageReplies, @catalog.SlackMessagePage, Int) -> Bool
 
 pub fn slack_message_replies_page_has_next(@catalog.SlackMessageRepliesPage) -> Bool
