@@ -4542,7 +4542,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "inputsOutputs": [
@@ -4552,7 +4552,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "identity": [
@@ -4562,7 +4562,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
@@ -4576,7 +4576,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "synchronization": [
@@ -4586,7 +4586,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
@@ -4600,7 +4600,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
@@ -4614,7 +4614,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "resources": [
@@ -4624,7 +4624,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
@@ -4642,7 +4642,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               }
             ],
             "verification": [
@@ -4652,7 +4652,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "## Initial Node control and preparation"
+                "anchor": "## Ordinary Host initialization and preparation"
               },
               {
                 "path": "adapters/host-node/coordinator-inspection-bounds.test.mjs",
