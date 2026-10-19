@@ -64309,8 +64309,10 @@
     },
     {
       "module": "adapters/host-node/host-journal-native-image.cjs",
-      "sha256": "83fcf09a333e5bff2f12f046d2a6fc61244a20994cd71d6f2db17908919c4973",
-      "exports": [],
+      "sha256": "c98ce4fd86dff2345c681fd6d627d93c07fd3a9fda998d0a77e26446f05b7723",
+      "exports": [
+        "commonjs:loadHostJournalDirectoryNative"
+      ],
       "operations": [
         {
           "name": "call/call",
@@ -64441,9 +64443,7 @@
         "node:util"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "dynamic CommonJS export value"
-      ],
+      "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing selected Node Host/Resource filesystem and native module custody Owners",
@@ -64470,7 +64470,9 @@
             "own/own",
             "same/same"
           ],
-          "exports": [],
+          "exports": [
+            "commonjs:loadHostJournalDirectoryNative"
+          ],
           "attributes": {
             "responsibility": [
               {
@@ -64618,7 +64620,7 @@
   "counts": {
     "modules": 148,
     "operations": 3677,
-    "exports": 942,
+    "exports": 943,
     "explicitContractGroups": 183
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
