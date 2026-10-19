@@ -278,6 +278,17 @@ int actql_native_owned_domain_has_child(actql_owned_capacity *lease,
     return ACTQL_OWNED_OK;
 }
 
+int actql_native_owned_domain_returned(actql_owned_capacity *lease,
+    const actql_owned_extent_view *view) {
+    if (current_capacity != NULL || view == NULL || view->domain_borrowed ||
+        actql_native_owned_domain_matches_view(lease, view,
+            (int64_t)getpid()) != ACTQL_OWNED_OK)
+        return ACTQL_OWNED_INVALID;
+    return atomic_load_explicit(&lease->domain_borrower_pid, memory_order_acquire) == 0 &&
+        lease->domain_borrow_attempted && lease->closing
+        ? ACTQL_OWNED_OK : ACTQL_OWNED_BUSY;
+}
+
 /* Existing generic placement, called under the original capacity lock. */
 static int allocate_locked(actql_owned_capacity *lease, size_t bytes,
                            size_t alignment, void **out) {

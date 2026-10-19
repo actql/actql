@@ -117,14 +117,8 @@ static int process_region_close_descriptor(actql_bootstrap_process_region *recor
  * Native process Owner must still validate its same Holder's typed stop, and
  * ordinary allocation-level close below must confirm every remaining user. */
 static bool process_region_domain_returned(actql_bootstrap_process_region *record) {
-    if (current_capacity != NULL || record->view->view.domain_borrowed)
-        return false;
-    actql_owned_capacity *lease = record->domain->lease;
-    if (actql_native_owned_domain_matches_view(lease, &record->view->view,
-            (int64_t)getpid()) != ACTQL_OWNED_OK)
-        return false;
-    return atomic_load_explicit(&lease->domain_borrower_pid, memory_order_acquire) == 0 &&
-        lease->domain_borrow_attempted && lease->closing;
+    return actql_native_owned_domain_returned(record->domain->lease,
+        &record->view->view) == ACTQL_OWNED_OK;
 }
 
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_abandon_prepared_process_region(

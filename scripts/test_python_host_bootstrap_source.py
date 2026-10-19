@@ -57,9 +57,18 @@ class SourceClosureTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'source manifest'):
             self.check()
 
+    def test_original_process_header_cannot_be_omitted(self):
+        required = 'src/platform_native/host_bootstrap/process_region.h'
+        self.assertIn(required, INPUTS)
+        self.manifest['inputs'] = [entry for entry in self.manifest['inputs']
+                                   if entry['path'] != required]
+        self.write_manifest()
+        with self.assertRaisesRegex(ValueError, 'source manifest'):
+            self.check()
+
     def test_source_closure_does_not_claim_physical_or_installed_success(self):
         result = self.check()
-        self.assertEqual(result['verified_inputs'], 18)
+        self.assertEqual(result['verified_inputs'], 19)
         self.assertEqual(result['native_execution'], 0)
         self.assertIs(result['installed_capability'], False)
 

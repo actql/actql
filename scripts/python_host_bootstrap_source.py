@@ -23,6 +23,7 @@ INPUTS = (
     'src/platform_native/host_bootstrap/backed_read_native.mbt',
     'src/platform_native/host_bootstrap/backed_region_wbtest.mbt',
     'src/platform_native/host_bootstrap/bootstrap_stub.c',
+    'src/platform_native/host_bootstrap/process_region.h',
     'src/platform_native/host_bootstrap/bootstrap_wbtest.mbt',
     'src/platform_native/host_bootstrap/fd_supplier_wbtest.mbt',
     'packages/python-local-runtime/native/pre-root/owned_capacity.c',
