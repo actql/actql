@@ -1476,11 +1476,17 @@ fn main {
       Some(original) => original.cleanup_stage
       None => "original-retained"
     }
+    let observed = match (issue, command_preparation_invocation.val) {
+      (CommandPair(@initial_arena.Read(_)), Some(original)) =>
+        original.cleanup_read_observation()
+      _ => ""
+    }
     fail_command(
       "LocalCommandPreparationCleanupPending: " +
       stage +
       ": " +
-      command_preparation_cleanup_kind(issue),
+      command_preparation_cleanup_kind(issue) +
+      observed,
     )
   }
   if !crypto_closed {
