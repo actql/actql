@@ -66,7 +66,7 @@ function prepareRead({moon, workspaceId, names, initialAuthorization, credential
     ...(retainOriginal ? {moon,historyPrepare,historyMatches} : {})});
 }
 
-async function executeRead(prepared, received, retainPage) {
+async function executeRead(prepared, received, retainPage, retainExchange) {
   const {provider,context,workspaceId,names,signal} = prepared, bound = context.limits;
   const observations = [], cursors = new Set(), ids = new Set();
   let bytes = 0, totalRows = 0;
@@ -83,16 +83,25 @@ async function executeRead(prepared, received, retainPage) {
         !invocationBindingsMatch(authorization.scope,context.scope)) fail('ForeignSlackChannelListAuthorization');
     if (Buffer.byteLength(requestTarget(path,query)) > bound.maxTargetBytes) fail('SlackChannelListTargetLimit');
     await verify(operation);
+    const exchange = retainExchange?.({authorization,operation,index,method,path,query,body});
     // The same opaque binding retains the actual original token across identity
     // and page calls. Each declared operation still claims its own grant/use;
     // an identity observation never grants conversations.list or channels:read/groups:read.
-    const response = await invokeScopedCredentialOperation({authorization,credential:context.credential,
+    let response;
+    try {
+      response = await invokeScopedCredentialOperation({authorization,credential:context.credential,
       callResource:options=>callHttpsCredentialResource({...options,
         currentBeforeSend:()=>verify(operation)}),
       operation,method,path,query,body,headers:[['accept','application/json']],
       responseHeaders:[],maxResponseBytes:bound.maxResponseBytes,signal});
+    } catch (cause) {
+      if (exchange !== undefined) exchange.failure = cause;
+      throw cause;
+    }
+    if (exchange !== undefined) exchange.response = response;
     observations.push(response); received(response);
     const charge = await context.callbacks.chargeResponse(response.body);
+    if (exchange !== undefined) exchange.charge = charge;
     await verify(operation);
     if (response.body.byteLength > bound.maxTotalResponseBytes - bytes) fail('SlackChannelListResponseLimit');
     bytes += response.body.byteLength;
@@ -167,7 +176,7 @@ function createChannelReader(options,retainOriginal) {
   const signal = original.signal === undefined ? stop.signal : AbortSignal.any([original.signal,stop.signal]);
   const state = {prepared:Object.freeze({...original,signal}),stop,phase:'ready',
     receivedResponses:0,receivedBodyBytes:0n,
-    ...(retainOriginal ? {originals:{pages:new Map(),result:undefined,failure:undefined}} : {})};
+    ...(retainOriginal ? {originals:{pages:new Map(),exchanges:[],result:undefined,failure:undefined}} : {})};
   const handle = Object.freeze({
     async read() {
       const state = originalReader(this);
@@ -179,7 +188,7 @@ function createChannelReader(options,retainOriginal) {
         },retainOriginal ? record=>{
           const retained = {...record,token:Object.freeze({}),selected:new Set()};
           state.originals.pages.set(retained.token,retained);return retained;
-        } : undefined);
+        } : undefined,retainOriginal ? exchange=>{state.originals.exchanges.push(exchange);return exchange;} : undefined);
         if (state.originals !== undefined) state.originals.result = result;
         state.phase = 'succeeded'; return result;
       } catch (cause) {
@@ -192,7 +201,8 @@ function createChannelReader(options,retainOriginal) {
       const state = originalReader(this);
       return Object.freeze({phase:state.phase,stopRequested:state.prepared.signal.aborted,
         receivedResponses:state.receivedResponses,receivedBodyBytes:state.receivedBodyBytes,
-        observationCustody:state.receivedResponses===0?'not-observed':'retained',cleanupConfirmed:false});
+        observationCustody:state.receivedResponses===0?'not-observed':'retained',cleanupConfirmed:false,
+        ...(state.originals === undefined ? {} : {originalChannelPages:state.originals.pages.size,originalExchanges:state.originals.exchanges.length})});
     },
   });
   readers.set(handle,state);

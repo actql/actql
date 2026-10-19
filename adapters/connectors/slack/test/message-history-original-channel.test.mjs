@@ -57,6 +57,8 @@ test('Slack history consumes its original completed channel occurrence through t
     }};return receiver;
   }});
   await f.channels.read();
+  assert.equal(f.channels.observe().originalExchanges,2);
+  assert.equal(f.channels.observe().originalChannelPages,1);
   const selection=f.select();
   receiver.slackPrepareMessageHistoryFromChannel=()=>{throw Error('replacement must not run');};
   const reader=f.create(selection);assert.equal(prepared,1);
@@ -114,4 +116,17 @@ test('Slack ordinary channel readers preserve their metadata shape and do not is
   }});
   await reader.read();f.row.finish();assert.equal(f.row.captureCount(),1);
   assert.throws(()=>selectSlackOriginalChannel(reader,metadata.originalPage,0),{code:'ForeignSlackOriginalChannel'});
+});
+
+
+test('Slack lost channel reply retains the original pending exchange and cannot issue a history selection',async t=>{
+  const f=await fixture(t);
+  f.state.beforeResponse=request=>{if(request.url.startsWith('/api/conversations.list?'))request.socket.destroy();};
+  await assert.rejects(f.channels.read(),e=>e.code==='SlackChannelListReadFailed');
+  assert.equal(f.channels.observe().originalExchanges,2);
+  assert.equal(f.channels.observe().originalChannelPages,0);
+  assert.equal(f.channels.observe().cleanupConfirmed,false);
+  assert.throws(()=>selectSlackOriginalChannel(f.channels,{},0),{code:'ForeignSlackOriginalChannel'});
+  await assert.rejects(f.channels.read(),{code:'SlackChannelListReaderAlreadyStarted'});
+  assert.equal(f.state.requests.length,2);assert.equal(f.rows.length,0);f.assertNoPending();
 });
