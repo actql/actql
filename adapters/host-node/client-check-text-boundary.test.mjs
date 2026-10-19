@@ -896,10 +896,47 @@ for (const entrance of ['local', 'http']) {
           ...(text.includes('@whole') ? {parameterDeclarations:{whole:{type:'int64'}},parameters:{whole:'9007199254740993'}} : {})});
         assert.equal(checked.report.verdict,'invalid',text);
       }
-      for (const text of ["SELECT QUANTIZE(CAST('1.235' AS DECIMAL(6,3)),2) AS amount", "SELECT ACTQL.QUANTIZE(CAST('1.235' AS DECIMAL(6,3)),4,2,'floor') AS amount"]) {
+      for (const text of ["SELECT ACTQL.QUANTIZE(CAST('1.235' AS DECIMAL(6,3)),4,2,'floor') AS amount"]) {
         const checked = await client.check(text,{kind:'text',scope:'bound_input',format});
         assert.equal(checked.report.verdict,'undetermined');
         assert.equal(checked.report.coverage.limits[0].code,'implementation_limit');
+      }
+    }
+  });
+
+  test(`${entrance}: public QUANTIZE shorthand keeps complete defaults and original Decimal domain`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        "SELECT QUANTIZE(CAST('2.345' AS DECIMAL(6,3)),2) AS amount",
+        "SELECT QUANTIZE(CAST('-2.355' AS DECIMAL(6,3)),(0)) AS amount",
+        "SELECT QUANTIZE(CAST('0' AS DECIMAL(1,0)),38) AS amount",
+        "SELECT QUANTIZE(NULL,2) AS amount",
+        "SELECT QUANTIZE(@amount,2) AS rounded",
+        "SELECT CAST('2.345' AS DECIMAL(6,3)) AS amount |> SELECT QUANTIZE(amount,2) AS rounded",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@amount') ? {parameterDeclarations: {amount: {type: 'decimal', precision: 6, scale: 3}},
+            parameters: {amount: '2.345'}} : {})});
+        assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+        assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+        assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      for (const text of [
+        'SELECT QUANTIZE(2.345,2) AS bad', "SELECT QUANTIZE('2.345',2) AS bad",
+        'SELECT QUANTIZE(@whole,2) AS bad',
+        "SELECT QUANTIZE(CAST('2.345' AS DECIMAL(6,3)),-1) AS bad",
+        "SELECT QUANTIZE(CAST('2.345' AS DECIMAL(6,3)),39) AS bad",
+        "SELECT QUANTIZE(CAST('2.345' AS DECIMAL(6,3)),@scale) AS bad",
+        "SELECT QUANTIZE(CAST('2.345' AS DECIMAL(6,3)),1+1) AS bad",
+        "SELECT QUANTIZE(CAST('2.345' AS DECIMAL(6,3)),38,2) AS bad",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@whole') ? {parameterDeclarations: {whole: {type: 'int64'}},
+            parameters: {whole: '9007199254740993'}} : {}),
+          ...(text.includes('@scale') ? {parameterDeclarations: {scale: {type: 'number'}}, parameters: {scale: 2}} : {})});
+        assert.equal(checked.report.verdict, 'invalid', text);
       }
     }
   });

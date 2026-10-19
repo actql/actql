@@ -99,8 +99,21 @@ precision/scale: it keeps its implementation limitation. Explicit TRY_DECIMAL
 retains its existing distinct Common body and nullable target. The same target
 context resolves immediate NULL without changing its value. Explicit QUANTIZE
 retains its original Decimal operand, static target and closed rounding String.
-Its omitted-target public lookup remains unresolved without an actual target
-and rounding policy. Explicit DECIMAL_DIVIDE preserves two original children,
+The public two-argument QUANTIZE spelling has an explicit authoring policy:
+precision 38 and half_even. SQL/Pipe and authored Common expression text emit
+the same complete existing body, preserving the original value subtree and
+static scale role. A data-independent maximum precision avoids selecting the
+output contract by evaluating the operand; half_even reuses one existing exact
+rounding mode. Neither default is guessed by a structured reader or evaluator.
+The original Decimal-only, NULL, overflow and demand boundaries still apply;
+an unrepresentable result is not clamped or silently converted to NULL.
+Complete four-argument bytes and the five explicit modes remain unchanged.
+Only a direct literal NULL receives the nullable declared result Decimal
+context. This scoped quantize rule reconciles the original signature with its
+normative typing rule; it proves no non-null Decimal and does not type an
+unknown field or unresolved Parameter. Decimal division's separate NULL-domain
+conflict is not resolved by this unary rule.
+Explicit DECIMAL_DIVIDE preserves two original children,
 the same literal target roles and a closed rounding mode. The existing Common
 binary evaluator owns demand, exact division, domain refusal and root release;
 the frontend never evaluates the ratio or reinterprets numeric source tokens.

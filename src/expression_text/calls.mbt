@@ -126,7 +126,7 @@ fn Parser::call(
     "instr" => (2, 4)
     "split" => (1, 2)
     "substring" | "lpad" | "rpad" => (2, 3)
-    "quantize" => (4, 4)
+    "quantize" => (2, 4)
     "decimal_divide" => (5, 5)
     "regex_match" => (2, 3)
     "regex_extract" | "regex_replace" => (3, 4)
@@ -136,6 +136,9 @@ fn Parser::call(
     _ => raise UnknownFunction(token.start, token.end)
   }
   if args.length() < minimum || args.length() > maximum {
+    raise InvalidArguments(token.start, token.end)
+  }
+  if name == "quantize" && args.length() != 2 && args.length() != 4 {
     raise InvalidArguments(token.start, token.end)
   }
   // Normalize only documented aliases after validating their own arity.
@@ -184,7 +187,12 @@ fn Parser::call(
   }
   let fields : Array[String] = match name {
     "to_decimal" | "try_decimal" => ["value", "precision", "scale"]
-    "quantize" => ["value", "precision", "scale", "rounding"]
+    "quantize" =>
+      if args.length() == 2 {
+        ["value", "scale"]
+      } else {
+        ["value", "precision", "scale", "rounding"]
+      }
     "decimal_divide" => ["left", "right", "precision", "scale", "rounding"]
     "split_part" => ["value", "delimiter", "index"]
     "substring" => ["value", "start", "length"]
@@ -201,6 +209,11 @@ fn Parser::call(
     let body = []
     for i, arg in args {
       let key = fields[i]
+      if name == "quantize" && args.length() == 2 && i == 1 {
+        // The adopted public authoring default becomes a complete old body;
+        // no structured reader or evaluator guesses omitted fields.
+        body.push(("precision", self.node(@map.Number(38.0))))
+      }
       if key == "pattern" || key == "delimiter" {
         if !(literal_value(arg) is Some({ value: @map.String(_), .. })) &&
           object_get(arg, "$param") is None {
@@ -227,6 +240,9 @@ fn Parser::call(
         arg
       }
       body.push((key, value))
+    }
+    if name == "quantize" && args.length() == 2 {
+      body.push(("rounding", self.node(@map.String("half_even"))))
     }
     if ["to_decimal", "try_decimal", "quantize", "decimal_divide"].contains(
         name,

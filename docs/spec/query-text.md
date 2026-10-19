@@ -379,7 +379,15 @@ roles and additionally requires one original String literal from
 `quantize` body and evaluates only its original Decimal operand. The Common
 Decimal owner rounds the exact coefficient, rejects result overflow and
 preserves NULL and demanded-child failure. No frontend evaluator, binary64
-intermediate, implicit conversion or omitted-target policy is introduced.
+intermediate or implicit conversion is introduced.
+
+SQL and Pipe `QUANTIZE(value, scale)` MUST normalize to the existing complete
+`quantize(value, 38, scale, 'half_even')` body. The scale keeps its original
+integer-literal target role in `0..38`, including transparent parentheses; a
+Parameter, field or computed expression cannot choose it. The original value
+subtree remains the only evaluated operand and retains Decimal-only admission,
+NULL, demand, failure and overflow behavior. Structured and machine bodies still
+require every field, and the complete four-argument source path is unchanged.
 
 `DECIMAL_DIVIDE(left, right, precision, scale, rounding)` preserves both
 original operands in source order. The left is Decimal; the right is Decimal

@@ -750,10 +750,7 @@ fn append_resolved(
                 args.length() != 3 {
                 raise Abort(InvalidArguments)
               }
-              if name == "quantize" && args.length() == 2 {
-                raise Abort(UnsupportedFunction)
-              }
-              if name == "quantize" && args.length() != 4 {
+              if name == "quantize" && args.length() != 2 && args.length() != 4 {
                 raise Abort(InvalidArguments)
               }
               if name == "decimal_divide" && args.length() < 4 {
@@ -831,6 +828,25 @@ fn append_resolved(
                     ("precision", lowering.add(Number(precision))),
                     ("scale", lowering.add(Number(scale))),
                     ("rounding", lowering.add(String(rounding))),
+                  ]),
+                )
+              } else if name == "quantize" && args.length() == 2 {
+                // These are adopted authoring defaults, not a partial machine
+                // body or precision inferred by evaluating the operand.
+                guard numbers[args[1]] is Some(scale) &&
+                  scale >= 0.0 &&
+                  scale <= 38.0 &&
+                  scale.trunc() == scale else {
+                  current = @query.expression_origin(ast, args[1])
+                  raise Abort(InvalidArguments)
+                }
+                lowering.form(
+                  "quantize",
+                  lowering.object([
+                    ("value", nodes[args[0]]),
+                    ("precision", lowering.add(Number(38.0))),
+                    ("scale", lowering.add(Number(scale))),
+                    ("rounding", lowering.add(String("half_even"))),
                   ]),
                 )
               } else if ["to_decimal", "try_decimal", "quantize"].contains(name) {

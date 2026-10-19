@@ -1,0 +1,4111 @@
+{
+  "version": "actql-expression-typing-corpus/0.1",
+  "authority": "docs/spec/language.md#value-contracts and #expressions; fixed type expectations, not evaluator output",
+  "fields": {
+    "n": {
+      "type": "number",
+      "nullable": false
+    },
+    "nn": {
+      "type": "number",
+      "nullable": true
+    },
+    "s": {
+      "type": "string",
+      "nullable": false
+    },
+    "sn": {
+      "type": "string",
+      "nullable": true
+    },
+    "b": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "bn": {
+      "type": "boolean",
+      "nullable": true
+    },
+    "dt": {
+      "type": "date",
+      "nullable": false
+    },
+    "ts": {
+      "type": "timestamp",
+      "nullable": false
+    },
+    "d": {
+      "type": "decimal",
+      "nullable": false,
+      "precision": 8,
+      "scale": 2
+    },
+    "dn": {
+      "type": "decimal",
+      "nullable": true,
+      "precision": 10,
+      "scale": 3
+    },
+    "v": {
+      "type": "vector",
+      "nullable": false,
+      "dimensions": 3
+    },
+    "vn": {
+      "type": "vector",
+      "nullable": true,
+      "dimensions": 3
+    },
+    "v2": {
+      "type": "vector",
+      "nullable": false,
+      "dimensions": 2
+    },
+    "j": {
+      "type": "json",
+      "nullable": false
+    },
+    "r": {
+      "type": "resource_ref",
+      "nullable": false,
+      "resource_kind": "Customer"
+    },
+    "rn": {
+      "type": "resource_ref",
+      "nullable": true,
+      "resource_kind": "Customer"
+    },
+    "other": {
+      "type": "resource_ref",
+      "nullable": false,
+      "resource_kind": "Order"
+    },
+    "artifact": {
+      "type": "content_ref",
+      "nullable": false,
+      "media_type": "text/plain"
+    },
+    "a": {
+      "type": "array",
+      "nullable": false,
+      "max_items": 5,
+      "items": {
+        "type": "number",
+        "nullable": true
+      }
+    },
+    "an": {
+      "type": "array",
+      "nullable": true,
+      "max_items": 0,
+      "items": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    "o": {
+      "type": "object",
+      "nullable": true,
+      "fields": {
+        "x": {
+          "type": "number",
+          "nullable": false
+        }
+      }
+    }
+  },
+  "parameters": {
+    "p": {
+      "type": "string",
+      "default": "not a regex("
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      }
+    },
+    "nullable_items": {
+      "type": "array",
+      "nullable": true,
+      "items": {
+        "type": "number"
+      }
+    },
+    "nullable_elements": {
+      "type": "array",
+      "nullable": true,
+      "items": {
+        "type": "number",
+        "nullable": true
+      }
+    },
+    "empty_items": {
+      "type": "array",
+      "nullable": true,
+      "max_items": 0,
+      "items": {
+        "type": "number",
+        "nullable": true
+      }
+    },
+    "q": {
+      "type": "number",
+      "nullable": true
+    },
+    "unit": {
+      "type": "string",
+      "format": "duration"
+    }
+  },
+  "types": {
+    "number": {
+      "type": "number",
+      "nullable": false
+    },
+    "number?": {
+      "type": "number",
+      "nullable": true
+    },
+    "string": {
+      "type": "string",
+      "nullable": false
+    },
+    "string?": {
+      "type": "string",
+      "nullable": true
+    },
+    "string3": {
+      "type": "string",
+      "nullable": false,
+      "max_utf8_bytes": 3
+    },
+    "boolean": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "boolean?": {
+      "type": "boolean",
+      "nullable": true
+    },
+    "date": {
+      "type": "date",
+      "nullable": false
+    },
+    "timestamp": {
+      "type": "timestamp",
+      "nullable": false
+    },
+    "timestamp?": {
+      "type": "timestamp",
+      "nullable": true
+    },
+    "json": {
+      "type": "json",
+      "nullable": false
+    },
+    "decimal8_2": {
+      "type": "decimal",
+      "nullable": false,
+      "precision": 8,
+      "scale": 2
+    },
+    "decimal8_2?": {
+      "type": "decimal",
+      "nullable": true,
+      "precision": 8,
+      "scale": 2
+    },
+    "decimal11_3?": {
+      "type": "decimal",
+      "nullable": true,
+      "precision": 11,
+      "scale": 3
+    },
+    "decimal18_5?": {
+      "type": "decimal",
+      "nullable": true,
+      "precision": 18,
+      "scale": 5
+    },
+    "vector5": {
+      "type": "vector",
+      "nullable": false,
+      "dimensions": 5,
+      "element_type": "f32"
+    },
+    "vector6?": {
+      "type": "vector",
+      "nullable": true,
+      "dimensions": 6,
+      "element_type": "f32"
+    },
+    "ref?": {
+      "type": "resource_ref",
+      "nullable": true,
+      "resource_kind": "Customer"
+    },
+    "ref": {
+      "type": "resource_ref",
+      "nullable": false,
+      "resource_kind": "Customer"
+    },
+    "array1": {
+      "type": "array",
+      "nullable": false,
+      "max_items": 1,
+      "items": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    "array1?item": {
+      "type": "array",
+      "nullable": false,
+      "max_items": 1,
+      "items": {
+        "type": "number",
+        "nullable": true
+      }
+    },
+    "array0": {
+      "type": "array",
+      "nullable": false,
+      "max_items": 0,
+      "items": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    "array0?": {
+      "type": "array",
+      "nullable": true,
+      "max_items": 0,
+      "items": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    "objectx": {
+      "type": "object",
+      "nullable": false,
+      "additional_properties": false,
+      "fields": {
+        "x": {
+          "type": "number",
+          "nullable": true
+        }
+      }
+    },
+    "nested": {
+      "type": "array",
+      "nullable": false,
+      "max_items": 1,
+      "items": {
+        "type": "array",
+        "nullable": false,
+        "max_items": 1,
+        "items": {
+          "type": "number",
+          "nullable": true
+        }
+      }
+    }
+  },
+  "positive": [
+    {
+      "source": "1",
+      "type": "number"
+    },
+    {
+      "source": "'abc'",
+      "type": "string3"
+    },
+    {
+      "source": {
+        "literal": {
+          "a": 1
+        }
+      },
+      "type": "json"
+    },
+    {
+      "source": {
+        "literal": [
+          1,
+          2
+        ]
+      },
+      "type": "json"
+    },
+    {
+      "source": "$q",
+      "type": "number?"
+    },
+    {
+      "source": "$unit",
+      "type": "string"
+    },
+    {
+      "source": "len(NULL)",
+      "type": "number?"
+    },
+    {
+      "source": "concat(NULL,NULL)",
+      "type": "string"
+    },
+    {
+      "source": "s || sn",
+      "type": "string?"
+    },
+    {
+      "source": "replace(s,'a','b')",
+      "type": "string"
+    },
+    {
+      "source": "contains(sn,s)",
+      "type": "boolean?"
+    },
+    {
+      "source": "lower(upper(trim(s)))",
+      "type": "string"
+    },
+    {
+      "source": "sqrt(floor(n))",
+      "type": "number"
+    },
+    {
+      "source": "safe_div(n,0)",
+      "type": "number?"
+    },
+    {
+      "source": "-nn",
+      "type": "number?"
+    },
+    {
+      "source": "-d",
+      "type": "decimal8_2"
+    },
+    {
+      "source": "n + nn * 2 / n % 3 - n",
+      "type": "number?"
+    },
+    {
+      "source": "d + dn",
+      "type": "decimal11_3?"
+    },
+    {
+      "source": "d - dn",
+      "type": "decimal11_3?"
+    },
+    {
+      "source": "d * dn",
+      "type": "decimal18_5?"
+    },
+    {
+      "source": "d = dn",
+      "type": "boolean?"
+    },
+    {
+      "source": "n <> nn",
+      "type": "boolean?"
+    },
+    {
+      "source": "n < 3 AND n <= 4 OR NOT (n > 1 AND n >= 2)",
+      "type": "boolean"
+    },
+    {
+      "source": "b AND bn",
+      "type": "boolean?"
+    },
+    {
+      "source": "NULL IS TRUE",
+      "type": "boolean"
+    },
+    {
+      "source": "bn IS FALSE",
+      "type": "boolean"
+    },
+    {
+      "source": "bn IS UNKNOWN",
+      "type": "boolean"
+    },
+    {
+      "source": "n IS NULL",
+      "type": "boolean"
+    },
+    {
+      "source": "nn IS NOT NULL",
+      "type": "boolean"
+    },
+    {
+      "source": "NULL IS DISTINCT FROM n",
+      "type": "boolean"
+    },
+    {
+      "source": "nullif(n,nn)",
+      "type": "number?"
+    },
+    {
+      "source": "n BETWEEN NULL AND 4",
+      "type": "boolean?"
+    },
+    {
+      "source": "n IN (1,NULL,$q)",
+      "type": "boolean?"
+    },
+    {
+      "source": "n NOT IN $items",
+      "type": "boolean"
+    },
+    {
+      "source": "n IN (NULL)",
+      "type": "boolean?"
+    },
+    {
+      "source": "n IN $nullable_items",
+      "type": "boolean"
+    },
+    {
+      "source": "n NOT IN $nullable_items",
+      "type": "boolean"
+    },
+    {
+      "source": "nn IN $nullable_items",
+      "type": "boolean?"
+    },
+    {
+      "source": "nn NOT IN $nullable_items",
+      "type": "boolean?"
+    },
+    {
+      "source": "n IN $nullable_elements",
+      "type": "boolean?"
+    },
+    {
+      "source": "n NOT IN $nullable_elements",
+      "type": "boolean?"
+    },
+    {
+      "source": "NULL IN $empty_items",
+      "type": "boolean"
+    },
+    {
+      "source": "NULL NOT IN $empty_items",
+      "type": "boolean"
+    },
+    {
+      "source": "nn IN $empty_items",
+      "type": "boolean"
+    },
+    {
+      "source": "nn NOT IN $empty_items",
+      "type": "boolean"
+    },
+    {
+      "source": {
+        "in": [
+          "nn",
+          {
+            "literal": []
+          }
+        ]
+      },
+      "type": "boolean"
+    },
+    {
+      "source": {
+        "not_in": [
+          "nn",
+          {
+            "literal": []
+          }
+        ]
+      },
+      "type": "boolean"
+    },
+    {
+      "source": {
+        "in": [
+          "CAST(NULL AS number)",
+          {
+            "literal": []
+          }
+        ]
+      },
+      "type": "boolean"
+    },
+    {
+      "source": {
+        "not_in": [
+          "CAST(NULL AS number)",
+          {
+            "literal": []
+          }
+        ]
+      },
+      "type": "boolean"
+    },
+    {
+      "source": "NULL IN (1)",
+      "type": "boolean?"
+    },
+    {
+      "source": "NULL NOT IN (1)",
+      "type": "boolean?"
+    },
+    {
+      "source": "1 IN (1,NULL)",
+      "type": "boolean?"
+    },
+    {
+      "source": "1 NOT IN (1,NULL)",
+      "type": "boolean?"
+    },
+    {
+      "source": "1 IN (2,NULL)",
+      "type": "boolean?"
+    },
+    {
+      "source": "1 NOT IN (2,NULL)",
+      "type": "boolean?"
+    },
+    {
+      "source": "1 IN (2)",
+      "type": "boolean"
+    },
+    {
+      "source": "1 NOT IN (2)",
+      "type": "boolean"
+    },
+    {
+      "source": "s LIKE $p",
+      "type": "boolean"
+    },
+    {
+      "source": "if(b,n,nn)",
+      "type": "number?"
+    },
+    {
+      "source": "CASE WHEN NULL THEN 1 ELSE 2 END",
+      "type": "number"
+    },
+    {
+      "source": "CASE WHEN b THEN n END",
+      "type": "number?"
+    },
+    {
+      "source": "coalesce(NULL,nn,n)",
+      "type": "number"
+    },
+    {
+      "source": "CAST(NULL AS number)",
+      "type": "number?"
+    },
+    {
+      "source": "to_decimal(s,8,2)",
+      "type": "decimal8_2"
+    },
+    {
+      "source": "try_decimal(s,8,2)",
+      "type": "decimal8_2?"
+    },
+    {
+      "source": "quantize(dn,8,2,'half_even')",
+      "type": "decimal8_2?"
+    },
+    {
+      "source": "quantize(CAST(NULL AS DECIMAL(4,1)),8,2,'half_even')",
+      "type": "decimal8_2?"
+    },
+    {
+      "source": "decimal_divide(CAST(NULL AS DECIMAL(4,1)),n,8,2,'half_even')",
+      "type": "decimal8_2?"
+    },
+    {
+      "source": "decimal_divide(d,CAST(NULL AS number),8,2,'half_even')",
+      "type": "decimal8_2?"
+    },
+    {
+      "source": "decimal_divide(d,n,8,2,'half_up')",
+      "type": "decimal8_2"
+    },
+    {
+      "source": "to_string(dt)",
+      "type": "string"
+    },
+    {
+      "source": "to_boolean(s)",
+      "type": "boolean"
+    },
+    {
+      "source": "to_timestamp(s)",
+      "type": "timestamp"
+    },
+    {
+      "source": "date_trunc('d',dt)",
+      "type": "date"
+    },
+    {
+      "source": "date_add(ts,nn,'s')",
+      "type": "timestamp?"
+    },
+    {
+      "source": "date_diff(ts,ts,'ms')",
+      "type": "number"
+    },
+    {
+      "source": "o.x",
+      "type": "number?"
+    },
+    {
+      "source": "a[-1]",
+      "type": "number?"
+    },
+    {
+      "source": "if(b,[],[1])",
+      "type": "array1"
+    },
+    {
+      "source": "if(b,[NULL],[1])",
+      "type": "array1?item"
+    },
+    {
+      "source": "if(b,[],an)",
+      "type": "array0?"
+    },
+    {
+      "source": "coalesce([],an)",
+      "type": "array0"
+    },
+    {
+      "source": "if(b,[[NULL]],[[1]])",
+      "type": "nested"
+    },
+    {
+      "source": {
+        "if": [
+          "b",
+          {
+            "object": {
+              "x": {
+                "literal": null
+              }
+            }
+          },
+          {
+            "object": {
+              "x": "n"
+            }
+          }
+        ]
+      },
+      "type": "objectx"
+    },
+    {
+      "source": {
+        "empty_array": {
+          "items": {
+            "type": "number",
+            "nullable": false
+          }
+        }
+      },
+      "type": "array0"
+    },
+    {
+      "source": {
+        "template": "{n} / {sn} {{literal}}"
+      },
+      "type": "string?"
+    },
+    {
+      "source": "coalesce(rn,r)",
+      "type": "ref"
+    },
+    {
+      "source": "if(b,NULL,r)",
+      "type": "ref?"
+    },
+    {
+      "source": "nullif(r,rn)",
+      "type": "ref?"
+    },
+    {
+      "source": "substring(sn,-1,0)",
+      "type": "string?"
+    },
+    {
+      "source": "split_part(s,'',-1)",
+      "type": "string"
+    },
+    {
+      "source": "utf8_truncate(s,n)",
+      "type": "string"
+    },
+    {
+      "source": "try_number(s)",
+      "type": "number?"
+    },
+    {
+      "source": "nfkc(case_fold(s))",
+      "type": "string"
+    },
+    {
+      "source": "parse_timestamp(sn,'yyyy-MM-dd')",
+      "type": "timestamp?"
+    },
+    {
+      "source": "try_timestamp(s,$p)",
+      "type": "timestamp?"
+    },
+    {
+      "source": "format_timestamp(ts,'yyyy')",
+      "type": "string"
+    },
+    {
+      "source": "regex_match(s,$p,'ms')",
+      "type": "boolean"
+    },
+    {
+      "source": "regex_match(s,'a','')",
+      "type": "boolean"
+    },
+    {
+      "source": "regex_match(s,'a','m')",
+      "type": "boolean"
+    },
+    {
+      "source": "regex_match(s,'a','s')",
+      "type": "boolean"
+    },
+    {
+      "source": "regex_extract(s,'(a)',1)",
+      "type": "string?"
+    },
+    {
+      "source": "regex_extract(s,'(a)',0)",
+      "type": "string?"
+    },
+    {
+      "source": "regex_extract(s,'(a)',$q)",
+      "type": "string?"
+    },
+    {
+      "source": "regex_replace(s,'(a)',$p)",
+      "type": "string"
+    },
+    {
+      "source": "regex_replace(s,'(a)','')",
+      "type": "string"
+    },
+    {
+      "source": "regex_replace(s,'(a)','$1','sm')",
+      "type": "string"
+    },
+    {
+      "source": "vector_score(v,vn,'dot')",
+      "type": "number?"
+    },
+    {
+      "source": "vector_concat(v,v2)",
+      "type": "vector5"
+    },
+    {
+      "source": "vector_concat(v,vn)",
+      "type": "vector6?"
+    },
+    {
+      "source": "starts_with(s,s)",
+      "type": "boolean"
+    },
+    {
+      "source": "starts_with(sn,s)",
+      "type": "boolean?"
+    },
+    {
+      "source": "starts_with(s,sn)",
+      "type": "boolean?"
+    },
+    {
+      "source": "starts_with(NULL,NULL)",
+      "type": "boolean?"
+    },
+    {
+      "source": "starts_with(s,$p)",
+      "type": "boolean"
+    },
+    {
+      "source": "starts_with('', '')",
+      "type": "boolean"
+    },
+    {
+      "source": "ends_with(s,s)",
+      "type": "boolean"
+    },
+    {
+      "source": "ends_with(sn,s)",
+      "type": "boolean?"
+    },
+    {
+      "source": "ends_with(s,sn)",
+      "type": "boolean?"
+    },
+    {
+      "source": "ends_with(NULL,NULL)",
+      "type": "boolean?"
+    },
+    {
+      "source": "ends_with(s,$p)",
+      "type": "boolean"
+    },
+    {
+      "source": "ends_with('', '')",
+      "type": "boolean"
+    },
+    {
+      "source": "sign(n)",
+      "type": "number"
+    },
+    {
+      "source": "sign(nn)",
+      "type": "number?"
+    },
+    {
+      "source": "sign(NULL)",
+      "type": "number?"
+    },
+    {
+      "source": "sign($q)",
+      "type": "number?"
+    },
+    {
+      "source": "sign(-1)",
+      "type": "number"
+    },
+    {
+      "source": "strpos(s,s)",
+      "type": "number"
+    },
+    {
+      "source": "strpos(sn,s)",
+      "type": "number?"
+    },
+    {
+      "source": "strpos(s,sn)",
+      "type": "number?"
+    },
+    {
+      "source": "strpos(NULL,NULL)",
+      "type": "number?"
+    },
+    {
+      "source": "strpos('', '')",
+      "type": "number"
+    },
+    {
+      "source": "strpos(s,$p)",
+      "type": "number"
+    },
+    {
+      "source": "strpos(NULL,s)",
+      "type": "number?"
+    },
+    {
+      "source": "strpos(s,NULL)",
+      "type": "number?"
+    },
+    {
+      "source": "round(n)",
+      "type": "number"
+    },
+    {
+      "source": "trunc(n)",
+      "type": "number"
+    },
+    {
+      "source": "round(nn)",
+      "type": "number?"
+    },
+    {
+      "source": "trunc(nn)",
+      "type": "number?"
+    },
+    {
+      "source": "round(NULL)",
+      "type": "number?"
+    },
+    {
+      "source": "trunc(NULL)",
+      "type": "number?"
+    },
+    {
+      "source": "round($q)",
+      "type": "number?"
+    },
+    {
+      "source": "trunc($q)",
+      "type": "number?"
+    },
+    {
+      "source": "round(-1)",
+      "type": "number"
+    },
+    {
+      "source": "trunc(-1)",
+      "type": "number"
+    },
+    {
+      "source": "ltrim(s)",
+      "type": "string"
+    },
+    {
+      "source": "ltrim(sn)",
+      "type": "string?"
+    },
+    {
+      "source": "ltrim(NULL)",
+      "type": "string?"
+    },
+    {
+      "source": "ltrim($p)",
+      "type": "string"
+    },
+    {
+      "source": "ltrim(' 😀é ')",
+      "type": "string"
+    },
+    {
+      "source": {
+        "ltrim": {
+          "literal": null
+        }
+      },
+      "type": "string?"
+    },
+    {
+      "source": {
+        "ltrim": {
+          "field": "sn"
+        }
+      },
+      "type": "string?"
+    },
+    {
+      "source": "rtrim(s)",
+      "type": "string"
+    },
+    {
+      "source": "rtrim(sn)",
+      "type": "string?"
+    },
+    {
+      "source": "rtrim(NULL)",
+      "type": "string?"
+    },
+    {
+      "source": "rtrim($p)",
+      "type": "string"
+    },
+    {
+      "source": "rtrim(' 😀é ')",
+      "type": "string"
+    },
+    {
+      "source": {
+        "rtrim": {
+          "literal": null
+        }
+      },
+      "type": "string?"
+    },
+    {
+      "source": {
+        "rtrim": {
+          "field": "sn"
+        }
+      },
+      "type": "string?"
+    },
+    {
+      "source": "trim(s,s)",
+      "type": "string"
+    },
+    {
+      "source": "trim(sn,s)",
+      "type": "string?"
+    },
+    {
+      "source": "trim(s,sn)",
+      "type": "string?"
+    },
+    {
+      "source": "trim(NULL,s)",
+      "type": "string?"
+    },
+    {
+      "source": "trim(s,NULL)",
+      "type": "string?"
+    },
+    {
+      "source": "trim(NULL,NULL)",
+      "type": "string?"
+    },
+    {
+      "source": "trim($p,s)",
+      "type": "string"
+    },
+    {
+      "source": "trim(s,'')",
+      "type": "string"
+    },
+    {
+      "source": "trim('😀é','😀́')",
+      "type": "string"
+    },
+    {
+      "source": {
+        "trim": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "type": "string?"
+    },
+    {
+      "source": {
+        "trim": [
+          "s",
+          "sn"
+        ]
+      },
+      "type": "string?"
+    },
+    {
+      "source": "ltrim(s,s)",
+      "type": "string"
+    },
+    {
+      "source": "ltrim(sn,s)",
+      "type": "string?"
+    },
+    {
+      "source": "ltrim(s,sn)",
+      "type": "string?"
+    },
+    {
+      "source": "ltrim(NULL,s)",
+      "type": "string?"
+    },
+    {
+      "source": "ltrim(s,NULL)",
+      "type": "string?"
+    },
+    {
+      "source": "ltrim(NULL,NULL)",
+      "type": "string?"
+    },
+    {
+      "source": "ltrim($p,s)",
+      "type": "string"
+    },
+    {
+      "source": "ltrim(s,'')",
+      "type": "string"
+    },
+    {
+      "source": "ltrim('😀é','😀́')",
+      "type": "string"
+    },
+    {
+      "source": {
+        "ltrim": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "type": "string?"
+    },
+    {
+      "source": {
+        "ltrim": [
+          "s",
+          "sn"
+        ]
+      },
+      "type": "string?"
+    },
+    {
+      "source": "rtrim(s,s)",
+      "type": "string"
+    },
+    {
+      "source": "rtrim(sn,s)",
+      "type": "string?"
+    },
+    {
+      "source": "rtrim(s,sn)",
+      "type": "string?"
+    },
+    {
+      "source": "rtrim(NULL,s)",
+      "type": "string?"
+    },
+    {
+      "source": "rtrim(s,NULL)",
+      "type": "string?"
+    },
+    {
+      "source": "rtrim(NULL,NULL)",
+      "type": "string?"
+    },
+    {
+      "source": "rtrim($p,s)",
+      "type": "string"
+    },
+    {
+      "source": "rtrim(s,'')",
+      "type": "string"
+    },
+    {
+      "source": "rtrim('😀é','😀́')",
+      "type": "string"
+    },
+    {
+      "source": {
+        "rtrim": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "type": "string?"
+    },
+    {
+      "source": {
+        "rtrim": [
+          "s",
+          "sn"
+        ]
+      },
+      "type": "string?"
+    },
+    {
+      "source": "round(n,n)",
+      "type": "number"
+    },
+    {
+      "source": "round(nn,n)",
+      "type": "number?"
+    },
+    {
+      "source": "round(n,nn)",
+      "type": "number?"
+    },
+    {
+      "source": "round(NULL,n)",
+      "type": "number?"
+    },
+    {
+      "source": "round(n,NULL)",
+      "type": "number?"
+    },
+    {
+      "source": "round(NULL,NULL)",
+      "type": "number?"
+    },
+    {
+      "source": "round($q,n)",
+      "type": "number?"
+    },
+    {
+      "source": "round(n,$q)",
+      "type": "number?"
+    },
+    {
+      "source": "round(1.25,0)",
+      "type": "number"
+    },
+    {
+      "source": "round(1.25,1.5)",
+      "type": "number"
+    },
+    {
+      "source": "round(NULL,1.5)",
+      "type": "number?"
+    },
+    {
+      "source": "round(n,1e308)",
+      "type": "number"
+    },
+    {
+      "source": "round(n,-1e308)",
+      "type": "number"
+    },
+    {
+      "source": "round(n,n+1)",
+      "type": "number"
+    },
+    {
+      "source": {
+        "round": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "round": [
+          "n",
+          "nn"
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "round": [
+          "n",
+          "$q"
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": "trunc(n,n)",
+      "type": "number"
+    },
+    {
+      "source": "trunc(nn,n)",
+      "type": "number?"
+    },
+    {
+      "source": "trunc(n,nn)",
+      "type": "number?"
+    },
+    {
+      "source": "trunc(NULL,n)",
+      "type": "number?"
+    },
+    {
+      "source": "trunc(n,NULL)",
+      "type": "number?"
+    },
+    {
+      "source": "trunc(NULL,NULL)",
+      "type": "number?"
+    },
+    {
+      "source": "trunc($q,n)",
+      "type": "number?"
+    },
+    {
+      "source": "trunc(n,$q)",
+      "type": "number?"
+    },
+    {
+      "source": "trunc(1.25,0)",
+      "type": "number"
+    },
+    {
+      "source": "trunc(1.25,1.5)",
+      "type": "number"
+    },
+    {
+      "source": "trunc(NULL,1.5)",
+      "type": "number?"
+    },
+    {
+      "source": "trunc(n,1e308)",
+      "type": "number"
+    },
+    {
+      "source": "trunc(n,-1e308)",
+      "type": "number"
+    },
+    {
+      "source": "trunc(n,n+1)",
+      "type": "number"
+    },
+    {
+      "source": {
+        "trunc": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "trunc": [
+          "n",
+          "nn"
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "trunc": [
+          "n",
+          "$q"
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": 2
+          },
+          {
+            "literal": 3
+          }
+        ]
+      },
+      "type": "number"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "field": "nn"
+          },
+          {
+            "field": "n"
+          }
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": null
+          },
+          {
+            "field": "n"
+          }
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "field": "n"
+          },
+          {
+            "$param": "q"
+          }
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": 2
+          },
+          {
+            "literal": 3
+          }
+        ]
+      },
+      "type": "number"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "field": "nn"
+          },
+          {
+            "field": "n"
+          }
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": null
+          },
+          {
+            "field": "n"
+          }
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "field": "n"
+          },
+          {
+            "$param": "q"
+          }
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "exp": {
+          "literal": 1
+        }
+      },
+      "type": "number"
+    },
+    {
+      "source": {
+        "exp": {
+          "literal": null
+        }
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "exp": {
+          "field": "nn"
+        }
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "exp": {
+          "field": "n"
+        }
+      },
+      "type": "number"
+    },
+    {
+      "source": {
+        "exp": {
+          "$param": "q"
+        }
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "ln": {
+          "literal": 1
+        }
+      },
+      "type": "number"
+    },
+    {
+      "source": {
+        "ln": {
+          "literal": null
+        }
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "ln": {
+          "field": "nn"
+        }
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "ln": {
+          "field": "n"
+        }
+      },
+      "type": "number"
+    },
+    {
+      "source": {
+        "ln": {
+          "$param": "q"
+        }
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "log10": {
+          "literal": 1
+        }
+      },
+      "type": "number"
+    },
+    {
+      "source": {
+        "log10": {
+          "literal": null
+        }
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "log10": {
+          "field": "nn"
+        }
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "log10": {
+          "field": "n"
+        }
+      },
+      "type": "number"
+    },
+    {
+      "source": {
+        "log10": {
+          "$param": "q"
+        }
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "literal": 1
+          }
+        ]
+      },
+      "type": "number"
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "literal": null
+          }
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "field": "n"
+          },
+          {
+            "literal": 3
+          },
+          {
+            "literal": -4
+          }
+        ]
+      },
+      "type": "number"
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "field": "nn"
+          },
+          {
+            "literal": 3
+          }
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "literal": null
+          },
+          {
+            "field": "n"
+          }
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "field": "n"
+          },
+          {
+            "$param": "q"
+          }
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "literal": 1
+          }
+        ]
+      },
+      "type": "number"
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "literal": null
+          }
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "field": "n"
+          },
+          {
+            "literal": 3
+          },
+          {
+            "literal": -4
+          }
+        ]
+      },
+      "type": "number"
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "field": "nn"
+          },
+          {
+            "literal": 3
+          }
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "literal": null
+          },
+          {
+            "field": "n"
+          }
+        ]
+      },
+      "type": "number?"
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "field": "n"
+          },
+          {
+            "$param": "q"
+          }
+        ]
+      },
+      "type": "number?"
+    }
+  ],
+  "negative": [
+    {
+      "source": "missing",
+      "issue": "UnknownField"
+    },
+    {
+      "source": "$missing",
+      "issue": "UnknownParameter"
+    },
+    {
+      "source": "left.n",
+      "issue": "MissingJoinScope"
+    },
+    {
+      "source": "NULL",
+      "issue": "NullTypeUnresolved"
+    },
+    {
+      "source": "[]",
+      "issue": "NullTypeUnresolved"
+    },
+    {
+      "source": "NULL IS DISTINCT FROM NULL",
+      "issue": "NullTypeUnresolved"
+    },
+    {
+      "source": "coalesce(NULL,NULL)",
+      "issue": "NullTypeUnresolved"
+    },
+    {
+      "source": "if(TRUE,[],[])",
+      "issue": "NullTypeUnresolved"
+    },
+    {
+      "source": "len(coalesce(NULL,NULL))",
+      "issue": "NullTypeUnresolved"
+    },
+    {
+      "source": "TRUE + 1",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "n AND b",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "if(n,1,2)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "CASE WHEN b THEN 1 ELSE s END",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "if(TRUE,n,missing)",
+      "issue": "UnknownField"
+    },
+    {
+      "source": "coalesce(n,lower(n))",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "d + n",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "d / d",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "coalesce(d,dn)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "quantize(n,8,2,'half_up')",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "quantize(NULL,8,2,'half_even')",
+      "issue": "NullTypeUnresolved"
+    },
+    {
+      "source": "decimal_divide(NULL,n,8,2,'half_even')",
+      "issue": "NullTypeUnresolved"
+    },
+    {
+      "source": "decimal_divide(d,NULL,8,2,'half_even')",
+      "issue": "NullTypeUnresolved"
+    },
+    {
+      "source": "decimal_divide(n,d,8,2,'half_up')",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "to_string(r)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "j.x",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "n[0]",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "a[s]",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "o.absent",
+      "issue": "UnknownField"
+    },
+    {
+      "source": "[n,s]",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "[r]",
+      "issue": "ForbiddenConstructorValue"
+    },
+    {
+      "source": {
+        "object": {
+          "x": "j"
+        }
+      },
+      "issue": "ForbiddenConstructorValue"
+    },
+    {
+      "source": {
+        "template": "{artifact}"
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "r < r",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "r = other",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "date_diff(dt,ts,'d')",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "date_trunc('h',dt)",
+      "issue": "InvalidStaticOption"
+    },
+    {
+      "source": "parse_timestamp(n,'yyyy-MM-dd')",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "format_timestamp(s,'yyyy')",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "try_number(n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "regex_match(s,'a','i')",
+      "issue": "InvalidStaticOption"
+    },
+    {
+      "source": "regex_extract(s,'(a)',n)",
+      "issue": "InvalidStaticOption"
+    },
+    {
+      "source": "regex_extract(s,'(a)',1 + 0)",
+      "issue": "InvalidStaticOption"
+    },
+    {
+      "source": "regex_extract(s,'(a)',-1)",
+      "issue": "InvalidStaticOption"
+    },
+    {
+      "source": "regex_extract(s,'(a)',0.5)",
+      "issue": "InvalidStaticOption"
+    },
+    {
+      "source": "regex_extract(s,'(a)',NULL)",
+      "issue": "InvalidStaticOption"
+    },
+    {
+      "source": "regex_extract(s,'(a)',$p)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "regex_replace(s,'(a)',s)",
+      "issue": "InvalidStaticOption"
+    },
+    {
+      "source": "regex_replace(s,'(a)',concat('x','y'))",
+      "issue": "InvalidStaticOption"
+    },
+    {
+      "source": "regex_replace(s,'(a)',NULL)",
+      "issue": "InvalidStaticOption"
+    },
+    {
+      "source": "regex_replace(s,'(a)',$q)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "regex_extract": {
+          "value": "s",
+          "pattern": {
+            "literal": "(a)"
+          },
+          "capture": "n"
+        }
+      },
+      "issue": "InvalidStaticOption"
+    },
+    {
+      "source": {
+        "regex_replace": {
+          "value": "s",
+          "pattern": {
+            "literal": "(a)"
+          },
+          "replacement": "s"
+        }
+      },
+      "issue": "InvalidStaticOption"
+    },
+    {
+      "source": "regex_match(s,'a','mm')",
+      "issue": "InvalidStaticOption"
+    },
+    {
+      "source": "regex_match(s,'a','ss')",
+      "issue": "InvalidStaticOption"
+    },
+    {
+      "source": "regex_match(s,'a','msm')",
+      "issue": "InvalidStaticOption"
+    },
+    {
+      "source": "regex_match(s,'a','M')",
+      "issue": "InvalidStaticOption"
+    },
+    {
+      "source": "vector_score(v,v2,'l2')",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "vector_concat(v,[1,2,3])",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "n IN (TRUE)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "s IN $empty_items",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "in": [
+          {
+            "literal": null
+          },
+          {
+            "literal": []
+          }
+        ]
+      },
+      "issue": "NullTypeUnresolved"
+    },
+    {
+      "source": "starts_with(n,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "starts_with(s,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "starts_with(j,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "starts_with(s,b)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "starts_with(r,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ends_with(n,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ends_with(s,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ends_with(j,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ends_with(s,b)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ends_with(r,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "sign(s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "sign(b)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "sign(d)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "sign(j)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "sign(r)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "sign(a)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "sign(v)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "strpos(n,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "strpos(s,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "strpos(b,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "strpos(j,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "strpos(r,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "strpos(s,a)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "strpos(d,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "strpos(s,v)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(b)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(b)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(d)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(d)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(j)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(j)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(r)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(r)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(a)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(a)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(v)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(v)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(b)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(d)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(j)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(r)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(a)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(v)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(o)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(dt)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(ts)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(b)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(d)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(j)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(r)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(a)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(v)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(o)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(dt)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(ts)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(n,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(s,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(b,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(s,b)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(d,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(s,d)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(j,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(s,j)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(r,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(s,r)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(a,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(s,a)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(v,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(s,v)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(o,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(s,o)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(dt,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(s,dt)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(ts,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(s,ts)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(NULL,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trim(n,NULL)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "trim": [
+          {
+            "literal": "x"
+          },
+          {
+            "literal": false
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(n,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(s,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(b,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(s,b)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(d,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(s,d)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(j,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(s,j)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(r,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(s,r)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(a,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(s,a)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(v,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(s,v)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(o,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(s,o)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(dt,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(s,dt)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(ts,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(s,ts)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(NULL,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "ltrim(n,NULL)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "ltrim": [
+          {
+            "literal": "x"
+          },
+          {
+            "literal": false
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(n,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(s,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(b,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(s,b)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(d,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(s,d)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(j,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(s,j)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(r,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(s,r)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(a,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(s,a)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(v,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(s,v)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(o,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(s,o)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(dt,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(s,dt)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(ts,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(s,ts)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(NULL,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "rtrim(n,NULL)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "rtrim": [
+          {
+            "literal": "x"
+          },
+          {
+            "literal": false
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(s,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(n,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(b,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(n,b)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(d,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(n,d)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(j,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(n,j)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(r,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(n,r)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(a,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(n,a)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(v,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(n,v)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(o,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(n,o)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(dt,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(n,dt)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(ts,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(n,ts)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round($p,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(n,$p)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(NULL,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "round(s,NULL)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "round": [
+          {
+            "literal": 1
+          },
+          {
+            "literal": false
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "round": [
+          {
+            "literal": "1"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(s,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(n,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(b,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(n,b)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(d,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(n,d)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(j,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(n,j)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(r,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(n,r)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(a,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(n,a)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(v,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(n,v)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(o,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(n,o)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(dt,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(n,dt)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(ts,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(n,ts)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc($p,n)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(n,$p)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(NULL,s)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "trunc(s,NULL)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "trunc": [
+          {
+            "literal": 1
+          },
+          {
+            "literal": false
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "trunc": [
+          {
+            "literal": "1"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "field": "s"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "s"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": null
+          },
+          {
+            "field": "s"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "field": "b"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "b"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": null
+          },
+          {
+            "field": "b"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "field": "dt"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "dt"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": null
+          },
+          {
+            "field": "dt"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "field": "ts"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "ts"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": null
+          },
+          {
+            "field": "ts"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "field": "d"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "d"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": null
+          },
+          {
+            "field": "d"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "field": "a"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "a"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": null
+          },
+          {
+            "field": "a"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "field": "o"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "o"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": null
+          },
+          {
+            "field": "o"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "field": "v"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "v"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": null
+          },
+          {
+            "field": "v"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "field": "j"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "j"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": null
+          },
+          {
+            "field": "j"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "field": "r"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "r"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": null
+          },
+          {
+            "field": "r"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "field": "s"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "s"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": null
+          },
+          {
+            "field": "s"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "field": "b"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "b"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": null
+          },
+          {
+            "field": "b"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "field": "dt"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "dt"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": null
+          },
+          {
+            "field": "dt"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "field": "ts"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "ts"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": null
+          },
+          {
+            "field": "ts"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "field": "d"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "d"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": null
+          },
+          {
+            "field": "d"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "field": "a"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "a"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": null
+          },
+          {
+            "field": "a"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "field": "o"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "o"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": null
+          },
+          {
+            "field": "o"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "field": "v"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "v"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": null
+          },
+          {
+            "field": "v"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "field": "j"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "j"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": null
+          },
+          {
+            "field": "j"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "field": "r"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": 2
+          },
+          {
+            "field": "r"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": null
+          },
+          {
+            "field": "r"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "exp": {
+          "field": "s"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "exp": {
+          "field": "b"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "exp": {
+          "field": "dt"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "exp": {
+          "field": "ts"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "exp": {
+          "field": "d"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "exp": {
+          "field": "a"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "exp": {
+          "field": "o"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "exp": {
+          "field": "v"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "exp": {
+          "field": "j"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "exp": {
+          "field": "r"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "ln": {
+          "field": "s"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "ln": {
+          "field": "b"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "ln": {
+          "field": "dt"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "ln": {
+          "field": "ts"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "ln": {
+          "field": "d"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "ln": {
+          "field": "a"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "ln": {
+          "field": "o"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "ln": {
+          "field": "v"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "ln": {
+          "field": "j"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "ln": {
+          "field": "r"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log10": {
+          "field": "s"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log10": {
+          "field": "b"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log10": {
+          "field": "dt"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log10": {
+          "field": "ts"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log10": {
+          "field": "d"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log10": {
+          "field": "a"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log10": {
+          "field": "o"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log10": {
+          "field": "v"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log10": {
+          "field": "j"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "log10": {
+          "field": "r"
+        }
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "field": "s"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "field": "b"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "field": "dt"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "field": "ts"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "field": "d"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "field": "a"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "field": "o"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "field": "v"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "field": "j"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "field": "r"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "literal": null
+          },
+          {
+            "field": "s"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "field": "s"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "field": "b"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "field": "dt"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "field": "ts"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "field": "d"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "field": "a"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "field": "o"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "field": "v"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "field": "j"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "field": "r"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "literal": null
+          },
+          {
+            "field": "s"
+          }
+        ]
+      },
+      "issue": "TypeMismatch"
+    }
+  ]
+}

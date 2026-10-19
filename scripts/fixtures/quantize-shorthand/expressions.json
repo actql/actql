@@ -1,0 +1,62 @@
+[
+  {
+    "source": "quantize(d,0)",
+    "value": {
+      "quantize": {
+        "value": {
+          "field": "d"
+        },
+        "precision": 38,
+        "scale": 0,
+        "rounding": "half_even"
+      }
+    },
+    "preimage": "{\"quantize\":{\"precision\":38,\"rounding\":\"half_even\",\"scale\":0,\"value\":{\"field\":\"d\"}}}",
+    "cid": "sha256:8f013e3cedf24f6d9246ab862e231b4e3be8805d55220368b03035519b40cc35"
+  },
+  {
+    "source": "quantize(d,2)",
+    "value": {
+      "quantize": {
+        "value": {
+          "field": "d"
+        },
+        "precision": 38,
+        "scale": 2,
+        "rounding": "half_even"
+      }
+    },
+    "preimage": "{\"quantize\":{\"precision\":38,\"rounding\":\"half_even\",\"scale\":2,\"value\":{\"field\":\"d\"}}}",
+    "cid": "sha256:014853b354b49daced75f7c2e7cac9f679b4a7f3468c540789330a115da9ee2e"
+  },
+  {
+    "source": "quantize($d,38)",
+    "value": {
+      "quantize": {
+        "value": {
+          "$param": "d"
+        },
+        "precision": 38,
+        "scale": 38,
+        "rounding": "half_even"
+      }
+    },
+    "preimage": "{\"quantize\":{\"precision\":38,\"rounding\":\"half_even\",\"scale\":38,\"value\":{\"$param\":\"d\"}}}",
+    "cid": "sha256:ba6e590d461fe974f33a8d179bd97d9bf2784707ec731bc346a324b552e3afb0"
+  },
+  {
+    "source": "quantize(NULL,2)",
+    "value": {
+      "quantize": {
+        "value": {
+          "literal": null
+        },
+        "precision": 38,
+        "scale": 2,
+        "rounding": "half_even"
+      }
+    },
+    "preimage": "{\"quantize\":{\"precision\":38,\"rounding\":\"half_even\",\"scale\":2,\"value\":{\"literal\":null}}}",
+    "cid": "sha256:1cbc286c286203ef3c8e94b84bd61e236b80ea56f053d410adf0357c07426f0c"
+  }
+]
