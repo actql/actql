@@ -315,9 +315,7 @@ pub fn Store::retry_pending_result_delivery_cleanup(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  guard self.pending_result_delivery is Some(original) else {
-    return Ok(false)
-  }
+  guard self.pending_result_delivery is Some(original) else { return Ok(false) }
   match original.close() {
     Err(issue) => Err(issue)
     Ok(_) => {
@@ -3675,7 +3673,8 @@ pub fn Store::begin_result_delivery(
   max_depth : Int,
   max_delivery_bytes : Int64,
 ) -> Result[ResultDelivery, NativePublicationStoreIssue] {
-  self.with_original_read(false, false, fn() {
+  self
+  .with_original_read(false, false, fn() {
     let acquired = self.begin_result_delivery_in_scope(
       index, manifest, grant, retention, binding, material_generation_cid, result_name,
       format, attempt_id, requested_at, schema_wire, fields, input_chunk_bytes, max_row_bytes,
@@ -3687,7 +3686,8 @@ pub fn Store::begin_result_delivery(
       self.pending_result_delivery = Some(original)
     }
     acquired
-  }).map(original => {
+  })
+  .map(original => {
     // Only a confirmed original return exposes this same acquired child.
     self.pending_result_delivery = None
     original

@@ -511,7 +511,13 @@ fn store_failed_open_original_work(
   } else if probe == 5 {
     let authority = "sha256:" + "1".repeat(64)
     let store = @store.open_original_local_store_with_custody(
-      library, original, path, authority, 128L, 4L, 4096L,
+      library,
+      original,
+      path,
+      authority,
+      128L,
+      4L,
+      4096L,
       diagnostic_ceiling=Some(256),
     ).unwrap()
     let request = @payload.prepare_publication_payload_request(
@@ -523,12 +529,15 @@ fn store_failed_open_original_work(
       "sha256:" + "6".repeat(64),
       "sha256:" + "7".repeat(64),
       "sha256:" + "8".repeat(64),
-      16L, 1L,
+      16L,
+      1L,
     ).unwrap()
     let writer = store.begin_payload(request).unwrap()
     writer.append(b"same-original").unwrap()
     let info = writer.seal().unwrap()
-    let reader = store.open_payload_reader(info.material_generation_cid).unwrap()
+    let reader = store
+      .open_payload_reader(info.material_generation_cid)
+      .unwrap()
     receiver.fail_normal_return = true
     assert_true(store.capacity_usage() is Err(@store.OperationRouting(_, _)))
     let sql_before = receiver.sql_entries
@@ -536,7 +545,9 @@ fn store_failed_open_original_work(
     // The first cleanup return is also lost. This cannot clear the Store's
     // mirror or close the retained Reader/Database in place of its own ACK.
     receiver.fail_cleanup_return = true
-    assert_true(store.reconcile_original_return() is Err(@store.OperationRouting(_, _)))
+    assert_true(
+      store.reconcile_original_return() is Err(@store.OperationRouting(_, _)),
+    )
     assert_true(reader.close() is Err(@store.CleanupPending))
     assert_eq(receiver.sql_entries, sql_before)
     assert_eq(receiver.normal_entries, normal_before)
