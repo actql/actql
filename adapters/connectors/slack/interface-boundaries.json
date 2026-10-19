@@ -326,7 +326,7 @@
     },
     {
       "module": "adapters/connectors/slack/host/installed-slack-source.mjs",
-      "sha256": "23fc8aae877faa2028e46c630d9223928eaad769e0036a40e0a62af1e513d36c",
+      "sha256": "d758547666b0deba5704277dd5372642034fa67a1f22028827350802bce6992c",
       "exports": [
         "INSTALLED_SLACK_SITE_VERSION",
         "INSTALLED_SLACK_SOURCE_VERSION",
@@ -546,8 +546,10 @@
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/source-profile-json.mjs",
         "../site/channel-list-read.mjs",
+        "../site/message-history-read.mjs",
         "../site/user-list-read.mjs",
         "./channel-source-reader.mjs",
+        "./message-source-reader.mjs",
         "./user-source-reader.mjs",
         "node:crypto",
         "node:path",
@@ -610,6 +612,10 @@
               {
                 "path": "src/connectors/slack/catalog/channels.mbt",
                 "anchor": "pub fn project_slack_channel_list("
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
               }
             ],
             "inputsOutputs": [
@@ -632,6 +638,10 @@
               {
                 "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
                 "anchor": "const views="
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
               }
             ],
             "identity": [
@@ -654,6 +664,10 @@
               {
                 "path": "adapters/connectors/slack/site/channel-list-read.mjs",
                 "anchor": "slackWorkspaceIdentityMatches(identity,workspaceId)"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
               }
             ],
             "ownership": [
@@ -676,6 +690,10 @@
               {
                 "path": "adapters/connectors/slack/site/channel-list-read.mjs",
                 "anchor": "const readers = new WeakMap();"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
               }
             ],
             "synchronization": [
@@ -694,6 +712,10 @@
               {
                 "path": "adapters/connectors/slack/host/channel-source-reader.mjs",
                 "anchor": "const result=await readResult;"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
               }
             ],
             "failure": [
@@ -716,6 +738,10 @@
               {
                 "path": "adapters/connectors/slack/test/channel-list-read.test.mjs",
                 "anchor": "test('Slack channel duplicate keys"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
               }
             ],
             "cancellation": [
@@ -734,6 +760,10 @@
               {
                 "path": "adapters/connectors/slack/test/channel-list-read.test.mjs",
                 "anchor": "test('Slack channel current or stop"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
               }
             ],
             "resources": [
@@ -760,6 +790,10 @@
               {
                 "path": "adapters/connectors/slack/host/channel-source-reader.mjs",
                 "anchor": "cleanupConfirmed:false"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
               }
             ],
             "extension": [
@@ -777,7 +811,11 @@
               },
               {
                 "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
-                "anchor": "readOperation:{users:SLACK_USER_LIST_OPERATION,channels:SLACK_CHANNEL_LIST_OPERATION}"
+                "anchor": "messages:SLACK_MESSAGE_HISTORY_OPERATION},physicalTarget:target,"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
               }
             ],
             "verification": [
@@ -812,6 +850,18 @@
               {
                 "path": "adapters/connectors/slack/test/installed-slack-channels.test.mjs",
                 "anchor": "test('installed Slack channel Account denial"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-messages.test.mjs",
+                "anchor": "test('installed Slack messages uses original messages Account decisions"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-messages.test.mjs",
+                "anchor": "test('installed Slack channels Account permission cannot substitute"
               }
             ]
           }
@@ -1419,7 +1469,7 @@
               },
               {
                 "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
-                "anchor": "readOperation:{users:SLACK_USER_LIST_OPERATION,channels:SLACK_CHANNEL_LIST_OPERATION}"
+                "anchor": "messages:SLACK_MESSAGE_HISTORY_OPERATION},physicalTarget:target,"
               }
             ],
             "verification": [
@@ -1954,7 +2004,7 @@
               },
               {
                 "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
-                "anchor": "readOperation:{users:SLACK_USER_LIST_OPERATION,channels:SLACK_CHANNEL_LIST_OPERATION}"
+                "anchor": "messages:SLACK_MESSAGE_HISTORY_OPERATION},physicalTarget:target,"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
@@ -2922,6 +2972,455 @@
               {
                 "path": "adapters/connectors/slack/test/message-history-original-channel.test.mjs",
                 "anchor": "test('Slack history consumes its original completed channel occurrence through the actual HTTPS caller'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/slack/host/message-source-reader.mjs",
+      "sha256": "bf020a8be101420e0a580a0f4078c14314d9b55024dccac22e827c1e9c3b83df",
+      "exports": [
+        "createSlackMessageSourceReaderFactory"
+      ],
+      "operations": [
+        {
+          "name": "createSlackMessageSourceReaderFactory",
+          "parameters": [
+            "provider",
+            "site",
+            "capacity",
+            "workspaceId",
+            "limits",
+            "maxSecretBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/createSlackMessageSourceReaderFactory",
+          "parameters": [
+            "k"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/append/append",
+          "parameters": [
+            "rows"
+          ],
+          "async": true
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/authorizationFor/authorizationFor",
+          "parameters": [
+            "operation",
+            "index"
+          ],
+          "async": true
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/chargeResponse/chargeResponse",
+          "parameters": [
+            "body"
+          ],
+          "async": true
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/checkPage/checkPage",
+          "parameters": [
+            "rows",
+            "metadata"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/child/child",
+          "parameters": [
+            "reader"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/closeTransport/closeTransport",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/consumePrevious/consumePrevious",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/deferObservation/deferObservation",
+          "parameters": [
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/channels/channels",
+          "parameters": [
+            "rows",
+            "metadata"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/history/history",
+          "parameters": [
+            "rows",
+            "metadata"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/projection/projection",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/reply/reply",
+          "parameters": [
+            "rows",
+            "metadata"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/initialFor/initialFor",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/invoke/invoke",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/operationGrant/operationGrant",
+          "parameters": [
+            "operation",
+            "decision"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/readChild/readChild",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/shared/shared",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/verify/verify",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/selectedProvider/selectedProvider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackMessageSourceReaderFactory/selectedProvider/selectedProvider/selectedProvider",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "data",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "methods",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "../site/channel-list-read.mjs",
+        "../site/message-history-read.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Slack Catalog/Source/physical reader; Common owns checked observations and coalescence, Account/Credential authorize messages, Resource owns capacity and retirement",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createSlackMessageSourceReaderFactory",
+            "createSlackMessageSourceReaderFactory/createSlackMessageSourceReaderFactory",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/append/append",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/authorizationFor/authorizationFor",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/chargeResponse/chargeResponse",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/checkPage/checkPage",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/child/child",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/closeTransport/closeTransport",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/consumePrevious/consumePrevious",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/deferObservation/deferObservation",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:observe/init:observe",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/channels/channels",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/history/history",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/projection/projection",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/reply/reply",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/initialFor/initialFor",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/invoke/invoke",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/operationGrant/operationGrant",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/readChild/readChild",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/shared/shared",
+            "createSlackMessageSourceReaderFactory/factory/init:prepare/init:prepare/verify/verify",
+            "createSlackMessageSourceReaderFactory/selectedProvider/selectedProvider",
+            "createSlackMessageSourceReaderFactory/selectedProvider/selectedProvider/selectedProvider",
+            "data",
+            "fail/fail",
+            "methods",
+            "methods/methods",
+            "positive/positive",
+            "text/text"
+          ],
+          "exports": [
+            "createSlackMessageSourceReaderFactory"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/message-source-reader.mjs",
+                "anchor": "export function createSlackMessageSourceReaderFactory("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/message-source-reader.mjs",
+                "anchor": "data(options,'resource')!=='messages'"
+              },
+              {
+                "path": "src/connectors/slack/catalog/message_projection.mbt",
+                "anchor": "pub fn coalesce_slack_message_originals("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/message-source-reader.mjs",
+                "anchor": "invocationBindingsMatch(authorization.scope,initial.scope)"
+              },
+              {
+                "path": "adapters/connectors/slack/host/message-source-reader.mjs",
+                "anchor": "selectSlackOriginalChannel(channels.reader,page.token,index)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/message-source-reader.mjs",
+                "anchor": "const callbacks=methods(options,"
+              },
+              {
+                "path": "adapters/connectors/slack/host/message-source-reader.mjs",
+                "anchor": "const children=[],channelPages=[],histories=[],projections=[]"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/message-source-reader.mjs",
+                "anchor": "await consumePrevious();const decision=await verify(operation);"
+              },
+              {
+                "path": "adapters/connectors/slack/host/message-source-reader.mjs",
+                "anchor": "await invoke('consumePage',rows,{charge:original});pending=undefined;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/message-source-reader.mjs",
+                "anchor": "phase='failed';originalFailure=cause;throw cause;"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-messages.test.mjs",
+                "anchor": "test('installed Slack messages lost original reply keeps recovery"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/message-source-reader.mjs",
+                "anchor": "stop.abort(reason);"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-messages.test.mjs",
+                "anchor": "test('installed Slack messages stop after the last response"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/message-source-reader.mjs",
+                "anchor": "body.byteLength>bounded.maxTotalResponseBytes-bodyBytes"
+              },
+              {
+                "path": "adapters/connectors/slack/host/message-source-reader.mjs",
+                "anchor": "rows.length>bounded.maxTotalRows-observedRows"
+              },
+              {
+                "path": "adapters/connectors/slack/host/message-source-reader.mjs",
+                "anchor": "cleanupConfirmed:false"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "['messages',createSlackMessageSourceReaderFactory]"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-messages.test.mjs",
+                "anchor": "test('installed Slack messages uses original messages Account decisions"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-messages.test.mjs",
+                "anchor": "test('installed Slack channels Account permission cannot substitute"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-messages.test.mjs",
+                "anchor": "test('installed Slack broad messages realization refuses invalid excluded rows"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-messages.test.mjs",
+                "anchor": "test('installed Slack messages preserves the original finite exchange ceiling"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-messages.test.mjs",
+                "anchor": "test('installed Slack messages lost original reply keeps recovery"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-messages.test.mjs",
+                "anchor": "test('installed Slack messages stop after the last response"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-messages.test.mjs",
+                "anchor": "test('installed Slack messages empty original conversation extent"
               }
             ]
           }
