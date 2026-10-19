@@ -309,7 +309,9 @@ fn values_original_cleanup_entered(
     Some(value) => {
       let receiver = value.operation.receiver
       guard receiver.original is Some(original) else { return false }
-      original.host.observe_domain_retained_execution_scope(receiver.execution)
+      original.host.observe_domain_retained_execution_cleanup_scope(
+        receiver.execution,
+      )
       is Ok(@bootstrap.BackedReadEntered)
     }
   }

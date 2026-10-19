@@ -502,6 +502,35 @@ pub fn NativeLocalStoreOperation::sqlite_original(
 }
 
 ///|
+/// Observe this same routing original's outstanding scope duty. An idle result
+/// does not acknowledge Store, Database, Library, domain or Host retirement.
+pub fn NativeLocalStoreOperation::pending_scope(
+  self : NativeLocalStoreOperation,
+) -> Result[Bool, NativeLocalStoreOperationIssue] {
+  guard self.bridge is Some(bridge) && !self.receiver.closed else {
+    return Err(StoreOperationUnavailable)
+  }
+  let pending = match bridge.pending_scope() {
+    Ok(value) => value
+    Err(issue) => return Err(StoreOperationSqlite(issue))
+  }
+  let receiver = self.receiver
+  let retained = match receiver.original {
+    Some(original) =>
+      original.store_operation is Some(active) &&
+      physical_equal(active, receiver)
+    None => false
+  }
+  Ok(
+    pending ||
+    retained ||
+    receiver.business_pending ||
+    receiver.origin is Some(_) ||
+    receiver.phase != StoreRouteIdle,
+  )
+}
+
+///|
 /// Only routing metadata. This does not close the Store or acknowledge its DB,
 /// Library, Read, retained output, domain, Host or descriptor retirement.
 pub fn NativeLocalStoreOperation::close_checked(
@@ -510,6 +539,11 @@ pub fn NativeLocalStoreOperation::close_checked(
   match self.bridge {
     None => Ok(())
     Some(bridge) => {
+      match self.pending_scope() {
+        Err(issue) => return Err(issue)
+        Ok(true) => return Err(StoreOperationUnavailable)
+        Ok(false) => ()
+      }
       match bridge.close_checked() {
         Err(issue) => return Err(StoreOperationSqlite(issue))
         Ok(_) => ()
