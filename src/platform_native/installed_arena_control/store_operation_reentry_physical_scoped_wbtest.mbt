@@ -95,11 +95,13 @@ fn store_reentry_original_call(
   // Only this finite counter holds a temporary backlink for the nested call.
   // Release it explicitly; it is not an issuer, registry or retirement proof.
   receiver.original.val = Some(original)
-  original.activate().unwrap()
+  original.activate().retained_execution_value("Store reentry original stage 1")
   let outer = if probe == 0 {
     original.enter_store()
   } else {
-    original.enter_store().unwrap()
+    original
+    .enter_store()
+    .retained_execution_value("Store reentry original stage 2")
     original.leave_store()
   }
   let refused = outer is Err(_)
@@ -109,12 +111,18 @@ fn store_reentry_original_call(
   receiver.probe = -1
   receiver.original.val = None
   // Old failed=true must not forbid real same-original cleanup recovery.
-  original.enter_cleanup().unwrap()
+  original
+  .enter_cleanup()
+  .retained_execution_value("Store reentry original stage 3")
   assert_true(receiver.active)
-  original.leave_store().unwrap()
+  original
+  .leave_store()
+  .retained_execution_value("Store reentry original stage 4")
   assert_false(receiver.active)
   assert_eq(original.primary_code(), -2)
-  original.close_checked().unwrap()
+  original
+  .close_checked()
+  .retained_execution_value("Store reentry original stage 5")
   refused
 }
 
@@ -142,10 +150,16 @@ fn store_reentry_physical_case(probe : Int) -> Unit raise {
       execution_bytes: 256L * page,
     },
     65536L,
-  ).unwrap()
-  host.acquire_fd(descriptor).unwrap()
-  let backing = host.borrow_backing().unwrap()
-  host.enter_backing_borrow_scope(backing).unwrap()
+  ).retained_execution_value("Store reentry original stage 6")
+  host
+  .acquire_fd(descriptor)
+  .retained_execution_value("Store reentry original stage 7")
+  let backing = host
+    .borrow_backing()
+    .retained_execution_value("Store reentry original stage 8")
+  host
+  .enter_backing_borrow_scope(backing)
+  .retained_execution_value("Store reentry original stage 9")
   let domain = match
     host
     .prepare_domain(backing, descriptor, 128L * page, {
@@ -156,23 +170,37 @@ fn store_reentry_physical_case(probe : Int) -> Unit raise {
       retained_bytes: 0L,
       execution_bytes: 128L * page,
     })
-    .unwrap() {
+    .retained_execution_value("Store reentry original stage 10") {
     PreparedDomain(value) => value
     PendingDomain(_, _) => fail("original SQLite domain pending")
   }
-  host.transfer_domain(domain).unwrap()
-  host.leave_backing_borrow_scope(backing).unwrap()
-  host.return_backing_borrow(backing).unwrap()
-  host.prepare_domain_read(domain).unwrap()
+  host
+  .transfer_domain(domain)
+  .retained_execution_value("Store reentry original stage 11")
+  host
+  .leave_backing_borrow_scope(backing)
+  .retained_execution_value("Store reentry original stage 12")
+  host
+  .return_backing_borrow(backing)
+  .retained_execution_value("Store reentry original stage 13")
+  host
+  .prepare_domain_read(domain)
+  .retained_execution_value("Store reentry original stage 14")
   let sqlite = match
-    host.prepare_sqlite_library(domain, component, 32L * page, 128).unwrap() {
+    host
+    .prepare_sqlite_library(domain, component, 32L * page, 128)
+    .retained_execution_value("Store reentry original stage 15") {
     ReadySqlite(value) => value
     PendingSqlite(_, _) => fail("original selected SQLite Library pending")
   }
   let refused = store_reentry_original_call(host, sqlite, probe)
-  host.close_sqlite_library(sqlite).unwrap()
-  host.close_domain_after_owner_ack(domain).unwrap()
-  host.try_close().unwrap()
+  host
+  .close_sqlite_library(sqlite)
+  .retained_execution_value("Store reentry original stage 16")
+  host
+  .close_domain_after_owner_ack(domain)
+  .retained_execution_value("Store reentry original stage 17")
+  host.try_close().retained_execution_value("Store reentry original stage 18")
   assert_eq(process_test_close(descriptor), 0)
   // Assert the transition result only AFTER the actual original cleanup ACKs.
   assert_true(refused)
