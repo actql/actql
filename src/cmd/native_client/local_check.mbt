@@ -336,6 +336,7 @@ fn local_check_for_host(
     }),
   }
   let wire = context.project(input)
+  command_check_invalid_exit.val = local_check_invalid_exit(wire)
   if child.flags.get("json").unwrap_or(false) {
     wire
   } else {

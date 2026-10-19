@@ -1360,6 +1360,7 @@ fn execute_and_write_native_reply(
   matches : @argparse.Matches,
   pending_reply : Ref[String?],
 ) -> Unit raise ClientStop {
+  command_check_invalid_exit.val = false
   // The same carrier is registered before the first project/runtime/Store IO.
   // Help/version and parse errors have already terminated without acquisition.
   prepare_native_command_invocation(matches)
@@ -1474,4 +1475,9 @@ fn main {
     pending_reply.val = None
   }
   command_initial_control_keep_alive(control)
+  // The invalid report has already been written/flushed, and all original
+  // child cleanup has acknowledged. Run-state outcomes never set this flag.
+  if command_check_invalid_exit.val {
+    exit_failure_ffi()
+  }
 }
