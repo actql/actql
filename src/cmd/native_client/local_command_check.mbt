@@ -91,6 +91,13 @@ fn local_command_preparation_operation_selected(
   operation == "explain" ||
   operation == "adopt" ||
   (
+    operation == "status" &&
+    matches.subcommand is Some(("status", child)) &&
+    (optional(child, "run") is Some(_) || optional(child, "run-id") is Some(_)) &&
+    optional(child, "ref-file") is None &&
+    optional(child, "submission-ref-file") is None
+  ) ||
+  (
     operation == local_run_original_operation() &&
     matches.subcommand is Some(("run", _)) &&
     business_selected

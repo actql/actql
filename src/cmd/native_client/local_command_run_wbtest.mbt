@@ -66,6 +66,31 @@ test "Selected public Run refuses an unsupplied explicit legacy configuration be
 }
 
 ///|
+test "Saved status preparation refuses foreign operations and conflicting references" {
+  let status = command().parse(argv=[
+    "--mode", "local", "status", "original-run",
+  ])
+  assert_false(
+    local_command_preparation_operation_selected(status, "result", false),
+  )
+  let child = status.subcommand.unwrap().1
+  child.values["ref-file"] = ["foreign.json"]
+  assert_false(
+    local_command_preparation_operation_selected(status, "status", false),
+  )
+  ignore(child.values.remove("ref-file"))
+  child.values["submission-ref-file"] = ["foreign.json"]
+  assert_false(
+    local_command_preparation_operation_selected(status, "status", false),
+  )
+  ignore(child.values.remove("submission-ref-file"))
+  ignore(child.values.remove("run"))
+  assert_false(
+    local_command_preparation_operation_selected(status, "status", false),
+  )
+}
+
+///|
 test "Saved status selects the same static original without selecting a business Run" {
   let parsed = command().parse(argv=[
     "--mode", "local", "status", "original-run", "--json",
