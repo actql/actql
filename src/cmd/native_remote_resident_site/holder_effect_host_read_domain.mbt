@@ -66,14 +66,13 @@ fn holder_effect_host_original_read_budget_fits(
   ],
   operation : @site.SiteOperation,
 ) -> Bool {
-  guard host.backed_domain_capacity(original, domain, operation)
+  guard scope.profile is Some(profile) &&
+    host.backed_domain_capacity(original, domain, operation)
     is Ok((payload_bytes, delegated_execution_bytes)) else {
     return false
   }
   holder_effect_host_read_budget_fits(
-    scope.profile,
-    payload_bytes,
-    delegated_execution_bytes,
+    profile, payload_bytes, delegated_execution_bytes,
   )
 }
 
@@ -137,6 +136,24 @@ fn install_holder_effect_host_store_current(
   scope : HolderEffectHostSetupScope,
   current : () -> Bool,
 ) -> Bool {
+  if scope.ordinary is Some(_) {
+    guard scope.current_binding is None &&
+      holder_effect_host_read_scope_prepared(scope) else {
+      return false
+    }
+    let refused = Ref(false)
+    scope.current_binding = Some(() => {
+      if refused.val {
+        return false
+      }
+      let valid = current()
+      if !valid {
+        refused.val = true
+      }
+      valid
+    })
+    return holder_effect_host_read_scope_current(scope)
+  }
   guard scope.current_binding is None &&
     holder_effect_host_read_scope_prepared(scope) &&
     scope.read_domain is Some(read) &&

@@ -41,43 +41,63 @@ graphs.
 ## Lifetime and cleanup
 
 Success and `CalendarListReadFailure` retain original response observations.
-Their frozen arrays are shallow: response bodies and externally captured aliases
-can outlive the read promise. A promise settling, finishing page processing,
-closing a credential, cancelling logically, or dropping one local array is not
-physical reader retirement. Callback delivery can retain rows independently.
+Frozen arrays are shallow; returned rows, response bodies, callbacks and errors
+can outlive the read promise. Their semantic ownership and managed limits remain
+explicit. Ordinary supported Node/stdlib allocation and copied-value GC/RSS are
+trusted runtime responsibilities, not additional physical cleanup receipts.
 
-A normal installation must snapshot the trusted reader's complete simultaneous
-retained/workspace envelope and bind it to the original prepared acquisition
-before I/O. Reservation belongs to the existing RowRun/Ledger and remains until
-the same original reader's physical cleanup is confirmed. The existing nominal
-response borrow and cleanup-confirmed observation are the connection boundary;
-listing-report capacity is not an alternative for an ordinary Calendar Source.
-Missing inventory, placement, original binding or cleanup confirmation remains
-unavailable/pending. Do not add a second ledger, reinterpret transfer as holding,
-use a fixed spare margin, or infer a cleanup ACK from a resolved promise.
+`createCalendarListReader` snapshots the original invocation before I/O. Its
+`read`, `requestStop` and `observe` require the original receiver and a read
+starts once. The reader borrows its caller's credential binding and cannot close
+or acknowledge a binding owned by another caller. Its own observation therefore
+keeps `cleanupConfirmed: false`; that does not impose an escaped-JS-value
+retirement or whole-runtime allocation proof on the actual binding owner.
 
-`createCalendarListReader` snapshots the original invocation before I/O and
-returns one private physical-reader handle. Its `read`, `requestStop` and
-`observe` methods require that same receiver; copied handles cannot observe or
-stop the acquisition. A read starts at most once. The caller retains the handle
-and its original methods before installing the existing response cleanup
-observer. If the factory refuses, previously acquired credentials, reservations
-and cleanup handles remain the caller's responsibility.
+The installed Calendar factory opens exactly one binding for that reader and
+captures the original methods and receiver. After the same read settles it
+closes that binding, and confirms its physical cleanup only when the original
+close returns `closed`. Stop requests abort that same operation. Pending or
+failed close remains unconfirmed, with the original child, binding and error
+retained. The common session separately waits for its captured read/stop and
+owns RowRun close and reservation release. Transport close never establishes
+row completeness, a successful Run, permission or a lost use's outcome.
 
-The observation contains only phase, stop request, original response count/body
-bytes, custody status and an unconfirmed cleanup result. Requesting stop aborts
-the same reader's signal without substituting credential close or Run cleanup.
-The handle does not accept a mark-clean callback. In particular, its succeeded
-or failed phase leaves escaped raw observations retained and cleanup unconfirmed.
-This conservative observation is not a complete physical-retirement port: a
-normal caller must keep the original reservation pending until an existing
-trusted custody owner can actually confirm retirement of the same reader and
-its escaped observations.
+## Ordinary installed calendars Source
 
-The bounded catalog and TLS caller tests establish response meaning, original
-Account/Credential checks, charging and sequencing. They do not establish this
-normal-installation capacity/retirement connection, credential token minting,
-public installed acquisition, or the other Calendar read/write operations.
+The Calendar-owned Host manifest registers the private
+`actql-installed-calendar-source/0.1` entry. The ordinary installation table
+selects it without provider branches in the Host. It exposes only `calendars`;
+free/busy and event writes do not inherit this registration. The schema, four
+column names and ID candidate-key facts come from the compiled Catalog.
+The same checked SQL/Pipe Program selects its original declaration, acquisition,
+Account read decision and RowRun; no synthetic filter or replacement Program is
+introduced. A projected field selection cannot conceal an invalid known cell.
+
+The profile supplies bounded parser, page, row, credential and declaration
+limits, not capacity or authority. The actual installer must separately supply
+its original same-runtime `readerCapacity`, Account configuration, scoped
+Credential material, selected Site and current checks. Missing capacity or
+material remains unavailable. The transfer envelope is `maxPages ×
+maxResponseBytes`, a page holds at most `min(perPage, maxRows)` rows, and total
+capture remains bounded by `maxRows`. These dimensions do not measure arbitrary
+Node allocation or establish normal numerical funding.
+
+One same-attempt list grant has at most `maxPages` uses. Each actual page obtains
+its own original use ID and repeats the existing current checks; API `me` is a
+fixed vendor path, not permission inferred from a token. The target retains the
+selected HTTPS origin, resource and exact field set. The installation binding
+also retains the actual Account context, runtime, Site generation/configuration
+and selected TLS authority bytes. The factory captures provider callbacks and
+receivers before awaiting Site/profile work. Equal target or schema DATA cannot
+replace these operational originals.
+
+All complete response bodies are charged before status/current/type refusal,
+and every page enters the original accounted RowRun. Cross-page IDs/cursors,
+partial-page failures and a lost response retain their existing refusal/custody
+semantics. There is no retry or replacement-use loop. Confirmed physical close
+does not rewrite a Credential journal `Unknown` or resend that use. The normal
+Host's actual supplier, installed/live Google acceptance, token minting and
+other Calendar operations remain separate consuming boundaries.
 
 ## Free/busy request and complete response
 
@@ -173,13 +193,12 @@ transport request, original response/header/body, temporary checked page,
 metadata/row output, observation arrays, failure cause, callbacks, original
 reader/method receivers, abort signals/listeners and pending/settled Promise
 graphs can overlap. Body/request/response/value/output ceilings remain distinct
-and are not numerical funding. The original observer reports retained custody
-and `cleanupConfirmed: false`, including after read success, cancellation,
-Promise settlement or Site close. No GC, cleared diagnostic, copied handle or
-transport-only close is promoted to raw-observation retirement. A normal
-installer must connect the original reader and complete overlap to the
-existing Ledger/custody owner and obtain actual retirement there; this private
-sequencer does not implement that missing connection.
+and are not numerical funding. The free/busy observer reports retained custody and
+`cleanupConfirmed: false`: that private sequencer borrows its original binding
+and does not own its physical close. The actual owner must still confirm any
+acquired native transport/FD duty; copied observations and ordinary managed
+allocation do not require a separate GC/RSS retirement receipt. This list
+installation does not register the independent free/busy operation.
 
 The source fixture exercises actual Common Account/RowRun, signed Credential
 scope, SQLite journal and loopback TLS using explicitly supplied component

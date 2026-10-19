@@ -13,7 +13,9 @@ fn decimal_division_expression_value(
 ) -> Result[Value, EvalIssue] {
   guard @lower.expression_contract(expression).shape
     is @contract.Decimal(precision~, scale~) &&
-    ["half_even", "half_up", "toward_zero", "floor", "ceiling"].contains(mode) else {
+    ["half_even", "half_up", "toward_zero", "floor", "ceiling", "exact"].contains(
+      mode,
+    ) else {
     return Err({ kind: Scalar(InvalidOperand), expression, })
   }
   // The original binary evaluator has already demanded and charged both children.

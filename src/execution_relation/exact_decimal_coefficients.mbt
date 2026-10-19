@@ -39,6 +39,10 @@ fn exact_decimal_round_ratio(
   }
   let quotient = numerator / denominator
   let remainder = numerator % denominator
+  // Only division admits this policy; quantize retains its separate five-mode guard.
+  if mode == "exact" {
+    return if remainder.is_zero() { Some(quotient) } else { None }
+  }
   let twice = remainder * @bigint.BigInt::from_int(2)
   let increment = match mode {
     "half_even" =>
