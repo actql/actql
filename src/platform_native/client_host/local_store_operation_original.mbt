@@ -39,6 +39,7 @@ priv struct NativeLocalStoreOperationReceiver {
   mut origin : LocalStoreOperationOrigin?
   mut phase : LocalStoreOperationPhase
   mut business_pending : Bool
+  mut borrowed_read : Bool
   mut primary : NativeLocalStoreOperationIssue?
   mut cleanup_issue : NativeLocalStoreOperationIssue?
 }
@@ -91,6 +92,7 @@ pub fn prepare_native_local_store_operation(
     origin: None,
     phase: StoreRouteIdle,
     business_pending: false,
+    borrowed_read: false,
     primary: None,
     cleanup_issue: None,
   }
@@ -442,6 +444,9 @@ fn NativeLocalStoreOperationReceiver::route(
                         // now release this flight and its retained cycle.
                         original.store_operation = None
                         self.business_pending = false
+                        if self.cleanup {
+                          self.borrowed_read = false
+                        }
                         self.origin = None
                         self.phase = StoreRouteIdle
                         self.cleanup = false
