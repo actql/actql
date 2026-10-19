@@ -5,10 +5,10 @@ fn local_read_issue(issue : @local_host.NativeLocalReadBindingIssue) -> String {
     Adoption(issue) => local_host_issue(issue)
     OriginalRead(primary, _) =>
       "LocalReadOriginalReturnPending" +
-      match primary {
+      (match primary {
         Some(issue) => " original=" + local_read_issue(issue)
         None => ""
-      }
+      })
     Journal(CustodyLost) => "LocalReadCustodyLost"
     Journal(TransactionUnknown) => "LocalReadAdmissionUnknown"
     Journal(CapacityExceeded) => "LocalReadCapacityExceeded"
