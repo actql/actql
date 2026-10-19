@@ -29,6 +29,16 @@ pub(all) enum ClientInstalledManagedRunIssue {
 fn installed_managed_run_purpose_supported(
   prepared : @publication_host.PreparedClientProgram,
 ) -> Bool {
+  installed_managed_run_shape_supported(prepared, false)
+}
+
+///|
+// Purpose is selected by a fixed entry, not by caller DATA. The shared shape
+// calculation does not convert a Source/Compute admission into a Model one.
+fn installed_managed_run_shape_supported(
+  prepared : @publication_host.PreparedClientProgram,
+  mock_model : Bool,
+) -> Bool {
   let graph = @publication_host.prepared_client_graph(prepared)
   let captured = @strategy.graph_captured_prefix(graph)
   (
@@ -37,7 +47,7 @@ fn installed_managed_run_purpose_supported(
   ) &&
   @publication_host.prepared_client_composed_infer_occurrences(prepared)
   is Some(infers) &&
-  infers.is_empty() &&
+  (if mock_model { infers.length() == 1 } else { infers.is_empty() }) &&
   @publication_host.prepared_client_serialization_occurrences(prepared).is_empty()
 }
 
@@ -51,9 +61,10 @@ fn source_free_installed_managed_limits(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
+  mock_model? : Bool = false,
 ) -> @resources.LedgerLimits? {
   let graph = @publication_host.prepared_client_graph(prepared)
-  if !installed_managed_run_purpose_supported(prepared) ||
+  if !installed_managed_run_shape_supported(prepared, mock_model) ||
     @strategy.graph_captured_prefix(graph) != 0 ||
     !@strategy.graph_source_free_inputs_complete(graph) {
     return None
@@ -108,7 +119,50 @@ pub fn installed_managed_run_requirements(
   fragment_body : String?,
   ordered_body : String?,
 ) -> Result[Array[Int64], ClientInstalledManagedRunIssue] {
-  if !installed_managed_run_purpose_supported(prepared) {
+  installed_managed_run_requirements_owned(
+    prepared, declarations, query_contract_body, evidence_contract_body, transport_bytes,
+    transport_execution_bytes, registry_body, values_body, fragment_body, ordered_body,
+    false,
+  )
+}
+
+///|
+// The separate Mock entry quotes the same Source and Compute inventory. It
+// still requires its own Resource admission and early same-Run Model Scope.
+pub fn installed_mock_model_run_requirements(
+  prepared : @publication_host.PreparedClientProgram,
+  declarations : Array[@row_source_host.RowDeclaration],
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[Array[Int64], ClientInstalledManagedRunIssue] {
+  installed_managed_run_requirements_owned(
+    prepared, declarations, query_contract_body, evidence_contract_body, transport_bytes,
+    transport_execution_bytes, registry_body, values_body, fragment_body, ordered_body,
+    true,
+  )
+}
+
+///|
+fn installed_managed_run_requirements_owned(
+  prepared : @publication_host.PreparedClientProgram,
+  declarations : Array[@row_source_host.RowDeclaration],
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  mock_model : Bool,
+) -> Result[Array[Int64], ClientInstalledManagedRunIssue] {
+  if !installed_managed_run_shape_supported(prepared, mock_model) {
     return Err(Unsupported)
   }
   if @strategy.graph_captured_prefix(
@@ -121,7 +175,12 @@ pub fn installed_managed_run_requirements(
       return Err(Unsupported)
     }
     guard source_free_installed_managed_limits(
-        prepared, registry_body, values_body, fragment_body, ordered_body,
+        prepared,
+        registry_body,
+        values_body,
+        fragment_body,
+        ordered_body,
+        mock_model~,
       )
       is Some(limits) else {
       return Err(Unsupported)
@@ -342,7 +401,12 @@ pub fn prepare_installed_managed_run_ledger(
       return Err(Unsupported)
     }
     source_free_installed_managed_limits(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
+      prepared,
+      registry_body,
+      values_body,
+      fragment_body,
+      ordered_body,
+      mock_model=installed_managed_run_shape_supported(prepared, true),
     )
   } else {
     multi_captured_installed_limits_owned(

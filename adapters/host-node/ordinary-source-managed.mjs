@@ -63,6 +63,29 @@ export async function prepareOrdinarySourceManagedInstallation(originals, callba
     resourceRuntime.assertOrdinaryManagedRunCurrent(run.original, prepared);
     return run;
   }
+  function prepareRun(prepared, purpose, model) {
+    current();
+    const old = runs.get(prepared);
+    if (old !== undefined) {
+      if (old.purpose !== purpose || old.model !== model) fail('ForeignInstalledModelPreparation');
+      return runFor(prepared).original;
+    }
+    const request = callbacks.request(originals, prepared);
+    const producer = [...producers].find(value => value.request === request && !value.finished);
+    if (producer === undefined || runs.size === 4096) fail('ForeignInstalledSourceProducer');
+    const run = {prepared, request, producer, purpose, model, original: undefined,
+      children: [], fileIdentity: undefined};
+    runs.set(prepared, run);
+    // A failed quote remains attached to this one preparation. It cannot be
+    // retried under a different purpose or replaced by another original.
+    const required = purpose === 'local-mock-model'
+      ? callbacks.mockRequirements(originals, prepared, model)
+      : callbacks.requirements(originals, prepared);
+    run.original = resourceRuntime.retainOrdinaryManagedRun(prepared, required,
+      () => {current(); if (run.producer.request !== request) fail('ForeignInstalledSourceProducer');},
+      () => run.children.some(child => child.flight !== undefined || !child.closed), purpose);
+    return run.original;
+  }
   async function readBytes(run, child) {
     current();
     if (child.closed || child.attempted) fail('InstalledSourcePreparationMismatch');
@@ -148,19 +171,10 @@ export async function prepareOrdinarySourceManagedInstallation(originals, callba
     },
     beforeResultRead() {current();}, assertResultReadCurrent: current,
     prepareRun(prepared) {
-      current();
-      const old = runs.get(prepared);
-      if (old !== undefined) return runFor(prepared).original;
-      const request = callbacks.request(originals, prepared);
-      const producer = [...producers].find(value => value.request === request && !value.finished);
-      if (producer === undefined || runs.size === 4096) fail('ForeignInstalledSourceProducer');
-      const run = {prepared, request, producer, original: undefined, children: [], fileIdentity: undefined};
-      runs.set(prepared, run);
-      const required = callbacks.requirements(originals, prepared);
-      run.original = resourceRuntime.retainOrdinaryManagedRun(prepared, required,
-        () => {current(); if (run.producer.request !== request) fail('ForeignInstalledSourceProducer');},
-        () => run.children.some(child => child.flight !== undefined || !child.closed));
-      return run.original;
+      return prepareRun(prepared, 'source-compute', undefined);
+    },
+    prepareLocalMockModelRun(prepared, model) {
+      return prepareRun(prepared, 'local-mock-model', model);
     },
     prepareRead(prepared, declaration, originalRun) {
       const run = runFor(prepared);

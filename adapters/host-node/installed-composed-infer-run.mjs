@@ -18,7 +18,8 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   store, principalId, signal, retainExecution, acquiredInfer, replay, beginPhysicalWork,
   submission, existingModel, modelClaim, assertCurrent = () => {},
   modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor, namespaceId, authorityScopeCid,
-  storeAuthorityCid, now, faultInjection, registry, values, fragment, ordered, computeConfigurations}) {
+  storeAuthorityCid, now, faultInjection, registry, values, fragment, ordered, computeConfigurations,
+  originalPreparation}) {
   if (modelController === undefined) {
     throw new Error('InstalledComposedInferInputUnavailable');
   }
@@ -28,7 +29,8 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       !records.some(record => record.inventory.scopeCid === existingModel.inventory.scopeCid)) {
     throw new Error('InstalledComposedInferOriginalInventoryMissing');
   }
-  if (records.length === 0 && acquiredInfer?.captured === undefined) {
+  const multiple = acquiredInfer?.sources?.length === 2;
+  if (records.length === 0 && acquiredInfer?.captured === undefined && !multiple) {
     throw new Error('InstalledComposedInferInputUnavailable');
   }
   const children = selected.components.map(selection => ({selection}));
@@ -100,10 +102,12 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     }
     if (restoredSource !== undefined) {await restoredSource.close(); restoredSource = undefined;}
     if (sourceContinuation !== undefined) {await sourceContinuation.close(); sourceContinuation = undefined;}
+    if (originalPreparation !== undefined) originalPreparation.retire();
     released = true;
     return true;
   }
   retainExecution(Object.freeze({close: cleanup, cleanup, cleanupPending: () => !released}));
+  if (originalPreparation !== undefined) originalPreparation.retain();
   const declaredResults = Array.from({length: moon.clientProgramResultCount(preparedProgram)},
     (_, index) => moon.clientProgramResultName(preparedProgram, index));
   const matched = new Set();
@@ -123,7 +127,23 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   if (matched.size !== records.length) throw new Error('ModelResumeForeignInventory');
   let input = acquiredInfer;
   const historical = children.find(child => child.token !== undefined);
-  if (checkpoints !== undefined && prepareAcquisition !== undefined) {
+  if (multiple && checkpoints !== undefined) {
+    // Retain both original approved request/response prefixes. A last ticket,
+    // matching array or a single Source's closure cannot stand in for them.
+    if (historical !== undefined) throw new Error('ModelMultiSourceClosureCustodyUnavailable');
+    sourceContinuation = acquiredEffectContinuation({checkpoints, moon,
+      acquired: {kind: 'infer', prepared: preparedProgram, runDefinition: plan.runDefinition, control},
+      submission, declaredResults, principalId, unitId: 'composed-source-input', signal,
+      currentRun: () => {try {assertCurrent(); return !signal.aborted;} catch {return false;}}});
+    const originals = input.sources.map(source => ({occurrence: source.occurrence,
+      preparedSource: source.preparedSource}));
+    for (const source of input.sources) sourceContinuation.accessFor(source.access, source.occurrence);
+    await sourceContinuation.prepared(originals);
+    for (const [index, source] of input.sources.entries()) {
+      await sourceContinuation.captured(originals[index], source.captured, source.sourceEvidenceWire,
+        input.captureStartedAt, input.captureCompletedAt);
+    }
+  } else if (checkpoints !== undefined && prepareAcquisition !== undefined) {
     const occurrence = {stage: 0, input: 0, task: 0};
     const preparedSource = input?.preparedSource ?? await prepareAcquisition(preparedProgram);
     assertCurrent();
@@ -162,25 +182,35 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     }
   } else if (historical !== undefined) throw new Error('ModelSourceClosureCustodyUnavailable');
   const {captured, sourceEvidenceWire, captureStartedAt, captureCompletedAt} = input;
-  const sourceEvidence = [input.sourceEvidence];
+  const captures = multiple ? input.sources.map(source => source.captured) : [captured];
+  const wires = multiple ? input.sources.map(source => source.sourceEvidenceWire) : [sourceEvidenceWire];
+  const sourceEvidence = multiple ? input.sourceEvidence : [input.sourceEvidence];
   for (const child of children) {
     const sources = child.restoredInput === undefined ? checked(moon.clientProgramAdmitComposedInferSources(child.selection.occurrence,
-      [captured.capture.source()], [captured.identity], [captured.requirement],
-      [moon.strategyRunEvidenceJson(captured.logicalInput)], [sourceEvidenceWire], authorityScopeCid,
+      captures.map(value => value.capture.source()), captures.map(value => value.identity),
+      captures.map(value => value.requirement),
+      captures.map(value => moon.strategyRunEvidenceJson(value.logicalInput)), wires, authorityScopeCid,
       captureStartedAt, captureCompletedAt)) : undefined;
     child.component = openNodeComposedInferProvider({moon, selected: child.selection, sources,
       control, plan, principalId, now, signal, durableCalls: true, restoredInput: child.restoredInput,
+      originalPreparation,
       retainOperation(operation) {
         child.operation = operation;
         child.capture = openNodeInferCaptureCustody({moon, control, operation, plan, store,
           storeAuthorityCid, sourceEvidence, faultInjection, durableCalls: true, captureOnly: true});
       }, retainCompleted: () => child.capture.retainCompleted()});
   }
-  const setup = moon.clientProgramOpenCapturedComposedInferHost(preparedProgram,
+  const setup = multiple ? moon.clientProgramOpenMultiCapturedComposedInferHost(preparedProgram,
+    captures.map(value => value.capture.source()), input.ledger, registry, values, fragment, ordered,
+    children.map(child => child.component.provider)) : moon.clientProgramOpenCapturedComposedInferHost(preparedProgram,
     captured.capture.source(), registry, values, fragment, ordered,
     children.map(child => child.component.provider));
   if (setup === undefined) throw new Error('InstalledComposedInferHostUnavailable');
   pendingSetup = setup;
+  if (multiple) {
+    const dag = moon.strategyHostRun(setup);
+    for (const [task, original] of captures.entries()) original.capture.retainTask(dag, task);
+  }
   // The existing single-Source dispatch owner retains this capture until
   // all Compute custody has settled. It is not a multi-capture ledger lease.
   const local = withLocalExecutionPauseHandler(computeConfigurations.local, async boundary => {
@@ -247,7 +277,8 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   for (const child of children) await child.capture.persist();
   const calls = children.reduce((sum, child) => sum + child.capture.evaluationBundle().count, 0);
   issuance = startCompleteInferObservation({moon, operations: children.map(child => child.operation),
-    ledger: checked(moon.clientProgramInferPublicationLedger(262144n + BigInt(calls * 128 + (children.length - 1) * 256), calls + 2)),
+    ledger: originalPreparation !== undefined ? input.ledger :
+      checked(moon.clientProgramInferPublicationLedger(262144n + BigInt(calls * 128 + (children.length - 1) * 256), calls + 2)),
     maxSlots: calls, maxWireBytes: 16384, maxWork: calls + 2});
   while (!issuanceComplete) {
     issuanceComplete = runtimeField(checked(moon.clientProgramAdvanceInferObservationIssuance(issuance, 1)), 0);

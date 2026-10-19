@@ -97,3 +97,30 @@ test "managed Run does not reinterpret an unsupported single Source as source-fr
     is Err(Unsupported),
   )
 }
+
+///|
+test "local Mock quote does not relabel ordinary Compute or serialized Model as its purpose" {
+  let plain = source_free_managed_prepared_fixture()
+  let (serialized, _, _, _) = original_prefix_execution_fixture()
+  for prepared in [plain, serialized] {
+    assert_true(!installed_managed_run_shape_supported(prepared, true))
+    assert_true(
+      installed_mock_model_run_requirements(
+        prepared,
+        [],
+        "",
+        "",
+        [],
+        [],
+        source_query_original_registry,
+        source_query_original_values,
+        Some(source_query_original_fragment),
+        None,
+      )
+      is Err(Unsupported),
+    )
+  }
+  // The existing Compute entry is unchanged, not made dependent on a Model
+  // purpose or granted one merely by this shared requirement calculation.
+  assert_true(installed_managed_run_purpose_supported(plain))
+}

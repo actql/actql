@@ -3042,6 +3042,34 @@ function publicationControl(moon) {
         preparedCallSet, admitted, beginEntry));
       return admitted;
     },
+    checkedClientMockModelRunRequirements(prepared, compiled, definition, occurrence, graph,
+      declarations, query, evidence, transport, scratch, registry, values, fragment, ordered) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramInstalledMockModelManagedRunRequirements(
+        prepared, value, token(definition), occurrence, graph, declarations,
+        query, evidence, transport, scratch, registry, values, fragment, ordered));
+    },
+    beginCheckedClientMockModelManagedRun(admission, prepared, request, compiled, definition, graph, budget) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramInstalledMockModelManagedRunBegin(admission,
+        prepared, request, value, token(definition), graph,
+        budget.bootstrapRetainedBytes, budget.bootstrapExecutionBytes,
+        budget.maxReservations, budget.maxHoldings, budget.maxDelegations));
+    },
+    prepareCheckedClientInferOriginalRead(compiled, definition, graph, scope, budget) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramPrepareInferOriginalRead(scope, value, token(definition),
+        graph, budget.readRetainedBytes, budget.readExecutionBytes));
+    },
     // Installation-only original bootstrap: caller custody must keep this
     // same scope on failure/recovery, never issue a replacement Ledger.
     // Initial allocation and the full preset projection require pre-funding

@@ -121,3 +121,24 @@ test('ordinary actual Mock Host consumes the original Quickstart two-Source JOIN
     ]);
   } finally {try {await client?.close();} finally {process.chdir(cwd);}}
 });
+
+test('ordinary actual Mock Host runs original Quickstart INFER without applying its Effect', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-ordinary-mock-infer-'));
+  const project = scaffoldProject(join(directory, 'project'), 'churn-risk-mock');
+  const cwd = process.cwd(); let client;
+  process.chdir(project.directory);
+  try {
+    client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
+      installation: {directory: '.actql'}, profile: 'mock'});
+    const source = await readFile('churn-risk.aql', 'utf8');
+    const query = source.slice(0, source.indexOf('|> EFFECT')).trimEnd() + ';';
+    assert.deepEqual(await client.sql(query).all(), [
+      {id: '001Acme', notes: 'Evaluating a competitor; usage down since June.', active_users: '4', trend: 'down',
+        risk: {outcome: 'ok', value: {level: 'high', reason: 'falling usage and a competitor evaluation'}}},
+      {id: '001Globex', notes: 'Several support tickets about the new pricing.', active_users: '12', trend: 'flat',
+        risk: {outcome: 'ok', value: {level: 'high', reason: 'support tickets about pricing'}}},
+    ]);
+    const original = JSON.parse(await readFile('mock/data.json', 'utf8'));
+    assert.deepEqual(original.salesforce.Account.rows.map(row => row.Churn_Risk__c), ['low', 'medium']);
+  } finally {try {await client?.close();} finally {process.chdir(cwd);}}
+});

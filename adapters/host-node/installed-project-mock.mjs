@@ -1,5 +1,6 @@
 import {resolve} from 'node:path';
 import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {installedProjectOriginalsForRuntime} from './installed-project-configuration.mjs';
 import {loadInstalledProjectConnections} from './installed-project-connections.mjs';
 import {mockChurnRiskCatalogue} from './mock-churn-risk-catalogue.mjs';
@@ -153,11 +154,12 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     checked(moon.clientProgramInstalledManagedRunCheck(record.value, prepared, record.request));
     return record;
   };
-  function prepareManagedRun(prepared, request) {
+  function prepareManagedRun(prepared, request, model) {
     current();
     let record = records.get(prepared);
     if (record !== undefined) {
       if (record.failure !== undefined) throw record.failure;
+      if (record.model !== model) fail('ForeignInstalledModelPreparation');
       sameRun(prepared);
       checked(moon.clientProgramInstalledManagedRunCheck(record.value, prepared, request));
       return;
@@ -165,16 +167,60 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     // Retain every acquired original before the next fallible operation. A
     // failed start is sticky; another caller cannot replace the original Run.
     record = {prepared, request, original: undefined, admission: undefined,
-      value: undefined, reads: [undefined, undefined], failure: undefined};
+      value: undefined, reads: [undefined, undefined], model, failure: undefined};
     if (records.size === 4096) fail('InstalledMockRunLimit');
     records.set(prepared, record);
     try {
-      record.original = sourceManaged.prepareRun(prepared);
+      record.original = model === undefined ? sourceManaged.prepareRun(prepared)
+        : sourceManaged.prepareLocalMockModelRun(prepared, model);
       sourceManaged.assertCurrent();
-      record.admission = checked(moon.clientProgramNodeManagedRunPrepare(record.original, prepared));
-      record.value = checked(moon.clientProgramInstalledManagedRunBegin(record.admission, prepared, request));
+      record.admission = checked((model === undefined ? moon.clientProgramNodeManagedRunPrepare
+        : moon.clientProgramNodeLocalMockModelRunPrepare)(record.original, prepared));
+      if (model === undefined) {
+        record.value = checked(moon.clientProgramInstalledManagedRunBegin(record.admission, prepared, request));
+      } else {
+        const begun = model.control.beginCheckedClientMockModelManagedRun(record.admission,
+          prepared, request, model.compiled, model.runDefinition, model.graph, model.budget);
+        record.value = runtimeField(begun, 0);
+        model.scope = runtimeField(begun, 1);
+        model.read = model.control.prepareCheckedClientInferOriginalRead(model.compiled,
+          model.runDefinition, model.graph, model.scope, model.budget);
+      }
       sameRun(prepared);
     } catch (error) { record.failure = error; throw error; }
+  }
+  function prepareManagedMockModelRun(prepared, request, control, plan, selection) {
+    let record = records.get(prepared);
+    if (record !== undefined) {
+      if (record.model?.compiled !== plan.compiled || record.model?.runDefinition !== plan.runDefinition ||
+          record.model?.graph !== selection.graph) fail('ForeignInstalledModelPreparation');
+      prepareManagedRun(prepared, request, record.model);
+      return;
+    }
+    prepareManagedRun(prepared, request, {control, compiled: plan.compiled,
+      runDefinition: plan.runDefinition, graph: selection.graph, occurrence: selection.occurrence});
+  }
+  function modelPreparation(prepared, plan) {
+    const run = sameRun(prepared), model = run.model;
+    if (model === undefined || model.compiled !== plan.compiled || model.runDefinition !== plan.runDefinition ||
+        model.read === undefined) fail('ForeignInstalledModelPreparation');
+    return Object.freeze({control: model.control, compiled: model.compiled,
+      runDefinition: model.runDefinition, scope: model.scope, read: model.read,
+      readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
+      modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes,
+      retain() {
+        if (model.taken || model.read === undefined) fail('ForeignInstalledModelPreparation');
+        model.taken = true;
+      },
+      retire() {retireModelRead(model);}});
+  }
+  function retireModelRead(model) {
+    if (model.read === undefined) return;
+    model.control.stopCheckedClientInferOriginalReadPreparation(model.compiled,
+      model.runDefinition, model.graph, model.scope, model.read);
+    model.control.settleCheckedClientInferOriginalReadPreparation(model.compiled,
+      model.runDefinition, model.graph, model.read, true);
+    model.read = undefined;
   }
   async function closeSource(index) {
     for (const record of records.values()) await closeRead(record.reads[index]);
@@ -201,6 +247,12 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     }
     if (failures.length === 0) for (const record of records.values()) {
       try {
+        if (record.model?.read !== undefined) {
+          // A handed-off component owns its real cleanup. Host close cannot
+          // acknowledge it just because both Source FileHandles have closed.
+          if (record.model.taken) fail('InstalledMockModelCleanupPending');
+          retireModelRead(record.model);
+        }
         if (record.value !== undefined) checked(moon.clientProgramInstalledManagedRunRetire(record.value));
         else if (record.admission !== undefined) {
           checked(moon.clientProgramNodeManagedRunCleanup(record.admission));
@@ -300,7 +352,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       connectorBindings: Object.freeze(sources.flatMap(source => source.connectorBindings)),
       queryAliases: Object.freeze(sources.flatMap(source => source.queryAliases)),
       admitsSource: ref => sources.some(source => source.admitsSource(ref)),
-      prepareManagedRun, close});
+      prepareManagedRun, prepareManagedMockModelRun, modelPreparation, close});
   } catch (error) {
     throw await retainInstalledHostInitializationFailure(error,
       {sourceProfile: {close}});

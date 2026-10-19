@@ -59,6 +59,31 @@ pub fn client_program_installed_mock_model_managed_run_begin(
 }
 
 ///|
+/// The ordinary same-Run Scope issues its original read before the input
+/// component starts. No physical-layout factory or second Ledger is involved.
+#export_name("clientProgramPrepareInferOriginalRead")
+pub fn client_program_prepare_infer_original_read(
+  scope : @publication_host.ClientModelReadScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[
+  @publication_host.ClientModelReadPreparation,
+  @publication_host.ClientModelReadPreparationIssue,
+] {
+  if !@publication_host.client_model_read_scope_live(
+      scope, compiled, definition, graph,
+    ) {
+    return Err(ForeignRun)
+  }
+  @publication_host.prepare_client_model_read(
+    scope, retained_bytes, execution_bytes,
+  )
+}
+
+///|
 /// Reach the same original partial carrier even when begin returned no Run.
 /// Only the Resource owner may distinguish unpublished from actual usage;
 /// this bridge supplies no manufactured zero report or replacement claim.
@@ -126,6 +151,88 @@ pub fn client_program_installed_managed_run_requirements(
     prepared, declarations, query_contract_body, evidence_contract_body, transport_bytes,
     transport_execution_bytes, registry_body, values_body, fragment_body, ordered_body,
   )
+}
+
+///|
+/// Compose the existing Source/Compute limits with the separately selected
+/// local Mock purpose before either Source starts. These are ordinary managed
+/// limits, not a RAM reservation or an allocation-success guarantee. The
+/// actual Host/Resource original still issues the distinct admission.
+#export_name("clientProgramInstalledMockModelManagedRunRequirements")
+pub fn client_program_installed_mock_model_managed_run_requirements(
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  declarations : Array[@client_row_source_host.RowDeclaration],
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[Array[Int64], @client_local_host.ClientInstalledManagedRunIssue] {
+  if !@publication_host.client_compiled_run_matches(compiled, prepared) {
+    return Err(ForeignOriginal)
+  }
+  let selected = match
+    @infer_host.original_composed_bounds(
+      compiled, definition, occurrence, graph,
+    ) {
+    Err(_) => return Err(ForeignOriginal)
+    Ok(value) => value
+  }
+  let base = match
+    @client_local_host.installed_mock_model_run_requirements(
+      prepared, declarations, query_contract_body, evidence_contract_body, transport_bytes,
+      transport_execution_bytes, registry_body, values_body, fragment_body, ordered_body,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let model = selected.model.ledger
+  // Keep the existing bounded input/read allowance separate from both the
+  // Scope bootstrap and Model purpose. No alias count or byte sum issues a
+  // physical supplier. The ordinary platform remains responsible for actual
+  // allocation and failures, and each acquired child keeps its own cleanup.
+  let read_retained = selected.mapping.logical.max_live_value_bytes
+  let read_execution = selected.identity.wire.max_bytes.to_int64()
+  let extra = [
+    model.planning_work.to_int64(),
+    model.attempts.to_int64(),
+    model.holdings.to_int64(),
+    model.transfer_bytes,
+    model.retained_bytes + read_retained * 2L,
+    model.execution_bytes + read_execution * 2L,
+  ]
+  for index in 0..<6 {
+    let maximum = if index < 3 { 2147483647L } else { 9223372036854775807L }
+    if extra[index] < 0L || base[index] > maximum - extra[index] {
+      return Err(InsufficientCapacity)
+    }
+    base[index] += extra[index]
+  }
+  // The private tuple also carries the selected reservation/census bounds;
+  // JS never reaches into compiler-owned Limits fields or invents a second
+  // numeric profile. Bootstrap, read and Model remain separate same-Run tokens.
+  for
+    value in [
+      read_retained,
+      read_execution,
+      read_retained,
+      read_execution,
+      read_retained,
+      read_execution,
+      selected.input.rows.operation_entries.to_int64(),
+      selected.input.rows.retained_entries.to_int64(),
+      selected.input.rows.metadata_entries.to_int64(),
+    ] {
+    base.push(value)
+  }
+  Ok(base)
 }
 
 ///|

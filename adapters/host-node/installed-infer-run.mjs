@@ -25,6 +25,18 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     if (selected === undefined || selected.graph !== plan.inferGraph) {
       throw new Error('InstalledInferSelectionMissing');
     }
+    if (selected.localMock) {
+      if (originalPreparation?.control !== control || originalPreparation.compiled !== plan.compiled ||
+          originalPreparation.runDefinition !== plan.runDefinition || acquiredInfer?.sources?.length !== 2) {
+        throw new TypeError('InvalidInstalledMockModelPreparation');
+      }
+      return runInstalledComposedInfers({moon, control, preparedProgram, plan,
+        selected: {components: [selected]}, store, principalId, signal, retainExecution,
+        acquiredInfer, replay, beginPhysicalWork, submission, existingModel, modelClaim, assertCurrent,
+        modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor,
+        namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
+        registry, values, fragment, ordered, computeConfigurations, originalPreparation});
+    }
     const originalInstallation = selected.originalReadInstallation;
     let runtimeBorrow;
     const assertOriginalRuntime = () => {

@@ -486,7 +486,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         // A listing-only inventory must not authorize keyed content I/O.
         throw new Error('InstalledKeyedSourceAdmissionInventoryUnavailable');
       }
-      if (inferring && multiple) {
+      if (inferring && multiple && typeof sourceProfile?.modelPreparation !== 'function') {
         throw new Error('InstalledInferMultiSourceUnsupported');
       }
       const installedSource = acquiring && !multiple
@@ -781,11 +781,16 @@ export function installNodeClientDispatchOwner({moon, control, journal,
             resourceUsage: resourceUsage(ledger)});
           const sourceEvidenceWire = await captured.issueSourceEvidence({authorityScopeCid,
             effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid});
-          sources.push({captured, sourceEvidenceWire});
+          sources.push({...source, captured, sourceEvidenceWire});
         }
         const captureCompletedAt = now();
         const effectiveDataPolicyCid = moon.clientProgramPublicationDataPolicyCid(preparedProgram);
         if (effectiveDataPolicyCid === undefined) throw new Error('InstalledMultiSourcePolicyUnavailable');
+        if (inferring) {
+          acquiredInfer = {sources, ledger, captureStartedAt, captureCompletedAt,
+            sourceEvidence: sources.map(source => control.admitRunEvidence('source_evidence', source.sourceEvidenceWire,
+              {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}))};
+        } else {
         held.plan = acquiredMultiTaskPublicationPlan({moon, control, acquired: held.plan,
           preparedProgram, sources, authorityScopeCid, effectiveDataPolicyCid,
           captureStartedAt, captureCompletedAt, namespaceId, storeAuthorityCid, now});
@@ -798,6 +803,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         entry.pendingSetup = setup;
         const dag = moon.strategyHostRun(setup);
         for (const [task, captured] of captures.entries()) captured.capture.retainTask(dag, task);
+        }
       } else if (acquiring) {
         if (held.preparedSourceAccess !== sourceAccess) {
           held.preparedSource = await prepareAcquisition(preparedProgram,
@@ -881,6 +887,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       if (inferring) {
         const result = await runInfer({preparedProgram, plan: held.plan, store,
           acquiredInfer, acquiredContent,
+          ...(acquiredInfer?.sources === undefined ? {} : {
+            originalPreparation: sourceProfile.modelPreparation(preparedProgram, held.plan)}),
           submission: Object.fromEntries(['requestId', 'principalId', 'connection',
             'kind', 'input', 'parameters'].filter(key => Object.hasOwn(submission, key))
             .map(key => [key, submission[key]])),

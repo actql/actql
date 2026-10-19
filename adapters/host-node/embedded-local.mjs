@@ -321,6 +321,43 @@ export function readManagedComputeRunRequirements(originals, checkedPrepared) {
     retainedBytes: limits[4], executionBytes: limits[5]});
 }
 
+// A fixed ordinary Host entry for the separate no-I/O Mock purpose. The Core
+// checks this preparation's exact compiled Run/definition/occurrence/graph;
+// passing bounds DATA or a Source/Compute original cannot issue that purpose.
+export function readLocalMockModelRunRequirements(originals, prepared, model) {
+  assertSourceManagedHostPreparation(originals);
+  originalSourceManagedHostRequest(originals, prepared);
+  const {initialControl, projectRuntime: moon} = originals.installation;
+  const asset = path => readInitialControlInstallationAsset(initialControl, originals, path);
+  const aoa = JSON.parse(asset('spec/contracts/actql-aoa.json'));
+  const declarations = moon.clientProgramAcquisitionCount(prepared) === 0 ? []
+    : readInstalledMockPreparation(originals).sources.map(source => source.declaration);
+  const documentBytes = declarations.map(() => 1048576n);
+  const limits = runtimeCore(moon).publicationControl.checkedClientMockModelRunRequirements(
+    prepared, model.compiled, model.runDefinition, model.occurrence, model.graph,
+    declarations, asset('spec/contracts/actql-query-acquisition.json'),
+    asset('spec/contracts/actql-query-process-evidence.json'), documentBytes, documentBytes,
+    asset('spec/dependencies/aoa-pipeline-registry.json'),
+    JSON.stringify(aoa.execution_contracts['REL.values']),
+    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+    JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
+  if (!Array.isArray(limits) || limits.length !== 15 ||
+      limits.some(value => typeof value !== 'bigint' || value < 0n) ||
+      [...limits.slice(0, 3), ...limits.slice(12)].some(value => value > 2147483647n)) {
+    throw clientOperationError('InvalidHostRuntimeResult');
+  }
+  assertSourceManagedHostPreparation(originals);
+  originalSourceManagedHostRequest(originals, prepared);
+  // The same retained record is populated before the Resource original is
+  // issued; a second quote cannot substitute another compiled preparation.
+  model.budget = Object.freeze({bootstrapRetainedBytes: limits[6], bootstrapExecutionBytes: limits[7],
+    readRetainedBytes: limits[8], readExecutionBytes: limits[9],
+    modelRetainedBytes: limits[10], modelExecutionBytes: limits[11],
+    maxReservations: Number(limits[12]), maxHoldings: Number(limits[13]), maxDelegations: Number(limits[14])});
+  return Object.freeze({planningWork: Number(limits[0]), attempts: Number(limits[1]),
+    holdings: Number(limits[2]), transferBytes: limits[3], retainedBytes: limits[4], executionBytes: limits[5]});
+}
+
 // Called only by the selected Source Root's captured namespace operation,
 // after its original managed preparation holding exists, but before that Root
 // acquires the fixture FD and completes the same Source installation. The
@@ -680,6 +717,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       modelRuntimeStartupView === undefined ? undefined : bindModelSdkStaticOriginals)
     : new Map();
   const inferSelections = new WeakMap();
+  const earlyMockInferPlans = new WeakMap();
   const effectSubmissions = new WeakMap();
   const effectSelections = new WeakMap();
   // A prepared Local Host borrows the selected startup's original fixed image;
@@ -1659,13 +1697,28 @@ async function openInstalledHost(originalInstallation, preparation) {
         throw clientOperationError('ClientProgramUnsupported', cause);
       }
       if (mockModels !== undefined) {
-        // Installing typed fixture answers is not a Model Run/IO admission.
-        // Do not fabricate physical preflight, egress, quantity capacity or
-        // another Ledger merely to enter the ordinary physical dispatch path.
-        diagnostic('infer_preparation_rejected', {boundary: 'model_dispatch',
-          code: 'InstalledMockModelOperationalAdmissionUnavailable'});
-        throw clientOperationError('ClientProgramUnsupported',
-          new Error('InstalledMockModelOperationalAdmissionUnavailable'));
+        // Original Mock is a separate no-I/O purpose. Select only its checked
+        // component here; the same Host admits the early Run/Scope below,
+        // before preparing either Source. There is no fake SDK preflight,
+        // egress observation, quantity grant or replacement Model Ledger.
+        if (occurrence === undefined || restoredInfer !== undefined || originalInfer !== undefined ||
+            prepareSubmit.kindOf(preparedProgram) === 'effectful' ||
+            moon.clientProgramSerializationOccurrences(preparedProgram).length !== 0) {
+          throw clientOperationError('InstalledMockModelOriginalCompositionUnavailable');
+        }
+        const segments = checked(moon.clientProgramPrepareComposedInferSegments(preparedProgram,
+          occurrence, registry, values, fragment, ordered));
+        const graph = checked(moon.clientProgramInstalledComposedInferPlanGraph(occurrence, execution));
+        const observeAccount = () => observeInstalledAccount(moon, authorization);
+        const account = observeAccount();
+        const selection = Object.freeze({localMock: true, step: selectedStep,
+          occurrence, graph, computePrefix: runtimeOptionalField(segments, 0),
+          computeSuffix: runtimeField(segments, 1),
+          provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
+          account, observeAccount,
+          currentProvider() {mockModels.originalsForRuntime(moon); return true;}});
+        if (retain) inferSelections.set(preparedProgram, selection);
+        return selection;
       }
       const physical = modelProviders.get(moon.clientProgramInferProviderId(execution));
       // Legacy registrations only validate payloads. They cannot implicitly
@@ -1948,9 +2001,10 @@ async function openInstalledHost(originalInstallation, preparation) {
       inferSelections.set(preparedProgram, Object.freeze({components,
         graph: Object.freeze(components.map(component => component.graph)),
         egressFailure: components.find(component => component.egressFailure !== undefined)?.egressFailure}));
-    } else prepareInferSelection(preparedProgram,
-      keyedAcquisition === undefined && moon.clientProgramSerializationOccurrences(preparedProgram).length === 0
-        ? undefined : occurrences[0]);
+    // The single occurrence can still belong to a multi-task/multi-Source
+    // graph. Keep its compiler-owned identity instead of falling back to the
+    // legacy single-task step lookup, which would miss that Model boundary.
+    } else prepareInferSelection(preparedProgram, occurrences[0]);
     const requested = moon.clientProgramRequestIdentity(preparedProgram,
       authorityScopeCid, requestId,
       moon.clientProgramSourceFreeInputIntentCid());
@@ -2061,6 +2115,14 @@ async function openInstalledHost(originalInstallation, preparation) {
   const planFor = ({preparedProgram, requestId},
     retainedDefinitionWire, requestIdentity) => {
     prepareSubmit.assertOwned(preparedProgram);
+    const earlyMock = earlyMockInferPlans.get(preparedProgram);
+    if (earlyMock !== undefined) {
+      if (earlyMock.requestId !== requestId || retainedDefinitionWire !== undefined &&
+          retainedDefinitionWire !== earlyMock.plan.runDefinition.wire) {
+        throw clientOperationError('ForeignInstalledMockModelRun');
+      }
+      return earlyMock.plan;
+    }
     const restored = prepareSubmit.originalInferRun(preparedProgram);
     if (restored !== undefined) {
       return restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity});
@@ -2597,7 +2659,12 @@ async function openInstalledHost(originalInstallation, preparation) {
       return {ref: retainedStart.ref, durability: retainedStart.durability,
         revision: retainedStart.revision};
     }
-    if (acquisitionCount === 2 && typeof sourceProfile?.prepareManagedRun === 'function') {
+    if (selectedModel?.localMock) {
+      const early = earlyMockInferPlans.get(submission.preparedProgram);
+      if (early === undefined) throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
+      sourceProfile.prepareManagedMockModelRun(submission.preparedProgram, requested,
+        control, early.plan, selectedModel);
+    } else if (acquisitionCount === 2 && typeof sourceProfile?.prepareManagedRun === 'function') {
       // The actual same Host's early admission is only being claimed here,
       // not issued after compilation or reconstructed from graph limits.
       sourceProfile.prepareManagedRun(submission.preparedProgram, requested);
@@ -2971,11 +3038,23 @@ async function openInstalledHost(originalInstallation, preparation) {
     bindOwnedRequest,
     admitPreparedSubmission: preparation === undefined ? undefined : submission => {
       const {requested, acquisitionCount, effectful} = requestOf(submission);
-      if (effectful || inferSelections.has(submission.preparedProgram) ||
+      const selection = inferSelections.get(submission.preparedProgram);
+      if (effectful || selection !== undefined && !selection.localMock ||
           moon.clientProgramSerializationOccurrences(submission.preparedProgram).length !== 0) {
         throw clientOperationError('HostResultPublicationPurposeUnavailable');
       }
-      if (acquisitionCount === 2 && typeof sourceProfile?.prepareManagedRun === 'function') {
+      if (selection?.localMock) {
+        if (acquisitionCount !== 2 || typeof sourceProfile?.prepareManagedMockModelRun !== 'function') {
+          throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
+        }
+        let early = earlyMockInferPlans.get(submission.preparedProgram);
+        if (early === undefined) {
+          early = {requestId: submission.requestId, plan: planFor(submission, undefined, requested)};
+          earlyMockInferPlans.set(submission.preparedProgram, early);
+        }
+        sourceProfile.prepareManagedMockModelRun(submission.preparedProgram, requested,
+          control, early.plan, selection);
+      } else if (acquisitionCount === 2 && typeof sourceProfile?.prepareManagedRun === 'function') {
         sourceProfile.prepareManagedRun(submission.preparedProgram, requested);
       } else if (acquisitionCount === 0) {
         preparation.prepareManagedComputeRun(moon, submission.preparedProgram, requested);
