@@ -5,6 +5,8 @@ struct Store {
   database : @sqlite.Database
   operation_original : @sqlite.NativeStoreOperationOriginal?
   mut operation_body_active : Bool
+  mut operation_return_pending : Bool
+  mut operation_return_primary : NativePublicationStoreIssue?
   authority_cid : String
   journal_identity : @filesystem.NativeFileOwnership
   capacity_bytes : Int64
@@ -168,7 +170,7 @@ fn[T] Store::with_original_read(
   call : () -> Result[T, NativePublicationStoreIssue],
 ) -> Result[T, NativePublicationStoreIssue] {
   guard self.operation_original is Some(original) else { return call() }
-  if self.operation_body_active {
+  if self.operation_body_active || self.operation_return_pending {
     return Err(CleanupPending)
   }
   let before = if final_close {
@@ -185,18 +187,20 @@ fn[T] Store::with_original_read(
   self.operation_body_active = true
   let result = call()
   self.operation_body_active = false
+  // Register this duty before invoking a callback that can fail or reenter.
+  // Physical child close alone does not acknowledge the original return.
+  self.operation_return_pending = true
+  self.operation_return_primary = match result {
+    Ok(_) => None
+    Err(primary) => Some(primary)
+  }
   match original.leave_store() {
-    Err(issue) =>
-      Err(
-        OperationRouting(
-          match result {
-            Ok(_) => None
-            Err(primary) => Some(primary)
-          },
-          issue,
-        ),
-      )
-    Ok(_) => result
+    Err(issue) => Err(OperationRouting(self.operation_return_primary, issue))
+    Ok(_) => {
+      self.operation_return_pending = false
+      self.operation_return_primary = None
+      result
+    }
   }
 }
 
@@ -1044,6 +1048,8 @@ fn open_store_owned_with_custody(
     database,
     operation_original,
     operation_body_active: false,
+    operation_return_pending: false,
+    operation_return_primary: None,
     authority_cid,
     journal_identity,
     capacity_bytes,
@@ -4383,6 +4389,27 @@ fn Store::capacity_usage_in_scope(
 
 ///|
 pub fn Store::close(self : Store) -> Result[Bool, NativePublicationStoreIssue] {
+  if self.operation_body_active {
+    return Err(CleanupPending)
+  }
+  if self.operation_return_pending {
+    guard self.operation_original is Some(original) else {
+      return Err(CleanupPending)
+    }
+    // Retry only this same return. No Store body, SQL, open or replacement is
+    // replayed while its acknowledgement remains uncertain.
+    match original.leave_store() {
+      Err(issue) =>
+        return Err(OperationRouting(self.operation_return_primary, issue))
+      Ok(_) => {
+        self.operation_return_pending = false
+        self.operation_return_primary = None
+        if self.closed {
+          return Ok(true)
+        }
+      }
+    }
+  }
   // A rejected close must not spend the original Read while an existing
   // writer or reader still needs that same normal operation to finish.
   if self.closed {
