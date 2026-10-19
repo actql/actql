@@ -14,6 +14,7 @@ import {
   "actql/actql/relation_evidence",
   "actql/actql/relation_results",
   "actql/actql/relation_schema",
+  "actql/actql/run_publication",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
@@ -1367,11 +1368,11 @@ pub fn start_completed_result_relation_export(CompletedOutput, ManagedResultOccu
 
 pub fn start_completed_table_input_relation_export(CompletedOutput, ManagedTableInputOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedTableInputRelationExportPreparation, CompletedExportIssue]
 
-pub fn start_expression_execution(@lowering_relation.Expression, Map[String, Value], Array[Value], Int, Int, Int) -> Result[ExpressionExecution, EvalIssue]
+pub fn start_expression_execution(@lowering_relation.Expression, Map[String, Value], Array[Value], Int, Int, Int, query_time? : @run_publication.QueryEvaluationTime?) -> Result[ExpressionExecution, EvalIssue]
 
 pub fn start_infer_rows_preparation(@bounded_execution.Control, InferRowInput, InferPreparationLimits) -> Result[InferRowsPreparation, InferPreparationIssue]
 
-pub fn start_predicate_expression(@lowering_relation.Expression, Map[String, Value], Int, Int, Int) -> Result[PredicateExpressionExecution, EvalIssue]
+pub fn start_predicate_expression(@lowering_relation.Expression, Map[String, Value], Int, Int, Int, query_time? : @run_publication.QueryEvaluationTime?) -> Result[PredicateExpressionExecution, EvalIssue]
 
 pub fn start_prepare_producer_read(@lowering_relation.BoundPrepared, BoundProducerInput, Int, Int) -> Result[ProducerReadPreparation, ProducerReadIssue]
 
@@ -1922,6 +1923,7 @@ pub(all) enum EvalIssueKind {
   Scalar(ScalarIssue)
   LogicalEntry(LogicalBudgetIssue)
   LogicalValue(LogicalBudgetIssue)
+  QueryEvaluationTimeUnavailable
 } derive(Eq, @debug.Debug)
 
 pub struct ExecutionCapacity {

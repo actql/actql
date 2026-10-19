@@ -49,6 +49,8 @@ pub fn pending_validations(TypedExpression) -> Array[Obligation]
 
 pub fn required_profiles(TypedExpression) -> Array[String]
 
+pub fn requires_query_time(TypedExpression) -> Bool
+
 pub fn result_type(TypedExpression) -> @value_contract.Contract
 
 pub fn usage(TypedExpression) -> Usage

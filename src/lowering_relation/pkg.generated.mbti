@@ -132,6 +132,8 @@ pub fn bindings_ordered(PreparedBindings) -> Bool
 
 pub fn bound_preparation(BoundPrepared) -> Prepared
 
+pub fn bound_prepared_requires_query_time(BoundPrepared, max_work~ : Int, max_expressions~ : Int) -> Result[Bool, QueryTimeRequirementIssue]
+
 pub fn bound_values_cell(BoundPrepared, Int, Int, Int) -> Result[@value_admission.CheckedValue, ValuesIssue]
 
 pub fn calendar_checked(PreparedCalendar) -> @calendar_typing.CheckedCalendar
@@ -1301,6 +1303,7 @@ pub enum ExpressionBody {
   Many(ManyOperator, Array[Expression])
   Conditional(Expression, Expression, Expression)
   Case(Array[(Expression, Expression)], Expression)
+  CurrentTimestamp
 }
 
 pub struct ExpressionIssue {
@@ -1863,6 +1866,11 @@ pub enum PreparedWatermarkThreshold {
 }
 
 type PreparedWindow
+
+pub(all) enum QueryTimeRequirementIssue {
+  Slots(@pipeline_typing.ExpressionSlotIssue)
+  WorkLimit
+}
 
 type RootEvidence
 
