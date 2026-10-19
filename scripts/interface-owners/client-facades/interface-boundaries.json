@@ -1,5 +1,5 @@
 {
-  "source": "0a9ffa28608976fe94039baaeb3dfffd06f82d96",
+  "source": "1b87ca139a399e91773ebdb99dc658fcabe6b07a",
   "qualification": "existing Client boundary references; not semantic proof, target execution or installed E2E",
   "declarations": [
     {
@@ -2207,11 +2207,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "An original bootstrap failure remains retained rather than reexecuting a partial"
+                "anchor": "Failure retains the primary error and each partially acquired resource"
               },
               {
                 "path": "packages/local-node/initial-control-public-dispatch.cjs",
-                "anchor": "let selectedInitialControlHostPreparation;"
+                "anchor": "let selectedInitialControlHostPreparation, ordinaryReceiver, ordinaryConnect, ordinaryFailure;"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -2253,7 +2253,7 @@
               },
               {
                 "path": "packages/local-node/initial-control-public-dispatch.cjs",
-                "anchor": "// normal facade import neither loads that wrapper nor discovers a later table."
+                "anchor": "// selected before acquiring its bootstrap; an unselected import owns no loader."
               }
             ],
             "verification": [
@@ -2617,7 +2617,7 @@
     {
       "module": "packages/node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "6b747f7e90a5e67f0853788263a20921861cdbc58d3cb30820ce238e34b4c36b",
+      "sha256": "bd6d2fd6c64c6460a1e972c8345f165d8c4f3497561f313e99cca0f637086056",
       "exports": [
         "CalendarArtifactInstallation",
         "Client",
@@ -2757,6 +2757,10 @@
               {
                 "path": "src/run_publication_host/client_project_profile.mbt",
                 "anchor": "pub fn select_client_project_profile("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               }
             ],
             "inputsOutputs": [
@@ -2771,6 +2775,10 @@
               {
                 "path": "src/run_publication_host/client_project_profile.mbt",
                 "anchor": "pub fn client_project_profile_matches("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Input/output admission snapshots the documented configuration and selected"
               }
             ],
             "identity": [
@@ -2793,6 +2801,10 @@
               {
                 "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
                 "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Instance identity, original callback and receiver correspondence prevent"
               }
             ],
             "ownership": [
@@ -2815,6 +2827,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "projectProfile?.retire(projectRuntime);"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -2833,6 +2849,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const {installation: suppliedInstallation, profile: requestedProfile,"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Synchronization snapshots each selected method and receiver before asynchronous"
               }
             ],
             "failure": [
@@ -2851,6 +2871,10 @@
               {
                 "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
                 "anchor": "test('actual profile rejects invalid choices and retains nominal retirement without physical ACK'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Failure retains the primary error and each partially acquired resource's real"
               }
             ],
             "cancellation": [
@@ -2863,8 +2887,8 @@
                 "anchor": "import type {HostCapacityPolicy, HostLookupExecutionPolicy, SourceProfilePaths, EffectProfilePaths,"
               },
               {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "Neither its completion nor dropping aliases proves GC, physical"
+                "path": "docs/design/reference-host.md",
+                "anchor": "Cancellation requests stop and keeps unfinished tasks and shared native users"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -2881,8 +2905,8 @@
                 "anchor": "import type {HostCapacityPolicy, HostLookupExecutionPolicy, SourceProfilePaths, EffectProfilePaths,"
               },
               {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "The installation envelope includes the Common selection's four reference"
+                "path": "docs/design/reference-host.md",
+                "anchor": "Resource coverage distinguishes managed work/data limits and actual owned"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -2909,6 +2933,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "An unavailable"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               }
             ],
             "verification": [
@@ -2939,6 +2967,30 @@
               {
                 "path": "packages/node/project-profile.typecheck.mts",
                 "anchor": "const selected={mode:"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Verification separates private helper/source checks from fixed ordinary package"
+              },
+              {
+                "path": "scripts/node-initial-control-open-routing.test.mjs",
+                "anchor": "ordinary public open ignores an ambient private startup table"
+              },
+              {
+                "path": "scripts/node-initial-control-open-routing.test.mjs",
+                "anchor": "ordinary open captures documented options and explicit Mock consent before lazy import"
+              },
+              {
+                "path": "scripts/node-initial-control-open-routing.test.mjs",
+                "anchor": "absent profile stays absent and an inherited profile cannot consent to Mock setup"
+              },
+              {
+                "path": "scripts/node-local-owner-selection.test.mjs",
+                "anchor": "real SDK admits the same closed Local wire and awaited Client close after default selection"
+              },
+              {
+                "path": "packages/node/project-profile.typecheck.mts",
+                "anchor": "const opened={stateDir:'.actql',profile:'mock'} satisfies OpenOptions;"
               }
             ]
           }
@@ -2948,7 +3000,7 @@
     {
       "module": "packages/node/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6982fe826ab1657f9ffced5bf100437f81e21e8d067abca5b1a86867b2995b20",
+      "sha256": "b72c7086e0553d9184fdb798188d660d26dd729181e6ff31897f2fb65b477ecb",
       "exports": [
         "ClientError",
         "RequestHeld",
@@ -2956,6 +3008,14 @@
         "open"
       ],
       "operations": [
+        {
+          "name": "captureOptions",
+          "parameters": [
+            "original",
+            "captured"
+          ],
+          "async": false
+        },
         {
           "name": "connect",
           "parameters": [
@@ -2992,7 +3052,6 @@
         }
       ],
       "imports": [
-        "./initial-control-public-dispatch.cjs",
         "@actql/sdk/_internal/client-errors",
         "node:module",
         "node:path"
@@ -3008,6 +3067,7 @@
         {
           "operations": [
             "<module>",
+            "captureOptions",
             "connect",
             "connectHost",
             "localProvider",
@@ -3027,8 +3087,8 @@
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
-                "path": "packages/node/index.mjs",
-                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
+                "path": "docs/design/reference-host.md",
+                "anchor": "Preparation responsibility belongs to the existing Host instance"
               }
             ],
             "inputsOutputs": [
@@ -3037,8 +3097,8 @@
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
-                "path": "packages/node/index.mjs",
-                "anchor": "initialControlPublicDispatch, ['open', options]);"
+                "path": "docs/design/reference-host.md",
+                "anchor": "Input/output admission snapshots the documented configuration and selected"
               }
             ],
             "identity": [
@@ -3051,8 +3111,8 @@
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
-                "path": "packages/node/index.mjs",
-                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
+                "path": "docs/design/reference-host.md",
+                "anchor": "Instance identity, original callback and receiver correspondence prevent"
               }
             ],
             "ownership": [
@@ -3065,8 +3125,8 @@
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
-                "path": "packages/node/index.mjs",
-                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
+                "path": "docs/design/reference-host.md",
+                "anchor": "Reference ownership follows the actual Host record and its real children."
               }
             ],
             "synchronization": [
@@ -3079,8 +3139,8 @@
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
-                "path": "packages/node/index.mjs",
-                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
+                "path": "docs/design/reference-host.md",
+                "anchor": "Synchronization snapshots each selected method and receiver before asynchronous"
               }
             ],
             "failure": [
@@ -3093,8 +3153,8 @@
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
-                "path": "packages/node/index.mjs",
-                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
+                "path": "docs/design/reference-host.md",
+                "anchor": "Failure retains the primary error and each partially acquired resource's real"
               }
             ],
             "cancellation": [
@@ -3107,8 +3167,8 @@
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
-                "path": "scripts/node-initial-control-open-routing.test.mjs",
-                "anchor": "selected refusal precedes Proxy observation and preserves the original pending cleanup"
+                "path": "docs/design/reference-host.md",
+                "anchor": "Cancellation requests stop and keeps unfinished tasks and shared native users"
               }
             ],
             "resources": [
@@ -3121,8 +3181,8 @@
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
-                "path": "packages/node/index.mjs",
-                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
+                "path": "docs/design/reference-host.md",
+                "anchor": "Resource coverage distinguishes managed work/data limits and actual owned"
               }
             ],
             "extension": [
@@ -3135,8 +3195,8 @@
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
-                "path": "packages/node/index.mjs",
-                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
+                "path": "docs/design/reference-host.md",
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               }
             ],
             "verification": [
@@ -3145,12 +3205,32 @@
                 "anchor": "test("
               },
               {
-                "path": "scripts/node-initial-control-open-routing.test.mjs",
-                "anchor": "selected public open forwards omitted input synchronously before constructing a default packet"
+                "path": "docs/design/reference-host.md",
+                "anchor": "Verification separates private helper/source checks from fixed ordinary package"
               },
               {
-                "path": "scripts/node-initial-control-open-startup.test.mjs",
-                "anchor": "actual public open retains the selected unavailable original before raw observation"
+                "path": "docs/design/reference-host.md",
+                "anchor": "Verification separates private helper/source checks from fixed ordinary package"
+              },
+              {
+                "path": "scripts/node-initial-control-open-routing.test.mjs",
+                "anchor": "ordinary public open ignores an ambient private startup table"
+              },
+              {
+                "path": "scripts/node-initial-control-open-routing.test.mjs",
+                "anchor": "ordinary open captures documented options and explicit Mock consent before lazy import"
+              },
+              {
+                "path": "scripts/node-initial-control-open-routing.test.mjs",
+                "anchor": "absent profile stays absent and an inherited profile cannot consent to Mock setup"
+              },
+              {
+                "path": "scripts/node-local-owner-selection.test.mjs",
+                "anchor": "real SDK admits the same closed Local wire and awaited Client close after default selection"
+              },
+              {
+                "path": "packages/node/project-profile.typecheck.mts",
+                "anchor": "const opened={stateDir:'.actql',profile:'mock'} satisfies OpenOptions;"
               }
             ]
           }
@@ -3258,11 +3338,11 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "An original bootstrap failure remains retained rather than reexecuting a partial"
+                "anchor": "Failure retains the primary error and each partially acquired resource"
               },
               {
                 "path": "packages/node/initial-control-public-dispatch.cjs",
-                "anchor": "let selectedInitialControlHostPreparation;"
+                "anchor": "let selectedInitialControlHostPreparation, ordinaryReceiver, ordinaryConnect, ordinaryFailure;"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -3304,7 +3384,7 @@
               },
               {
                 "path": "packages/node/initial-control-public-dispatch.cjs",
-                "anchor": "// normal facade import neither loads that wrapper nor discovers a later table."
+                "anchor": "// selected before acquiring its bootstrap; an unselected import owns no loader."
               }
             ],
             "verification": [
@@ -8705,12 +8785,12 @@
                 "anchor": "Object.assign(this, details);"
               },
               {
-                "path": "packages/node/index.mjs",
-                "anchor": "// Only the SDK's original error classes belong to this Client-only prefix."
+                "path": "packages/sdk/internal/errors.mjs",
+                "anchor": "const ownedClientFailures = new WeakMap();"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "module still evaluates and retains its WeakMap, refusal-code Set, helper bindings"
+                "anchor": "Resource coverage distinguishes managed work/data limits and actual owned"
               }
             ],
             "extension": [
@@ -10327,7 +10407,7 @@
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Source, Compute, Model, Effect, transport and Result"
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               }
             ],
             "verification": [

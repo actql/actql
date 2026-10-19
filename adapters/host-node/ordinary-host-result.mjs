@@ -71,7 +71,8 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
       current();
       if (openFlight !== undefined) return openFlight;
       if (attempted || control !== subject.control || options.directory !== join(subject.root, 'publication') ||
-          options.storeAuthorityCid !== subject.storeAuthorityCid || options.privateEvidenceKey !== undefined) {
+          options.storeAuthorityCid !== subject.storeAuthorityCid ||
+          options.privateEvidenceKey !== subject.privateEvidenceKey) {
         throw new TypeError('ForeignInstalledHostPublicationStore');
       }
       attempted = true;

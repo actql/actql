@@ -1,5 +1,5 @@
 {
-  "source": "66e1fd343e9ac9e945f57be3064a4a8212cd1c6f",
+  "source": "1b87ca139a399e91773ebdb99dc658fcabe6b07a",
   "qualification": "Existing functional Owner reference index; representation is independently checked. The original source/syntax-input metadata records the initial reference supply, not a new runtime qualification. Explicit bounded HTTP byte-body extensions retain the same existing owners; their source-qualified tests and simultaneous holding inventory are separate from reference coverage and normal funding.",
   "inputs": [
     {
@@ -87,7 +87,10 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/diagnostic-observer.mjs",
@@ -235,7 +238,10 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/observation.mjs",
@@ -639,7 +645,13 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "node:async_hooks",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/owned-invocation-context.mjs",
@@ -1026,9 +1038,9 @@
             "createSqliteTransaction/inspect/inspect",
             "createSqliteTransaction/run/run",
             "throwSqliteInitializationFailure",
+            "throwSqliteInitializationFailure/close/close",
             "throwSqliteInitializationFailure/retry/retry",
-            "throwSqliteInitializationFailure/status/status",
-            "throwSqliteInitializationFailure/close/close"
+            "throwSqliteInitializationFailure/status/status"
           ],
           "exports": [
             "createSqliteTransaction",
@@ -1234,7 +1246,10 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -1958,7 +1973,15 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/private-publication-holding.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/infer-entry-persistence.mjs",
@@ -2145,7 +2168,10 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/infer-physical-observation.mjs",
@@ -2247,7 +2273,10 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
@@ -4019,7 +4048,13 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/authorization-gate.mjs",
+        "./remote-site-client.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/sqlite-coordinator-journal.mjs",
@@ -4515,6 +4550,7 @@
             "inspectCoordinatorFormat",
             "inspectCoordinatorFormat/inspectCoordinatorFormat",
             "inspectCoordinatorFormat/inspectCoordinatorFormat#2",
+            "inspectCoordinatorFormat/inspectEntries/inspectEntries",
             "openSqliteCoordinatorDispatchJournal",
             "openSqliteCoordinatorDispatchJournal/advanceOutput/advanceOutput",
             "openSqliteCoordinatorDispatchJournal/advanceOutput/advanceOutput/advanceOutput",
@@ -4569,8 +4605,7 @@
             "openSqliteCoordinatorDispatchJournal/sameState/sameState/sameState",
             "syncDirectory",
             "tableDefinitions/tableDefinitions",
-            "text/text",
-            "inspectCoordinatorFormat/inspectEntries/inspectEntries"
+            "text/text"
           ],
           "exports": [
             "openSqliteCoordinatorDispatchJournal"
@@ -5219,6 +5254,8 @@
             "checkAuthenticationSelection/checkAuthenticationSelection",
             "closeHttpsCredentialBinding",
             "count/count",
+            "credentialBindingCurrent",
+            "credentialBindingCurrent/credentialBindingCurrent",
             "exactRequestTarget",
             "exchangeHttpsCredentialAuthentication",
             "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication",
@@ -5226,8 +5263,6 @@
             "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#3",
             "exchangeHttpsCredentialAuthentication/expires/expires",
             "fail/fail",
-            "credentialBindingCurrent",
-            "credentialBindingCurrent/credentialBindingCurrent",
             "openHttpsCredentialBinding",
             "openHttpsCredentialBinding/openHttpsCredentialBinding",
             "openHttpsCredentialBinding/original/original",
@@ -5244,9 +5279,9 @@
             "receive/receive/finish/finish",
             "receive/receive/finish/finish/finish",
             "receive/receive/receive",
-            "receive/receive/receive/receive",
             "receive/receive/receive#2",
             "receive/receive/receive#3",
+            "receive/receive/receive/receive",
             "receive/receive/release/release",
             "receive/receive/request/request",
             "receive/receive/request/request/request",
@@ -6484,8 +6519,8 @@
             "openSqliteDispatchJournal/install/install/install#2",
             "openSqliteDispatchJournal/integer/integer",
             "openSqliteDispatchJournal/openSqliteDispatchJournal",
-            "openSqliteDispatchJournal/openSqliteDispatchJournal/metadata/metadata",
             "openSqliteDispatchJournal/openSqliteDispatchJournal#2",
+            "openSqliteDispatchJournal/openSqliteDispatchJournal/metadata/metadata",
             "openSqliteDispatchJournal/parseProjection/parseProjection",
             "openSqliteDispatchJournal/parseProjection/parseProjection/parseBit/parseBit",
             "openSqliteDispatchJournal/parseProjection/parseProjection/parseInteger/parseInteger",
@@ -6570,7 +6605,15 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/remote-dispatch-wire.mjs",
+        "node:fs",
+        "node:path",
+        "node:sqlite"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/site-node/sqlite-transfer-journal.mjs",
@@ -6892,7 +6935,15 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/sqlite-transaction.mjs",
+        "node:fs",
+        "node:path",
+        "node:sqlite"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ]
 }

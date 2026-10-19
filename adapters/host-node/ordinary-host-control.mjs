@@ -13,7 +13,10 @@ const fail = code => {throw Object.assign(new Error(code), {code});};
 const names = ['host', 'installation', 'generation', 'supplier', 'moduleLifetime'];
 
 function copyOwnValues(value) {
-  const result = Object.create(Object.getPrototypeOf(value));
+  // Retain copied own configuration, not a live caller prototype. In
+  // particular, a field absent at the synchronous snapshot cannot appear
+  // through an inherited getter during initialization's await.
+  const result = Object.create(null);
   for (const name of Reflect.ownKeys(value)) {
     const property = Object.getOwnPropertyDescriptor(value, name);
     // Documented trusted getters are evaluated once, before any await. Keep
@@ -40,12 +43,12 @@ function snapshot(input) {
       hostCapacityPolicy: snapshotHostCapacityPolicy(selected.hostCapacityPolicy),
       hostLookupExecutionPolicy: snapshotHostLookupExecutionPolicy(selected.hostLookupExecutionPolicy),
     };
-    const copied = Object.create(Object.getPrototypeOf(selected));
+    const copied = Object.create(null);
     for (const name of Reflect.ownKeys(selected)) {
       Object.defineProperty(copied, name, {value: Object.hasOwn(replacements, name)
         ? replacements[name] : selected[name], enumerable: Object.getOwnPropertyDescriptor(selected, name).enumerable});
     }
-    const packet = Object.create(Object.getPrototypeOf(value));
+    const packet = Object.create(null);
     for (const name of Reflect.ownKeys(value)) {
       Object.defineProperty(packet, name, {value: name === 'installation' ? Object.freeze(copied) : value[name],
         enumerable: Object.getOwnPropertyDescriptor(value, name).enumerable});

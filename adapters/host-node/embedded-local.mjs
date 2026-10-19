@@ -63,8 +63,10 @@ import {beginInitialControlInstallation, assertInitialControlInstallationCurrent
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
 import {loadInstalledProjectMockAnswers} from './installed-project-mock-answers.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
-import {prepareInstalledProjectMock, installPreparedProjectMockSources}
+import {prepareInstalledProjectMock, installPreparedProjectMockSources, installedMockRequestRealization}
   from './installed-project-mock.mjs';
+import {initializeOrdinaryMockAccount} from './ordinary-mock-account.mjs';
+import {ordinaryHostJournalInstallation} from './ordinary-host-journal.mjs';
 import {prepareSourceManagedInstallation, assertSourceManagedInstallationCurrent,
   assertSourceManagedPreparationCurrent, prepareManagedComputeInstallation,
   assertManagedComputeInstallationCurrent, assertManagedComputePreparationCurrent}
@@ -207,6 +209,7 @@ export function readHostResultPublicationPreparation(originals) {
   const runtime = originals.installation.projectRuntime;
   const control = runtimeCore(runtime).publicationControl;
   return Object.freeze({runtime, control, root: journal.root, principalId: journal.principalId,
+    privateEvidenceKey: originals.installation.mockAccount?.evidenceKey.key,
     storeAuthorityCid: cid({version: 'actql-local-store-owner/0.1',
       root: journal.root, principalId: journal.principalId})});
 }
@@ -526,6 +529,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   let modelProviders;
   let projectTasks;
   let mockModels;
+  let mockAccount;
   let store;
   // Nominal association in this SAME Host, not a capacity pool or Run Owner.
   // A key is an actual Common-issued Scope; its value is retired only after
@@ -756,12 +760,14 @@ async function openInstalledHost(originalInstallation, preparation) {
       // Consume the SAME selected physical Source preparation. An explicit
       // Mock installation must not load configured live Source profiles, and
       // its actual Account gate still defaults to Missing, never to Allow.
+      mockModels = await preparation.installMockModels(moon);
+      mockAccount = await preparation.initializeMockAccount(moon, principalId, authorization, mockModels);
+      if (mockAccount !== undefined) authorization = mockAccount.authorization;
       sourceProfile = await preparation.installMockSources(moon, baseEnvironmentWire,
         () => createLocalAuthorizationGate({...authorization, principal: principalId}));
       if (preparation.sourcePreparation() !== installationSourcePreparation) {
         throw clientOperationError('InstalledSourcePreparationChanged');
       }
-      mockModels = await preparation.installMockModels(moon);
       projectTasks = mockModels;
     } else {
       sourceProfile = await loadInstalledSources(selectedSourcePaths,
@@ -1000,7 +1006,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       throw cause;
     }
   }
-  let effectEvidenceKey;
+  let effectEvidenceKey = mockAccount?.evidenceKey;
   let checkpoints;
   let modelController;
   let dispatchOwner;
@@ -1145,6 +1151,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     store = preparation === undefined
       ? await openLocalPublicationStore(storeOptions, control, undefined, undefined, publicationOwnership)
       : await preparation.openResultPublicationStore(storeOptions, control);
+    if (mockAccount !== undefined) await mockAccount.adoptStore(store);
     } catch (cause) {
       // This same Store opener may retain a child whose release depends on
       // the already acquired Journal. Its initializer has not started any
@@ -4368,6 +4375,36 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return installPreparedProjectMockSources({moon, mockPreparation, sourceManaged,
         baseEnvironmentWire, authorizationFor,
         readAsset: path => readInitialControlInstallationAsset(control, originals, path)});
+    },
+    async initializeMockAccount(runtime, principal, operatorAuthorization, models) {
+      if (runtime !== moon || mockPreparation === undefined || project === undefined) {
+        throw clientOperationError('ForeignInstalledMockPreparation');
+      }
+      assertInitialControlHostPreparation(originals);
+      const journal = ordinaryHostJournalInstallation(originals);
+      const bundle = mockPreparation.originalsForRuntime(moon);
+      const tasks = models.originalsForRuntime(moon).map(entry => entry.taskCid);
+      const sources = bundle.sources.flatMap(entry => entry.catalogue.views.map(view =>
+        [entry.catalogue.connection, view.resource]));
+      const requestRealization = installedMockRequestRealization(mockPreparation, moon);
+      const updates = bundle.sources.flatMap(entry => entry.catalogue.updateAliases.map(alias =>
+        [entry.catalogue.connection, alias.resource]));
+      if (updates.length > 1) throw clientOperationError('InstalledMockCatalogueUnavailable');
+      const binding = await initializeOrdinaryMockAccount({moon, root: originalInstallation.root, principal,
+        subject: {projectDirectory: project.directory,
+          configurationCid: bytesCid(Buffer.from(installedProjectOriginalsForRuntime(project, moon).configurationWire)),
+          sources: bundle.sources.map(entry => ({connection: entry.catalogue.connection,
+            registration: entry.catalogue.registration, declarationCid: bytesCid(Buffer.from(entry.wire))})),
+          modelTasks: tasks, requestRealization},
+        sources, modelTasks: tasks, requestTarget: ['local-mock', requestRealization],
+        updateTarget: updates[0], explicitSelection: record.explicitMockSelection,
+        assertExclusiveCurrent: () => {assertInitialControlHostPreparation(originals); journal.assertInitializationCurrent();},
+        operatorAuthorization});
+      // Retain the actual initialized keys/configuration before the following
+      // current fence. A failed caller still owns this same preparation.
+      record.mockAccount = originalInstallation.mockAccount = binding;
+      assertInitialControlHostPreparation(originals);
+      return binding;
     },
     installMockModels(runtime) {
       if (runtime !== moon || mockPreparation === undefined) {

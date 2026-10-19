@@ -44,6 +44,22 @@ test('ordinary independent Host control instances and reopen do not consume a pr
   }
 });
 
+test('ordinary snapshot preserves absent original fields across later caller prototype changes', async () => {
+  const prototype = {}, installationPrototype = {}, pair = originals();
+  const installation = Object.assign(Object.create(installationPrototype), {directory: 'original'});
+  const raw = Object.assign(Object.create(prototype), {mode: 'local', installation});
+  const opening = beginInitialControlInstallation(pair, raw);
+  let reads = 0;
+  Object.defineProperty(prototype, 'profile', {get() {reads++; return 'mock';}});
+  Object.defineProperty(installationPrototype, 'authorization', {get() {reads++; return {};}});
+  const scope = await opening, value = readInitialControlInstallationInput(scope, pair);
+  assert.equal(value.profile, undefined);
+  assert.equal(value.installation.authorization, undefined);
+  assert.equal(Object.hasOwn(value, 'profile'), false);
+  assert.equal(reads, 0);
+  assert.equal((await scope.close()).pending, false);
+});
+
 test('ordinary cleanup retains a real child receiver and pending state without requiring currentness', async () => {
   const pair = originals(), scope = await beginInitialControlInstallation(pair, {});
   const record = {}; let pending = true, calls = 0;

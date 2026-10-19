@@ -2,7 +2,8 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody}
   from './client-request-journal.mjs';
-import {prepareLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership}
+import {prepareLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership,
+  assertOriginalPreparedLocalPublicationStoreOwnership}
   from '../store-local/publication-store.mjs';
 import {admitHostRootFormat} from './host-root-format.mjs';
 import recipeModule from './host-journal-service-recipe.cjs';
@@ -25,7 +26,7 @@ export function prepareOrdinaryHostJournal(originals) {
   const recipe = recipeModule.declareHostJournalServiceRecipe({ordinary: true});
   let closing = false, closed = false, acquisitionAttempted = false, openAttempted = false, ownership, journal;
   let journalClose, openingFailure, openingCleanup, openingStatus, openingRetry;
-  let ownershipForwarded = false, flight, openingFlight;
+  let ownershipForwarded = false, flight, openingFlight, ownershipFlight;
   const current = () => {
     if (closing || closed || originals.installation !== installation || installation.root !== root) {
       throw Object.assign(new Error('HostJournalPreparationUnavailable'), {code: 'HostJournalPreparationUnavailable'});
@@ -36,7 +37,7 @@ export function prepareOrdinaryHostJournal(originals) {
       const value = observeOriginalClientRequestJournalCustody(journal);
       return value.databaseClosed !== true || value.observationDatabaseClosed !== true;
     }
-    if (!openAttempted) return false;
+    if (!openAttempted && openingFailure === undefined) return false;
     if (openingFailure === undefined) return true;
     if (openingCleanup === undefined) {
       openingCleanup = openingFailure.cleanupHandle;
@@ -48,6 +49,17 @@ export function prepareOrdinaryHostJournal(originals) {
     return result?.pending !== false;
   }
   const dependency = Object.freeze({status() {return Object.freeze({pending: nativePending()});}});
+  function retainOwnership() {
+    if (ownershipFlight !== undefined) return ownershipFlight;
+    ownershipFlight = Promise.resolve().then(async () => {
+      try {
+        ownership = await prepareLocalPublicationStoreOwnership(join(root, 'publication'),
+          recipe.ownershipBounds, dependency);
+        current();
+      } catch (cause) {openingFailure = cause; throw cause;}
+    });
+    return ownershipFlight;
+  }
   const status = () => Object.freeze({pending: !closed, journalPending: nativePending(),
     ownershipPending: ownership !== undefined});
   async function close() {
@@ -58,6 +70,7 @@ export function prepareOrdinaryHostJournal(originals) {
       // Close may race the asynchronous ownership acquisition. Observe that
       // same acquisition before deciding there is no child left to release.
       if (openingFlight !== undefined) {try {await openingFlight;} catch {}}
+      if (ownershipFlight !== undefined) {try {await ownershipFlight;} catch {}}
       if (journal !== undefined && nativePending()) {
         journalClose ??= journal.close;
         if (typeof journalClose !== 'function') return status();
@@ -85,18 +98,20 @@ export function prepareOrdinaryHostJournal(originals) {
     async admitRootFormat(directory) {
       current(); if (directory !== root) throw new TypeError('ForeignInstalledHostRoot');
       await admitHostRootFormat(root); current();
+      // The same exclusion also serializes explicitly authorized first
+      // setup, before its external configuration/key files are created.
+      await retainOwnership(); current();
     },
     openRequestJournal(directory, options) {
       current();
-      if (acquisitionAttempted || ownership !== undefined || directory !== join(root, 'requests')) {
+      if (acquisitionAttempted || directory !== join(root, 'requests')) {
         return Promise.reject(new TypeError('ForeignInstalledHostJournal'));
       }
       acquisitionAttempted = true;
       const work = Promise.resolve().then(async () => {try {
         // Same-root exclusion is held before SQLite, and remains until BOTH
         // this original native Journal and the adopted Store acknowledge close.
-        ownership = await prepareLocalPublicationStoreOwnership(join(root, 'publication'),
-          recipe.ownershipBounds, dependency);
+        await retainOwnership();
         current(); openAttempted = true;
         journal = openClientRequestJournal(directory, {...recipe.journal, ...options,
           inspectionTemporaryDirectory: tmpdir(), primaryCurrent: current});
@@ -122,6 +137,10 @@ export function prepareOrdinaryHostJournal(originals) {
         throw new TypeError('ForeignInstalledHostPublicationOwnership');
       }
       ownershipForwarded = true; return ownership;
+    },
+    assertInitializationCurrent() {
+      current();
+      assertOriginalPreparedLocalPublicationStoreOwnership(ownership, join(root, 'publication'));
     },
   });
   installations.set(originals.host, {originals, view});

@@ -9,6 +9,15 @@ import {contentCid} from './local-account-config.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
+const mockRealization = 'installed-multi-acquired';
+
+// The exact request Site subject of this same fixed Mock installation, before
+// authorization-dependent adapters are built. The returned label grants no
+// Source or operation; the installer below uses this same retained constant.
+export function installedMockRequestRealization(preparation, runtime) {
+  if (preparation.originalsForRuntime(runtime).sources.length !== 2) fail('ForeignInstalledMockPreparation');
+  return mockRealization;
+}
 
 // Original installation preparation under the separately admitted Source
 // phase, before any fixture acquisition. The bundled declarations are not
@@ -284,7 +293,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     for (const source of sources) environmentWire = composeInstalledCheckEnvironment(moon,
       baseEnvironmentWire, environmentWire, source.environmentWire);
     current();
-    return Object.freeze({realizationKey: 'installed-multi-acquired', environmentWire,
+    return Object.freeze({realizationKey: mockRealization, environmentWire,
       sources: Object.freeze(sources),
       connectorBindings: Object.freeze(sources.flatMap(source => source.connectorBindings)),
       queryAliases: Object.freeze(sources.flatMap(source => source.queryAliases)),

@@ -77,7 +77,7 @@ function ports(original, prepared, purpose) {
     },
   });
 }
-module.exports = freeze({retainOrdinaryManagedRun,
+module.exports = {retainOrdinaryManagedRun,
   assertOrdinaryManagedRunCurrent(original, prepared) {originalRun(original, prepared);},
   ordinaryManagedRunStatus(original) {
     const state = runs.get(original);
@@ -89,4 +89,5 @@ module.exports = freeze({retainOrdinaryManagedRun,
   // Source children of the shared parent never import another Ledger. The
   // legacy Source-only entry remains unavailable on this ordinary bridge.
   prepareOriginalSourceChildPorts() {return null;},
-});
+};
+freeze(module.exports);

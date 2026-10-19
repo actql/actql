@@ -1,5 +1,5 @@
 {
-  "source": "623616dfb73778143ebb512695cbb272ee2fae4f",
+  "source": "1b87ca139a399e91773ebdb99dc658fcabe6b07a",
   "qualification": "Operational functional reference supply; no product edit, authority transfer, representation promotion or runtime verification",
   "input": {
     "file": "c-r1-functional-primary-references-2a316.json",
@@ -1422,9 +1422,9 @@
             "importResidentStrategyInput/result/result/batch/batch",
             "importResidentStrategyInput/result/result/discard/discard",
             "importResidentStrategyInput/result/result/frames/frames",
+            "importResidentStrategyInput/result/result/frames/frames#2",
             "importResidentStrategyInput/result/result/frames/frames/frames",
             "importResidentStrategyInput/result/result/frames/frames/frames#2",
-            "importResidentStrategyInput/result/result/frames/frames#2",
             "importResidentStrategyInput/result/result/result",
             "importResidentStrategyInput/result/result/verified/verified",
             "importRetainedComputeInput",
@@ -1452,6 +1452,7 @@
             "runBroadHostQuery/accounting/init:settled/init:settled",
             "runBroadHostQuery/accounting/init:started/init:started",
             "runBroadHostQuery/captured/captured",
+            "runBroadHostQuery/captured/captured#2",
             "runBroadHostQuery/captured/captured/captured",
             "runBroadHostQuery/captured/captured/captured#2",
             "runBroadHostQuery/captured/captured/captured#3",
@@ -1466,11 +1467,10 @@
             "runBroadHostQuery/captured/captured/port/init:finishMetadata/init:finishMetadata",
             "runBroadHostQuery/captured/captured/port/init:finishReceipt/init:finishReceipt",
             "runBroadHostQuery/captured/captured/port/port",
-            "runBroadHostQuery/captured/captured/port/port/port",
             "runBroadHostQuery/captured/captured/port/port#2",
             "runBroadHostQuery/captured/captured/port/port#3",
+            "runBroadHostQuery/captured/captured/port/port/port",
             "runBroadHostQuery/captured/captured/run/run",
-            "runBroadHostQuery/captured/captured#2",
             "runBroadHostQuery/complete/complete",
             "runBroadHostQuery/result/init:close/init:close",
             "runBroadHostQuery/result/result",
@@ -1479,8 +1479,8 @@
             "runBroadHostQuery/result/result#4",
             "runBroadHostQuery/retainedSourceCapture/retainedSourceCapture",
             "runBroadHostQuery/runBroadHostQuery",
-            "runBroadHostQuery/runBroadHostQuery/runBroadHostQuery",
             "runBroadHostQuery/runBroadHostQuery#2",
+            "runBroadHostQuery/runBroadHostQuery/runBroadHostQuery",
             "runFixedHostCompute",
             "runHostCompute",
             "runHostCompute/accounting/init:chargeTransfer/init:chargeTransfer",
@@ -1505,8 +1505,8 @@
             "runHostCompute/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/fields/fields",
             "runHostCompute/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/identityReused/identityReused",
             "runHostCompute/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput",
-            "runHostCompute/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput",
             "runHostCompute/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput#2",
+            "runHostCompute/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput",
             "runHostCompute/init:readRetained/init:readRetained",
             "runHostCompute/init:retry/init:retry",
             "runHostCompute/init:retry/init:retry#2",
@@ -1518,9 +1518,6 @@
             "runHostCompute/retainedCleanup/retainedCleanup",
             "runHostCompute/retainedCleanup/retainedCleanup#2",
             "runHostCompute/runHostCompute",
-            "runHostCompute/runHostCompute/runHostCompute",
-            "runHostCompute/runHostCompute/storedColumns/storedColumns",
-            "runHostCompute/runHostCompute/storedFields/storedFields",
             "runHostCompute/runHostCompute#10",
             "runHostCompute/runHostCompute#11",
             "runHostCompute/runHostCompute#12",
@@ -1542,6 +1539,9 @@
             "runHostCompute/runHostCompute#7",
             "runHostCompute/runHostCompute#8",
             "runHostCompute/runHostCompute#9",
+            "runHostCompute/runHostCompute/runHostCompute",
+            "runHostCompute/runHostCompute/storedColumns/storedColumns",
+            "runHostCompute/runHostCompute/storedFields/storedFields",
             "runHostCompute/storageReleased/storageReleased",
             "runHostCompute/verify/verify",
             "runHostNativeQuery",
@@ -1549,6 +1549,7 @@
             "runHostNativeQuery/accounting/init:settled/init:settled",
             "runHostNativeQuery/accounting/init:started/init:started",
             "runHostNativeQuery/captured/captured",
+            "runHostNativeQuery/captured/captured#2",
             "runHostNativeQuery/captured/captured/captured",
             "runHostNativeQuery/captured/captured/captured#2",
             "runHostNativeQuery/captured/captured/captured#3",
@@ -1565,16 +1566,15 @@
             "runHostNativeQuery/captured/captured/port/init:finishReceipt/init:finishReceipt",
             "runHostNativeQuery/captured/captured/port/init:finishReceipt/init:finishReceipt/init:finishReceipt",
             "runHostNativeQuery/captured/captured/port/port",
-            "runHostNativeQuery/captured/captured/port/port/port",
             "runHostNativeQuery/captured/captured/port/port#2",
             "runHostNativeQuery/captured/captured/port/port#3",
             "runHostNativeQuery/captured/captured/port/port#4",
             "runHostNativeQuery/captured/captured/port/port#5",
+            "runHostNativeQuery/captured/captured/port/port/port",
             "runHostNativeQuery/captured/captured/recovery/init:cleanup/init:cleanup",
             "runHostNativeQuery/captured/captured/recovery/init:close/init:close",
             "runHostNativeQuery/captured/captured/recovery/recovery",
             "runHostNativeQuery/captured/captured/run/run",
-            "runHostNativeQuery/captured/captured#2",
             "runHostNativeQuery/evidence/evidence",
             "runHostNativeQuery/evidence/evidence/evidence",
             "runHostNativeQuery/evidence/evidence/evidence#2",
@@ -1591,9 +1591,9 @@
             "runHostNativeQuery/retainedCleanup/retainedCleanup#2",
             "runHostNativeQuery/retainedSourceCapture/retainedSourceCapture",
             "runHostNativeQuery/runHostNativeQuery",
-            "runHostNativeQuery/runHostNativeQuery/runHostNativeQuery",
             "runHostNativeQuery/runHostNativeQuery#2",
             "runHostNativeQuery/runHostNativeQuery#3",
+            "runHostNativeQuery/runHostNativeQuery/runHostNativeQuery",
             "runManagedRetainedStrategyHostCompute",
             "runManagedRetainedStrategyHostCompute/runManagedRetainedStrategyHostCompute",
             "runNativeHostQuery",
@@ -1692,6 +1692,35 @@
             ]
           }
         }
+      ],
+      "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../store-local/files.mjs",
+        "../../../store-local/import.mjs",
+        "../../../store-local/managed-physical-representation.mjs",
+        "../../../store-local/managed-representations.mjs",
+        "../../../store-local/moonbit-row-frames.mjs",
+        "../../../store-local/process-client.mjs",
+        "../../../store-local/representations.mjs",
+        "./broad-query.mjs",
+        "./fixed-compute.mjs",
+        "./import-batch.mjs",
+        "./managed-column-codec.mjs",
+        "./managed-output-finish.mjs",
+        "./managed-strategy-compute.mjs",
+        "./native-query.mjs",
+        "./physical-capacity.mjs",
+        "./retained-configuration.mjs",
+        "./runtime-result.mjs",
+        "./session.mjs",
+        "./source-acquisition.mjs",
+        "./transport-bounds.mjs",
+        "node:crypto",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
       ]
     },
     {
@@ -1785,7 +1814,13 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/duckdb/node/runtime-result.mjs",
@@ -1874,7 +1909,13 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
+        "./configuration.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
@@ -2123,7 +2164,18 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../store-local/managed-representations.mjs",
+        "./configuration.mjs",
+        "./managed-column-codec.mjs",
+        "./managed-parquet-codec.mjs",
+        "./native-runtime.mjs",
+        "./physical-capacity.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
@@ -2542,9 +2594,9 @@
             "installedSalesforceEffect/installedSalesforceEffect#2",
             "installedSalesforceEffect/nextOccurrence/nextOccurrence",
             "installedSalesforceEffect/rowEffect/rowEffect",
-            "installedSalesforceEffect/rowEffect/rowEffect/rowEffect",
             "installedSalesforceEffect/rowEffect/rowEffect#2",
             "installedSalesforceEffect/rowEffect/rowEffect#3",
+            "installedSalesforceEffect/rowEffect/rowEffect/rowEffect",
             "installedSalesforceEffect/targetReadInventory/targetReadInventory",
             "loadInstalledSalesforceEffect",
             "loadInstalledSalesforceEffect/loadInstalledSalesforceEffect",
@@ -2753,7 +2805,23 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../connectors-builtin/installations.generated.mjs",
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../host-common/effect-preparation-result.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-row-effect.mjs",
+        "../../../host-node/local-account-config.mjs",
+        "../../../host-node/update-target-original-shape.mjs",
+        "./installed-salesforce-site.mjs",
+        "./salesforce-publication.mjs",
+        "./salesforce-write-driver.mjs",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
@@ -3033,6 +3101,19 @@
             "cid/cid",
             "fail/fail",
             "installedSalesforceAdapter",
+            "installedSalesforceAdapter/directReadIdentity/directReadIdentity",
+            "installedSalesforceAdapter/directReadIdentity/directReadIdentity#2",
+            "installedSalesforceAdapter/directReadIdentity/directReadIdentity#3",
+            "installedSalesforceAdapter/source/source",
+            "installedSalesforceAdapter/source/source#2",
+            "installedSalesforceAdapter/source/source#3",
+            "installedSalesforceAdapter/source/source#4",
+            "installedSalesforceAdapter/source/source#5",
+            "installedSalesforceAdapter/source/source#6",
+            "installedSalesforceAdapter/source/source/describe/describe",
+            "installedSalesforceAdapter/source/source/source",
+            "installedSalesforceAdapter/source/source/source#2",
+            "installedSalesforceAdapter/source/source/source#3",
             "installedSalesforceSourceIdentityParts",
             "loadInstalledSalesforceSource",
             "loadInstalledSalesforceSource/recover/recover",
@@ -3044,20 +3125,7 @@
             "recoveryArguments/recoveryArguments",
             "recoveryArguments/recoveryArguments#2",
             "recoveryArguments/recoveryArguments#3",
-            "text/text",
-            "installedSalesforceAdapter/directReadIdentity/directReadIdentity",
-            "installedSalesforceAdapter/directReadIdentity/directReadIdentity#2",
-            "installedSalesforceAdapter/directReadIdentity/directReadIdentity#3",
-            "installedSalesforceAdapter/source/source",
-            "installedSalesforceAdapter/source/source/describe/describe",
-            "installedSalesforceAdapter/source/source/source",
-            "installedSalesforceAdapter/source/source/source#2",
-            "installedSalesforceAdapter/source/source/source#3",
-            "installedSalesforceAdapter/source/source#2",
-            "installedSalesforceAdapter/source/source#3",
-            "installedSalesforceAdapter/source/source#4",
-            "installedSalesforceAdapter/source/source#5",
-            "installedSalesforceAdapter/source/source#6"
+            "text/text"
           ],
           "exports": [
             "INSTALLED_SALESFORCE_SOURCE_VERSION",
@@ -3483,15 +3551,15 @@
             "salesforceWriteDriver/installedOf/installedOf",
             "salesforceWriteDriver/keyOf/keyOf",
             "salesforceWriteDriver/projectionOf/projectionOf",
+            "salesforceWriteDriver/recoverRequests/recoverRequests",
+            "salesforceWriteDriver/recoverRequests/recoverRequests/recoverRequests",
             "salesforceWriteDriver/requestCid/requestCid",
             "salesforceWriteDriver/salesforceWriteDriver",
             "salesforceWriteDriver/salesforceWriteDriver#2",
             "salesforceWriteDriver/salesforceWriteDriver#3",
             "salesforceWriteDriver/salesforceWriteDriver#4",
             "salesforceWriteDriver/salesforceWriteDriver#5",
-            "writeBody",
-            "salesforceWriteDriver/recoverRequests/recoverRequests",
-            "salesforceWriteDriver/recoverRequests/recoverRequests/recoverRequests"
+            "writeBody"
           ],
           "exports": [
             "salesforceRowEffectSite",
@@ -3713,7 +3781,14 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../host-common/effect-preparation-result.mjs",
+        "../../../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
@@ -3989,7 +4064,16 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "./salesforce-catalog-sync.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
@@ -5844,12 +5928,16 @@
             "createRowEffectStage/prepareRecovered/releaseLedger/releaseLedger",
             "createRowEffectStage/readDecision/readDecision",
             "createRowEffectStage/recoveredEntries/recoveredEntries",
+            "createRowEffectStage/recoveredEntries/recoveredEntries/currents/currents",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/claimBySource/claimBySource",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/entries",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/rows/rows",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/rows/rows#2",
+            "createRowEffectStage/recoveredEntries/recoveredEntries/memberIndexes/memberIndexes",
             "createRowEffectStage/recoveredEntries/recoveredEntries/recoveredEntries",
+            "createRowEffectStage/recoveredEntries/recoveredEntries/requests/requests",
+            "createRowEffectStage/recoveredEntries/recoveredEntries/usesRecovery/usesRecovery",
             "createRowEffectStage/recoveredMembers/recoveredMembers",
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers",
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers/command/command",
@@ -5883,11 +5971,7 @@
             "retainInstalledRowEffectAdapter",
             "sameValue/sameValue",
             "targeted/targeted",
-            "text/text",
-            "createRowEffectStage/recoveredEntries/recoveredEntries/currents/currents",
-            "createRowEffectStage/recoveredEntries/recoveredEntries/memberIndexes/memberIndexes",
-            "createRowEffectStage/recoveredEntries/recoveredEntries/requests/requests",
-            "createRowEffectStage/recoveredEntries/recoveredEntries/usesRecovery/usesRecovery"
+            "text/text"
           ],
           "exports": [
             "composeInstalledRowEffectOwners",
@@ -7103,15 +7187,15 @@
             "startInstalledRowRun/complete/source/source",
             "startInstalledRowRun/consumeKeyedPage",
             "startInstalledRowRun/init:confirmTransportStopped/init:confirmTransportStopped",
+            "startInstalledRowRun/readProvider",
+            "startInstalledRowRun/readProvider/readProvider",
+            "startInstalledRowRun/readProvider/readProvider#2",
+            "startInstalledRowRun/readerRetired/readerRetired",
             "startInstalledRowRun/run/run",
             "startInstalledRowRun/run/run#2",
             "startInstalledRowRun/run/run#3",
             "startInstalledRowRun/run/run#4",
             "startInstalledRowRun/run/run#5",
-            "startInstalledRowRun/readerRetired/readerRetired",
-            "startInstalledRowRun/readProvider",
-            "startInstalledRowRun/readProvider/readProvider",
-            "startInstalledRowRun/readProvider/readProvider#2",
             "startInstalledRowRun/run/run#6",
             "startInstalledRowRun/startInstalledRowRun",
             "startInstalledRowRun/stopReader/stopReader",
@@ -7387,9 +7471,21 @@
             "createInstalledRowSource/acquire",
             "createInstalledRowSource/acquire/complete/complete",
             "createInstalledRowSource/acquire/complete/complete/verifyRead/verifyRead",
+            "createInstalledRowSource/acquire/issueGrant/issueGrant",
+            "createInstalledRowSource/acquire/readerOptions/consumeObservation",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#2",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#3",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
+            "createInstalledRowSource/captureCapacity/captureCapacity",
             "createInstalledRowSource/createInstalledRowSource",
+            "createInstalledRowSource/createInstalledRowSource#10",
             "createInstalledRowSource/createInstalledRowSource#4",
             "createInstalledRowSource/createInstalledRowSource#5",
+            "createInstalledRowSource/createInstalledRowSource#7",
+            "createInstalledRowSource/createInstalledRowSource#8",
+            "createInstalledRowSource/createInstalledRowSource#9",
             "createInstalledRowSource/currentRead/currentRead",
             "createInstalledRowSource/decideRead/decideRead",
             "createInstalledRowSource/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
@@ -7401,7 +7497,6 @@
             "createInstalledRowSource/openKeyed",
             "createInstalledRowSource/openKeyed/observedMs/observedMs",
             "createInstalledRowSource/openKeyed/openKeyed",
-            "createInstalledRowSource/openKeyed/openKeyed/expire/expire",
             "createInstalledRowSource/openKeyed/openKeyed#2",
             "createInstalledRowSource/openKeyed/openKeyed#3",
             "createInstalledRowSource/openKeyed/openKeyed#4",
@@ -7410,6 +7505,7 @@
             "createInstalledRowSource/openKeyed/openKeyed#7",
             "createInstalledRowSource/openKeyed/openKeyed#8",
             "createInstalledRowSource/openKeyed/openKeyed#9",
+            "createInstalledRowSource/openKeyed/openKeyed/expire/expire",
             "createInstalledRowSource/openKeyed/verifyRead/verifyRead",
             "createInstalledRowSource/openKeyedLookup",
             "createInstalledRowSource/openKeyedLookup/cleanup/cleanup",
@@ -7428,7 +7524,9 @@
             "createInstalledRowSource/openKeyedLookup/stop/stop",
             "createInstalledRowSource/operationBindings/operationBindings",
             "createInstalledRowSource/ordinaryRecoveryBinding",
+            "createInstalledRowSource/ordinarySubject/ordinarySubject",
             "createInstalledRowSource/prepare",
+            "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
             "createInstalledRowSource/prepare/prepare",
             "createInstalledRowSource/prepareKeyed",
             "createInstalledRowSource/prepareKeyed/prepareKeyed",
@@ -7445,6 +7543,32 @@
             "installRowSourceAuthorization/installRowSourceAuthorization#2",
             "installRowSourceAuthorization/installRowSourceAuthorization#3",
             "installRowSourceAuthorization/own/own",
+            "openRowSourceCredentialCustody",
+            "openRowSourceCredentialCustody/bindRunAcquisition",
+            "openRowSourceCredentialCustody/captureRunCurrent",
+            "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent",
+            "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent/assertCurrent",
+            "openRowSourceCredentialCustody/captureRunCurrent/captureRunCurrent",
+            "openRowSourceCredentialCustody/captureRunCurrent/observeCurrent/observeCurrent",
+            "openRowSourceCredentialCustody/checkGrantRequest",
+            "openRowSourceCredentialCustody/close",
+            "openRowSourceCredentialCustody/close/close",
+            "openRowSourceCredentialCustody/closeRunBindings",
+            "openRowSourceCredentialCustody/ensureOpen/ensureOpen",
+            "openRowSourceCredentialCustody/init:closeOnce/init:closeOnce",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#3",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#4",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#5",
+            "openRowSourceCredentialCustody/openRunAcquisition",
+            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition",
+            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#2",
+            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#3",
+            "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest",
+            "openRowSourceCredentialCustody/retainRunBinding",
+            "openRowSourceCredentialCustody/retainRunBinding/init:close/init:close",
+            "openRowSourceCredentialCustody/sign",
             "openRowSourceCredentialSite",
             "openRowSourceCredentialSite/bindingWire/bindingWire",
             "openRowSourceCredentialSite/callResource/callResource",
@@ -7462,55 +7586,15 @@
             "rowSourceCheckEnvironment",
             "rowSourceMapping",
             "text/text",
-            "valueCid/valueCid",
-            "createInstalledRowSource/acquire/issueGrant/issueGrant",
-            "createInstalledRowSource/ordinarySubject/ordinarySubject",
-            "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
-            "openRowSourceCredentialCustody",
-            "openRowSourceCredentialCustody/checkGrantRequest",
-            "openRowSourceCredentialCustody/close",
-            "openRowSourceCredentialCustody/ensureOpen/ensureOpen",
-            "openRowSourceCredentialCustody/init:closeOnce/init:closeOnce",
-            "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
-            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
-            "openRowSourceCredentialCustody/sign",
-            "createInstalledRowSource/acquire/readerOptions/consumeObservation",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions#2",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions#3",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
-            "createInstalledRowSource/captureCapacity/captureCapacity",
-            "createInstalledRowSource/createInstalledRowSource#7",
-            "openRowSourceCredentialCustody/close/close",
-            "openRowSourceCredentialCustody/closeRunBindings",
-            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#3",
-            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#4",
-            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#5",
-            "openRowSourceCredentialCustody/openRunAcquisition",
-            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition",
-            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#2",
-            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#3",
-            "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest",
-            "openRowSourceCredentialCustody/bindRunAcquisition",
-            "openRowSourceCredentialCustody/captureRunCurrent",
-            "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent",
-            "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent/assertCurrent",
-            "openRowSourceCredentialCustody/captureRunCurrent/captureRunCurrent",
-            "openRowSourceCredentialCustody/captureRunCurrent/observeCurrent/observeCurrent",
-            "openRowSourceCredentialCustody/retainRunBinding",
-            "openRowSourceCredentialCustody/retainRunBinding/init:close/init:close",
-            "createInstalledRowSource/createInstalledRowSource#10",
-            "createInstalledRowSource/createInstalledRowSource#8",
-            "createInstalledRowSource/createInstalledRowSource#9"
+            "valueCid/valueCid"
           ],
           "exports": [
             "createInstalledRowSource",
             "installRowSourceAuthorization",
+            "openRowSourceCredentialCustody",
             "openRowSourceCredentialSite",
             "rowSourceCheckEnvironment",
-            "rowSourceMapping",
-            "openRowSourceCredentialCustody"
+            "rowSourceMapping"
           ],
           "attributes": {
             "responsibility": [
@@ -8019,18 +8103,18 @@
             "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant#2",
             "prepareInstallationMetadataSite/init:attach/init:attach/site/site",
             "prepareInstallationMetadataSite/init:attach/init:attach/site/site#2",
+            "prepareInstallationMetadataSite/init:close/init:close",
             "prepareInstallationMetadataSite/invalid/invalid",
             "prepareInstallationMetadataSite/pair/pair",
             "prepareInstallationMetadataSite/positive/positive",
             "prepareInstallationMetadataSite/prepareInstallationMetadataSite",
             "prepareInstallationMetadataSite/prepareInstallationMetadataSite#2",
             "prepareInstallationMetadataSite/prepareInstallationMetadataSite#3",
+            "prepareInstallationMetadataSite/profileCurrent/profileCurrent",
+            "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent",
             "prepareInstallationMetadataSite/selectedProfile/selectedProfile",
             "prepareInstallationMetadataSite/synchronous/synchronous",
-            "prepareInstallationMetadataSite/synchronous/synchronous/synchronous",
-            "prepareInstallationMetadataSite/init:close/init:close",
-            "prepareInstallationMetadataSite/profileCurrent/profileCurrent",
-            "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent"
+            "prepareInstallationMetadataSite/synchronous/synchronous/synchronous"
           ],
           "exports": [],
           "attributes": {
@@ -10573,10 +10657,9 @@
             "createInstalledTableEffect/cleanupOwner/cleanupOwner/owner/owner",
             "createInstalledTableEffect/commonStage/commonStage",
             "createInstalledTableEffect/commonStage/commonStage/commonStage",
-            "createInstalledTableEffect/commonStage/commonStage/commonStage/commonStage",
             "createInstalledTableEffect/commonStage/commonStage/commonStage#2",
+            "createInstalledTableEffect/commonStage/commonStage/commonStage/commonStage",
             "createInstalledTableEffect/createInstalledTableEffect",
-            "createInstalledTableEffect/createInstalledTableEffect/createInstalledTableEffect",
             "createInstalledTableEffect/createInstalledTableEffect#2",
             "createInstalledTableEffect/createInstalledTableEffect#3",
             "createInstalledTableEffect/createInstalledTableEffect#4",
@@ -10584,6 +10667,7 @@
             "createInstalledTableEffect/createInstalledTableEffect#6",
             "createInstalledTableEffect/createInstalledTableEffect#7",
             "createInstalledTableEffect/createInstalledTableEffect#8",
+            "createInstalledTableEffect/createInstalledTableEffect/createInstalledTableEffect",
             "createInstalledTableEffect/dispatchBinder/dispatchBinder",
             "createInstalledTableEffect/dispatchBinder/dispatchBinder/dispatchBinder",
             "createInstalledTableEffect/dispose/dispose",
@@ -10701,7 +10785,28 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/authorization-gate.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/completed-run-publication.mjs",
+        "../host-common/runtime-core.mjs",
+        "../host-common/runtime-result.mjs",
+        "./effect-input-export.mjs",
+        "./effect-ledger.mjs",
+        "./installed-row-effect.mjs",
+        "./local-values-plan.mjs",
+        "./table-capture-recovery.mjs",
+        "./table-commit-apply.mjs",
+        "./table-commit-reconciliation.mjs",
+        "./table-operation-preview.mjs",
+        "./table-write-binding.mjs",
+        "node:crypto",
+        "node:fs/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/table-operation-preview.mjs",
@@ -10857,7 +10962,16 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./table-write-binding.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/table-write-binding.mjs",
@@ -10961,7 +11075,13 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/notion/host/database-reader.mjs",

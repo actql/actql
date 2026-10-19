@@ -23,12 +23,19 @@ export function assertOrdinarySourcePreparationCurrent(view, originals, source) 
 }
 
 export async function prepareOrdinarySourceManagedInstallation(originals, callbacks, source) {
-  let closing = false, closed = false, bundle, flight, count = 0;
+  let closing = false, closed = false, bundle, flight, count = 0, checkingBundle = false;
   const receipts = new WeakMap(), producers = new Set(), runs = new Map();
   const current = () => {
     if (closing || closed) fail('SourceManagedPreparationUnavailable');
     callbacks.validator(originals);
-    if (bundle !== undefined && callbacks.read(originals) !== bundle) fail('ForeignInstalledMockPreparation');
+    if (bundle !== undefined && !checkingBundle) {
+      // The original metadata view itself calls this current fence. Reentry
+      // keeps the Host check above, without recursively reading that same
+      // view forever. The outer read still verifies its exact retained pair.
+      checkingBundle = true;
+      try {if (callbacks.read(originals) !== bundle) fail('ForeignInstalledMockPreparation');}
+      finally {checkingBundle = false;}
+    }
   };
   const producerFor = receipt => {
     const producer = receipts.get(receipt);
