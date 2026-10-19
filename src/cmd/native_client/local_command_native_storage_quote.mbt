@@ -232,6 +232,27 @@ fn quote_local_command_native_storage(
   guard bounds.sqlite_other_heap_bytes is Some(other) && other > 0L else {
     return Err(NativeStorageSqliteHeapMissing)
   }
+  // The original Journal admits 131072-byte bodies and 512-byte scan keys.
+  // sqlite_stub.c allocates BOTH retained result copies before finalizing the
+  // same statement. They use this same MEMSYS5 heap, not Read or a new credit.
+  // This is only a necessary subset of `other`: SQLite's live VM/column data,
+  // schema/cache, descriptors, bindings, paths and diagnostics remain included
+  // independently in the complete caller-supplied bound.
+  let result_body = match native_storage_mem5_block(131072L) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let result_key = match native_storage_mem5_block(512L) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let result_copies = match native_storage_sum([result_body, result_key]) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if other < result_copies {
+    return Err(NativeStorageInsufficient)
+  }
   guard bounds.sqlite_external_execution_bytes is Some(external) &&
     external > 0L else {
     return Err(NativeStorageSqliteExternalMissing)
