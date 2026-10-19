@@ -188,7 +188,7 @@ export async function loadInstalledGcsSource(profile, {root, principalId, moon,
             maxRequestBytes: limits.maxRequestBytes, maxTimeMs: limits.maxDurationMs,
             maxPages: limits.maxPages, maxRows: limits.maxListingItems},
           credential: site.credential, callResource: site.callResource, resourceFor});
-        if (options.resource === 'files') return readGcsFileListing({
+        if (options.resource === 'files') return readGcsFileListing({moon: providerMoon,
           target: {bucket: installed.bucket, prefix: installed.prefix},
           limits: {maxPageBytes: limits.maxPageBytes, maxPageItems: limits.maxPageItems,
             maxRequestBytes: limits.maxRequestBytes, maxTimeMs: limits.maxDurationMs},

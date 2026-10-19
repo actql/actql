@@ -23,3 +23,21 @@ requires those existing-owner connections and their physical lifetime checks;
 neither a numeric declaration nor legacy Source evidence substitutes for them.
 The existing closed-prefix guard remains required, and no new Owner, grant,
 cleanup queue or Model funding profile follows from these primitives.
+
+## Physical timestamps and logical listing values
+
+The GCS listing transport retains the original response and charges its exact
+bytes before projection. The ordinary provider projects `updated` through the
+same exact GCS temporal function used by its object table. The resulting
+`modified_at` is canonical UTC Timestamp data; it neither replaces the retained
+physical report nor changes Resource/version identity. Short physical fractions
+are padded to milliseconds, and finer fractions retain their exact instant with
+only surplus trailing zeros removed. No Host `Date` or binary64 conversion is
+involved. Invalid metadata refuses before any item is offered to the Resource
+issuer. The explicit historical source-only ABI remains a distinct unchanged
+compatibility boundary, not ordinary provider qualification.
+
+The normalized timestamp references and strings coexist with the original
+decoded page until its bounded envelope is consumed. They remain part of the
+same read's finite projection/capture inventory. Normalization supplies no
+transfer allowance, Source grant, listing completion or physical cleanup ACK.
