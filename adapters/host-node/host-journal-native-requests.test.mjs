@@ -290,7 +290,8 @@ test('included native sum keeps old/new originals without adding the retained ha
   assert.equal(n.retainedStatements,708141090n);
   assert.equal(n.retainedBindings,4760320n);
   assert.equal(n.activePrepare,40057861669n);
-  assert.equal(n.heapUsableUpper,5004289557542n+27168n);
+  assert.equal(n.heapUsableUpper,5004289557542n+27168n+
+    100n*129n*65535n*(50626559n+128n+64n+64n));
   assert.equal(n.sameInodeWalMappingBytes,32768n);
 });
 
@@ -460,7 +461,8 @@ test('same-connection active phases are alternatives beside retained VMs, schema
   assert.equal(n.activeAlternative,[n.activePrepare,n.activeExecution,n.activeBinding]
     .reduce((high,value) => high > value ? high : value));
   assert.equal(n.heapUsableUpper,n.cache+n.wal+n.savepoint+n.workspaces+n.pagerControls+
-    n.connection+n.retainedSchema+n.retainedStatements+n.retainedBindings+n.activeAlternative+n.nodeWrapperSubset);
+    n.connection+n.retainedSchema+n.retainedStatements+n.retainedBindings+n.activeAlternative+
+    n.nodeWrapperSubset+n.retainedNodeResults);
   assert(n.activeAlternative < n.activePrepare+n.activeExecution+n.activeBinding);
   // Includes one full replacement VM plus one active old/new opcode pair,
   // not fifty retained copies for sequential schema retries.
@@ -480,7 +482,7 @@ test('UTF16 round-trip allocation uses logical encoded length and only one activ
     vm.eachCursorOverflowGrowth.nextMaximum.heapUsableUpper+u(vm.eachSavedIndexKeyRequestUpper));
   assert.equal(n.activeExecution,(vm.dataRegisters+1n)*u(vm.eachTranslatedDataPayloadRequestUpper)+
     vm.uniqueRcStringBlocks*u(vm.eachRcStringRequestUpper)+cursor+
-    s.childPrograms*u(s.eachChildFrameRequest)+value.temporaryBtrees.heapUsableSubsetUpper);
+    s.childPrograms*u(s.eachChildFrameRequest)+value.temporaryBtrees.heapUsableSubsetUpper+n.activeResultVectors);
   assert.equal(value.bindings.activeRequestSumPerStatement,12764n);
   assert.equal(n.activeBinding,55352n);
   assert.equal(n.completeJournal,false);
@@ -519,7 +521,8 @@ test('larger saved payloads can select execution rather than preparation without
   assert(n.activeExecution > n.activePrepare);
   assert.equal(n.activeAlternative,n.activeExecution);
   assert.equal(n.heapUsableUpper,n.cache+n.wal+n.savepoint+n.workspaces+n.pagerControls+
-    n.connection+n.retainedSchema+n.retainedStatements+n.retainedBindings+n.activeExecution+n.nodeWrapperSubset);
+    n.connection+n.retainedSchema+n.retainedStatements+n.retainedBindings+n.activeExecution+
+    n.nodeWrapperSubset+n.retainedNodeResults);
 });
 
 test('Node wrapper lifetime counts attempted iterator history rather than one active iterator', () => {
@@ -563,4 +566,53 @@ test('native wrapper bytes do not stand in for V8 cells, result backing, paths o
   const subset = calculate(input()).includedNativeComponents.nodeWrapperSubset;
   assert.equal(subset,27168n);
   assert(calculate(input({preparedStatements:100n})).includedNativeComponents.nodeWrapperSubset > subset);
+});
+
+test('Node result backing covers complete row history and lookahead independently of observed column maxima', () => {
+  const value = calculate(input()), r = value.nodeResults;
+  assert.equal(r.columnRepresentationUpper,65535n);
+  assert.equal(r.rowHistoryUpper,12900n);
+  assert.equal(r.maximumValueCopies,845401500n);
+  assert.equal(r.keyConversionsUpper,845401500n);
+  assert.equal(r.iteratorProtocolObjectsUpper,13000n);
+  assert.equal(r.runResultObjectsUpper,100n);
+  assert.equal(r.eachBlobPayload.request,25308270n);
+  assert.equal(r.eachBlobPayload.heapUsableUpper,50626559n);
+  assert.equal(value.includedNativeComponents.retainedNodeResults,
+    845401500n*(50626559n+128n+64n+64n));
+  const next = calculate(input({resultRows:129n})).nodeResults;
+  assert.equal(next.maximumValueCopies-r.maximumValueCopies,100n*65535n);
+  assert.equal(calculate(input({statementCalls:1n})).nodeResults.maximumValueCopies,129n*65535n);
+  assert.equal(r.payloadAliasesSqliteMem,false);
+});
+
+test('external backing retries are attempts not four retained successful payloads or refill', () => {
+  const r = calculate(input()).nodeResults;
+  assert.equal(r.payloadAllocatorAttemptsUpper,4n*r.maximumValueCopies);
+  assert.equal(r.successfulPayloadCopiesUpper,r.maximumValueCopies);
+  assert.equal(r.eachBackingStore.request,128n);
+  assert.equal(r.eachSharedControl.request,64n);
+  assert.equal(r.eachArrayBufferExtension.request,64n);
+  assert.equal(r.zeroLengthStillHasControls,true);
+  assert.equal(r.copyRetiredByCursorReturn,false);
+  assert.equal(r.copyRetiredByDatabaseClose,false);
+  assert.equal(r.replenishedOnClose,false);
+  assert.equal(r.completeResultFacility,false);
+  assert.equal(r.coversManagedRowsAndStrings,false);
+  assert.equal(r.coversAllocatorRegions,false);
+});
+
+test('active result vectors retain StrongRoot headers and entries beside SQLite execution', () => {
+  const value = calculate(input()), r = value.nodeResults;
+  assert.equal(r.eachColumnVector.request,524288n);
+  assert.equal(r.eachPairVector.request,24n);
+  assert.equal(r.eachStrongRootEntry.request,64n);
+  assert.equal(r.simultaneousVectors,4n);
+  assert.equal(value.includedNativeComponents.activeResultVectors,2097470n);
+  assert.equal(value.includedNativeComponents.activeResultVectors,
+    2n*usable(524288n)+2n*usable(24n)+4n*usable(64n));
+  assert.equal(r.nativeAllUsed,false);
+  assert.equal(r.ordinaryMallocOrCallocOnly,true);
+  assert.equal(r.coversSandboxOrDebugAllocator,false);
+  assert(Object.isFrozen(r));
 });

@@ -164,6 +164,10 @@ function includedNativeComponents(value) {
     // statement SQL above is a different original, not this temporary.
     u(3n * value.preparation.parser.sqlBytesUpper + 1n));
   const translated = vm.eachTranslatedDataPayloadRequestUpper;
+  const result = value.nodeResults;
+  const activeResultVectors = checked(2n * result.eachColumnVector.heapUsableUpper +
+    2n * result.eachPairVector.heapUsableUpper +
+    4n * result.eachStrongRootEntry.heapUsableUpper);
   // Each DATA Mem may retain a previous large payload while scalar/static.
   // At most one currently executing growth/translation adds its old/new
   // overlap. Do not double every Mem, or give cursor-storage Mem DATA payload.
@@ -173,7 +177,7 @@ function includedNativeComponents(value) {
       vm.eachCursorOverflowGrowth.previousMaximum.heapUsableUpper +
       vm.eachCursorOverflowGrowth.nextMaximum.heapUsableUpper + u(vm.eachSavedIndexKeyRequestUpper)) +
     statement.childPrograms * u(statement.eachChildFrameRequest) +
-    value.temporaryBtrees.heapUsableSubsetUpper);
+    value.temporaryBtrees.heapUsableSubsetUpper + activeResultVectors);
   // A positional call clears the old binding set BEFORE constructing its
   // values. At most14 current slots plus one translating copy coexist, then
   // the separate Node Utf8Value. Map each block sum, never U(sum requests).
@@ -196,14 +200,22 @@ function includedNativeComponents(value) {
     node.membershipNodes * node.eachMembershipNode.heapUsableUpper +
     node.membershipGrowthAttempts * (node.eachMembershipGrowth.previousMaximum.heapUsableUpper +
       node.eachMembershipGrowth.nextMaximum.heapUsableUpper));
+  // Every converted BLOB gets a NEW external backing, even when two columns
+  // borrow the same SQLite Mem. Returned/escaped output and failed lookahead
+  // can remain live beside subsequent rows; cursor return/DB close is no
+  // physical acknowledgement for those copies or their native controls.
+  const retainedNodeResults = checked(result.maximumValueCopies *
+    (result.eachBlobPayload.heapUsableUpper + result.eachBackingStore.heapUsableUpper +
+      result.eachSharedControl.heapUsableUpper + result.eachArrayBufferExtension.heapUsableUpper));
   return freeze({qualification:'included-stock-usable-subtotal-only', completeJournal:false,
     cache, wal, savepoint, workspaces, pagerControls, connection, activeParserBackings, activePrepareGraph,
     retainedSchema, eachRetainedStatement, retainedStatements, retainedBindings,
     activePrepare, activeExecution, activeBinding, activeAlternative, nodeWrapperSubset,
+    activeResultVectors, retainedNodeResults,
     activePhaseCombination:'maximum-of-same-connection-alternatives',
     heapUsableUpper:checked(cache + wal + savepoint + workspaces + pagerControls +
       connection + retainedSchema + retainedStatements + retainedBindings + activeAlternative +
-      nodeWrapperSubset),
+      nodeWrapperSubset + retainedNodeResults),
     // Same-inode WAL mappings are not heap malloc blocks and are not another
     // per-connection credit. Root must compose each real connection/copy and
     // the shared mapping once, together with all remaining facility terms.
@@ -324,10 +336,52 @@ function hostJournalNativeStructureRequests(input) {
   // stays below8*(P+1) slots; include a full old/new pair for EVERY attempted
   // insertion rather than assuming reset/clear/GC retires native storage.
   const membershipBucketRequest = checked(64n * checked(P + 1n));
+  // sqlite3_column_count returns the original Vdbe's u16 nResColumn. This
+  // representation upper does not promote an observed22 to a future24 bound,
+  // or alter a supported public/SQL column limit. The separate fixed-template
+  // P4 metadata argument retains its own conditional qualification.
+  const resultColumns = 65535n;
+  const resultRows = checked(X * checked(L + 1n));
+  const resultCopies = checked(resultRows * resultColumns);
 
   const value = freeze({
     qualification:'partial-native-request-vectors', completePhase:false,
     replenishedOnClose:false,
+    nodeResults:freeze({
+      qualification:'conditional-ordinary-node-result-backing-subset', completeResultFacility:false,
+      columnRepresentationUpper:resultColumns,
+      rowHistoryUpper:resultRows, maximumValueCopies:resultCopies,
+      keyConversionsUpper:resultCopies,
+      iteratorProtocolObjectsUpper:checked(X * checked(L + 2n)),
+      runResultObjectsUpper:X,
+      // Get<=one row; bounded iterate consumes at most L+1 rows INCLUDING
+      // overflow lookahead. Scalar/non-BLOB outputs may use no external copy;
+      // conservatively cover every returned value as a distinct BLOB copy.
+      eachBlobPayload:allocation(translatedPayload),
+      // Conditional LP64 fixed controls: separate BackingStore, libc++
+      // shared_ptr control and ArrayBufferExtension. Managed ArrayBuffer,
+      // Uint8Array, row/key/string and Error objects share the selected VM,
+      // not a second whole managed heap added here.
+      eachBackingStore:allocation(128n), eachSharedControl:allocation(64n),
+      eachArrayBufferExtension:allocation(64n),
+      // Heap::AllocateExternalBackingStore: first callback, two GC retries,
+      // final callback. Only ONE successful payload can result. Failed calls
+      // and GC keep their shared runtime/allocator control lifetime; they do
+      // not create four successful copies or supply an earlier physical ACK.
+      payloadAllocatorAttemptsUpper:checked(4n * resultCopies),
+      successfulPayloadCopiesUpper:resultCopies,
+      // LocalVector has either std::allocator or StrongRootAllocator. Cover
+      // the latter's original pointer-sized prefix and separate root entry
+      // for all four simultaneous vectors (two column/two done-value pairs).
+      eachColumnVector:allocation(checked(8n + 8n * resultColumns)),
+      eachPairVector:allocation(24n), eachStrongRootEntry:allocation(64n),
+      simultaneousVectors:4n, nativeAllUsed:false,
+      ordinaryMallocOrCallocOnly:true, coversSandboxOrDebugAllocator:false,
+      zeroLengthStillHasControls:true, payloadAliasesSqliteMem:false,
+      coversManagedRowsAndStrings:false, coversAllocatorRegions:false,
+      copyRetiredByCursorReturn:false, copyRetiredByDatabaseClose:false,
+      replenishedOnClose:false,
+    }),
     nodeWrappers:freeze({
       qualification:'conditional-lp64-node-libcxx-wrapper-subset', completeNativeControl:false,
       database:allocation(256n), statementAttempts:P, eachStatement:allocation(128n),
