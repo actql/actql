@@ -1,15 +1,17 @@
 ///|
-fn single_source_free_capacity_prepared() -> @publication_host.PreparedClientProgram {
+fn single_source_free_capacity_prepared(
+  document? : String = (
+    #|{"version":"actql/0.1","id":"source-free-capacity","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1},{"id":2}]},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"source","result":"rows"}}}}
+  ),
+) -> @publication_host.PreparedClientProgram {
   let environment = @publication_host.admit_client_check_environment(
     source_query_original_environment,
-    "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
+    "sha256:4ea01561b9ac9815baaf04a81cff8260c8a47c56f19828b5889cf45ec1436e78",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
   @publication_host.prepare_effect_free_client_program(
-    (
-      #|{"version":"actql/0.1","id":"source-free-capacity","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1},{"id":2}]},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"source","result":"rows"}}}}
-    ),
+    document,
     Json,
     environment,
     None,
@@ -41,7 +43,9 @@ test "single source-free quote refuses Source acquisition and foreign registry b
   let assets = @publication_host.client_local_product_assets()
   assert_true(
     single_source_free_local_ledger_limits(
-      single_installed_prepared(),
+      single_source_free_capacity_prepared(
+        document=source_query_original_document,
+      ),
       assets.registry,
       assets.values,
       Some(assets.fragment),
