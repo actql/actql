@@ -12,7 +12,10 @@ from ctypes import POINTER, byref, c_int, c_int32, c_uint16, c_ubyte, c_void_p
 from dataclasses import dataclass
 from os import getpid
 from threading import Thread, current_thread
-from typing import Any, NoReturn
+from typing import TYPE_CHECKING, Any, NoReturn
+
+if TYPE_CHECKING:
+    from ._local_native_initial_custody import _OriginalPythonNativeInitial
 
 from ._local_worker_slot import _OriginalDescriptor
 
@@ -62,7 +65,8 @@ class _OriginalControlCustody:
 
     __slots__ = ('_functions', '_incoming', '_original', '_retained', '_reply',
                  '_unknown', '_unknown_carrier', '_busy', '_thread', '_process', '_closed',
-                 '_acquire_started', '_borrowed_fd', '_host_resources_original')
+                 '_acquire_started', '_borrowed_fd', '_host_resources_original',
+                 '_python_initial_original')
     _functions: _OriginalControlFunctions
     _incoming: c_void_p
     _original: c_void_p
@@ -76,6 +80,7 @@ class _OriginalControlCustody:
     _closed: bool
     _acquire_started: bool
     _borrowed_fd: _OriginalDescriptor | None
+    _python_initial_original: _OriginalPythonNativeInitial | None
     _host_resources_original: object | None
 
     @classmethod
@@ -87,6 +92,7 @@ class _OriginalControlCustody:
         host._busy, host._closed = False, False
         host._acquire_started, host._borrowed_fd = False, None
         host._host_resources_original = None
+        host._python_initial_original = None
         host._thread, host._process = current_thread(), getpid()
         # Reporting a lost native reply must not allocate its cleanup carrier
         # after the original has moved. Failure here leaves the input untouched.
@@ -97,7 +103,8 @@ class _OriginalControlCustody:
     def _prepare_original(cls, functions: _OriginalControlFunctions, *,
                           source: str, recipe: bytes, generation: int, size: int,
                           work: int, attempts: int, holdings: int, transfer: int,
-                          retained: int, execution: int, envelope: int) -> _OriginalControlCustody:
+                          retained: int, execution: int, envelope: int,
+                          _python_initial: _OriginalPythonNativeInitial | None = None) -> _OriginalControlCustody:
         """Trusted private assembly, not an installed supplier or funding fact.
 
         The existing Native Owner creates/reserves its original Ledger only on
@@ -112,12 +119,24 @@ class _OriginalControlCustody:
                 or any(type(n) is not int or not 0 <= n <= 2**63 - 1
                        for n in (generation, size, transfer, retained, execution, envelope))):
             raise ValueError('Original Native preparation inputs are unavailable')
+        if _python_initial is not None:
+            from ._local_native_initial_custody import _OriginalPythonNativeInitial
+            if (type(_python_initial) is not _OriginalPythonNativeInitial
+                    or _python_initial._functions.library is not functions.library):
+                raise ValueError('Foreign original Python Native component')
+            _python_initial.require_control_current()
         # Bind before any Owner call. An old component missing this new private
         # ABI is refused without acquiring or substituting a different library.
         prepare = bind_native(functions.library, 'actql_control_prepare_utf16_into')
         source_units = (c_uint16 * 40)(*map(ord, source))
         recipe_bytes = (c_ubyte * 32).from_buffer_copy(recipe)
         host = cls._empty_original(functions)
+        if _python_initial is not None:
+            # The operational Python path keeps its already initialized
+            # Runtime/default original before the first Host allocation. The
+            # declared Host limits still require their actual backing later.
+            _python_initial._bind_control_host(host)
+            host._python_initial_original = _python_initial
         host._enter()
         known: _OriginalControlError | None = None
         try:
@@ -215,6 +234,8 @@ class _OriginalControlCustody:
         return _OriginalArenaFact(operation, issue)
 
     def current(self) -> _OriginalArenaFact:
+        if self._python_initial_original is not None:
+            self._python_initial_original.require_control_current()
         self._enter()
         if self._closed or self._original.value is None or self._reply.value is not None:
             self._busy = False
@@ -246,6 +267,8 @@ class _OriginalControlCustody:
                 or descriptor.close_attempted or type(descriptor.value) is not int
                 or not 0 <= descriptor.value <= 2**31 - 1):
             raise ValueError('Original borrowed control descriptor is unavailable')
+        if self._python_initial_original is not None:
+            self._python_initial_original.require_control_current()
         self._enter()
         if (self._closed or self._acquire_started or self._original.value is None
                 or self._reply.value is not None):

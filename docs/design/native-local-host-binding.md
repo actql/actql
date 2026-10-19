@@ -2091,3 +2091,19 @@ escaped allocation. The carrier retains those original references and their
 separate duties even after normal use refuses. This continuation issues no
 Host, parent, Ledger, Worker or VM and does not supply the separate loader,
 prelude, installation or business resource admissions.
+
+The Python-specific Host preparation adopts that same initialized component
+and retains the initial carrier before the first Native Host preparation call.
+The initial carrier retains the single Host attempt in return, including its
+partial reply after a lost response. Foreign components and unavailable Runtime
+currentness refuse before preparation. Closing or refusing that Host never
+reissues the startup original.
+
+Default restoration remains pending until both original Host references have
+received their existing close acknowledgement, including outstanding physical
+cleanup. Normal Host current and FD acquisition still require the original
+initial currentness; the same Host's existing cleanup remains reachable after
+normal use refuses. Its close acknowledgement does not retire the retained
+Runtime, module, mapping or interpreter lifetime. Declared Host limits still
+require their separate actual backing and do not come from initial-control
+service identity or successful Runtime initialization.

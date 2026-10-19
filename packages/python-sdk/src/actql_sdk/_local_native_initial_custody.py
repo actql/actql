@@ -9,7 +9,10 @@ from __future__ import annotations
 from ctypes import PyDLL, byref, c_void_p
 from os import getpid
 from threading import Thread, current_thread
-from typing import Any, Callable, NoReturn
+from typing import TYPE_CHECKING, Any, Callable, NoReturn
+
+if TYPE_CHECKING:
+    from ._local_native_control_custody import _OriginalControlCustody
 
 from ._local_initial_preparation import _OriginalPythonPreparation
 from ._local_native_initial_abi import bind
@@ -38,7 +41,7 @@ class _OriginalPythonNativeInitial:
                  '_slot', '_pending', '_unknown', '_busy', '_restored', '_issue',
                  '_call_failed', '_normal_refused', '_runtime_slot',
                  '_runtime_attempted', '_runtime_ready', '_runtime_initialize',
-                 '_runtime_current')
+                 '_runtime_current', '_control_host')
     _original: _OriginalPythonNativeInitial
     _initial: _OriginalPythonPreparation
     _functions: _PythonNativeInitialFunctions
@@ -57,6 +60,7 @@ class _OriginalPythonNativeInitial:
     _runtime_ready: bool
     _runtime_initialize: Callable[[Any], int] | None
     _runtime_current: Callable[[c_void_p], int] | None
+    _control_host: _OriginalControlCustody | None
 
     @classmethod
     def prepare(cls, initial: _OriginalPythonPreparation,
@@ -75,6 +79,7 @@ class _OriginalPythonNativeInitial:
         original._runtime_slot = c_void_p()
         original._runtime_attempted = original._runtime_ready = False
         original._runtime_initialize = original._runtime_current = None
+        original._control_host = None
         original._unknown = original._busy = original._restored = False
         original._normal_refused = original._call_failed = False
         original._issue = None
@@ -135,6 +140,11 @@ class _OriginalPythonNativeInitial:
             self._initial.require_cleanup_service()
             if self._restored:
                 return
+            if self._control_host is not None and not self._control_host._closed:
+                # A partial Host preparation, pending physical return or lost
+                # reply still owns this same initialization lifetime. Merely
+                # restoring a default must not strand its cleanup allocation.
+                raise self._pending
             if not self._slot.value:
                 raise self._pending
             result = self._functions.restore(self._slot)
@@ -200,6 +210,22 @@ class _OriginalPythonNativeInitial:
             raise
         finally:
             self._busy = False
+
+    def _bind_control_host(self, host: _OriginalControlCustody) -> None:
+        """Retain one original Host attempt before its first native allocation.
+
+        This adopts the same Runtime/default lifetime, never another backing,
+        Ledger, worker claim or baseline. A refused or closed Host does not
+        permit a second preparation on this original.
+        """
+        from ._local_native_control_custody import _OriginalControlCustody
+        if (type(host) is not _OriginalControlCustody
+                or host._functions.library is not self._functions.library):
+            raise ValueError('Foreign original Python control Host')
+        self.require_control_current()
+        if self._control_host is not None:
+            raise ValueError('Original Python control Host was already attempted')
+        self._control_host = host
 
     def __copy__(self) -> NoReturn:
         raise TypeError('Original Python Native startup cannot be copied')
