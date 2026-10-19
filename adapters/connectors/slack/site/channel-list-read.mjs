@@ -30,7 +30,7 @@ export class SlackChannelListReadFailure extends Error {
 }
 
 function prepareRead({moon, workspaceId, names, initialAuthorization, credential,
-  authorizationFor, limits, current, chargeResponse, consumeObservation, consumePage, signal}, retainOriginal) {
+  authorizationFor, limits, current, chargeResponse, consumeObservation, consumePage, signal}, retainOriginal, allConversations) {
   if (!Array.isArray(names) ||
       [authorizationFor,current,chargeResponse,consumeObservation,consumePage].some(fn=>typeof fn !== 'function') ||
       typeof workspaceId !== 'string' || !workspaceId.length ||
@@ -51,6 +51,7 @@ function prepareRead({moon, workspaceId, names, initialAuthorization, credential
   const historyPrepare = retainOriginal ? capture('slackPrepareMessageHistoryFromChannel',true) : undefined;
   const historyMatches = retainOriginal ? capture('slackMessageHistoryMatchesChannel',true) : undefined;
   if ((historyPrepare === undefined) !== (historyMatches === undefined)) fail('InvalidSlackChannelListRead');
+  const projectPage = allConversations ? capture('slackProjectHistoryConversationList') : provider.slackProjectChannelList;
   const context = ownInvocationContext({authorization:initialAuthorization,credential,limits,
     callbacks:{authorizationFor,current,chargeResponse,consumeObservation,consumePage}});
   if (providerExports.some(name=>typeof provider[name] !== 'function') ||
@@ -62,7 +63,7 @@ function prepareRead({moon, workspaceId, names, initialAuthorization, credential
   const columns = Object.freeze(provider.slackChannelListColumnNames().slice());
   if (names.length > columns.length || new Set(names).size !== names.length ||
       names.some(name=>!columns.includes(name))) fail('InvalidSlackChannelListRead');
-  return Object.freeze({provider,context,workspaceId,names:Object.freeze(names.slice()),signal,
+  return Object.freeze({provider,projectPage,allConversations,context,workspaceId,names:Object.freeze(names.slice()),signal,
     ...(retainOriginal ? {moon,historyPrepare,historyMatches} : {})});
 }
 
@@ -120,10 +121,11 @@ async function executeRead(prepared, received, retainPage, retainExchange) {
     // must agree with the originally selected workspace before any data call.
     let cursor;
     for (let index=0; index<bound.maxPages; index++) {
-      const query = [['types','public_channel,private_channel'],['exclude_archived','false'],['limit',String(bound.pageSize)]];
+      const query = [['types',prepared.allConversations ? 'public_channel,private_channel,mpim,im' : 'public_channel,private_channel'],
+        ['exclude_archived','false'],['limit',String(bound.pageSize)]];
       if (cursor !== undefined) query.push(['cursor',cursor]);
       const {response,charge} = await request(SLACK_CHANNEL_LIST_OPERATION,index,'GET','/api/conversations.list',query);
-      const page = checked(provider.slackProjectChannelList(response.body,bound.maxResponseBytes,
+      const page = checked(prepared.projectPage(response.body,bound.maxResponseBytes,
         bound.maxNodes,bound.maxDepth,Math.min(bound.maxRows,bound.pageSize),bound.maxCursorBytes,
         bound.maxValueNodes,bound.maxValueTextBytes));
       const metadata = JSON.parse(provider.slackChannelListMetadataJson(page));
@@ -171,8 +173,15 @@ export function createSlackChannelListReaderForHistory(options) {
   return createChannelReader(options,true);
 }
 
-function createChannelReader(options,retainOriginal) {
-  const original = prepareRead(options,retainOriginal), stop = new AbortController();
+// A distinct bound request for history discovery, including direct messages.
+// Its broader request does not widen the ordinary channels Source or issue
+// access to conversations that the actual token cannot observe.
+export function createSlackConversationListReaderForHistory(options) {
+  return createChannelReader(options,true,true);
+}
+
+function createChannelReader(options,retainOriginal,allConversations=false) {
+  const original = prepareRead(options,retainOriginal,allConversations), stop = new AbortController();
   const signal = original.signal === undefined ? stop.signal : AbortSignal.any([original.signal,stop.signal]);
   const state = {prepared:Object.freeze({...original,signal}),stop,phase:'ready',
     receivedResponses:0,receivedBodyBytes:0n,

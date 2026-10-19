@@ -4,11 +4,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {channelListFixture,channelPage} from './channel-list-read.fixture.mjs';
-import {selectSlackOriginalChannel,createSlackChannelListReaderForHistory} from '../site/channel-list-read.mjs';
+import {selectSlackOriginalChannel,createSlackChannelListReaderForHistory,
+  createSlackConversationListReaderForHistory} from '../site/channel-list-read.mjs';
 import {createSlackMessageHistoryReaderFromChannel,SLACK_MESSAGE_HISTORY_OPERATION,
   SLACK_WORKSPACE_IDENTITY_OPERATION} from '../site/message-history-read.mjs';
 
-async function fixture(t,{moon}={}) {
+async function fixture(t,{moon,conversations=false}={}) {
   const f=await channelListFixture(t,{accounted:false});
   const provider=moon?.(f.options.moon)??f.options.moon;
   f.state.pages=[channelPage([{id:'C-original',name:'original'}],null)];
@@ -26,7 +27,8 @@ async function fixture(t,{moon}={}) {
   };
   const consumeObservation=charge=>{assert.equal(charge,pending);pending=undefined;};
   let channels;
-  channels=createSlackChannelListReaderForHistory({...f.options,moon:provider,chargeResponse,consumeObservation,consumePage:(value,{charge,originalPage})=>{
+  const createChannels=conversations ? createSlackConversationListReaderForHistory : createSlackChannelListReaderForHistory;
+  channels=createChannels({...f.options,moon:provider,chargeResponse,consumeObservation,consumePage:(value,{charge,originalPage})=>{
     assert.equal(charge,pending);assert(value.length>0);pages.push(originalPage);
     assert.throws(()=>selectSlackOriginalChannel(channels,originalPage,0),{code:'ForeignSlackOriginalChannel'});
     pending=undefined;
@@ -129,4 +131,34 @@ test('Slack lost channel reply retains the original pending exchange and cannot 
   assert.throws(()=>selectSlackOriginalChannel(f.channels,{},0),{code:'ForeignSlackOriginalChannel'});
   await assert.rejects(f.channels.read(),{code:'SlackChannelListReaderAlreadyStarted'});
   assert.equal(f.state.requests.length,2);assert.equal(f.rows.length,0);f.assertNoPending();
+});
+
+test('Slack history discovery selects all conversation kinds and binds original IM and MPIM history',async t=>{
+  for(const [id,flags] of [['D-original',{is_im:true,is_mpim:false}],['G-original',{is_im:false,is_mpim:true}]]){
+    const f=await fixture(t,{conversations:true});
+    f.state.pages=[channelPage([{id,...flags}],null)];
+    await f.channels.read();
+    const reader=f.create(f.select());await reader.read();
+    assert.deepEqual(f.state.requests.map(r=>r.path),['/api/auth.test',
+      '/api/conversations.list?types=public_channel%2Cprivate_channel%2Cmpim%2Cim&exclude_archived=false&limit=10',
+      '/api/auth.test',`/api/conversations.history?channel=${id}&limit=10`]);
+    assert.deepEqual(f.rows,[{id:id+':1.000000001',ts:'1.000000001'}]);
+    assert.equal(reader.observe().cleanupConfirmed,false);f.assertNoPending();
+  }
+});
+
+test('Slack broader discovery checks unselected conversation fields before history selection',async t=>{
+  const f=await fixture(t,{conversations:true});
+  f.state.pages=[channelPage([{id:'D-original',is_im:true,name:[]}],null)];
+  await assert.rejects(f.channels.read(),e=>e.code==='SlackChannelListReadFailed'&&e.cause.code==='MoonBitHostFailure');
+  assert.throws(()=>f.select(),{code:'ForeignSlackOriginalChannel'});
+  assert.equal(f.state.requests.length,2);assert.equal(f.rows.length,0);
+  assert.equal(f.channels.observe().originalExchanges,2);
+});
+
+test('Slack broader discovery never falls back to the ordinary channel projector when its port is absent',async t=>{
+  const f=await channelListFixture(t,{accounted:false});
+  const moon={...f.options.moon};delete moon.slackProjectHistoryConversationList;
+  assert.throws(()=>createSlackConversationListReaderForHistory({...f.options,moon}),{code:'InvalidSlackChannelListRead'});
+  assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
 });

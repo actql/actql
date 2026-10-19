@@ -503,3 +503,31 @@ These overlap the page rows, checked contracts, raw responses, charges and
 encoding workspace. The provider method wrappers retain their original methods
 and receiver in both reader forms. Bounds and weak reachability do not fund or
 retire these holdings; protocol closure is not a physical acknowledgement.
+
+### History conversation enumeration
+
+The ordinary channel reader requests `public_channel,private_channel` and its
+Common projector continues to reject IM/MPIM discriminants. History discovery
+has a separate `createSlackConversationListReaderForHistory` entrance with the
+fixed `public_channel,private_channel,mpim,im` request and archived records
+included. These are the conversation kinds of the existing
+[Slack method](https://docs.slack.dev/reference/methods/conversations.list/);
+the token's actual scopes and visibility remain separate requirements.
+
+`project_slack_history_conversation_list` admits that broader response through
+the same bounded Common decoding and checked-field construction. Present
+`is_im` and `is_mpim` must be booleans; ordinary channel admission still requires
+them to be false when present. Missing conversation-specific fields remain
+nullable, without an inferred name, member count, kind or identifier prefix.
+All known fields in every returned record are checked before selection, even
+when a later projection omits them. Exact count tokens, duplicate identities,
+cursor history and cumulative bounds retain their existing checks.
+
+The broader reader retains the same original response/charge/page/index graph
+used by history selection and cannot fall back to a narrower projector when
+its captured Common port is absent. Its fixed request is not inferred from a
+residual filter, nor is terminal pagination proof of a complete workspace or
+thread population. It does not change the public channels declaration, saved
+wire, operation grant or Source authority. The additional projector closure
+and fixed request discriminator overlap the existing reader graph and typed
+decoding workspace; their presence is not resource admission or cleanup ACK.
