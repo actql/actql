@@ -202,6 +202,12 @@ fn NativeLocalJournalReadQueries::operation_access(
 ) -> NativeClientJournalOperationAccess {
   {
     reads: self.access(),
+    insert: (table, key, body) => {
+      match self.query(() => self.database.insert(table, key, body)) {
+        Ok(value) => value
+        Err(issue) => Err(issue)
+      }
+    },
     compare_exchange: (table, key, revision, body) => {
       match
         self.query(() => {

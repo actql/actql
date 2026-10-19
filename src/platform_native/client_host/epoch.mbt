@@ -468,14 +468,33 @@ pub fn NativeClientEpochAuthority::verify_epoch(
   current_authorization : Bool,
   now : Double,
 ) -> Result[@scope.SubmissionEpochValidity, NativeClientEpochIssue] {
+  self.verify_epoch_with_operations(
+    epoch, authority_scope_cid, current_authorization, now,
+  )
+}
+
+///|
+fn NativeClientEpochAuthority::verify_epoch_with_operations(
+  self : NativeClientEpochAuthority,
+  epoch : NativeClientSubmissionEpoch,
+  authority_scope_cid : String,
+  current_authorization : Bool,
+  now : Double,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[@scope.SubmissionEpochValidity, NativeClientEpochIssue] {
   if !current_authorization {
     return Err(AuthorizationDenied)
   }
-  match self.clock(now) {
+  match self.clock(now, operations~) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  self.verify_epoch_locked(epoch, authority_scope_cid, current_authorization)
+  self.verify_epoch_locked(
+    epoch,
+    authority_scope_cid,
+    current_authorization,
+    reads=operations.map(original => original.reads),
+  )
 }
 
 ///|
@@ -488,14 +507,15 @@ fn NativeClientEpochAuthority::verify_epoch_locked(
   epoch : NativeClientSubmissionEpoch,
   authority_scope_cid : String,
   current_authorization : Bool,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[@scope.SubmissionEpochValidity, NativeClientEpochIssue] {
   if !current_authorization {
     return Err(AuthorizationDenied)
   }
-  if self.fenced || self.database.transaction_fenced() {
+  if self.fenced || client_journal_transaction_fenced(self.database, reads) {
     return Err(Fenced)
   }
-  let (key, clock, _) = match read_epoch_custody(self.database) {
+  let (key, clock, _) = match read_epoch_custody(self.database, reads~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

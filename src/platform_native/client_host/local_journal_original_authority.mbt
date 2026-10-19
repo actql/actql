@@ -37,7 +37,11 @@ fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read
     Ok(material) => operation(host, material, queries.operation_access())
   }
   match (queries.failure, self.read_operation_issue, result) {
-    (Some(issue), _, Err(Epoch(TransactionUnknown))) => {
+    (
+      Some(issue),
+      _,
+      Err(Epoch(TransactionUnknown) | Journal(TransactionUnknown)),
+    ) => {
       self.read_operation_issue = Some(issue)
       Err(InstallationReadTransactionFailure(issue, TransactionUnknown))
     }
@@ -112,33 +116,12 @@ pub fn NativeLocalJournalCapture::issue_epoch_in_original_read(
     material,
     operations,
   ) => {
-    let body = match
-      @host.client_local_adopted_authority_scope_body(
-        material,
-        host.database,
-        principal,
-        connection,
+    let allowed = match
+      self.original_submit_allowed(
+        host, material, principal, connection, expected_scope,
       ) {
-      Ok(body) => body
-      Err(issue) => return Err(local_current_material_issue(issue))
-    }
-    let current_scope = match local_adoption_digest(self.crypto, body) {
       Ok(value) => value
       Err(issue) => return Err(issue)
-    }
-    if current_scope != expected_scope {
-      return Err(Epoch(ScopeMismatch))
-    }
-    let allowed = match
-      @host.client_local_adopted_account_outcome(material, host.database, {
-        principal,
-        connection,
-        resource: "run",
-        operation: "submit",
-      }) {
-      Ok(Allow(_)) => true
-      Ok(_) => false
-      Err(issue) => return Err(local_current_material_issue(issue))
     }
     host.epoch
     .issue_epoch_with_operations(
@@ -148,5 +131,85 @@ pub fn NativeLocalJournalCapture::issue_epoch_in_original_read(
       operations=Some(operations),
     )
     .map_err(issue => Epoch(issue))
+  })
+}
+
+///|
+fn NativeLocalJournalCapture::original_submit_allowed(
+  self : NativeLocalJournalCapture,
+  host : NativeLocalHostConnection,
+  material : @host.ClientLocalAdoptedHostMaterial[
+    @sqlite.Database,
+    NativeLocalAdoptionIssue,
+  ],
+  principal : String,
+  connection : String,
+  expected_scope : String,
+) -> Result[Bool, NativeLocalAdoptionIssue] {
+  let body = match
+    @host.client_local_adopted_authority_scope_body(
+      material,
+      host.database,
+      principal,
+      connection,
+    ) {
+    Ok(body) => body
+    Err(issue) => return Err(local_current_material_issue(issue))
+  }
+  let current_scope = match local_adoption_digest(self.crypto, body) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if current_scope != expected_scope {
+    return Err(Epoch(ScopeMismatch))
+  }
+  match
+    @host.client_local_adopted_account_outcome(material, host.database, {
+      principal,
+      connection,
+      resource: "run",
+      operation: "submit",
+    }) {
+    Ok(Allow(_)) => Ok(true)
+    Ok(_) => Ok(false)
+    Err(issue) => Err(local_current_material_issue(issue))
+  }
+}
+
+///|
+/// Save the exact retained intent through the original Journal transaction.
+/// This neither supplies execution nor replaces an uncertain prior admission.
+pub fn NativeLocalJournalCapture::record_submitted_intent_in_original_read(
+  self : NativeLocalJournalCapture,
+  principal : String,
+  connection : String,
+  expected_scope : String,
+  reference : NativeClientSubmissionReference,
+  intent : @host.ClientSubmittedIntent,
+  now : Double,
+) -> Result[NativeClientSubmittedIntentRecord, NativeLocalAdoptionIssue] {
+  self.with_current_adoption_material_in_original_read((
+    host,
+    material,
+    operations,
+  ) => {
+    let allowed = match
+      self.original_submit_allowed(
+        host, material, principal, connection, expected_scope,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    host.journal
+    .record_submitted_intent_with_operations(
+      host.epoch,
+      reference,
+      intent,
+      expected_scope,
+      allowed,
+      now,
+      operations=Some(operations),
+    )
+    .map_err(issue => Journal(issue))
   })
 }
