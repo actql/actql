@@ -34,6 +34,12 @@ extern "C" fn leave_read_context_ffi(domain : PhysicalExtentDomain) -> Int = "ac
 
 ///|
 #borrow(domain)
+extern "C" fn finish_failed_read_entry_cleanup_ffi(
+  domain : PhysicalExtentDomain,
+) -> Int = "actql_bootstrap_finish_failed_read_entry_cleanup"
+
+///|
+#borrow(domain)
 extern "C" fn close_read_context_ffi(domain : PhysicalExtentDomain) -> Int = "actql_bootstrap_close_read_context"
 
 ///|
@@ -326,6 +332,31 @@ pub fn[T, C] NativeHostBootstrap::leave_backed_read_context(
     Err(Bootstrap(Physical(status)))
   } else {
     Ok(())
+  }
+}
+
+///|
+/// A failed caller entry retains its nominal flight until this SAME physical
+/// context confirms no Read frame remains. This is neither a normal entry nor
+/// context/user/parent retirement; those original ACKs remain separate.
+pub fn[T, C] NativeHostBootstrap::finish_backed_failed_read_entry_cleanup(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  match self.original_read_carrier(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !domain.read_attempted || domain.read_retired {
+    return Err(Bootstrap(Unavailable))
+  }
+  let status = finish_failed_read_entry_cleanup_ffi(domain.physical)
+  if status == 0 {
+    Ok(())
+  } else {
+    Err(Bootstrap(Physical(status)))
   }
 }
 

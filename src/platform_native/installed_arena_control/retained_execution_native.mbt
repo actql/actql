@@ -250,6 +250,42 @@ pub fn InstalledArenaHost::leave_domain_retained_execution(
 }
 
 ///|
+/// Complete only a failed entry's original flight after actual non-entry (or
+/// its recorded owned-scope unwind) is confirmed. An entered frame still needs
+/// the ordinary original leave. Failure stays sticky and normal use is spent.
+pub fn InstalledArenaHost::finish_domain_retained_execution_failed_entry_cleanup(
+  self : InstalledArenaHost,
+  record : InstalledArenaRetainedExecution,
+) -> Result[Unit, InstalledArenaRetainedExecutionIssue] {
+  match self.original_retained_execution(record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if record.closed ||
+    record.physical_retired ||
+    !record.owns_read ||
+    !record.scope_failed ||
+    !record.active {
+    return Err(Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)))
+  }
+  record.closing = true
+  record.ready = false
+  let domain = record.domain
+  match
+    domain.backing.finish_backed_failed_read_entry_cleanup(
+      self,
+      domain.domain.unwrap(),
+      domain,
+    ) {
+    Err(issue) => Err(Domain(issue))
+    Ok(_) => {
+      record.active = false
+      Ok(())
+    }
+  }
+}
+
+///|
 /// Reenter only the same retained original to retire its outputs after failure
 /// or close. This monotonically stops normal use; no Ledger or business call
 /// may be borrowed from the cleanup frame. Actual leave remains separate.

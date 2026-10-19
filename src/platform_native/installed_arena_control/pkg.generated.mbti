@@ -319,6 +319,7 @@ pub fn InstalledArenaHost::enter_domain_retained_execution(Self, InstalledArenaR
 pub fn InstalledArenaHost::enter_domain_retained_execution_cleanup(Self, InstalledArenaRetainedExecution) -> Result[Unit, InstalledArenaRetainedExecutionIssue]
 pub fn InstalledArenaHost::enter_local_host_cleanup(Self, InstalledArenaLocalHostResources, InstalledArenaLocalHostPhase) -> Result[Unit, InstalledArenaLocalHostResourcesIssue]
 pub fn InstalledArenaHost::enter_local_host_phase(Self, InstalledArenaLocalHostResources, InstalledArenaLocalHostPhase) -> Result[Unit, InstalledArenaLocalHostResourcesIssue]
+pub fn InstalledArenaHost::finish_domain_retained_execution_failed_entry_cleanup(Self, InstalledArenaRetainedExecution) -> Result[Unit, InstalledArenaRetainedExecutionIssue]
 pub fn InstalledArenaHost::finish_sqlite_lookup(Self, InstalledArenaSqliteLookup) -> InstalledArenaSqliteDatabaseCall[Unit]
 pub fn InstalledArenaHost::leave_backing_borrow_scope(Self, InstalledArenaBackingBorrow) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::leave_domain(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]

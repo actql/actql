@@ -1980,6 +1980,13 @@ empty Database DATA shell without calling the component from an outer frame.
 A retained closed alias still keeps the Library child busy. Residual storage,
 an unconfirmed physical close or a pending scope keeps that responsibility.
 
+A failed constructor retains the same Database DATA alias independently of
+its failed-open field until both physical child close and original scope return
+are confirmed. Cleanup may clear a constructor field only while this original
+alias duty remains held. The generic Remote operation entrance preserves its
+existing open/restore policy; selecting an original route does not select the
+Local Journal's exclusive-WAL policy or supply a new physical scope.
+
 An in-process retained execution keeps its original delegated Ledger while its
 managed work uses the corresponding physical domain. Logical stop precedes
 physical retirement, and both remain distinct from the original usage report,
@@ -1995,6 +2002,13 @@ Store operation's separate pending-scope observation reports only its original
 calling/flight/SQL lifecycle: a sticky failure alone is not a pending scope,
 and an invalid observation is never inactivity. Neither an idle scope nor a
 successful return acknowledges Database, Library, domain or parent cleanup.
+
+A failed entry can retain a nominal active flight without having entered its
+physical Read frame. Its cleanup completion must confirm that exact original
+context has no active frame and that any recorded owned-scope unwind completed.
+It refuses while another scope is active and cannot replace an actual entered
+frame's original leave. This completion spends normal use and preserves the
+failure; it acknowledges no context, report, parent or descriptor retirement.
 
 The Ledger's immutable usage snapshots can themselves have been allocated in
 that child domain. After confirmed logical stop and outside every child
