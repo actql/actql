@@ -1,0 +1,503 @@
+///|
+priv enum LocalStoreOperationOrigin {
+  StoreFromIdle
+  StoreFromRead
+  StoreFromBusiness
+}
+
+///|
+priv enum LocalStoreOperationPhase {
+  StoreRouteIdle
+  StoreRouteRead
+  StoreRouteSqlite
+  StoreRoutePending
+} derive(Eq)
+
+///|
+pub(all) enum NativeLocalStoreOperationIssue {
+  StoreOperationUnavailable
+  StoreOperationForeignOriginal
+  StoreOperationCapture(NativeLocalAdoptionIssue)
+  StoreOperationResources(@arena.InstalledArenaLocalHostResourcesIssue)
+  StoreOperationExecution(@arena.InstalledArenaRetainedExecutionIssue)
+  StoreOperationSqlite(@sqlite.NativeSqliteIssue)
+}
+
+///|
+// Original routing custody, never a callback/permission factory. The fixed
+// bridge retains this receiver; it does not retain the bridge in return.
+priv struct NativeLocalStoreOperationReceiver {
+  capture : NativeLocalJournalCapture
+  execution : @arena.InstalledArenaRetainedExecution
+  runtime : NativeLocalPackagedRuntime
+  library : @sqlite.Library
+  mut original : NativeLocalJournalOriginalResources?
+  mut ready : Bool
+  mut closing : Bool
+  mut closed : Bool
+  mut cleanup : Bool
+  mut origin : LocalStoreOperationOrigin?
+  mut phase : LocalStoreOperationPhase
+  mut business_pending : Bool
+  mut primary : NativeLocalStoreOperationIssue?
+  mut cleanup_issue : NativeLocalStoreOperationIssue?
+}
+
+///|
+// Keep both records before activation. Explicit metadata retirement follows
+// the actual Store/Database and outstanding scope acknowledgements.
+struct NativeLocalStoreOperation {
+  receiver : NativeLocalStoreOperationReceiver
+  mut bridge : @sqlite.NativeStoreOperationOriginal?
+}
+
+///|
+#borrow(library, receiver)
+extern "C" fn prepare_store_operation_ffi(
+  library : @sqlite.Library,
+  receiver : NativeLocalStoreOperationReceiver,
+  route : FuncRef[
+    (NativeLocalStoreOperationReceiver, @sqlite.Library, Int) -> Int,
+  ],
+) -> @sqlite.NativeStoreOperationOriginal = "actql_native_sqlite_prepare_store_operation"
+
+///|
+extern "C" fn store_operation_control_clear_ffi() -> Int = "actql_bootstrap_control_scope_clear"
+
+///|
+/// Retain the partial carrier first. Only activate checks the existing actual
+/// Host/pair/Library/business/runtime originals; construction issues nothing.
+pub fn prepare_native_local_store_operation(
+  capture : NativeLocalJournalCapture,
+  execution : @arena.InstalledArenaRetainedExecution,
+  runtime : NativeLocalPackagedRuntime,
+  library : @sqlite.Library,
+) -> NativeLocalStoreOperation {
+  let receiver = {
+    capture,
+    execution,
+    runtime,
+    library,
+    original: None,
+    ready: false,
+    closing: false,
+    closed: false,
+    cleanup: false,
+    origin: None,
+    phase: StoreRouteIdle,
+    business_pending: false,
+    primary: None,
+    cleanup_issue: None,
+  }
+  let bridge = prepare_store_operation_ffi(library, receiver, fn(
+    original,
+    library,
+    tag,
+  ) {
+    original.route(library, tag)
+  })
+  { receiver, bridge: Some(bridge), }
+}
+
+///|
+fn NativeLocalStoreOperationReceiver::refuse(
+  self : NativeLocalStoreOperationReceiver,
+  issue : NativeLocalStoreOperationIssue,
+) -> Int {
+  if self.primary is None {
+    self.primary = Some(issue)
+  } else if self.cleanup_issue is None {
+    self.cleanup_issue = Some(issue)
+  }
+  self.ready = false
+  -1
+}
+
+///|
+fn NativeLocalStoreOperationReceiver::originals(
+  self : NativeLocalStoreOperationReceiver,
+  library : @sqlite.Library,
+  cleanup : Bool,
+) -> Result[
+  (NativeLocalHostConnection, NativeLocalJournalOriginalResources),
+  NativeLocalStoreOperationIssue,
+] {
+  if self.closed || !physical_equal(self.library, library) {
+    return Err(StoreOperationForeignOriginal)
+  }
+  guard self.capture.opening is JournalAcquired(host) &&
+    self.capture.original_resources is Some(original) else {
+    return Err(StoreOperationUnavailable)
+  }
+  if self.original is Some(retained) && !physical_equal(retained, original) {
+    return Err(StoreOperationForeignOriginal)
+  }
+  if cleanup {
+    guard self.original is Some(_) else {
+      return Err(StoreOperationUnavailable)
+    }
+    return Ok((host, original))
+  }
+  if self.closing ||
+    self.capture.closing ||
+    host.closed ||
+    self.capture.read_operation_issue is Some(_) ||
+    original.interrupted {
+    return Err(StoreOperationUnavailable)
+  }
+  guard host.packaged_runtime is Some(binding) &&
+    physical_equal(binding.current, self.runtime) else {
+    return Err(StoreOperationForeignOriginal)
+  }
+  match original.host.borrow_local_host_sqlite(original.pair) {
+    Err(issue) => return Err(StoreOperationResources(issue))
+    Ok(current) if !physical_equal(current, library) =>
+      return Err(StoreOperationForeignOriginal)
+    Ok(_) => ()
+  }
+  match
+    original.host.require_domain_retained_execution_current(self.execution) {
+    Err(issue) => Err(StoreOperationExecution(issue))
+    Ok(_) => Ok((host, original))
+  }
+}
+
+///|
+fn NativeLocalStoreOperationReceiver::leave_phase(
+  self : NativeLocalStoreOperationReceiver,
+  original : NativeLocalJournalOriginalResources,
+) -> Result[Unit, NativeLocalStoreOperationIssue] {
+  match original.host.leave_local_host_phase(original.pair) {
+    Err(issue) => {
+      original.interrupted = true
+      self.phase = StoreRoutePending
+      Err(StoreOperationResources(issue))
+    }
+    Ok(_) => {
+      original.active_phase = None
+      Ok(())
+    }
+  }
+}
+
+///|
+fn NativeLocalStoreOperationReceiver::enter_phase(
+  self : NativeLocalStoreOperationReceiver,
+  original : NativeLocalJournalOriginalResources,
+  phase : @arena.InstalledArenaLocalHostPhase,
+) -> Result[Unit, NativeLocalStoreOperationIssue] {
+  let entered = if self.cleanup {
+    original.host.enter_local_host_cleanup(original.pair, phase)
+  } else {
+    original.host.enter_local_host_phase(original.pair, phase)
+  }
+  match entered {
+    Err(issue) => {
+      original.interrupted = true
+      self.phase = StoreRoutePending
+      Err(StoreOperationResources(issue))
+    }
+    Ok(_) => {
+      original.active_phase = Some(phase)
+      self.phase = match phase {
+        @arena.HostRead => StoreRouteRead
+        @arena.HostSqlite => StoreRouteSqlite
+      }
+      Ok(())
+    }
+  }
+}
+
+///|
+fn NativeLocalStoreOperationReceiver::activate_original(
+  self : NativeLocalStoreOperationReceiver,
+  library : @sqlite.Library,
+) -> Result[Unit, NativeLocalStoreOperationIssue] {
+  if self.ready || self.origin is Some(_) || self.phase != StoreRouteIdle {
+    return Err(StoreOperationUnavailable)
+  }
+  let (host, original) = match self.originals(library, false) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let read = match
+    original.host.observe_local_host_consuming_read_scope(
+      original.pair,
+      original.read,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(StoreOperationResources(issue))
+  }
+  let business = match
+    original.host.observe_domain_retained_execution_scope(self.execution) {
+    Ok(value) => value
+    Err(issue) => return Err(StoreOperationExecution(issue))
+  }
+  if business != @bootstrap.BackedReadUnentered {
+    return Err(StoreOperationUnavailable)
+  }
+  let current = match read {
+    @arena.ReadEntered => self.capture.check_current_in_original_read()
+    @arena.ReadUnentered => {
+      if original.active_phase is Some(_) ||
+        store_operation_control_clear_ffi() != 1 {
+        return Err(StoreOperationUnavailable)
+      }
+      original.check_journal_current(host)
+    }
+  }
+  match current {
+    Err(issue) => Err(StoreOperationCapture(issue))
+    Ok(_) => {
+      self.original = Some(original)
+      self.ready = true
+      Ok(())
+    }
+  }
+}
+
+///|
+fn NativeLocalStoreOperationReceiver::begin_original(
+  self : NativeLocalStoreOperationReceiver,
+  library : @sqlite.Library,
+) -> Result[Unit, NativeLocalStoreOperationIssue] {
+  if !self.ready ||
+    self.primary is Some(_) ||
+    self.origin is Some(_) ||
+    self.phase != StoreRouteIdle {
+    return Err(StoreOperationUnavailable)
+  }
+  let (host, original) = match self.originals(library, false) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let read = match
+    original.host.observe_local_host_consuming_read_scope(
+      original.pair,
+      original.read,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(StoreOperationResources(issue))
+  }
+  let business = match
+    original.host.observe_domain_retained_execution_scope(self.execution) {
+    Ok(value) => value
+    Err(issue) => return Err(StoreOperationExecution(issue))
+  }
+  match (read, business) {
+    (@arena.ReadEntered, @bootstrap.BackedReadUnentered) => {
+      if !(original.active_phase is Some(@arena.HostRead)) {
+        return Err(StoreOperationUnavailable)
+      }
+      self.origin = Some(StoreFromRead)
+      self.phase = StoreRouteRead
+      self.capture
+      .check_current_in_original_read()
+      .map_err(issue => StoreOperationCapture(issue))
+    }
+    (@arena.ReadUnentered, _) => {
+      if original.active_phase is Some(_) {
+        return Err(StoreOperationUnavailable)
+      }
+      if business == @bootstrap.BackedReadEntered {
+        self.origin = Some(StoreFromBusiness)
+        self.business_pending = true
+        match original.host.leave_domain_retained_execution(self.execution) {
+          Err(issue) => return Err(StoreOperationExecution(issue))
+          Ok(_) => self.business_pending = false
+        }
+      } else {
+        self.origin = Some(StoreFromIdle)
+      }
+      if store_operation_control_clear_ffi() != 1 {
+        return Err(StoreOperationUnavailable)
+      }
+      match original.check_journal_current(host) {
+        Err(issue) => return Err(StoreOperationCapture(issue))
+        Ok(_) => ()
+      }
+      self.enter_phase(original, @arena.HostRead)
+    }
+    _ => Err(StoreOperationUnavailable)
+  }
+}
+
+///|
+fn NativeLocalStoreOperationReceiver::begin_cleanup(
+  self : NativeLocalStoreOperationReceiver,
+  library : @sqlite.Library,
+) -> Result[Unit, NativeLocalStoreOperationIssue] {
+  // A borrowed parent callback must return before its Read can be retired.
+  // Only that same pending owner may acknowledge an interrupted leave.
+  if self.capture.read_callback_active {
+    return Err(StoreOperationUnavailable)
+  }
+  let (_, original) = match self.originals(library, true) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  self.closing = true
+  self.ready = false
+  if self.business_pending {
+    match original.host.leave_domain_retained_execution(self.execution) {
+      Err(issue) => return Err(StoreOperationExecution(issue))
+      Ok(_) => self.business_pending = false
+    }
+  }
+  match original.finish_pending_leave() {
+    Err(issue) => return Err(StoreOperationCapture(issue))
+    Ok(_) => ()
+  }
+  if store_operation_control_clear_ffi() != 1 {
+    return Err(StoreOperationUnavailable)
+  }
+  self.cleanup = true
+  self.origin = Some(StoreFromIdle)
+  self.enter_phase(original, @arena.HostRead)
+}
+
+///|
+fn NativeLocalStoreOperationReceiver::route(
+  self : NativeLocalStoreOperationReceiver,
+  library : @sqlite.Library,
+  tag : Int,
+) -> Int {
+  let result = match tag {
+    -1 => self.activate_original(library)
+    0 => self.begin_original(library)
+    4 => self.begin_cleanup(library)
+    1 | 2 | 3 => {
+      let originals = self.originals(library, self.cleanup)
+      match originals {
+        Err(issue) => Err(issue)
+        Ok((host, original)) =>
+          if !self.cleanup && (!self.ready || self.primary is Some(_)) {
+            Err(StoreOperationUnavailable)
+          } else if tag == 1 && self.phase == StoreRouteRead {
+            match self.leave_phase(original) {
+              Err(issue) => Err(issue)
+              Ok(_) => self.enter_phase(original, @arena.HostSqlite)
+            }
+          } else if tag == 2 && self.phase == StoreRouteSqlite {
+            match self.leave_phase(original) {
+              Err(issue) => Err(issue)
+              Ok(_) => self.enter_phase(original, @arena.HostRead)
+            }
+          } else if tag == 3 &&
+            self.phase == StoreRouteRead &&
+            self.origin is Some(origin) {
+            let current = if self.cleanup {
+              Ok(())
+            } else {
+              self.capture
+              .check_current_in_original_read()
+              .map_err(issue => StoreOperationCapture(issue))
+            }
+            match current {
+              Err(issue) => Err(issue)
+              Ok(_) => {
+                let left = if !self.cleanup && origin is StoreFromRead {
+                  Ok(())
+                } else {
+                  self.leave_phase(original)
+                }
+                match left {
+                  Err(issue) => Err(issue)
+                  Ok(_) => {
+                    let resumed = if !self.cleanup &&
+                      origin is StoreFromBusiness {
+                      match original.check_journal_current(host) {
+                        Err(issue) => Err(StoreOperationCapture(issue))
+                        Ok(_) => {
+                          self.business_pending = true
+                          original.host
+                          .enter_domain_retained_execution(self.execution)
+                          .map_err(issue => StoreOperationExecution(issue))
+                        }
+                      }
+                    } else {
+                      Ok(())
+                    }
+                    match resumed {
+                      Err(issue) => Err(issue)
+                      Ok(_) => {
+                        self.business_pending = false
+                        self.origin = None
+                        self.phase = StoreRouteIdle
+                        self.cleanup = false
+                        Ok(())
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } else {
+            Err(StoreOperationUnavailable)
+          }
+      }
+    }
+    _ => Err(StoreOperationUnavailable)
+  }
+  match result {
+    Ok(_) => 0
+    Err(issue) => self.refuse(issue)
+  }
+}
+
+///|
+pub fn NativeLocalStoreOperation::activate(
+  self : NativeLocalStoreOperation,
+) -> Result[Unit, NativeLocalStoreOperationIssue] {
+  guard self.bridge is Some(bridge) else {
+    return Err(StoreOperationUnavailable)
+  }
+  match bridge.activate() {
+    Ok(_) => Ok(())
+    Err(issue) => {
+      let retained = self.receiver.primary.unwrap_or(
+        StoreOperationSqlite(issue),
+      )
+      self.receiver.refuse(retained) |> ignore
+      Err(retained)
+    }
+  }
+}
+
+///|
+/// Borrow only the activated original; SQLite still binds its exact Database.
+pub fn NativeLocalStoreOperation::sqlite_original(
+  self : NativeLocalStoreOperation,
+) -> Result[
+  @sqlite.NativeStoreOperationOriginal,
+  NativeLocalStoreOperationIssue,
+] {
+  if !self.receiver.ready || self.receiver.closing || self.receiver.closed {
+    return Err(self.receiver.primary.unwrap_or(StoreOperationUnavailable))
+  }
+  match self.bridge {
+    None => Err(StoreOperationUnavailable)
+    Some(bridge) => Ok(bridge)
+  }
+}
+
+///|
+/// Only routing metadata. This does not close the Store or acknowledge its DB,
+/// Library, Read, retained output, domain, Host or descriptor retirement.
+pub fn NativeLocalStoreOperation::close_checked(
+  self : NativeLocalStoreOperation,
+) -> Result[Unit, NativeLocalStoreOperationIssue] {
+  match self.bridge {
+    None => Ok(())
+    Some(bridge) => {
+      match bridge.close_checked() {
+        Err(issue) => return Err(StoreOperationSqlite(issue))
+        Ok(_) => ()
+      }
+      self.bridge = None
+      self.receiver.closed = true
+      self.receiver.ready = false
+      Ok(())
+    }
+  }
+}

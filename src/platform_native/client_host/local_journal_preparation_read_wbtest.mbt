@@ -5,6 +5,15 @@ fn preparation_read_refusal_without_pair() -> (@sqlite.Library, @crypto.Library)
   let capture = journal_capture_fixture("preparation-without-original-read")
   assert_eq(capture.open().issue_family(), 0)
   let calls = Ref(0)
+  // Counterfeit callback metadata is only a refusal test. It cannot construct
+  // an entered Read, and nested entry must not touch a physical original.
+  capture.read_callback_active = true
+  assert_true(
+    capture.with_original_read(fn(_host) { calls.val += 1 })
+    is Err(OriginalResourceScopePending),
+  )
+  assert_eq(calls.val, 0)
+  capture.read_callback_active = false
   assert_true(
     capture.with_original_read(fn(_host) {
       calls.val += 1

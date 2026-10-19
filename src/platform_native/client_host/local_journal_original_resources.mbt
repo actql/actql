@@ -37,6 +37,7 @@ pub fn prepare_native_local_journal_capture_with_original_resources(
     }),
     command_preparation_journal: false,
     initial_signing: None,
+    read_callback_active: false,
     read_operation_issue: None,
     opening_database: None,
     opening_physical_failure: None,
