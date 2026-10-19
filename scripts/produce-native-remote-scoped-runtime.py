@@ -66,6 +66,32 @@ def under(path: Path, root: Path) -> bool:
     return path.is_absolute() and path.resolve().is_relative_to(root.resolve())
 
 
+LOCAL_INITIAL_ENTRY_ANCHOR = '-Wl,-u,_actql_native_client_capture_command_entry'
+
+
+def local_initial_entry_arguments(parts: list[str], moon_home: Path,
+                                  emission: Path) -> list[str]:
+    """Retain the original CLI entry before the pinned allocator initializer.
+
+    An exact undefined anchor extracts stdout_stub.o from its original archive
+    at that position. No whole-archive loading or extra symbol export is used.
+    """
+    runtime = str(moon_home / 'lib/libmoonbitrun.o')
+    directory = emission / 'native/release/build/cmd/native_client'
+    archives = [p for p in parts if Path(p).parent == directory
+                and re.fullmatch(r'libnative_client-[0-9a-f]{16}\.a', Path(p).name)]
+    if parts.count(runtime) != 1 or len(archives) != 1:
+        raise ValueError('Exact original CLI archive and allocator object are required')
+    if LOCAL_INITIAL_ENTRY_ANCHOR in parts:
+        raise ValueError('Duplicate initial CLI entry anchor')
+    result = list(parts)
+    archive = archives[0]
+    result.remove(archive)
+    result.insert(result.index(runtime), archive)
+    result.append(LOCAL_INITIAL_ENTRY_ANCHOR)
+    return result
+
+
 def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                  clang: Path, sdk: Path, *, cc_driver: Path | None = None,
                  ar_driver: Path | None = None, entry: str = ENTRY,
@@ -130,6 +156,7 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                 if Path(parts[parts.index('-o') + 1]) != executable:
                     raise ValueError('Foreign executable output')
                 if entry == LOCAL_ENTRY:
+                    parts = local_initial_entry_arguments(parts, moon_home, emission)
                     parts.extend('-Wl,-exported_symbol,_' + symbol
                                  for symbol in LOCAL_COMPONENT_PROVIDER_EXPORTS)
             elif under(source, moon_home / 'lib/runtime'):

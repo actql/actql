@@ -43,7 +43,8 @@ class LocalScopedComposition(unittest.TestCase):
                '$MOON_HOME/lib/runtime/' + name + '.c']
               for name in ('backtrace', 'env', 'runtime', 'sync_io', 'utf')],
             ['/usr/bin/cc', '-o', str(self.exe), '-I$MOON_HOME/include', '-O0',
-             '-fwrapv', '-fno-strict-aliasing', str(self.core),
+             '-fwrapv', '-fno-strict-aliasing', '$MOON_HOME/lib/libmoonbitrun.o', str(self.core),
+             str(self.emission / 'native/release/build/cmd/native_client/libnative_client-0123456789abcdef.a'),
              str(self.emission / 'native/release/build/libruntime-original.a'), '-lm'],
         ]
 
@@ -97,6 +98,11 @@ class LocalScopedComposition(unittest.TestCase):
                            for symbol in MODULE.LOCAL_COMPONENT_PROVIDER_EXPORTS]
                 self.assertEqual(selected[-len(exports):], exports)
                 selected = selected[:-len(exports)]
+                self.assertEqual(selected[-1], MODULE.LOCAL_INITIAL_ENTRY_ANCHOR)
+                selected = selected[:-1]
+                archive = str(self.emission / 'native/release/build/cmd/native_client/libnative_client-0123456789abcdef.a')
+                original.remove(archive)
+                original.insert(original.index(str(self.home / 'lib/libmoonbitrun.o')), archive)
             if before[-1].endswith('/stdout_stub.c'):
                 self.assertEqual(selected[-1], '-DACTQL_NATIVE_CLIENT_SOURCE_SHA="' + self.source + '"')
                 selected = selected[:-1]
@@ -105,6 +111,22 @@ class LocalScopedComposition(unittest.TestCase):
             elif before[-1].startswith('$MOON_HOME/lib/runtime/'):
                 original[-1] = str(self.allocator / Path(before[-1]).name)
             self.assertEqual(selected, original)
+
+    def test_local_entry_archive_precedes_allocator_without_whole_archive(self):
+        final = self.plan()[-1]
+        archive = str(self.emission / 'native/release/build/cmd/native_client/libnative_client-0123456789abcdef.a')
+        self.assertLess(final.index(archive), final.index(str(self.home / 'lib/libmoonbitrun.o')))
+        self.assertEqual(final.count(MODULE.LOCAL_INITIAL_ENTRY_ANCHOR), 1)
+        self.assertFalse(any('force_load' in value or 'all_load' in value for value in final))
+
+    def test_missing_original_initialization_members_refuse(self):
+        for omitted in [str(self.home / 'lib/libmoonbitrun.o'),
+                        str(self.emission / 'native/release/build/cmd/native_client/libnative_client-0123456789abcdef.a')]:
+            commands = [list(command) for command in self.commands]
+            final = commands[-1]
+            final.remove(omitted.replace(str(self.home), '$MOON_HOME'))
+            with self.assertRaisesRegex(ValueError, 'Exact original CLI archive'):
+                self.plan(commands)
 
     def test_only_the_original_component_provider_ports_are_exported(self):
         expected = {
