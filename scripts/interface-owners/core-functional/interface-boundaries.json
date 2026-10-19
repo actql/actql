@@ -20723,7 +20723,7 @@
     {
       "module": "src/client_local_host/installed_source_read.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "237752ea79637fd640c8025cdc36ba60dd5217b80a65c3c8dad39c53ee0c4bf4",
+      "sha256": "fc1428b5b99eb557e036a054aaf9d2cf0ed1069a53204db6b63caff326c09063",
       "exports": [],
       "operations": [
         {
@@ -20749,6 +20749,10 @@
         {
           "name": "check_installed_source_read_current",
           "declaration": "check_installed_source_read_current ( value : ClientInstalledSourceRead , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "check_installed_source_read_ledger",
+          "declaration": "check_installed_source_read_ledger ( value : ClientInstalledSourceRead , expected : @ resources . Ledger , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
         },
         {
           "name": "claim_installed_source_read_start",
@@ -20802,7 +20806,8 @@
             "retire_installed_source_read",
             "start_installed_source_read_listing_rows",
             "start_installed_source_read_provider_rows",
-            "start_installed_source_read_rows"
+            "start_installed_source_read_rows",
+            "check_installed_source_read_ledger"
           ],
           "exports": [],
           "attributes": {
@@ -20820,12 +20825,20 @@
               {
                 "path": "src/client_local_host/installed_source_read.mbt",
                 "anchor": "pub fn begin_installed_source_read("
+              },
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub fn check_installed_source_read_ledger("
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/installed_source_read.mbt",
                 "anchor": "guard value.original is Some(original) && physical_equal(original, value) else {"
+              },
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "if physical_equal(original, expected) {"
               }
             ],
             "ownership": [
@@ -20838,6 +20851,10 @@
               {
                 "path": "src/client_local_host/installed_source_read.mbt",
                 "anchor": "match @resources.check_imported_original_child_ledger(child, ledger) {"
+              },
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "let original = match require_installed_source_read_current(value) {"
               }
             ],
             "failure": [
@@ -20877,7 +20894,7 @@
     {
       "module": "src/connectors_builtin_node/client_installed_source_read_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "0a7dba0a7c58bcd70a8374cd10c9670e2104fdfaacd7cb2c76782eb45ec6f5c0",
+      "sha256": "bcf6d280fa54e94240d8b2790754e9451dac6474431ed9e0014926c65a1072a6",
       "exports": [],
       "operations": [
         {
@@ -20899,6 +20916,10 @@
         {
           "name": "client_program_installed_source_read_check_current",
           "declaration": "client_program_installed_source_read_check_current ( value : @ client_local_host . ClientInstalledSourceRead , ) - > Result [ Unit , @ client_local_host . ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "client_program_installed_source_read_check_ledger",
+          "declaration": "client_program_installed_source_read_check_ledger ( value : @ client_local_host . ClientInstalledSourceRead , expected : @ resources . Ledger , ) - > Result [ Unit , @ client_local_host . ClientInstalledSourceReadIssue ]"
         },
         {
           "name": "client_program_installed_source_read_retire",
@@ -20931,7 +20952,8 @@
             "client_program_installed_source_read_retire",
             "client_program_installed_source_read_start_listing_rows",
             "client_program_installed_source_read_start_provider_rows",
-            "client_program_installed_source_read_start_rows"
+            "client_program_installed_source_read_start_rows",
+            "client_program_installed_source_read_check_ledger"
           ],
           "exports": [],
           "attributes": {
@@ -20949,12 +20971,20 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_source_read_bridge.mbt",
                 "anchor": "pub fn client_program_installed_source_read_begin("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_read_bridge.mbt",
+                "anchor": "pub fn client_program_installed_source_read_check_ledger("
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/installed_source_read.mbt",
                 "anchor": "guard value.original is Some(original) && physical_equal(original, value) else {"
+              },
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "if physical_equal(original, expected) {"
               }
             ],
             "ownership": [
@@ -20967,6 +20997,10 @@
               {
                 "path": "src/client_local_host/installed_source_read.mbt",
                 "anchor": "match @resources.check_imported_original_child_ledger(child, ledger) {"
+              },
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "let original = match require_installed_source_read_current(value) {"
               }
             ],
             "failure": [

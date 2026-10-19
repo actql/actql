@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d31872dd479c54b9e272a70005b17b8714888f1254249b2f5f61127e0a2ea778",
+      "sha256": "2b6c601ed60328612092abe1c61cd17198c5d1e86323f428b9d12c8d64a9a0f5",
       "exports": [
         "PublicationStoreError",
         "assertOriginalPreparedLocalPublicationStoreOwnership",
@@ -4140,6 +4140,13 @@
           "name": "acquireStoreOwnership/ownership/init:release/init:release",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "acquireStoreOwnership/ownership/init:release/init:release/acknowledged/acknowledged",
+          "parameters": [
+            "state"
+          ],
+          "async": false
         },
         {
           "name": "assertOriginalPreparedLocalPublicationStoreOwnership",
@@ -4353,6 +4360,13 @@
             "contractCids"
           ],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/bootstrap/bootstrap",
+          "parameters": [
+            "path"
+          ],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/captureCustodyPath/captureCustodyPath",
@@ -6704,7 +6718,8 @@
           "parameters": [
             "directory",
             "bounds",
-            "dependency"
+            "dependency",
+            "directoryInspection"
           ],
           "async": true
         },
@@ -6759,6 +6774,11 @@
             "ownerOnly"
           ],
           "async": true
+        },
+        {
+          "name": "readBounded/captureClose/captureClose",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "readBounded/cleanup/init:retry/init:retry",
@@ -6948,7 +6968,8 @@
           "name": "storeBootstrapAcquisition",
           "parameters": [
             "supplied",
-            "maxMetadataBytes"
+            "maxMetadataBytes",
+            "directoryInspection"
           ],
           "async": false
         },
@@ -7488,7 +7509,10 @@
             "syncDirectoryPath/syncDirectoryPath",
             "validateConfiguration",
             "validateContractControl",
-            "writeExclusive"
+            "writeExclusive",
+            "acquireStoreOwnership/ownership/init:release/init:release/acknowledged/acknowledged",
+            "openOriginalLocalPublicationStore/bootstrap/bootstrap",
+            "readBounded/captureClose/captureClose"
           ],
           "exports": [
             "PublicationStoreError",
@@ -7537,6 +7561,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "# Physical holding metadata publication"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (retirementReadCleanup !== undefined) {"
               }
             ],
             "synchronization": [
@@ -7547,6 +7575,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "# Physical holding metadata publication"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (!acknowledged(state)) state = await originalApply(child.retry, child.handle, []);"
               }
             ],
             "failure": [
@@ -7581,6 +7613,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "# Physical holding metadata publication"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const existing = JSON.parse(await readBounded(ownerPath, 4096));"
               }
             ],
             "extension": [
@@ -7641,6 +7677,10 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "mandatory object verifier"
+              },
+              {
+                "path": "adapters/store-local/ownership-retirement-read.test.mjs",
+                "anchor": "test('retirement retains the same failed metadata close before another read or owner removal'"
               }
             ]
           }
@@ -7680,7 +7720,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "export async function prepareLocalPublicationStoreOwnership(directory, bounds, dependency) {"
+                "anchor": "export async function prepareLocalPublicationStoreOwnership(directory, bounds, dependency, directoryInspection) {"
               }
             ],
             "inputsOutputs": [
@@ -7723,6 +7763,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "ownership = Object.freeze({release: () => releasePreparedOwnership(prepared)});"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "assertHostJournalDirectoryInspector(directoryInspection, maxDirectoryEntries);"
               }
             ],
             "synchronization": [
@@ -7813,10 +7857,12 @@
         }
       ],
       "imports": [
+        "../host-node/host-journal-directory.mjs",
         "./metadata-deletion-owner.mjs",
         "./object-writer-owner.mjs",
         "./publication-commit-owner.mjs",
         "./result-deletion-owner.mjs",
+        "node:buffer",
         "node:crypto",
         "node:fs",
         "node:fs/promises",

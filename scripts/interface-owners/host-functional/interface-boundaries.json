@@ -8939,7 +8939,7 @@
     {
       "module": "adapters/host-common/sqlite-format-inspection.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b6c0f32afe09b12b6cebdc532e23c5e5187610a705a42e2844ef798e7e0e420c",
+      "sha256": "e5cd35e5ed21ff7ee102fcc13edda23feb99157fdb174734b5f880b4f8dc4aff",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -8993,7 +8993,8 @@
             "unavailableCode",
             "schemaReadLimits",
             "schemaSqlSupport",
-            "assertCurrent"
+            "assertCurrent",
+            "temporaryDirectory"
           ],
           "async": false
         },
@@ -9112,6 +9113,10 @@
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mjs",
                 "anchor": "schemaReadLimits = snapshotSqliteSchemaReadLimits(schemaReadLimits);"
+              },
+              {
+                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "anchor": "const scratchOriginal = temporaryDirectory === undefined ? tmpdir() : temporaryDirectory;"
               }
             ],
             "identity": [
@@ -9268,6 +9273,10 @@
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mjs",
                 "anchor": "const chunk = Buffer.allocUnsafe(64 * 1024);"
+              },
+              {
+                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "anchor": "!isAbsolute(temporaryDirectory) || temporaryDirectory.includes('\\0'))) {"
               }
             ],
             "extension": [
@@ -16970,7 +16979,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ac7295111685878e3b67ae7d32d3296e59c4ed9b3a67e4d786b9ba5bbe2db8b3",
+      "sha256": "a9a02d9e278b429961905b95d5634b98952d6928167e8254dcd9cbc5cb07a058",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -17026,7 +17035,9 @@
             "primaryExecutionLimits",
             "primarySchemaLimits",
             "primarySchemaSqlSupport",
-            "primaryCurrent"
+            "primaryCurrent",
+            "primaryDirectoryInspection",
+            "inspectionTemporaryDirectory"
           ],
           "async": false
         },
@@ -17399,7 +17410,9 @@
             "primaryExecutionLimits",
             "primarySchemaLimits",
             "primarySchemaSqlSupport",
-            "primaryCurrent"
+            "primaryCurrent",
+            "primaryDirectoryInspection",
+            "inspectionTemporaryDirectory"
           ],
           "async": false
         },
@@ -17516,7 +17529,8 @@
           "name": "journalDirectoryEntries",
           "parameters": [
             "directory",
-            "maxInspectionEntries"
+            "maxInspectionEntries",
+            "primaryDirectoryInspection"
           ],
           "async": false
         },
@@ -17542,11 +17556,6 @@
         },
         {
           "name": "journalMarkerMatches/journalMarkerMatches#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "journalMarkerMatches/retry/retry",
           "parameters": [],
           "async": false
         },
@@ -17584,6 +17593,8 @@
             "primarySchemaLimits",
             "primarySchemaSqlSupport",
             "primaryCurrent",
+            "primaryDirectoryInspection",
+            "inspectionTemporaryDirectory",
             "maxRunDefinitionWireBytes",
             "submissionEpochTtlMs",
             "submissionEpochNow",
@@ -18932,7 +18943,6 @@
             "journalMarkerMatches/close/close",
             "journalMarkerMatches/journalMarkerMatches",
             "journalMarkerMatches/journalMarkerMatches#2",
-            "journalMarkerMatches/retry/retry",
             "journalMarkerMatches/status/status"
           ],
           "exports": [
@@ -19018,6 +19028,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "temporaryDirectory: inspectionTemporaryDirectory,"
               }
             ],
             "identity": [
@@ -19110,6 +19124,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);"
               }
             ],
             "synchronization": [
@@ -19248,6 +19266,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "// Retain this same selected statement/cursor custody beside the"
               }
             ],
             "resources": [
@@ -19991,12 +20013,14 @@
         "../host-common/sqlite-transaction.mjs",
         "./client-observation-journal.mjs",
         "./client-source-operation.mjs",
+        "./host-journal-directory.mjs",
         "./host-journal-facility-fields.cjs",
         "./local-account-config.mjs",
         "./local-values-capacity.mjs",
         "./ordinary-source-binding.mjs",
         "node:crypto",
         "node:fs",
+        "node:fs/promises",
         "node:path",
         "node:sqlite",
         "node:util"
