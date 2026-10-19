@@ -80,6 +80,32 @@ int main(int argc, char **argv) {
   assert(fd >= 0 && write(fd, "original", 8) == 8 && close(fd) == 0);
   moonbit_bytes_t path = moonbit_make_bytes_raw((int32_t)strlen(source));
   memcpy(path, source, strlen(source));
+  if (strcmp(argv[1], "selected-source-oversized") == 0 ||
+      strcmp(argv[1], "selected-source-boundary") == 0) {
+    int length = strcmp(argv[1], "selected-source-boundary") == 0 ? 4096 : 4097;
+    moonbit_bytes_t oversized = moonbit_make_bytes_raw(length);
+    memset(oversized, 'x', (size_t)length);
+    actql_journal_inspection *refused = inspection_open_bounded_original(
+      oversized, length, 1024, getenv("TMPDIR"), 1);
+    assert(!refused->ready && refused->directory == NULL &&
+      refused->descriptors[0] == -1 && refused->descriptors[1] == -1 &&
+      refused->path_descriptor == -1 && refused->output_descriptor == -1);
+    if (length == 4097) {
+      assert(refused->source == NULL && refused->wal == NULL &&
+        refused->journal == NULL);
+      assert(strstr(refused->error, "original command inspection path unavailable"));
+    } else {
+      /* The exact boundary reaches ordinary physical path validation. It is
+       * not truncated or reclassified as absent/admitted when the OS refuses. */
+      assert(refused->source && refused->wal && refused->journal);
+      assert(strstr(refused->error, "original command inspection path unavailable") == NULL);
+      assert(!refused->absent);
+    }
+    assert(inspection_close(refused));
+    moonbit_decref(refused);
+    moonbit_decref(oversized);
+    goto finish;
+  }
   if (strcmp(argv[1], "command-original-unavailable") == 0 ||
       strcmp(argv[1], "selected-scratch-oversized") == 0) {
     char oversized[4098];
