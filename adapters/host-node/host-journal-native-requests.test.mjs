@@ -146,7 +146,7 @@ test('bindings survive reset and one active bind overlaps retained statements wi
 test('generated/intermediate record upper is not silently limited to saved file bytes', () => {
   const value = calculate(input());
   assert.equal(value.activeVm.generatedPayloadRequestUpper,4218044n);
-  assert.equal(value.activeVm.eachTranslatedDataPayloadRequestUpper,8436090n);
+  assert.equal(value.activeVm.eachTranslatedDataPayloadRequestUpper,25308270n);
   assert.equal(value.activeVm.eachRcStringRequestUpper,4218056n);
   assert.equal(value.activeVm.uniqueRcStringBlocks,90n);
   assert.throws(() => calculate(input({parameterBytes:9223372036854775807n})),unavailable);
@@ -285,7 +285,12 @@ test('included native sum keeps old/new originals without adding the retained ha
   assert.equal(n.connection,275375n);
   assert.equal(n.activeParserBackings,7405564n);
   assert.equal(n.activePrepareGraph,39978849038n);
-  assert.equal(n.heapUsableUpper,5003492772503n);
+  assert.equal(n.retainedSchema,12276562n);
+  assert.equal(n.eachRetainedStatement,70814109n);
+  assert.equal(n.retainedStatements,708141090n);
+  assert.equal(n.retainedBindings,4760320n);
+  assert.equal(n.activePrepare,40057861669n);
+  assert.equal(n.heapUsableUpper,5004289557542n);
   assert.equal(n.sameInodeWalMappingBytes,32768n);
 });
 
@@ -434,4 +439,49 @@ test('prepare cleanup and control allocations remain alongside forests until ori
   assert.equal(g.updateMapRequest,113n);
   assert.equal(g.insertIndexMapRequest,20n);
   assert.equal(calculate(input()).includedNativeComponents.completeJournal,false);
+});
+
+test('retained schema is one per connection and whole hashes do not duplicate the own hash view', () => {
+  const first = calculate(input({preparedStatements:1n}));
+  const many = calculate(input({preparedStatements:100n}));
+  assert.equal(first.includedNativeComponents.retainedSchema,many.includedNativeComponents.retainedSchema);
+  assert.equal(first.includedNativeComponents.retainedSchema,12276562n);
+  assert.equal(first.internalSchema.allSchemaHashElements.count,30n);
+  assert.equal(first.fixedSchema.ownHashElements.count,28n);
+  assert.equal(first.includedNativeComponents.retainedStatements,
+    first.includedNativeComponents.eachRetainedStatement);
+  assert.equal(many.includedNativeComponents.retainedStatements,
+    100n * first.includedNativeComponents.eachRetainedStatement);
+});
+
+test('same-connection active phases are alternatives beside retained VMs, schema and bindings', () => {
+  const value = calculate(input()), n = value.includedNativeComponents;
+  assert.equal(n.activePhaseCombination,'maximum-of-same-connection-alternatives');
+  assert.equal(n.activeAlternative,[n.activePrepare,n.activeExecution,n.activeBinding]
+    .reduce((high,value) => high > value ? high : value));
+  assert.equal(n.heapUsableUpper,n.cache+n.wal+n.savepoint+n.workspaces+n.pagerControls+
+    n.connection+n.retainedSchema+n.retainedStatements+n.retainedBindings+n.activeAlternative);
+  assert(n.activeAlternative < n.activePrepare+n.activeExecution+n.activeBinding);
+  // Includes one full replacement VM plus one active old/new opcode pair,
+  // not fifty retained copies for sequential schema retries.
+  assert(n.activePrepare > n.eachRetainedStatement+n.activeParserBackings+n.activePrepareGraph);
+  assert.equal(value.preparation.reprepare.activeReplacementVms,1n);
+});
+
+test('UTF16 round-trip allocation uses logical encoded length and only one active growth overlap', () => {
+  const value = calculate(input()), vm = value.activeVm, n = value.includedNativeComponents;
+  const maximumLogicalUtf16 = 2n * vm.generatedPayloadRequestUpper;
+  assert(vm.eachTranslatedDataPayloadRequestUpper >= 2n * maximumLogicalUtf16 + 1n);
+  const replacementUtf8 = 3n * vm.generatedPayloadRequestUpper;
+  assert(vm.eachTranslatedDataPayloadRequestUpper >= 2n * replacementUtf8 + 2n);
+  const u = usable, s = value.statements;
+  const cursor = vm.cursorStorageBlocks * (u(vm.eachCursorStorageRequest)+u(vm.eachCursorCacheControlRequest)+
+    vm.eachCursorOverflowGrowth.previousMaximum.heapUsableUpper+
+    vm.eachCursorOverflowGrowth.nextMaximum.heapUsableUpper+u(vm.eachSavedIndexKeyRequestUpper));
+  assert.equal(n.activeExecution,(vm.dataRegisters+1n)*u(vm.eachTranslatedDataPayloadRequestUpper)+
+    vm.uniqueRcStringBlocks*u(vm.eachRcStringRequestUpper)+cursor+
+    s.childPrograms*u(s.eachChildFrameRequest));
+  assert.equal(value.bindings.activeRequestSumPerStatement,12764n);
+  assert.equal(n.activeBinding,55352n);
+  assert.equal(n.completeJournal,false);
 });

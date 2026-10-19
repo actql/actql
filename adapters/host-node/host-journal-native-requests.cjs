@@ -128,10 +128,72 @@ function includedNativeComponents(value) {
     graph.aggregateRequests.reduce((sum, request) => sum + u(request), 0n) +
     u(graph.updateMapRequest) + u(graph.insertIndexMapRequest) +
     value.preparation.planner.heapUsableSubsetUpper);
+  const fixed = value.fixedSchema, internal = value.internalSchema;
+  // The own-schema and whole-schema hash catalogues are overlapping views.
+  // Use the whole30 once, not own28+whole30 or another copy per statement.
+  const retainedSchema = checked([
+    fixed.tables, fixed.tableNames, fixed.finalColumnArrays, fixed.columnNames,
+    fixed.indexesIncludingNames, fixed.checkNodes, fixed.checkNames,
+    fixed.checkLists, fixed.checkInnerLists, fixed.defaultLists,
+    internal.columnNames, internal.tableAffinities, internal.allSchemaHashElements,
+  ].reduce((sum, group) => sum + group.heapUsableSumUpper, 0n) +
+    fixed.defaultTrees.heapUsableSumUpper + fixed.foreignKeys.heapUsableSumUpper +
+    fixed.triggers.count * (u(fixed.triggers.eachControlRequestUpper) +
+      u(fixed.triggers.eachNameRequest) + u(fixed.triggers.eachTableNameRequest) +
+      u(fixed.triggers.eachStepAndInlineTargetRequestUpper) +
+      u(fixed.triggers.eachSpanRequestUpper) + u(fixed.triggers.eachSetListCloneRequestUpper) +
+      u(fixed.triggers.eachSetNameRequest)) +
+    fixed.triggers.packedExpressionTrees * u(fixed.triggers.eachPackedTreeRequestUpper) +
+    internal.schemas.heapUsableSumUpper + internal.tables.heapUsableSumUpper +
+    internal.finalColumnArrays.heapUsableSumUpper + u(internal.mainTableNameRequest) +
+    u(internal.tempTableNameRequest) +
+    internal.growingHashOriginals * (internal.eachHashGrowth.previousMaximum.heapUsableUpper +
+      internal.eachHashGrowth.nextMaximum.heapUsableUpper));
+  const statement = value.statements, bind = value.bindings, vm = value.activeVm;
+  const eachRetainedStatement = checked(u(statement.vdbeRecordRequest) +
+    u(statement.mainArraysRequest) + u(statement.mainOpRequest) +
+    statement.childPrograms * (u(statement.eachChildOpRequest) + u(statement.eachChildSubprogramRequest)) +
+    statement.p4UsablePerStatement + u(statement.metadataArrayRequest) +
+    statement.metadataTextBlocks * u(statement.metadataTextRequest) + u(statement.savedSqlRequest));
+  const retainedStatements = checked(statement.count * eachRetainedStatement);
+  const retainedBindings = bind.retainedHeapUsableSum;
+  const activePrepare = checked(activeParserBackings + activePrepareGraph + eachRetainedStatement +
+    u(statement.mainGrowingOldOpRequest) + u(statement.vdbeRecordRequest) +
+    u(24n * statement.childEmittedSlots) + u(internal.activeOldColumnArrayRequestUpper) +
+    // Node keeps the SQL Utf8Value through native prepare/exec. The copied
+    // statement SQL above is a different original, not this temporary.
+    u(3n * value.preparation.parser.sqlBytesUpper + 1n));
+  const translated = vm.eachTranslatedDataPayloadRequestUpper;
+  // Each DATA Mem may retain a previous large payload while scalar/static.
+  // At most one currently executing growth/translation adds its old/new
+  // overlap. Do not double every Mem, or give cursor-storage Mem DATA payload.
+  const activeExecution = checked(vm.dataRegisters * u(translated) + u(translated) +
+    vm.uniqueRcStringBlocks * u(vm.eachRcStringRequestUpper) +
+    vm.cursorStorageBlocks * (u(vm.eachCursorStorageRequest) + u(vm.eachCursorCacheControlRequest) +
+      vm.eachCursorOverflowGrowth.previousMaximum.heapUsableUpper +
+      vm.eachCursorOverflowGrowth.nextMaximum.heapUsableUpper + u(vm.eachSavedIndexKeyRequestUpper)) +
+    statement.childPrograms * u(statement.eachChildFrameRequest));
+  // A positional call clears the old binding set BEFORE constructing its
+  // values. At most14 current slots plus one translating copy coexist, then
+  // the separate Node Utf8Value. Map each block sum, never U(sum requests).
+  const activeBindingCopies = checked((bind.boundStatements - 1n) * bind.retainedHeapUsableSumPerStatement +
+    allocationGroup(statement.variableSlots + 1n, bind.activeRequestSumPerStatement).heapUsableSumUpper);
+  const activeBinding = checked((activeBindingCopies > retainedBindings
+    ? activeBindingCopies - retainedBindings : 0n) +
+    (bind.activeUtf8HeapRequest === 0n ? 0n : u(bind.activeUtf8HeapRequest)));
+  // The selected synchronous wrapper fences reentry before callbacks and
+  // retains unresolved iterators; consume/operands refuse further work until
+  // the SAME connection closes. Prepare/reprepare, bind and execution are
+  // alternatives for this connection. Different retained connections remain
+  // separate co-phase originals; this is not a max across their whole heaps.
+  const activeAlternative = greater(activePrepare, greater(activeExecution, activeBinding));
   return freeze({qualification:'included-stock-usable-subtotal-only', completeJournal:false,
     cache, wal, savepoint, workspaces, pagerControls, connection, activeParserBackings, activePrepareGraph,
+    retainedSchema, eachRetainedStatement, retainedStatements, retainedBindings,
+    activePrepare, activeExecution, activeBinding, activeAlternative,
+    activePhaseCombination:'maximum-of-same-connection-alternatives',
     heapUsableUpper:checked(cache + wal + savepoint + workspaces + pagerControls +
-      connection + activeParserBackings + activePrepareGraph),
+      connection + retainedSchema + retainedStatements + retainedBindings + activeAlternative),
     // Same-inode WAL mappings are not heap malloc blocks and are not another
     // per-connection credit. Root must compose each real connection/copy and
     // the shared mapping once, together with all remaining facility terms.
@@ -198,7 +260,13 @@ function hostJournalNativeStructureRequests(input) {
   const retainedBindUsable = checked(2n * retainedBindRequests + 32768n * 14n);
   const bindBeforeActive = checked((boundStatements - 1n) * retainedBindRequests);
   const generatedPayload = checked(D + B + 19644n);
-  const translatedPayload = checked(2n * generatedPayload + 2n);
+  // A V-byte original may contain malformed UTF8 before semantic admission.
+  // Replacement can produce2*V logical UTF16 bytes, then3*V UTF8 bytes. A
+  // subsequent UTF16 conversion requests2*n+2 from that logical UTF8 length
+  // BEFORE releasing the old backing. The reverse request is at most4*V+1.
+  // Do not assume canonical text here, apply2*V+2 to every transition, or use
+  // buffer capacity as n. Repeated conversion does not create more characters.
+  const translatedPayload = checked(6n * generatedPayload + 6n);
   // Original binary preflight requires usable>=480; the reserved-byte
   // header is one byte. Do not assume usable==pageSize for a saved database.
   const usablePageLower = greater(480n, p - 255n);
@@ -392,6 +460,7 @@ function hostJournalNativeStructureRequests(input) {
     }),
     bindings:freeze({boundStatements, variableSlots:14n,
       retainedRequestSumPerStatement:retainedBindRequests,
+      activeRequestSumPerStatement:activeBindRequests,
       retainedHeapUsableSumPerStatement:retainedBindUsable,
       retainedHeapUsableSum:checked(boundStatements * retainedBindUsable),
       peakRequestSum:greater(checked(boundStatements * retainedBindRequests),
