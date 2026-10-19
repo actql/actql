@@ -197,13 +197,70 @@ fn check_original_mock_attempt_capacity(
     startup.shared_mock is Some(purpose) else {
     return Ok(())
   }
-  let count = state.reservations.length()
-  if count >= purpose.limits.ledger.attempts {
-    return Err(Ledger(@resources.AttemptLimit))
-  }
-  if transfer < 0L ||
-    transfer > purpose.limits.ledger.transfer_bytes / (count.to_int64() + 1L) {
-    return Err(Ledger(@resources.TransferLimit))
+  match
+    check_original_mock_attempt_budget(
+      purpose.limits.ledger,
+      state.reservations.length(),
+      state.restored_calls.length(),
+      state.unknown_calls.length(),
+      transfer,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   check_original_mock_capacity(state, retained, execution)
+}
+
+///|
+// An authenticated saved attempt is spent, including Unknown. Reconciliation
+// may additionally own a read reservation for that slot; count both duties,
+// not their union by row/slot. This restriction issues no resource allowance.
+fn check_original_mock_attempt_budget(
+  bound : @resources.LedgerLimits,
+  reservations : Int,
+  restored : Int,
+  unknown : Int,
+  transfer : Int64,
+) -> Result[Unit, ModelExecutionIssue] {
+  if reservations < 0 || restored < 0 || unknown < 0 || transfer < 0L {
+    return Err(InvalidLimits)
+  }
+  let mut remaining = bound.attempts
+  for count in [reservations, restored, unknown] {
+    if count > remaining {
+      return Err(Ledger(@resources.AttemptLimit))
+    }
+    remaining -= count
+  }
+  if remaining <= 0 {
+    return Err(Ledger(@resources.AttemptLimit))
+  }
+  let total = bound.attempts.to_int64() - remaining.to_int64() + 1L
+  if bound.transfer_bytes < 0L || transfer > bound.transfer_bytes / total {
+    return Err(Ledger(@resources.TransferLimit))
+  }
+  Ok(())
+}
+
+///|
+fn check_original_mock_saved_attempt(
+  state : ModelState,
+  slot : Int,
+) -> Result[Unit, ModelExecutionIssue] {
+  guard state.original_startup is Some(startup) &&
+    startup.shared_mock is Some(purpose) else {
+    return Ok(())
+  }
+  // The original Journal mask must already identify this as an entered slot.
+  // A fresh planned send/reservation cannot be relabelled as saved custody.
+  if model_slot_send_eligible(state, slot) || state.reservations.contains(slot) {
+    return Err(RequestIdentity)
+  }
+  check_original_mock_attempt_budget(
+    purpose.limits.ledger,
+    state.reservations.length(),
+    state.restored_calls.length(),
+    state.unknown_calls.length(),
+    state.limits.max_request_bytes + state.limits.max_response_bytes,
+  )
 }

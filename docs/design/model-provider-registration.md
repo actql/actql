@@ -485,6 +485,9 @@ The original local implementation creates no Model I/O holdings. Closed-token
 byte observations do not release Source holdings, escaped aliases, unknown
 wire/quantity history or any physical backing. All slots remain reserved before
 the first dispatch; current Account, Entry and settlement rules are unchanged.
+Authenticated saved and Unknown attempts remain spent within this purpose.
+Their original Journal mask must exclude a fresh send reservation before saved
+call admission; reconciliation can add read custody, never erase that history.
 
 Publication retains its own exact borrowed byte amounts and spent planning
 steps. A refused reservation or settlement retains its original custody; a
