@@ -1446,14 +1446,57 @@
     },
     {
       "module": "adapters/connectors/slack/site/channel-list-read.mjs",
-      "sha256": "37565ee7edbf8c1a93907c17cf42e8082c6e091a4b01a6c499af9291a9b6ed8b",
+      "sha256": "062b4ddf72039bfb2728f7aebafcfe01a4e068f5164286932812e5069c1fedef",
       "exports": [
         "SLACK_CHANNEL_LIST_OPERATION",
         "SLACK_WORKSPACE_IDENTITY_OPERATION",
         "SlackChannelListReadFailure",
-        "createSlackChannelListReader"
+        "createSlackChannelListReader",
+        "createSlackChannelListReaderForHistory",
+        "prepareSlackOriginalChannelHistory",
+        "selectSlackOriginalChannel",
+        "slackOriginalChannelName"
       ],
       "operations": [
+        {
+          "name": "createChannelReader",
+          "parameters": [
+            "options",
+            "retainOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createChannelReader/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createChannelReader/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createChannelReader/handle/init:read/init:read/result/result",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createChannelReader/handle/init:read/init:read/result/result#2",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createChannelReader/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
         {
           "name": "createSlackChannelListReader",
           "parameters": [
@@ -1462,26 +1505,9 @@
           "async": false
         },
         {
-          "name": "createSlackChannelListReader/handle/init:observe/init:observe",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createSlackChannelListReader/handle/init:read/init:read",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createSlackChannelListReader/handle/init:read/init:read/result/result",
+          "name": "createSlackChannelListReaderForHistory",
           "parameters": [
-            "response"
-          ],
-          "async": false
-        },
-        {
-          "name": "createSlackChannelListReader/handle/init:requestStop/init:requestStop",
-          "parameters": [
-            "reason"
+            "options"
           ],
           "async": false
         },
@@ -1489,7 +1515,8 @@
           "name": "executeRead",
           "parameters": [
             "prepared",
-            "received"
+            "received",
+            "retainPage"
           ],
           "async": true
         },
@@ -1532,6 +1559,14 @@
           "async": false
         },
         {
+          "name": "originalChannel",
+          "parameters": [
+            "selection",
+            "moon"
+          ],
+          "async": false
+        },
+        {
           "name": "originalReader",
           "parameters": [
             "value"
@@ -1559,7 +1594,23 @@
             "chargeResponse",
             "consumeObservation",
             "consumePage",
-            "signal"
+            "signal",
+            "retainOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/capture/capture",
+          "parameters": [
+            "name",
+            "optional"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/capture/capture/capture",
+          "parameters": [
+            "args"
           ],
           "async": false
         },
@@ -1599,10 +1650,51 @@
           "async": false
         },
         {
+          "name": "prepareSlackOriginalChannelHistory",
+          "parameters": [
+            "selection",
+            "moon",
+            "workspaceId",
+            "scope",
+            "credential",
+            "bounds"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSlackOriginalChannelHistory/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareSlackOriginalChannelHistory/prepareSlackOriginalChannelHistory",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectSlackOriginalChannel",
+          "parameters": [
+            "reader",
+            "originalPage",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "SlackChannelListReadFailure/constructor:constructor/constructor:constructor",
           "parameters": [
             "cause",
             "observations"
+          ],
+          "async": false
+        },
+        {
+          "name": "slackOriginalChannelName",
+          "parameters": [
+            "selection",
+            "moon"
           ],
           "async": false
         }
@@ -1611,7 +1703,8 @@
         "../../../host-common/http-exchange.mjs",
         "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
-        "../../../site-node/https-credential-resource.mjs"
+        "../../../site-node/https-credential-resource.mjs",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -1622,32 +1715,47 @@
         {
           "operations": [
             "<module>",
+            "SlackChannelListReadFailure/constructor:constructor/constructor:constructor",
+            "createChannelReader",
+            "createChannelReader/handle/init:observe/init:observe",
+            "createChannelReader/handle/init:read/init:read",
+            "createChannelReader/handle/init:read/init:read/result/result",
+            "createChannelReader/handle/init:read/init:read/result/result#2",
+            "createChannelReader/handle/init:requestStop/init:requestStop",
             "createSlackChannelListReader",
-            "createSlackChannelListReader/handle/init:observe/init:observe",
-            "createSlackChannelListReader/handle/init:read/init:read",
-            "createSlackChannelListReader/handle/init:read/init:read/result/result",
-            "createSlackChannelListReader/handle/init:requestStop/init:requestStop",
+            "createSlackChannelListReaderForHistory",
             "executeRead",
             "executeRead/request/request",
             "executeRead/request/request/response/response",
             "executeRead/request/request/response/response/response",
             "executeRead/verify/verify",
             "fail/fail",
+            "originalChannel",
             "originalReader",
             "positive/positive",
             "prepareRead",
+            "prepareRead/capture/capture",
+            "prepareRead/capture/capture/capture",
             "prepareRead/prepareRead",
             "prepareRead/prepareRead#2",
             "prepareRead/prepareRead#3",
             "prepareRead/prepareRead#4",
             "prepareRead/provider/provider",
-            "SlackChannelListReadFailure/constructor:constructor/constructor:constructor"
+            "prepareSlackOriginalChannelHistory",
+            "prepareSlackOriginalChannelHistory/init:assertCurrent/init:assertCurrent",
+            "prepareSlackOriginalChannelHistory/prepareSlackOriginalChannelHistory",
+            "selectSlackOriginalChannel",
+            "slackOriginalChannelName"
           ],
           "exports": [
             "SLACK_CHANNEL_LIST_OPERATION",
             "SLACK_WORKSPACE_IDENTITY_OPERATION",
             "SlackChannelListReadFailure",
-            "createSlackChannelListReader"
+            "createSlackChannelListReader",
+            "createSlackChannelListReaderForHistory",
+            "prepareSlackOriginalChannelHistory",
+            "selectSlackOriginalChannel",
+            "slackOriginalChannelName"
           ],
           "attributes": {
             "responsibility": [
@@ -1658,6 +1766,10 @@
               {
                 "path": "src/connectors/slack/catalog/channels.mbt",
                 "anchor": "pub fn project_slack_channel_list("
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
               }
             ],
             "inputsOutputs": [
@@ -1672,6 +1784,10 @@
               {
                 "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
                 "anchor": "const views="
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
               }
             ],
             "identity": [
@@ -1686,6 +1802,10 @@
               {
                 "path": "adapters/connectors/slack/site/channel-list-read.mjs",
                 "anchor": "slackWorkspaceIdentityMatches(identity,workspaceId)"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
               }
             ],
             "ownership": [
@@ -1700,6 +1820,10 @@
               {
                 "path": "adapters/connectors/slack/site/channel-list-read.mjs",
                 "anchor": "const readers = new WeakMap();"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
               }
             ],
             "synchronization": [
@@ -1710,6 +1834,10 @@
               {
                 "path": "adapters/connectors/slack/host/channel-source-reader.mjs",
                 "anchor": "const result=await readResult;"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
               }
             ],
             "failure": [
@@ -1724,6 +1852,10 @@
               {
                 "path": "adapters/connectors/slack/test/channel-list-read.test.mjs",
                 "anchor": "test('Slack channel duplicate keys"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
               }
             ],
             "cancellation": [
@@ -1734,6 +1866,10 @@
               {
                 "path": "adapters/connectors/slack/test/channel-list-read.test.mjs",
                 "anchor": "test('Slack channel current or stop"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
               }
             ],
             "resources": [
@@ -1748,6 +1884,10 @@
               {
                 "path": "adapters/connectors/slack/host/channel-source-reader.mjs",
                 "anchor": "cleanupConfirmed:false"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
               }
             ],
             "extension": [
@@ -1758,6 +1898,10 @@
               {
                 "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
                 "anchor": "readOperation:{users:SLACK_USER_LIST_OPERATION,channels:SLACK_CHANNEL_LIST_OPERATION}"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
               }
             ],
             "verification": [
@@ -1776,6 +1920,14 @@
               {
                 "path": "adapters/connectors/slack/test/installed-slack-channels.test.mjs",
                 "anchor": "test('installed Slack channel Account denial"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-history-original-channel.test.mjs",
+                "anchor": "test('Slack history consumes its original completed channel occurrence through the actual HTTPS caller'"
               }
             ]
           }
@@ -1784,7 +1936,7 @@
     },
     {
       "module": "adapters/connectors/slack/site/message-history-read.mjs",
-      "sha256": "3d6341cf97f193021fc325ebabe899007af2dcc4acd67787b3c0a1ee11dbf09b",
+      "sha256": "3d5225d3896880554cc38d1bd4f9f857daec8002729339dd92b8bb2c6acf5a3b",
       "exports": [
         "SLACK_MESSAGE_HISTORY_OPERATION",
         "SLACK_MESSAGE_REPLIES_OPERATION",
@@ -1794,6 +1946,7 @@
         "SlackMessageRepliesReadFailure",
         "coalesceSlackMessageReaders",
         "createSlackMessageHistoryReader",
+        "createSlackMessageHistoryReaderFromChannel",
         "createSlackMessageRepliesReader"
       ],
       "operations": [
@@ -1851,6 +2004,65 @@
           "async": true
         },
         {
+          "name": "createHistoryReader",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHistoryReader/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHistoryReader/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createHistoryReader/handle/init:read/init:read/result/result",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHistoryReader/handle/init:read/init:read/result/result#2",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHistoryReader/handle/init:read/init:read/result/result#3",
+          "parameters": [
+            "identity"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHistoryReader/handle/init:read/init:read/result/result#4",
+          "parameters": [
+            "exchange"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHistoryReader/handle/init:read/init:read/result/result#5",
+          "parameters": [
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHistoryReader/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
           "name": "createSlackMessageHistoryReader",
           "parameters": [
             "options"
@@ -1858,54 +2070,9 @@
           "async": false
         },
         {
-          "name": "createSlackMessageHistoryReader/handle/init:observe/init:observe",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createSlackMessageHistoryReader/handle/init:read/init:read",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createSlackMessageHistoryReader/handle/init:read/init:read/result/result",
+          "name": "createSlackMessageHistoryReaderFromChannel",
           "parameters": [
-            "response"
-          ],
-          "async": false
-        },
-        {
-          "name": "createSlackMessageHistoryReader/handle/init:read/init:read/result/result#2",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "createSlackMessageHistoryReader/handle/init:read/init:read/result/result#3",
-          "parameters": [
-            "identity"
-          ],
-          "async": false
-        },
-        {
-          "name": "createSlackMessageHistoryReader/handle/init:read/init:read/result/result#4",
-          "parameters": [
-            "exchange"
-          ],
-          "async": false
-        },
-        {
-          "name": "createSlackMessageHistoryReader/handle/init:read/init:read/result/result#5",
-          "parameters": [
-            "control"
-          ],
-          "async": false
-        },
-        {
-          "name": "createSlackMessageHistoryReader/handle/init:requestStop/init:requestStop",
-          "parameters": [
-            "reason"
+            "options"
           ],
           "async": false
         },
@@ -2155,7 +2322,8 @@
           "parameters": [
             "value",
             "required",
-            "optional"
+            "optional",
+            "code"
           ],
           "async": false
         },
@@ -2210,6 +2378,7 @@
         "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
         "../../../site-node/https-credential-resource.mjs",
+        "./channel-list-read.mjs",
         "node:util"
       ],
       "compilerFields": [],
@@ -2231,15 +2400,17 @@
             "coalesceSlackMessageReaders",
             "coalesceSlackMessageReaders/coalesceSlackMessageReaders",
             "coalesceSlackMessageReaders/current/current",
+            "createHistoryReader",
+            "createHistoryReader/handle/init:observe/init:observe",
+            "createHistoryReader/handle/init:read/init:read",
+            "createHistoryReader/handle/init:read/init:read/result/result",
+            "createHistoryReader/handle/init:read/init:read/result/result#2",
+            "createHistoryReader/handle/init:read/init:read/result/result#3",
+            "createHistoryReader/handle/init:read/init:read/result/result#4",
+            "createHistoryReader/handle/init:read/init:read/result/result#5",
+            "createHistoryReader/handle/init:requestStop/init:requestStop",
             "createSlackMessageHistoryReader",
-            "createSlackMessageHistoryReader/handle/init:observe/init:observe",
-            "createSlackMessageHistoryReader/handle/init:read/init:read",
-            "createSlackMessageHistoryReader/handle/init:read/init:read/result/result",
-            "createSlackMessageHistoryReader/handle/init:read/init:read/result/result#2",
-            "createSlackMessageHistoryReader/handle/init:read/init:read/result/result#3",
-            "createSlackMessageHistoryReader/handle/init:read/init:read/result/result#4",
-            "createSlackMessageHistoryReader/handle/init:read/init:read/result/result#5",
-            "createSlackMessageHistoryReader/handle/init:requestStop/init:requestStop",
+            "createSlackMessageHistoryReaderFromChannel",
             "createSlackMessageRepliesReader",
             "createSlackMessageRepliesReader/handle/init:observe/init:observe",
             "createSlackMessageRepliesReader/handle/init:read/init:read",
@@ -2284,6 +2455,7 @@
             "SlackMessageRepliesReadFailure",
             "coalesceSlackMessageReaders",
             "createSlackMessageHistoryReader",
+            "createSlackMessageHistoryReaderFromChannel",
             "createSlackMessageRepliesReader"
           ],
           "attributes": {
@@ -2303,6 +2475,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Node history-window projection"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
               }
             ],
             "inputsOutputs": [
@@ -2337,6 +2513,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Node history-window projection"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
               }
             ],
             "identity": [
@@ -2367,6 +2547,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Node history-window projection"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
               }
             ],
             "ownership": [
@@ -2401,6 +2585,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Node history-window projection"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
               }
             ],
             "synchronization": [
@@ -2435,6 +2623,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Node history-window projection"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
               }
             ],
             "failure": [
@@ -2457,6 +2649,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Node history-window projection"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
               }
             ],
             "cancellation": [
@@ -2479,6 +2675,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Node history-window projection"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
               }
             ],
             "resources": [
@@ -2501,6 +2701,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Node history-window projection"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
               }
             ],
             "extension": [
@@ -2523,6 +2727,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Node history-window projection"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
               }
             ],
             "verification": [
@@ -2629,6 +2837,14 @@
               {
                 "path": "adapters/connectors/slack/test/message-history-window-read.test.mjs",
                 "anchor": "test('Slack original window survives cursor and exact-time pagination at the real HTTP caller'"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original channel-to-history preparation"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-history-original-channel.test.mjs",
+                "anchor": "test('Slack history consumes its original completed channel occurrence through the actual HTTPS caller'"
               }
             ]
           }
