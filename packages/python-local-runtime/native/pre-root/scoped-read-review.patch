@@ -1,18 +1,21 @@
 --- a/moonbit_runtime.h
 +++ b/moonbit_runtime.h
-@@ -190,8 +190,18 @@
+@@ -190,8 +190,21 @@
  void *mi_malloc(size_t size);
  #endif
  void mi_free(void *ptr);
-+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
-+/* Derived selected-runtime hook. Original control allocations outside a funded
-+ * read call retain mi_malloc/mi_free. Managed aliases free through provenance
-+ * after leaving that call. This flag alone never supplies a funded context. */
++#if defined(ACTQL_SCOPED_READ_ALLOCATOR) && !defined(ACTQL_RUNTIME_MANAGED_VALUES)
++/* Explicit scoped-managed diagnostic selection. An escaped allocation remains
++ * owned by its original Read until its actual final alias is released. */
 +void *actql_native_moon_scoped_allocate(size_t size);
 +void actql_native_moon_scoped_free(void *pointer);
 +#define MOONBIT_MALLOC_RAW actql_native_moon_scoped_allocate
 +#define MOONBIT_FREE_RAW actql_native_moon_scoped_free
 +#else
++/* Ordinary copied Moon values belong to the trusted runtime, including while
++ * an explicit native Read is entered. Native/File/zero-copy allocations still
++ * use that Read's original provider and require its actual close ACK. Select
++ * this mode consistently for generated Core, runtime and all FFI objects. */
  #define MOONBIT_MALLOC_RAW mi_malloc
  #define MOONBIT_FREE_RAW mi_free
 +#endif

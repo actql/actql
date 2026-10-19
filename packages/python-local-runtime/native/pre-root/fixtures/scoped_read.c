@@ -117,6 +117,44 @@ static bool fork_stock(void) {
     actql_native_file_scoped_free(inherited_file);
     return ok;
 }
+/* Copied runtime values are not aliases into the explicitly owned Read arena.
+ * A real native allocation still keeps that same arena BUSY. */
+#if defined(ACTQL_RUNTIME_MANAGED_VALUES)
+static bool runtime_managed_values(void) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    context_enter(lease,context);
+    moonbit_bytes_t bytes=moonbit_make_bytes_raw(9);
+    memcpy(bytes,"original!",9); moonbit_incref(bytes);
+    moonbit_string_t text=moonbit_make_string_raw(3);
+    text[0]=0x0041; text[1]=0x03bb; text[2]=0x4e2d;
+    void *native=actql_native_file_scoped_allocate(37);
+    assert(native && actql_native_owned_contains_live_span(lease,native,37)==0);
+    memset(native,42,37);
+    context_leave(lease,context);
+    int64_t values[16]={0};
+    assert(actql_read_context_cleanup_snapshot(context,values,16)==0);
+    assert(values[2]==1 && values[4]==0 && values[5]==0);
+    assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY);
+    assert(((unsigned char *)native)[36]==42);
+    actql_native_file_scoped_free(native);
+    finish(&lease,&context);
+    assert(memcmp(bytes,"original!",9)==0 && text[1]==0x03bb && text[2]==0x4e2d);
+    // Another actual arena can close while these independent copies remain.
+    lease=lease_new(); context=context_new(lease);
+    context_enter(lease,context);
+    moonbit_bytes_t second=moonbit_make_bytes_raw(5);
+    memcpy(second,"again",5);
+    context_leave(lease,context);
+    finish(&lease,&context);
+    assert(memcmp(second,"again",5)==0 && memcmp(bytes,"original!",9)==0);
+    moonbit_decref(second); moonbit_decref(text);
+    moonbit_decref(bytes); assert(memcmp(bytes,"original!",9)==0);
+    moonbit_decref(bytes);
+    return true;
+}
+#endif
+
 static bool managed_alias(void) {
     actql_owned_capacity *lease=lease_new();
     actql_read_context *context=context_new(lease);
@@ -864,6 +902,19 @@ static bool cleanup_snapshot_original(void) {
 int main(int argc,char **argv) {
     struct rlimit core={0,0}; assert(setrlimit(RLIMIT_CORE,&core)==0);
     setbuf(stdout,NULL);
+#if defined(ACTQL_RUNTIME_MANAGED_VALUES)
+    if(argc==2 && strcmp(argv[1],"--runtime-managed-values-only")==0) {
+        assert(runtime_managed_values());
+        puts("{\"case\":\"runtime-copies-and-original-native-alias\",\"passed\":1,\"failed\":0}");
+        return 0;
+    }
+#else
+    if(argc==2 && strcmp(argv[1],"--scoped-managed-alias-only")==0) {
+        assert(managed_alias());
+        puts("{\"case\":\"scoped-managed-alias\",\"passed\":1,\"failed\":0}");
+        return 0;
+    }
+#endif
     if(argc==2 && strcmp(argv[1],"--cleanup-snapshot-only")==0) {
         assert(cleanup_snapshot_original());
         printf("{\"case\":\"same-original-cleanup-snapshot\",\"passed\":1,\"failed\":0,"
