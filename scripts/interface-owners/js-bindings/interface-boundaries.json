@@ -15415,7 +15415,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "f397e799835e7a38479dac64920c928f41ee9b47a2a232ddce961afd1f1a14ee",
+      "sha256": "77e274f1bd9835c758ccf84f12d63a682c234c10f0f66b51ce8962be6d9698a6",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -16875,6 +16875,19 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:beginCheckedClientMockModelManagedRun/init:beginCheckedClientMockModelManagedRun",
+          "parameters": [
+            "admission",
+            "prepared",
+            "request",
+            "compiled",
+            "definition",
+            "graph",
+            "budget"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:beginResultAccessProgress/init:beginResultAccessProgress",
           "parameters": [],
           "async": false
@@ -17493,6 +17506,26 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:checkedClientMockModelRunRequirements/init:checkedClientMockModelRunRequirements",
+          "parameters": [
+            "prepared",
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "declarations",
+            "query",
+            "evidence",
+            "transport",
+            "scratch",
+            "registry",
+            "values",
+            "fragment",
+            "ordered"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:checkedClientRunCapturedContentCandidate/init:checkedClientRunCapturedContentCandidate",
           "parameters": [
             "compiled",
@@ -17617,6 +17650,18 @@
             "runtimeArtifactCid",
             "layoutArtifactCid",
             "probability"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:claimCheckedClientInferOriginalComposedPreparation/init:claimCheckedClientInferOriginalComposedPreparation",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "read",
+            "readRetainedBytes",
+            "readExecutionBytes"
           ],
           "async": false
         },
@@ -18928,6 +18973,17 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCheckedClientInferOriginalRead/init:prepareCheckedClientInferOriginalRead",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "scope",
+            "budget"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareCheckedClientRetainedContentOutput/init:prepareCheckedClientRetainedContentOutput",
           "parameters": [
             "compiled",
@@ -19654,6 +19710,25 @@
             "modelExecutionBytes",
             "fragment",
             "ordered"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:startCheckedClientOriginalComposedInferExecution/init:startCheckedClientOriginalComposedInferExecution",
+          "parameters": [
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "prefix",
+            "inputs",
+            "provider",
+            "consumer",
+            "readRetainedBytes",
+            "readExecutionBytes",
+            "modelRetainedBytes",
+            "modelExecutionBytes",
+            "sources"
           ],
           "async": false
         },
@@ -25479,6 +25554,98 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/init:beginCheckedClientMockModelManagedRun/init:beginCheckedClientMockModelManagedRun",
+            "publicationControl/init:checkedClientMockModelRunRequirements/init:checkedClientMockModelRunRequirements",
+            "publicationControl/init:claimCheckedClientInferOriginalComposedPreparation/init:claimCheckedClientInferOriginalComposedPreparation",
+            "publicationControl/init:prepareCheckedClientInferOriginalRead/init:prepareCheckedClientInferOriginalRead",
+            "publicationControl/init:startCheckedClientOriginalComposedInferExecution/init:startCheckedClientOriginalComposedInferExecution"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -29174,7 +29341,7 @@
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "27f4fb4644e29ed99504825f6464b5752922e146ee16fcae8759fb7349625312",
+      "sha256": "4f2a6e32e5e36a88a7e2e798071acbb2e55d25d23120d2fd1775005ea3d485d2",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -29529,7 +29696,9 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#10",
-          "parameters": [],
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -29539,9 +29708,7 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#12",
-          "parameters": [
-            "task"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -29567,6 +29734,13 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#16",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#17",
           "parameters": [
             "task"
           ],
@@ -29624,7 +29798,7 @@
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#9",
           "parameters": [
-            "value"
+            "source"
           ],
           "async": false
         },
@@ -30853,6 +31027,94 @@
               {
                 "path": "adapters/host-node/client-source-operation.test.mjs",
                 "anchor": "an unavailable Common original Job/RowRun projection cannot be replaced by frame DATA"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeClientDispatchOwner/start/start/start/start#17"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
               }
             ]
           }
@@ -36993,7 +37255,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "56367f765800c17ac1c3168e32db80859a2ad9a9092bdc947a41c8ead41c19b2",
+      "sha256": "b34535be182ae747e79b96df623813bc7d28eb5f1d1a0e4e32eefc16db81cb77",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -37021,6 +37283,7 @@
         "readHostResultPublicationRunRequirements",
         "readInitialControlHostInput",
         "readInstalledMockPreparation",
+        "readLocalMockModelRunRequirements",
         "readManagedComputeRunRequirements",
         "readSourceManagedOriginalInput",
         "readSourceManagedRunRequirements",
@@ -38141,6 +38404,11 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/observeAccount/observeAccount#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection",
           "parameters": [],
           "async": false
@@ -38176,6 +38444,11 @@
             "definition",
             "graph"
           ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:currentProvider/init:currentProvider",
+          "parameters": [],
           "async": false
         },
         {
@@ -39106,6 +39379,48 @@
           "name": "readInstalledMockPreparation",
           "parameters": [
             "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "readLocalMockModelRunRequirements",
+          "parameters": [
+            "originals",
+            "prepared",
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "readLocalMockModelRunRequirements/asset/asset",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "readLocalMockModelRunRequirements/declarations/declarations",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "readLocalMockModelRunRequirements/documentBytes/documentBytes",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements#2",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -44024,6 +44339,103 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/observeAccount/observeAccount#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:currentProvider/init:currentProvider",
+            "readLocalMockModelRunRequirements",
+            "readLocalMockModelRunRequirements/asset/asset",
+            "readLocalMockModelRunRequirements/declarations/declarations",
+            "readLocalMockModelRunRequirements/documentBytes/documentBytes",
+            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements",
+            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements#2"
+          ],
+          "exports": [
+            "readLocalMockModelRunRequirements"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -45840,7 +46252,7 @@
     {
       "module": "adapters/host-node/infer-operation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "1627e3327fbbc71c305c2b051d1978781af7d1d5879956f2321b2ca926af330d",
+      "sha256": "94abebfc3a9ce93a1137b9969486bcd2bf3a1577df0456c8faf348fca3c25aa4",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -45896,7 +46308,8 @@
             "retainCompleted",
             "durableCalls",
             "restoredInput",
-            "generatedInput"
+            "generatedInput",
+            "originalPreparation"
           ],
           "async": false
         },
@@ -49744,7 +50157,7 @@
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e98731b94d6e2aa4c3b1ff40116e8277390877b5d9901aeb6dc85e28429ca00d",
+      "sha256": "56feeffa1a61decdb3219b164bea724ea20739ddb83f3e8193960b7e5e6371ef",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -49784,7 +50197,8 @@
             "values",
             "fragment",
             "ordered",
-            "computeConfigurations"
+            "computeConfigurations",
+            "originalPreparation"
           ],
           "async": true
         },
@@ -49800,6 +50214,13 @@
           "name": "runInstalledComposedInfers/candidates/candidates",
           "parameters": [
             "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/captures/captures",
+          "parameters": [
+            "source"
           ],
           "async": false
         },
@@ -49880,8 +50301,22 @@
           "async": false
         },
         {
+          "name": "runInstalledComposedInfers/originals/originals",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
           "name": "runInstalledComposedInfers/runInstalledComposedInfers",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/runInstalledComposedInfers#10",
+          "parameters": [
+            "child"
+          ],
           "async": false
         },
         {
@@ -49915,9 +50350,7 @@
         },
         {
           "name": "runInstalledComposedInfers/runInstalledComposedInfers#7",
-          "parameters": [
-            "child"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -49937,7 +50370,56 @@
         {
           "name": "runInstalledComposedInfers/setup/setup",
           "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/setup/setup#2",
+          "parameters": [
             "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/setup/setup#3",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/sources/sources",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/sources/sources#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/sources/sources#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/sources/sources#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/wires/wires",
+          "parameters": [
+            "source"
           ],
           "async": false
         }
@@ -50191,6 +50673,103 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "runInstalledComposedInfers/captures/captures",
+            "runInstalledComposedInfers/originals/originals",
+            "runInstalledComposedInfers/runInstalledComposedInfers#10",
+            "runInstalledComposedInfers/setup/setup#2",
+            "runInstalledComposedInfers/setup/setup#3",
+            "runInstalledComposedInfers/sources/sources",
+            "runInstalledComposedInfers/sources/sources#2",
+            "runInstalledComposedInfers/sources/sources#3",
+            "runInstalledComposedInfers/sources/sources#4",
+            "runInstalledComposedInfers/wires/wires"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -50214,7 +50793,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "a1d095cd38dcb67b245090104381019b7af8e0d2683f500df610b0a1ca6dadf3",
+      "sha256": "e48a44601ce2ac325ffbc12bf069a2a0767e3335c4263d88bbdc89af2982c406",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
