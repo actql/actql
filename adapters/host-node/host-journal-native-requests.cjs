@@ -331,6 +331,45 @@ function hostJournalNativeStructureRequests(input) {
       cloneListRequestUsesOriginalUsable:true,
       resetRetiresSchema:false,
     }),
+    internalSchema:freeze({
+      qualification:'per-connection-main-and-temp-schema-subset', completeSchema:false,
+      // sqlite3SchemaGet allocates main and TEMP independently. The four
+      // Hash headers are inline in each120-byte LP64 Schema, not four more
+      // allocation originals. TEMP exists even without a temp Btree.
+      schemas:freeze({count:2n, eachRequest:120n,
+        heapUsableSumUpper:2n * hostJournalNativeUsableUpper(120n)}),
+      // sqlite3InitOne parses its fixed CREATE TABLE x(type text,name text,
+      // tbl_name text,rootpage int,sql text) into each internal Table. These
+      // two tables are additional to the15 admitted application tables.
+      tables:freeze({count:2n, eachRequest:120n,
+        heapUsableSumUpper:2n * hostJournalNativeUsableUpper(120n)}),
+      mainTableNameRequest:14n, tempTableNameRequest:19n,
+      // TEXT and INT use the standard type enum, without copied type text.
+      finalColumnArrays:freeze({count:2n, eachRequest:80n,
+        heapUsableSumUpper:2n * hostJournalNativeUsableUpper(80n)}),
+      columnNames:allocationGroup(10n,64n),
+      activeOldColumnArrayRequestUpper:64n,
+      // Account the lazy affinity strings separately from Column and name
+      // storage, whether or not this execution actually requests them.
+      tableAffinities:allocationGroup(17n,116n),
+      //28 own-DDL hash elements plus main/TEMP internal table entries.
+      // Hash keys borrow the original owning names; no copied key per entry.
+      additionalHashElements:allocationGroup(2n,80n),
+      // This whole-schema view includes fixedSchema.ownHashElements: do not
+      // add both views to a co-phase sum as independent allocations.
+      allSchemaHashElements:allocationGroup(30n,1200n),
+      // Only main table/index hashes reach5 entries for this exact schema.
+      // rehash clamps each bucket request to SQLITE_MALLOC_SOFT_LIMIT1024.
+      // Keep old/new alternatives beside both originals, without credit on
+      // schema reset. Element records are accounted separately above.
+      growingHashOriginals:2n,
+      eachHashGrowth:preservingGrowth(1024n,1024n),
+      hashHeadersInline:true, hashKeysAliasOwnedNames:true,
+      schemasSharedAcrossConnections:false,
+      applicationTableCopiesIncluded:false,
+      schemaParseAndReaderCovered:false,
+      resetReturnsRegionCredit:false,
+    }),
     allocationBounds:freeze({
       qualification:'conditional-stock-usable-not-region',
       cachePage:allocation(p + 272n),

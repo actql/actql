@@ -297,3 +297,42 @@ test('a native subset is not a whole facility or allocator-release acknowledgeme
   assert.equal(calculate(input({databaseBytes:512n,pageBytes:512n}))
     .includedNativeComponents.cache,20416n);
 });
+
+test('main and TEMP internal schemas are distinct from admitted own tables and inline hashes', () => {
+  const {internalSchema:s,fixedSchema:own} = calculate(input());
+  assert.equal(s.schemas.count,2n);
+  assert.equal(s.schemas.eachRequest,120n);
+  assert.equal(s.schemas.heapUsableSumUpper,256n);
+  assert.equal(s.tables.count,2n);
+  assert.equal(s.mainTableNameRequest,14n);
+  assert.equal(s.tempTableNameRequest,19n);
+  assert.equal(s.finalColumnArrays.eachRequest,80n);
+  assert.equal(s.columnNames.count,10n);
+  assert.equal(s.columnNames.requestSum,64n);
+  assert.equal(s.activeOldColumnArrayRequestUpper,64n);
+  assert.equal(own.tables.count,15n);
+  assert.equal(s.hashHeadersInline,true);
+  assert.equal(s.schemasSharedAcrossConnections,false);
+  assert.equal(s.applicationTableCopiesIncluded,false);
+  assert(Object.isFrozen(s));
+});
+
+test('whole-schema hashes and affinities retain borrowed names and original growth alternatives', () => {
+  const s = calculate(input()).internalSchema;
+  assert.equal(s.tableAffinities.count,17n);
+  assert.equal(s.tableAffinities.requestSum,116n);
+  assert.equal(s.allSchemaHashElements.count,30n);
+  assert.equal(s.allSchemaHashElements.requestSum,1200n);
+  assert.equal(s.additionalHashElements.count,2n);
+  assert.equal(s.additionalHashElements.requestSum,80n);
+  assert.equal(s.allSchemaHashElements.requestSum,
+    calculate(input()).fixedSchema.ownHashElements.requestSum + s.additionalHashElements.requestSum);
+  assert.equal(s.growingHashOriginals,2n);
+  assert.equal(s.eachHashGrowth.previousMaximum.request,1024n);
+  assert.equal(s.eachHashGrowth.nextMaximum.request,1024n);
+  assert.equal(s.eachHashGrowth.immediateCredit,false);
+  assert.equal(s.hashKeysAliasOwnedNames,true);
+  assert.equal(s.schemaParseAndReaderCovered,false);
+  assert.equal(s.completeSchema,false);
+  assert.equal(s.resetReturnsRegionCredit,false);
+});
