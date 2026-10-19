@@ -250,6 +250,36 @@ pub fn InstalledArenaHost::leave_domain_retained_execution(
 }
 
 ///|
+/// Reenter only the same retained original to retire its outputs after failure
+/// or close. This monotonically stops normal use; no Ledger or business call
+/// may be borrowed from the cleanup frame. Actual leave remains separate.
+pub fn InstalledArenaHost::enter_domain_retained_execution_cleanup(
+  self : InstalledArenaHost,
+  record : InstalledArenaRetainedExecution,
+) -> Result[Unit, InstalledArenaRetainedExecutionIssue] {
+  match self.original_retained_execution(record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if record.closed ||
+    record.physical_retired ||
+    !record.owns_read ||
+    record.active {
+    return Err(Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)))
+  }
+  record.closing = true
+  record.ready = false
+  record.active = true
+  match self.enter_domain_read_cleanup(record.domain) {
+    Err(issue) => {
+      record.scope_failed = true
+      Err(Domain(issue))
+    }
+    Ok(_) => Ok(())
+  }
+}
+
+///|
 /// Consumers first retire their own retained outputs/Store and managed aliases.
 /// C-context ACK is independent of the original report, parent loan and FD.
 pub fn InstalledArenaHost::close_domain_retained_execution(

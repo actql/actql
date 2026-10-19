@@ -159,7 +159,19 @@ test "actual in-process domain supplies one entered ledger and retains original 
   // Replacing the control snapshot does not retire an escaped old snapshot.
   assert_true(host.close_domain_retained_execution(execution) is Err(_))
   assert_false(execution.physical_retired || execution.closed)
+  host
+  .enter_domain_retained_execution_cleanup(execution)
+  .retained_execution_value("retained cleanup: same original frame")
+  assert_true(host.enter_domain_retained_execution_cleanup(execution) is Err(_))
+  assert_true(host.borrow_domain_retained_execution_ledger(execution) is Err(_))
+  assert_true(host.enter_domain_retained_execution(execution) is Err(_))
   snapshot.val = None
+  host
+  .leave_domain_retained_execution(execution)
+  .retained_execution_value("retained cleanup: original leave")
+  assert_true(
+    host.require_domain_retained_execution_current(execution) is Err(_),
+  )
   match host.close_domain_retained_execution(execution) {
     Ok(_) => ()
     Err(Domain(@bootstrap.Bootstrap(@bootstrap.Physical(code)))) =>
