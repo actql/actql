@@ -68,9 +68,18 @@ class SourceClosureTests(unittest.TestCase):
 
     def test_source_closure_does_not_claim_physical_or_installed_success(self):
         result = self.check()
-        self.assertEqual(result['verified_inputs'], 20)
+        self.assertEqual(result['verified_inputs'], 22)
         self.assertEqual(result['native_execution'], 0)
         self.assertIs(result['installed_capability'], False)
+
+    def test_original_cleanup_observer_cannot_be_omitted(self):
+        required = 'src/platform_native/host_bootstrap/read_cleanup_observation_native.mbt'
+        self.assertIn(required, INPUTS)
+        self.manifest['inputs'] = [entry for entry in self.manifest['inputs']
+                                   if entry['path'] != required]
+        self.write_manifest()
+        with self.assertRaisesRegex(ValueError, 'source manifest'):
+            self.check()
 
     def test_modified_source_blob_is_rejected(self):
         (self.root / INPUTS[-1]).write_bytes(b'abd')

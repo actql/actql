@@ -2069,6 +2069,24 @@ and child Ledger, before its physical context close. Its workspace, read claim,
 inventory, report and parent-use acknowledgements still follow the actual
 physical retirement observation; relocation acknowledges none of them.
 
+The same retained Read can expose one constructor-thread cleanup snapshot under
+the existing provider locks. It observes users, active frames, live generic
+extents, live managed blocks and their requested-size range, and pending
+retirement extents. It reads only original allocator metadata: foreign payloads,
+released pages, managed payloads and addresses are not projected. Unknown,
+foreign-thread, inherited-process or retired contexts refuse without publishing
+a partial snapshot. The extra constructor-thread field belongs to the same
+context allocation; its actual size remains part of the original acquisition.
+
+The trusted caller covers the fixed snapshot and its copy in the existing outer
+initial control before calling, outside every Read/owned frame. Zero live counts
+remain observations, including when pending retirement or a retained context
+still prevents close. Observation never releases a user, enters a scope,
+acknowledges a parent, issues capacity or resumes normal use. Public runtime
+header sizes can likewise describe the selected implementation; Array wrapper
+and element lowering, complete simultaneous controls and actual backing remain
+separate requirements.
+
 The private process-import SQLite preparation may select Linux AArch64 GNU as a
 separate derived recipe. It retains the exact pinned SQLite, component and
 provider-header inputs; the Darwin recipe and Python provider-bundle checks
