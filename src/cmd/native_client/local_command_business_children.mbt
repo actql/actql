@@ -98,13 +98,18 @@ fn LocalCommandBusinessPreparation::open_values_work(
 fn LocalCommandBusinessPreparation::open_store(
   self : LocalCommandBusinessPreparation,
   library : @local_sqlite.Library,
-  path : String,
+  managed : String,
   run : LocalRunInstallation,
 ) -> @local_store.Store raise ClientStop {
   guard self.original.business is Some(business) &&
     business.operation is Some(operation) &&
     business.store is None &&
     business.store_failure is None &&
+    business.store_parent is None &&
+    business.store_parent_failure is None &&
+    business.store_root is None &&
+    business.store_root_failure is None &&
+    business.store_root_operation is None &&
     !self.original.closing &&
     !self.original.closed else {
     stop("LocalBusinessOriginalUnavailable")
@@ -112,6 +117,8 @@ fn LocalCommandBusinessPreparation::open_store(
   let original = operation
     .sqlite_original()
     .unwrap_or_else(() => stop("LocalBusinessOriginalUnavailable"))
+  business.store_root_operation = Some(original)
+  let path = self.prepare_store_path(managed, run.store_name)
   match
     @local_store.open_original_local_store_with_custody(
       library,
@@ -196,5 +203,5 @@ fn LocalCommandPreparationOriginal::close_business_children(
       Ok(_) => business.store = None
     }
   }
-  Ok(())
+  self.close_business_store_roots()
 }

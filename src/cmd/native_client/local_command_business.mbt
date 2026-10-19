@@ -20,6 +20,11 @@ priv struct LocalCommandBusinessOriginal {
   mut values_failure : @local_host.NativeClientValuesWorkFailure?
   mut store : @local_store.Store?
   mut store_failure : @local_store.NativePublicationStoreOpenFailure?
+  mut store_parent : @local_filesystem.Root?
+  mut store_parent_failure : @local_filesystem.NativeRootOpenFailure?
+  mut store_root : @local_filesystem.Root?
+  mut store_root_failure : @local_filesystem.NativeRootOpenFailure?
+  mut store_root_operation : @local_sqlite.NativeStoreOperationOriginal?
   mut active : Bool
 }
 
