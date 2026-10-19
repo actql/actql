@@ -60112,18 +60112,58 @@
     },
     {
       "module": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-      "sha256": "23c299463713c138dc0e3b1201e1ea074dea9395f5d4ac5e54ba09f60f2c4354",
+      "sha256": "bbe9958d2f8c756bfe0956b357514470cddf603c2e6b9fa10eee5b6a283774dc",
       "exports": [
+        "commonjs:assertHostJournalInstallationCurrent",
         "commonjs:assertInitialControlInstallationCurrent",
+        "commonjs:assertSourceManagedInstallationCurrent",
+        "commonjs:beforeSourceSnapshot",
         "commonjs:beginInitialControlInstallation",
+        "commonjs:bindSourceRequest",
+        "commonjs:bindSourceSnapshot",
+        "commonjs:closeHostJournalInstallation",
+        "commonjs:closeSourceManagedInstallation",
+        "commonjs:finishSourceProducer",
+        "commonjs:openHostJournalRequestJournal",
+        "commonjs:originalHostPublicationOwnership",
+        "commonjs:prepareHostJournalInstallation",
+        "commonjs:prepareOriginalManagedRunPorts",
+        "commonjs:prepareOriginalSourceChildPorts",
+        "commonjs:prepareSourceManagedInstallation",
+        "commonjs:prepareSourceManagedRead",
+        "commonjs:prepareSourceManagedRun",
         "commonjs:readInitialControlInstallationAsset",
         "commonjs:readInitialControlInstallationInput",
-        "commonjs:selectedInitialControlHostPreparation"
+        "commonjs:selectedInitialControlHostPreparation",
+        "commonjs:sourceIntentCid"
       ],
       "operations": [
         {
           "name": "<anonymous>",
           "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "<anonymous>#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "allocateSourceBacking",
+          "parameters": [
+            "entry",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "appendSourceOriginal",
+          "parameters": [
+            "array",
             "value"
           ],
           "async": false
@@ -60146,9 +60186,82 @@
           "async": false
         },
         {
+          "name": "assertSourceFile",
+          "parameters": [
+            "entry"
+          ],
+          "async": true
+        },
+        {
+          "name": "assertSourceFile/assertSourceFile",
+          "parameters": [
+            "value",
+            "ordinal"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertSourceOperationsCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "assertSourceOperationsCurrent/assertSourceOperationsCurrent",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertSourceRequest",
+          "parameters": [
+            "entry",
+            "derived"
+          ],
+          "async": false
+        },
+        {
           "name": "assertSupportedIntrinsics",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "claimManagedRun",
+          "parameters": [
+            "original",
+            "held",
+            "derived"
+          ],
+          "async": false
+        },
+        {
+          "name": "closeJournal",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "closeJournal/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "closeJournal/settled/settled",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "closeSource",
+          "parameters": [
+            "entry"
+          ],
+          "async": true
+        },
+        {
+          "name": "closeSource/flight/flight",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "connectInitialControlHostPreparation",
@@ -60175,6 +60288,118 @@
         },
         {
           "name": "inputUnavailable/inputUnavailable",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "journalAcknowledged",
+          "parameters": [
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "journalCarrier",
+          "parameters": [
+            "entry",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "journalCarrier/journalCarrier",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "journalCarrier/journalCarrier#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "journalCleanup",
+          "parameters": [
+            "entry",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "journalCurrent",
+          "parameters": [
+            "original",
+            "held"
+          ],
+          "async": false
+        },
+        {
+          "name": "journalExclusionDependency",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "journalFailure",
+          "parameters": [
+            "entry",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "journalOriginal",
+          "parameters": [
+            "original",
+            "held",
+            "allowClosing"
+          ],
+          "async": false
+        },
+        {
+          "name": "journalPublicationOwnership",
+          "parameters": [
+            "original",
+            "held"
+          ],
+          "async": false
+        },
+        {
+          "name": "journalStatus",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "journalUnavailable/journalUnavailable",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "managedRunCurrent",
+          "parameters": [
+            "run"
+          ],
+          "async": false
+        },
+        {
+          "name": "openJournal",
+          "parameters": [
+            "original",
+            "held",
+            "directory",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "openJournal/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openJournal/settled/settled",
           "parameters": [],
           "async": false
         },
@@ -60209,10 +60434,303 @@
           "async": false
         },
         {
+          "name": "prepareJournal",
+          "parameters": [
+            "held"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareJournal/prepareJournal",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareJournal/prepareJournal#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalManagedRunPorts",
+          "parameters": [
+            "original",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalManagedRunPorts/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalManagedRunPorts/init:cancelUnpublished/init:cancelUnpublished",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalManagedRunPorts/init:limit/init:limit",
+          "parameters": [
+            "ordinal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalManagedRunPorts/init:report/init:report",
+          "parameters": [
+            "planning",
+            "attempts",
+            "holdings",
+            "transferred",
+            "uncertain",
+            "reservedTransfer",
+            "heldBytes",
+            "reservedRetention",
+            "reservedExecution",
+            "peakRetention"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalManagedRunPorts/init:report/init:report/init:report",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalManagedRunPorts/init:status/init:status",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalSourceChildPorts",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalSourceChildPorts/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalSourceChildPorts/init:limit/init:limit",
+          "parameters": [
+            "ordinal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalSourceChildPorts/init:report/init:report",
+          "parameters": [
+            "planning",
+            "attempts",
+            "holdings",
+            "transferred",
+            "uncertain",
+            "reservedTransfer",
+            "heldBytes",
+            "reservedRetention",
+            "reservedExecution",
+            "peakRetention"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalSourceChildPorts/init:report/init:report/init:report",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalSourceChildPorts/init:status/init:status",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSource",
+          "parameters": [
+            "held"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareSource/prepareSource",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSource/prepareSource#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSource/prepareSource#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSourceRead",
+          "parameters": [
+            "original",
+            "held",
+            "derived",
+            "declaration",
+            "originalRun"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSourceRead/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSourceRead/init:readOriginalBytes/init:readOriginalBytes",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSourceRead/init:status/init:status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readSourceBytes",
+          "parameters": [
+            "entry",
+            "child"
+          ],
+          "async": true
+        },
+        {
+          "name": "readSourceBytes/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "readSourceBytes/flight/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "readSourceBytes/flight/flight/flight/flight",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "sameOriginals",
           "parameters": [
             "left",
             "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceBackingRange",
+          "parameters": [
+            "value",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceChildCurrent",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceChildrenPending",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceCurrent",
+          "parameters": [
+            "original",
+            "held"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFailure",
+          "parameters": [
+            "entry",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFileIdentity",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceOperations/sourceOperations",
+          "parameters": [
+            "receiver",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceOperationsChanged",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceOriginal",
+          "parameters": [
+            "original",
+            "held",
+            "allowClosing"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceReceipt",
+          "parameters": [
+            "entry",
+            "receipt"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceStatus",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceUnavailable/sourceUnavailable",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "table/init:assertHostJournalInstallationCurrent/init:assertHostJournalInstallationCurrent",
+          "parameters": [
+            "original",
+            "originals"
           ],
           "async": false
         },
@@ -60225,10 +60743,76 @@
           "async": false
         },
         {
+          "name": "table/init:assertSourceManagedInstallationCurrent/init:assertSourceManagedInstallationCurrent",
+          "parameters": [
+            "original",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+          "parameters": [
+            "original",
+            "originals",
+            "kind",
+            "input",
+            "options"
+          ],
+          "async": false
+        },
+        {
           "name": "table/init:beginInitialControlInstallation/init:beginInitialControlInstallation",
           "parameters": [
             "originals",
             "raw"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:bindSourceRequest/init:bindSourceRequest",
+          "parameters": [
+            "original",
+            "originals",
+            "receipt",
+            "body",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:bindSourceSnapshot/init:bindSourceSnapshot",
+          "parameters": [
+            "original",
+            "originals",
+            "receipt",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:closeHostJournalInstallation/init:closeHostJournalInstallation",
+          "parameters": [
+            "original",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:closeSourceManagedInstallation/init:closeSourceManagedInstallation",
+          "parameters": [
+            "original",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:finishSourceProducer/init:finishSourceProducer",
+          "parameters": [
+            "original",
+            "originals",
+            "receipt",
+            "terminal"
           ],
           "async": false
         },
@@ -60250,6 +60834,16 @@
           "async": false
         },
         {
+          "name": "table/init:sourceIntentCid/init:sourceIntentCid",
+          "parameters": [
+            "original",
+            "originals",
+            "receipt",
+            "body"
+          ],
+          "async": false
+        },
+        {
           "name": "unavailable/unavailable",
           "parameters": [],
           "async": false
@@ -60260,10 +60854,13 @@
         "./initial-control-package-custody.cjs",
         "./initial-control-package-original.cjs",
         "./initial-control-phase-envelope.cjs",
+        "./source-managed-phase-envelope.cjs",
         "node:buffer",
+        "node:fs/promises",
         "node:module",
         "node:path",
         "node:process",
+        "node:sqlite",
         "node:util",
         "node:v8",
         "node:worker_threads"
@@ -60363,6 +60960,406 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
                 "anchor": "ordinary connected Local HTTP selection stays unselected without traversing Host fields"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<anonymous>#2",
+            "allocateSourceBacking",
+            "appendSourceOriginal",
+            "assertSourceFile",
+            "assertSourceFile/assertSourceFile",
+            "assertSourceOperationsCurrent",
+            "assertSourceOperationsCurrent/assertSourceOperationsCurrent",
+            "assertSourceRequest",
+            "closeSource",
+            "closeSource/flight/flight",
+            "prepareOriginalSourceChildPorts",
+            "prepareOriginalSourceChildPorts/current/current",
+            "prepareOriginalSourceChildPorts/init:limit/init:limit",
+            "prepareOriginalSourceChildPorts/init:report/init:report",
+            "prepareOriginalSourceChildPorts/init:report/init:report/init:report",
+            "prepareOriginalSourceChildPorts/init:status/init:status",
+            "prepareSource",
+            "prepareSource/prepareSource",
+            "prepareSource/prepareSource#2",
+            "prepareSource/prepareSource#3",
+            "prepareSourceRead",
+            "prepareSourceRead/init:close/init:close",
+            "prepareSourceRead/init:readOriginalBytes/init:readOriginalBytes",
+            "prepareSourceRead/init:status/init:status",
+            "readSourceBytes",
+            "readSourceBytes/flight/flight",
+            "readSourceBytes/flight/flight/flight",
+            "readSourceBytes/flight/flight/flight/flight",
+            "sourceBackingRange",
+            "sourceChildCurrent",
+            "sourceChildrenPending",
+            "sourceCurrent",
+            "sourceFailure",
+            "sourceFileIdentity",
+            "sourceOperations/sourceOperations",
+            "sourceOperationsChanged",
+            "sourceOriginal",
+            "sourceReceipt",
+            "sourceStatus",
+            "sourceUnavailable/sourceUnavailable",
+            "table/init:assertSourceManagedInstallationCurrent/init:assertSourceManagedInstallationCurrent",
+            "table/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+            "table/init:bindSourceRequest/init:bindSourceRequest",
+            "table/init:bindSourceSnapshot/init:bindSourceSnapshot",
+            "table/init:closeSourceManagedInstallation/init:closeSourceManagedInstallation",
+            "table/init:finishSourceProducer/init:finishSourceProducer",
+            "table/init:sourceIntentCid/init:sourceIntentCid"
+          ],
+          "exports": [
+            "commonjs:assertSourceManagedInstallationCurrent",
+            "commonjs:beforeSourceSnapshot",
+            "commonjs:bindSourceRequest",
+            "commonjs:bindSourceSnapshot",
+            "commonjs:closeSourceManagedInstallation",
+            "commonjs:finishSourceProducer",
+            "commonjs:originalHostPublicationOwnership",
+            "commonjs:prepareOriginalSourceChildPorts",
+            "commonjs:prepareSourceManagedInstallation",
+            "commonjs:prepareSourceManagedRead",
+            "commonjs:sourceIntentCid"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "async function prepareSource(held) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function prepareSourceRead(original, held, derived, declaration, originalRun) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function sourceOriginal(original, held, allowClosing = false) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function sourceReceipt(entry, receipt) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function allocateSourceBacking(entry, bytes) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "async function closeSource(entry) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function sourceCurrent(original, held) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function sourceChildCurrent(child) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function sourceFailure(entry, cause) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "if (entry.backingRanges[index].buffer === range.buffer) sourceUnavailable();"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "if (sourceChildrenPending(entry)) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.bundle = undefined;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "function declareSourceManagedPhaseEnvelope(controlDeclaration) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "physicalBackingReleased: false});"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "// Real distinct ArrayBuffers, not an unused arena lent to another allocator."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "ordinary Source original retains two file children and separates logical stop from FD close"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "ordinary Source refuses distinct same-sized Buffer wrappers over one physical backing"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "claimManagedRun",
+            "managedRunCurrent",
+            "prepareOriginalManagedRunPorts",
+            "prepareOriginalManagedRunPorts/current/current",
+            "prepareOriginalManagedRunPorts/init:cancelUnpublished/init:cancelUnpublished",
+            "prepareOriginalManagedRunPorts/init:limit/init:limit",
+            "prepareOriginalManagedRunPorts/init:report/init:report",
+            "prepareOriginalManagedRunPorts/init:report/init:report/init:report",
+            "prepareOriginalManagedRunPorts/init:status/init:status"
+          ],
+          "exports": [
+            "commonjs:prepareOriginalManagedRunPorts",
+            "commonjs:prepareSourceManagedRun"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function claimManagedRun(original,held,derived) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function prepareOriginalManagedRunPorts(original,prepared) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function managedRunCurrent(run) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "run.claimed = true;run.derived = derived;run.request = request;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "if (run===undefined || run.original!==original || run.derived!==prepared || !run.claimed ||"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "run.portsTaken=true;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "const required = apply(state.runRequirements,state.namespace,[held,derived]);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "if (amount>BigInt(bounds[name])) sourceUnavailable();"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "if (run.stopped || run.usage!==undefined) return -42;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "run.unpublished=true;run.stopped=true;"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "run.stopped=true;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "function declareSourceComputePhaseEnvelope(sourceDeclaration) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "// Core supplies this usage; these counters never acknowledge the FD or"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "// This is a claim of the pre-snapshot original, not a late Compute issuer."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "ordinary Source managed Run keeps one joint original for both file children without Source child conversion"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "ordinary Source managed Run unpublished initialization closes distinctly without a fabricated usage report"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "closeJournal",
+            "closeJournal/flight/flight",
+            "closeJournal/settled/settled",
+            "journalAcknowledged",
+            "journalCarrier",
+            "journalCarrier/journalCarrier",
+            "journalCarrier/journalCarrier#2",
+            "journalCleanup",
+            "journalCurrent",
+            "journalExclusionDependency",
+            "journalFailure",
+            "journalOriginal",
+            "journalPublicationOwnership",
+            "journalStatus",
+            "journalUnavailable/journalUnavailable",
+            "openJournal",
+            "openJournal/flight/flight",
+            "openJournal/settled/settled",
+            "prepareJournal",
+            "prepareJournal/prepareJournal",
+            "prepareJournal/prepareJournal#2",
+            "table/init:assertHostJournalInstallationCurrent/init:assertHostJournalInstallationCurrent",
+            "table/init:closeHostJournalInstallation/init:closeHostJournalInstallation"
+          ],
+          "exports": [
+            "commonjs:assertHostJournalInstallationCurrent",
+            "commonjs:closeHostJournalInstallation",
+            "commonjs:openHostJournalRequestJournal",
+            "commonjs:prepareHostJournalInstallation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function prepareJournal(held) {"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The complete separate Journal disposition must precede this preparation:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function openJournal(original, held, directory, options) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function journalPublicationOwnership(original, held) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function journalOriginal(original, held, allowClosing = false) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "if (entry.disposition !== state.journalDisposition) journalUnavailable();"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.ownership = ownership;"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.journal = journal;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function journalCurrent(original, held) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function journalExclusionDependency(entry) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "if (entry.closeFlight !== undefined) return entry.closeFlight;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function journalCleanup(entry, cause) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function journalCarrier(entry, cause) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "if (state.journalDisposition === undefined || journalInstallation !== undefined ||"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function closeJournal(entry) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "if (field(observation, 'databaseClosed') !== true ||"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "That disposition includes the actual selected SQLite allocator's necessary"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "physicalBackingReleased: false});"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "// Namespace functions, support bounds or the initial/Source declarations"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-journal-root-custody.test.mjs",
+                "anchor": "Root refuses missing disposition before subject read or native constructor"
+              },
+              {
+                "path": "adapters/host-node/host-journal-root-custody.test.mjs",
+                "anchor": "Root and adopted Store keep the same exclusion until both original physical duties acknowledge"
+              },
+              {
+                "path": "adapters/host-node/host-journal-root-custody.test.mjs",
+                "anchor": "secondary native close failure stays pending and retries the same captured receiver"
               }
             ]
           }
