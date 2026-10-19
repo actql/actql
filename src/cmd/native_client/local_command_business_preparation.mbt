@@ -125,6 +125,15 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   if !selection.current(host, settings, environment) {
     stop("LocalSubmissionAuthorizationDenied")
   }
+  guard self.business is Some(business) &&
+    business.operation is Some(original_operation) else {
+    stop("LocalBusinessOriginalUnavailable")
+  }
+  // The receiver was retained in outer control before Read entry. Only this
+  // exact admitted Runtime/Program/current selection may activate its route.
+  command_preparation_result(
+    original_operation.activate().map_err(issue => CommandStoreOperation(issue)),
+  )
   selection
 }
 

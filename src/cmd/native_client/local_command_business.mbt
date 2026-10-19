@@ -238,8 +238,8 @@ fn LocalCommandPreparationOriginal::require_business_program(
 
 ///|
 // Construct this outer-control receiver only after the original Journal and
-// Runtime exist, before any Store/Work call or business entry. Retain its
-// partial activation before attempting the current/Host/pair check.
+// Runtime exist, before any Store/Work call or business entry. Activation is
+// later, after the exact adopted Runtime binding and Program selection.
 fn LocalCommandPreparationOriginal::prepare_business_operation(
   self : LocalCommandPreparationOriginal,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
@@ -268,7 +268,7 @@ fn LocalCommandPreparationOriginal::prepare_business_operation(
     Err(issue) => return Err(CommandStoreOperation(issue))
   }
   business.operation = Some(operation)
-  operation.activate().map_err(issue => CommandStoreOperation(issue))
+  Ok(())
 }
 
 ///|
