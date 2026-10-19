@@ -18,8 +18,12 @@ fn[T] read_binding_in_original_read(
     let result = call(host, operations)
     output.val = Some(result)
     match result {
-      Err(Journal(TransactionUnknown | Epoch(TransactionUnknown))) =>
-        Err(Journal(TransactionUnknown))
+      Err(
+        Journal(TransactionUnknown | Epoch(TransactionUnknown))
+        | SubmittedResult(
+          Journal(TransactionUnknown | Epoch(TransactionUnknown))
+        )
+      ) => Err(Journal(TransactionUnknown))
       _ => Ok(())
     }
   })

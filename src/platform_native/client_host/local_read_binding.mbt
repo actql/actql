@@ -11,6 +11,7 @@ pub(all) enum NativeLocalReadBindingIssue {
   PolicyNotSelected
   MaterialUnavailable
   OriginalRead(NativeLocalReadBindingIssue?, NativeLocalAdoptionIssue)
+  SubmittedResult(NativeClientSubmittedResultIssue)
 }
 
 ///|

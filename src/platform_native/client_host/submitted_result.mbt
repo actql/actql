@@ -73,14 +73,17 @@ fn NativeClientRunJournal::resolve_submitted_result_binding(
   now : Double,
   service : @result_access.NativeResultAccessService,
   namespace_id : String,
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[NativeClientSubmittedRunAdmission, NativeClientSubmittedResultIssue] {
+  let reads = operations.map(value => value.reads)
   let original = match
-    self.lookup_submitted_intent(
+    self.lookup_submitted_intent_with_operations(
       authority,
       reference,
       authority_scope_cid,
       current(),
       now,
+      operations~,
     ) {
     Ok(Submitted(record)) => record
     Ok(UnresolvedSubmissionHistory) => return Err(UnresolvedSubmissionHistory)
@@ -89,7 +92,7 @@ fn NativeClientRunJournal::resolve_submitted_result_binding(
   guard original.run_admission is Some(admission) else {
     return Err(RunNotAdmitted)
   }
-  let run = match self.lookup(admission.request, current()) {
+  let run = match self.lookup_with_reads(admission.request, current(), reads~) {
     Ok(Retained(run)) => run
     Ok(UnresolvedHistory) => return Err(Journal(CustodyLost))
     Err(issue) => return Err(Journal(issue))
