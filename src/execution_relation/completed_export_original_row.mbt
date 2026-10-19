@@ -115,13 +115,16 @@ pub fn completed_result_export_preparation_matches_original_row(
 /// Recheck an immutable runtime cell under its original Result field contract,
 /// without serializing or re-admitting its canonical JSON projection. In
 /// particular, a Text cell never becomes Date, Decimal or Signed64 by spelling.
-pub fn completed_output_export_original_row_checked_field(
+pub fn completed_output_export_original_row_checked_field_usage(
   row : CompletedOutputExportOriginalRow,
   name : String,
   max_fields : Int,
   max_work : Int,
   limits : @admitted.Limits,
-) -> Result[@admitted.CheckedValue, CompletedExportOriginalRowIssue] {
+) -> Result[
+  (@admitted.CheckedValue, Int, Int, Int),
+  CompletedExportOriginalRowIssue,
+] {
   if max_fields < 0 ||
     max_work < 0 ||
     limits.max_nodes < 1 ||
@@ -159,11 +162,36 @@ pub fn completed_output_export_original_row_checked_field(
     }
   }
   guard column is Some(column) else { return Err(MissingField) }
+  let comparisons = @schema.field_count(rows.schema)
+  let name_bytes = @schema.field_reference_name_bytes(rows.schema)
+  if comparisons > remaining {
+    return Err(WorkLimit)
+  }
+  remaining -= comparisons
+  if name.length() > remaining || name_bytes > remaining - name.length() {
+    return Err(WorkLimit)
+  }
+  remaining -= name.length() + name_bytes
+  if comparisons > 0 &&
+    (
+      name.length() > remaining / comparisons ||
+      name_bytes > remaining / comparisons - name.length()
+    ) {
+    return Err(WorkLimit)
+  }
+  remaining -= comparisons * (name.length() + name_bytes)
   guard @schema.lookup_reference(rows.schema, name) is Some(field) else {
     return Err(MissingField)
   }
   if !IndexedRows::cell_present(rows, row.index, column) {
     return Err(MissingField)
+  }
+  // Both independent value ceilings must fit before rechecking. The returned
+  // usage lets the enclosing Mapping share this same finite budget across
+  // all fields rather than resetting it for each cell.
+  if limits.max_nodes > remaining ||
+    limits.max_text_bytes > remaining - limits.max_nodes {
+    return Err(WorkLimit)
   }
   let value = match IndexedRows::read_cell(rows, row.index, column) {
     Null => Some(@admitted.null_value())
@@ -173,14 +201,29 @@ pub fn completed_output_export_original_row_checked_field(
     Captured(value) => Some(value)
   }
   guard value is Some(value) else { return Err(InvalidValue) }
-  guard @admitted.recheck_runtime_value(value, field.contract, limits)
-    is Some(checked) else {
+  guard @admitted.recheck_runtime_value_usage(value, field.contract, limits)
+    is Some((checked, nodes, text)) else {
     return Err(InvalidValue)
   }
   if !completed_export_original_row_retained(row) {
     return Err(Unavailable)
   }
-  Ok(checked)
+  Ok((checked, max_work - remaining + nodes + text, nodes, text))
+}
+
+///|
+/// The convenience projection retains exactly the same checks and budget as
+/// the measured reader; it introduces no separate value admission path.
+pub fn completed_output_export_original_row_checked_field(
+  row : CompletedOutputExportOriginalRow,
+  name : String,
+  max_fields : Int,
+  max_work : Int,
+  limits : @admitted.Limits,
+) -> Result[@admitted.CheckedValue, CompletedExportOriginalRowIssue] {
+  completed_output_export_original_row_checked_field_usage(
+    row, name, max_fields, max_work, limits,
+  ).map(result => result.0)
 }
 
 ///|

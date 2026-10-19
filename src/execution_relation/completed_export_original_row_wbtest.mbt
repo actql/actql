@@ -40,7 +40,7 @@ fn original_export_row_field(
   completed_output_export_original_row_checked_field(row, name, 10, 1000, {
     max_nodes: 100,
     max_depth: 10,
-    max_text_bytes: 1000,
+    max_text_bytes: 100,
   }).unwrap()
 }
 
