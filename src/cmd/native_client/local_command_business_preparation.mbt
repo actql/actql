@@ -1,0 +1,162 @@
+///|
+// One retained selection, prepared before the first durable Submission action.
+// The existing Owners still admit the input, Program, Account and physical
+// execution independently. Recovery never constructs this fresh selection.
+priv struct LocalCommandBusinessPreparation {
+  original : LocalCommandPreparationOriginal
+  host : @local_host.NativeLocalHostConnection
+  capture : @local_host.NativeLocalJournalCapture
+  configuration_name : String
+  configuration_body : Bytes
+  environment_name : String
+  environment_body : Bytes
+  environment : @checked.CheckEnvironment
+  principal : String
+  connection : String
+  scope : String
+  intent : @run_host.ClientSubmittedIntent
+  preparation : @local_host.NativeClientSubmittedPreparation
+  prepared : @run_host.PreparedClientProgram
+}
+
+///|
+fn LocalCommandPreparationOriginal::prepare_business_submission(
+  self : LocalCommandPreparationOriginal,
+  host : @local_host.NativeLocalHostConnection,
+  capture : @local_host.NativeLocalJournalCapture,
+  configuration_name : String,
+  runtime : LocalPackagedRuntime,
+  input_root : String,
+  operation : String,
+  child : @argparse.Matches,
+) -> LocalCommandBusinessPreparation raise ClientStop {
+  guard self.journal is Some(journal) &&
+    physical_equal(journal, capture) &&
+    self.runtime is Some(physical) &&
+    physical_equal(physical, runtime.physical) &&
+    self.journal_read_open &&
+    !self.closing &&
+    !self.closed &&
+    self.primary is None else {
+    stop("LocalBusinessOriginalUnavailable")
+  }
+  guard capture.original_host() is Some(captured_host) &&
+    physical_equal(captured_host, host) else {
+    stop("LocalBusinessOriginalUnavailable")
+  }
+  if operation != "aql" && operation != "sql" && operation != "start" {
+    stop("LocalBusinessProgramUnavailable")
+  }
+  // Saved references use their saved originals. They must not prepare the
+  // current file or re-resolve an installation under this fresh-only route.
+  if optional(child, "submission-ref-file") is Some(_) ||
+    optional(child, "operation-attempt-id") is Some(_) {
+    stop("LocalBusinessOriginalReferenceRequired")
+  }
+  let configuration_body = local_host_result(
+    capture.selected_configuration_in_original_read(configuration_name),
+  )
+  let configuration = local_check_original_text(configuration_body)
+  let settings = local_host_settings(configuration)
+  let (environment_name, evidence) = local_configuration(configuration)
+  let environment_body = local_host_result(
+    capture.selected_configuration_in_original_read(environment_name),
+  )
+  let environment = @run_host.admit_client_check_environment(
+    local_check_original_text(environment_body),
+    evidence,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap_or_else(() => stop("LocalBusinessEnvironmentUnavailable"))
+  let account = local_host_result(capture.configuration_in_original_read())
+  if account.account_id() != settings.account_id {
+    stop("LocalConfigurationChanged")
+  }
+  let scope = local_host_result(
+    capture.authority_scope_cid_in_original_read(
+      settings.principal,
+      settings.connection,
+    ),
+  )
+  let intent = @run_host.prepare_client_submitted_intent(
+    local_intent_wire(input_root, operation, child),
+    65536,
+    8192,
+    64,
+  ).unwrap_or_else(() => stop("LocalSubmittedInputNotAdmitted"))
+  let preparation = local_prepare_submitted_run_program(intent, environment)
+  guard @local_host.native_client_submitted_preparation(preparation)
+    is Computation(prepared) else {
+    stop("LocalBusinessProgramUnavailable")
+  }
+  let assets = runtime.assets
+  command_preparation_result(self.require_business_program(prepared, assets))
+  |> ignore
+  let selection : LocalCommandBusinessPreparation = {
+    original: self,
+    host,
+    capture,
+    configuration_name,
+    configuration_body,
+    environment_name,
+    environment_body,
+    environment,
+    principal: settings.principal,
+    connection: settings.connection,
+    scope,
+    intent,
+    preparation,
+    prepared,
+  }
+  if !selection.current(host, settings, environment) {
+    stop("LocalSubmissionAuthorizationDenied")
+  }
+  selection
+}
+
+///|
+// Called only while the same captured original Read is entered. A successful
+// comparison is neither a new resource issue nor an authorization cache.
+fn LocalCommandBusinessPreparation::current(
+  self : LocalCommandBusinessPreparation,
+  host : @local_host.NativeLocalHostConnection,
+  settings : LocalHostSettings,
+  environment : @checked.CheckEnvironment,
+) -> Bool {
+  if !physical_equal(self.host, host) ||
+    !physical_equal(self.environment, environment) ||
+    self.original.closing ||
+    self.original.closed ||
+    self.original.primary is Some(_) ||
+    !self.original.journal_read_open ||
+    settings.principal != self.principal ||
+    settings.connection != self.connection {
+    return false
+  }
+  guard self.original.host is Some(physical) &&
+    self.original.business is Some(business) &&
+    business.execution is Some(execution) &&
+    physical.require_domain_retained_execution_current(execution) is Ok(_) else {
+    return false
+  }
+  self.capture.check_current_in_original_read() is Ok(_) &&
+  self.capture.selected_configuration_in_original_read(self.configuration_name)
+  is Ok(configuration) &&
+  configuration == self.configuration_body &&
+  self.capture.selected_configuration_in_original_read(self.environment_name)
+  is Ok(original_environment) &&
+  original_environment == self.environment_body &&
+  self.capture.authority_scope_cid_in_original_read(
+    self.principal,
+    self.connection,
+  )
+  is Ok(scope) &&
+  scope == self.scope &&
+  self.capture.authorize_in_original_read({
+    principal: self.principal,
+    connection: self.connection,
+    resource: "run",
+    operation: "submit",
+  })
+  is Ok(Allow(_))
+}

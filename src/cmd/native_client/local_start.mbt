@@ -148,16 +148,42 @@ fn local_submission_start(
   operation : String,
   child : @argparse.Matches,
   public_run? : Bool = false,
+  business? : LocalCommandBusinessPreparation? = None,
 ) -> String raise ClientStop {
-  let scope = local_host_result(
-    host.authority_scope_cid(settings.principal, settings.connection, crypto),
-  )
-  let current = () => local_submit_allowed(host, settings, crypto, scope)
+  let scope = match business {
+    None =>
+      local_host_result(
+        host.authority_scope_cid(
+          settings.principal,
+          settings.connection,
+          crypto,
+        ),
+      )
+    Some(original) => {
+      if !public_run || !original.current(host, settings, environment) {
+        stop("LocalBusinessOriginalUnavailable")
+      }
+      original.scope
+    }
+  }
+  let current = () => {
+    match business {
+      None => local_submit_allowed(host, settings, crypto, scope)
+      Some(original) => original.current(host, settings, environment)
+    }
+  }
   if !current() {
     stop("LocalSubmissionAuthorizationDenied")
   }
   let selection = local_select_run_submission(
-    host, settings, crypto, scope, input_root, child, public_run,
+    host,
+    settings,
+    crypto,
+    scope,
+    input_root,
+    child,
+    public_run,
+    business~,
   )
   let reference = selection.reference
   let attempt = selection.attempt
@@ -172,12 +198,16 @@ fn local_submission_start(
     )
   }
   try {
-    let intent = @run_host.prepare_client_submitted_intent(
-      local_intent_wire(input_root, operation, child),
-      65536,
-      8192,
-      64,
-    ).unwrap_or_else(() => stop("LocalSubmittedInputNotAdmitted"))
+    let intent = match business {
+      Some(original) => original.intent
+      None =>
+        @run_host.prepare_client_submitted_intent(
+          local_intent_wire(input_root, operation, child),
+          65536,
+          8192,
+          64,
+        ).unwrap_or_else(() => stop("LocalSubmittedInputNotAdmitted"))
+    }
     let journal = local_host_result(host.run_journal())
     let epoch = local_host_result(host.epoch_authority())
     // The original intent is durable before preparation. Invalid preparation
@@ -208,7 +238,10 @@ fn local_submission_start(
         _ => stop("InvalidLocalRunInstallation")
       },
     )
-    let preparation = local_prepare_submitted_run_program(intent, environment)
+    let preparation = match business {
+      None => local_prepare_submitted_run_program(intent, environment)
+      Some(original) => original.preparation
+    }
     guard @local_host.native_client_submitted_preparation(preparation)
       is Computation(prepared) else {
       match
