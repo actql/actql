@@ -1096,6 +1096,19 @@ may outlive descriptor close until their separate original lifetimes retire.
 Mutating a later limits record cannot increase the captured allowance. These
 private recipe conditions do not change unselected Journal or public limits.
 
+Selected Host root-format admission consumes a one-entry view of that same
+native module, with its own two-attempt construction history. It does not use
+stock `Dir`, enumerate the rest of a directory or decode an unrelated name
+merely to establish nonemptiness. The existing fixed marker and legacy-name
+probes retain their precedence, without a new full-directory cardinality or
+Unicode format rule. The Root binds the original namespace operation and same
+Host subject before the call, retains its single flight and partial cleanup
+through close, and refuses a second admission or Journal work during that
+flight. Unselected format admission keeps its existing path. The original
+native 64-KiB buffer, returned first-entry bytes, wrappers, callbacks and marker
+FD/work overlap belong to the same complete pre-use facility; the bounded
+view and a successful marker write are not that operational supplier.
+
 The selected Store exclusion uses a separate nominal view of that same retained
 native module before Journal construction. Its explicit entry/work/history
 allowance is included beside the Journal view, not credited twice from one

@@ -2,6 +2,8 @@ import {constants} from 'node:fs';
 import {lstat, mkdir, open, opendir} from 'node:fs/promises';
 import {join} from 'node:path';
 import {readBoundedConfigurationText, withOriginalFile} from './source-profile-json.mjs';
+import {assertHostJournalDirectoryInspector, inspectHostJournalDirectoryFirstEntry}
+  from './host-journal-directory.mjs';
 
 const markerName = 'host-format.json';
 const markerBytes = Buffer.from(JSON.stringify({
@@ -16,7 +18,7 @@ function formatError(code, root) {
   return Object.assign(new Error(code), {code, root});
 }
 
-async function firstEntry(root, openDirectory) {
+async function firstEntry(root, openDirectory, directoryInspection) {
   try {
     const state = await lstat(root);
     if (!state.isDirectory() || state.isSymbolicLink()) {
@@ -25,6 +27,12 @@ async function firstEntry(root, openDirectory) {
   } catch (error) {
     if (error?.code === 'ENOENT') return undefined;
     throw error;
+  }
+  if (directoryInspection !== undefined) {
+    // The selected same-Root native original avoids stock Dir construction
+    // and its platform-dependent prefetch. Its own failure/close carrier is
+    // unchanged, never absence, fallback or permission to create a marker.
+    return inspectHostJournalDirectoryFirstEntry(directoryInspection, root);
   }
   // Only emptiness is needed. Do not materialize an arbitrary directory and
   // count it afterward. Node's original Dir owns one buffered Dirent here;
@@ -71,8 +79,9 @@ async function admitMarker(root) {
   if (text !== markerBytes.toString('utf8')) throw formatError('UnsupportedHostRootFormat', root);
 }
 
-export async function admitHostRootFormat(root, {openDirectory = opendir} = {}) {
-  let entry = await firstEntry(root, openDirectory);
+export async function admitHostRootFormat(root, {openDirectory = opendir, directoryInspection} = {}) {
+  if (directoryInspection !== undefined) assertHostJournalDirectoryInspector(directoryInspection, 1);
+  let entry = await firstEntry(root, openDirectory, directoryInspection);
   // The closed format already gives the only names relevant to this choice.
   // A valid marker keeps priority even with unrelated or legacy entries; a
   // legacy name keeps priority over other unknown contents. No full listing
@@ -93,7 +102,7 @@ export async function admitHostRootFormat(root, {openDirectory = opendir} = {}) 
   // The root is absent or empty. A second read keeps existing, unmarked
   // content from being mistaken for a fresh installation before the marker.
   await mkdir(root, {recursive: true, mode: 0o700});
-  entry = await firstEntry(root, openDirectory);
+  entry = await firstEntry(root, openDirectory, directoryInspection);
   if (entry !== null) {
     throw formatError('UnknownHostRootFormat', root);
   }

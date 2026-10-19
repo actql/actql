@@ -151,6 +151,9 @@ function closeJournal(entry) {
       // An acquired child must be retained by the original opening flight
       // before close can inspect it. Closing prevents that flight from
       // starting native work after its awaited ownership/current boundary.
+      if (entry.rootFormatFlight !== undefined) {
+        try { await entry.rootFormatFlight; } catch {}
+      }
       if (entry.openFlight !== undefined) {
         try { await entry.openFlight; } catch {}
       }
@@ -183,7 +186,7 @@ function closeJournal(entry) {
       }
       entry.closed = true;
       entry.subject = entry.subjectCurrent = entry.paths = undefined;
-      entry.directoryInspection = entry.ownershipDirectoryInspection = undefined;
+      entry.directoryInspection = entry.ownershipDirectoryInspection = entry.rootDirectoryInspection = undefined;
       entry.inspectionTemporaryDirectory = undefined;
       entry.nativeImage = entry.nativeImageCurrent = undefined;
       return journalStatus(entry);
@@ -220,7 +223,8 @@ function prepareJournal(held) {
     disposition: state.journalDisposition, subject: undefined, subjectCurrent: undefined, paths: undefined,
     argumentsForJournal: undefined, nativeImage: undefined, nativeImageCurrent: undefined,
     directoryInspection: undefined, directoryEntryBound: undefined, inspectionTemporaryDirectory: undefined,
-    ownershipDirectoryInspection: undefined,
+    ownershipDirectoryInspection: undefined, rootDirectoryInspection: undefined,
+    rootFormatAttempted: false, rootFormatFlight: undefined,
     attempted: false, nativeAttempted: false, openFlight: undefined,
     ownership: undefined, ownershipForwarded: false, dependency: undefined,
     journal: undefined, journalClose: undefined,
@@ -266,6 +270,13 @@ function prepareJournal(held) {
     }
     entry.ownershipDirectoryInspection = createHostJournalDirectoryInspector(
       field(entry.nativeImage, 'operations'), ownershipLimits, () => journalCurrent(original, held));
+    const rootLimits = field(entry.disposition, 'rootFormatDirectoryLimits');
+    if (field(rootLimits, 'maxEntries') !== 1 || field(rootLimits, 'maxInspections') !== 2 ||
+        field(rootLimits, 'maxNameBytes') !== 1024 || field(rootLimits, 'maxWork') !== 4096) {
+      journalUnavailable();
+    }
+    entry.rootDirectoryInspection = createHostJournalDirectoryInspector(
+      field(entry.nativeImage, 'operations'), rootLimits, () => journalCurrent(original, held));
     entry.subject = apply(state.journal.read, state.namespace, [held]);
     entry.subjectCurrent = field(entry.subject, 'assertCurrent');
     if (typeof entry.subjectCurrent !== 'function') journalUnavailable();
@@ -276,6 +287,31 @@ function prepareJournal(held) {
     catch (cleanupFailure) { journalFailure(entry, cleanupFailure); }
     throw journalCarrier(entry, cause);
   }
+}
+function admitJournalRootFormat(original, held, root) {
+  const entry = journalCurrent(original, held);
+  if (root !== entry.paths.root || entry.rootFormatAttempted || entry.attempted) journalUnavailable();
+  entry.rootFormatAttempted = true;
+  // Publish before invoking the captured namespace or an awaited marker/FD
+  // operation. Host close retains this same flight and all partial cleanup.
+  const flight = apply(journalPromiseThen, apply(journalPromiseResolve, journalPromise, []), [async () => {
+    try {
+      journalCurrent(original, held);
+      const outcome = await apply(state.journal.rootFormat, state.namespace,
+        [root, freeze({directoryInspection: entry.rootDirectoryInspection})]);
+      journalCurrent(original, held);
+      if (outcome !== 'new' && outcome !== 'current') journalUnavailable();
+      return outcome;
+    } catch (cause) {
+      try { journalCleanup(entry, cause); }
+      catch (cleanupFailure) { journalFailure(entry, cleanupFailure); }
+      throw journalCarrier(entry, cause);
+    }
+  }]);
+  entry.rootFormatFlight = flight;
+  const settled = () => { if (entry.rootFormatFlight === flight) entry.rootFormatFlight = undefined; };
+  apply(journalPromiseThen, flight, [settled, settled]);
+  return flight;
 }
 function captureJournalNativeBindings(fsOriginal, cryptoOriginal, fsPromisesOriginal) {
   const bindings = Object.create(null);
@@ -298,7 +334,8 @@ function captureJournalNativeBindings(fsOriginal, cryptoOriginal, fsPromisesOrig
 }
 function openJournal(original, held, directory, options) {
   const entry = journalCurrent(original, held);
-  if (entry.attempted || directory !== entry.paths.journalDirectory) journalUnavailable();
+  if (entry.attempted || entry.rootFormatFlight !== undefined ||
+      directory !== entry.paths.journalDirectory) journalUnavailable();
   // The selected disposition's fixed argument boundary must precede native
   // work. No caller option object or scalar may select a facility/limit.
   entry.attempted = true;
@@ -949,6 +986,7 @@ const table = module.exports = {
   },
   openHostJournalRequestJournal: openJournal,
   originalHostPublicationOwnership: journalPublicationOwnership,
+  admitHostJournalRootFormat: admitJournalRootFormat,
   prepareSourceManagedInstallation: prepareSource,
   assertSourceManagedInstallationCurrent(original, originals) {sourceCurrent(original, originals);},
   beforeSourceSnapshot(original, originals, kind, input, options) {
@@ -1097,6 +1135,7 @@ try {
     ownershipPrepare: 'prepareOriginalHostPublicationOwnership',
     ownershipCurrent: 'assertOriginalHostPublicationOwnershipCurrent',
     ownershipClose: 'closeOriginalHostPublicationOwnership',
+    rootFormat: 'admitOriginalHostRootFormat',
     current: 'assertOriginalHostRequestJournalFacilityCurrent'})) {
     const entry = descriptor(namespace, exported);
     journal[name] = entry !== undefined && own(entry, 'value') ? entry.value : undefined;

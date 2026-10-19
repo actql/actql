@@ -13,6 +13,7 @@ import {createHostJournalDirectoryInspector, assertHostJournalDirectoryInspector
   from './host-journal-directory.mjs';
 import {parse} from 'acorn';
 import {DatabaseSync, StatementSync} from 'node:sqlite';
+import {admitHostRootFormat} from './host-root-format.mjs';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody,
   assertOriginalClientRequestJournalFacilityCurrent}
@@ -25,7 +26,7 @@ const source = readFileSync(new URL('./node-public-initial-control-bootstrap.cjs
 const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'script'});
 const names = ['journalOriginal', 'journalFailure', 'journalCurrent', 'journalStatus',
   'journalCleanup', 'journalAcknowledged', 'journalExclusionDependency', 'closeJournal', 'journalCarrier',
-  'prepareJournal', 'captureJournalNativeBindings', 'openJournal', 'journalPublicationOwnership'];
+  'prepareJournal', 'admitJournalRootFormat', 'captureJournalNativeBindings', 'openJournal', 'journalPublicationOwnership'];
 const bodies = names.map(name => {
   const nodes = ast.body.filter(node => node.type === 'FunctionDeclaration' && node.id.name === name);
   assert.equal(nodes.length, 1);
@@ -34,9 +35,10 @@ const bodies = names.map(name => {
 const table = ast.body.filter(node => node.type === 'VariableDeclaration')
   .flatMap(node => node.declarations).find(node => node.id.name === 'table').init.right;
 const journalNames = ['prepareHostJournalInstallation', 'assertHostJournalInstallationCurrent',
-  'closeHostJournalInstallation', 'openHostJournalRequestJournal', 'originalHostPublicationOwnership'];
+  'closeHostJournalInstallation', 'openHostJournalRequestJournal', 'originalHostPublicationOwnership',
+  'admitHostJournalRootFormat'];
 const journalProperties = table.properties.filter(node => journalNames.includes(node.key.name));
-assert.equal(journalProperties.length, 5);
+assert.equal(journalProperties.length, 6);
 const originalOwner = journalProperties.map(node => source.slice(node.start, node.end)).join(',');
 const make = compileFunction(`
   let journalInstallation;
@@ -49,7 +51,7 @@ const make = compileFunction(`
   const field=(value,name)=>{const property=descriptor(value,name);
     if(property===undefined||!own(property,'value'))journalUnavailable();return property.value;};
   ${bodies}
-  return {prepare:prepareJournal,open:openJournal,current:journalCurrent,
+  return {prepare:prepareJournal,open:openJournal,current:journalCurrent,admitRoot:admitJournalRootFormat,
     captureNative:captureJournalNativeBindings,
     ownership:journalPublicationOwnership,owner:{${originalOwner}},
     close:(original,held)=>closeJournal(journalOriginal(original,held,true))};`,
@@ -122,15 +124,16 @@ function connectedHostPreparation(f) {
 }
 
 async function fixture({covered = true, open, read, current, nativeCurrent, subjectFields,
-  loadImage = imageLoader,
+  loadImage = imageLoader, rootFormat = admitHostRootFormat, isolatedHost = false,
   prepareOwnership = prepareLocalPublicationStoreOwnership} = {}) {
   const scratch = await createOwnedScratch({
     parent: fileURLToPath(new URL('../../_build/', import.meta.url)),
     prefix: 'journal-root-custody-', label: 'same Root Journal custody diagnostic',
   });
   const originals = Object.freeze({host: {}, installation: {}, generation: {}});
-  const directory = join(scratch.path, 'requests');
-  const subject = Object.freeze({root: scratch.path, principalId: 'explicit fixture actor',
+  const physicalRoot = isolatedHost ? join(scratch.path, 'host') : scratch.path;
+  const directory = join(physicalRoot, 'requests');
+  const subject = Object.freeze({root: physicalRoot, principalId: 'explicit fixture actor',
     journalDirectory: directory, ...subjectFields,
     assertCurrent() { current?.(); }});
   const namespace = {};
@@ -142,6 +145,8 @@ async function fixture({covered = true, open, read, current, nativeCurrent, subj
     ownershipBounds: Object.freeze({maxWireBytes: 16384, maxDirectoryEntries: 64}),
     ownershipDirectoryLimits: Object.freeze({maxEntries: 64, maxNameBytes: 1024,
       maxWork: 65536, maxInspections: 128}),
+    rootFormatDirectoryLimits: Object.freeze({maxEntries: 1, maxNameBytes: 1024,
+      maxWork: 4096, maxInspections: 2}),
     directoryImageLimits: Object.freeze({maxImageBytes: imageFact.bytes, temporaryDirectory: tmpdir(),
       maxEntries: 100000, maxNameBytes: 1024, maxWork: 268435456, maxInspections: 4096}),
     argumentsForOriginalJournal(actual, options, originalDirectoryInspection, inspectionTemporaryDirectory) {
@@ -158,6 +163,7 @@ async function fixture({covered = true, open, read, current, nativeCurrent, subj
     ownershipPrepare: prepareOwnership,
     ownershipCurrent: assertOriginalPreparedLocalPublicationStoreOwnership,
     ownershipClose: closePreparedLocalPublicationStoreOwnership,
+    rootFormat,
     current(database, statement, bindings) {
       assert.strictEqual(this, namespace);
       assert.strictEqual(database, DatabaseSync);
@@ -171,8 +177,68 @@ async function fixture({covered = true, open, read, current, nativeCurrent, subj
     nativePackageRoot ?? '/explicit-fixture-package', runtimeCurrent, createHostJournalDirectoryInspector);
   state.journalNative = Object.freeze({DatabaseSync,StatementSync,
     bindings:root.captureNative(fs,crypto,fs.promises)});
-  return {scratch, originals, directory, root, state};
+  return {scratch, originals, directory, physicalRoot, root, state};
 }
+
+test('same Root format uses its retained native first view before real Journal acquisition', async () => {
+  const f = await fixture({isolatedHost: true});
+  const original = f.root.prepare(f.originals);
+  assert.throws(() => f.root.admitRoot(original, f.originals, f.scratch.path),
+    {code: 'HostJournalPreparationUnavailable'});
+  assert.equal(await f.root.admitRoot(original, f.originals, f.physicalRoot), 'new');
+  assert.throws(() => f.root.admitRoot(original, f.originals, f.physicalRoot),
+    {code: 'HostJournalPreparationUnavailable'});
+  await f.root.open(original, f.originals, f.directory, {});
+  assert.equal(JSON.parse(readFileSync(join(f.physicalRoot, 'host-format.json'))).version,
+    'actql-local-host-root/0.1');
+  assert.equal((await f.root.close(original, f.originals)).pending, false);
+  f.scratch.passed();
+});
+
+test('Root retains first-entry consumed-close Unknown and never starts Store or Journal', async () => {
+  let opens = 0, closes = 0, journals = 0;
+  const f = await fixture({isolatedHost: true, open() {journals++;},
+    loadImage() {return Object.freeze({assertCurrent() {}, operations: Object.freeze({
+      open() {opens++; return {};}, next() {return null;}, current() {},
+      close() {closes++; return {outcome: 'unknown'};},
+    })});},
+  });
+  fs.mkdirSync(f.physicalRoot);
+  const original = f.root.prepare(f.originals);
+  let failure;
+  await assert.rejects(f.root.admitRoot(original, f.originals, f.physicalRoot), cause => {
+    failure = cause; return cause.cause?.code === 'HostJournalDirectoryCleanupPending';
+  });
+  assert.equal((await failure.cleanupHandle.retry()).pending, true);
+  assert.equal((await failure.cleanupHandle.retry()).pending, true);
+  assert.deepEqual({opens, closes, journals}, {opens: 1, closes: 1, journals: 0});
+  assert.deepEqual(fs.readdirSync(f.physicalRoot), []);
+  f.scratch.passed();
+});
+
+test('same Root close waits for its format flight and does not begin Journal work', async () => {
+  let release, entered;
+  const gate = new Promise(resolve => {release = resolve;});
+  const observed = new Promise(resolve => {entered = resolve;});
+  let callbacks = 0, journals = 0;
+  const f = await fixture({isolatedHost: true, open() {journals++;},
+    async rootFormat() {callbacks++; entered(); await gate; return 'new';},
+  });
+  const original = f.root.prepare(f.originals);
+  const opening = f.root.admitRoot(original, f.originals, f.physicalRoot);
+  await observed;
+  assert.throws(() => f.root.open(original, f.originals, f.directory, {}),
+    {code: 'HostJournalPreparationUnavailable'});
+  let closed = false;
+  const closing = f.root.close(original, f.originals).then(value => {closed = true; return value;});
+  await Promise.resolve();
+  assert.equal(closed, false);
+  release();
+  await assert.rejects(opening, {code: 'HostJournalInstallationCleanupPending'});
+  assert.equal((await closing).pending, false);
+  assert.deepEqual({callbacks, journals}, {callbacks: 1, journals: 0});
+  f.scratch.passed();
+});
 
 test('Root path support refuses oversized originals before Store or Journal acquisition', async () => {
   for (const subjectFields of [{root: 'r'.repeat(4097)},

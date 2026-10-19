@@ -32,7 +32,7 @@ export function createHostJournalDirectoryInspector(native, limits, assertCurren
       !integer(maxWork) || maxWork < maxEntries ||
       !integer(maxInspections) || maxInspections < 1) fail('HostJournalDirectoryUnavailable');
   let active = false, pendingDuty, inspections = 0;
-  const inspect = function inspect(directory) {
+  const run = function inspect(directory, firstOnly) {
     if (active || pendingDuty !== undefined || typeof directory !== 'string' || directory.length === 0 ||
         directory.length > 4096 ||
         directory.includes('\0') || inspections === maxInspections) fail('HostJournalDirectoryUnavailable');
@@ -77,6 +77,10 @@ export function createHostJournalDirectoryInspector(native, limits, assertCurren
           fail('HostJournalDirectoryUnavailable');
         }
         work += bytes.length + 1;
+        // Emptiness does not require decoding or normalizing an unrelated
+        // name. Keep the bounded original bytes so a marker's precedence is
+        // not narrowed by a UTF8 condition belonging to the full-name scan.
+        if (firstOnly) { apply(push, entries, [bytes]); break; }
         const name = apply(decode, decoder, [bytes]);
         if (name === '.' || name === '..' || name.includes('/') || name.includes('\0') ||
             apply(setHas, seen, [name])) fail('HostJournalDirectoryUnavailable');
@@ -85,7 +89,7 @@ export function createHostJournalDirectoryInspector(native, limits, assertCurren
       }
       if (apply(current, native, [original]) !== undefined) fail('HostJournalDirectoryUnavailable');
       assertCurrent();
-      apply(sort, entries, []);
+      if (!firstOnly) apply(sort, entries, []);
     } catch (cause) { failed = true; primary = cause; }
     finally { closeOriginal(); active = false; }
     if (original !== undefined) {
@@ -106,7 +110,12 @@ export function createHostJournalDirectoryInspector(native, limits, assertCurren
     if (failed) throw primary;
     return entries;
   };
-  apply(weakSet, inspectors, [inspect, maxEntries]);
+  const inspect = directory => run(directory, false);
+  const first = directory => {
+    const entries = run(directory, true);
+    return entries.length === 0 ? null : entries[0];
+  };
+  apply(weakSet, inspectors, [inspect, freeze({maxEntries, first})]);
   return inspect;
 }
 
@@ -115,10 +124,20 @@ export function createHostJournalDirectoryInspector(native, limits, assertCurren
 // same installation/currentness and complete co-phase backing before use.
 export function assertHostJournalDirectoryInspector(inspector, maxEntries) {
   if (typeof inspector !== 'function' || !integer(maxEntries) || maxEntries < 1 ||
-      apply(weakGet, inspectors, [inspector]) !== maxEntries) fail('HostJournalDirectoryUnavailable');
+      apply(weakGet, inspectors, [inspector])?.maxEntries !== maxEntries) fail('HostJournalDirectoryUnavailable');
 }
 
 export function inspectHostJournalDirectory(inspector, directory, maxEntries) {
   assertHostJournalDirectoryInspector(inspector, maxEntries);
   return apply(inspector, undefined, [directory]);
+}
+
+// Same native instance, captured operations, cumulative history and consumed
+// close duty as the full scan. A callable/receiver copy cannot select it.
+// Only a one-entry view is accepted; this operation issues no new allowance.
+// Nonempty returns the original bounded byte Buffer, not a decoded name.
+export function inspectHostJournalDirectoryFirstEntry(inspector, directory) {
+  assertHostJournalDirectoryInspector(inspector, 1);
+  const original = apply(weakGet, inspectors, [inspector]);
+  return apply(original.first, undefined, [directory]);
 }
