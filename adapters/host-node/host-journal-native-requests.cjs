@@ -172,7 +172,8 @@ function includedNativeComponents(value) {
     vm.cursorStorageBlocks * (u(vm.eachCursorStorageRequest) + u(vm.eachCursorCacheControlRequest) +
       vm.eachCursorOverflowGrowth.previousMaximum.heapUsableUpper +
       vm.eachCursorOverflowGrowth.nextMaximum.heapUsableUpper + u(vm.eachSavedIndexKeyRequestUpper)) +
-    statement.childPrograms * u(statement.eachChildFrameRequest));
+    statement.childPrograms * u(statement.eachChildFrameRequest) +
+    value.temporaryBtrees.heapUsableSubsetUpper);
   // A positional call clears the old binding set BEFORE constructing its
   // values. At most14 current slots plus one translating copy coexist, then
   // the separate Node Utf8Value. Map each block sum, never U(sum requests).
@@ -281,6 +282,25 @@ function hostJournalNativeStructureRequests(input) {
   const forestNodes = 47967n, forestItems = 95934n;
   const forestListRequests = 12663288n;
   const clonedListRequests = checked(2n * forestListRequests + 32768n * forestNodes);
+  // Fixed admitted SQL uses only scalar literal IN lists of at most5 items;
+  // each ASCII literal is shorter than64 bytes. Cover even the two-item
+  // NOOP alternative as a Btree, without relying on planner optimization.
+  // A TEXT key has at most128 UTF16 data bytes+3 record-header bytes. With
+  // minimum480 usable bytes each key needs at most one overflow page. Five
+  // entries occupy at most five leaves/four internal pages, plus schema page1
+  // and five overflow pages. Sixteen live pages conservatively cover that
+  // population and root transition, plus one failed cache-acquisition key.
+  // These are new memory Btree/Pager/cache originals, NOT main Pager aliases.
+  const temporaryPage = 65536n, temporaryCursors = 8n;
+  const temporaryCache = checked(17n * hostJournalNativeUsableUpper(temporaryPage + 272n) +
+    hostJournalNativeUsableUpper(20n * (temporaryPage + 272n)) +
+    hostJournalNativeUsableUpper(168n) + hostJournalNativeUsableUpper(2048n));
+  const temporaryControls = checked(hostJournalNativeUsableUpper(3751n) +
+    hostJournalNativeUsableUpper(1026n) + hostJournalNativeUsableUpper(128n) +
+    hostJournalNativeUsableUpper(240n));
+  const temporaryWork = checked(2n * hostJournalNativeUsableUpper(temporaryPage + 8n) +
+    3n * hostJournalNativeUsableUpper(temporaryPage) +
+    hostJournalNativeUsableUpper(7n * temporaryPage));
 
   const value = freeze({
     qualification:'partial-native-request-vectors', completePhase:false,
@@ -482,6 +502,24 @@ function hostJournalNativeStructureRequests(input) {
       aggregateContextCoveredByP4Vector:true,
       aggregateAccumulatorCoveredByDataVector:true,
       retainedMainAndChildArraysAlreadyCounted:true}),
+    temporaryBtrees:freeze({
+      qualification:'fixed-literal-in-memory-btree-subset', completeTemporaryFacility:false,
+      simultaneousOriginals:temporaryCursors, maximumListItems:5n,
+      maximumLiteralUtf8Bytes:64n, maximumEncodedKeyBytes:131n,
+      maximumOverflowPagesPerKey:1n, usablePageLower:480n,
+      livePagesPerOriginal:16n, peakCacheKeysPerOriginal:17n,
+      pageBytesUpper:temporaryPage,
+      eachCacheSubsetUpper:temporaryCache, eachControlSubsetUpper:temporaryControls,
+      eachWorkSubsetUpper:temporaryWork,
+      heapUsableSubsetUpper:checked(temporaryCursors *
+        (temporaryCache + temporaryControls + temporaryWork)),
+      mainPagerAlias:false, separateWalMapping:false,
+      // OP_OpenEphemeral selects OMIT_JOURNAL|SINGLE, while the selected
+      // TEMP_STORE=MEMORY is checked before schema preparation. No virtual
+      // table/subquery/sorter/automatic-join-index execution is imported.
+      omittedJournal:true, temporaryStorage:'memory',
+      coversSortersOrVirtualTables:false, closeReturnsRegionCredit:false,
+    }),
     fixedSchema:freeze({
       qualification:'closed-own-ddl-retained-subset', completeSchema:false,
       // One combined primary/observation catalogue, NOT a copy per prepared

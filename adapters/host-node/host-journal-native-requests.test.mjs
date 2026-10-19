@@ -480,8 +480,44 @@ test('UTF16 round-trip allocation uses logical encoded length and only one activ
     vm.eachCursorOverflowGrowth.nextMaximum.heapUsableUpper+u(vm.eachSavedIndexKeyRequestUpper));
   assert.equal(n.activeExecution,(vm.dataRegisters+1n)*u(vm.eachTranslatedDataPayloadRequestUpper)+
     vm.uniqueRcStringBlocks*u(vm.eachRcStringRequestUpper)+cursor+
-    s.childPrograms*u(s.eachChildFrameRequest));
+    s.childPrograms*u(s.eachChildFrameRequest)+value.temporaryBtrees.heapUsableSubsetUpper);
   assert.equal(value.bindings.activeRequestSumPerStatement,12764n);
   assert.equal(n.activeBinding,55352n);
   assert.equal(n.completeJournal,false);
+});
+
+test('literal IN ephemeral indexes keep their own Pager/cache instead of borrowing the main database', () => {
+  const t = calculate(input()).temporaryBtrees;
+  assert.equal(t.simultaneousOriginals,8n);
+  assert.equal(t.maximumListItems,5n);
+  assert.equal(t.maximumLiteralUtf8Bytes,64n);
+  assert.equal(t.maximumEncodedKeyBytes,131n);
+  assert(t.maximumEncodedKeyBytes < t.usablePageLower-4n);
+  assert.equal(t.maximumOverflowPagesPerKey,1n);
+  assert.equal(t.livePagesPerOriginal,16n);
+  assert.equal(t.peakCacheKeysPerOriginal,17n);
+  assert.equal(t.mainPagerAlias,false);
+  assert.equal(t.separateWalMapping,false);
+  assert.equal(t.omittedJournal,true);
+});
+
+test('temporary page geometry is independently bounded, not copied from a smaller main page', () => {
+  const small = calculate(input({pageBytes:512n})).temporaryBtrees;
+  const large = calculate(input({pageBytes:65536n})).temporaryBtrees;
+  assert.deepEqual(small,large);
+  assert.equal(small.pageBytesUpper,65536n);
+  assert.equal(small.eachCacheSubsetUpper,17n*usable(65808n)+usable(1316160n)+usable(168n)+usable(2048n));
+  assert.equal(small.heapUsableSubsetUpper,8n*(small.eachCacheSubsetUpper+
+    small.eachControlSubsetUpper+small.eachWorkSubsetUpper));
+  assert.equal(small.completeTemporaryFacility,false);
+  assert.equal(small.closeReturnsRegionCredit,false);
+  assert(Object.isFrozen(small));
+});
+
+test('larger saved payloads can select execution rather than preparation without crediting another phase', () => {
+  const n = calculate(input({databaseBytes:67108864n})).includedNativeComponents;
+  assert(n.activeExecution > n.activePrepare);
+  assert.equal(n.activeAlternative,n.activeExecution);
+  assert.equal(n.heapUsableUpper,n.cache+n.wal+n.savepoint+n.workspaces+n.pagerControls+
+    n.connection+n.retainedSchema+n.retainedStatements+n.retainedBindings+n.activeExecution);
 });
