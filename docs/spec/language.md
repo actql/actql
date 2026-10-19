@@ -2495,8 +2495,37 @@ DATE_ADD MUST retain strict NULL propagation after original eager child demand,
 enclosing lazy demand, resource limits and cancellation under their existing
 Common owners.
 
-The decoded unit is a `{literal: ms|s|m|h|d}`. Full-word units and
-day-specific helper names are not ActQL source vocabulary.
+The decoded DATE_ADD/DATE_DIFF unit remains a `{literal: ms|s|m|h|d}`.
+This structured short-unit contract is distinct from the SQL fixed-interval
+spelling below; it does not reinterpret DATE_ADD Number operands.
+
+### Exact fixed SQL intervals
+
+<!-- requirement-block: scalar-expressions.fixed-interval-source -->
+SQL TIMESTAMP_ADD(value, INTERVAL amount UNIT), TIMESTAMP_SUB(value, INTERVAL
+amount UNIT), and Timestamp plus/minus INTERVAL amount UNIT MUST lower to the
+shared `timestamp_add`/`timestamp_sub` operation with three original children:
+Timestamp, exact integral amount, and literal fixed unit. The explicit mappings
+NANOSECOND/MICROSECOND/MILLISECOND/SECOND/MINUTE/HOUR/DAY are ns/us/ms/s/m/h/d;
+DAY is 24 hours, HOUR 60 minutes, and MINUTE 60 seconds. No timezone, DST,
+calendar-month or year adjustment is inferred.
+
+<!-- requirement-block: scalar-expressions.fixed-interval-exact-amount -->
+The interval consumer MUST retain an integral source token exactly and admit its
+canonical decimal String atom in signed64 context, including the full signed64
+range. Typed int64 fields and Parameters keep their original checked domain;
+nonliteral Number, Decimal or Text values never promote. Ordinary Number source
+meaning, DATE_ADD duration arithmetic and general int64 operation signatures
+remain unchanged. An interval is a source operand role, not a standalone value.
+
+<!-- requirement-block: scalar-expressions.fixed-interval-evaluation -->
+Timestamp interval arithmetic MUST multiply the signed integer by the fixed
+nanosecond factor exactly and preserve the original instant's nanoseconds with
+signed carry. Calendar/range overflow fails ArithmeticFailure. Subtraction of
+min_int64 must not overflow an intermediate Int64 negation. Preserve eager
+left-to-right child failure, strict NULL, surrounding lazy demand, original root
+lifetimes, resource bounds and cancellation; no binary64 coercion or rounding
+may replace these operations.
 The expression 0.1 contract retains the binary64 arithmetic laws of
 `actql-scalar-semantics/0.1`, with the conversion/concatenation rules below.
 Every binary64 arithmetic result rounds to
@@ -11339,7 +11368,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:a5650fca6889a7b9317c60e97e19f2b8dd44f693d22f0abad2bdc77295520b7a
+../../spec/contracts/actql-aoa.json# sha256:f5504e6c77e4408e51c3bd067a8fbf34e5238af9dcee0da08114ab21465b313a
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11348,13 +11377,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:d6b7858803ca124096f4be943c3f7510e4eb6cc4b162c43552778f6cb2029b49
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:dcb3f1699f21265002dde07687247fecd64143df52d6c55d01d8ed68d5c51d1d
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:7b8fb6524ddc4aa3486f8882fa8793b8aad981bcab8fd20025a3a65273b98a6a
+../../spec/contracts/actql-expressions.json# sha256:92b558028f8a5091a33b8b6d6e3fa32344b1b43cf9281e4c8c187886c9b6f292
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:5158d84b45438357fa0e9672445eb0c11420f787628e535a7235e0a25083b828
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:2c8162832e673074c4278aa4ee2148de04862ee5f2d9fa502e2be6a780547f81
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:05c5fac79987c9e012d3736ae7dafbcef447da85dc5f10826d99e6b7dc825a80
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:22b1a17f47afa095d89d048f55dea0fd27babb0df6d3a20feefd42feef50a57f
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:21377fca47fd7e91df0177f0197932baf4ba20377f96f9bdbcc5fa460ded068d
+../../spec/contracts/actql-expressions.json#/laws sha256:b46de6f2e2a1a76fdce33125f841963305a4f1a6d4554c8c18fc0d27cd5807ba
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:038769263b23b02a37978b9ca11bbe1b052f530c0b91789bec9707af46b92955
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:2125b522470b07ed6dfc4dbe322b8c6fc3b9459acc80ea0e826b42e87f705896
 ```
 
 <!-- stage-contract-pins:start -->

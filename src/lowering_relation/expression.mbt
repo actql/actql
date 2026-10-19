@@ -143,6 +143,8 @@ pub(all) enum ManyOperator {
   Between
   DateDifference
   DateAddition
+  TimestampAddition
+  TimestampSubtraction
 } derive(Eq, Debug)
 
 ///|
@@ -349,6 +351,8 @@ fn expression_tag(
     | "case"
     | "date_diff"
     | "date_add"
+    | "timestamp_add"
+    | "timestamp_sub"
     | "date_trunc" => ()
     "array" | "empty_array" | "object" | "property" | "subscript" => ()
     other => expression_fail(source, ExpressionNotImplemented(other))
@@ -1100,6 +1104,8 @@ fn lower_typed_expression_measured(
         "strpos" => Binary(Strpos, args[0], args[1])
         "date_diff" => Many(DateDifference, args)
         "date_add" => Many(DateAddition, args)
+        "timestamp_add" => Many(TimestampAddition, args)
+        "timestamp_sub" => Many(TimestampSubtraction, args)
         "date_trunc" => Binary(DateTruncate, args[0], args[1])
         "contains" => Binary(Contains, args[0], args[1])
         "starts_with" => Binary(StartsWith, args[0], args[1])

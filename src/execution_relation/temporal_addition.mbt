@@ -125,3 +125,47 @@ fn temporal_addition(
     None => Err(InvalidOperand)
   }
 }
+
+///|
+// The SQL interval amount is already checked int64. Never convert it to Number,
+// including subtraction of min_int64; negate only the bounded exact product.
+fn temporal_interval(
+  expression : @lower.Expression,
+  unit : String,
+  value : Value,
+  amount : Value,
+  subtract : Bool,
+) -> Result[Value, ScalarIssue] {
+  if value is Null || amount is Null { return Ok(Null) }
+  guard amount is Captured(@admitted.Signed64(integer)) else { return Err(InvalidOperand) }
+  guard value is Captured(@admitted.Timestamp(_)) && temporal_difference_instant(value) is Some(instant) else {
+    return Err(InvalidOperand)
+  }
+  let factor = match unit {
+    "ns" => 1L
+    "us" => 1000L
+    "ms" => 1000000L
+    "s" => 1000000000L
+    "m" => 60000000000L
+    "h" => 3600000000000L
+    "d" => 86400000000000L
+    _ => return Err(InvalidOperand)
+  }
+  let product = @bigint.BigInt::from_int64(integer) * @bigint.BigInt::from_int64(factor)
+  let delta = if subtract { -product } else { product }
+  let billion = @bigint.BigInt::from_int(1000000000)
+  let seconds_delta = delta / billion
+  if seconds_delta < @bigint.BigInt::from_int64(-316000000000L) || seconds_delta > @bigint.BigInt::from_int64(316000000000L) {
+    return Err(ArithmeticFailure)
+  }
+  let mut seconds = instant.seconds + seconds_delta.to_int64()
+  let mut nanos = instant.nanoseconds + (delta % billion).to_int()
+  if nanos < 0 { seconds -= 1L; nanos += 1000000000 }
+  if nanos >= 1000000000 { seconds += 1L; nanos -= 1000000000 }
+  guard @admitted.epoch_parts_timestamp(seconds, nanos) is Some(text) else { return Err(ArithmeticFailure) }
+  let contract = @contract.with_nullability(@lower.expression_contract(expression), false)
+  match @admitted.checked_timestamp_value(text, contract) {
+    Some(checked) => Ok(Captured(checked.value))
+    None => Err(InvalidOperand)
+  }
+}

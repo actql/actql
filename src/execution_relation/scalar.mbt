@@ -639,6 +639,8 @@ pub fn boolean_pair(
     | Between
     | DateDifference
     | DateAddition
+    | TimestampAddition
+    | TimestampSubtraction
     | Greatest
     | Least => Err(InvalidOperand)
   }
