@@ -3,6 +3,7 @@
 // this adapter does not authorize dispatch or issue a public Run outcome.
 import {runtimeFailure, runtimeField, runtimeTriple} from '../host-common/compiler-binding.generated.mjs';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
+import {types as utilTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {claimInferIoNotification} from './infer-io-notification.mjs';
 import {selectedInferOriginalMetadataLimits, selectedInferOriginalStoreBootstrapLimits,
@@ -13,6 +14,8 @@ import {originalModelRawTransportPersistenceMatches, bindOriginalModelRawTranspo
 const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
   {code: 'ClientDispatchCleanupPending'});
 const activeOperations = new WeakMap();
+const isPromise = utilTypes.isPromise;
+const observePromise = Promise.prototype.then;
 // This is nominal membership in the existing operation, not a resource Owner.
 // Escaped handles weakly borrow its retained record and cannot keep the original
 // Model/Scope/Ledger graph alive after actual operation cleanup.
@@ -1056,6 +1059,13 @@ export function openNodeComposedInferProvider({moon, selected, sources,
       typeof retainOperation !== 'function') {
     throw new TypeError('InvalidComposedInferProvider');
   }
+  let prepareRead = originalPreparation?.prepareRead;
+  const deferredRead = prepareRead !== undefined;
+  if (deferredRead && (typeof prepareRead !== 'function' ||
+      generatedInput !== undefined || restoredInput !== undefined)) {
+    throw new TypeError('InvalidComposedInferOriginalPreparation');
+  }
+  let readAttempted = false;
   let operation;
   let failure;
   const selectProvider = generatedInput === undefined
@@ -1063,7 +1073,31 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   const provider = selectProvider(
     selected.occurrence, inputs => {
       try {
-        if (operation !== undefined) throw new Error('ComposedInferAlreadyOpened');
+        if (operation !== undefined || readAttempted || deferredRead && failure !== undefined) {
+          throw failure ?? new Error('ComposedInferAlreadyOpened');
+        }
+        let preparation = originalPreparation;
+        if (deferredRead) {
+          // The parent already retains the Scope. Claim its read only after
+          // Local has supplied the actual inputs, with no intervening await.
+          readAttempted = true;
+          try { preparation = Reflect.apply(prepareRead, originalPreparation, []); }
+          finally {
+            // Retire only these callback aliases, never the original parent's
+            // read/Scope duty or a failed issuance's pending cleanup.
+            prepareRead = undefined;
+            originalPreparation = undefined;
+          }
+          // Do not read an inherited getter on the original view. A native
+          // async return is observed only to suppress detached rejection, not
+          // awaited or admitted as a synchronous read original.
+          const asyncView = isPromise(preparation);
+          if (preparation === null || typeof preparation !== 'object' ||
+              asyncView || Object.hasOwn(preparation, 'then')) {
+            if (asyncView) void Reflect.apply(observePromise, preparation, [undefined, () => {}]);
+            throw new TypeError('InvalidComposedInferOriginalPreparation');
+          }
+        }
         operation = openNodeInferOperation({moon, graph: selected.graph,
           composedInput: generatedInput !== undefined ? undefined : {occurrence: selected.occurrence,
             prefix: selected.computePrefix, inputs, sources},
@@ -1074,7 +1108,8 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           computeSuffix: generatedInput === undefined ? selected.computeSuffix : undefined, provider: selected.provider,
           quantityCapacity: selected.quantityCapacity,
           physicalPreflight: selected.physicalPreflight,
-          egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput, originalPreparation,
+          egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput,
+          originalPreparation: preparation,
           retainOperation(value) { operation = value; retainOperation(value); }});
         operation.bindRun(control, plan);
         if (!durableCalls) operation.bindDispatch(control, {...plan, account: selected.account,
@@ -1082,7 +1117,8 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           observeAt: now});
         return activeOperations.get(operation);
       } catch (error) {
-        failure = error;
+        if (deferredRead) failure ??= error;
+        else failure = error;
         return undefined;
       }
     }, issue => {
