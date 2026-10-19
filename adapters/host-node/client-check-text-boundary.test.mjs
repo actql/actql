@@ -791,6 +791,45 @@ for (const entrance of ['local', 'http']) {
     });
   }
 
+  test(`${entrance}: public DATE_ADD retains the original fixed-unit operation`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    const clock = "CAST('1969-12-31T23:59:59.999999999Z' AS TIMESTAMP)";
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        ...['ms', 's', 'm', 'h', 'd'].map(unit => `SELECT DATE_ADD(${clock}, 1, '${unit}') AS shifted`),
+        `SELECT DATE_ADD(${clock}, 0.125, 's') AS shifted`,
+        `SELECT ${clock} AS clock |> SELECT DATE_ADD(clock, 0.5, ('ms')) AS shifted`,
+        "SELECT `DaTe_AdD`(CAST(NULL AS TIMESTAMP), 1, 's') AS shifted",
+        "SELECT DATE_ADD(@clock, @amount, 's') AS shifted",
+        "SELECT DATE_ADD(@day, 2, 'd') AS shifted",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@clock') ? {parameterDeclarations: {clock: {type: 'timestamp'}, amount: {type: 'number'}},
+            parameters: {clock: '1969-12-31T23:59:59.999999999Z', amount: 0.125}} : {}),
+          ...(text.includes('@day') ? {parameterDeclarations: {day: {type: 'date'}}, parameters: {day: '2000-02-28'}} : {})});
+        assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+        assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+        assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      for (const text of [
+        `SELECT DATE_ADD(${clock}, 1) AS bad`, `SELECT DATE_ADD(${clock}, 1, 's', 'ms') AS bad`,
+        `SELECT DATE_ADD(${clock}, 1, 'MS') AS bad`, `SELECT DATE_ADD(${clock}, 1, @unit) AS bad`,
+        `SELECT DATE_ADD(${clock}, 1, 'm' || 's') AS bad`, `SELECT DATE_ADD(${clock}, '1', 's') AS bad`,
+        `SELECT DATE_ADD(1, 1, 's') AS bad`, "SELECT DATE_ADD(@day, 1, 's') AS bad",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@unit') ? {parameterDeclarations: {unit: {type: 'string'}}, parameters: {unit: 'ms'}} : {}),
+          ...(text.includes('@day') ? {parameterDeclarations: {day: {type: 'date'}}, parameters: {day: '2000-02-28'}} : {})});
+        assert.equal(checked.report.verdict, 'invalid', text);
+      }
+      const foreign = await client.check(`SELECT ACTQL.DATE_ADD(${clock}, 1, 's') AS shifted`,
+        {kind: 'text', scope: 'bound_input', format});
+      assert.equal(foreign.report.verdict, 'undetermined');
+      assert.equal(foreign.report.coverage.limits[0].code, 'implementation_limit');
+    }
+  });
+
   test(`${entrance}: public DATE_TRUNC uses value then original literal unit`, async t => {
     const {client} = await publicCheck(t, entrance);
     const clock = "CAST('1969-12-31T23:59:59.999999999Z' AS TIMESTAMP)";

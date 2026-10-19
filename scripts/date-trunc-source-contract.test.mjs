@@ -16,8 +16,8 @@ test('DATE_TRUNC preserves its complete prior grammar and existing machine contr
     const {grammar_manifest_cid: cid, ...body} = value;
     assert.equal(hash(canonical(body)), cid);
   }
-  assert.deepEqual(read('spec/manifests/actql-grammar-0.1.json'), vector.after);
-  assert.equal(vector.after.query_text_rules_sha256, hash(readFileSync('docs/spec/query-text.md')).slice(7));
+  assert.deepEqual(read('scripts/fixtures/date-add-source/predecessor.json').grammar, vector.after);
+  // The complete DATE_TRUNC predecessor is retained before DATE_ADD source rules.
   assert.deepEqual({...vector.after,
     grammar_manifest_cid: vector.before.grammar_manifest_cid,
     query_text_rules_sha256: vector.before.query_text_rules_sha256}, vector.before);

@@ -90,8 +90,8 @@ An instant one nanosecond before the epoch therefore has a zero public
 millisecond difference while still being earlier under exact comparison and
 internal event-clock classification. This public result does not replace the
 exact event-clock projection or broaden trusted-now, expiry, rollback or
-cleanup clocks. `date_add`, civil/offset domains and dynamic clock
-material remain separate existing implementation responsibilities.
+cleanup clocks. Civil/offset domains and dynamic clock material remain separate
+existing implementation responsibilities.
 
 
 Fixed `date_trunc` uses the existing eager binary event path with the original
@@ -104,3 +104,23 @@ Negative instants use the containing fixed UTC bucket; no binary64 timestamp,
 epoch-nanosecond Int64, Host Date or operational clock is introduced. Formatter
 workspace, contract/value records and input/output aliases overlap; logical
 root retirement is not physical cleanup acknowledgement or phase funding.
+
+### Exact fixed-unit temporal addition
+
+DATE_ADD shares the existing eager three-child temporal frame with DATE_DIFF.
+The frame retains the original timestamp/date, evaluated Number and unit roots
+through the result and charges their existing logical/control owners. Amount
+expressions still round under ordinary Number laws. The resulting bits select
+an exact signed significand/exponent duration; conversion does not multiply the
+unit in binary64 or reinterpret a shortest decimal spelling. Nonintegral
+nanoseconds and calendar overflow fail through ArithmeticFailure.
+
+A loose calendar-width guard bounds all integer scratch before allocation.
+The significand/unit product stays below 100 bits; divisibility is checked with
+trailing-zero count before a right shift, so tiny subnormals do not allocate an
+unbounded denominator. Whole seconds and a signed nanosecond remainder preserve
+the full calendar without an epoch-nanosecond Int64. Fixed structural workspace
+is reserved before integer and formatting scratch; those slots are not physical
+byte capacity. Generated calendar values return through the original Value
+owner and the original result contract. Timestamp/Date value identities, Run
+clocks, ordinary DATE_DIFF and physical authority remain separate.

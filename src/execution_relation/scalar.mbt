@@ -633,6 +633,7 @@ pub fn boolean_pair(
     | RPad
     | Between
     | DateDifference
+    | DateAddition
     | Greatest
     | Least => Err(InvalidOperand)
   }

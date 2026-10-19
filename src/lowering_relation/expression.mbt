@@ -138,6 +138,7 @@ pub(all) enum ManyOperator {
   RPad
   Between
   DateDifference
+  DateAddition
 } derive(Eq, Debug)
 
 ///|
@@ -338,6 +339,7 @@ fn expression_tag(
     | "if"
     | "case"
     | "date_diff"
+    | "date_add"
     | "date_trunc" => ()
     "array" | "empty_array" | "object" | "property" | "subscript" => ()
     other => expression_fail(source, ExpressionNotImplemented(other))
@@ -1064,6 +1066,7 @@ fn lower_typed_expression_measured(
         "log" => Binary(Log, args[0], args[1])
         "strpos" => Binary(Strpos, args[0], args[1])
         "date_diff" => Many(DateDifference, args)
+        "date_add" => Many(DateAddition, args)
         "date_trunc" => Binary(DateTruncate, args[0], args[1])
         "contains" => Binary(Contains, args[0], args[1])
         "starts_with" => Binary(StartsWith, args[0], args[1])

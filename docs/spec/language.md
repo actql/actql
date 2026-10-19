@@ -2474,6 +2474,27 @@ are not admitted in 0.1. Their forms are
 `{date_diff: [{field: end_timestamp}, {field: start_timestamp}, {literal: unit}]}`. Timestamp
 inputs and `date_add` results use canonical UTC ISO-8601 strings; `date_diff`
 returns a finite numeric count in the authored fixed unit.
+
+<!-- requirement-block: scalar-expressions.exact-number-date-add-duration -->
+For Timestamp `date_add`, the Common temporal owner MUST first evaluate the
+original Number amount under ordinary binary64 rounding laws, then interpret
+the resulting bits exactly as a duration in the authored fixed unit, without a
+rounded binary64 unit product or decimal-spelling reinterpretation.
+
+<!-- requirement-block: scalar-expressions.exact-number-date-add-result -->
+The operation MUST add the exact duration to the original instant with signed
+carry preserving original nanoseconds, failing with the existing
+ArithmeticFailure for a nonintegral nanosecond result or calendar-range
+overflow rather than rounding or truncating. Thus 0.125 seconds and 0.5
+milliseconds can succeed, while binary64 0.1 seconds and binary64 1e-9 seconds
+fail rather than becoming ideal decimal rational durations. Date keeps
+integer-day-only arithmetic; Timestamp amounts are not restricted to integers.
+
+<!-- requirement-block: scalar-expressions.exact-number-date-add-demand -->
+DATE_ADD MUST retain strict NULL propagation after original eager child demand,
+enclosing lazy demand, resource limits and cancellation under their existing
+Common owners.
+
 The decoded unit is a `{literal: ms|s|m|h|d}`. Full-word units and
 day-specific helper names are not ActQL source vocabulary.
 The expression 0.1 contract retains the binary64 arithmetic laws of
@@ -11274,7 +11295,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:899be6a80ef655f4460e4a0414ec2ef861110b63c19f257de7a5579efa09470c
+../../spec/contracts/actql-aoa.json# sha256:0f0af6fe71e99c6f57999097203bd50eb370e09fb448768438c1397ce6de7136
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
