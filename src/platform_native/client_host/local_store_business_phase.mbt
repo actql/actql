@@ -51,6 +51,7 @@ pub fn NativeLocalStoreOperation::enter_business_from_original_read(
   }
   // The same receiver now owns return to its borrowed parent even when a later
   // leave/enter refuses. Neither an application exception nor a Bool drops it.
+  receiver.return_acknowledged = false
   receiver.borrowed_read = true
   match original.host.leave_local_host_phase(original.pair) {
     Err(issue) =>

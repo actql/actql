@@ -40,6 +40,7 @@ priv struct NativeLocalStoreOperationReceiver {
   mut phase : LocalStoreOperationPhase
   mut business_pending : Bool
   mut borrowed_read : Bool
+  mut return_acknowledged : Bool
   mut primary : NativeLocalStoreOperationIssue?
   mut cleanup_issue : NativeLocalStoreOperationIssue?
 }
@@ -93,6 +94,7 @@ pub fn prepare_native_local_store_operation(
     phase: StoreRouteIdle,
     business_pending: false,
     borrowed_read: false,
+    return_acknowledged: false,
     primary: None,
     cleanup_issue: None,
   }
@@ -271,6 +273,7 @@ fn NativeLocalStoreOperationReceiver::begin_original(
   self : NativeLocalStoreOperationReceiver,
   library : @sqlite.Library,
 ) -> Result[Unit, NativeLocalStoreOperationIssue] {
+  self.return_acknowledged = false
   if !self.ready ||
     self.primary is Some(_) ||
     self.origin is Some(_) ||
@@ -342,6 +345,7 @@ fn NativeLocalStoreOperationReceiver::begin_cleanup(
   self : NativeLocalStoreOperationReceiver,
   library : @sqlite.Library,
 ) -> Result[Unit, NativeLocalStoreOperationIssue] {
+  self.return_acknowledged = false
   // A borrowed parent callback must return before its Read can be retired.
   // Only that same pending owner may acknowledge an interrupted leave.
   if self.capture.read_callback_active {
@@ -392,6 +396,19 @@ fn NativeLocalStoreOperationReceiver::route(
   library : @sqlite.Library,
   tag : Int,
 ) -> Int {
+  // C still requires this exact outstanding flight before invoking tag3.
+  // A cached actual return ACK cannot start another operation; every new
+  // begin invalidates it before its first attempted acquisition.
+  if tag == 3 &&
+    self.return_acknowledged &&
+    self.phase == StoreRouteIdle &&
+    self.origin is None &&
+    !self.business_pending {
+    return match self.originals(library, true) {
+      Ok(_) => 0
+      Err(issue) => self.refuse(issue)
+    }
+  }
   let result = match tag {
     -1 => self.activate_original(library)
     0 => self.begin_original(library)
@@ -415,6 +432,18 @@ fn NativeLocalStoreOperationReceiver::route(
             match self.leave_phase(original) {
               Err(issue) => Err(issue)
               Ok(_) => self.enter_phase(original, @arena.HostRead)
+            }
+          } else if tag == 3 &&
+            self.cleanup &&
+            self.phase == StoreRoutePending &&
+            self.origin is Some(_) {
+            // Retry only the same failed original return, never a SQL body.
+            match original.finish_pending_store_leave(self) {
+              Err(issue) => Err(StoreOperationCapture(issue))
+              Ok(_) => {
+                self.acknowledge_return(original)
+                Ok(())
+              }
             }
           } else if tag == 3 &&
             self.phase == StoreRouteRead &&
@@ -456,14 +485,7 @@ fn NativeLocalStoreOperationReceiver::route(
                       Ok(_) => {
                         // Actual original restoration/leave acknowledged. Only
                         // now release this flight and its retained cycle.
-                        original.store_operation = None
-                        self.business_pending = false
-                        if self.cleanup {
-                          self.borrowed_read = false
-                        }
-                        self.origin = None
-                        self.phase = StoreRouteIdle
-                        self.cleanup = false
+                        self.acknowledge_return(original)
                         Ok(())
                       }
                     }
@@ -482,6 +504,51 @@ fn NativeLocalStoreOperationReceiver::route(
     Ok(_) => 0
     Err(issue) => self.refuse(issue)
   }
+}
+
+///|
+fn NativeLocalStoreOperationReceiver::acknowledge_return(
+  self : NativeLocalStoreOperationReceiver,
+  original : NativeLocalJournalOriginalResources,
+) -> Unit {
+  original.store_operation = None
+  self.business_pending = false
+  if self.cleanup {
+    self.borrowed_read = false
+  }
+  self.origin = None
+  self.phase = StoreRouteIdle
+  self.cleanup = false
+  self.return_acknowledged = true
+}
+
+///|
+/// Finish only this receiver's recorded scope duty after its borrowed parent
+/// callback returns. No Store/DB/Library close or SQL replay is performed here.
+pub fn NativeLocalStoreOperation::retry_scope_cleanup(
+  self : NativeLocalStoreOperation,
+) -> Result[Unit, NativeLocalStoreOperationIssue] {
+  if self.receiver.capture.read_callback_active {
+    return Err(StoreOperationUnavailable)
+  }
+  guard self.bridge is Some(bridge) else {
+    return Err(StoreOperationUnavailable)
+  }
+  match self.pending_scope() {
+    Ok(false) => return Ok(())
+    Err(issue) => return Err(issue)
+    Ok(true) => ()
+  }
+  // An already completed original return is acknowledged without reentering
+  // or rerunning its body. A failed normal return may only enter cleanup.
+  if bridge.leave_store() is Ok(_) {
+    return Ok(())
+  }
+  match bridge.enter_cleanup() {
+    Err(issue) => return Err(StoreOperationSqlite(issue))
+    Ok(_) => ()
+  }
+  bridge.leave_store().map_err(issue => StoreOperationSqlite(issue))
 }
 
 ///|

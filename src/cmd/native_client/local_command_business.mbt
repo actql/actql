@@ -295,7 +295,11 @@ fn LocalCommandPreparationOriginal::close_business_operation(
   if business.operation is Some(operation) {
     match operation.pending_scope() {
       Err(issue) => return Err(CommandStoreOperation(issue))
-      Ok(true) => return Err(CommandUnavailable)
+      Ok(true) =>
+        match operation.retry_scope_cleanup() {
+          Err(issue) => return Err(CommandStoreOperation(issue))
+          Ok(_) => ()
+        }
       Ok(false) => ()
     }
     match operation.close_checked() {
