@@ -329,3 +329,33 @@ pub fn InstalledArenaHost::close_domain_retained_execution(
   record.closed = true
   Ok(())
 }
+
+///|
+/// Fixed coordinator observation only. Both the original nominal active latch
+/// and actual physical frame must agree; an Err is never an inactive result.
+pub fn InstalledArenaHost::observe_domain_retained_execution_scope(
+  self : InstalledArenaHost,
+  record : InstalledArenaRetainedExecution,
+) -> Result[
+  @bootstrap.NativeBackedReadScope,
+  InstalledArenaRetainedExecutionIssue,
+] {
+  match self.require_domain_retained_execution_current(record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let domain = record.domain
+  let scope = match
+    domain.backing.observe_backed_read_context_scope(
+      self,
+      domain.domain.unwrap(),
+      domain,
+    ) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(value) => value
+  }
+  if record.active != (scope == @bootstrap.BackedReadEntered) {
+    return Err(Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)))
+  }
+  Ok(scope)
+}

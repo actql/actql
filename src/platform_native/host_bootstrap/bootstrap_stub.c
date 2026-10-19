@@ -519,6 +519,27 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_context_entered(
 #endif
 }
 
+/* This original's physical scope state, not proof that every other scope is
+ * clear. The nominal Owner checks current/lifetime and excludes concurrent
+ * retirement. A different active frame never counts as this original entered. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_context_scope(
+    actql_bootstrap_domain *record) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (record == NULL || record->read_context == NULL || !record->read_user ||
+        record->read_prepare_scope) return ACTQL_OWNED_INVALID;
+    actql_read_context *context = actql_read_context_current();
+    actql_owned_capacity *lease = actql_native_owned_current();
+    if (record->read_active == 0 && context != record->read_context &&
+        lease != record->lease) return 0;
+    if (record->read_active != 0 && context == record->read_context &&
+        lease == record->lease) return 1;
+    return ACTQL_OWNED_BUSY;
+#else
+    (void)record;
+    return ACTQL_OWNED_INVALID;
+#endif
+}
+
 /* Registration control is prepared before any Read/owned scope on this
  * thread. This observes only the same original's unentered state: it does not
  * enter a context, allocate control or acknowledge any owner retirement. */

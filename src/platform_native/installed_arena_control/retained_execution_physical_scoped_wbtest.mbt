@@ -20,6 +20,10 @@ fn retained_execution_physical_work(
   host
   .enter_domain_retained_execution(execution)
   .retained_execution_value("retained stage 11: actual entered")
+  assert_eq(
+    host.observe_domain_retained_execution_scope(execution).unwrap(),
+    @bootstrap.BackedReadEntered,
+  )
   let ledger = host
     .borrow_domain_retained_execution_ledger(execution)
     .retained_execution_value("retained stage 12: original Ledger")
@@ -45,6 +49,10 @@ fn retained_execution_physical_work(
   host
   .leave_domain_retained_execution(execution)
   .retained_execution_value("retained stage 15: actual leave")
+  assert_eq(
+    host.observe_domain_retained_execution_scope(execution).unwrap(),
+    @bootstrap.BackedReadUnentered,
+  )
   // Serial reentry has no new Ledger, delegation or zero-based usage reset.
   host
   .enter_domain_retained_execution(execution)
@@ -130,6 +138,10 @@ test "actual in-process domain supplies one entered ledger and retains original 
   )
   assert_true(host.prepare_domain_retained_execution(domain) is Err(_))
   assert_true(host.borrow_domain_retained_execution_ledger(execution) is Err(_))
+  assert_eq(
+    host.observe_domain_retained_execution_scope(execution).unwrap(),
+    @bootstrap.BackedReadUnentered,
+  )
   let retained : Ref[Array[Int]?] = Ref(None)
   let snapshot : Ref[@resources.LedgerUsage?] = Ref(None)
   retained_execution_physical_work(host, execution, page, retained, snapshot)
@@ -142,6 +154,7 @@ test "actual in-process domain supplies one entered ledger and retains original 
   assert_true(
     host.require_domain_retained_execution_current(execution) is Err(_),
   )
+  assert_true(host.observe_domain_retained_execution_scope(execution) is Err(_))
   retained.val = None
   // Replacing the control snapshot does not retire an escaped old snapshot.
   assert_true(host.close_domain_retained_execution(execution) is Err(_))
@@ -157,6 +170,7 @@ test "actual in-process domain supplies one entered ledger and retains original 
   assert_true(
     execution.closed && execution.physical_retired && execution.reported,
   )
+  assert_true(host.observe_domain_retained_execution_scope(execution) is Err(_))
   host
   .close_domain_after_owner_ack(domain)
   .retained_execution_value("retained stage 19: loan/region")

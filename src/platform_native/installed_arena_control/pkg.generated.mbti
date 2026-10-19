@@ -329,6 +329,7 @@ pub fn InstalledArenaHost::leave_local_host_phase(Self, InstalledArenaLocalHostR
 pub fn InstalledArenaHost::live_channel_capacities(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[(Int64, Int64), @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::live_channel_limits(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[@physical_resources.LedgerLimits, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::live_channel_state(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[@physical_resources.BackedExecutionLiveState, @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::observe_domain_retained_execution_scope(Self, InstalledArenaRetainedExecution) -> Result[@host_bootstrap.NativeBackedReadScope, InstalledArenaRetainedExecutionIssue]
 pub fn InstalledArenaHost::observe_local_host_consuming_read_scope(Self, InstalledArenaLocalHostResources, InstalledArenaOriginalRead) -> Result[InstalledArenaLocalHostReadScope, InstalledArenaLocalHostResourcesIssue]
 pub fn InstalledArenaHost::poll_process_stop(Self, InstalledArenaDomain, InstalledArenaProcess) -> Result[Bool, @host_bootstrap.NativeBackedProcessRegionIssue]
 pub fn InstalledArenaHost::prepare_crypto_component(Self, InstalledArenaDomain, String, Int64, Int) -> Result[InstalledArenaCryptoAcquisition, InstalledArenaCryptoIssue]

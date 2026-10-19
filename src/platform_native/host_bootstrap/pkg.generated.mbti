@@ -86,6 +86,11 @@ pub(all) enum NativeBackedProcessRegionIssue {
   OriginalChild(@physical_resources.ImportedChildLedgerIssue)
 } derive(Eq, @debug.Debug)
 
+pub(all) enum NativeBackedReadScope {
+  BackedReadUnentered
+  BackedReadEntered
+} derive(Eq, @debug.Debug)
+
 pub(all) enum NativeBackedViewAcquisition[T, C] {
   Mapped(NativeBackedExecutionView[T, C])
   PendingView(NativeBackedExecutionView[T, C], NativeBackedExecutionIssue)
@@ -151,6 +156,7 @@ pub fn[T, C] NativeHostBootstrap::leave_backed_read_context(Self[T], T, NativeBa
 pub fn[T] NativeHostBootstrap::leave_borrow_scope(Self[T], T, NativeBootstrapBorrow[T]) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T, C] NativeHostBootstrap::lend_backed_region(Self[T], T, NativeBackedExecutionRegion[T, C], NativeBootstrapBorrow[T], C, @physical_resources.BackedExecutionExtent, @physical_resources.BackedExecutionAccess, @physical_resources.LedgerLimits, Int64, Int64) -> Result[NativeBackedExecutionAcquisition[T, C], NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::map_backed_view(Self[T], T, NativeBackedExecutionLoan[T, C], C, Int) -> Result[NativeBackedViewAcquisition[T, C], NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::observe_backed_read_context_scope(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[NativeBackedReadScope, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::original_backed_channel_ledger_frame(Self[T], T, NativeBackedLiveChannel[T, C]) -> Result[@physical_resources.ImportedChildLedger?, NativeBackedOriginalReadIssue]
 pub fn[T, C] NativeHostBootstrap::prepare_backed_live_channel(Self[T], T, NativeBackedExecutionDomain[T, C], C, Int, Int, Int, Int64) -> Result[NativeBackedLiveChannelAcquisition[T, C], NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::prepare_backed_live_channel_before_spawn(Self[T], T, NativeBackedExecutionDomain[T, C], C, Int, Int, Int64) -> Result[NativeBackedLiveChannelAcquisition[T, C], NativeBackedExecutionIssue]
