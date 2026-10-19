@@ -791,6 +791,36 @@ for (const entrance of ['local', 'http']) {
     });
   }
 
+  test(`${entrance}: Decimal arithmetic retains original checked result contracts`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        "SELECT CAST('12.50' AS DECIMAL(6,2)) + CAST('0.125' AS DECIMAL(4,3)) AS total",
+        "SELECT CAST('12.50' AS DECIMAL(6,2)) - CAST('0.125' AS DECIMAL(4,3)) AS total",
+        "SELECT CAST('-12.50' AS DECIMAL(6,2)) * CAST('0.125' AS DECIMAL(4,3)) AS total",
+        'SELECT @a + @b AS total',
+        "SELECT CAST('12.50' AS DECIMAL(6,2)) AS a |> SELECT a + CAST('0.125' AS DECIMAL(4,3)) AS total",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@a') ? {parameterDeclarations: {
+            a: {type: 'decimal', precision: 6, scale: 2},
+            b: {type: 'decimal', precision: 4, scale: 3},
+          }, parameters: {a: '12.50', b: '0.125'}} : {})});
+        assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+        assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      for (const text of [
+        "SELECT CAST('12.50' AS DECIMAL(6,2)) + 1 AS bad",
+        "SELECT 1 - CAST('12.50' AS DECIMAL(6,2)) AS bad",
+        "SELECT CAST('0.00000000000000000001' AS DECIMAL(20,20)) * CAST('0.00000000000000000001' AS DECIMAL(20,20)) AS bad",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format});
+        assert.equal(checked.report.verdict, 'invalid', text);
+      }
+    }
+  });
+
   test(`${entrance}: explicit DECIMAL_DIVIDE retains exact original operand domains`, async t => {
     const {client} = await publicCheck(t, entrance);
     for (const format of ['sql','aql-text']) {

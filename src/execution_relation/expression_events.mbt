@@ -134,6 +134,18 @@ fn expression_event_binary(
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
+  } else if (op == @lower.Add || op == @lower.Subtract || op == @lower.Multiply) &&
+    @lower.expression_contract(expr).shape is @contract.Decimal(..) {
+    guard workspace is Some(workspace) else {
+      return Err({ kind: WorkspaceLimit, expression: expr, })
+    }
+    match
+      decimal_arithmetic_expression_value(
+        expr, op, left, right, control, workspace,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
   } else {
     let result = if op == @lower.DateTruncate {
       temporal_truncation(expr, left, right)
