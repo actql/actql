@@ -242,6 +242,7 @@ fn scalar_call(
     "SAFE_SUBTRACT" => ("SAFE_SUBTRACT", "safe_subtract", 2, 2)
     "SAFE_MULTIPLY" => ("SAFE_MULTIPLY", "safe_multiply", 2, 2)
     "STRPOS" => ("STRPOS", "strpos", 2, 2)
+    "DATE_DIFF" => ("DATE_DIFF", "date_diff", 3, 3)
     "SPLIT" => ("SPLIT", "split", 1, 2)
     "SUBSTR" | "SUBSTRING" => ("SUBSTR", "substring", 2, 3)
     "LEFT" => ("LEFT", "left", 2, 2)
@@ -665,6 +666,11 @@ fn append_resolved(
             None => {
               let (public_name, name, minimum, maximum) = scalar_call(path)
               if args.length() < minimum || args.length() > maximum {
+                raise Abort(InvalidArguments)
+              }
+              if name == "date_diff" &&
+                !(strings[args[2]] is Some("ms" | "s" | "m" | "h" | "d")) {
+                current = @query.expression_origin(ast, args[2])
                 raise Abort(InvalidArguments)
               }
               if name == "vector_score" {

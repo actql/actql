@@ -622,6 +622,7 @@ pub fn boolean_pair(
     | LPad
     | RPad
     | Between
+    | DateDifference
     | Greatest
     | Least => Err(InvalidOperand)
   }

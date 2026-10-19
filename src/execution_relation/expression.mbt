@@ -86,6 +86,7 @@ priv enum Continuation {
   )
   BetweenArguments(BetweenArgumentsState)
   TextArguments(TextArgumentsState)
+  DateDifferenceArguments(DateDifferenceArgumentsState)
 }
 
 ///|
@@ -713,6 +714,22 @@ fn advance_expression_frame_impl(
             guard children.get(0) is Some(first) else {
               return Err({ kind: Scalar(InvalidOperand), expression: expr, })
             }
+            if op == @lower.DateDifference {
+              if children.length() != 3 || !reserve_slots(workspace, 6) {
+                return Err({ kind: WorkspaceLimit, expression: expr, })
+              }
+              frame.stack.push(
+                DateDifferenceArguments({
+                  expression: expr,
+                  children,
+                  values: [],
+                  roots: [],
+                  index: 0,
+                }),
+              )
+              frame.state = Enter(first)
+              continue
+            }
             if op == @lower.Between {
               if children.length() != 3 || !reserve_slots(workspace, 6) {
                 return Err({ kind: WorkspaceLimit, expression: expr, })
@@ -791,7 +808,7 @@ fn advance_expression_frame_impl(
             let initial = match op {
               And => Boolean(true)
               Or => Boolean(false)
-              Coalesce | Between | Greatest | Least => Null
+              Coalesce | Between | Greatest | Least | DateDifference => Null
               Concat
               | ConcatStrict
               | Replace
@@ -945,6 +962,64 @@ fn advance_expression_frame_impl(
             frame.selection_root = receiver_root
             frame.selection_pending = true
             frame.state = Return(selected)
+          }
+          DateDifferenceArguments(args) => {
+            frame.active = args.expression
+            if charge_value(value, frame.current_root) is Some(issue) {
+              return Err({
+                kind: LogicalValue(issue),
+                expression: args.expression,
+              })
+            }
+            args.values.push(value)
+            args.roots.push(frame.current_root)
+            frame.current_root = None
+            args.index += 1
+            if args.children.get(args.index) is Some(next) {
+              frame.stack.push(DateDifferenceArguments(args))
+              frame.state = Enter(next)
+            } else {
+              for operand in args.values {
+                match charge_comparison_operand(budget, operand) {
+                  Err(ComparisonChargeLimit) =>
+                    return Err({
+                      kind: ControlLimit,
+                      expression: args.expression,
+                    })
+                  Err(ComparisonChargeInvalidOperand) =>
+                    return Err({
+                      kind: Scalar(InvalidOperand),
+                      expression: args.expression,
+                    })
+                  Ok(_) => ()
+                }
+              }
+              guard args.values[2] is Text(unit) else {
+                return Err({
+                  kind: Scalar(InvalidOperand),
+                  expression: args.expression,
+                })
+              }
+              let result = match
+                temporal_difference(unit, args.values[0], args.values[1]) {
+                Ok(result) => result
+                Err(issue) =>
+                  return Err({
+                    kind: Scalar(issue),
+                    expression: args.expression,
+                  })
+              }
+              for root in args.roots {
+                if release(root) is Some(issue) {
+                  return Err({
+                    kind: LogicalValue(issue),
+                    expression: args.expression,
+                  })
+                }
+              }
+              release_slots(workspace, args.children.length() + 7)
+              frame.state = Return(result)
+            }
           }
           BetweenArguments(args) => {
             frame.active = args.expression
@@ -1541,7 +1616,8 @@ fn advance_expression_frame_impl(
               | RightString
               | LPad
               | RPad
-              | Between =>
+              | Between
+              | DateDifference =>
                 return Err({ kind: Scalar(InvalidOperand), expression: expr, })
               Coalesce => value
               Greatest | Least =>
