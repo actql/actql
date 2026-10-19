@@ -9,6 +9,7 @@
 #include "command_initial_parser_volume.h"
 #include "command_initial_stack.h"
 #include "command_initial_stdio.h"
+#include "../../platform_native/host_bootstrap/initial_os_facility.h"
 #include <stdatomic.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -37,9 +38,9 @@ struct actql_native_command_platform_original {
    * entry connects its complete source/backend-specific initial envelope.
    * There is intentionally no exported setter or caller-selected constructor. */
   bool initial_envelope_admitted;
-  /* Complete source/backend-specific co-phase selection precedes the first
-   * allocator setup. No public input or getter can set this private state. */
-  bool initial_coverage_complete;
+  /* This same process-lived OS original is retained through both one-shot
+   * loads. It is not a byte reservation and has no child-close refill. */
+  actql_native_initial_os_facility *initial_os;
   size_t initial_managed_selection[4];
   /* Parser allocation volume only; never promotes initial coverage. */
   size_t initial_parser_allocation_volume;
@@ -75,6 +76,30 @@ actql_native_command_platform_initial_current(void) {
 #endif
 }
 
+/* Only the checked selected producer enables this closed Darwin/MI217 recipe.
+ * The selector alone is insufficient: all original startup observations and
+ * the preselected real arena candidate remain conjunctive before setup. */
+static bool actql_command_initial_recipe_current(
+    actql_native_command_platform_original *entry) {
+#if defined(__APPLE__) && defined(__aarch64__) && \
+    defined(ACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY) && \
+    defined(ACTQL_NATIVE_COMMAND_INITIAL_OS_RECIPE) && \
+    ACTQL_NATIVE_COMMAND_INITIAL_OS_RECIPE == 1
+  size_t candidate[4] = {0};
+  if (entry != actql_native_command_platform_initial_current() ||
+      !actql_native_initial_os_facility_current(entry->initial_os) ||
+      !actql_bootstrap_command_stdio_current(&entry->initial_stdio, stdout, stderr) ||
+      !actql_initial_managed_prepare_candidate(
+        entry->initial_parser_allocation_volume, candidate)) return false;
+  for (size_t index = 0; index < 4; ++index)
+    if (candidate[index] != entry->initial_managed_selection[index]) return false;
+  return true;
+#else
+  (void)entry;
+  return false;
+#endif
+}
+
 #if defined(ACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY)
 static _Noreturn void actql_command_initial_refusal(void) {
   static const char message[] =
@@ -99,7 +124,7 @@ bool actql_native_command_platform_managed_selection(
       entry->source != actql_command_input_source ||
       actql_command_early_input_status != ACTQL_COMMAND_INPUT_OK ||
       !actql_bootstrap_command_stack_current(&entry->initial_stack) ||
-      !entry->initial_coverage_complete) return false;
+      !actql_command_initial_recipe_current(entry)) return false;
   for (size_t index = 0; index < 4; ++index)
     out[index] = entry->initial_managed_selection[index];
   return true;
@@ -168,6 +193,15 @@ __attribute__((constructor)) static void actql_command_capture_process_entry(voi
   atomic_store_explicit(&actql_command_entry_state, 1, memory_order_release);
 #if defined(ACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY)
   if (actql_command_early_input_status != ACTQL_COMMAND_INPUT_NOT_SELECTED) {
+    /* Capture from this same actual entry before any covered setvbuf, arena
+     * registration, loader or later initializer. Partial observations stay
+     * retained even when the complete recipe refuses. */
+    actql_command_entry.initial_os = actql_native_initial_os_facility_capture();
+#if defined(ACTQL_NATIVE_COMMAND_INITIAL_OS_RECIPE) && ACTQL_NATIVE_COMMAND_INITIAL_OS_RECIPE == 1
+    if (!actql_bootstrap_capture_command_stdio(
+        &actql_command_entry.initial_stdio, stdout, stderr))
+      actql_command_initial_refusal();
+#endif
     size_t selected_managed[4] = {0};
     if (!actql_native_command_platform_managed_selection(
         &actql_command_entry, selected_managed))
@@ -175,8 +209,7 @@ __attribute__((constructor)) static void actql_command_capture_process_entry(voi
     /* Allocator setup may itself emit a diagnostic. Bind the same original
      * static stream buffers before that first covered call, without treating
      * this setup as the allocator/Host admission or a flush acknowledgement. */
-    if (!actql_bootstrap_bind_initial_command_output(
-        &actql_command_entry.initial_stdio,
+    if (!actql_bootstrap_bind_command_output(
         &actql_command_entry.output_control, stdout, stderr))
       actql_command_initial_refusal();
   }
@@ -237,7 +270,8 @@ actql_native_command_platform_original *
 actql_native_command_platform_current(void) {
   actql_native_command_platform_original *entry = &actql_command_entry;
 #if defined(ACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY)
-  if (!entry->initial_managed ||
+  if (!actql_command_initial_recipe_current(entry) ||
+      !entry->initial_managed ||
       !actql_native_initial_managed_current(entry->initial_managed)) return NULL;
   if (!actql_bootstrap_command_stdio_current(
       &entry->initial_stdio, stdout, stderr)) return NULL;

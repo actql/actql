@@ -173,10 +173,11 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                     providers += 1
                     parts.append('-DACTQL_SCOPED_READ_PROVIDER="' + str(allocator / 'owned_capacity.c') + '"')
                 if entry == LOCAL_ENTRY and resolved.resolve() == (ROOT / 'src/cmd/native_client/stdout_stub.c').resolve():
-                    if any(p.startswith(('-DACTQL_NATIVE_CLIENT_SOURCE_SHA', '-DACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY')) for p in parts):
+                    if any(p.startswith(('-DACTQL_NATIVE_CLIENT_SOURCE_SHA', '-DACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY', '-DACTQL_NATIVE_COMMAND_INITIAL_OS_RECIPE')) for p in parts):
                         raise ValueError('Duplicate Local CLI source pin')
                     source_pins += 1
                     parts.append('-DACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY=1')
+                    parts.append('-DACTQL_NATIVE_COMMAND_INITIAL_OS_RECIPE=1')
                     parts.append('-DACTQL_NATIVE_CLIENT_SOURCE_SHA="' + source_sha + '"')
             # Every generated Core, original FFI, and runtime source sees the
             # same derived header first. There is exactly one provider below.

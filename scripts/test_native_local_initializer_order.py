@@ -96,6 +96,59 @@ class LocalInitializerOrder(unittest.TestCase):
         (scratch / 'result.json').write_text(json.dumps(packet, indent=2) + '\n')
         print(json.dumps({'evidence': str(scratch / 'result.json'), 'records': records}))
 
+    def test_selected_os_recipe_retains_actual_entry_and_private_arena(self):
+        self.assertEqual(sys.platform, 'darwin')
+        home, sdk = Path(os.environ['MOON_HOME']).resolve(), Path(os.environ['SDKROOT']).resolve()
+        runtime = home / 'lib/libmoonbitrun.o'
+        self.assertEqual(hashlib.sha256(runtime.read_bytes()).hexdigest(),
+                         'd9db2413e755c00ab374901211a03a9551222fe779022bc3648235747ed2bd96')
+        scratch = Path(tempfile.mkdtemp(prefix='actql-initial-os-recipe-'))
+        emission = scratch / 'emission'
+        directory = emission / 'native/release/build/cmd/native_client'
+        directory.mkdir(parents=True)
+        clang = '/Library/Developer/CommandLineTools/usr/bin/clang'
+        flags = ['-std=c11', '-O0', '-isysroot', str(sdk), '-mmacosx-version-min=11.0',
+                 '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC', '-I' + str(home / 'include')]
+        commands, records, objects = [], [], []
+
+        def run(command):
+            commands.append(command)
+            result = subprocess.run(command, capture_output=True, text=True, timeout=60)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+        for name in ['runtime', 'backtrace']:
+            output = scratch / (name + '.o')
+            run([clang, *flags, '-c', str(home / 'lib/runtime' / (name + '.c')), '-o', str(output)])
+            objects.append(str(output))
+        observer = scratch / 'entry.o'
+        run([clang, *flags, '-DACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY=1',
+             '-DACTQL_NATIVE_COMMAND_INITIAL_OS_RECIPE=1',
+             '-DACTQL_NATIVE_CLIENT_SOURCE_SHA="1234567890abcdef1234567890abcdef12345678"',
+             '-c', str(ROOT / 'scripts/fixtures/native-command-initial-os-recipe.c'), '-o', str(observer)])
+        archive = directory / 'libnative_client-0123456789abcdef.a'
+        run(['/usr/bin/ar', 'rcs', str(archive), str(observer)])
+        executable = scratch / 'selected'
+        command = [clang, *flags, '-o', str(executable), str(runtime), str(archive),
+                   str(ROOT / 'scripts/fixtures/native-command-member-unavailable.c'), *objects]
+        run(MODULE.local_initial_entry_arguments(command, home, emission))
+        for refused in [None, 'DYLD_LIBRARY_PATH', 'mimalloc_reserve_os_memory']:
+            environment = dict(os.environ)
+            environment['ACTQL_NATIVE_LOCAL_RUNTIME'] = '{"controlled":"initial OS recipe"}'
+            if refused:
+                environment[refused] = '/unsupported'
+            result = subprocess.run([str(executable)], capture_output=True, text=True,
+                                    timeout=10, env=environment)
+            self.assertEqual(result.returncode, 1 if refused else 0, result.stdout + result.stderr)
+            self.assertEqual(result.stdout, '' if refused else 'later initializer\ninitial OS recipe passed\n')
+            self.assertEqual(result.stderr, 'actql-native-client: LocalCommandInitialCoverageUnavailable\n' if refused else '')
+            records.append({'refused': refused, 'exit': result.returncode,
+                            'stdout': result.stdout, 'stderr': result.stderr})
+        packet = {'records': records, 'commands': commands, 'executable': str(executable),
+                  'sha256': hashlib.sha256(executable.read_bytes()).hexdigest(),
+                  'qualification': 'Actual C/O0 initial entry and pinned MI217 object; same OS lifetime and exclusive arena only, not an ordinary CLI or later command supplier.'}
+        (scratch / 'result.json').write_text(json.dumps(packet, indent=2) + '\n')
+        print(json.dumps({'evidence': str(scratch / 'result.json'), 'records': records}))
+
     def test_actual_entry_precedes_original_allocator_only_in_selected_link(self):
         self.assertEqual(sys.platform, 'darwin')
         home = Path(os.environ['MOON_HOME']).resolve()

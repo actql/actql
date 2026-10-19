@@ -106,6 +106,8 @@ class LocalScopedComposition(unittest.TestCase):
             if before[-1].endswith('/stdout_stub.c'):
                 self.assertEqual(selected[-1], '-DACTQL_NATIVE_CLIENT_SOURCE_SHA="' + self.source + '"')
                 selected = selected[:-1]
+                self.assertEqual(selected[-1], '-DACTQL_NATIVE_COMMAND_INITIAL_OS_RECIPE=1')
+                selected = selected[:-1]
                 self.assertEqual(selected[-1], '-DACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY=1')
                 selected = selected[:-1]
             elif before[-1].endswith('/bootstrap_stub.c'):
@@ -209,6 +211,8 @@ class LocalScopedComposition(unittest.TestCase):
         self.assertEqual(pins[0][1], '-DACTQL_NATIVE_CLIENT_SOURCE_SHA="' + self.source + '"')
         operational = [c for c in planned if '-DACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY=1' in c]
         self.assertEqual(operational, [pins[0][0]])
+        recipe = [c for c in planned if '-DACTQL_NATIVE_COMMAND_INITIAL_OS_RECIPE=1' in c]
+        self.assertEqual(recipe, [pins[0][0]])
 
     def test_missing_malformed_or_duplicate_local_source_pin_refuses(self):
         output = '\n'.join(shlex.join(c) for c in self.commands)

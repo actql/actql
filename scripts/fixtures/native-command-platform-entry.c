@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
     &actql_command_entry, refused_selection));
   assert(refused_selection[0] == 11 && refused_selection[1] == 22 &&
     refused_selection[2] == 33 && refused_selection[3] == 44);
-  assert(!actql_command_entry.initial_coverage_complete);
+  assert(!actql_command_initial_recipe_current(&actql_command_entry));
   assert(actql_command_entry.initial_managed == NULL);
   if (strcmp(argv[1], "initial-candidate") == 0) {
     assert(actql_native_command_platform_initial_current() == &actql_command_entry);
@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
     actql_native_client_capture_command_entry();
     assert(actql_native_command_platform_initial_current() == &actql_command_entry);
     assert(!actql_command_entry.initial_envelope_admitted);
-    assert(!actql_command_entry.initial_coverage_complete);
+    assert(!actql_command_initial_recipe_current(&actql_command_entry));
     assert(actql_native_command_platform_current() == NULL);
     assert(actql_command_entry.initial_managed == NULL);
     puts("original entry record passed");
@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
     assert(!actql_bootstrap_command_stack_current(original));
     original->lower = lower;
     assert(actql_bootstrap_command_stack_current(original));
-    assert(!actql_command_entry.initial_coverage_complete);
+    assert(!actql_command_initial_recipe_current(&actql_command_entry));
     assert(!actql_command_entry.initial_envelope_admitted);
     assert(actql_native_command_platform_current() == NULL);
     printf("original stack bytes=%zu entry bytes=%zu\n", original->bytes,
@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
     for (size_t i = 0; i < 4; i++) arithmetic_classes[i] = INT64_MAX;
     assert(!actql_command_initial_parser_volume(4, 4096,
       arithmetic_classes, &unchanged) && unchanged == 123);
-    assert(!actql_command_entry.initial_coverage_complete);
+    assert(!actql_command_initial_recipe_current(&actql_command_entry));
     assert(!actql_command_entry.initial_envelope_admitted);
     assert(actql_command_entry.initial_managed == NULL);
     assert(actql_native_command_platform_current() == NULL);

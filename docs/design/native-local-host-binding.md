@@ -1862,3 +1862,22 @@ Python bundle's provider receipt, relocation, physical or final installation
 checks. Those existing stronger checks remain required on their original route.
 Neither image construction nor its import census admits the command's initial
 control, external holdings, account authority or normal numerical profile.
+
+### Selected initial OS facility and managed arena
+
+The selected Darwin Native entry retains one actual process/main-thread OS
+service original before allocator setup and before later initializers. Its
+closed recipe requires the same executable/source entry, original stack and
+bounded raw arguments, pristine standard streams, supported loader environment,
+and the preselected MI217 arena geometry. The checked Local producer selects
+this recipe only at its original entry object; an operational flag, source
+label or captured OS record alone does not satisfy those conjunctions.
+
+The platform service original covers the already selected loader/TLS/control
+lifetime without representing byte reservation or a numerical demand. The
+managed payload remains a distinct actual exclusive mapping. Its finite
+candidate is not a guarantee that every bounded input fits. Loader environment
+changes refuse normal use permanently for that original; they neither create a
+new lifetime nor acknowledge partial modules, TLS users or backing retirement.
+The later Runtime/member bindings and each original cleanup carrier remain
+separate from this initial selection.
