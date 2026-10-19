@@ -6,14 +6,14 @@ enum GmailHeaderDateIssue {
 } derive(Eq, Debug)
 
 ///|
-struct GmailDateText {
+priv struct GmailDateText {
   text : String
   // A comment is CFWS, but is not the FWS required before a numeric zone.
   fws : Map[Int, Bool]
 }
 
 ///|
-struct GmailDateScan {
+priv struct GmailDateScan {
   original : GmailDateText
   mut index : Int
 }
@@ -95,7 +95,7 @@ fn gmail_date_text(
       }
       pending = false
       actual_fws = false
-      output.write_char(c)
+      output.write_char(c.to_int().unsafe_to_char())
       units += 1
     }
     index += 1
@@ -125,7 +125,7 @@ fn gmail_date_word(scan : GmailDateScan) -> String {
     if (c < 'A' || c > 'Z') && (c < 'a' || c > 'z') {
       break
     }
-    output.write_char(c)
+    output.write_char(c.to_int().unsafe_to_char())
     scan.index += 1
   }
   output.to_string().to_lower()
@@ -172,7 +172,7 @@ fn gmail_date_digits(
 ///|
 fn gmail_date_expect(scan : GmailDateScan, c : Char) -> Bool {
   if scan.index < scan.original.text.length() &&
-    scan.original.text[scan.index] == c {
+    scan.original.text[scan.index].to_int() == c.to_int() {
     scan.index += 1
     true
   } else {
@@ -353,7 +353,7 @@ fn gmail_header_date(
   if year > 9999 || second == 60 {
     return Err(Unsupported)
   }
-  let local = gmail_date_pad(year, 4) +
+  let local_timestamp = gmail_date_pad(year, 4) +
     "-" +
     gmail_date_pad(month, 2) +
     "-" +
@@ -365,7 +365,7 @@ fn gmail_header_date(
     ":" +
     gmail_date_pad(second, 2) +
     ".000Z"
-  guard @admitted.timestamp_instant(local) is Some(instant) &&
+  guard @admitted.timestamp_instant(local_timestamp) is Some(instant) &&
     @admitted.epoch_parts_timestamp(
       instant.seconds - zone_minutes.to_int64() * 60L,
       0,

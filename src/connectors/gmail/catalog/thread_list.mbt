@@ -79,10 +79,9 @@ pub fn project_gmail_thread_list(
     Ok(value) => value
     Err(_) => return Err(InvalidResponse)
   }
-  guard @decode.closed_object(
-      cursor,
-      ["threads", "nextPageToken", "resultSizeEstimate"],
-    )
+  guard @decode.closed_object(cursor, [
+      "threads", "nextPageToken", "resultSizeEstimate",
+    ])
     is Ok(root) else {
     return Err(InvalidResponse)
   }
@@ -95,7 +94,11 @@ pub fn project_gmail_thread_list(
         Err(issue) => return Err(issue)
       }
       // Google pagination ends on an absent or empty token, not a short page.
-      if text.is_empty() { None } else { Some(text) }
+      if text.is_empty() {
+        None
+      } else {
+        Some(text)
+      }
     }
   }
   match @decode.field(root, "resultSizeEstimate") {
@@ -127,10 +130,9 @@ pub fn project_gmail_thread_list(
       }
       let seen : Map[String, Bool] = Map([])
       for index in 0..<count {
-        guard @decode.closed_object(
-            @decode.element_at(list, index).unwrap(),
-            ["id", "snippet", "historyId"],
-          )
+        guard @decode.closed_object(@decode.element_at(list, index).unwrap(), [
+            "id", "snippet", "historyId",
+          ])
           is Ok(row) &&
           @decode.field(row, "id") is Present(value) else {
           return Err(InvalidResponse)
@@ -149,10 +151,11 @@ pub fn project_gmail_thread_list(
           match @decode.field(row, name) {
             Missing => ()
             ExplicitNull => return Err(InvalidResponse)
-            Present(value) =>
+            Present(value) => {
               guard @decode.text(value) is Ok(_) else {
                 return Err(InvalidResponse)
               }
+            }
           }
         }
         seen[id] = true
@@ -160,7 +163,7 @@ pub fn project_gmail_thread_list(
       }
     }
   }
-  Ok({ response_sha256: @sha.hex(bytes), ids, next_page_token })
+  Ok({ response_sha256: @sha.hex(bytes), ids, next_page_token, })
 }
 
 ///|
