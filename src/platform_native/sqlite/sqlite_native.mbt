@@ -18,7 +18,11 @@ pub fn command_domain_necessary_bytes(
   heap_bytes : Int64,
 ) -> Int64? {
   let bytes = command_domain_necessary_bytes_ffi(domain_bytes, heap_bytes)
-  if bytes > 0L { Some(bytes) } else { None }
+  if bytes > 0L {
+    Some(bytes)
+  } else {
+    None
+  }
 }
 
 ///|
@@ -517,12 +521,21 @@ pub fn load_current_component_with_custody(
     return Err(RefusedBeforeAcquisition(InvalidName))
   }
   let library = match command_member {
-    Some(component) => load_command_component_ffi(
-      encoded, encoded.length(), diagnostic_ceiling, heap_bytes, component,
-    )
-    None => load_current_component_ffi(
-      encoded, encoded.length(), diagnostic_ceiling, heap_bytes,
-    )
+    Some(component) =>
+      load_command_component_ffi(
+        encoded,
+        encoded.length(),
+        diagnostic_ceiling,
+        heap_bytes,
+        component,
+      )
+    None =>
+      load_current_component_ffi(
+        encoded,
+        encoded.length(),
+        diagnostic_ceiling,
+        heap_bytes,
+      )
   }
   if !library_acquired_ffi(library) {
     return Err(

@@ -5,13 +5,19 @@ priv type Backing
 priv type Extent
 
 ///|
-extern "C" fn command_backing_control_necessary_bytes_ffi(bytes : Int64) -> Int64 = "actql_bootstrap_command_backing_control_necessary_bytes"
+extern "C" fn command_backing_control_necessary_bytes_ffi(
+  bytes : Int64,
+) -> Int64 = "actql_bootstrap_command_backing_control_necessary_bytes"
 
 ///|
 /// Read-only selected provider layout; neither backing nor shared capacity.
 pub fn command_backing_control_necessary_bytes(bytes : Int64) -> Int64? {
   let control = command_backing_control_necessary_bytes_ffi(bytes)
-  if control > 0L { Some(control) } else { None }
+  if control > 0L {
+    Some(control)
+  } else {
+    None
+  }
 }
 
 ///|
