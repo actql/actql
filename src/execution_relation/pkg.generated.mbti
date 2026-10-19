@@ -748,6 +748,8 @@ pub fn generated_sequence_match_limits(GeneratedSequence, Int) -> (Int64, Int64)
 
 pub fn generated_sequence_owner(GeneratedSequence) -> @lowering_relation.BoundPrepared
 
+pub fn generated_sequence_query_time(GeneratedSequence) -> @run_publication.QueryEvaluationTime?
+
 pub fn generated_sequence_requirements(GeneratedSequence, Int) -> Result[@lowering_relation.SequenceRequirements, @lowering_relation.SequenceRequirementsIssue]
 
 pub fn generated_sequence_step_at(GeneratedSequence, Int) -> @lowering_relation.PreparedStep?

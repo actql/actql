@@ -942,3 +942,12 @@ pub fn bind_generated_sequence_query_time(
   }
   Ok({ ..generated, contexts, query_time: Some(query_time), })
 }
+
+///|
+/// Inspect only the retained invocation original for the request owner's
+/// nominal match. Presence does not discharge that owner's admission checks.
+pub fn generated_sequence_query_time(
+  generated : GeneratedSequence,
+) -> @publication.QueryEvaluationTime? {
+  generated.query_time
+}
