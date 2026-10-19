@@ -553,18 +553,32 @@ pub fn NativeLocalStoreOperation::retry_scope_cleanup(
     Err(issue) => return Err(issue)
     Ok(true) => ()
   }
-  // A borrowed parent transition may fail before a C Store flight exists.
-  // Its recorded return duty still requires this same cleanup callback; a
-  // previous Store flight's return cannot acknowledge the borrowed parent.
-  // Other completed original returns need no reentry or repeated SQL body.
-  if !self.receiver.borrowed_read && bridge.leave_store() is Ok(_) {
-    return Ok(())
+  // First retry the SAME outstanding return. In particular a cleanup flight
+  // can have entered successfully and lost only its tag3 return: another
+  // cleanup entry must not bypass or duplicate that flight. No-flight leave
+  // refuses in C before a callback, and never acknowledges a borrowed parent.
+  if bridge.leave_store() is Ok(_) {
+    match self.pending_scope() {
+      Ok(false) => return Ok(())
+      Err(issue) => return Err(issue)
+      // A completed Store flight can still owe return of its borrowed parent
+      // business frame. Keep that distinct duty until cleanup's actual ACK.
+      Ok(true) => ()
+    }
   }
   match bridge.enter_cleanup() {
     Err(issue) => return Err(StoreOperationSqlite(issue))
     Ok(_) => ()
   }
-  bridge.leave_store().map_err(issue => StoreOperationSqlite(issue))
+  match bridge.leave_store() {
+    Err(issue) => return Err(StoreOperationSqlite(issue))
+    Ok(_) => ()
+  }
+  match self.pending_scope() {
+    Ok(false) => Ok(())
+    Ok(true) => Err(StoreOperationUnavailable)
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|
