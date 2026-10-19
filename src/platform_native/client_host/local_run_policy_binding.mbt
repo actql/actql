@@ -175,7 +175,8 @@ fn NativeLocalHostConnection::bind_run_policy_profile_with_capture(
     if files.any(file => file.name == name) {
       return Err(CustodyLost)
     }
-    let selected = match capture {
+    let selected : Result[NativeLocalSelectedFile, NativeClientRunJournalIssue] = match
+      capture {
       Some(original) => {
         match original.selected_configuration_in_original_read(name) {
           Err(_) => return Err(CustodyLost)
