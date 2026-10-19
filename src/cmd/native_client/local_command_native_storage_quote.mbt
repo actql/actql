@@ -273,8 +273,7 @@ fn quote_local_command_native_storage(
   }
   let platform = match bounds.platform_selection {
     CommandPlatformDemand => {
-      guard bounds.loader_platform_execution_bytes is Some(bytes) &&
-        bytes > 0L else {
+      guard bounds.loader_platform_execution_bytes is Some(bytes) && bytes > 0L else {
         return Err(NativeStoragePlatformMissing)
       }
       Some(bytes)
