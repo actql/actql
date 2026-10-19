@@ -1,0 +1,127 @@
+#include "store_operation_original.h"
+#include <pthread.h>
+
+typedef struct {
+  actql_native_sqlite_library *library;
+  void *receiver;
+  actql_native_store_operation_route route;
+  pid_t process;
+  pthread_t thread;
+  void *bound_database;
+  bool binding_attempted, database_closed;
+  bool attempted, activated, flight, sql, cleanup, cleanup_ready, failed, closed, calling;
+  int32_t primary_code, cleanup_code;
+} actql_native_store_operation;
+
+/* No finalizer invokes callbacks, changes a physical scope or manufactures an
+ * ACK. The original coordinator and Database retain their existing duties. */
+static void actql_store_operation_finalize(void *pointer) {
+  actql_native_store_operation *value = pointer;
+  if (value->receiver != NULL) moonbit_decref(value->receiver);
+  if (value->library != NULL) moonbit_decref(value->library);
+}
+static bool actql_store_operation_thread(actql_native_store_operation *value) {
+  return value != NULL && value->process == getpid() &&
+    pthread_equal(value->thread, pthread_self());
+}
+static int32_t actql_store_operation_failed(
+    actql_native_store_operation *value, int32_t code) {
+  if (code == 0) code = -1;
+  if (value->primary_code == 0) value->primary_code = code;
+  else if (value->cleanup_code == 0) value->cleanup_code = code;
+  value->failed = true;
+  return code;
+}
+static int32_t actql_store_operation_route(
+    actql_native_store_operation *value, int32_t tag) {
+  if (!actql_store_operation_thread(value) || value->closed ||
+      value->receiver == NULL || value->route == NULL) return -1;
+  if (value->calling) return actql_store_operation_failed(value, -2);
+  value->calling = true;
+  moonbit_incref(value->receiver);
+  moonbit_incref(value->library);
+  int32_t code = value->route(value->receiver, value->library, tag);
+  value->calling = false;
+  return code == 0 ? 0 : actql_store_operation_failed(value, code);
+}
+MOONBIT_FFI_EXPORT void *actql_native_sqlite_prepare_store_operation(
+    void *library, void *receiver, actql_native_store_operation_route route) {
+  actql_native_store_operation *value = moonbit_make_external_object(
+    actql_store_operation_finalize, sizeof(*value));
+  memset(value, 0, sizeof(*value));
+  value->library = library;
+  value->receiver = receiver;
+  value->route = route;
+  value->process = getpid();
+  value->thread = pthread_self();
+  if (library != NULL) moonbit_incref(library);
+  if (receiver != NULL) moonbit_incref(receiver);
+  /* Return original partial custody BEFORE any callback or physical call. */
+  return value;
+}
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_activate(
+    actql_native_store_operation *value) {
+  if (!actql_store_operation_thread(value) || value->closed || value->attempted)
+    return -1;
+  value->attempted = true;
+  if (value->library == NULL || !value->library->selected_component ||
+      value->library->selected_process != getpid())
+    return actql_store_operation_failed(value, -3);
+  int32_t code = actql_store_operation_route(value, -1);
+  if (code == 0 && !value->failed) value->activated = true;
+  return value->activated ? 0 : code == 0 ? -1 : code;
+}
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_enter(
+    actql_native_store_operation *value, int32_t cleanup) {
+  if (!actql_store_operation_thread(value) || value->closed ||
+      !value->activated) return -1;
+  if (value->calling) return actql_store_operation_failed(value, -2);
+  if (cleanup != 0 && cleanup != 1) return -1;
+  if (!cleanup && (value->failed || value->flight || value->sql)) return -1;
+  /* Cleanup may recover the SAME failed flight only after its coordinator
+   * confirms the actual old leave and entry; a missing ACK changes no latch. */
+  if (cleanup && value->cleanup_ready && value->flight) return -1;
+  /* An attempted switch remains outstanding even if its reply is lost. */
+  value->flight = true;
+  if (cleanup) { value->cleanup = true; value->cleanup_ready = false; }
+  int32_t code = actql_store_operation_route(value, cleanup ? 4 : 0);
+  if (code == 0) {
+    value->flight = true;
+    value->sql = false;
+    value->cleanup = cleanup != 0;
+    value->cleanup_ready = cleanup != 0;
+  }
+  return code;
+}
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_leave(
+    actql_native_store_operation *value) {
+  if (!actql_store_operation_thread(value) || value->closed ||
+      !value->flight || value->sql) return -1;
+  if (value->calling) return actql_store_operation_failed(value, -2);
+  if (value->failed && !value->cleanup) return -1;
+  if (value->cleanup && !value->cleanup_ready) return -1;
+  int32_t code = actql_store_operation_route(value, 3);
+  if (code == 0) { value->flight = false; value->cleanup = false; value->cleanup_ready = false; }
+  return code;
+}
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_close(
+    actql_native_store_operation *value) {
+  if (!actql_store_operation_thread(value)) return -1;
+  if (value->closed) return 0;
+  if (value->calling || value->flight || value->sql ||
+      (value->binding_attempted && !value->database_closed)) return -1;
+  value->closed = true;
+  /* Metadata retirement is not Database/Store/Library/parent retirement. */
+  if (value->receiver != NULL) {
+    moonbit_decref(value->receiver); value->receiver = NULL;
+  }
+  return 0;
+}
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_primary(
+    actql_native_store_operation *value) {
+  return actql_store_operation_thread(value) ? value->primary_code : -1;
+}
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_cleanup(
+    actql_native_store_operation *value) {
+  return actql_store_operation_thread(value) ? value->cleanup_code : -1;
+}

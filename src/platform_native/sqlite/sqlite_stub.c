@@ -133,6 +133,8 @@ typedef struct {
   int journal_pin_descriptor;
 } actql_native_sqlite_database;
 
+#include "store_operation_original.inc"
+
 /* Read-only necessary subset for the selected command's actual compiled
  * receiver ABI. Later SQL/cache/graph demand and all outside-domain holdings
  * remain separate; a positive result supplies no domain or claim. */

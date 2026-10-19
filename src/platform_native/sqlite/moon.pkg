@@ -13,6 +13,9 @@ options(
   "native-stub": [ "sqlite_stub.c" ],
   targets: {
     "sqlite_native.mbt": [ "native" ],
+    "store_operation_native.mbt": [ "native" ],
+    "store_operation_native_wbtest.mbt": [ "native" ],
+    "store_operation_unsupported.mbt": [ "not", "native" ],
     "lookup_snapshot_native.mbt": [ "native" ],
     "lookup_snapshot_unsupported.mbt": [ "not", "native" ],
     "lookup_snapshot_native_wbtest.mbt": [ "native" ],
