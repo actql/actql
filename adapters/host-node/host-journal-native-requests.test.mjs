@@ -194,3 +194,21 @@ test('retained CHECK originals and packed defaults do not collapse into one allo
   assert.equal(s.largestActiveCheckCloneNodeRequestSum,640n);
   assert.equal(s.cloneListRequestUsesOriginalUsable,true);
 });
+
+test('fixed foreign-key and trigger holdings keep coallocations and transferred VM ownership separate', () => {
+  const s = calculate(input()).fixedSchema;
+  assert.equal(s.foreignKeys.count,2n);
+  assert.equal(s.foreignKeys.eachRequest,115n);
+  assert.equal(s.foreignKeys.heapUsableSumUpper,256n);
+  assert.equal(s.foreignKeys.generatedActionTriggers,0n);
+  assert.equal(s.triggers.count,2n);
+  assert.equal(s.triggers.eachStepAndInlineTargetRequestUpper,127n);
+  assert.equal(s.triggers.packedExpressionTrees,4n);
+  assert.equal(s.triggers.eachSetListCloneRequestUpper,160n);
+  assert.equal(s.triggers.resetRetiresTriggers,false);
+  assert.equal(s.ownHashElements.count,28n);
+  assert.equal(s.ownHashElements.requestSum,1120n);
+  assert.equal(calculate(input()).statements.retainedChildVdbeCopies,0n);
+  assert(Object.isFrozen(s.foreignKeys));
+  assert(Object.isFrozen(s.triggers));
+});

@@ -212,6 +212,28 @@ function hostJournalNativeStructureRequests(input) {
       defaultLists:allocationGroup(2n, 400n),
       activeDefaultParsedNodeRequestUpper:82n,
       activeDefaultSpanRequest:2n,
+      // The two NO ACTION references each allocate FKey+one column mapping+
+      // both terminated names together:64+16+16+19. The parent Table/key
+      // aliases are not another copy, nor an automatic action-trigger VM.
+      foreignKeys:freeze({count:2n, eachRequest:115n,
+        heapUsableSumUpper:2n * hostJournalNativeUsableUpper(115n),
+        generatedActionTriggers:0n}),
+      // Fixed AFTER INSERT/DELETE triggers each retain one UPDATE step.
+      // These records survive execution/reset; their programs are the
+      // transferred child programs already counted under statements.
+      triggers:freeze({count:2n, eachControlRequestUpper:96n,
+        eachNameRequest:36n, eachTableNameRequest:24n,
+        eachStepAndInlineTargetRequestUpper:127n,
+        eachSpanRequestUpper:128n,
+        packedExpressionTrees:4n, eachPackedTreeRequestUpper:264n,
+        // ExprListDup uses original xSize(136), not136 itself. The schema
+        // CREATE path disables lookaside; the selected stock upper is160.
+        eachSetListCloneRequestUpper:160n, eachSetNameRequest:15n,
+        resetRetiresTriggers:false}),
+      // Hash keys alias these owned names. Do not allocate a name for every
+      // HashElem. Fixed own records alone have28 entries; intrinsic schema
+      // entries and any in-progress/error-path insertions remain additional.
+      ownHashElements:allocationGroup(28n, 1120n),
       // A transient DML CHECK clone is beside the retained Schema and VM;
       // list clones request the original usable size, not the logical count.
       largestActiveCheckCloneNodeRequestSum:640n,
