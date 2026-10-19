@@ -106,7 +106,8 @@ __attribute__((constructor)) static void actql_command_capture_process_entry(voi
   extern const struct mach_header_64 _mh_execute_header;
   actql_command_entry.image = &_mh_execute_header;
   actql_command_entry.source = source;
-  if (!actql_command_initial_parser_volume(
+  if (actql_command_early_input_status != ACTQL_COMMAND_INPUT_NOT_SELECTED &&
+      !actql_command_initial_parser_volume(
       actql_command_input.input.arguments, actql_command_input.input.storage_bytes,
       actql_command_argument_classes,
       &actql_command_entry.initial_parser_allocation_volume)) {
