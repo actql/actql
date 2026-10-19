@@ -337,8 +337,19 @@ fn local_admitted_result_stream(
   if retained is Some(original) {
     original.result_service = Some(service)
   }
-  let journal = local_host_result(host.run_journal())
-  let epoch = local_host_result(host.epoch_authority())
+  // Captured reads already route the same Journal/Epoch through the original
+  // Read/SQLite exchange. The legacy getters perform an unscoped full binding
+  // check and must run only for their separate legacy branch.
+  let legacy_originals = match captured_selection {
+    None =>
+      Some(
+        (
+          local_host_result(host.run_journal()),
+          local_host_result(host.epoch_authority()),
+        ),
+      )
+    Some(_) => None
+  }
   let prior = match captured_selection {
     Some(original) =>
       binding
@@ -352,7 +363,10 @@ fn local_admitted_result_stream(
       .unwrap_or_else(() => {
         stop("LocalReadHistoryUnknown attempt-id=" + attempt_id)
       })
-    None =>
+    None => {
+      guard legacy_originals is Some((journal, epoch)) else {
+        stop("LocalReadOriginalCustodyUnavailable")
+      }
       journal
       .lookup_submitted_result_delivery(
         epoch,
@@ -372,6 +386,7 @@ fn local_admitted_result_stream(
       .unwrap_or_else(() => {
         stop("LocalReadHistoryUnknown attempt-id=" + attempt_id)
       })
+    }
   }
   if prior is Some(_) {
     stop(
@@ -407,7 +422,10 @@ fn local_admitted_result_stream(
         )
       })
     }
-    None =>
+    None => {
+      guard legacy_originals is Some((journal, epoch)) else {
+        stop("LocalReadOriginalCustodyUnavailable")
+      }
       journal
       .open_submitted_result(
         epoch,
@@ -435,6 +453,7 @@ fn local_admitted_result_stream(
           " lookup=delivery-attempt",
         )
       })
+    }
   }
   // Retain the acquired session before sink construction or another callback.
   if retained is Some(original) {
