@@ -7,13 +7,23 @@ fn LocalCommandBusinessPreparation::prepare_store_path(
   managed : String,
   name : String,
 ) -> String raise ClientStop {
-  let business = self.original.business.unwrap_or_else(() => {
+  self.original.prepare_business_store_path(managed, name)
+}
+
+///|
+fn LocalCommandPreparationOriginal::prepare_business_store_path(
+  self : LocalCommandPreparationOriginal,
+  managed : String,
+  name : String,
+  existing? : Bool = false,
+) -> String raise ClientStop {
+  let business = self.business.unwrap_or_else(() => {
     stop("LocalBusinessOriginalUnavailable")
   })
   let parent = match
     @local_filesystem.open_private_root_in_current_read_context_with_custody(
       managed,
-      self.original.profile.diagnostic_ceiling,
+      self.profile.diagnostic_ceiling,
     ) {
     Ok(root) => {
       business.store_parent = Some(root)
@@ -28,6 +38,9 @@ fn LocalCommandBusinessPreparation::prepare_store_path(
     .inspect_directory(name)
     .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
     is None {
+    if existing {
+      stop("LocalOriginalStoreUnavailable")
+    }
     parent
     .create_directory(name)
     .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))

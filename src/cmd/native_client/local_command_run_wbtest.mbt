@@ -112,3 +112,45 @@ test "Saved status selects the same static original without selecting a business
   )
   assert_true(command_preparation_invocation.val is None)
 }
+
+///|
+test "Public Result selects original preparation only with its business Store supplier" {
+  let parsed = command().parse(argv=[
+    "--mode", "local", "result", "original-run",
+  ])
+  assert_true(local_command_preparation_selected(parsed))
+  assert_true(
+    local_command_preparation_operation_selected(parsed, "result", true),
+  )
+  assert_false(
+    local_command_preparation_operation_selected(parsed, "result", false),
+  )
+  assert_false(
+    local_command_preparation_operation_selected(
+      parsed,
+      local_run_original_operation(),
+      true,
+    ),
+  )
+  let child = parsed.subcommand.unwrap().1
+  child.values["submission-ref-file"] = ["foreign.json"]
+  assert_false(
+    local_command_preparation_operation_selected(parsed, "result", true),
+  )
+  assert_true(command_preparation_invocation.val is None)
+}
+
+///|
+test "Public Result refuses explicit unsupplied configuration before original acquisition" {
+  let parsed = command().parse(argv=[
+    "--mode", "local", "--config-file", "operator.json", "result", "original-run",
+  ])
+  let issue = try {
+    prepare_native_command_invocation(parsed)
+    "unexpected success"
+  } catch {
+    ClientStop(message) => message
+  }
+  assert_eq(issue, "ExplicitLocalConfigurationRequiresOriginalSupplier")
+  assert_true(command_preparation_invocation.val is None)
+}

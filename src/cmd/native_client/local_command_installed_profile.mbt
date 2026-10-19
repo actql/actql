@@ -103,6 +103,10 @@ fn local_command_preparation_selected(
     matches.subcommand is Some(("explain", _)) ||
     matches.subcommand is Some(("run", _)) ||
     (
+      matches.subcommand is Some(("result", child)) &&
+      optional(child, "run") is Some(_)
+    ) ||
+    (
       matches.subcommand is Some(("status", child)) &&
       (
         optional(child, "run") is Some(_) ||
@@ -128,7 +132,8 @@ fn prepare_native_command_invocation(
   }
   if (
       matches.subcommand is Some(("run", _)) ||
-      matches.subcommand is Some(("status", _))
+      matches.subcommand is Some(("status", _)) ||
+      matches.subcommand is Some(("result", _))
     ) &&
     matches.sources.get("config-file") is Some(@argparse.Argv) {
     // The selected Run uses the original packaged installation. An explicit
@@ -155,7 +160,8 @@ fn prepare_native_command_invocation(
   let static_profile = local_command_installed_profile(actual_source, manifest)
   // The full business candidate exists before backing/domain/Root acquisition,
   // not after epoch issuance, Program admission or first-start claims.
-  let (profile, business) = if matches.subcommand is Some(("run", _)) {
+  let (profile, business) = if matches.subcommand is Some(("run", _)) ||
+    matches.subcommand is Some(("result", _)) {
     let (profile, business) = local_command_source_free_business_profile(
       static_profile,
     )

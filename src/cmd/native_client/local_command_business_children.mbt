@@ -101,7 +101,18 @@ fn LocalCommandBusinessPreparation::open_store(
   managed : String,
   run : LocalRunInstallation,
 ) -> @local_store.Store raise ClientStop {
-  guard self.original.business is Some(business) &&
+  self.original.open_business_store(library, managed, run)
+}
+
+///|
+fn LocalCommandPreparationOriginal::open_business_store(
+  self : LocalCommandPreparationOriginal,
+  library : @local_sqlite.Library,
+  managed : String,
+  run : LocalRunInstallation,
+  existing? : Bool = false,
+) -> @local_store.Store raise ClientStop {
+  guard self.business is Some(business) &&
     business.operation is Some(operation) &&
     business.store is None &&
     business.store_failure is None &&
@@ -110,15 +121,19 @@ fn LocalCommandBusinessPreparation::open_store(
     business.store_root is None &&
     business.store_root_failure is None &&
     business.store_root_operation is None &&
-    !self.original.closing &&
-    !self.original.closed else {
+    !self.closing &&
+    !self.closed else {
     stop("LocalBusinessOriginalUnavailable")
   }
   let original = operation
     .sqlite_original()
     .unwrap_or_else(() => stop("LocalBusinessOriginalUnavailable"))
   business.store_root_operation = Some(original)
-  let path = self.prepare_store_path(managed, run.store_name)
+  let path = self.prepare_business_store_path(
+    managed,
+    run.store_name,
+    existing~,
+  )
   match
     @local_store.open_original_local_store_with_custody(
       library,
@@ -128,7 +143,8 @@ fn LocalCommandBusinessPreparation::open_store(
       run.store_capacity_bytes,
       run.store_objects,
       run.store_record_bytes,
-      diagnostic_ceiling=Some(self.original.profile.diagnostic_ceiling),
+      existing~,
+      diagnostic_ceiling=Some(self.profile.diagnostic_ceiling),
     ) {
     Ok(store) => {
       business.store = Some(store)

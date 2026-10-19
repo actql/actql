@@ -64,3 +64,66 @@ pub fn NativeLocalReadPolicyBinding::resolve_submitted_result_in_original_read(
     }
   })
 }
+
+///|
+/// Lookup the same attempt's original history before any payload open. Absence
+/// is not permission to replay; the caller must still use a fresh explicit
+/// attempt and the existing read admission/delivery Owners. No session is
+/// created inside the captured Journal callback.
+pub fn NativeLocalReadPolicyBinding::lookup_submitted_result_delivery_in_original_read(
+  self : NativeLocalReadPolicyBinding,
+  selected : NativeClientOriginalRunSelection,
+  service : @result_access.NativeResultAccessService,
+  request : @result_access.NativeResultAccessRequest,
+  observed_at : String,
+  now : Double,
+) -> Result[
+  @publication_store.NativeResultDeliveryLookup?,
+  NativeLocalReadBindingIssue,
+] {
+  match
+    self.resolve_submitted_result_in_original_read(
+      selected, service, request, observed_at, now,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard self.capture is Some(capture) else {
+    return Err(Adoption(OriginalResourceScopePending))
+  }
+  read_binding_in_original_read(capture, (host, _operations) => {
+    if !physical_equal(host, self.host) {
+      return Err(SelectionMismatch)
+    }
+    let facts : @result_access.NativeResultReadFacts = {
+      request,
+      public_index_entry_cid: "",
+      result_manifest_cid: "",
+      result_artifact_cid: "",
+      result_definition_cid: "",
+      material_generation_cid: "",
+      observed_at,
+    }
+    match self.require_request(selected.request, facts) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    let observed = match
+      @result_access.lookup_native_result_delivery_attempt(service, {
+        namespace_id: request.namespace_id,
+        authority_scope_cid: request.authority_scope_cid,
+        run_definition_cid: request.run_definition_cid,
+        principal_id: request.principal_id,
+        purpose: request.purpose,
+        result_name: request.result_name,
+        attempt_id: request.attempt_id,
+      }) {
+      Ok(value) => value
+      Err(issue) => return Err(SubmittedResult(ResultAccess(issue)))
+    }
+    match self.require_request(selected.request, facts) {
+      Err(issue) => Err(issue)
+      Ok(_) => Ok(observed)
+    }
+  })
+}

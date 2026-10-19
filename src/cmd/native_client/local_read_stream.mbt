@@ -238,7 +238,11 @@ fn local_admitted_result_stream(
   current~ : () -> Bool,
   store~ : @local_store.Store,
   retained? : LocalCommandBusinessOriginal? = None,
+  captured_selection? : @local_host.NativeClientOriginalRunSelection? = None,
 ) -> String raise ClientStop {
+  if captured_selection is Some(_) && retained is None {
+    stop("LocalReadOriginalCustodyUnavailable")
+  }
   if retained is Some(original) {
     guard original.store is Some(actual) &&
       physical_equal(actual, store) &&
@@ -335,25 +339,40 @@ fn local_admitted_result_stream(
   }
   let journal = local_host_result(host.run_journal())
   let epoch = local_host_result(host.epoch_authority())
-  let prior = journal
-    .lookup_submitted_result_delivery(
-      epoch,
-      selected.submission,
-      scope,
-      current,
-      @env.now().to_double(),
-      service,
-      {
-        namespace_id: selected.namespace_id,
-        principal_id: settings.principal,
-        purpose,
-        result_name,
-        attempt_id,
-      },
-    )
-    .unwrap_or_else(() => {
-      stop("LocalReadHistoryUnknown attempt-id=" + attempt_id)
-    })
+  let prior = match captured_selection {
+    Some(original) =>
+      binding
+      .lookup_submitted_result_delivery_in_original_read(
+        original,
+        service,
+        request,
+        local_utc_now(),
+        @env.now().to_double(),
+      )
+      .unwrap_or_else(() => {
+        stop("LocalReadHistoryUnknown attempt-id=" + attempt_id)
+      })
+    None =>
+      journal
+      .lookup_submitted_result_delivery(
+        epoch,
+        selected.submission,
+        scope,
+        current,
+        @env.now().to_double(),
+        service,
+        {
+          namespace_id: selected.namespace_id,
+          principal_id: settings.principal,
+          purpose,
+          result_name,
+          attempt_id,
+        },
+      )
+      .unwrap_or_else(() => {
+        stop("LocalReadHistoryUnknown attempt-id=" + attempt_id)
+      })
+  }
   if prior is Some(_) {
     stop(
       "LocalReadAttemptAlreadyStarted attempt-id=" +
@@ -361,33 +380,62 @@ fn local_admitted_result_stream(
       " lookup=delivery-attempt",
     )
   }
-  let session = journal
-    .open_submitted_result(
-      epoch,
-      selected.submission,
-      scope,
-      current,
-      @env.now().to_double(),
-      service,
-      {
-        namespace_id: selected.namespace_id,
-        principal_id: settings.principal,
-        purpose,
-        result_name,
-        format,
-        attempt_id,
-      },
-    )
-    .unwrap_or_else(() => {
-      if refusal.val is Some(issue) {
-        stop(local_read_issue(issue) + " attempt-id=" + attempt_id)
+  let session = match captured_selection {
+    Some(original) => {
+      match
+        binding.resolve_submitted_result_in_original_read(
+          original,
+          service,
+          request,
+          local_utc_now(),
+          @env.now().to_double(),
+        ) {
+        Ok(_) => ()
+        Err(issue) =>
+          stop(local_read_issue(issue) + " attempt-id=" + attempt_id)
       }
-      stop(
-        "LocalReadStartUnknown attempt-id=" +
-        attempt_id +
-        " lookup=delivery-attempt",
+      // The actual session is acquired outside the Journal callback and
+      // retained immediately below, before sink construction or polling.
+      @local_result.open_native_result_access(service, request).unwrap_or_else(() => {
+        if refusal.val is Some(issue) {
+          stop(local_read_issue(issue) + " attempt-id=" + attempt_id)
+        }
+        stop(
+          "LocalReadStartUnknown attempt-id=" +
+          attempt_id +
+          " lookup=delivery-attempt",
+        )
+      })
+    }
+    None =>
+      journal
+      .open_submitted_result(
+        epoch,
+        selected.submission,
+        scope,
+        current,
+        @env.now().to_double(),
+        service,
+        {
+          namespace_id: selected.namespace_id,
+          principal_id: settings.principal,
+          purpose,
+          result_name,
+          format,
+          attempt_id,
+        },
       )
-    })
+      .unwrap_or_else(() => {
+        if refusal.val is Some(issue) {
+          stop(local_read_issue(issue) + " attempt-id=" + attempt_id)
+        }
+        stop(
+          "LocalReadStartUnknown attempt-id=" +
+          attempt_id +
+          " lookup=delivery-attempt",
+        )
+      })
+  }
   // Retain the acquired session before sink construction or another callback.
   if retained is Some(original) {
     original.result_session = Some(session)

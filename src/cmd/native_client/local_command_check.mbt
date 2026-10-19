@@ -99,6 +99,14 @@ fn local_command_preparation_operation_selected(
     optional(child, "submission-ref-file") is None
   ) ||
   (
+    operation == "result" &&
+    matches.subcommand is Some(("result", child)) &&
+    optional(child, "run") is Some(_) &&
+    business_selected &&
+    optional(child, "ref-file") is None &&
+    optional(child, "submission-ref-file") is None
+  ) ||
+  (
     operation == local_run_original_operation() &&
     matches.subcommand is Some(("run", _)) &&
     business_selected
@@ -300,6 +308,30 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             input_root,
             child,
             capture=Some(capture),
+          )
+        } else if operation == "result" {
+          let runtime = preparation_runtime.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let physical = self.host.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let pair = self.pair.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let sqlite = physical
+            .borrow_local_host_sqlite(pair)
+            .unwrap_or_else(() => stop("LocalBusinessOriginalUnavailable"))
+          let selected = self.prepare_original_result(
+            host, capture, settings, name, runtime, sqlite, child,
+          )
+          local_public_result(
+            host,
+            settings,
+            crypto,
+            sqlite,
+            child,
+            prepared=Some(selected),
           )
         } else if public_run && operation == local_run_original_operation() {
           let runtime = preparation_runtime.unwrap_or_else(() => {
