@@ -18,7 +18,7 @@ retaining Parameter-only constraints. It is deliberately a syntax result, not
 proof that its preserved `default` or `meta` cursors are valid. Only
 `read_declarations` performs the complete declaration/default admission.
 
-Parameter types are string, number, decimal, boolean, timestamp, date, closed
+Parameter types are string, number, int64, decimal, boolean, timestamp, date, closed
 object and homogeneous recursive array. `nullable` defaults to false throughout
 this Parameter grammar. General authored and checked value contracts still require
 explicit nullability. Number integer/minimum/maximum, string duration format and
@@ -28,6 +28,25 @@ a safe-integer ceiling. Both numeric bounds are inclusive and finite; their
 intersection is checked against values without adding general satisfiability
 inference to declaration admission. `length` is positive and safe; `max_items`
 is nonnegative and safe. Consumer-specific bounds remain separate.
+
+`take` (SQL/Pipe `LIMIT` and `OFFSET`) accepts a Number or int64 Parameter
+declaration and resolves the original typed value in Common. Its count remains
+in `1..9007199254740991`, and its offset in `0..9007199254740991`; nullable
+declarations do not permit a null count or offset. An int64 binding is read
+directly as an integer, without conversion to Number or reparsing its wire
+string. The checked declaration, binding identity and bound-value provenance
+remain distinct from the normalized `REL.limit` count body. Existing Number
+and literal bodies are unchanged. This admission does not extend other
+operation-parameter types, arithmetic or operational clocks, and a selection
+limit does not narrow the original Source scan's admission extent.
+
+An invalid bound `take` count can be rejected during row-capacity derivation
+before the general operation-scalar closure. That rejection retains the exact
+parsed Program and checked Parameter name. The public check projection uses
+the existing positive-safe-integer reason only for that same Program, then
+uses its already admitted binding origin to locate either the supplied value
+or its declaration default. Equal Program bytes are not original membership;
+no input value, generated SQL location or execution authority is inferred.
 
 `default` and annotation `meta` belong only to named declarations, not nested
 type contracts. Metadata is nonempty canonical JSON-model data with reserved

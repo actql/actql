@@ -3175,6 +3175,7 @@ pub enum RowCapacityIssue {
   Extension(Int, @capacity_witness.ProgramExtensionIssue)
   GraphInputs(Int, @capacity_graph_input.Issue)
   Dependencies(Int, @capacity_witness.ProgramDependencyIssue)
+  InvalidTakeCountBinding(@stage_syntax.Program, String)
 }
 
 type SelectedPolicyContext

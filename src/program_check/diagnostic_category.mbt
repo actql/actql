@@ -312,6 +312,8 @@ fn source_diagnostic_category(issue : SourceFailure) -> DiagnosticCategory {
       InvalidInput
     Declarations(Declarations(error)) => parameter_diagnostic_category(error)
     SourceView(Binding(Binding(error))) => parameter_diagnostic_category(error)
+    SourceView(Context(Stages(RowCapacity(InvalidTakeCountBinding(_, _))))) =>
+      InvalidInput
     SourceView(
       Context(
         Stages(

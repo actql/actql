@@ -1020,10 +1020,18 @@ fn check_operation_scalar_finding(
   supplied : @decode.Cursor?,
   parameters : String?,
   declarations : String?,
+  program? : @syntax.Program? = None,
 ) -> CheckFinding? {
-  guard @checked.diagnostic_cause(diagnostic)
-    is Closure(Operations(Scalars(InvalidValue(_, demand)))) else {
-    return None
+  let demand = match @checked.diagnostic_cause(diagnostic) {
+    Closure(Operations(Scalars(InvalidValue(_, demand)))) => demand
+    _ => {
+      guard program is Some(program) &&
+        @checked.diagnostic_take_count_parameter(diagnostic, program)
+        is Some(name) else {
+        return None
+      }
+      SafeInteger(name, minimum=1L)
+    }
   }
   let name = match demand {
     SafeInteger(name, ..)
@@ -1182,7 +1190,12 @@ fn check_program_finding(
   diagnostic_source? : @frontend.DiagnosticSource? = None,
 ) -> CheckFinding {
   if check_operation_scalar_finding(
-      diagnostic, bindings, supplied, parameters, declarations,
+      diagnostic,
+      bindings,
+      supplied,
+      parameters,
+      declarations,
+      program~,
     )
     is Some(finding) {
     return finding
