@@ -309,10 +309,19 @@ fn values_original_cleanup_entered(
     Some(value) => {
       let receiver = value.operation.receiver
       guard receiver.original is Some(original) else { return false }
-      original.host.observe_domain_retained_execution_cleanup_scope(
-        receiver.execution,
-      )
-      is Ok(@bootstrap.BackedReadEntered)
+      let entered = match
+        original.host.observe_domain_retained_execution_scope(
+          receiver.execution,
+        ) {
+        Ok(scope) => Ok(scope)
+        // Cleanup has a separate original/current port once normal current is
+        // retired. Neither an observation failure nor Unentered is a close ACK.
+        Err(_) =>
+          original.host.observe_domain_retained_execution_cleanup_scope(
+            receiver.execution,
+          )
+      }
+      entered is Ok(@bootstrap.BackedReadEntered)
     }
   }
 }
