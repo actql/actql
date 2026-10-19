@@ -1382,12 +1382,26 @@ infer a second type system. The parser's existing work, node and depth limits
 also cover array children. An empty list needs unique type context.
 
 The explicit annotation subset is `ARRAY<BOOL>`, `ARRAY<BOOLEAN>`,
-`ARRAY<STRING>`, `ARRAY<FLOAT64>`, `ARRAY<DOUBLE>`, `ARRAY<TIMESTAMP>` and `ARRAY<JSON>`.
+`ARRAY<STRING>`, `ARRAY<NUMBER>`, `ARRAY<FLOAT64>`, `ARRAY<DOUBLE>`,
+`ARRAY<INT64>`, `ARRAY<TIMESTAMP>` and `ARRAY<JSON>`.
 Annotations use the existing typed `empty_array.items` evidence. A nonempty
 annotated array uses an ordinary constant-true lazy `if` with that empty-array
 peer, so the common checker checks the declared item type and evaluates the
 actual elements once. It does not add an element CAST. NULL elements retain
 their nullable contract even when the annotation provides a nonnullable peer.
+`INT64` selects the distinct exact signed64 domain. Neither the annotation nor
+ordinary constructor common typing promotes Number, Decimal or String elements
+into int64; full-range values can use typed int64 Parameters. Membership's
+immediate lossless integral comparison-literal context is a separate rule.
+
+`CAST(NULL AS ARRAY<T>)` uses the same closed annotation grammar. Parentheses
+around that immediate NULL are permitted. Source lowering preserves the NULL
+branch in `if(false, empty_array<T>, literal(null))`; the typed peer supplies
+context only. Common checking, typed-null emission and re-admission remain the
+sole type authority. This value remains distinct from `ARRAY<T>[]` under
+`IS NULL`. Other ARRAY CAST operands retain an implementation-limit result;
+they are not rewritten to NULL or silently converted. Parsing, original spans
+and bounded work apply equally to this context.
 
 After ordinary checking, source preparation rejects resolved ARRAY types whose
 immediate item type is ARRAY. This includes constructors, references to typed
@@ -1403,11 +1417,11 @@ the existing Unit, input/step and field without inventing an expression origin.
 
 The selected [GoogleSQL array reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#array_type)
 also supports `ARRAY<JSON>` and defaults otherwise untyped empty literals to
-`ARRAY<INT64>`. Those are coverage gaps here: the common constructor capability
-contract currently rejects JSON item types, and the selected finite Number
-profile does not establish exact INT64 semantics. Additional type annotations
-remain explicitly unsupported; an unresolved `[]` is not silently assigned
-Number or JSON. The source and independently authored Program rejection of
+`ARRAY<INT64>`. Those behaviors remain coverage gaps here: the common constructor
+capability contract currently rejects JSON item types, and an unresolved `[]`
+does not acquire a default item contract. Explicit `ARRAY<INT64>` is distinct
+from that defaulting rule. Other annotations retain their implementation gaps;
+an unresolved `[]` is not silently assigned Number, int64 or JSON. The source and independently authored Program rejection of
 JSON arrays are dependency evidence, not execution acceptance. ActQL's
 nullable-array Result serialization remains its existing delivery profile;
 it is not a claim about BigQuery's Result serialization.

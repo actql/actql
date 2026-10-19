@@ -3930,6 +3930,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/casts.null-array-context",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the Common consumer and independent positive and negative evidence.",
+      "source": {
+        "anchor": "casts",
+        "kind": "prose"
+      },
+      "statement_sha256": "56417c68a66e7df3a427aba695ee7b09be23450a28277dca4b5fde8d57b999ff"
+    },
+    {
       "requirement_id": "actql.language/typed-access.outcomes",
       "statement_sha256": "4b13832c5d72ef7b0c6a50ae7a053abcfc5af662225631db04a04e87804441af",
       "status": "pending",

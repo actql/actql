@@ -709,6 +709,47 @@ for (const entrance of ['local', 'http']) {
     }
   });
 
+  test(`${entrance}: documented NULL ARRAY context preserves checked membership domains`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      const options = {kind: 'text', scope: 'bound_input', format};
+      for (const text of [
+        'SELECT 1 IN UNNEST(CAST(NULL AS ARRAY<INT64>)) AS found',
+        'SELECT 1 NOT IN UNNEST(CAST(((NULL)) AS ARRAY<INT64>)) AS absent',
+        'SELECT CAST(NULL AS ARRAY<INT64>) IS NULL AS missing, ARRAY<INT64>[] IS NULL AS empty',
+        'SELECT 9007199254740992.0 IN UNNEST(ARRAY<INT64>[]) AS found',
+        'SELECT NULL IN UNNEST(CAST(NULL AS ARRAY<INT64>)) AS found',
+        'SELECT ARRAY<INT64>[NULL] AS nullable_items',
+      ]) {
+        const checked = await client.check(text, options);
+        assert.equal(checked.report.verdict, 'verified', text);
+        assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      for (const text of [
+        'SELECT 9007199254740992 IN UNNEST(ARRAY<INT64>[]) AS found',
+        'SELECT 1.5 IN UNNEST(CAST(NULL AS ARRAY<INT64>)) AS found',
+        'SELECT 9223372036854775808.0 IN UNNEST(CAST(NULL AS ARRAY<INT64>)) AS found',
+        "SELECT '1' IN UNNEST(CAST(NULL AS ARRAY<INT64>)) AS found",
+        'SELECT ARRAY<INT64>[1] AS no_constructor_promotion',
+        'SELECT @value IN UNNEST(CAST(NULL AS ARRAY<INT64>)) AS no_parameter_promotion',
+      ]) {
+        const checked = await client.check(text, {...options,
+          ...(text.includes('@value') ? {parameterDeclarations: {value: {type: 'number'}}, parameters: {value: 1}} : {})});
+        assert.equal(checked.report.verdict, 'invalid', text);
+      }
+      for (const value of ['-9223372036854775808', '9223372036854775807', '9007199254740993', null]) {
+        const checked = await client.check('SELECT ARRAY<INT64>[@value] AS exact', {...options,
+          parameterDeclarations: {value: {type: 'int64', nullable: value === null}}, parameters: {value}});
+        assert.equal(checked.report.verdict, 'verified');
+      }
+      const unsupported = await client.check('SELECT CAST(ARRAY<INT64>[] AS ARRAY<INT64>) AS items', options);
+      assert.equal(unsupported.report.verdict, 'undetermined');
+      assert.equal(unsupported.report.coverage.limits[0].code, 'implementation_limit');
+      assert.deepEqual(unsupported.report.runnable, {verdict: 'no', reasons: [{code: 'implementation_limit'}]});
+    }
+  });
+
   test(`${entrance}: runnable uses the same structured Program Owner and original inputs`, async t => {
     const {client, counts} = await publicCheck(t, entrance, {program: true});
     const program = authoringProgram();

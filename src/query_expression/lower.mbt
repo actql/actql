@@ -15,6 +15,7 @@ pub(all) enum Issue {
   InvalidNumber
   Construction(@builder.Issue)
   Admission(@expression.Issue)
+  UnsupportedCast
 } derive(Debug)
 
 ///|
@@ -67,6 +68,33 @@ fn Lowering::add(
     Ok(node) => node
     Err(issue) => raise Abort(Construction(issue))
   }
+}
+
+///|
+fn Lowering::empty_array_peer(
+  self : Lowering,
+  target : @query.ArrayElementType,
+) -> @builder.Node raise Abort {
+  let name = match target {
+    Boolean => "boolean"
+    String => "string"
+    Number => "number"
+    Timestamp => "timestamp"
+    Json => "json"
+    Signed64 => "int64"
+  }
+  self.form(
+    "empty_array",
+    self.object([
+      (
+        "items",
+        self.object([
+          ("type", self.add(String(name))),
+          ("nullable", self.add(Bool(false))),
+        ]),
+      ),
+    ]),
+  )
 }
 
 ///|
@@ -592,25 +620,7 @@ fn append_resolved(
           match target {
             None => value
             Some(target) => {
-              let type_name = match target {
-                Boolean => "boolean"
-                String => "string"
-                Number => "number"
-                Timestamp => "timestamp"
-                Json => "json"
-              }
-              let empty = lowering.form(
-                "empty_array",
-                lowering.object([
-                  (
-                    "items",
-                    lowering.object([
-                      ("type", lowering.add(String(type_name))),
-                      ("nullable", lowering.add(Bool(false))),
-                    ]),
-                  ),
-                ]),
-              )
+              let empty = lowering.empty_array_peer(target)
               if items.is_empty() {
                 empty
               } else {
@@ -846,27 +856,53 @@ fn append_resolved(
             ]),
           )
         }
-        Cast(child, target) => {
-          let fields = match target {
-            Boolean => [("type", lowering.add(String("boolean")))]
-            String => [("type", lowering.add(String("string")))]
-            Number => [("type", lowering.add(String("number")))]
-            Timestamp => [("type", lowering.add(String("timestamp")))]
-            Decimal(precision, scale) =>
-              [
-                ("type", lowering.add(String("decimal"))),
-                ("precision", lowering.add(Number(precision.to_double()))),
-                ("scale", lowering.add(Number(scale.to_double()))),
-              ]
+        Cast(child, target) =>
+          match target {
+            Array(item) => {
+              let mut original = child
+              let mut inspecting = true
+              while inspecting {
+                if work >= max_work {
+                  raise Abort(WorkLimit)
+                }
+                work += 1
+                match @query.expression_node(ast, original).unwrap().kind {
+                  Parenthesized(inner) => original = inner
+                  Null => inspecting = false
+                  _ => raise Abort(UnsupportedCast)
+                }
+              }
+              // Common IF supplies a nullable item contract. The selected
+              // original NULL branch remains NULL; the empty peer is not run.
+              lowering.arguments("if", [
+                lowering.form("literal", lowering.add(Bool(false))),
+                lowering.empty_array_peer(item),
+                nodes[child],
+              ])
+            }
+            _ => {
+              let fields = match target {
+                Array(_) => raise Abort(UnsupportedCast)
+                Boolean => [("type", lowering.add(String("boolean")))]
+                String => [("type", lowering.add(String("string")))]
+                Number => [("type", lowering.add(String("number")))]
+                Timestamp => [("type", lowering.add(String("timestamp")))]
+                Decimal(precision, scale) =>
+                  [
+                    ("type", lowering.add(String("decimal"))),
+                    ("precision", lowering.add(Number(precision.to_double()))),
+                    ("scale", lowering.add(Number(scale.to_double()))),
+                  ]
+              }
+              lowering.form(
+                "cast",
+                lowering.object([
+                  ("value", nodes[child]),
+                  ("target", lowering.object(fields)),
+                ]),
+              )
+            }
           }
-          lowering.form(
-            "cast",
-            lowering.object([
-              ("value", nodes[child]),
-              ("target", lowering.object(fields)),
-            ]),
-          )
-        }
       }
       nodes.push(result)
       literals.push(literal)
