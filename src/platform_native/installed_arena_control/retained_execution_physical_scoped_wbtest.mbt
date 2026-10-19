@@ -39,7 +39,9 @@ fn retained_execution_physical_work(
   .enter_domain_retained_execution(execution)
   .retained_execution_value("retained stage 11: actual entered")
   assert_eq(
-    host.observe_domain_retained_execution_scope(execution).unwrap(),
+    host
+    .observe_domain_retained_execution_scope(execution)
+    .retained_execution_value("scope normal entered"),
     @bootstrap.BackedReadEntered,
   )
   let ledger = host
@@ -68,7 +70,9 @@ fn retained_execution_physical_work(
   .leave_domain_retained_execution(execution)
   .retained_execution_value("retained stage 15: actual leave")
   assert_eq(
-    host.observe_domain_retained_execution_scope(execution).unwrap(),
+    host
+    .observe_domain_retained_execution_scope(execution)
+    .retained_execution_value("scope normal left"),
     @bootstrap.BackedReadUnentered,
   )
   // Serial reentry has no new Ledger, delegation or zero-based usage reset.
@@ -157,7 +161,9 @@ test "actual in-process domain supplies one entered ledger and retains original 
   assert_true(host.prepare_domain_retained_execution(domain) is Err(_))
   assert_true(host.borrow_domain_retained_execution_ledger(execution) is Err(_))
   assert_eq(
-    host.observe_domain_retained_execution_scope(execution).unwrap(),
+    host
+    .observe_domain_retained_execution_scope(execution)
+    .retained_execution_value("scope normal original prepared"),
     @bootstrap.BackedReadUnentered,
   )
   let retained : Ref[Array[Int]?] = Ref(None)
@@ -182,7 +188,9 @@ test "actual in-process domain supplies one entered ledger and retains original 
   .retained_execution_value("retained cleanup: same original frame")
   retained_cleanup_observation_foreign_controls(host, execution)
   assert_eq(
-    host.observe_domain_retained_execution_cleanup_scope(execution).unwrap(),
+    host
+    .observe_domain_retained_execution_cleanup_scope(execution)
+    .retained_execution_value("scope cleanup entered"),
     @bootstrap.BackedReadEntered,
   )
   assert_true(host.observe_domain_retained_execution_scope(execution) is Err(_))
@@ -194,7 +202,9 @@ test "actual in-process domain supplies one entered ledger and retains original 
   .leave_domain_retained_execution(execution)
   .retained_execution_value("retained cleanup: original leave")
   assert_eq(
-    host.observe_domain_retained_execution_cleanup_scope(execution).unwrap(),
+    host
+    .observe_domain_retained_execution_cleanup_scope(execution)
+    .retained_execution_value("scope cleanup left"),
     @bootstrap.BackedReadUnentered,
   )
   assert_true(
