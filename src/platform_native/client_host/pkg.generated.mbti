@@ -1,0 +1,1161 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/client_host"
+
+import {
+  "actql/actql/checkpoint_runtime",
+  "actql/actql/client_local_host",
+  "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/decode_core",
+  "actql/actql/effect_application",
+  "actql/actql/execution_authorization",
+  "actql/actql/execution_relation",
+  "actql/actql/logical_request_scope",
+  "actql/actql/parameter_binding",
+  "actql/actql/physical_resources",
+  "actql/actql/physical_strategy",
+  "actql/actql/pipeline_check_context",
+  "actql/actql/platform_native/credential_resource",
+  "actql/actql/platform_native/filesystem",
+  "actql/actql/platform_native/host_bootstrap",
+  "actql/actql/platform_native/http_client",
+  "actql/actql/platform_native/installed_arena_control",
+  "actql/actql/platform_native/publication_store",
+  "actql/actql/platform_native/remote_journal",
+  "actql/actql/platform_native/remote_resident_host",
+  "actql/actql/platform_native/remote_standard_host",
+  "actql/actql/platform_native/result_access",
+  "actql/actql/platform_native/salesforce_effect_preview",
+  "actql/actql/platform_native/signature",
+  "actql/actql/platform_native/sqlite",
+  "actql/actql/program_check",
+  "actql/actql/query_program",
+  "actql/actql/remote_credential",
+  "actql/actql/run_publication_host",
+  "actql/actql/source_frontend",
+  "actql/actql/stage_syntax",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit_native_client_submission_epoch(String) -> Result[NativeClientSubmissionEpoch, NativeClientEpochIssue]
+
+pub fn admit_native_client_submission_reference(String) -> Result[NativeClientSubmissionReference, NativeClientRunJournalIssue]
+
+pub fn admit_native_local_credential_issuer_selection(String) -> Result[NativeLocalCredentialIssuerSelection, NativeLocalCredentialIssuerIssue]
+
+pub fn admit_native_local_effect_reviewer_selection(String) -> Result[NativeLocalEffectReviewerSelection, NativeLocalEffectReviewerIssue]
+
+pub fn admit_native_local_preparation_grant_reference(@signature.Library, String, Bytes) -> Result[NativeLocalPreparationGrantReference, NativeClientRunJournalIssue]
+
+pub fn admit_native_local_read_selection(String) -> Result[NativeLocalReadSelection, NativeLocalReadPolicyIssue]
+
+pub fn begin_existing_native_local_host_adoption_in_current_read_context_with_custody(String, String, String, String, String, @signature.Library, Int, configuration_files? : Array[String], managed_root_path? : String?) -> Result[NativeLocalAdoptionSession, NativeLocalAdoptionOpenFailure]
+
+pub fn begin_existing_native_local_host_adoption_with_custody(String, String, String, String, String, @signature.Library, configuration_files? : Array[String], managed_root_path? : String?) -> Result[NativeLocalAdoptionSession, NativeLocalAdoptionOpenFailure]
+
+pub fn begin_native_local_host_adoption(String, String, String, String, String, @signature.Library, configuration_files? : Array[String], managed_root_path? : String?, existing_only? : Bool) -> Result[NativeLocalAdoptionSession, NativeLocalAdoptionIssue]
+
+pub fn begin_native_local_host_adoption_in_current_read_context_with_custody(String, String, String, String, String, @signature.Library, Int, configuration_files? : Array[String], managed_root_path? : String?, existing_only? : Bool) -> Result[NativeLocalAdoptionSession, NativeLocalAdoptionOpenFailure]
+
+pub fn begin_native_local_product_configuration(String, String, Array[(String, Bytes)], @signature.Library, existing_only? : Bool) -> Result[NativeLocalProductConfigurationSession, NativeLocalAdoptionIssue]
+
+pub fn begin_native_local_python_worker_configuration(String, String, String, @signature.Library) -> Result[NativeLocalProductConfigurationSession, NativeLocalAdoptionIssue]
+
+pub fn capture_native_local_packaged_runtime_in_host_resources_reply((@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaOriginalRead, @installed_arena_control.InstalledArenaLocalHostResources)?, String, String, String, String, Int) -> NativeLocalPackagedRuntimeReply
+
+pub fn capture_native_local_packaged_runtime_reply((@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaOriginalRead)?, String, String, String, String, Int) -> NativeLocalPackagedRuntimeReply
+
+pub fn close_native_local_packaged_runtime_reply(NativeLocalPackagedRuntime) -> NativeLocalPackagedRuntimeReply
+
+pub fn current_native_local_packaged_runtime_reply(NativeLocalPackagedRuntime) -> NativeLocalPackagedRuntimeReply
+
+pub fn inspect_native_client_state(@sqlite.Library, String, Int64, Int64, Int) -> Result[NativeClientStateInspection, NativeClientStateInspectionIssue]
+
+pub fn install_native_client_cancellation_publication(@publication_store.Store, String, Int, Int, Int) -> Result[NativeClientCancellationPublication, NativeClientRunJournalIssue]
+
+pub fn native_client_cancellation_action(NativeClientCancellationRecord) -> @run_publication_host.ClientRunCancellationAction
+
+pub fn native_client_cancellation_revision(NativeClientCancellationRecord) -> Int64
+
+pub fn native_client_effect_values_work_failure_issue(NativeClientEffectValuesWorkFailure) -> NativeClientEffectValuesWorkIssue
+
+pub fn native_client_local_values_profile_supported(@run_publication_host.PreparedClientProgram) -> Bool
+
+pub fn native_client_original_checkpoint_cancellation_requested(NativeClientOriginalCheckpointMetadata) -> Bool
+
+pub fn native_client_original_checkpoint_cid(NativeClientOriginalCheckpointMetadata) -> String
+
+pub fn native_client_original_checkpoint_revision(NativeClientOriginalCheckpointMetadata) -> Int64
+
+pub fn native_client_original_checkpoint_run_cid(NativeClientOriginalCheckpointMetadata) -> String
+
+pub fn native_client_original_checkpoint_state(NativeClientOriginalCheckpointMetadata) -> @checkpoint_runtime.RunStateView
+
+pub fn native_client_retained_effect_materials_cid(NativeClientRetainedEffectMaterials) -> String
+
+pub fn native_client_retained_effect_materials_request(NativeClientRetainedEffectMaterials) -> @run_publication_host.ClientRequestIdentity
+
+pub fn native_client_retained_effect_materials_run(NativeClientRetainedEffectMaterials) -> @actql/actql/run_publication.PublicationContract
+
+pub fn native_client_retained_effect_materials_wire(NativeClientRetainedEffectMaterials) -> String
+
+pub fn native_client_run_checkpoint_state(NativeClientRunRecord) -> @checkpoint_runtime.RunStateView?
+
+pub fn native_client_run_definition(NativeClientRunRecord) -> @actql/actql/run_publication.PublicationContract
+
+pub fn native_client_run_record_revision(NativeClientRunRecord) -> Int64
+
+pub fn native_client_submission_epoch_wire(NativeClientSubmissionEpoch) -> String
+
+pub fn native_client_submission_reference_wire(NativeClientSubmissionReference) -> String
+
+pub fn native_client_submission_request_id(NativeClientSubmissionReference) -> String
+
+pub fn native_client_submitted_effect_values_work_failure_issue(NativeClientSubmittedEffectValuesWorkFailure) -> NativeClientSubmittedEffectValuesWorkIssue
+
+pub fn native_client_submitted_intent(NativeClientSubmittedIntentRecord) -> @run_publication_host.ClientSubmittedIntent
+
+pub fn native_client_submitted_intent_revision(NativeClientSubmittedIntentRecord) -> Int64
+
+pub fn native_client_submitted_preparation(NativeClientSubmittedPreparation) -> NativeClientPreparation
+
+pub fn native_client_submitted_preparation_intent_cid(NativeClientSubmittedPreparation) -> String
+
+pub fn native_client_submitted_run_admission(NativeClientSubmittedIntentRecord) -> NativeClientSubmittedRunAdmission?
+
+pub fn native_client_submitted_run_admission_revision(NativeClientSubmittedRunAdmission) -> Int64
+
+pub fn native_client_submitted_run_definition_cid(NativeClientSubmittedRunAdmission) -> String
+
+pub fn native_client_submitted_run_request(NativeClientSubmittedRunAdmission) -> @run_publication_host.ClientRequestIdentity
+
+pub fn native_client_values_work_failure_issue(NativeClientValuesWorkFailure) -> NativeClientValuesWorkIssue
+
+pub fn observe_native_local_packaged_product_reply(NativeLocalPackagedRuntime, String, String, String, Int) -> NativeLocalPackagedProductReply
+
+pub fn open_native_client_effect_source_work(NativeClientRunJournal, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectAllowedRun, @actql/actql/run_publication.PublicationContract, @run_publication_host.ClientEffectRunMaterials, @remote_resident_host.ResidentSourceComputeConfiguration, String, () -> String, () -> Bool, observe? : (@remote_resident_host.ResidentSourceComputeEvent) -> Bool) -> Result[NativeClientEffectSourceWork, NativeClientSourceWorkIssue]
+
+pub fn open_native_client_epoch_authority(@sqlite.Database, @signature.Library, Double) -> Result[NativeClientEpochAuthority, NativeClientEpochIssue]
+
+pub fn open_native_client_local_source_work(NativeClientRunJournal, @run_publication_host.ClientRequestIdentity, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @actql/actql/run_publication.PublicationContract, @remote_resident_host.ResidentSourceComputeConfiguration, String, () -> String, () -> Bool, observe? : (@remote_resident_host.ResidentSourceComputeEvent) -> Bool) -> Result[NativeClientSourceWork, NativeClientSourceWorkIssue]
+
+pub fn open_native_client_run_journal(@sqlite.Database, Int) -> Result[NativeClientRunJournal, NativeClientRunJournalIssue]
+
+pub fn open_native_client_source_work(NativeClientRunJournal, @run_publication_host.ClientRequestIdentity, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @actql/actql/run_publication.PublicationContract, @remote_resident_host.ResidentSourceComputeConfiguration, String, () -> String, () -> Bool, observe? : (@remote_resident_host.ResidentSourceComputeEvent) -> Bool) -> Result[NativeClientSourceWork, NativeClientSourceWorkIssue]
+
+pub fn open_native_local_packaged_runtime(String, String, String, String) -> Result[NativeLocalPackagedRuntime, NativeLocalPackagedRuntimeOpenIssue]
+
+pub fn open_native_local_packaged_runtime_in_original_host_resources((@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaOriginalRead, @installed_arena_control.InstalledArenaLocalHostResources)?, String, String, String, String, Int) -> Result[NativeLocalPackagedRuntime, NativeLocalPackagedRuntimeOpenIssue]
+
+pub fn open_native_local_packaged_runtime_in_original_read((@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaOriginalRead)?, String, String, String, String, Int, command_preparation? : Bool) -> Result[NativeLocalPackagedRuntime, NativeLocalPackagedRuntimeOpenIssue]
+
+pub fn prepare_native_client_program(String, @source_frontend.Format, @program_check.CheckEnvironment, @decode_core.Cursor?, @query_program.Context?, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientEffectComputationLimits, source_path? : String, table_writes? : Array[@query_program.TableWriteBinding]) -> Result[NativeClientPreparation, NativeClientPreparationIssue]
+
+pub fn prepare_native_client_submission_reference(NativeClientSubmissionEpoch, String) -> Result[NativeClientSubmissionReference, NativeClientRunJournalIssue]
+
+pub fn prepare_native_client_submitted_program(@run_publication_host.ClientSubmittedIntent, @program_check.CheckEnvironment, @query_program.Context?, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientEffectComputationLimits, source_path? : String, table_writes? : Array[@query_program.TableWriteBinding]) -> Result[NativeClientSubmittedPreparation, NativeClientSubmittedPreparationIssue]
+
+pub fn prepare_native_local_existing_adoption_capture(NativeLocalExistingAdoptionInput, @signature.Library) -> Result[NativeLocalAdoptionCapture, NativeLocalAdoptionIssue]
+
+pub fn prepare_native_local_existing_adoption_capture_in_current_read_context(NativeLocalExistingAdoptionInput, @signature.Library, Int) -> Result[NativeLocalAdoptionCapture, NativeLocalAdoptionIssue]
+
+pub fn prepare_native_local_initial_adoption_capture_in_current_read_context(NativeLocalExistingAdoptionInput, @signature.Library, Int) -> Result[NativeLocalAdoptionCapture, NativeLocalAdoptionIssue]
+
+pub fn prepare_native_local_initial_journal_capture_with_original_resources(NativeLocalAdoptionSession, @installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaLocalHostResources, @installed_arena_control.InstalledArenaOriginalRead, @signature.Library, NativeLocalInitialSigningMaterial, @run_publication_host.ClientLocalSigningBootstrapPolicy, Double, Int, Int64) -> NativeLocalJournalCapture
+
+pub fn prepare_native_local_journal_capture(NativeLocalAdoptionSession, @sqlite.Library, @signature.Library, Double, Int, Int64) -> NativeLocalJournalCapture
+
+pub fn prepare_native_local_journal_capture_with_original_resources(NativeLocalAdoptionSession, @installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaLocalHostResources, @installed_arena_control.InstalledArenaOriginalRead, @signature.Library, Double, Int, Int64) -> NativeLocalJournalCapture
+
+pub fn prepare_native_local_product_configuration_capture_in_current_read_context(String, String, @signature.Library, Int, originals? : Array[(String, Bytes)]?) -> Result[NativeLocalProductConfigurationCapture, NativeLocalAdoptionIssue]
+
+pub fn read_native_local_packaged_product_reply(NativeLocalPackagedRuntime) -> NativeLocalPackagedProductReply
+
+pub fn register_native_local_adoption_binding_roots() -> Unit
+
+pub fn register_native_local_journal_capture_roots() -> Unit
+
+pub fn restore_native_local_product_configuration(String, String, @signature.Library) -> Result[NativeLocalProductConfigurationSession, NativeLocalAdoptionIssue]
+
+// Errors
+
+// Types and methods
+pub enum NativeClientCancellationLookup {
+  UnresolvedCancellationHistory
+  OriginalCancellation(NativeClientCancellationRecord)
+}
+
+type NativeClientCancellationPublication
+
+type NativeClientCancellationRecord
+
+pub(all) enum NativeClientCheckpointIssue {
+  InvalidMaterial
+  StaleRevision
+  ConflictingResolution
+  Expired
+  NeedsOriginalContinuation
+  State(@checkpoint_runtime.RunStateWireIssue)
+  Signature(@salesforce_effect_preview.NativeResidentEffectResolutionIssue)
+  Resume(@checkpoint_runtime.ResumeIssue)
+  Ledger(@effect_application.EffectLedgerIssue)
+  EffectBinding(@run_publication_host.ClientEffectCheckpointBindingIssue)
+}
+
+pub(all) enum NativeClientCustodyIssue {
+  Epoch(NativeClientEpochIssue)
+  Run(NativeClientRunJournalIssue)
+  Submission(NativeClientRunJournalIssue)
+}
+
+pub(all) struct NativeClientDeliveryAttemptSelection {
+  namespace_id : String
+  principal_id : String
+  purpose : String
+  result_name : String
+  attempt_id : String
+}
+
+pub(all) enum NativeClientEffectCaptureIssue {
+  Original(NativeClientSourceWorkIssue)
+  Normalization(@run_publication_host.ClientEffectNormalizationIssue)
+  Capture(@remote_resident_host.ResidentLocalEffectCaptureIssue)
+}
+
+type NativeClientEffectDispatchClaim
+
+type NativeClientEffectPreparationFence
+pub fn NativeClientEffectPreparationFence::identity(Self) -> Result[@remote_credential.LocalPreparationFenceIdentity, NativeClientPreparationFenceIssue]
+pub fn NativeClientEffectPreparationFence::visit_local_targets(Self, @catalog.LocalCatalogObservationBinding, @catalog.CatalogObservation, @catalog.ExecutionMapping, @catalog.WriteProjection, String, String, @run_publication_host.PublicationOutputExportLimits, @catalog.WriteBodyLimits, @catalog.WriteRequestLimits, Int, Int, Int, Int, Int, (NativeClientLocalPreparationTarget) -> Result[Unit, NativeClientLocalPreparationTargetIssue]) -> Result[Int, NativeClientLocalPreparationTargetIssue]
+
+pub enum NativeClientEffectResumeAction {
+  Claimed(NativeClientEffectResumeClaim)
+  SettlementOnly(NativeClientEffectResumeClaim)
+  Busy
+}
+
+type NativeClientEffectResumeClaim
+
+pub(all) enum NativeClientEffectResumeFence {
+  Current
+  SettlementOnly
+  Stale
+} derive(Eq, @debug.Debug)
+
+pub(all) enum NativeClientEffectReviewProjectionIssue {
+  Unavailable
+  Retention(@remote_resident_host.ResidentEffectReviewRetentionIssue)
+  Journal(NativeClientRunJournalIssue)
+}
+
+pub(all) enum NativeClientEffectReviewWaitingIssue {
+  Original(NativeClientSourceWorkIssue)
+  Retention(@remote_resident_host.ResidentEffectReviewRetentionIssue)
+  Journal(NativeClientRunJournalIssue)
+}
+
+pub enum NativeClientEffectRowDispatchAction {
+  DispatchRecorded(NativeClientEffectDispatchClaim)
+  OriginalRowRetained(@effect_application.EffectLedgerEntry)
+  NoSend
+}
+
+type NativeClientEffectSourceWork
+pub fn NativeClientEffectSourceWork::close(Self) -> Bool
+pub fn NativeClientEffectSourceWork::execute_task(Self, Int) -> Result[Unit, NativeClientSourceWorkIssue]
+pub fn NativeClientEffectSourceWork::owner_for_capture(Self) -> Result[@remote_resident_host.ResidentSourceCompute, NativeClientSourceWorkIssue]
+pub fn NativeClientEffectSourceWork::prepare_capture_context(Self, @actql/actql/run_publication.PublicationContract, @actql/actql/run_publication.RunEvidenceValue, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int, max_pins? : Int, max_work? : Int) -> Result[@remote_resident_host.ResidentLocalEffectCaptureContext, NativeClientEffectCaptureIssue]
+pub fn NativeClientEffectSourceWork::prepare_observation_fence(Self, @remote_resident_host.ResidentLocalEffectCaptureContext, Int, String, Int, Int, Int, Int) -> Result[NativeClientEffectPreparationFence, NativeClientPreparationFenceIssue]
+pub fn NativeClientEffectSourceWork::prepare_original_capture_context(Self, @actql/actql/run_publication.PublicationContract, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int, max_pins? : Int, max_work? : Int) -> Result[@remote_resident_host.ResidentLocalEffectCaptureContext, NativeClientEffectCaptureIssue]
+pub fn NativeClientEffectSourceWork::prepare_result_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@run_publication_host.PublicationOutputExport, NativeClientSourceWorkIssue]
+pub fn NativeClientEffectSourceWork::review_checkpoint(Self, @remote_resident_host.ResidentEffectReviewRetention, () -> Bool, Int) -> Result[(@checkpoint_runtime.SealedCheckpoint, String), NativeClientEffectReviewProjectionIssue]
+pub fn NativeClientEffectSourceWork::usage(Self) -> @physical_resources.LedgerUsage
+pub fn NativeClientEffectSourceWork::wait_review_checkpoint(Self, @remote_resident_host.ResidentEffectReviewRetention, Int64, @checkpoint_runtime.ResumeBinding, Array[String]) -> Result[NativeClientRunRecord, NativeClientEffectReviewWaitingIssue]
+
+type NativeClientEffectValuesWork
+pub fn NativeClientEffectValuesWork::close(Self) -> Bool
+pub fn NativeClientEffectValuesWork::run_for_capture(Self) -> Result[@physical_strategy.CapturedEffectRunDAG, NativeClientEffectValuesWorkIssue]
+pub fn NativeClientEffectValuesWork::usage(Self) -> @physical_resources.LedgerUsage
+
+type NativeClientEffectValuesWorkFailure
+pub fn NativeClientEffectValuesWorkFailure::close(Self) -> Bool
+
+pub(all) enum NativeClientEffectValuesWorkIssue {
+  AuthorizationDenied
+  ForeignMaterials
+  Configuration
+  OriginalRunNotCurrent
+  Unavailable
+  Journal(NativeClientRunJournalIssue)
+  Start(NativeClientSourceWorkIssue)
+  Normalization(@run_publication_host.ClientEffectNormalizationIssue)
+  Execution(@client_local_host.LocalValuesExecutionIssue)
+}
+
+type NativeClientEpochAuthority
+pub fn NativeClientEpochAuthority::issue_epoch(Self, String, Bool, Double) -> Result[NativeClientSubmissionEpoch, NativeClientEpochIssue]
+pub fn NativeClientEpochAuthority::verify_epoch(Self, NativeClientSubmissionEpoch, String, Bool, Double) -> Result[@logical_request_scope.SubmissionEpochValidity, NativeClientEpochIssue]
+
+pub(all) enum NativeClientEpochIssue {
+  InvalidInput
+  Encoding
+  AlreadyInitialized
+  CustodyLost
+  AuthorizationDenied
+  Unverifiable
+  ScopeMismatch
+  Fenced
+  TransactionUnknown
+  Physical(@sqlite.NativeSqliteIssue)
+  Crypto(@signature.NativeSignatureIssue)
+  Identity(@logical_request_scope.SubmissionIdentityIssue)
+}
+
+type NativeClientLocalPreparationTarget
+pub fn NativeClientLocalPreparationTarget::credential_scope(Self, String) -> Result[@remote_credential.LocalPreparationCredentialScope, NativeClientLocalPreparationTargetIssue]
+
+pub(all) enum NativeClientLocalPreparationTargetIssue {
+  Original(NativeClientPreparationFenceIssue)
+  ForeignCatalog
+  Target(@salesforce_effect_preview.NativeResidentEffectTargetIssue)
+  Request(@catalog.WriteRequestIssue)
+}
+
+pub enum NativeClientNamedSubmissionLookup {
+  UnresolvedName
+  UnresolvedNamedSubmissionHistory
+  NamedSubmission(Bool, NativeClientSubmittedIntentRecord)
+}
+
+pub(all) enum NativeClientOriginalCheckpointLookupIssue {
+  UnresolvedHistory
+  MissingRunAdmission
+  Journal(NativeClientRunJournalIssue)
+}
+
+type NativeClientOriginalCheckpointMetadata
+
+type NativeClientOriginalRunSelection
+pub fn NativeClientOriginalRunSelection::definition(Self) -> @actql/actql/run_publication.PublicationContract
+pub fn NativeClientOriginalRunSelection::reference(Self) -> NativeClientSubmissionReference
+pub fn NativeClientOriginalRunSelection::request(Self) -> @run_publication_host.ClientRequestIdentity
+
+pub enum NativeClientPreparation {
+  Computation(@run_publication_host.PreparedClientProgram)
+  EffectComputation(@run_publication_host.PreparedClientEffectComputation)
+}
+
+pub(all) enum NativeClientPreparationFenceIssue {
+  Original(NativeClientSourceWorkIssue)
+  Unavailable
+  ForeignCapture
+  Member(@run_publication_host.ClientEffectMemberDescriptorIssue)
+  Occurrence(@run_publication_host.ClientEffectLocalIdentityIssue)
+  Identity(@remote_credential.RemoteCredentialIssue)
+}
+
+pub(all) enum NativeClientPreparationIssue {
+  Frontend(@source_frontend.Issue)
+  Syntax(@stage_syntax.SyntaxError)
+  Computation(@run_publication_host.ClientProgramPreparationIssue)
+  EffectComputation(@run_publication_host.ClientEffectComputationIssue)
+}
+
+pub(all) struct NativeClientResultSelection {
+  namespace_id : String
+  principal_id : String
+  purpose : String
+  result_name : String
+  format : String
+  attempt_id : String
+}
+
+type NativeClientRetainedEffectMaterials
+
+type NativeClientRunJournal
+pub fn NativeClientRunJournal::accept_submitted_effect_run(Self, NativeClientEpochAuthority, NativeClientSubmissionReference, NativeClientSubmittedPreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectAllowedRun, @actql/actql/run_publication.PublicationContract, String, Bool, Double) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::accept_submitted_run(Self, NativeClientEpochAuthority, NativeClientSubmissionReference, NativeClientSubmittedPreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @actql/actql/run_publication.PublicationContract, String, Bool, Double) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::bind_installed_publication(Self, @run_publication_host.ClientRequestIdentity, NativeClientCancellationPublication, () -> Bool) -> Result[Unit, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::bind_run(Self, @run_publication_host.ClientRequestIdentity, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @actql/actql/run_publication.PublicationContract, Bool) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::bind_submitted_effect_original_materials(Self, NativeClientEpochAuthority, NativeClientSubmissionReference, NativeClientSubmittedPreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectAllowedRun, @actql/actql/run_publication.PublicationContract, @run_publication_host.ClientEffectIssuedNormalizationMaterials, String, () -> Bool, Double) -> Result[@run_publication_host.ClientEffectRunMaterials, NativeClientSubmittedEffectMaterialsIssue]
+pub fn NativeClientRunJournal::cancel_operation(Self, @run_publication_host.ClientRequestIdentity, String, String, Int, () -> Bool, NativeClientCancellationPublication) -> Result[NativeClientCancellationRecord, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::claim_effect_resume(Self, @run_publication_host.ClientRequestIdentity, @signature.Library, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[@salesforce_effect_preview.NativeEffectHostAuthority], String, Int64, @checkpoint_runtime.ResumeBinding, () -> Bool, () -> (String, Int64)) -> Result[NativeClientEffectResumeAction, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::claim_physical_start(Self, @run_publication_host.ClientRequestIdentity, Bool) -> Result[Bool, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::effect_resume_fence(Self, NativeClientEffectResumeClaim, () -> Bool, () -> Int64) -> Result[NativeClientEffectResumeFence, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::effect_row_receipt(Self, NativeClientEffectDispatchClaim, @actql/actql/run_publication.EffectPreviewIdentity, Int, Int, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String, () -> Bool, Int) -> Result[(@actql/actql/run_publication.PublicationContract, @effect_application.EffectLedgerEntry)?, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::effect_row_response(Self, NativeClientEffectDispatchClaim, () -> Bool, Int) -> Result[@remote_journal.NativeEffectSavedResponse?, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::lookup(Self, @run_publication_host.ClientRequestIdentity, Bool) -> Result[NativeClientRunLookup, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::lookup_cancellation(Self, @run_publication_host.ClientRequestIdentity, String, String, Int, () -> Bool) -> Result[NativeClientCancellationLookup, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::lookup_effect_row(Self, @run_publication_host.ClientRequestIdentity, @effect_application.LogicalItemLocator, () -> Bool) -> Result[@effect_application.EffectLedgerEntry?, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::lookup_submitted_intent(Self, NativeClientEpochAuthority, NativeClientSubmissionReference, String, Bool, Double) -> Result[NativeClientSubmittedIntentLookup, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::lookup_submitted_result_delivery(Self, NativeClientEpochAuthority, NativeClientSubmissionReference, String, () -> Bool, Double, @result_access.NativeResultAccessService, NativeClientDeliveryAttemptSelection) -> Result[@publication_store.NativeResultDeliveryLookup?, NativeClientSubmittedResultIssue]
+pub fn NativeClientRunJournal::open_submitted_result(Self, NativeClientEpochAuthority, NativeClientSubmissionReference, String, () -> Bool, Double, @result_access.NativeResultAccessService, NativeClientResultSelection) -> Result[@result_access.NativeResultAccessSession, NativeClientSubmittedResultIssue]
+pub fn NativeClientRunJournal::record_effect_row_dispatch(Self, NativeClientEffectResumeClaim, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, @effect_application.EffectLedgerBasis, () -> Bool, () -> Int64) -> Result[NativeClientEffectRowDispatchAction, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::record_effect_row_receipt(Self, NativeClientEffectDispatchClaim, @actql/actql/run_publication.EffectPreviewIdentity, Int, Int, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String, String, () -> Bool, Int) -> Result[(@actql/actql/run_publication.PublicationContract, @effect_application.EffectLedgerEntry), NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::record_effect_row_response(Self, NativeClientEffectDispatchClaim, @remote_journal.NativeEffectSavedResponse, Int) -> Result[Unit, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::record_effect_row_unknown(Self, NativeClientEffectDispatchClaim) -> Result[@effect_application.EffectLedgerEntry, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::record_submitted_intent(Self, NativeClientEpochAuthority, NativeClientSubmissionReference, @run_publication_host.ClientSubmittedIntent, String, Bool, Double) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::reserve_dispatch(Self, @run_publication_host.ClientRequestIdentity, Bool) -> Result[@run_publication_host.ClientRunStartAction, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::resolve_effect_checkpoint(Self, @run_publication_host.ClientRequestIdentity, @signature.Library, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[@salesforce_effect_preview.NativeEffectHostAuthority], () -> Bool, () -> String) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::resolve_or_bind_submitted_name(Self, NativeClientEpochAuthority, String, String, String, @run_publication_host.ClientSubmittedIntent, NativeClientSubmissionReference?, String, Bool, Double) -> Result[NativeClientNamedSubmissionLookup, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::restore_effect_row_observation(Self, @run_publication_host.ClientRequestIdentity, @effect_application.LogicalItemLocator, () -> Bool) -> Result[NativeClientEffectDispatchClaim?, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::wait_checkpoint(Self, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @checkpoint_runtime.PersistedCheckpoint, Int64, @checkpoint_runtime.ResumeBinding, Array[String], String, () -> Bool) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue]
+pub fn NativeClientRunJournal::wait_effect_checkpoint(Self, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectAllowedRun, @checkpoint_runtime.PersistedCheckpoint, Int64, @checkpoint_runtime.ResumeBinding, Array[String], String, () -> Bool) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue]
+
+pub(all) enum NativeClientRunJournalIssue {
+  CustodyLost
+  CapacityExceeded
+  AuthorizationDenied
+  ChangedIntent
+  ForeignRun
+  Fenced
+  TransactionUnknown
+  Encoding
+  Physical(@sqlite.NativeSqliteIssue)
+  Start(@run_publication_host.ClientRunStartIssue)
+  Epoch(NativeClientEpochIssue)
+  InvalidSubmission
+  SubmissionReferenceUsed
+  NamedSubmission(@run_publication_host.ClientSubmittedNameIssue)
+  SubmissionEpochRejected(@logical_request_scope.SubmissionEpochValidity)
+  UnsupportedPreparation
+  MissingEffectMaterialOriginal
+  ChangedEffectMaterialOriginal
+  PublicationPolicy(@program_check.LocalDependencyBodyIssue)
+  Checkpoint(NativeClientCheckpointIssue)
+  CancellationIdentity(@run_publication_host.ClientCancellationIdentityIssue)
+  CancellationOperation(@run_publication_host.ClientCancellationOperationIssue)
+  PublicationObservation(@publication_store.NativePublicationStoreIssue)
+}
+
+pub enum NativeClientRunLookup {
+  UnresolvedHistory
+  Retained(NativeClientRunRecord)
+}
+
+type NativeClientRunRecord
+
+type NativeClientSavedRunState
+pub fn NativeClientSavedRunState::control_revision(Self) -> Int64
+pub fn NativeClientSavedRunState::wire(Self) -> String
+
+pub(all) enum NativeClientSavedRunStateIssue {
+  Unavailable
+  Journal(NativeClientRunJournalIssue)
+}
+
+type NativeClientSavedRunStateSelection
+pub fn NativeClientSavedRunStateSelection::definition(Self) -> @actql/actql/run_publication.PublicationContract
+pub fn NativeClientSavedRunStateSelection::reference(Self) -> NativeClientSubmissionReference
+pub fn NativeClientSavedRunStateSelection::state(Self) -> NativeClientSavedRunState
+
+pub(all) enum NativeClientSourcePublicationIssue {
+  Work(NativeClientSourceWorkIssue)
+  SourceBindingMismatch
+  ModelEvidenceRequired
+  Publication(@remote_resident_host.ResidentSourceResultPublicationIssue)
+  Service(@actql/actql/platform_native/run_publication.NativeRunPublicationIssue)
+  OriginalNormalizationMissing
+  Normalization(@run_publication_host.ClientLocalNormalizationIssue)
+}
+
+type NativeClientSourceWork
+pub fn NativeClientSourceWork::close(Self) -> Bool
+pub fn NativeClientSourceWork::execute_task(Self, Int) -> Result[Unit, NativeClientSourceWorkIssue]
+pub fn NativeClientSourceWork::install_publication_service(Self, @publication_store.Store, String, (@actql/actql/platform_native/run_publication.NativeRunPublicationAuthorization) -> Bool, Int, Int, Int, request_authorize? : ((@actql/actql/run_publication.PublicationRequestContext, @actql/actql/platform_native/run_publication.NativeRunPublicationAuthorization) -> Bool)?) -> Result[@actql/actql/platform_native/run_publication.NativeRunPublicationService, NativeClientSourcePublicationIssue]
+pub fn NativeClientSourceWork::prepare_local_publication(Self, @actql/actql/platform_native/run_publication.NativeRunPublicationService, @actql/actql/platform_native/run_publication.NativeCapturedResultPublicationContext, @actql/actql/run_publication.RunEvidenceValue, @actql/actql/platform_native/run_publication.NativeRunPublicationIntent, @actql/actql/platform_native/run_publication.NativeRunPublicationOccurrence, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int) -> Result[@actql/actql/platform_native/run_publication.NativePreparedCapturedRunPublication, NativeClientSourcePublicationIssue]
+pub fn NativeClientSourceWork::prepare_publication(Self, @actql/actql/platform_native/run_publication.NativeRunPublicationService, @actql/actql/platform_native/run_publication.NativeCapturedResultPublicationContext, @actql/actql/run_publication.RunEvidenceValue, @actql/actql/run_publication.RunEvidenceValue, @actql/actql/platform_native/run_publication.NativeRunPublicationIntent, @actql/actql/platform_native/run_publication.NativeRunPublicationOccurrence, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int) -> Result[@actql/actql/platform_native/run_publication.NativePreparedCapturedRunPublication, NativeClientSourcePublicationIssue]
+pub fn NativeClientSourceWork::prepare_result_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@run_publication_host.PublicationOutputExport, NativeClientSourceWorkIssue]
+pub fn NativeClientSourceWork::publication_invocation(Self, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int) -> Result[(@actql/actql/run_publication.RunEvidenceValue, @actql/actql/run_publication.RunEvidenceValue, @actql/actql/run_publication.RunEvidenceValue, @actql/actql/run_publication.PublicationContract), NativeClientSourceWorkIssue]
+pub fn NativeClientSourceWork::usage(Self) -> @physical_resources.LedgerUsage
+
+pub(all) enum NativeClientSourceWorkIssue {
+  AuthorizationDenied
+  Normalization(@run_publication_host.ClientLocalNormalizationIssue)
+  NeedsOriginalReconciliation
+  OriginalRunNotCurrent
+  Journal(NativeClientRunJournalIssue)
+  Work(@remote_resident_host.ResidentSourceComputeIssue)
+  Observation(@remote_resident_host.ResidentSourcePublicationObservationIssue)
+  Invocation(@actql/actql/run_publication.RunEvidenceValueIssue)
+  Open(@remote_resident_host.ResidentSourceComputeIssue, @remote_standard_host.NativeRemoteStandardInputFailure)
+}
+
+pub enum NativeClientStateInspection {
+  PhysicallyAbsent
+  Retained
+}
+
+pub(all) enum NativeClientStateInspectionIssue {
+  InvalidLimit
+  Custody(NativeClientCustodyIssue)
+  Inspection(@remote_journal.NativeRemoteJournalIssue, NativeClientCustodyIssue?)
+}
+
+type NativeClientSubmissionEpoch
+
+type NativeClientSubmissionReference
+
+pub(all) enum NativeClientSubmittedEffectMaterialsIssue {
+  Journal(NativeClientRunJournalIssue)
+  MissingRunAdmission
+  UnresolvedHistory
+  ForeignPreparation
+  ChangedIntent
+  ForeignRun
+  Materials(@run_publication_host.ClientEffectRunMaterialsIssue)
+}
+
+pub(all) enum NativeClientSubmittedEffectValuesCaptureIssue {
+  Work(NativeClientSubmittedEffectValuesWorkIssue)
+  Pin(@physical_strategy.RunIssue)
+  Export(@client_local_host.LocalValuesEffectResultExportIssue)
+}
+
+pub(all) enum NativeClientSubmittedEffectValuesInvocationIssue {
+  Work(NativeClientSubmittedEffectValuesWorkIssue)
+  Policy(NativeClientSubmittedEffectMaterialsIssue)
+  Evidence(@actql/actql/run_publication.RunEvidenceValueIssue)
+}
+
+type NativeClientSubmittedEffectValuesWork
+pub fn NativeClientSubmittedEffectValuesWork::close(Self) -> Bool
+pub fn NativeClientSubmittedEffectValuesWork::original_invocation(Self, Int, Int, Int) -> Result[(@actql/actql/run_publication.RunEvidenceValue, @actql/actql/run_publication.PublicationContract), NativeClientSubmittedEffectValuesInvocationIssue]
+pub fn NativeClientSubmittedEffectValuesWork::pin_original_capture_inputs(Self, Int, max_dependency_work? : Int, max_dependency_depth? : Int) -> Result[@physical_strategy.CapturedEffectInputs, NativeClientSubmittedEffectValuesCaptureIssue]
+pub fn NativeClientSubmittedEffectValuesWork::prepare_original_result_export(Self, @physical_strategy.CapturedEffectInputs, Int, @execution_relation.RetainedRowDecodeLimits, Int, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[@client_local_host.LocalValuesEffectResultExport, NativeClientSubmittedEffectValuesCaptureIssue]
+pub fn NativeClientSubmittedEffectValuesWork::run_for_capture(Self) -> Result[@physical_strategy.CapturedEffectRunDAG, NativeClientSubmittedEffectValuesWorkIssue]
+pub fn NativeClientSubmittedEffectValuesWork::usage(Self) -> @physical_resources.LedgerUsage
+
+type NativeClientSubmittedEffectValuesWorkFailure
+pub fn NativeClientSubmittedEffectValuesWorkFailure::close(Self) -> Bool
+
+pub(all) enum NativeClientSubmittedEffectValuesWorkIssue {
+  Original(NativeClientSubmittedEffectMaterialsIssue)
+  Work(NativeClientEffectValuesWorkIssue)
+}
+
+pub enum NativeClientSubmittedIntentLookup {
+  UnresolvedSubmissionHistory
+  Submitted(NativeClientSubmittedIntentRecord)
+}
+
+type NativeClientSubmittedIntentRecord
+
+type NativeClientSubmittedPreparation
+
+pub(all) enum NativeClientSubmittedPreparationIssue {
+  InvalidSubmittedInput
+  SubmittedInputLimit
+  Declarations(@parameter_binding.Issue)
+  Preparation(NativeClientPreparationIssue)
+  ReadOnlyEffect
+}
+
+pub(all) enum NativeClientSubmittedResultIssue {
+  UnresolvedSubmissionHistory
+  RunNotAdmitted
+  Journal(NativeClientRunJournalIssue)
+  ResultAccess(@result_access.NativeResultAccessIssue)
+}
+
+type NativeClientSubmittedRunAdmission
+
+pub(all) enum NativeClientValuesPublicationIssue {
+  Work(NativeClientValuesWorkIssue)
+  Policy(NativeClientRunJournalIssue)
+  BindingMismatch
+  Invocation(@actql/actql/run_publication.RunEvidenceValueIssue)
+  Service(@actql/actql/platform_native/run_publication.NativeRunPublicationIssue)
+  Publication(@actql/actql/platform_native/run_publication.NativeCapturedRunPublicationPreparationIssue)
+}
+
+type NativeClientValuesWork
+pub fn NativeClientValuesWork::close(Self) -> Bool
+pub fn NativeClientValuesWork::install_publication_service(Self, @publication_store.Store, String, (@actql/actql/platform_native/run_publication.NativeRunPublicationAuthorization) -> Bool, Int, Int, Int, request_authorize? : ((@actql/actql/run_publication.PublicationRequestContext, @actql/actql/platform_native/run_publication.NativeRunPublicationAuthorization) -> Bool)?) -> Result[@actql/actql/platform_native/run_publication.NativeRunPublicationService, NativeClientValuesPublicationIssue]
+pub fn NativeClientValuesWork::normalization_evidence(Self) -> Result[@actql/actql/run_publication.RunEvidenceValue, NativeClientValuesWorkIssue]
+pub fn NativeClientValuesWork::prepare_local_publication(Self, @actql/actql/platform_native/run_publication.NativeRunPublicationService, Array[@actql/actql/platform_native/run_publication.NativeCapturedResultPublicationContext], @actql/actql/run_publication.RunEvidenceValue, @actql/actql/platform_native/run_publication.NativeRunPublicationIntent, @actql/actql/platform_native/run_publication.NativeRunPublicationOccurrence, @execution_relation.RetainedRowDecodeLimits, Int, Int, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int) -> Result[@actql/actql/platform_native/run_publication.NativePreparedCapturedRunPublication, NativeClientValuesPublicationIssue]
+pub fn NativeClientValuesWork::prepare_result_export(Self, Int, @execution_relation.RetainedRowDecodeLimits, Int, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[@client_local_host.LocalValuesResultExport, NativeClientValuesWorkIssue]
+pub fn NativeClientValuesWork::publication_invocation(Self, Int, Int, Int) -> Result[(@actql/actql/run_publication.RunEvidenceValue, @actql/actql/run_publication.PublicationContract), NativeClientValuesPublicationIssue]
+pub fn NativeClientValuesWork::usage(Self) -> @physical_resources.LedgerUsage
+
+type NativeClientValuesWorkFailure
+pub fn NativeClientValuesWorkFailure::close(Self) -> Bool
+
+pub(all) enum NativeClientValuesWorkIssue {
+  AuthorizationDenied
+  UnsupportedProfile
+  Configuration
+  Journal(NativeClientRunJournalIssue)
+  Start(NativeClientSourceWorkIssue)
+  Normalization(@run_publication_host.ClientLocalNormalizationIssue)
+  Execution(@client_local_host.LocalValuesExecutionIssue)
+  Export(@client_local_host.LocalValuesResultExportIssue)
+}
+
+type NativeLocalAdoptionCapture
+pub fn NativeLocalAdoptionCapture::capture_command_journal_with_original_resources(Self, @installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaLocalHostResources, @installed_arena_control.InstalledArenaOriginalRead, Double, Int, Int64) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue]
+pub fn NativeLocalAdoptionCapture::capture_initial_command_journal_with_original_resources(Self, @installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaLocalHostResources, @installed_arena_control.InstalledArenaOriginalRead, NativeLocalInitialSigningMaterial, @run_publication_host.ClientLocalSigningBootstrapPolicy, Double, Int, Int64) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue]
+pub fn NativeLocalAdoptionCapture::capture_initial_journal_with_original_resources(Self, @installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaLocalHostResources, @installed_arena_control.InstalledArenaOriginalRead, NativeLocalInitialSigningMaterial, @run_publication_host.ClientLocalSigningBootstrapPolicy, Double, Int, Int64) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue]
+pub fn NativeLocalAdoptionCapture::capture_journal(Self, @sqlite.Library, Double, Int, Int64) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue]
+pub fn NativeLocalAdoptionCapture::capture_journal_with_original_resources(Self, @installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaLocalHostResources, @installed_arena_control.InstalledArenaOriginalRead, Double, Int, Int64) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue]
+pub fn NativeLocalAdoptionCapture::check_current(Self) -> NativeLocalAdoptionCaptureReply
+pub fn NativeLocalAdoptionCapture::close(Self) -> NativeLocalAdoptionCaptureReply
+pub fn NativeLocalAdoptionCapture::descriptor_cleanup_acknowledged(Self) -> Bool
+pub fn NativeLocalAdoptionCapture::open(Self) -> NativeLocalAdoptionCaptureReply
+pub fn NativeLocalAdoptionCapture::original_failure(Self) -> NativeLocalAdoptionOpenFailure?
+pub fn NativeLocalAdoptionCapture::original_journal(Self) -> NativeLocalJournalCapture?
+pub fn NativeLocalAdoptionCapture::original_session(Self) -> NativeLocalAdoptionSession?
+
+pub(all) enum NativeLocalAdoptionCaptureIssue {
+  AdoptionNotOpened
+  AdoptionOpeningUnconfirmed
+  AdoptionCaptureClosed
+  AdoptionJournalAlreadyCaptured
+  AdoptionOriginal(NativeLocalAdoptionIssue)
+  AdoptionJournal(NativeLocalJournalCaptureIssue)
+}
+
+pub(all) enum NativeLocalAdoptionCaptureOperation {
+  OpenCapturedAdoption
+  ObserveCapturedAdoption
+  CloseCapturedAdoption
+} derive(Eq)
+
+type NativeLocalAdoptionCaptureReply
+pub fn NativeLocalAdoptionCaptureReply::issue(Self) -> NativeLocalAdoptionCaptureIssue?
+pub fn NativeLocalAdoptionCaptureReply::issue_family(Self) -> Int
+pub fn NativeLocalAdoptionCaptureReply::operation_tag(Self) -> Int
+pub fn NativeLocalAdoptionCaptureReply::original_capture(Self) -> NativeLocalAdoptionCapture
+
+pub(all) enum NativeLocalAdoptionIssue {
+  InvalidInput
+  ConfigurationLimit
+  Configuration(@execution_authorization.ConfigurationIssue)
+  ForeignAccount
+  UninstalledBootstrapProfile
+  CustodyLost
+  SourceChanged
+  AmbiguousInitialization
+  Closed
+  Encoding
+  Crypto(@signature.NativeSignatureIssue)
+  Filesystem(@filesystem.NativeFilesystemIssue)
+  ReadAcquisitionFailure(@filesystem.NativeReaderOpenFailure)
+  ReadPending(@filesystem.Reader, @filesystem.NativeFilesystemIssue)
+  WritePending(@filesystem.Writer, @filesystem.NativeFilesystemIssue)
+  Physical(@sqlite.NativeSqliteIssue)
+  Epoch(NativeClientEpochIssue)
+  Journal(NativeClientRunJournalIssue)
+  Fenced
+  TransactionUnknown
+  DatabasePending(@sqlite.Database, NativeLocalAdoptionIssue)
+  Inspection(NativeClientStateInspectionIssue)
+  InstallationReadTransactionFailure(NativeLocalAdoptionIssue, NativeClientRunJournalIssue)
+  OriginalResources(@installed_arena_control.InstalledArenaLocalHostResourcesIssue)
+  OriginalResourceScopePending
+  OriginalResourceLeave(NativeLocalAdoptionIssue?, @installed_arena_control.InstalledArenaLocalHostResourcesIssue)
+  InspectionCleanup(@remote_journal.NativeRemoteJournalIssue)
+  InspectionPending(NativeLocalAdoptionIssue?, NativeLocalAdoptionIssue, @remote_journal.CoordinatorInitializationCleanup)
+}
+
+type NativeLocalAdoptionOpenFailure
+pub fn NativeLocalAdoptionOpenFailure::issue(Self) -> NativeLocalAdoptionIssue
+pub fn NativeLocalAdoptionOpenFailure::retry_cleanup(Self) -> Result[Unit, NativeLocalAdoptionIssue]
+
+type NativeLocalAdoptionSession
+pub fn NativeLocalAdoptionSession::close(Self) -> Bool
+pub fn NativeLocalAdoptionSession::configuration_cid(Self) -> String
+pub fn NativeLocalAdoptionSession::create_initial_signing_material(Self, @signature.Library) -> Result[NativeLocalInitialSigningMaterial, NativeLocalInitialSigningFailure]
+pub fn NativeLocalAdoptionSession::initial_signing_public_key(Self, NativeLocalInitialSigningMaterial) -> Result[String, NativeLocalAdoptionIssue]
+pub fn NativeLocalAdoptionSession::intent_cid(Self) -> String
+pub fn NativeLocalAdoptionSession::open_existing_journal_with_custody(Self, @sqlite.Library, @signature.Library, Double, Int, Int64) -> Result[NativeLocalHostConnection, NativeLocalJournalOpenFailure]
+pub fn NativeLocalAdoptionSession::open_journal(Self, @sqlite.Library, @signature.Library, Double, Int, Int64) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue]
+pub fn NativeLocalAdoptionSession::open_journal_with_initial_signing_material(Self, NativeLocalInitialSigningMaterial, @run_publication_host.ClientLocalSigningBootstrapPolicy, @sqlite.Library, @signature.Library, Double, Int, Int64) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue]
+pub fn NativeLocalAdoptionSession::open_journal_with_signing_originals(Self, @sqlite.Library, @signature.Library, Double, Int, Int64, Array[NativeLocalSigningInstallationSelection]) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue]
+pub fn NativeLocalAdoptionSession::require_current_original_read_roots(Self) -> Result[Unit, NativeLocalAdoptionIssue]
+pub fn NativeLocalAdoptionSession::selected_configuration(Self, String) -> Result[Bytes, NativeLocalAdoptionIssue]
+pub fn NativeLocalAdoptionSession::stage_configuration(Self) -> Result[Unit, NativeLocalAdoptionIssue]
+
+type NativeLocalAuthenticatedEffectReviewer
+
+type NativeLocalCredentialIssuerBinding
+
+pub(all) enum NativeLocalCredentialIssuerIssue {
+  InvalidOriginal
+  InvalidIssuerLimits
+  SelectionMismatch
+  Disabled
+  Expired
+  InvalidClock
+  Adoption(NativeLocalAdoptionIssue)
+  Authorization(@execution_authorization.DispatchBindingIssue)
+}
+
+type NativeLocalCredentialIssuerSelection
+
+type NativeLocalEffectReviewerBinding
+pub fn NativeLocalEffectReviewerBinding::authenticate_resolution(Self, String, @checkpoint_runtime.WireLimits) -> Result[NativeLocalAuthenticatedEffectReviewer, NativeLocalEffectReviewerBindingIssue]
+
+pub(all) enum NativeLocalEffectReviewerBindingIssue {
+  ReviewerUnavailable
+  ReviewerSelection(NativeLocalEffectReviewerIssue)
+  ReviewerOriginal(NativeClientOriginalCheckpointLookupIssue)
+  ReviewerAuthentication(@salesforce_effect_preview.NativeResidentEffectResolutionIssue)
+  ReviewerJournal(NativeClientRunJournalIssue)
+}
+
+pub(all) enum NativeLocalEffectReviewerIssue {
+  InvalidReviewerSelection
+  ReviewerSelectionLimitExceeded
+}
+
+type NativeLocalEffectReviewerSelection derive(Eq)
+
+pub(all) struct NativeLocalExistingAdoptionInput {
+  parent_path : String
+  state_name : String
+  source_path : String
+  source_name : String
+  account_id : String
+  configuration_files : Array[String]
+  managed_root_path : String?
+}
+
+type NativeLocalHostConnection
+pub fn NativeLocalHostConnection::accept_submitted_effect_material_original(Self, @signature.Library, String, String, NativeClientSubmissionReference, NativeClientSubmittedPreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectAllowedRun, @actql/actql/run_publication.PublicationContract, @run_publication_host.ClientEffectIssuedNormalizationMaterials, Double, source_free_run_file? : String?) -> Result[NativeClientSubmittedIntentRecord, NativeClientSubmittedEffectMaterialsIssue]
+pub fn NativeLocalHostConnection::acquire_credential_issuer(Self, @signature.Library, String, String, String, String) -> Result[NativeLocalCredentialIssuerBinding, NativeLocalCredentialIssuerIssue]
+pub fn NativeLocalHostConnection::acquire_initial_reviewer_signing_key(Self, NativeLocalInitialSigningOriginal, NativeLocalInstalledEffectReviewer) -> Result[NativeLocalInitialReviewerSigningKey, NativeLocalSigningOriginalIssue]
+pub fn NativeLocalHostConnection::acquire_signing_key_account(Self, @signature.Library, String, @checkpoint_runtime.CheckpointKind, reviewer? : NativeLocalInstalledEffectReviewer?) -> Result[NativeLocalSigningAccountBinding, NativeLocalSigningAccountIssue]
+pub fn NativeLocalHostConnection::adopted_current_material(Self) -> Result[@run_publication_host.ClientLocalAdoptedHostMaterial[@sqlite.Database, NativeLocalAdoptionIssue], NativeLocalAdoptionIssue]
+pub fn NativeLocalHostConnection::adoption_cid(Self) -> String
+pub fn NativeLocalHostConnection::authority_scope_cid(Self, String, String, @signature.Library) -> Result[String, NativeLocalAdoptionIssue]
+pub fn NativeLocalHostConnection::authorize(Self, @execution_authorization.AccessTuple) -> Result[@execution_authorization.AccountOutcome, NativeLocalAdoptionIssue]
+pub fn NativeLocalHostConnection::authorize_preparation_raw_reference(Self, @signature.Library, String, String, NativeLocalPreparationGrantReference) -> Result[Unit, NativeLocalPreparationRawReadIssue]
+pub fn NativeLocalHostConnection::bind_effect_reviewer(Self, @signature.Library, String, String, NativeClientSubmissionReference, @run_publication_host.ClientRequestIdentity, @remote_resident_host.ResidentOriginalEffectApprovalScope, () -> Double, configuration_file? : String?) -> Result[NativeLocalEffectReviewerBinding, NativeLocalEffectReviewerBindingIssue]
+pub fn NativeLocalHostConnection::bind_initial_effect_reviewer(Self, @signature.Library, NativeLocalInitialSigningOriginal, String, String, String, NativeClientSubmissionReference, @run_publication_host.ClientRequestIdentity, @remote_resident_host.ResidentOriginalEffectApprovalScope, () -> Double, signer_name? : String?) -> Result[NativeLocalEffectReviewerBinding, NativeLocalEffectReviewerBindingIssue]
+pub fn NativeLocalHostConnection::bind_packaged_runtime(Self, NativeLocalPackagedRuntime, String, String, String, String, String) -> Result[Unit, NativeClientRunJournalIssue]
+pub fn NativeLocalHostConnection::bind_result_read_policy(Self, @signature.Library, String, String, String) -> Result[NativeLocalReadPolicyBinding, NativeLocalReadBindingIssue]
+pub fn NativeLocalHostConnection::bind_result_read_policy_for_run(Self, NativeLocalRunPolicyBinding, NativeClientSubmissionReference, @run_publication_host.ClientRequestIdentity, Double) -> Result[NativeLocalReadPolicyBinding, NativeLocalReadBindingIssue]
+pub fn NativeLocalHostConnection::bind_run_policy_profile(Self, @signature.Library, String, String, String, String, String, String, String) -> Result[NativeLocalRunPolicyBinding, NativeClientRunJournalIssue]
+pub fn NativeLocalHostConnection::bind_run_policy_profile_for_read(Self, @signature.Library, String, String, String, String, String) -> Result[NativeLocalRunPolicyBinding, NativeClientRunJournalIssue]
+pub fn NativeLocalHostConnection::bind_run_publisher(Self, @signature.Library, String, String, @run_publication_host.ClientRequestIdentity, @actql/actql/run_publication.PublicationContract, String, @publication_store.Store) -> Result[NativeLocalPublisherBinding, NativeLocalPublisherBindingIssue]
+pub fn NativeLocalHostConnection::bind_salesforce_preparation(Self, @signature.Library, String, String, String, NativeClientEffectPreparationFence) -> Result[NativeLocalSalesforcePreparationBinding, NativeLocalSalesforcePreparationIssue]
+pub fn NativeLocalHostConnection::bind_submitted_effect_original_materials(Self, @signature.Library, String, String, NativeClientSubmissionReference, NativeClientSubmittedPreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectAllowedRun, @actql/actql/run_publication.PublicationContract, @run_publication_host.ClientEffectIssuedNormalizationMaterials, Double) -> Result[@run_publication_host.ClientEffectRunMaterials, NativeClientSubmittedEffectMaterialsIssue]
+pub fn NativeLocalHostConnection::bind_upgraded_run_policy(Self, @signature.Library, String, String, String, String) -> Result[NativeLocalRunPolicyBinding?, NativeClientRunJournalIssue]
+pub fn NativeLocalHostConnection::check_binding(Self) -> Result[Unit, NativeLocalAdoptionIssue]
+pub fn NativeLocalHostConnection::check_submitted_effect_capture_work(Self, @signature.Library, String, String, NativeClientSubmissionReference, @run_publication_host.ClientRequestIdentity, NativeClientEffectSourceWork, Double) -> Result[Unit, NativeClientSubmittedEffectMaterialsIssue]
+pub fn NativeLocalHostConnection::close(Self) -> Result[Unit, NativeLocalAdoptionIssue]
+pub fn NativeLocalHostConnection::close_owned_root_descriptors(Self) -> Result[Unit, NativeLocalAdoptionIssue]
+pub fn NativeLocalHostConnection::configuration(Self) -> Result[@execution_authorization.AdmittedAccountConfiguration, NativeLocalAdoptionIssue]
+pub fn NativeLocalHostConnection::epoch_authority(Self) -> Result[NativeClientEpochAuthority, NativeLocalAdoptionIssue]
+pub fn NativeLocalHostConnection::install_effect_reviewer(Self, configuration_file? : String?) -> Result[NativeLocalInstalledEffectReviewer, NativeLocalEffectReviewerBindingIssue]
+pub fn NativeLocalHostConnection::install_initial_effect_reviewer(Self, NativeLocalInitialSigningOriginal, String, String, String, signer_name? : String?) -> Result[NativeLocalInstalledEffectReviewer, NativeLocalEffectReviewerBindingIssue]
+pub fn NativeLocalHostConnection::issue_worker_provisioning(Self, @installed_arena_control.InstalledArenaWorkerSelection, String, String) -> Result[NativeLocalWorkerProvisioningAttempt, NativeLocalWorkerProvisioningIssue]
+pub fn NativeLocalHostConnection::lookup_original_result_names_json(Self, @signature.Library, String, String, NativeClientOriginalRunSelection, @publication_store.Store, String) -> Result[String?, NativeClientRunJournalIssue]
+pub fn NativeLocalHostConnection::lookup_preparation_grant_operation(Self, @signature.Library, String, String, String, NativeLocalPreparationGrantReference) -> Result[NativeLocalPreparationGrantLookup, NativeLocalSalesforcePreparationIssue]
+pub fn NativeLocalHostConnection::lookup_publication_policy_original(Self, @signature.Library, String, String, @run_publication_host.ClientRequestIdentity, String, String) -> Result[@actql/actql/run_publication.CapturedEffectDependencyBody, NativeClientRunJournalIssue]
+pub fn NativeLocalHostConnection::lookup_run_policy_upgrade(Self, @signature.Library, String, String, String) -> Result[NativeLocalPolicyUpgradeReceipt?, NativeClientRunJournalIssue]
+pub fn NativeLocalHostConnection::lookup_submission_reference_by_request_id(Self, @signature.Library, String, String, String, Double) -> Result[NativeClientSubmissionReference?, NativeClientRunJournalIssue]
+pub fn NativeLocalHostConnection::lookup_submitted_checkpoint_metadata(Self, @signature.Library, String, String, NativeClientSubmissionReference, @run_publication_host.ClientRequestIdentity, Double) -> Result[NativeClientOriginalCheckpointMetadata?, NativeClientOriginalCheckpointLookupIssue]
+pub fn NativeLocalHostConnection::lookup_submitted_effect_material_original(Self, @signature.Library, String, String, NativeClientSubmissionReference, @run_publication_host.ClientRequestIdentity, Double) -> Result[NativeClientRetainedEffectMaterials, NativeClientSubmittedEffectMaterialsIssue]
+pub fn NativeLocalHostConnection::lookup_submitted_effect_values_policy_original(Self, @signature.Library, String, String, NativeClientSubmissionReference, @run_publication_host.ClientRequestIdentity, Double) -> Result[@actql/actql/run_publication.CapturedEffectDependencyBody, NativeClientSubmittedEffectMaterialsIssue]
+pub fn NativeLocalHostConnection::lookup_submitted_run_original_by_id(Self, @signature.Library, String, String, String) -> Result[NativeClientOriginalRunSelection, NativeClientSavedRunStateIssue]
+pub fn NativeLocalHostConnection::lookup_submitted_run_state(Self, @signature.Library, String, String, NativeClientSubmissionReference, @run_publication_host.ClientRequestIdentity, Double) -> Result[NativeClientSavedRunState, NativeClientSavedRunStateIssue]
+pub fn NativeLocalHostConnection::lookup_submitted_run_state_by_id(Self, @signature.Library, String, String, String, Double) -> Result[NativeClientSavedRunStateSelection, NativeClientSavedRunStateIssue]
+pub fn NativeLocalHostConnection::lookup_worker_provisioning(Self, @installed_arena_control.InstalledArenaWorkerSelection, String, String) -> Result[NativeLocalWorkerProvisioningObservation, NativeLocalWorkerProvisioningIssue]
+pub fn NativeLocalHostConnection::lookup_worker_resource_original(Self, @installed_arena_control.InstalledArenaWorkerSelection, String, String) -> Result[NativeLocalWorkerResourceObservation, NativeLocalWorkerProvisioningIssue]
+pub fn NativeLocalHostConnection::managed_root_path(Self) -> Result[String?, NativeLocalAdoptionIssue]
+pub fn NativeLocalHostConnection::observe_publication_run_state(Self, NativeLocalPublisherBinding, @actql/actql/platform_native/run_publication.NativePreparedCapturedRunPublication, String, Int, Int, Int) -> Result[NativeLocalObservedRunState, NativeLocalObservedRunStateIssue]
+pub fn NativeLocalHostConnection::open_effect_source_work(Self, @signature.Library, String, String, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectAllowedRun, @actql/actql/run_publication.PublicationContract, @run_publication_host.ClientEffectRunMaterials, @remote_resident_host.ResidentSourceComputeConfiguration, String, () -> String, observe? : (@remote_resident_host.ResidentSourceComputeEvent) -> Bool) -> Result[NativeClientEffectSourceWork, NativeClientSourceWorkIssue]
+pub fn NativeLocalHostConnection::open_effect_values_work(Self, @signature.Library, String, String, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectRunMaterials, @run_publication_host.PreparedClientEffectRun, @physical_strategy.CapturedEffectRunDAG, String, String, String?, String?, Int, Int, () -> String) -> Result[NativeClientEffectValuesWork, NativeClientEffectValuesWorkFailure]
+pub fn NativeLocalHostConnection::open_source_work(Self, @signature.Library, String, String, @run_publication_host.ClientRequestIdentity, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @actql/actql/run_publication.PublicationContract, @remote_resident_host.ResidentSourceComputeConfiguration, String, () -> String, observe? : (@remote_resident_host.ResidentSourceComputeEvent) -> Bool) -> Result[NativeClientSourceWork, NativeClientSourceWorkIssue]
+pub fn NativeLocalHostConnection::open_submitted_effect_values_work(Self, @signature.Library, String, String, NativeClientSubmissionReference, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectRunMaterials, @run_publication_host.PreparedClientEffectRun, @physical_strategy.CapturedEffectRunDAG, String, String, String?, String?, Int, Int, () -> String, () -> Double) -> Result[NativeClientSubmittedEffectValuesWork, NativeClientSubmittedEffectValuesWorkFailure]
+pub fn NativeLocalHostConnection::open_values_work(Self, @signature.Library, String, String, @run_publication_host.ClientRequestIdentity, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @actql/actql/run_publication.PublicationContract, String, String, String?, String?, Int, Int) -> Result[NativeClientValuesWork, NativeClientValuesWorkFailure]
+pub fn NativeLocalHostConnection::packaged_runtime_assets_for_submission(Self, NativeClientSubmissionReference, NativeClientSubmittedPreparation, Int) -> Result[NativeLocalRuntimeSubmission, NativeClientRunJournalIssue]
+pub fn NativeLocalHostConnection::require_packaged_runtime_upgrade(Self) -> Result[Unit, NativeClientRunJournalIssue]
+pub fn NativeLocalHostConnection::resolve_or_bind_submitted_name(Self, @signature.Library, String, String, String, @run_publication_host.ClientSubmittedIntent, NativeClientSubmissionReference?, Double) -> Result[NativeClientNamedSubmissionLookup, NativeClientRunJournalIssue]
+pub fn NativeLocalHostConnection::resolve_result_policy_original(Self, @signature.Library, String, String, @run_publication_host.ClientRequestIdentity, @publication_store.Store, @result_access.NativeResultReadFacts) -> Result[@actql/actql/run_publication.CapturedEffectDependencyBody, NativeClientRunJournalIssue]
+pub fn NativeLocalHostConnection::restore_initial_signing_original(Self) -> Result[NativeLocalInitialSigningOriginal, NativeLocalAdoptionIssue]
+pub fn NativeLocalHostConnection::restore_preparation_raw_reader(Self, @signature.Library, String, String, NativeLocalPreparationGrantReference, @publication_store.Store, String) -> Result[NativeLocalPreparationRawReader, NativeLocalPreparationRawReadIssue]
+pub fn NativeLocalHostConnection::restore_submitted_effect_material_original(Self, @signature.Library, String, String, NativeClientSubmissionReference, @run_publication_host.ClientRequestIdentity, Double, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, @run_publication_host.ClientCompilationManifests, @run_publication_host.ClientValuesRunMaterialsLimits, @run_publication_host.ClientEffectComputationLimits) -> Result[@run_publication_host.ClientEffectRunMaterials, NativeClientSubmittedEffectMaterialsIssue]
+pub fn NativeLocalHostConnection::retain_publication_policy_originals(Self, @signature.Library, String, String, @run_publication_host.ClientRequestIdentity, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @actql/actql/run_publication.PublicationContract) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue]
+pub fn NativeLocalHostConnection::retain_submitted_run_state(Self, @signature.Library, String, String, NativeClientSubmissionReference, @run_publication_host.ClientRequestIdentity, NativeLocalObservedRunState, Double) -> Result[NativeClientSavedRunState, NativeClientRunJournalIssue]
+pub fn NativeLocalHostConnection::run_journal(Self) -> Result[NativeClientRunJournal, NativeLocalAdoptionIssue]
+pub fn NativeLocalHostConnection::selected_configuration(Self, String) -> Result[Bytes, NativeLocalAdoptionIssue]
+pub fn NativeLocalHostConnection::upgrade_run_policy(Self, @signature.Library, String, String, String, String, String, String, String) -> Result[NativeLocalPolicyUpgradeReceipt, NativeClientRunJournalIssue]
+
+type NativeLocalInitialReviewerSigningKey
+pub fn NativeLocalInitialReviewerSigningKey::prepare_reviewer_proof_materials(Self, NativeLocalEffectReviewerBinding, String, @checkpoint_runtime.WireLimits) -> Result[NativeLocalReviewerProofMaterials, NativeLocalReviewerProofMaterialsIssue]
+
+type NativeLocalInitialSigningFailure
+pub fn NativeLocalInitialSigningFailure::issue(Self) -> NativeLocalAdoptionIssue
+pub fn NativeLocalInitialSigningFailure::retry_cleanup(Self) -> Result[Unit, @filesystem.NativeFilesystemIssue]
+
+type NativeLocalInitialSigningMaterial
+
+type NativeLocalInitialSigningOriginal
+pub fn NativeLocalInitialSigningOriginal::issuer_identity(Self) -> Result[String, NativeLocalAdoptionIssue]
+pub fn NativeLocalInitialSigningOriginal::policy(Self) -> Result[@run_publication_host.ClientLocalSigningBootstrapPolicy, NativeLocalAdoptionIssue]
+pub fn NativeLocalInitialSigningOriginal::public_key(Self) -> Result[@remote_credential.LocalSigningPublicKey, NativeLocalAdoptionIssue]
+pub fn NativeLocalInitialSigningOriginal::require_current(Self) -> Result[Unit, NativeLocalAdoptionIssue]
+
+type NativeLocalInstalledEffectReviewer
+
+type NativeLocalJournalCapture
+pub fn NativeLocalJournalCapture::bind_packaged_runtime_in_original_read(Self, NativeLocalPackagedRuntime, String, String, String, String, String) -> Result[Unit, NativeLocalAdoptionIssue]
+pub fn NativeLocalJournalCapture::check_current(Self) -> NativeLocalJournalCaptureReply
+pub fn NativeLocalJournalCapture::check_current_in_original_read(Self) -> Result[Unit, NativeLocalAdoptionIssue]
+pub fn NativeLocalJournalCapture::close(Self) -> NativeLocalJournalCaptureReply
+pub fn NativeLocalJournalCapture::configuration_in_original_read(Self) -> Result[@execution_authorization.AdmittedAccountConfiguration, NativeLocalAdoptionIssue]
+pub fn NativeLocalJournalCapture::descriptor_cleanup_acknowledged(Self) -> Bool
+pub fn NativeLocalJournalCapture::finish_pending_original_scope(Self) -> Result[Unit, NativeLocalAdoptionIssue]
+pub fn NativeLocalJournalCapture::open(Self) -> NativeLocalJournalCaptureReply
+pub fn NativeLocalJournalCapture::original_failure(Self) -> NativeLocalJournalOpenFailure?
+pub fn NativeLocalJournalCapture::original_host(Self) -> NativeLocalHostConnection?
+pub fn NativeLocalJournalCapture::original_issue_family(Self) -> Int
+pub fn NativeLocalJournalCapture::original_session(Self) -> NativeLocalAdoptionSession
+pub fn NativeLocalJournalCapture::require_packaged_runtime_upgrade_in_original_read(Self) -> Result[Unit, NativeLocalAdoptionIssue]
+pub fn NativeLocalJournalCapture::selected_configuration_in_original_read(Self, String) -> Result[Bytes, NativeLocalAdoptionIssue]
+pub fn[T] NativeLocalJournalCapture::with_original_read(Self, (NativeLocalHostConnection) -> T) -> Result[T, NativeLocalAdoptionIssue]
+
+pub(all) enum NativeLocalJournalCaptureIssue {
+  JournalNotOpened
+  JournalOpeningUnconfirmed
+  JournalCaptureClosed
+  JournalAdoption(NativeLocalAdoptionIssue)
+}
+
+pub(all) enum NativeLocalJournalCaptureOperation {
+  OpenCapturedJournal
+  ObserveCapturedJournal
+  CloseCapturedJournal
+} derive(Eq)
+
+type NativeLocalJournalCaptureReply
+pub fn NativeLocalJournalCaptureReply::issue(Self) -> NativeLocalJournalCaptureIssue?
+pub fn NativeLocalJournalCaptureReply::issue_family(Self) -> Int
+pub fn NativeLocalJournalCaptureReply::operation_tag(Self) -> Int
+pub fn NativeLocalJournalCaptureReply::original_capture(Self) -> NativeLocalJournalCapture
+
+type NativeLocalJournalOpenFailure
+pub fn NativeLocalJournalOpenFailure::issue(Self) -> NativeLocalAdoptionIssue
+pub fn NativeLocalJournalOpenFailure::retry_cleanup(Self) -> Result[Unit, NativeLocalAdoptionIssue]
+
+type NativeLocalObservedRunState
+pub fn NativeLocalObservedRunState::definition_cid(Self) -> String
+pub fn NativeLocalObservedRunState::original_manifest(Self) -> @actql/actql/run_publication.PublicationContract
+pub fn NativeLocalObservedRunState::wire(Self) -> String
+
+pub(all) enum NativeLocalObservedRunStateIssue {
+  AuthorizationDenied
+  ForeignOriginal
+  OriginalUnavailable
+  Journal(NativeClientRunJournalIssue)
+  Candidate(@actql/actql/platform_native/run_publication.NativeRunStateCandidateIssue)
+}
+
+type NativeLocalPackagedProductReply
+pub fn NativeLocalPackagedProductReply::issue_family(Self) -> Int
+pub fn NativeLocalPackagedProductReply::metadata_unit_at(Self, Int) -> Int
+pub fn NativeLocalPackagedProductReply::metadata_units(Self) -> Int
+pub fn NativeLocalPackagedProductReply::operation_tag(Self) -> Int
+pub fn NativeLocalPackagedProductReply::original_host(Self) -> @installed_arena_control.InstalledArenaHost?
+pub fn NativeLocalPackagedProductReply::original_read(Self) -> @installed_arena_control.InstalledArenaOriginalRead?
+pub fn NativeLocalPackagedProductReply::original_runtime(Self) -> NativeLocalPackagedRuntime
+
+type NativeLocalPackagedRuntime
+pub fn NativeLocalPackagedRuntime::assets(Self) -> Result[@run_publication_host.ClientLocalProductAssets, NativeLocalPackagedRuntimeIssue]
+pub fn NativeLocalPackagedRuntime::bind_original_host_resources(Self, @installed_arena_control.InstalledArenaLocalHostResources) -> Result[Unit, NativeLocalPackagedRuntimeIssue]
+pub fn NativeLocalPackagedRuntime::check_current(Self) -> Result[Unit, NativeLocalPackagedRuntimeIssue]
+pub fn NativeLocalPackagedRuntime::check_product_current(Self) -> Result[Unit, NativeLocalPackagedRuntimeIssue]
+pub fn NativeLocalPackagedRuntime::close(Self) -> Result[Unit, NativeLocalPackagedRuntimeIssue]
+pub fn NativeLocalPackagedRuntime::command_library_members(Self) -> Result[(@filesystem.NativeObservedComponentMember, @filesystem.NativeObservedComponentMember), NativeLocalPackagedRuntimeIssue]
+pub fn NativeLocalPackagedRuntime::library_paths(Self) -> Result[(String, String), NativeLocalPackagedRuntimeIssue]
+pub fn NativeLocalPackagedRuntime::manifest(Self) -> Result[@run_publication_host.ClientNativeLocalRuntime, NativeLocalPackagedRuntimeIssue]
+pub fn NativeLocalPackagedRuntime::observe_product_members(Self, String, String, String, Int) -> Result[Unit, NativeLocalPackagedRuntimeIssue]
+pub fn NativeLocalPackagedRuntime::verified_product_identity(Self) -> Result[NativeLocalVerifiedProductIdentity, NativeLocalPackagedRuntimeIssue]
+
+pub(all) enum NativeLocalPackagedRuntimeIssue {
+  InvalidInput
+  InvalidManifest
+  Changed
+  Limit
+  Physical(@filesystem.NativeFilesystemIssue)
+  OriginalReadUnavailable
+  OriginalRead(@installed_arena_control.InstalledArenaOriginalReadIssue)
+  CleanupPending
+  OriginalHostResources(@installed_arena_control.InstalledArenaLocalHostResourcesIssue)
+}
+
+pub(all) enum NativeLocalPackagedRuntimeOpenIssue {
+  Refused(NativeLocalPackagedRuntimeIssue)
+  Pending(NativeLocalPackagedRuntime, NativeLocalPackagedRuntimeIssue)
+}
+
+pub(all) enum NativeLocalPackagedRuntimeOperation {
+  CapturePackagedRuntime
+  ObservePackagedRuntime
+  ClosePackagedRuntime
+} derive(Eq)
+
+type NativeLocalPackagedRuntimeReply
+pub fn NativeLocalPackagedRuntimeReply::issue_family(Self) -> Int
+pub fn NativeLocalPackagedRuntimeReply::operation_tag(Self) -> Int
+pub fn NativeLocalPackagedRuntimeReply::original_host(Self) -> @installed_arena_control.InstalledArenaHost?
+pub fn NativeLocalPackagedRuntimeReply::original_read(Self) -> @installed_arena_control.InstalledArenaOriginalRead?
+pub fn NativeLocalPackagedRuntimeReply::original_runtime(Self) -> NativeLocalPackagedRuntime?
+
+pub(all) struct NativeLocalPolicyUpgradeReceipt {
+  operation_id : String
+  adoption_cid : String
+  authority_scope_cid : String
+  original_cid : String
+  profile_cid : String
+}
+
+type NativeLocalPreparationGrantAcknowledgement
+pub fn NativeLocalPreparationGrantAcknowledgement::authorize_credential_request(Self, @credential_resource.NativeLocalPreparationCredentialAuthorization) -> Result[Unit, NativeLocalSalesforcePreparationIssue]
+pub fn NativeLocalPreparationGrantAcknowledgement::credential_authorizer(Self) -> (@credential_resource.NativeLocalPreparationCredentialAuthorization) -> Bool
+pub fn NativeLocalPreparationGrantAcknowledgement::grant(Self) -> Result[@remote_credential.LocalPreparationCredentialGrant, NativeLocalSalesforcePreparationIssue]
+pub fn NativeLocalPreparationGrantAcknowledgement::open_preparation_transport(Self, @http_client.Client, @publication_store.Store, String, String) -> Result[NativeLocalPreparationTransport, NativeLocalPreparationTransportIssue]
+
+pub(all) enum NativeLocalPreparationGrantLookup {
+  RetainedOriginal
+  UnresolvedOriginal
+}
+
+type NativeLocalPreparationGrantOperation
+pub fn NativeLocalPreparationGrantOperation::operation_cid(Self) -> String
+pub fn NativeLocalPreparationGrantOperation::reference_record(Self) -> Result[Bytes, NativeLocalSalesforcePreparationIssue]
+
+type NativeLocalPreparationGrantReference
+pub fn NativeLocalPreparationGrantReference::matches_original_request(Self, @run_publication_host.ClientRequestIdentity) -> Bool
+pub fn NativeLocalPreparationGrantReference::operation_cid(Self) -> String
+
+pub(all) enum NativeLocalPreparationRawReadIssue {
+  UnavailableOriginalGrant
+  UnavailableOriginalTarget
+  Preparation(NativeLocalSalesforcePreparationIssue)
+  Journal(NativeClientRunJournalIssue)
+  Resource(@credential_resource.NativeCredentialResourceIssue)
+}
+
+type NativeLocalPreparationRawReader
+pub fn NativeLocalPreparationRawReader::authorize_return(Self, String) -> Result[Unit, NativeLocalPreparationRawReadIssue]
+pub fn NativeLocalPreparationRawReader::lookup(Self, String) -> Result[@credential_resource.NativeLocalPreparationRawRecovery, NativeLocalPreparationRawReadIssue]
+
+type NativeLocalPreparationTransport
+pub fn NativeLocalPreparationTransport::lookup_raw_observation(Self, String) -> Result[@credential_resource.NativeLocalPreparationRawRecovery, NativeLocalPreparationTransportIssue]
+pub fn NativeLocalPreparationTransport::observe(Self, String) -> Result[@credential_resource.NativeCredentialResponse, NativeLocalPreparationTransportIssue]
+
+pub(all) enum NativeLocalPreparationTransportIssue {
+  Preparation(NativeLocalSalesforcePreparationIssue)
+  Resource(@credential_resource.NativeCredentialResourceIssue)
+}
+
+type NativeLocalProductConfigurationCapture
+pub fn NativeLocalProductConfigurationCapture::close(Self) -> Result[Unit, NativeLocalAdoptionIssue]
+pub fn NativeLocalProductConfigurationCapture::descriptor_cleanup_acknowledged(Self) -> Bool
+pub fn NativeLocalProductConfigurationCapture::open(Self) -> Result[NativeLocalProductConfigurationSession, NativeLocalAdoptionIssue]
+pub fn NativeLocalProductConfigurationCapture::stage_configuration(Self) -> Result[Unit, NativeLocalAdoptionIssue]
+
+type NativeLocalProductConfigurationSession
+pub fn NativeLocalProductConfigurationSession::close(Self) -> Bool
+pub fn NativeLocalProductConfigurationSession::stage_configuration(Self) -> Result[Unit, NativeLocalAdoptionIssue]
+
+type NativeLocalPublisherBinding
+pub fn NativeLocalPublisherBinding::authorize_request(Self, @actql/actql/run_publication.PublicationRequestContext, @actql/actql/platform_native/run_publication.NativeRunPublicationAuthorization) -> Bool
+pub fn NativeLocalPublisherBinding::current(Self) -> Bool
+pub fn NativeLocalPublisherBinding::publication_policy_cid(Self) -> String
+
+pub(all) enum NativeLocalPublisherBindingIssue {
+  Adoption(NativeLocalAdoptionIssue)
+  Journal(NativeClientRunJournalIssue)
+  InvalidOriginal
+  SelectionMismatch
+  AuthorizationDenied
+}
+
+pub(all) enum NativeLocalReadBindingIssue {
+  Selection(NativeLocalReadPolicyIssue)
+  Adoption(NativeLocalAdoptionIssue)
+  Journal(NativeClientRunJournalIssue)
+  AuthorizationDenied
+  Disabled
+  SelectionMismatch
+  InvalidObservationTime
+  PolicyExpired
+  PolicyNotSelected
+  MaterialUnavailable
+}
+
+pub(all) struct NativeLocalReadDisclosureParameters {
+  purpose : String
+  max_output_bytes : Int
+}
+
+type NativeLocalReadPolicyBinding
+pub fn NativeLocalReadPolicyBinding::admit_read(Self, @run_publication_host.ClientRequestIdentity, @publication_store.Store, @result_access.NativeResultReadFacts) -> Result[@result_access.NativeResultReadAdmission, NativeLocalReadBindingIssue]
+pub fn NativeLocalReadPolicyBinding::authorize_read_delivery(Self, @run_publication_host.ClientRequestIdentity, @publication_store.Store, @result_access.NativeResultDeliveryAuthorization) -> Result[Unit, NativeLocalReadBindingIssue]
+pub fn NativeLocalReadPolicyBinding::authorize_read_request(Self, @run_publication_host.ClientRequestIdentity, @result_access.NativeResultAccessRequest, String, max_output_bytes? : Int?) -> Result[Unit, NativeLocalReadBindingIssue]
+pub fn NativeLocalReadPolicyBinding::disclosure_parameters(Self) -> Result[NativeLocalReadDisclosureParameters, NativeLocalReadBindingIssue]
+pub fn NativeLocalReadPolicyBinding::resolve_policy_original(Self, @run_publication_host.ClientRequestIdentity, @publication_store.Store, @result_access.NativeResultReadFacts) -> Result[@actql/actql/run_publication.CapturedEffectDependencyBody, NativeLocalReadBindingIssue]
+
+pub(all) enum NativeLocalReadPolicyIssue {
+  InvalidOriginal
+  InvalidLimits
+  UnsupportedSink
+  UnsupportedFormat
+  InvalidPolicyReference
+} derive(Eq, @debug.Debug)
+
+type NativeLocalReadSelection
+pub fn NativeLocalReadSelection::enabled(Self) -> Bool
+pub fn NativeLocalReadSelection::sink(Self) -> NativeLocalReadSink
+
+pub(all) enum NativeLocalReadSink {
+  Stdout
+  Material
+} derive(Eq, @debug.Debug)
+
+type NativeLocalReviewerProofMaterials
+pub fn NativeLocalReviewerProofMaterials::original_facts(Self) -> Result[(Int64, Bool, @checkpoint_runtime.RunStateView, Int, Bool), NativeLocalReviewerProofMaterialsIssue]
+pub fn NativeLocalReviewerProofMaterials::preimage(Self) -> Result[String, NativeLocalReviewerProofMaterialsIssue]
+pub fn NativeLocalReviewerProofMaterials::prepare_signing_grant_operation(Self, String, String, String) -> Result[NativeLocalReviewerSigningGrantOperation, NativeLocalReviewerSigningGrantIssue]
+pub fn NativeLocalReviewerProofMaterials::prepare_signing_scope(Self, String) -> Result[@remote_credential.LocalSigningCredentialScope, NativeLocalReviewerProofMaterialsIssue]
+pub fn NativeLocalReviewerProofMaterials::require_current(Self) -> Result[Unit, NativeLocalReviewerProofMaterialsIssue]
+pub fn NativeLocalReviewerProofMaterials::require_original_signing_scope(Self, @remote_credential.LocalSigningCredentialScope) -> Result[Unit, NativeLocalReviewerProofMaterialsIssue]
+
+pub(all) enum NativeLocalReviewerProofMaterialsIssue {
+  ProofUnavailable
+  ProofKey(NativeLocalSigningOriginalIssue)
+  ProofOriginal(NativeClientRunJournalIssue)
+  ProofBody(@checkpoint_runtime.ResolutionIssue)
+}
+
+type NativeLocalReviewerSigningGrantAcknowledgement
+pub fn NativeLocalReviewerSigningGrantAcknowledgement::grant_cid(Self) -> String
+
+pub(all) enum NativeLocalReviewerSigningGrantIssue {
+  SigningGrantUnavailable
+  SigningGrantMaterials(NativeLocalReviewerProofMaterialsIssue)
+  SigningGrantIssuer(NativeLocalCredentialIssuerIssue)
+  SigningGrantJournal(NativeClientRunJournalIssue)
+  SigningGrantMetadata(@remote_credential.RemoteCredentialIssue)
+  SigningGrantHistory(NativeLocalSigningHistoryIssue)
+}
+
+type NativeLocalReviewerSigningGrantOperation
+pub fn NativeLocalReviewerSigningGrantOperation::adopt(Self, String, String) -> Result[NativeLocalReviewerSigningGrantAcknowledgement, NativeLocalReviewerSigningGrantIssue]
+pub fn NativeLocalReviewerSigningGrantOperation::lookup_adoption(Self) -> Result[NativeLocalReviewerSigningGrantAcknowledgement?, NativeLocalReviewerSigningGrantIssue]
+pub fn NativeLocalReviewerSigningGrantOperation::operation_cid(Self) -> String
+
+type NativeLocalRunPolicyBinding
+pub fn NativeLocalRunPolicyBinding::accept_issued_submitted_run_policy(Self, NativeClientSubmissionReference, NativeClientSubmittedPreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @actql/actql/run_publication.PublicationContract, @actql/actql/run_publication.PublicationContract, String, Double) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue]
+pub fn NativeLocalRunPolicyBinding::accept_submitted_effect_values_run_policy(Self, NativeClientSubmissionReference, NativeClientSubmittedPreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectAllowedRun, @actql/actql/run_publication.PublicationContract, @run_publication_host.ClientEffectIssuedNormalizationMaterials, String, Double) -> Result[NativeClientSubmittedIntentRecord, NativeClientSubmittedEffectMaterialsIssue]
+pub fn NativeLocalRunPolicyBinding::accept_submitted_run(Self, NativeClientSubmissionReference, NativeClientSubmittedPreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @actql/actql/run_publication.PublicationContract, @run_publication_host.ClientLocalRunPolicyOriginal, Double) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue]
+pub fn NativeLocalRunPolicyBinding::lookup_submitted_run_policy(Self, NativeClientSubmissionReference, @run_publication_host.ClientRequestIdentity, Double) -> Result[@run_publication_host.ClientLocalRunPolicyOriginal, NativeClientRunJournalIssue]
+pub fn NativeLocalRunPolicyBinding::original_run_requires_finite_policy(Self, @run_publication_host.ClientRequestIdentity) -> Result[Bool, NativeClientRunJournalIssue]
+pub fn NativeLocalRunPolicyBinding::prepare_submission_policy(Self, NativeClientSubmissionReference, NativeClientSubmittedPreparation, @run_publication_host.ClientRequestIdentity, String, Double) -> Result[NativeLocalRunPolicyPreparation, NativeClientRunJournalIssue]
+
+pub(all) enum NativeLocalRunPolicyPreparation {
+  Accepted(@run_publication_host.ClientLocalRunPolicyOriginal)
+  Pending(@actql/actql/run_publication.PublicationContract, String)
+}
+
+pub(all) enum NativeLocalRuntimeSubmission {
+  Accepted
+  Pending(@run_publication_host.ClientLocalProductAssets?)
+}
+
+type NativeLocalSalesforcePreparationBinding
+pub fn NativeLocalSalesforcePreparationBinding::adopt_credential_installation(Self, NativeClientLocalPreparationTarget, String) -> Result[@credential_resource.NativeLocalPreparationCredentialInstallation, NativeLocalSalesforcePreparationIssue]
+pub fn NativeLocalSalesforcePreparationBinding::adopt_grant_operation(Self, NativeLocalPreparationGrantOperation) -> Result[NativeLocalPreparationGrantAcknowledgement, NativeLocalSalesforcePreparationIssue]
+pub fn NativeLocalSalesforcePreparationBinding::catalog_binding(Self, String) -> Result[@catalog.LocalCatalogObservationBinding, NativeLocalSalesforcePreparationIssue]
+pub fn NativeLocalSalesforcePreparationBinding::prepare_grant_operation(Self, NativeClientLocalPreparationTarget, String, String, String) -> Result[NativeLocalPreparationGrantOperation, NativeLocalSalesforcePreparationIssue]
+pub fn NativeLocalSalesforcePreparationBinding::restore_credential_installation(Self, NativeClientLocalPreparationTarget, String) -> Result[@credential_resource.NativeLocalPreparationCredentialInstallation, NativeLocalSalesforcePreparationIssue]
+
+pub(all) enum NativeLocalSalesforcePreparationIssue {
+  InvalidSelection
+  ForeignInstallation
+  AuthorizationDenied
+  Adoption(NativeLocalAdoptionIssue)
+  Original(NativeClientPreparationFenceIssue)
+  Target(NativeClientLocalPreparationTargetIssue)
+  Credential(@remote_credential.RemoteCredentialIssue)
+  Issuer(NativeLocalCredentialIssuerIssue)
+  Journal(NativeClientRunJournalIssue)
+}
+
+type NativeLocalSigningAccountBinding
+pub fn NativeLocalSigningAccountBinding::require_current_account(Self) -> Result[Unit, NativeLocalSigningAccountIssue]
+pub fn NativeLocalSigningAccountBinding::restore_signing_key_original(Self) -> Result[NativeLocalSigningKeyOriginal, NativeLocalSigningOriginalIssue]
+
+pub(all) enum NativeLocalSigningAccountIssue {
+  SigningUnavailable
+  SigningSelection(@credential_resource.NativeLocalSigningKeySelectionIssue)
+}
+
+pub(all) enum NativeLocalSigningHistoryIssue {
+  HistoryUnavailable
+  HistoryOriginal(NativeClientRunJournalIssue)
+  HistoryKey(NativeLocalSigningOriginalIssue)
+  HistoryCredential(@credential_resource.NativeCredentialResourceIssue)
+}
+
+pub(all) struct NativeLocalSigningInstallationSelection {
+  key_configuration_file : String
+  reviewer_configuration_file : String?
+  checkpoint_kind : @checkpoint_runtime.CheckpointKind
+}
+
+type NativeLocalSigningKeyOriginal
+pub fn NativeLocalSigningKeyOriginal::generation_cid(Self) -> String
+pub fn NativeLocalSigningKeyOriginal::lookup_original_signing_operation(Self, String, String, @run_publication_host.ClientRequestIdentity, String) -> Result[@credential_resource.NativeLocalSigningHistoryCandidate, NativeLocalSigningHistoryIssue]
+pub fn NativeLocalSigningKeyOriginal::lookup_signing_history(Self, String, String, @run_publication_host.ClientRequestIdentity, String, String) -> Result[@credential_resource.NativeLocalSigningHistoryCandidate, NativeLocalSigningHistoryIssue]
+pub fn NativeLocalSigningKeyOriginal::prepare_reviewer_proof_materials(Self, NativeLocalEffectReviewerBinding, String, @checkpoint_runtime.WireLimits) -> Result[NativeLocalReviewerProofMaterials, NativeLocalReviewerProofMaterialsIssue]
+pub fn NativeLocalSigningKeyOriginal::public_key_cid(Self) -> String
+pub fn NativeLocalSigningKeyOriginal::read_current_reviewer(Self, NativeLocalEffectReviewerBinding) -> Result[@salesforce_effect_preview.NativeEffectReviewerRegistration, NativeLocalSigningOriginalIssue]
+pub fn NativeLocalSigningKeyOriginal::require_current_key(Self) -> Result[Unit, NativeLocalSigningOriginalIssue]
+
+pub(all) enum NativeLocalSigningOriginalIssue {
+  SigningAccount(NativeLocalSigningAccountIssue)
+  SigningOriginalUnavailable
+  SigningCustody(NativeLocalAdoptionIssue)
+  SigningJournal(NativeClientRunJournalIssue)
+}
+
+type NativeLocalVerifiedProductIdentity
+pub fn NativeLocalVerifiedProductIdentity::wire(Self) -> Result[String, NativeLocalPackagedRuntimeIssue]
+
+type NativeLocalWorkerProvisioningAttempt
+pub fn NativeLocalWorkerProvisioningAttempt::observe(Self, String, String) -> Result[NativeLocalWorkerProvisioningObservation, NativeLocalWorkerProvisioningIssue]
+pub fn NativeLocalWorkerProvisioningAttempt::record_resource_original(Self, @installed_arena_control.InstalledArenaDomain, String, String) -> Result[Unit, NativeLocalWorkerProvisioningIssue]
+pub fn NativeLocalWorkerProvisioningAttempt::require_recorded_resource_current(Self, @installed_arena_control.InstalledArenaDomain, String, String) -> Result[Unit, NativeLocalWorkerProvisioningIssue]
+
+pub(all) enum NativeLocalWorkerProvisioningIssue {
+  Adoption(NativeLocalAdoptionIssue)
+  Journal(NativeClientRunJournalIssue)
+  Selection(@host_bootstrap.NativeBootstrapIssue)
+  PhysicalSelection(@host_bootstrap.NativeBackedExecutionIssue)
+  AuthorizationDenied
+  CustodyLost
+}
+
+pub(all) enum NativeLocalWorkerProvisioningObservation {
+  UnresolvedOriginal(String, Bytes, NativeLocalWorkerRecordObservation)
+}
+
+pub(all) enum NativeLocalWorkerRecordObservation {
+  NotRecorded
+  Recorded
+}
+
+pub(all) enum NativeLocalWorkerResourceObservation {
+  UnresolvedNotRecorded(String)
+  UnresolvedRecorded(String, @host_bootstrap.NativePreparedDomainTransport, @physical_resources.UnresolvedBackedExecutionOriginal)
+}
+
+// Type aliases
+
+// Traits

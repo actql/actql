@@ -23,11 +23,24 @@ fn NativeLocalHostConnection::current_adoption_material(
   @host.ClientLocalAdoptionCurrentObservation[@sqlite.Database],
   NativeLocalAdoptionIssue,
 ] {
-  match self.check_binding() {
+  self.current_adoption_material_with_reads(() => self.check_binding())
+}
+
+///|
+fn NativeLocalHostConnection::current_adoption_material_with_reads(
+  self : NativeLocalHostConnection,
+  current : () -> Result[Unit, NativeLocalAdoptionIssue],
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[
+  @host.ClientLocalAdoptionCurrentObservation[@sqlite.Database],
+  NativeLocalAdoptionIssue,
+] {
+  match current() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let row = match self.database.scan_after("client_local_adoption", "") {
+  let row = match
+    scan_client_journal_value(self.database, "client_local_adoption", "", reads) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
@@ -36,12 +49,18 @@ fn NativeLocalHostConnection::current_adoption_material(
     row.body != self.adoption_body {
     return Err(CustodyLost)
   }
-  match self.database.scan_after("client_local_adoption", "adoption") {
+  match
+    scan_client_journal_value(
+      self.database,
+      "client_local_adoption",
+      "adoption",
+      reads,
+    ) {
     Err(@sqlite.NotFound) => ()
     Err(issue) => return Err(Physical(issue))
     Ok(_) => return Err(CustodyLost)
   }
-  match self.check_binding() {
+  match current() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
