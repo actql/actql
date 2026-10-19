@@ -1968,3 +1968,18 @@ cleanup frame. The Database finalizer must observe that actual context before
 it can retire its Library child. Dropping a reference, leaving a frame or
 closing a descriptor alone is not that acknowledgement; the Library, both
 contexts and the original backing still retain their separate close duties.
+
+### Python initial control continuation
+
+The selected Python initial carrier invokes the existing component's control
+initializer only after its same Native managed original is current. Its Runtime
+out-slot and error carrier precede that call and remain on the same original
+through partial initialization or reply loss. The call is one-shot; a failed
+observation cannot initialize again or replace the Runtime. Normal current
+checks require both original lifetimes on the original interpreter thread.
+
+Restoring the managed default does not close a Runtime, module, mapping or
+escaped allocation. The carrier retains those original references and their
+separate duties even after normal use refuses. This continuation issues no
+Host, parent, Ledger, Worker or VM and does not supply the separate loader,
+prelude, installation or business resource admissions.

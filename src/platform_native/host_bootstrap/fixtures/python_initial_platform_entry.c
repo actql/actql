@@ -31,13 +31,26 @@ extern void mi_free(void *);
 int actql_control_runtime_roots_state(void) { return initialization_calls != 0; }
 int actql_original_control_initialize(int argc, char **argv) {
   assert(argc == 1 && argv && argv[0] && !argv[1]);
-  assert(actql_native_python_initial_platform_current(entry));
+  assert(actql_native_python_initial_platform_current(&python_original));
   assert(initialization_calls++ == 0);
   escaped = mi_malloc(128);
-  assert(escaped && actql_initial_managed_contains(entry->managed->area,
-    entry->managed->reserved_bytes, escaped, mi_usable_size(escaped)));
+  assert(escaped && actql_initial_managed_contains(python_original.managed->area,
+    python_original.managed->reserved_bytes, escaped, mi_usable_size(escaped)));
   memset(escaped, 0x5a, 128);
   return 0;
+}
+
+int original_python_platform_runtime_initialization_calls(void) {
+  return (int)initialization_calls;
+}
+
+int original_python_platform_release_runtime_allocation(void) {
+  if (!python_original_thread(&python_original) || !escaped) return 0;
+  assert(((unsigned char *)escaped)[0] == 0x5a);
+  assert(((unsigned char *)escaped)[127] == 0x5a);
+  mi_free(escaped);
+  escaped = NULL;
+  return 1;
 }
 
 static void *foreign_entry(void *unused) {
