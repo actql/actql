@@ -124,11 +124,14 @@ import {openLocalPublicationStore, prepareLocalPublicationStoreOwnership,
   assertOriginalPreparedLocalPublicationStoreOwnership,
   closePreparedLocalPublicationStoreOwnership} from '../store-local/publication-store.mjs';
 export {
+  openLocalPublicationStore as openOriginalHostPublicationStore,
+  assertOriginalLocalPublicationStoreFacilityCurrent as assertOriginalHostPublicationStoreFacilityCurrent,
   prepareLocalPublicationStoreOwnership as prepareOriginalHostPublicationOwnership,
   assertOriginalPreparedLocalPublicationStoreOwnership as assertOriginalHostPublicationOwnershipCurrent,
   closePreparedLocalPublicationStoreOwnership as closeOriginalHostPublicationOwnership,
 } from '../store-local/publication-store.mjs';
 import {prepareHostJournalInstallation} from './node-host-journal-installation.mjs';
+import {prepareHostResultPublicationInstallation} from './node-host-result-installation.mjs';
 import * as publicationStoreModule from '../store-local/publication-store.mjs';
 import {createLocalRetainedStore} from '../store-local/files.mjs';
 import {installLocalRetainedStore, installLocalSnapshotStore} from
@@ -194,6 +197,30 @@ export function readHostJournalPreparation(originals) {
   assertInitialControlHostPreparation(originals);
   return profiles.hostJournalPreparation(originals.host, originals.installation,
     originals.generation);
+}
+
+// Original Common/control and authority correspondence, not a factory for a
+// resource service. The actual Root must already hold its separate purpose.
+export function readHostResultPublicationPreparation(originals) {
+  const journal = readHostJournalPreparation(originals);
+  const runtime = originals.installation.projectRuntime;
+  const control = runtimeCore(runtime).publicationControl;
+  return Object.freeze({runtime, control, root: journal.root, principalId: journal.principalId,
+    storeAuthorityCid: cid({version: 'actql-local-store-owner/0.1',
+      root: journal.root, principalId: journal.principalId})});
+}
+
+// Only the fixed startup calls this after the same pending SDK request has
+// produced its opaque checked Program. Bounds DATA cannot issue its service.
+export function readHostResultPublicationRunRequirements(originals, prepared) {
+  assertSourceManagedHostPreparation(originals);
+  originalSourceManagedHostRequest(originals, prepared);
+  const moon = originals.installation.projectRuntime;
+  const resultCount = moon.clientProgramResultCount(prepared);
+  const maxRows = moon.clientProgramValuesMaxRows(prepared);
+  assertSourceManagedHostPreparation(originals);
+  originalSourceManagedHostRequest(originals, prepared);
+  return Object.freeze({resultCount, maxRows});
 }
 
 // Same live ingress lineage only. Copies, CIDs and retained cold DATA cannot
@@ -1044,8 +1071,12 @@ async function openInstalledHost(originalInstallation, preparation) {
     // The distinct selected Compute purpose needs this SAME opened Journal
     // before it covers SDK request/attempt control. It is not Source credit.
     // Legacy unprepared Hosts keep their original path without a new await.
-    if (preparation !== undefined && originalSourcePreparation === undefined) {
-      await preparation.prepareManagedCompute();
+    if (preparation !== undefined) {
+      // query.all() captures its caller input before awaiting submission.
+      // Bind the separate Result control original before exposing the client;
+      // Store/key/payload construction itself remains lazy below.
+      await preparation.prepareResultPublication();
+      if (originalSourcePreparation === undefined) await preparation.prepareManagedCompute();
     }
     const originalRequestPreparation = preparation?.requestPreparation();
     observation = installHostObservation(observationConnection, {journal,
@@ -1080,15 +1111,13 @@ async function openInstalledHost(originalInstallation, preparation) {
     const initializePublicationServices = async () => {
     try {
     if (preparation !== undefined) {
-      // The selected writable Journal facility does not cover Publication
-      // Store/key/Result payload construction. Keep this precise missing
-      // operational boundary before its first constructor or I/O; do not
-      // create a key from path absence or borrow Source/Compute credit.
-      throw clientOperationError('InstalledPublicationPreparationUnavailable');
+      // This separate original precedes Store/key/payload work; neither the
+      // Journal nor a source-free Compute quote can supply this purpose.
+      await preparation.prepareResultPublication();
     }
     // Generated Content also retains encrypted private proofs. This is Store
     // custody, not an Effect permission or an implicit external write grant.
-    if (effectInstallation?.privateEvidenceKey === undefined) {
+    if (preparation === undefined && effectInstallation?.privateEvidenceKey === undefined) {
       const keyDirectory = join(root, 'checkpoints');
       try {
         effectEvidenceKey = await loadPrivateEvidenceKey(keyDirectory);
@@ -1104,15 +1133,17 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     if (modelRuntimeView !== undefined) assertNewModelRuntime();
     try {
-    store = await openLocalPublicationStore({
+    const storeOptions = {
       directory: join(root, 'publication'), storeAuthorityCid,
       capacityBytes: 512 * 1024 * 1024,
       maxObjectBytes: localOutputLimits.maxWireBytes,
       maxObjects: 10000, maxContractNodes: 10000,
       maxContractDepth: 64,
       privateEvidenceKey: effectInstallation?.privateEvidenceKey ?? effectEvidenceKey?.key,
-    }, control, undefined, undefined, preparation === undefined
-      ? publicationOwnership : preparation.publicationOwnership());
+    };
+    store = preparation === undefined
+      ? await openLocalPublicationStore(storeOptions, control, undefined, undefined, publicationOwnership)
+      : await preparation.openResultPublicationStore(storeOptions, control);
     } catch (cause) {
       // This same Store opener may retain a child whose release depends on
       // the already acquired Journal. Its initializer has not started any
@@ -2561,6 +2592,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       !inferSelections.has(submission.preparedProgram) &&
       moon.clientProgramSerializationOccurrences(submission.preparedProgram).length === 0
       ? preparation.prepareManagedComputeRun(moon, submission.preparedProgram, requested) : undefined;
+    preparation?.admitResultPublicationRun(submission.preparedProgram);
     const preparedSources = acquisitionCount === 2
       ? await prepareAcquisitions(submission.preparedProgram) : undefined;
     const keyedPrepared = keyedAcquisition === undefined ? undefined :
@@ -2922,7 +2954,20 @@ async function openInstalledHost(originalInstallation, preparation) {
   const submissionService = installNodeClientSubmission({journal, moon,
     authorizedScope: value => hostConnection(value) ? authorizedScope(value) : undefined,
     prepareSubmit, submit, lookupRequest: lookupHeld, checkSubmissionInput: check,
-    bindOwnedRequest});
+    bindOwnedRequest,
+    admitPreparedSubmission: preparation === undefined ? undefined : submission => {
+      const {requested, acquisitionCount, effectful} = requestOf(submission);
+      if (effectful || inferSelections.has(submission.preparedProgram) ||
+          moon.clientProgramSerializationOccurrences(submission.preparedProgram).length !== 0) {
+        throw clientOperationError('HostResultPublicationPurposeUnavailable');
+      }
+      if (acquisitionCount === 2 && typeof sourceProfile?.prepareManagedRun === 'function') {
+        sourceProfile.prepareManagedRun(submission.preparedProgram, requested);
+      } else if (acquisitionCount === 0) {
+        preparation.prepareManagedComputeRun(moon, submission.preparedProgram, requested);
+      } else throw clientOperationError('NodeManagedRunAdmissionUnavailable');
+      preparation.admitResultPublicationRun(submission.preparedProgram);
+    }});
   const checkpointOperations = checkpoints === undefined ? {} : {
     checkpoints: value => checkpoints.listCheckpoints({principalId: value.principalId,
       after: value.after, limit: value.limit,
@@ -3765,7 +3810,10 @@ async function openInstalledHost(originalInstallation, preparation) {
         const opened = await activate();
         if (opened !== host) throw clientOperationError('InstalledHostPreparationChanged');
         if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
-        return opened.port.perform(operation,request,signal);
+        preparation.beforeResultPublicationOperation(operation);
+        const result = await opened.port.perform(operation,request,signal);
+        preparation.assertResultPublicationCurrent();
+        return result;
       },
     });
     const bootstrapPort = Object.freeze({
@@ -3994,6 +4042,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   let control, controlClose, duty, observedClose, referenceRetirement;
   let moon, project, projectProfile, mockPreparation, sourceManaged, sourceManagedClose;
   let computeManaged, computeManagedClose, computeManagedFlight;
+  let resultPublication, resultPublicationClose, resultPublicationFlight;
   let hostJournal, hostJournalClose, hostJournalOpen, hostJournalOwnership, hostJournalFlight;
   let hostJournalAdmitRootFormat;
   let hostJournalOpenAttempted = false;
@@ -4066,6 +4115,20 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       }
       computeManaged = computeManagedClose = computeManagedFlight = undefined;
       record.computeManaged = undefined;
+    }
+    if (resultPublication !== undefined) {
+      resultPublicationClose ??= resultPublication.close;
+      if (typeof resultPublicationClose !== 'function') {
+        throw clientOperationError('HostResultPublicationCleanupPending');
+      }
+      const observation = await Reflect.apply(resultPublicationClose, resultPublication, []);
+      const pending = observation !== null && typeof observation === 'object'
+        ? Object.getOwnPropertyDescriptor(observation, 'pending') : undefined;
+      if (pending === undefined || !Object.hasOwn(pending, 'value') || pending.value !== false) {
+        throw clientOperationError('HostResultPublicationCleanupPending');
+      }
+      resultPublication = resultPublicationClose = resultPublicationFlight = undefined;
+      record.resultPublication = undefined;
     }
     if (hostJournal !== undefined) {
       // Capture a successfully observed callback/receiver once, before the
@@ -4170,6 +4233,38 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         throw clientOperationError('HostJournalPreparationUnavailable');
       }
       return Reflect.apply(hostJournalOwnership, hostJournal, []);
+    },
+    prepareResultPublication() {
+      assertInitialControlHostPreparation(originals);
+      if (resultPublicationFlight !== undefined) return resultPublicationFlight;
+      resultPublicationFlight = Promise.resolve().then(async () => {
+        const original = await prepareHostResultPublicationInstallation(originals);
+        if (original === undefined || original === null) throw clientOperationError('HostResultPublicationUnavailable');
+        resultPublication = original;
+        record.resultPublication = original;
+        resultPublicationClose = original.close;
+        if (typeof resultPublicationClose !== 'function') throw clientOperationError('HostResultPublicationCleanupPending');
+        original.assertCurrent();
+        assertInitialControlHostPreparation(originals);
+        return original;
+      });
+      return resultPublicationFlight;
+    },
+    assertResultPublicationCurrent() {
+      if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
+      resultPublication.assertCurrent();
+    },
+    beforeResultPublicationOperation(operation) {
+      if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
+      resultPublication.beforeOperation(operation);
+    },
+    openResultPublicationStore(options, control) {
+      if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
+      return resultPublication.openStore(options, control);
+    },
+    admitResultPublicationRun(prepared) {
+      if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
+      resultPublication.admitRun(prepared);
     },
     bindSourceRequest(parent, derived) {
       if (mockPreparation !== undefined) {

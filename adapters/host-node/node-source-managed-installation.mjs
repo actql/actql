@@ -20,7 +20,8 @@ const installations = new NativeWeakMap();
 const names = freeze(['prepareSourceManagedInstallation', 'assertSourceManagedInstallationCurrent',
   'beforeSourceSnapshot', 'bindSourceSnapshot', 'bindSourceRequest',
   'finishSourceProducer', 'closeSourceManagedInstallation', 'sourceIntentCid', 'prepareSourceManagedRead',
-  'prepareSourceManagedRun']);
+  'prepareSourceManagedRun', 'beforeSourceManagedResultRead', 'assertSourceManagedResultReadCurrent',
+  'beforeSourceManagedQuery']);
 const callbacks = names.map(name => {
   const d = descriptor(originalOwner, name);
   return d !== undefined && hasOwn(d, 'value') && typeof d.value === 'function' ? d.value : undefined;
@@ -28,7 +29,8 @@ const callbacks = names.map(name => {
 const computeNames = freeze(['prepareManagedComputeInstallation', 'assertManagedComputeInstallationCurrent',
   'beforeManagedComputeSnapshot', 'bindManagedComputeSnapshot', 'bindManagedComputeRequest',
   'finishManagedComputeProducer', 'closeManagedComputeInstallation', 'managedComputeIntentCid',
-  undefined, 'prepareManagedComputeRun']);
+  undefined, 'prepareManagedComputeRun', 'beforeManagedComputeResultRead', 'assertManagedComputeResultReadCurrent',
+  'beforeManagedComputeQuery']);
 const computeCallbacks = computeNames.map(name => {
   const d = name === undefined ? undefined : descriptor(originalOwner, name);
   return d !== undefined && hasOwn(d, 'value') && typeof d.value === 'function' ? d.value : undefined;
@@ -79,6 +81,16 @@ function syncVoid(state, index, args) {
     throw state.failure;
   }
 }
+function synchronousReceipt(state, index, args) {
+  current(state);
+  const receipt = invoke(index, [state.installation, state.originals, ...args], state.callbacks);
+  if (receipt === null || (typeof receipt !== 'object' && typeof receipt !== 'function') || isPromise(receipt)) {
+    state.failure = Object.assign(new NativeError('SourceManagedSynchronousProtocolChanged', {cause: receipt}),
+      {code: 'SourceManagedSynchronousProtocolChanged'});
+    throw state.failure;
+  }
+  return receipt;
+}
 
 // The selected Root may retain a partial original while its fixed Host
 // metadata operation is still running. Check that SAME nominal original in
@@ -122,16 +134,12 @@ async function prepareInstallation(originals, selectedCallbacks) {
   }
   const view = freeze({
     beforeSourceSnapshot(kind, input, options) {
-      current(state);
-      const receipt = invoke(2, [state.installation, state.originals, kind, input, options], state.callbacks);
-      if (receipt === null || (typeof receipt !== 'object' && typeof receipt !== 'function') || isPromise(receipt)) {
-        state.failure = Object.assign(new NativeError('SourceManagedSynchronousProtocolChanged', {cause: receipt}),
-          {code: 'SourceManagedSynchronousProtocolChanged'});
-        throw state.failure;
-      }
       // This wrapper does not admit a receipt by shape. Each later operation
       // rechecks that exact receipt in the original private Root's inventory.
-      return receipt;
+      return synchronousReceipt(state, 2, [kind, input, options]);
+    },
+    beforeSourceQuery(format, text, parameters, options) {
+      return synchronousReceipt(state, 12, [format, text, parameters, options]);
     },
     bindSourceSnapshot(receipt, body) {syncVoid(state, 3, [receipt, body]);},
     bindSourceRequest(receipt, body, request) {syncVoid(state, 4, [receipt, body, request]);},
@@ -157,6 +165,8 @@ async function prepareInstallation(originals, selectedCallbacks) {
       if (result !== undefined) unavailable();
     },
     assertCurrent() {current(state);},
+    beforeResultRead(schemaOrOptions, options) {syncVoid(state, 10, [schemaOrOptions, options]);},
+    assertResultReadCurrent() {syncVoid(state, 11, []);},
     prepareRun(originalCheckedPrepared) {
       current(state);
       // The fixed Root returns its pre-snapshot original only after the actual

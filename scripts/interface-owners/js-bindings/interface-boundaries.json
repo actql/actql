@@ -36547,13 +36547,14 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "3e6ea3f3fe0db7fe746ac2ea4ab47c64128607ccb1c6aa0a0a10ab7462164352",
+      "sha256": "86add7f8f0abc54b1bf015d30f49d317fbaa3a3b618ffc0363f76f3c800ee368",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
         "assertOriginalHostPublicationOwnershipCurrent",
+        "assertOriginalHostPublicationStoreFacilityCurrent",
         "assertOriginalHostRequestJournalFacilityCurrent",
         "assertSourceManagedHostPreparation",
         "closeOriginalHostPublicationOwnership",
@@ -36562,6 +36563,7 @@
         "managedComputeSubmittedIntentCid",
         "observeOriginalHostRequestJournalCustody",
         "openInstalledRemoteHttpHost",
+        "openOriginalHostPublicationStore",
         "openOriginalHostRequestJournal",
         "originalSourceManagedHostRequest",
         "prepareInstalledMockSourcePreparation",
@@ -36569,6 +36571,8 @@
         "publishInstalledEffect",
         "publishInstalledSource",
         "readHostJournalPreparation",
+        "readHostResultPublicationPreparation",
+        "readHostResultPublicationRunRequirements",
         "readInitialControlHostInput",
         "readInstalledMockPreparation",
         "readManagedComputeRunRequirements",
@@ -36639,9 +36643,28 @@
           "async": true
         },
         {
+          "name": "connectEmbeddedLocal/preparation/init:admitResultPublicationRun/init:admitResultPublicationRun",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
           "name": "connectEmbeddedLocal/preparation/init:admitRootFormat/init:admitRootFormat",
           "parameters": [
             "root"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:assertResultPublicationCurrent/init:assertResultPublicationCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:beforeResultPublicationOperation/init:beforeResultPublicationOperation",
+          "parameters": [
+            "operation"
           ],
           "async": false
         },
@@ -36695,6 +36718,14 @@
           "async": false
         },
         {
+          "name": "connectEmbeddedLocal/preparation/init:openResultPublicationStore/init:openResultPublicationStore",
+          "parameters": [
+            "options",
+            "control"
+          ],
+          "async": false
+        },
+        {
           "name": "connectEmbeddedLocal/preparation/init:prepareHostJournal/init:prepareHostJournal",
           "parameters": [],
           "async": false
@@ -36729,6 +36760,16 @@
             "value"
           ],
           "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareResultPublication/init:prepareResultPublication",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareResultPublication/init:prepareResultPublication/init:prepareResultPublication",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "connectEmbeddedLocal/preparation/init:publicationOwnership/init:publicationOwnership",
@@ -37974,6 +38015,13 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#2",
+          "parameters": [
+            "submission"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit",
           "parameters": [
             "submission"
@@ -38529,6 +38577,21 @@
           "name": "readHostJournalPreparation",
           "parameters": [
             "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "readHostResultPublicationPreparation",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "readHostResultPublicationRunRequirements",
+          "parameters": [
+            "originals",
+            "prepared"
           ],
           "async": false
         },
@@ -43260,6 +43323,119 @@
         },
         {
           "operations": [
+            "connectEmbeddedLocal/preparation/init:admitResultPublicationRun/init:admitResultPublicationRun",
+            "connectEmbeddedLocal/preparation/init:assertResultPublicationCurrent/init:assertResultPublicationCurrent",
+            "connectEmbeddedLocal/preparation/init:beforeResultPublicationOperation/init:beforeResultPublicationOperation",
+            "connectEmbeddedLocal/preparation/init:openResultPublicationStore/init:openResultPublicationStore",
+            "connectEmbeddedLocal/preparation/init:prepareResultPublication/init:prepareResultPublication",
+            "connectEmbeddedLocal/preparation/init:prepareResultPublication/init:prepareResultPublication/init:prepareResultPublication",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#2",
+            "readHostResultPublicationPreparation",
+            "readHostResultPublicationRunRequirements"
+          ],
+          "exports": [
+            "assertOriginalHostPublicationStoreFacilityCurrent",
+            "openOriginalHostPublicationStore",
+            "readHostResultPublicationPreparation",
+            "readHostResultPublicationRunRequirements"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary selected Node Host has a separate finite Local Result/publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareResultPublication() {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "control !== field(entry.subject, 'control')"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid')"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.store = store;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "same duty before its returned view observes it, that view receives the retained"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Host binds the Result control original after its actual Journal opens and"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.unknownCleanup = true;"
+              },
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Cleanup does not require current admission."
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.closedObservation = resultStatus(entry);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "anchor": "conditionalWireHistory: record("
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.storeOperations++;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "first-initialization, Account, Result and business-I/O authorization remain"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "legacy private Evidence key; a later key-dependent operation keeps its original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "Result Store rejects a foreign control or authority before creating its format"
+              },
+              {
+                "path": "adapters/host-node/host-result-service.test.mjs",
+                "anchor": "candidate refusal, Promise or Boolean cannot cross the actual durable record boundary"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "connectEmbeddedLocal/preparation/init:readAsset/init:readAsset"
           ],
           "exports": [],
@@ -43409,6 +43585,7 @@
         "./local-continuation-evidence.mjs",
         "./local-values-plan.mjs",
         "./node-host-journal-installation.mjs",
+        "./node-host-result-installation.mjs",
         "./node-initial-control-installation.mjs",
         "./node-source-managed-installation.mjs",
         "./ordinary-source-binding.mjs",

@@ -9400,8 +9400,10 @@
     {
       "module": "packages/sdk/internal/result-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6891ac0594619d57d7102414b1e62e7f107e6aad696a21793b47c9649c58438d",
+      "sha256": "a440c03086d57c6a6d18c3aafee939d53274aa4ad73f1a32e0872a0f1f6a57fb",
       "exports": [
+        "captureQueryResultRead",
+        "collectCapturedResult",
         "createResultFactory",
         "explainDeliveryAttempt",
         "explainReadFailure"
@@ -9417,6 +9419,25 @@
           "async": false
         },
         {
+          "name": "captureQueryResultRead",
+          "parameters": [
+            "before",
+            "current",
+            "kind",
+            "schemaOrOptions",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "collectCapturedResult",
+          "parameters": [
+            "result",
+            "token"
+          ],
+          "async": false
+        },
+        {
           "name": "createResultFactory",
           "parameters": [
             "ref",
@@ -9424,6 +9445,8 @@
             "lookupContext",
             "redactErrors",
             "typedRows",
+            "beforeResultRead",
+            "assertResultReadCurrent",
             "runRequest",
             "responseValue",
             "activeReaders",
@@ -9444,6 +9467,13 @@
           "parameters": [
             "schemaOrOptions",
             "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createResultFactory/createResultFactory/allCaptured/allCaptured",
+          "parameters": [
+            "captured"
           ],
           "async": true
         },
@@ -9482,55 +9512,17 @@
           "async": true
         },
         {
-          "name": "createResultFactory/createResultFactory/createResultFactory",
+          "name": "createResultFactory/createResultFactory/init:read/init:read",
+          "parameters": [
+            "kind",
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultFactory/createResultFactory/oneCaptured/oneCaptured",
           "parameters": [
             "options"
-          ],
-          "async": true
-        },
-        {
-          "name": "createResultFactory/createResultFactory/createResultFactory/createResultFactory",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "createResultFactory/createResultFactory/createResultFactory/limits/limits",
-          "parameters": [
-            "key",
-            "ceiling"
-          ],
-          "async": false
-        },
-        {
-          "name": "createResultFactory/createResultFactory/createResultFactory/schema/schema",
-          "parameters": [
-            "column"
-          ],
-          "async": false
-        },
-        {
-          "name": "createResultFactory/createResultFactory/createResultFactory#2",
-          "parameters": [
-            "options"
-          ],
-          "async": true
-        },
-        {
-          "name": "createResultFactory/createResultFactory/createResultFactory#3",
-          "parameters": [
-            "signal",
-            "format",
-            "requestedLimits"
-          ],
-          "async": true
-        },
-        {
-          "name": "createResultFactory/createResultFactory/createResultFactory#4",
-          "parameters": [
-            "attemptId",
-            "signal"
           ],
           "async": true
         },
@@ -9634,12 +9626,72 @@
           "async": false
         },
         {
+          "name": "createResultFactory/createResultFactory/result/result",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createResultFactory/createResultFactory/result/result/limits/limits",
+          "parameters": [
+            "key",
+            "ceiling"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultFactory/createResultFactory/result/result/result",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultFactory/createResultFactory/result/result/schema/schema",
+          "parameters": [
+            "column"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultFactory/createResultFactory/result/result#2",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createResultFactory/createResultFactory/result/result#3",
+          "parameters": [
+            "signal",
+            "format",
+            "requestedLimits"
+          ],
+          "async": true
+        },
+        {
+          "name": "createResultFactory/createResultFactory/result/result#4",
+          "parameters": [
+            "attemptId",
+            "signal"
+          ],
+          "async": true
+        },
+        {
           "name": "createResultFactory/createResultFactory/rows/rows",
           "parameters": [
             "schemaOrOptions",
             "options"
           ],
           "async": false
+        },
+        {
+          "name": "createResultFactory/createResultFactory/scalarCaptured/scalarCaptured",
+          "parameters": [
+            "options"
+          ],
+          "async": true
         },
         {
           "name": "explainDeliveryAttempt",
@@ -9745,6 +9797,90 @@
       "contracts": [
         {
           "operations": [
+            "captureQueryResultRead",
+            "collectCapturedResult",
+            "createResultFactory/createResultFactory/allCaptured/allCaptured",
+            "createResultFactory/createResultFactory/init:read/init:read",
+            "createResultFactory/createResultFactory/oneCaptured/oneCaptured",
+            "createResultFactory/createResultFactory/scalarCaptured/scalarCaptured"
+          ],
+          "exports": [
+            "captureQueryResultRead",
+            "collectCapturedResult"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "raw argument capture, not only a later Host request. The private SDK captures"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/result-read.mjs",
+                "anchor": "beforeResultRead"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/internal/result-read.mjs",
+                "anchor": "target.before !== original.before ||"
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "copied captures and another installation cannot consume a selected Result continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/internal/result-read.mjs",
+                "anchor": "capturedQueryReads.delete(token);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "selected omitted Result inputs stay omitted across all internal defaults"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "missing, accessor and nonvoid Result callbacks refuse only at the read boundary"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "query read refuses changed current original after await without sending a read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "payloads, Result readers/frames, actual native/managed controls, failed"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "options stay backend Unavailable before traversal, not invalid public input."
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "an original captured query continuation starts exactly one read"
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "Result callback retains its original receiver and does not acquire a replacement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "<module>",
             "appendCleanupFailure/appendCleanupFailure",
             "createResultFactory",
@@ -9756,13 +9892,13 @@
             "createResultFactory/createResultFactory/batches/batches/init:<computed>/init:<computed>/owned/init:abort/init:abort",
             "createResultFactory/createResultFactory/batches/batches/init:<computed>/init:<computed>/owned/owned",
             "createResultFactory/createResultFactory/batches/batches/iterate/iterate",
-            "createResultFactory/createResultFactory/createResultFactory",
-            "createResultFactory/createResultFactory/createResultFactory/createResultFactory",
-            "createResultFactory/createResultFactory/createResultFactory/limits/limits",
-            "createResultFactory/createResultFactory/createResultFactory/schema/schema",
-            "createResultFactory/createResultFactory/createResultFactory#2",
-            "createResultFactory/createResultFactory/createResultFactory#3",
-            "createResultFactory/createResultFactory/createResultFactory#4",
+            "createResultFactory/createResultFactory/result/result",
+            "createResultFactory/createResultFactory/result/result/result",
+            "createResultFactory/createResultFactory/result/result/limits/limits",
+            "createResultFactory/createResultFactory/result/result/schema/schema",
+            "createResultFactory/createResultFactory/result/result#2",
+            "createResultFactory/createResultFactory/result/result#3",
+            "createResultFactory/createResultFactory/result/result#4",
             "createResultFactory/createResultFactory/readRows/readRows",
             "createResultFactory/createResultFactory/readRows/readRows/acceptRow/acceptRow",
             "createResultFactory/createResultFactory/readRows/readRows/iterate/iterate",
@@ -9892,7 +10028,7 @@
     {
       "module": "packages/sdk/internal/run-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "dd6b2fceaf1e4d34e904f01a94cac19dab1c89181ef1db8f1f59f02b33ff8ddb",
+      "sha256": "da0bd0e295e88a937da2f847c29e2338719962dc1edceedb82d77f6673d9be1d",
       "exports": [
         "copyRunObservationFailure",
         "createExecutionFactory",
@@ -10209,6 +10345,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "## Original Checkpoint ID answers and SDK reference views"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "raw argument capture, not only a later Host request. The private SDK captures"
               }
             ],
             "inputsOutputs": [
@@ -10227,6 +10367,10 @@
               {
                 "path": "packages/sdk/host-port.d.ts",
                 "anchor": "answerCheckpoint?(summary: CheckpointSummary"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "beforeResultRead"
               }
             ],
             "identity": [
@@ -10249,6 +10393,14 @@
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
+              },
+              {
+                "path": "packages/sdk/internal/result-read.mjs",
+                "anchor": "target.before !== original.before ||"
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "copied captures and another installation cannot consume a selected Result continuation"
               }
             ],
             "ownership": [
@@ -10271,6 +10423,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "An uncertain signing operation retains its own original claim and cleanup."
+              },
+              {
+                "path": "packages/sdk/internal/result-read.mjs",
+                "anchor": "capturedQueryReads.delete(token);"
               }
             ],
             "synchronization": [
@@ -10293,6 +10449,10 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "selected omitted Result inputs stay omitted across all internal defaults"
               }
             ],
             "failure": [
@@ -10315,6 +10475,10 @@
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
                 "anchor": "ResolutionUnknown carries"
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "missing, accessor and nonvoid Result callbacks refuse only at the read boundary"
               }
             ],
             "cancellation": [
@@ -10337,6 +10501,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "query read refuses changed current original after await without sending a read"
               }
             ],
             "resources": [
@@ -10359,6 +10527,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "exact response-loss items overlap within the original Client/Host inventory."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "payloads, Result readers/frames, actual native/managed controls, failed"
               }
             ],
             "extension": [
@@ -10381,6 +10553,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "Ordinary `wait()` may"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "options stay backend Unavailable before traversal, not invalid public input."
               }
             ],
             "verification": [
@@ -10411,6 +10587,14 @@
               {
                 "path": "adapters/host-node/sdk-checkpoint-actions.integration.test.mjs",
                 "anchor": "test(`public ${decision}(id) binds the original Checkpoint"
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "an original captured query continuation starts exactly one read"
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "Result callback retains its original receiver and does not acquire a replacement"
               }
             ]
           }
@@ -10420,7 +10604,7 @@
     {
       "module": "packages/sdk/internal/submission-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "561c783a1ed7e78bba7db4b1f623f84509705e56d23e8577315749a3ecbe507d",
+      "sha256": "428116b37806727efcaf0257bf98e996a9d380811cc03975888d9ead8846dfdb",
       "exports": [
         "RequestHeld",
         "createSubmissionOperations",
@@ -10444,6 +10628,37 @@
             "execution",
             "lifecycle"
           ],
+          "async": false
+        },
+        {
+          "name": "createSubmissionOperations/captureQueryAdmission/captureQueryAdmission",
+          "parameters": [
+            "format",
+            "text",
+            "parameters",
+            "options",
+            "capture"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSubmissionOperations/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission",
+          "parameters": [
+            "producer"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSubmissionOperations/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission",
+          "parameters": [
+            "originalText",
+            "sourceOptions"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSubmissionOperations/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -10575,7 +10790,7 @@
         {
           "name": "createSubmissionOperations/startSource/startSource/startSource",
           "parameters": [
-            "sourceProducer"
+            "producer"
           ],
           "async": false
         },
@@ -10605,12 +10820,22 @@
           "async": true
         },
         {
+          "name": "createSubmissionOperations/submitSource/submitSource",
+          "parameters": [
+            "text",
+            "options",
+            "sourceProducer"
+          ],
+          "async": false
+        },
+        {
           "name": "createSubmissionOperations/withSourceProducer/withSourceProducer",
           "parameters": [
             "kind",
             "originalInput",
             "originalOptions",
-            "run"
+            "run",
+            "acquire"
           ],
           "async": false
         },
@@ -10820,6 +11045,86 @@
       "contracts": [
         {
           "operations": [
+            "createSubmissionOperations/captureQueryAdmission/captureQueryAdmission",
+            "createSubmissionOperations/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission",
+            "createSubmissionOperations/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission",
+            "createSubmissionOperations/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission#2",
+            "createSubmissionOperations/submitSource/submitSource"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The selected query entry acquires the same Source/Compute producer before its"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "representations: AQL input becomes `{text, format, parameterDeclarations?}`,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function currentSourceSubmission(entry, producer, body) {"
+              },
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "query intake refuses unsupported raw originals before getters and reuses its one receipt"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "private synchronous continuation consumes that receipt once; SDK-owned query"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "uses one original receipt for capture, request, identity and terminal before wait"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "a selected missing or accessor query method refuses without invoking raw inputs"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "capture rejection finishes only its original producer and retains failed cleanup for close"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Snapshot, projection copies and traversal workspace coexist"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "without getters or enumeration, while unselected public grammar stays unchanged."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "actual SDK query and all retain one Root producer and its separate Result read original"
+              },
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "submission uncertainty retains the same query receipt and never resends"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "<module>",
             "createSubmissionOperations",
             "createSubmissionOperations/createSubmissionOperations",
@@ -10894,6 +11199,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "### Original short-query continuation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "raw argument capture, not only a later Host request. The private SDK captures"
               }
             ],
             "inputsOutputs": [
@@ -10908,6 +11217,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"readOnly\": {\"const\": true}"
+              },
+              {
+                "path": "packages/sdk/internal/submission-observation.mjs",
+                "anchor": "beforeResultRead"
               }
             ],
             "identity": [
@@ -10926,6 +11239,14 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_cid("
+              },
+              {
+                "path": "packages/sdk/internal/result-read.mjs",
+                "anchor": "target.before !== original.before ||"
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "copied captures and another installation cannot consume a selected Result continuation"
               }
             ],
             "ownership": [
@@ -10944,6 +11265,10 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "assertSubmittedIntent(prepared, intent)"
+              },
+              {
+                "path": "packages/sdk/internal/result-read.mjs",
+                "anchor": "capturedQueryReads.delete(token);"
               }
             ],
             "synchronization": [
@@ -10962,6 +11287,10 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "selected omitted Result inputs stay omitted across all internal defaults"
               }
             ],
             "failure": [
@@ -10980,6 +11309,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "missing, accessor and nonvoid Result callbacks refuse only at the read boundary"
               }
             ],
             "cancellation": [
@@ -10998,6 +11331,10 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "query read refuses changed current original after await without sending a read"
               }
             ],
             "resources": [
@@ -11020,6 +11357,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "max_bytes > 1048576"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "payloads, Result readers/frames, actual native/managed controls, failed"
               }
             ],
             "extension": [
@@ -11034,6 +11375,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "options stay backend Unavailable before traversal, not invalid public input."
               }
             ],
             "verification": [
@@ -11056,6 +11401,14 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "an original captured query continuation starts exactly one read"
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "Result callback retains its original receiver and does not acquire a replacement"
               }
             ]
           }
@@ -12564,7 +12917,7 @@
     {
       "module": "packages/sdk/source-query.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "dd72a93531fa82e540ee33bdf9ce7dfe945ffa266bbe66efff97d0447dbbd71e",
+      "sha256": "e04fea5c7c0d4accb5089183eb5b27bc912a711582ddc0d2daac2c1e6c278b81",
       "exports": [
         "sourceQuery"
       ],
@@ -12609,7 +12962,46 @@
             "format",
             "text",
             "parameters",
+            "options",
+            "beforeResultRead",
+            "assertResultReadCurrent",
+            "captureAdmission"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceQuery/capture/capture",
+          "parameters": [
+            "submit"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceQuery/capture/capture/capture",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceQuery/collectSelected/collectSelected",
+          "parameters": [
+            "kind",
+            "schemaOrOptions",
             "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceQuery/collectSelected/collectSelected/collectSelected",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceQuery/collectSelected/collectSelected/collectSelected#2",
+          "parameters": [
+            "result",
+            "token"
           ],
           "async": false
         },
@@ -12623,7 +13015,8 @@
         {
           "name": "sourceQuery/sourceQuery",
           "parameters": [
-            "key"
+            "schemaOrOptions",
+            "options"
           ],
           "async": false
         },
@@ -12669,7 +13062,6 @@
         {
           "name": "sourceQuery/sourceQuery#2",
           "parameters": [
-            "schemaOrOptions",
             "options"
           ],
           "async": false
@@ -12680,16 +13072,10 @@
             "options"
           ],
           "async": false
-        },
-        {
-          "name": "sourceQuery/sourceQuery#4",
-          "parameters": [
-            "options"
-          ],
-          "async": false
         }
       ],
       "imports": [
+        "./internal/result-read.mjs",
         "./result-schema.mjs"
       ],
       "compilerFields": [],
@@ -12700,22 +13086,176 @@
       "contracts": [
         {
           "operations": [
+            "sourceQuery/capture/capture"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The selected query entry acquires the same Source/Compute producer before its"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "representations: AQL input becomes `{text, format, parameterDeclarations?}`,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function currentSourceSubmission(entry, producer, body) {"
+              },
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "query intake refuses unsupported raw originals before getters and reuses its one receipt"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "private synchronous continuation consumes that receipt once; SDK-owned query"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "uses one original receipt for capture, request, identity and terminal before wait"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "a selected missing or accessor query method refuses without invoking raw inputs"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "capture rejection finishes only its original producer and retains failed cleanup for close"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Snapshot, projection copies and traversal workspace coexist"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "without getters or enumeration, while unselected public grammar stays unchanged."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "actual SDK query and all retain one Root producer and its separate Result read original"
+              },
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "submission uncertainty retains the same query receipt and never resends"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceQuery/collectSelected/collectSelected",
+            "sourceQuery/collectSelected/collectSelected/collectSelected",
+            "sourceQuery/collectSelected/collectSelected/collectSelected#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "raw argument capture, not only a later Host request. The private SDK captures"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/source-query.mjs",
+                "anchor": "beforeResultRead, assertResultReadCurrent"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/internal/result-read.mjs",
+                "anchor": "target.before !== original.before ||"
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "copied captures and another installation cannot consume a selected Result continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/internal/result-read.mjs",
+                "anchor": "capturedQueryReads.delete(token);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "selected omitted Result inputs stay omitted across all internal defaults"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "missing, accessor and nonvoid Result callbacks refuse only at the read boundary"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "query read refuses changed current original after await without sending a read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "payloads, Result readers/frames, actual native/managed controls, failed"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "options stay backend Unavailable before traversal, not invalid public input."
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "an original captured query continuation starts exactly one read"
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "Result callback retains its original receiver and does not acquire a replacement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "<module>",
             "collectAfterQuery",
             "collectAfterQuery/collected/collected",
             "executionError",
             "sourceQuery",
             "sourceQuery/query/query",
-            "sourceQuery/sourceQuery",
+            "sourceQuery/capture/capture/capture",
             "sourceQuery/sourceQuery/sourceQuery",
             "sourceQuery/sourceQuery/sourceQuery#2",
             "sourceQuery/sourceQuery/sourceQuery#3",
             "sourceQuery/sourceQuery/sourceQuery#4",
             "sourceQuery/sourceQuery/sourceQuery#5",
             "sourceQuery/sourceQuery/sourceQuery#6",
+            "sourceQuery/sourceQuery",
             "sourceQuery/sourceQuery#2",
-            "sourceQuery/sourceQuery#3",
-            "sourceQuery/sourceQuery#4"
+            "sourceQuery/sourceQuery#3"
           ],
           "exports": [
             "sourceQuery"
@@ -13587,7 +14127,7 @@
     {
       "module": "packages/sdk/internal/private-source-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7005d36bf19c62f1b3a2383b4755d79cfc7e0cca6920fa208911b5bd547575a5",
+      "sha256": "75fba262bf412ebb5f6165cee11a73907cf7036ca011013796c78ad8252d584a",
       "exports": [
         "captureSourcePreparation",
         "sourcePreparationPort"
@@ -13598,6 +14138,34 @@
           "parameters": [
             "port"
           ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:assertResultReadCurrent/init:assertResultReadCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:beforeResultRead/init:beforeResultRead",
+          "parameters": [
+            "schemaOrOptions",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:beforeSourceQuery/init:beforeSourceQuery",
+          "parameters": [
+            "format",
+            "text",
+            "parameters",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:beforeSourceQuery/init:beforeSourceQuery/init:beforeSourceQuery",
+          "parameters": [],
           "async": false
         },
         {
@@ -13660,6 +14228,19 @@
           "async": false
         },
         {
+          "name": "captureSourcePreparation/resultVoid/resultVoid",
+          "parameters": [
+            "method",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/resultVoid/resultVoid/resultVoid",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "unavailable/unavailable",
           "parameters": [],
           "async": false
@@ -13671,6 +14252,162 @@
       "role": "physical-io",
       "owner": "Existing SDK submission transport and original Host/Resource intake boundary",
       "contracts": [
+        {
+          "operations": [
+            "captureSourcePreparation/init:beforeSourceQuery/init:beforeSourceQuery",
+            "captureSourcePreparation/init:beforeSourceQuery/init:beforeSourceQuery/init:beforeSourceQuery"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The selected query entry acquires the same Source/Compute producer before its"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "representations: AQL input becomes `{text, format, parameterDeclarations?}`,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function currentSourceSubmission(entry, producer, body) {"
+              },
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "query intake refuses unsupported raw originals before getters and reuses its one receipt"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "private synchronous continuation consumes that receipt once; SDK-owned query"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "uses one original receipt for capture, request, identity and terminal before wait"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "a selected missing or accessor query method refuses without invoking raw inputs"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "capture rejection finishes only its original producer and retains failed cleanup for close"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Snapshot, projection copies and traversal workspace coexist"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "without getters or enumeration, while unselected public grammar stays unchanged."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "actual SDK query and all retain one Root producer and its separate Result read original"
+              },
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "submission uncertainty retains the same query receipt and never resends"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "captureSourcePreparation/init:assertResultReadCurrent/init:assertResultReadCurrent",
+            "captureSourcePreparation/init:beforeResultRead/init:beforeResultRead",
+            "captureSourcePreparation/resultVoid/resultVoid",
+            "captureSourcePreparation/resultVoid/resultVoid/resultVoid"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "raw argument capture, not only a later Host request. The private SDK captures"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "beforeResultRead(schemaOrOptions, options)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/internal/result-read.mjs",
+                "anchor": "target.before !== original.before ||"
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "copied captures and another installation cannot consume a selected Result continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/internal/result-read.mjs",
+                "anchor": "capturedQueryReads.delete(token);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "selected omitted Result inputs stay omitted across all internal defaults"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "missing, accessor and nonvoid Result callbacks refuse only at the read boundary"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "query read refuses changed current original after await without sending a read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "payloads, Result readers/frames, actual native/managed controls, failed"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "options stay backend Unavailable before traversal, not invalid public input."
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "an original captured query continuation starts exactly one read"
+              },
+              {
+                "path": "packages/sdk/original-result-intake.test.mjs",
+                "anchor": "Result callback retains its original receiver and does not acquire a replacement"
+              }
+            ]
+          }
+        },
         {
           "operations": [
             "<module>",

@@ -14,6 +14,7 @@ const repository = fileURLToPath(new URL('../../', import.meta.url));
 const entries = ['adapters/host-node/client-request-journal.mjs',
   'adapters/store-local/publication-store.mjs', 'adapters/host-node/host-root-format.mjs',
   'adapters/host-node/node-host-journal-installation.mjs',
+  'adapters/host-node/node-host-result-installation.mjs',
   'adapters/host-node/node-source-managed-installation.mjs',
   'adapters/host-node/source-managed-original-input.mjs',
   'adapters/host-node/node-public-initial-control-bootstrap.cjs',
@@ -22,7 +23,8 @@ const entries = ['adapters/host-node/client-request-journal.mjs',
 const closure = localModuleGraphInputs(repository, entries);
 const nativeRoot = process.env.ACTQL_DIRECTORY_NATIVE_DIAGNOSTIC_ROOT;
 
-async function fixture(label, {replaceBeforeJournalCapture, managedCompute = false} = {}) {
+async function fixture(label, {replaceBeforeJournalCapture, managedCompute = false,
+  resultPublication = false} = {}) {
   const scratch = await createOwnedScratch({parent: tmpdir(),
     prefix: 'actql-journal-ordinary-service-', label});
   const root = join(scratch.path, 'node_modules/@actql/local-node');
@@ -71,6 +73,26 @@ async function fixture(label, {replaceBeforeJournalCapture, managedCompute = fal
     import {join} from 'node:path';
     import {beginInitialControlInstallation} from './node-initial-control-installation.mjs';
     import {prepareHostJournalInstallation} from './node-host-journal-installation.mjs';
+    ${!resultPublication ? '' : `
+    import {prepareHostResultPublicationInstallation} from './node-host-result-installation.mjs';
+    const resultRuntime=Object.freeze({controlled:true});
+    const resultControl=Object.freeze(Object.fromEntries(['admit','recordTransition','deliveryTransition',
+      'deliverySuccessValid','trustedClockNotBefore','recordAllowsCommit','effectFreeCommitValid']
+      .map(name=>[name,()=>{throw new Error(name+' unused');}])));
+    export {openLocalPublicationStore as openOriginalHostPublicationStore,
+      assertOriginalLocalPublicationStoreFacilityCurrent as assertOriginalHostPublicationStoreFacilityCurrent}
+      from '../store-local/publication-store.mjs';
+    export function readHostResultPublicationPreparation(value) {
+      const journal=readHostJournalPreparation(value);
+      return Object.freeze({runtime:resultRuntime,control:resultControl,root:journal.root,
+        principalId:journal.principalId,storeAuthorityCid:'sha256:'+'a'.repeat(64)});
+    }
+    export function readHostResultPublicationRunRequirements(value, prepared) {
+      assertInitialControlHostPreparation(value);
+      originalSourceManagedHostRequest(value,prepared);
+      return Object.freeze({resultCount:1,maxRows:1});
+    }
+    `}
     ${!managedCompute ? '' : `
     import {prepareManagedComputeInstallation, assertManagedComputePreparationCurrent,
       assertManagedComputeInstallationCurrent, assertSourceManagedInstallationCurrent}
@@ -116,10 +138,11 @@ async function fixture(label, {replaceBeforeJournalCapture, managedCompute = fal
         assertCurrent(){assertInitialControlHostPreparation(value);}});
     }
     export async function connectInitialControlHostPreparation(kind,raw) {
-      originals=Object.freeze({host:{},installation:{},generation:{},
+      originals=Object.freeze({host:{},installation:{${!resultPublication ? '' : 'projectRuntime:resultRuntime'}},generation:{},
         supplier:connectInitialControlHostPreparation,moduleLifetime:import.meta});
       const scope=await beginInitialControlInstallation(originals,raw);
       return Object.freeze({scope,root,originals,prepareJournal(){return prepareHostJournalInstallation(originals);}
+        ${!resultPublication ? '' : ',resultControl,prepareResult(){return prepareHostResultPublicationInstallation(originals);}'}
         ${!managedCompute ? '' : `,
         prepareCompute(){return prepareManagedComputeInstallation(originals);},
         assertCompute(view){assertManagedComputeInstallationCurrent(view,originals);},
@@ -285,8 +308,8 @@ test('source-free Compute original precedes SDK snapshot and cannot issue Source
     const compute=await client.prepareCompute();
     client.assertCompute(compute);
     assert.throws(()=>client.assertSource(compute));
-    const receipt=compute.beforeSourceSnapshot('aql','SELECT 1',{parameters:null});
-    const body=Object.freeze({kind:'aql',input:'SELECT 1',parameters:null});
+    const receipt=compute.beforeSourceSnapshot('aql','SELECT 1',{format:'sql',parameters:null});
+    const body=Object.freeze({kind:'aql',input:Object.freeze({text:'SELECT 1',format:'sql'}),parameters:null});
     compute.bindSourceSnapshot(receipt,body);
     const request=Object.freeze({originalPendingRequest:true});
     compute.bindSourceRequest(receipt,body,request);
@@ -328,4 +351,294 @@ test('source-free Compute snapshot refusal retains its one original close withou
     assert.equal((await client.scope.close()).pending,false);
   `);
   f.scratch.passed();
+});
+
+test('actual SDK submission projection binds the same Compute receipt and request', async () => {
+  const f = await fixture('ordinary Compute actual SDK submission projection', {managedCompute: true});
+  f.run(`
+    import assert from 'node:assert/strict'; import {connect} from '@actql/local-node';
+    import {connectInProcess} from '@actql/sdk/host-port';
+    import {sourcePreparationPort} from ${JSON.stringify(new URL('file://' + join(f.scratch.path,
+      'node_modules/@actql/sdk/internal/private-source-preparation.mjs')).href)};
+    const host=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
+    const journal=await host.prepareJournal();await journal.admitRootFormat(host.root);
+    await journal.openRequestJournal(host.root+'/requests',{});
+    const compute=await host.prepareCompute();let request,sends=0;
+    const cid=letter=>'sha256:'+letter.repeat(64);
+    const epoch={version:'actql-submission-epoch/0.1',authorityScopeCid:cid('a'),
+      epochNonce:'b'.repeat(64),authenticator:'c'.repeat(64),notBefore:1800000000000,expiresAt:1800000001000};
+    const ref={namespaceId:'original-projection',authorityScopeCid:cid('a'),runDefinitionCid:cid('b')};
+    const profile={version:'actql-client-host/0.1',mode:'local',owner:'local',durability:'volatile',
+      scopeRef:'original-projection',capabilities:['aql-document'],submissionEpoch:epoch,
+      limits:{maxReadWireBytes:65536,maxRowWireBytes:1024,maxRowRetainedValueBytes:1024,
+        maxRetainedValueBytes:65536,maxRows:256,maxBatchRows:3,maxBatchRetainedValueBytes:4096}};
+    const sdk=await connectInProcess({mode:'local',owner:'local'},
+      {[sourcePreparationPort]:compute,async perform(operation,packet){
+        if(operation==='connect')return profile;
+        assert.equal(operation,'submit-intent');request=packet;sends++;
+        assert.deepEqual(packet.input,{text:'SELECT 1',format:'sql'});
+        const prepared=Object.freeze({controlled:true});host.bindPrepared(prepared,packet);
+        assert.equal(typeof compute.prepareRun(prepared),'object');
+        return {kind:'recorded',attemptRef:packet.attemptRef,outcome:{kind:'ready',
+          submissionRef:packet.submissionRef,intentCid:packet.intentCid,
+          admission:{ref,durability:'volatile',revision:0}}};
+      }});
+    const execution=await sdk.startSource('SELECT 1',{format:'sql',readOnly:true});
+    assert.deepEqual(execution.ref,ref);assert.equal(sends,1);
+    await sdk.close();assert.equal((await compute.close()).pending,false);
+    assert.equal((await journal.close()).pending,false);assert.equal((await host.scope.close()).pending,false);
+  `);
+  f.scratch.passed();
+});
+
+test('query intake refuses unsupported raw originals before getters and reuses its one receipt', async () => {
+  const f = await fixture('ordinary Compute original raw query intake', {managedCompute: true});
+  f.run(`
+    import assert from 'node:assert/strict';import {connect} from '@actql/local-node';
+    const host=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
+    const journal=await host.prepareJournal();await journal.admitRootFormat(host.root);
+    await journal.openRequestJournal(host.root+'/requests',{});
+    const compute=await host.prepareCompute();let reads=0;
+    const raw=new Proxy({},{get(){reads++;},ownKeys(){reads++;return [];}});
+    assert.throws(()=>compute.beforeSourceQuery('sql','SELECT 1',undefined,raw));
+    assert.equal(reads,0);
+    const receipt=compute.beforeSourceQuery('sql','SELECT 1',undefined,undefined);
+    assert.throws(()=>compute.beforeSourceSnapshot('aql','SELECT 1',{format:'sql'}));
+    assert.throws(()=>compute.beforeSourceQuery('sql','SELECT 1',null,undefined));
+    const body=Object.freeze({kind:'aql',input:Object.freeze({text:'SELECT 1',format:'sql'}),
+      parameters:null,readOnly:true});
+    assert.throws(()=>compute.bindSourceSnapshot({...receipt},body));
+    assert.throws(()=>compute.bindSourceSnapshot(receipt,Object.freeze({...body,
+      input:Object.freeze({text:'SELECT 2',format:'sql'})})));
+    let entered=0;
+    assert.throws(()=>compute.bindSourceSnapshot(receipt,Object.freeze({...body,
+      input:Object.freeze({get text(){entered++;return 'SELECT 1';},format:'sql'})})));
+    assert.equal(entered,0);
+    compute.bindSourceSnapshot(receipt,body);
+    assert.throws(()=>compute.intentCid(receipt,Object.freeze({...body})));
+    assert.equal(compute.intentCid(receipt,body),'sha256:'+'a'.repeat(64));
+    compute.finishSourceProducer(receipt,'failed');
+    assert.equal((await compute.close()).pending,false);
+    assert.throws(()=>compute.beforeSourceQuery('sql','SELECT 1',undefined,undefined));
+    assert.equal((await journal.close()).pending,false);assert.equal((await host.scope.close()).pending,false);
+  `);
+  f.scratch.passed();
+});
+
+test('actual SDK query and all retain one Root producer and its separate Result read original', async () => {
+  const f = await fixture('ordinary actual SDK query and Result original', {managedCompute:true,resultPublication:true});
+  f.run(`
+    import assert from 'node:assert/strict';import {connect} from '@actql/local-node';
+    import {connectInProcess} from '@actql/sdk/host-port';
+    import {sourcePreparationPort} from ${JSON.stringify(new URL('file://' + join(f.scratch.path,
+      'node_modules/@actql/sdk/internal/private-source-preparation.mjs')).href)};
+    const host=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
+    const journal=await host.prepareJournal();await journal.admitRootFormat(host.root);
+    await journal.openRequestJournal(host.root+'/requests',{});
+    const result=await host.prepareResult(),compute=await host.prepareCompute();
+    const cid=letter=>'sha256:'+letter.repeat(64),ref={namespaceId:'query-original',
+      authorityScopeCid:cid('a'),runDefinitionCid:cid('b')};
+    const epoch={version:'actql-submission-epoch/0.1',authorityScopeCid:cid('a'),epochNonce:'b'.repeat(64),
+      authenticator:'c'.repeat(64),notBefore:1800000000000,expiresAt:1800000001000};
+    const profile={version:'actql-client-host/0.1',mode:'local',owner:'local',durability:'volatile',
+      scopeRef:'query-original',capabilities:['aql-document'],submissionEpoch:epoch,
+      limits:{maxReadWireBytes:65536,maxRowWireBytes:1024,maxRowRetainedValueBytes:1024,
+        maxRetainedValueBytes:65536,maxRows:256,maxBatchRows:3,maxBatchRetainedValueBytes:4096}};
+    const operations=[];
+    const sdk=await connectInProcess({mode:'local',owner:'local'},
+      {[sourcePreparationPort]:compute,async perform(operation,packet){
+        operations.push(operation);if(operation==='connect')return profile;
+        if(operation==='submit-intent'){
+          assert.deepEqual(packet.input,{text:'SELECT 1 AS n',format:'sql'});
+          const prepared=Object.freeze({controlled:true});host.bindPrepared(prepared,packet);
+          compute.prepareRun(prepared);
+          return {kind:'recorded',attemptRef:packet.attemptRef,outcome:{kind:'ready',
+            submissionRef:packet.submissionRef,intentCid:packet.intentCid,
+            admission:{ref,durability:'volatile',revision:0}}};
+        }
+        if(operation==='wait')return {version:'actql-run-state/0.1',run_id:'query-original',revision:1,
+          status:'succeeded',updated_at:'2026-10-07T00:00:00.000Z',next_action:{kind:'read_result',results:['answer']},
+          result_available:true,result_availability:{answer:{state:'available',
+            observed_at:'2026-10-07T00:00:00.000Z',reason:'confirmed_present'}}};
+        assert.equal(operation,'read');return {kind:'rows',frames:(async function*(){
+          yield {value:{n:1},byteLength:8};})()};
+      }});
+    const query=sdk.sql('SELECT 1 AS n');const rows=await query.all();
+    assert.deepEqual(rows,[{n:1}]);assert.deepEqual(operations,['connect','submit-intent','wait','read']);
+    assert.throws(()=>compute.beforeSourceQuery('sql','SELECT 1 AS n',undefined,undefined));
+    await sdk.close();assert.equal((await compute.close()).pending,false);
+    assert.equal((await result.close()).pending,false);assert.equal((await journal.close()).pending,false);
+    assert.equal((await host.scope.close()).pending,false);
+  `);
+  f.scratch.passed();
+});
+
+test('actual ordinary Result service adopts the same prepared Store and retains joint Journal ACK', async () => {
+  const f = await fixture('ordinary selected Result Store original', {managedCompute:true,resultPublication:true});
+  f.run(`
+    import assert from 'node:assert/strict'; import {existsSync} from 'node:fs';
+    import {connect} from '@actql/local-node'; import {createRequire} from 'node:module';
+    const require=createRequire(import.meta.url);
+    const client=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
+    const root=require(${JSON.stringify(join(f.root,'adapters/host-node/node-public-initial-control-bootstrap.cjs'))});
+    await assert.rejects(client.prepareResult());
+    const journal=await client.prepareJournal(); await journal.admitRootFormat(client.root);
+    await journal.openRequestJournal(client.root+'/requests',{});
+    const result=await client.prepareResult(); result.assertCurrent();
+    assert.throws(()=>root.prepareHostResultPublicationInstallation(client.originals));
+    assert.throws(()=>root.assertHostResultPublicationInstallationCurrent({},client.originals));
+    const control=client.resultControl;
+    const options={directory:client.root+'/publication',storeAuthorityCid:'sha256:'+'a'.repeat(64),
+      capacityBytes:536870912,maxObjectBytes:10000000,maxObjects:10000,maxContractNodes:10000,maxContractDepth:64};
+    const store=await result.openStore(options,control);
+    assert.equal(store.status().closed,false); assert.equal(existsSync(client.root+'/checkpoints'),false);
+    assert.throws(()=>result.openStore(options,control));
+    // Store cannot return the shared token while its SAME Journal is open.
+    await assert.rejects(store.close()); assert.equal(store.status().closed,false);
+    assert.equal((await journal.close()).pending,true);
+    await store.close(); assert.equal(store.status().closed,true);
+    assert.equal((await result.close()).pending,false);
+    assert.equal((await journal.close()).pending,false);
+    assert.equal((await client.scope.close()).pending,false);
+  `);
+  f.scratch.passed();
+});
+
+test('Result operation history does not refill and changed originals cannot revive', async () => {
+  const f = await fixture('ordinary Result cumulative operation history', {resultPublication:true});
+  f.run(`
+    import assert from 'node:assert/strict'; import {connect} from '@actql/local-node';
+    import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);
+    const client=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
+    const journal=await client.prepareJournal(); await journal.admitRootFormat(client.root);
+    await journal.openRequestJournal(client.root+'/requests',{});
+    const result=await client.prepareResult();
+    for(let index=0;index<128;index++)result.beforeOperation('result-description');
+    assert.throws(()=>result.beforeOperation('result-description'));
+    assert.throws(()=>result.beforeOperation('result-description'));
+    const crypto=require('node:crypto'), original=crypto.createCipheriv;
+    crypto.createCipheriv=()=>assert.fail('replacement must not execute');
+    try{assert.throws(()=>result.assertCurrent());}finally{crypto.createCipheriv=original;}
+    assert.throws(()=>result.assertCurrent());
+    assert.equal((await result.close()).pending,false);
+    assert.equal((await journal.close()).pending,false);
+    assert.equal((await client.scope.close()).pending,false);
+  `);
+  f.scratch.passed();
+});
+
+test('Result business candidate binds only its same admitted managed Run', async () => {
+  const f = await fixture('ordinary Result same managed candidate', {managedCompute:true,resultPublication:true});
+  f.run(`
+    import assert from 'node:assert/strict'; import {connect} from '@actql/local-node';
+    import {createRequire} from 'node:module'; const require=createRequire(import.meta.url);
+    const client=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
+    const owner=require(${JSON.stringify(join(f.root,'adapters/host-node/node-public-initial-control-bootstrap.cjs'))});
+    const journal=await client.prepareJournal(); await journal.admitRootFormat(client.root);
+    await journal.openRequestJournal(client.root+'/requests',{});
+    const result=await client.prepareResult(), compute=await client.prepareCompute();
+    assert.equal(compute.beforeResultRead(undefined,undefined),undefined);
+    compute.assertResultReadCurrent();compute.assertResultReadCurrent();
+    let traps=0;const unsupported=new Proxy({}, {ownKeys(){traps++;throw new Error('must not enumerate');}});
+    assert.throws(()=>compute.beforeResultRead(unsupported,undefined));assert.equal(traps,0);
+    const receipt=compute.beforeSourceSnapshot('aql','SELECT 1',{format:'sql',parameters:null});
+    const body=Object.freeze({kind:'aql',input:Object.freeze({text:'SELECT 1',format:'sql'}),parameters:null});
+    compute.bindSourceSnapshot(receipt,body);
+    const request=Object.freeze({originalPendingRequest:true});compute.bindSourceRequest(receipt,body,request);
+    const prepared=Object.freeze({controlledCheckedPrepared:true});client.bindPrepared(prepared,request);
+    const original=compute.prepareRun(prepared);
+    assert.throws(()=>result.admitRun(prepared));
+    const ports=owner.prepareOriginalManagedRunPorts(original,prepared);
+    assert.equal(ports.status(0),0);
+    result.admitRun(prepared); result.admitRun(prepared);
+    assert.throws(()=>result.admitRun({}));
+    compute.finishSourceProducer(receipt,'returned');
+    // Explicit diagnostic report, not an actual Common Ledger/usage claim.
+    assert.equal(ports.report(0,0,0,0n,0n,0n,0n,0n,0n,0n),0);assert.equal(ports.status(2),0);
+    assert.equal((await compute.close()).pending,false);
+    assert.equal((await result.close()).pending,false);
+    assert.equal((await journal.close()).pending,false);
+    assert.equal((await client.scope.close()).pending,false);
+  `);
+  f.scratch.passed();
+});
+
+test('Result Store work history bounds repeated calls without blocking its original close', async () => {
+  const f = await fixture('ordinary Result Store cumulative service work', {resultPublication:true});
+  f.run(`
+    import assert from 'node:assert/strict'; import {connect} from '@actql/local-node';
+    const client=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
+    const journal=await client.prepareJournal(); await journal.admitRootFormat(client.root);
+    await journal.openRequestJournal(client.root+'/requests',{});
+    const result=await client.prepareResult();
+    const control=client.resultControl;
+    const store=await result.openStore({directory:client.root+'/publication',storeAuthorityCid:'sha256:'+'a'.repeat(64),
+      capacityBytes:536870912,maxObjectBytes:10000000,maxObjects:10000,maxContractNodes:10000,maxContractDepth:64},control);
+    const requirement={requiredBytes:1,objectCount:1,maxObjectBytes:1};
+    // Constructor/internal checks already consume part of this SAME budget;
+    // do not assume only the two outer constructor calls reached active().
+    let supported=0;
+    for(;supported<4096;supported++){
+      try{assert.equal(store.publicationCapacitySupports(requirement),true);}
+      catch(error){assert.equal(error.code,'HostResultPublicationUnavailable');break;}
+    }
+    assert(supported>0&&supported<4096);
+    assert.throws(()=>store.publicationCapacitySupports(requirement));
+    result.assertCurrent();assert.throws(()=>store.publicationCapacitySupports(requirement));
+    assert.equal((await journal.close()).pending,true);await store.close();
+    assert.equal((await result.close()).pending,false);assert.equal((await journal.close()).pending,false);
+    assert.equal((await client.scope.close()).pending,false);
+  `);
+  f.scratch.passed();
+});
+
+test('Result failed actual Store construction keeps original cleanup until the same Journal closes', async () => {
+  const f = await fixture('ordinary Result actual failed Store constructor', {resultPublication:true});
+  f.run(`
+    import assert from 'node:assert/strict'; import {connect} from '@actql/local-node';
+    import {mkdir,writeFile} from 'node:fs/promises';
+    const client=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
+    const journal=await client.prepareJournal(); await journal.admitRootFormat(client.root);
+    await journal.openRequestJournal(client.root+'/requests',{});
+    const result=await client.prepareResult();
+    // A known exact format passes the original format boundary; the owned
+    // fault below is then reached inside actual Store initialization.
+    await writeFile(client.root+'/publication/store.json',JSON.stringify({version:'actql-local-publication-store/0.1',
+      isolation:'execution-namespace',store_authority_cid:'sha256:'+'a'.repeat(64)}),{mode:0o600});
+    await mkdir(client.root+'/publication/staging',{recursive:true});
+    await writeFile(client.root+'/publication/staging/invalid-staging-entry','new fixture only');
+    const control=client.resultControl;
+    const options={directory:client.root+'/publication',storeAuthorityCid:'sha256:'+'a'.repeat(64),
+      capacityBytes:536870912,maxObjectBytes:10000000,maxObjects:10000,maxContractNodes:10000,maxContractDepth:64};
+    let original;
+    await assert.rejects(result.openStore(options,control),error=>{
+      original=error;return error.code==='HostResultPublicationCleanupPending'&&error.cleanupHandle.status().pending;});
+    assert.equal((await result.close()).pending,true);
+    assert.throws(()=>result.openStore(options,control));
+    assert.equal((await journal.close()).pending,false);
+    assert.equal((await original.cleanupHandle.retry()).pending,false);
+    assert.equal((await result.close()).pending,false);
+    assert.equal((await client.scope.close()).pending,false);
+  `);
+  f.scratch.passed();
+});
+
+test('Result Store rejects a foreign control or authority before creating its format', async () => {
+  for (const wrong of ['control','authority']) {
+    const f = await fixture('ordinary Result original '+wrong+' refusal', {resultPublication:true});
+    f.run(`
+      import assert from 'node:assert/strict';import {existsSync} from 'node:fs';import {connect} from '@actql/local-node';
+      const client=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
+      const journal=await client.prepareJournal();await journal.admitRootFormat(client.root);
+      await journal.openRequestJournal(client.root+'/requests',{});
+      const result=await client.prepareResult();
+      const options={directory:client.root+'/publication',storeAuthorityCid:'sha256:'+${JSON.stringify(wrong === 'authority' ? 'b' : 'a')}.repeat(64),
+        capacityBytes:536870912,maxObjectBytes:10000000,maxObjects:10000,maxContractNodes:10000,maxContractDepth:64};
+      await assert.rejects(result.openStore(options,${wrong === 'control' ? '{...client.resultControl}' : 'client.resultControl'}));
+      assert.equal(existsSync(client.root+'/publication/store.json'),false);
+      assert.equal((await result.close()).pending,false);assert.equal((await journal.close()).pending,false);
+      assert.equal((await client.scope.close()).pending,false);
+    `);
+    f.scratch.passed();
+  }
 });

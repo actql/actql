@@ -875,6 +875,70 @@ Closing either view does not replenish that domain. Physical buffers, Result
 or Content storage, Model, Effect and external I/O keep their separate actual
 suppliers; a source-free quote or successful claim does not supply them.
 
+The selected query entry acquires the same Source/Compute producer before its
+first raw option read, not merely before the later `startSource` call. Its
+private synchronous continuation consumes that receipt once; SDK-owned query
+defaults cannot issue another snapshot. The initial supported query has absent
+options and absent or null parameters. Unsupported original graphs are refused
+without getters or enumeration, while unselected public grammar stays unchanged.
+
+The bounded original raw snapshot and SDK submission are different DATA
+representations: AQL input becomes `{text, format, parameterDeclarations?}`,
+parameters default to null, and the SDK adds its original submission/attempt
+control. The Root verifies that projection under the same nominal receipt,
+retains the deeply frozen body, and rechecks it at intent and request binding.
+A copied receipt or equal body cannot establish the original installation or
+request lineage. Snapshot, projection copies and traversal workspace coexist
+with the original packet/body, query continuation and failure aliases in the
+same selected phase; no copy or Promise retirement refills the shared domain.
+
+The ordinary selected Node Host has a separate finite Local Result/publication
+service. Its actual package prefix retains the same startup/runtime/module and
+filesystem, crypto, Buffer, WebCrypto and Journal native originals before the
+covered namespace and facility acquisition. The fixed namespace checks those
+same imports and derives the Store authority and publication control from the
+actual Host/root/principal and same Common instance. Matching support DATA,
+capacity counters or a callback alone cannot issue this service.
+
+The Host binds the Result control original after its actual Journal opens and
+before exposing the SDK receiver. This covers an eager query collection's first
+raw argument capture, not only a later Host request. The private SDK captures
+the original read/current pair, checks before schema/option traversal or UUID
+creation, and retains an opaque one-shot continuation across the query wait.
+Internal defaults do not become a second caller intake or admission. The first
+selected recipe supports absent read arguments; unsupported valid schemas or
+options stay backend Unavailable before traversal, not invalid public input.
+
+Store construction remains lazy and adopts the same prepared publication
+exclusion. Its separate finite service includes retained initial/Journal and
+selected Source/Compute originals, publication encodings, Store metadata and
+payloads, Result readers/frames, actual native/managed controls, failed
+constructors and escaped aliases. Shared process/module domains are counted
+once. Historical Host/Store/read attempts are bounded without refill; request
+and encoded-history demand is distinct from an actual backed amount or an
+allocation-success guarantee. The existing actual Store capacity checks and
+all independent physical close duties remain mandatory.
+
+Before a first durable business Submission/Run admission, the existing Host
+derives its finite Result candidate from the original checked Program and same
+admitted managed Run. Existing epoch/name control and read-only/ready lookup
+retain their Journal responsibility; an already accepted physical start is
+never repaired by a new Run or replacement resource admission. Key creation,
+first-initialization, Account, Result and business-I/O authorization remain
+separate. A selected no-key Result Store does not load or manufacture the
+legacy private Evidence key; a later key-dependent operation keeps its original
+missing-key refusal. Content, Model, Effect and other physical suppliers are
+not acquired by constructing shared service controls.
+
+The original Store is retained before post-constructor current checks. Partial
+opening failure keeps the same cleanup carrier while the acquired Journal
+drains independently; their shared token survives until both original ACKs.
+Cleanup does not require current admission. If a failure carrier completes the
+same duty before its returned view observes it, that view receives the retained
+original close observation, never another physical close or revived service.
+Process-lived module/native and escaped managed aliases are not reclaimed by
+that Store ACK, Promise completion or an empty DATA projection.
+
 The Host retains the unstarted admission before fallible start/take, and takes
 one original Run Ledger. The two Source reads and the generated managed DAG
 borrow that same Ledger internally. The existing physical Ledger equality at

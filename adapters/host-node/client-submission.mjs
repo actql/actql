@@ -36,12 +36,13 @@ export async function issueNodeClientSubmissionEpoch({journal, moon, authorizedS
 }
 
 export function installNodeClientSubmission({journal, moon, authorizedScope,
-  prepareSubmit, submit, lookupRequest, checkSubmissionInput, bindOwnedRequest}) {
+  prepareSubmit, submit, lookupRequest, checkSubmissionInput, bindOwnedRequest, admitPreparedSubmission}) {
   if (typeof journal?.recordSubmittedIntent !== 'function' ||
       typeof journal?.checkSubmittedIntent !== 'function' ||
       typeof moon?.clientSubmittedIntent !== 'function' ||
       [authorizedScope, prepareSubmit, submit, lookupRequest].some(value => typeof value !== 'function') ||
       bindOwnedRequest !== undefined && typeof bindOwnedRequest !== 'function' ||
+      admitPreparedSubmission !== undefined && typeof admitPreparedSubmission !== 'function' ||
       checkSubmissionInput !== undefined && typeof checkSubmissionInput !== 'function') {
     throw new TypeError('InvalidClientSubmissionInstallation');
   }
@@ -292,6 +293,12 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       return await discloseOutcome(value, storedOutcome(result), current, result);
     }
     const current = await authorize(value);
+    // The actual selected Host validates its same finite business candidate
+    // before this first durable business admission. This callback cannot
+    // issue the service or replace authorization; unselected callers retain
+    // their original path, and Promise/Bool is not synchronous acceptance.
+    if (admitPreparedSubmission !== undefined && admitPreparedSubmission(
+      own(value, {...value, requestId, preparedProgram})) !== undefined) fail('ClientPreparedSubmissionUnavailable');
     retained = attempt === undefined
       ? journal.recordSubmittedIntent(value.submissionRef, input, restartFields(current), moon)
       : attempt.record(value.submissionRef, input, restartFields(current));

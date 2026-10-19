@@ -43,6 +43,20 @@ export {readBounded as readBoundedLocalMetadata};
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
 const originalByteLength = OriginalBuffer.byteLength;
 const originalApply = Reflect.apply;
+
+// Read-only facility correspondence for the selected startup. Matching these
+// actual imports does not issue a service, key, capacity or permission.
+export function assertOriginalLocalPublicationStoreFacilityCurrent(bindings) {
+  const originals = {promises: {lstat, link, mkdir, open, opendir, readdir, readFile,
+    rename, rm, rmdir, unlink, writeFile},
+    crypto: {createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID},
+    buffer: {alloc: OriginalBuffer.alloc, allocUnsafe: OriginalBuffer.allocUnsafe,
+      allocUnsafeSlow: OriginalBuffer.allocUnsafeSlow, byteLength: originalByteLength,
+      concat: OriginalBuffer.concat, from: OriginalBuffer.from, isBuffer: OriginalBuffer.isBuffer}};
+  for (const group of Object.keys(originals)) for (const name of Object.keys(originals[group])) {
+    if (bindings?.[group]?.[name] !== originals[group][name]) fail('PublicationStoreFacilityChanged');
+  }
+}
 // Physical holdings: Transfer material, Effect source/capture custody,
 // encrypted publication evidence, Local continuation evidence, and generated
 // or captured Content. These are kinds in the same physical custody owner,
@@ -1028,7 +1042,12 @@ export async function openLocalPublicationStore(
   durability = localDurability,
   suppliedBootstrap,
   preparedOriginal,
+  operationalCurrent,
 ) {
+  if (operationalCurrent !== undefined) {
+    if (typeof operationalCurrent !== 'function') fail('InvalidPublicationStoreCurrent');
+    operationalCurrent();
+  }
   const prepared = preparedOriginal === undefined ? undefined : originalPreparedStoreOwnership(preparedOriginal);
   if (prepared !== undefined) {
     if (prepared.phase !== 'prepared' || prepared.closing) fail('PublicationStoreOwnershipLost');
@@ -1036,7 +1055,7 @@ export async function openLocalPublicationStore(
   }
   try {
     return await openOriginalLocalPublicationStore(supplied, suppliedControl, durability,
-      suppliedBootstrap, prepared);
+      suppliedBootstrap, prepared, operationalCurrent);
   } catch (cause) {
     if (prepared !== undefined && prepared.ownership !== undefined) {
       // Retain any original failed child before observing its cleanup ports.
@@ -1067,7 +1086,9 @@ async function openOriginalLocalPublicationStore(
   durability,
   suppliedBootstrap,
   prepared,
+  operationalCurrent,
 ) {
+  operationalCurrent?.();
   const configuration = validateConfiguration(supplied);
   const contractControl = validateContractControl(suppliedControl);
   const openingBootstrap = suppliedBootstrap === undefined ? undefined
@@ -1525,6 +1546,9 @@ async function openOriginalLocalPublicationStore(
       `${cidHex(resultDefinitionCid)}.json`,
     );
   const active = () => {
+    // This refusal-only callback is captured from the actual selected Root;
+    // it is not itself an issuer and never participates in cleanup ACKs.
+    operationalCurrent?.();
     if (closed || closeRequested) fail('PublicationStoreClosed');
   };
 

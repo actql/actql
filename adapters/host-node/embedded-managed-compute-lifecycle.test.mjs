@@ -44,14 +44,15 @@ function opening() {
 test('actual Host acquires its same Journal before Compute and before publishing the SDK receiver', async () => {
   const journal = {}, receiver = {}, options = {}, log = [];
   const preparation = {
-    async prepareManagedCompute() {assert.deepEqual(log, ['journal']); log.push('compute');},
-    requestPreparation() {assert.deepEqual(log, ['journal', 'compute']); log.push('receiver'); return receiver;},
+    async prepareResultPublication() {assert.deepEqual(log, ['journal']); log.push('result');},
+    async prepareManagedCompute() {assert.deepEqual(log, ['journal', 'result']); log.push('compute');},
+    requestPreparation() {assert.deepEqual(log, ['journal', 'result', 'compute']); log.push('receiver'); return receiver;},
   };
   const result = await opening()(preparation, undefined,
     async value => {assert.strictEqual(value, options); log.push('journal'); return journal;}, options);
   assert.strictEqual(result.journal, journal);
   assert.strictEqual(result.originalRequestPreparation, receiver);
-  assert.deepEqual(log, ['journal', 'compute', 'receiver']);
+  assert.deepEqual(log, ['journal', 'result', 'compute', 'receiver']);
 });
 
 test('legacy unprepared and existing Mock Source entries do not acquire a Compute replacement', async () => {
@@ -59,6 +60,7 @@ test('legacy unprepared and existing Mock Source entries do not acquire a Comput
   assert.deepEqual(await open(undefined, undefined, async () => journal, {}),
     {journal, originalRequestPreparation: undefined});
   const preparation = {
+    prepareResultPublication() {},
     prepareManagedCompute() {assert.fail('Source must retain its original joint purpose');},
     requestPreparation() {return source;},
   };
@@ -92,6 +94,7 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
   };
   return new Function(...Object.keys(ports), `
     let computeManaged, computeManagedClose, computeManagedFlight, observedClose;
+    let resultPublication, resultPublicationClose, resultPublicationFlight;
     let sourceManaged=beforeChild, sourceManagedClose=beforeChildClose, hostJournal;
     let moon=runtime, mockPreparation, control={}, duty, originalInstallation=originals.installation;
     const host=originals.host, record={}, adopted=true;

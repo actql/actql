@@ -26,6 +26,8 @@ const {declareOrdinaryInitialControlPhaseEnvelope, inspectOrdinaryInitialControl
 const {declareSourceManagedPhaseEnvelope,declareSourceComputePhaseEnvelope,
   declareSourceFreeManagedComputePhaseEnvelope} = require('./source-managed-phase-envelope.cjs');
 const {declareHostJournalServiceRecipe} = require('./host-journal-service-recipe.cjs');
+const {declareHostResultServiceRecipe, facilityFields: resultFacilityFields}
+  = require('./host-result-service-recipe.cjs');
 const fail = code => {throw Object.assign(new TypeError(code), {code});};
 const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');
 const inputUnavailable = () => fail('NodeInitialControlInputUnavailable');
@@ -44,6 +46,7 @@ let sourceInstallation;
 let managedComputeInstallation;
 let journalInstallation;
 let journalService;
+let resultService, resultInstallation;
 const journalUnavailable = () => fail('HostJournalPreparationUnavailable');
 const journalPromise = Promise, journalPromiseResolve = Promise.resolve;
 const journalPromiseThen = Promise.prototype.then;
@@ -175,6 +178,245 @@ function assertJournalServiceCurrent(original) {
     original.phase = 'retiring';
     throw cause;
   }
+}
+
+const resultUnavailable = () => fail('HostResultPublicationUnavailable');
+function beginResultService(recipe, journal, runtime) {
+  if (resultService !== undefined || state !== undefined || journal !== journalService ||
+      recipe.sharedControl !== journal.declaration || recipe.journal !== journal.recipe ||
+      journal.runtime !== runtime) resultUnavailable();
+  return resultService = {recipe, journal, runtime, process: processOriginal,
+    module: loadingModule, delivery, phase: 'declared', facilities: undefined,
+    bindings: undefined, namespace: undefined, callbacks: undefined, originals: undefined};
+}
+function bindResultServiceFacilities(original, facilities) {
+  if (original !== resultService || original.phase !== 'declared') resultUnavailable();
+  const receivers = {promises: facilities.promises, crypto: facilities.crypto, buffer: Buffer};
+  const bindings = Object.create(null);
+  for (const group of Object.keys(resultFacilityFields)) {
+    const values = Object.create(null);
+    for (const name of resultFacilityFields[group]) {
+      const value = field(receivers[group], name);
+      if (typeof value !== 'function' || isProxy(value)) resultUnavailable();
+      values[name] = value;
+    }
+    bindings[group] = freeze(values);
+  }
+  original.facilities = freeze(receivers);
+  original.bindings = freeze(bindings);
+  // The SDK's original Result reader uses global WebCrypto before its first
+  // Host request. Bind that SAME stock singleton and callback before namespace
+  // code/reader acquisition, not only node:crypto's different randomUUID.
+  const globalCrypto = descriptor(globalThis, 'crypto');
+  const webcrypto = facilities.crypto.webcrypto;
+  if (globalCrypto === undefined || typeof globalCrypto.get !== 'function' ||
+      isProxy(globalCrypto.get) || apply(intrinsicSource, globalCrypto.get, []) !==
+      'function get() {\n      if (check !== undefined) {\n        FunctionPrototypeCall(check, this);\n      }\n      if (setterCalled) {\n        return value;\n      }\n      mod ??= require(id);\n      value ??= mod[key];\n      return value;\n    }' ||
+      apply(globalCrypto.get, globalThis, []) !== webcrypto) resultUnavailable();
+  const prototype = Object.getPrototypeOf(webcrypto);
+  const randomUUID = field(prototype, 'randomUUID');
+  if (typeof randomUUID !== 'function' || isProxy(randomUUID)) resultUnavailable();
+  original.webcrypto = freeze({global: freeze(globalCrypto), value: webcrypto, prototype, randomUUID});
+  original.phase = 'native-bound';
+}
+function bindResultServiceNamespace(original, namespace) {
+  if (original !== resultService || original.phase !== 'native-bound') resultUnavailable();
+  const callbacks = Object.create(null);
+  for (const [name, exported] of Object.entries({open: 'openOriginalHostPublicationStore',
+    current: 'assertOriginalHostPublicationStoreFacilityCurrent',
+    read: 'readHostResultPublicationPreparation',
+    requirements: 'readHostResultPublicationRunRequirements'})) {
+    const property = descriptor(namespace, exported);
+    callbacks[name] = property !== undefined && own(property, 'value') ? property.value : undefined;
+  }
+  // Component-only namespaces can omit Result. They do not receive a partial
+  // Result service, nor does their Journal qualification supply this purpose.
+  if (Object.values(callbacks).some(value => typeof value !== 'function')) return;
+  apply(callbacks.current, namespace, [original.bindings]);
+  original.namespace = namespace;
+  original.callbacks = freeze(callbacks);
+  original.phase = 'bound';
+}
+function assertResultServiceCurrent(original) {
+  if (original !== resultService) resultUnavailable();
+  try {
+    if (original.phase !== 'bound' || state?.resultService !== original ||
+        state.resultServiceRecipe !== original.recipe || state.namespace !== original.namespace ||
+        state.runtime !== original.runtime || original.process !== processOriginal ||
+        original.module !== loadingModule || original.delivery !== delivery) resultUnavailable();
+    assertJournalServiceCurrent(original.journal);
+    const crypto = original.webcrypto, globalCrypto = descriptor(globalThis, 'crypto');
+    if (globalCrypto === undefined || globalCrypto.get !== crypto.global.get ||
+        globalCrypto.set !== crypto.global.set || globalCrypto.value !== crypto.global.value ||
+        apply(crypto.global.get, globalThis, []) !== crypto.value ||
+        Object.getPrototypeOf(crypto.value) !== crypto.prototype ||
+        field(crypto.prototype, 'randomUUID') !== crypto.randomUUID) resultUnavailable();
+    for (const group of Object.keys(resultFacilityFields)) for (const name of resultFacilityFields[group]) {
+      if (field(original.facilities[group], name) !== original.bindings[group][name]) resultUnavailable();
+    }
+    apply(original.callbacks.current, original.namespace, [original.bindings]);
+  } catch (cause) {original.phase = 'retiring'; throw cause;}
+}
+function resultOriginal(original, held, closing = false) {
+  const entry = resultInstallation;
+  if (entry === undefined || entry.original !== original || entry.originals !== held ||
+      (!closing && (entry.closed || entry.closing))) resultUnavailable();
+  return entry;
+}
+function resultCurrent(original, held) {
+  const entry = resultOriginal(original, held);
+  try {
+    assertSamePreparation(held);
+    assertResultServiceCurrent(entry.service);
+    const journal = journalCurrent(entry.journal.original, held);
+    if (journal !== entry.journal || journal.journal === undefined ||
+        journal.ownership !== entry.ownership || field(entry.subject, 'root') !== journal.paths.root ||
+        field(entry.subject, 'principalId') !== journal.paths.principalId ||
+        field(entry.subject, 'runtime') !== field(held.installation, 'projectRuntime')) resultUnavailable();
+    return entry;
+  } catch (cause) {entry.closing = true; entry.failure ??= cause; throw cause;}
+}
+function resultStatus(entry) {
+  return freeze({pending: !entry.closed, storePending: entry.store !== undefined,
+    constructorCleanupPending: entry.cleanup !== undefined || entry.unknownCleanup,
+    physicalBackingReleased: false});
+}
+function closeResult(entry) {
+  if (entry.closed) return apply(journalPromiseResolve, journalPromise, [entry.closedObservation]);
+  entry.closing = true;
+  if (entry.closeFlight !== undefined) return entry.closeFlight;
+  const flight = apply(journalPromiseThen, apply(journalPromiseResolve, journalPromise, []), [async () => {
+    try {
+      if (entry.openFlight !== undefined) {try {await entry.openFlight;} catch {}}
+      if (entry.unknownCleanup) return resultStatus(entry);
+      if (entry.cleanup !== undefined) {
+        if (!journalAcknowledged(apply(entry.cleanupStatus, entry.cleanup, []))) {
+          await apply(entry.cleanupRetry, entry.cleanup, []);
+        }
+        if (!journalAcknowledged(apply(entry.cleanupStatus, entry.cleanup, []))) return resultStatus(entry);
+        entry.cleanup = entry.cleanupStatus = entry.cleanupRetry = undefined;
+      }
+      if (entry.store !== undefined) {
+        // This exact Store's close/status are independent of Journal, source
+        // and parent scope ACKs. No current check is needed to finish cleanup.
+        if (field(apply(entry.storeStatus, entry.store, []), 'closed') !== true) {
+          await apply(entry.storeClose, entry.store, []);
+        }
+        if (field(apply(entry.storeStatus, entry.store, []), 'closed') !== true) return resultStatus(entry);
+        entry.store = entry.storeClose = entry.storeStatus = undefined;
+      }
+      entry.closed = true;
+      entry.ownership = entry.journal = entry.candidate = entry.subject = undefined;
+      // The failure carrier and the returned view can observe the SAME
+      // completed duty. Keep its actual original ACK, not a second close or a
+      // revived current admission when one observer finished cleanup first.
+      entry.closedObservation = resultStatus(entry);
+      return entry.closedObservation;
+    } catch (cause) {entry.failure ??= cause; return resultStatus(entry);}
+  }]);
+  entry.closeFlight = flight;
+  const settled = () => {if (entry.closeFlight === flight) entry.closeFlight = undefined;};
+  apply(journalPromiseThen, flight, [settled, settled]);
+  return flight;
+}
+function resultCarrier(entry, cause) {
+  entry.failure ??= cause; entry.closing = true;
+  const carrier = new Error('HostResultPublicationCleanupPending', {cause});
+  carrier.code = 'HostResultPublicationCleanupPending';
+  carrier.cleanupHandle = freeze({status: () => resultStatus(entry), retry: () => closeResult(entry)});
+  return carrier;
+}
+function prepareResult(held) {
+  assertSamePreparation(held);
+  assertResultServiceCurrent(state.resultService);
+  if (resultInstallation !== undefined || state.resultService.originals !== undefined ||
+      journalInstallation?.originals !== held || journalInstallation.closed || journalInstallation.closing ||
+      journalInstallation.journal === undefined || journalInstallation.ownership === undefined) resultUnavailable();
+  const journal = journalCurrent(journalInstallation.original, held);
+  state.resultService.originals = held;
+  const entry = resultInstallation = {original: freeze(Object.create(null)), originals: held,
+    service: state.resultService, journal, ownership: journal.ownership, subject: undefined,
+    openAttempted: false, openFlight: undefined, store: undefined, storeClose: undefined, storeStatus: undefined,
+    operations: 0, storeOperations: 0, readAttempts: 0, runAttempted: false, candidate: undefined, failure: undefined,
+    cleanup: undefined, cleanupStatus: undefined, cleanupRetry: undefined, unknownCleanup: false,
+    closing: false, closed: false, closeFlight: undefined};
+  entry.current = () => resultCurrent(entry.original, held);
+  entry.storeCurrent = () => {
+    if (entry.storeOperations >= entry.service.recipe.maxStoreOperations) resultUnavailable();
+    entry.storeOperations++;
+    return void resultCurrent(entry.original, held);
+  };
+  try {
+    entry.subject = apply(entry.service.callbacks.read, entry.service.namespace, [held]);
+    resultCurrent(entry.original, held);
+  } catch (cause) {throw resultCarrier(entry, cause);}
+  return entry.original;
+}
+function openResultStore(original, held, options, control) {
+  const entry = resultCurrent(original, held);
+  if (entry.openAttempted) resultUnavailable();
+  entry.openAttempted = true;
+  const flight = apply(journalPromiseThen, apply(journalPromiseResolve, journalPromise, []), [async () => {
+    try {
+      resultCurrent(original, held);
+      const selected = entry.service.recipe.selectStoreArguments(options, join(entry.journal.paths.root, 'publication'));
+      if (selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid') ||
+          control !== field(entry.subject, 'control')) resultUnavailable();
+      const store = await apply(entry.service.callbacks.open, entry.service.namespace,
+        [selected, control, undefined, undefined, entry.ownership, entry.storeCurrent]);
+      // Retain before the first post-constructor read/current callback.
+      entry.store = store;
+      entry.storeClose = field(store, 'close');
+      entry.storeStatus = field(store, 'status');
+      if (typeof entry.storeClose !== 'function' || typeof entry.storeStatus !== 'function') resultUnavailable();
+      resultCurrent(original, held);
+      return store;
+    } catch (cause) {
+      try {journalCleanup(entry, cause);} catch {entry.unknownCleanup = true;}
+      const pending = cause !== null && typeof cause === 'object' ? descriptor(cause, 'cleanupPending') : undefined;
+      if (pending !== undefined && (!own(pending, 'value') || pending.value === true && entry.cleanup === undefined)) {
+        entry.unknownCleanup = true;
+      }
+      throw resultCarrier(entry, cause);
+    }
+  }]);
+  entry.openFlight = flight;
+  return flight;
+}
+function beforeResultOperation(original, held, operation) {
+  const entry = resultCurrent(original, held);
+  if (typeof operation !== 'string' || operation.length > 128 ||
+      entry.operations >= entry.service.recipe.maxHostOperations) resultUnavailable();
+  // Historical attempts are not refilled by failure, release or close.
+  entry.operations++;
+}
+function beforeResultRead(held, schemaOrOptions, options) {
+  if (resultInstallation?.originals !== held) resultUnavailable();
+  const entry = resultCurrent(resultInstallation.original, held);
+  if (entry.readAttempts >= entry.service.recipe.maxHostOperations) resultUnavailable();
+  entry.readAttempts++;
+  // This first selected read recipe supports original absent options only.
+  // Valid unsupported schemas/options remain backend Unavailable, not public
+  // invalid input. Never enumerate caller keys, evaluate getters or callbacks.
+  if (schemaOrOptions !== undefined || options !== undefined) resultUnavailable();
+}
+function admitResultRun(original, held, prepared) {
+  const entry = resultCurrent(original, held);
+  const run = managedComputeInstallation?.receipt?.managedRun ?? sourceInstallation?.receipt?.managedRun;
+  if (run === undefined || run.derived !== prepared || run.entry.originals !== held || !run.admitted) resultUnavailable();
+  managedRunCurrent(run);
+  if (entry.runAttempted) {
+    if (entry.candidate?.prepared !== prepared || entry.candidate.run !== run) resultUnavailable();
+    return;
+  }
+  entry.runAttempted = true;
+  const required = apply(entry.service.callbacks.requirements, entry.service.namespace, [held, prepared]);
+  const results = field(required, 'resultCount'), rows = field(required, 'maxRows');
+  if (!Number.isSafeInteger(results) || results < 1 || results > entry.service.recipe.result.maxResults ||
+      !Number.isSafeInteger(rows) || rows < 0 || rows > entry.service.recipe.result.maxRows) resultUnavailable();
+  resultCurrent(original, held);
+  managedRunCurrent(run);
+  entry.candidate = freeze({prepared, run, results, rows});
 }
 
 function journalOriginal(original, held, allowClosing = false) {
@@ -633,6 +875,77 @@ function sourceCurrent(original, held) {
 function sourceReceipt(entry, receipt) {
   if (entry.receipt === undefined || entry.receipt.original !== receipt) sourceUnavailable();
   return entry.receipt;
+}
+// Compare only the bounded, already captured DATA projection. The original
+// receipt/installation and later body/request pointer lineage remain nominal;
+// equal DATA alone can never create a producer or grant a child.
+function sameSourceData(left, right) {
+  if (Object.is(left, right)) return true;
+  if (left === null || right === null || typeof left !== 'object' || typeof right !== 'object') return false;
+  const keys = Reflect.ownKeys(left), other = Reflect.ownKeys(right);
+  if (keys.length !== other.length) return false;
+  for (let index = 0; index < keys.length; index++) {
+    const name = keys[index];
+    if (!own(right, name) || !sameSourceData(left[name], right[name])) return false;
+  }
+  return true;
+}
+function sourceSubmissionProjection(entry, producer, body) {
+  if (producer.finished || producer.snapshot === undefined || body === null ||
+      typeof body !== 'object' || isProxy(body)) sourceUnavailable();
+  const limits = entry.envelope?.inputLimits ?? state.sourceEnvelope.inputLimits;
+  // This SAME Source/Compute phase covers the reader's traversal and copies;
+  // using the initial reader function does not import initial-control credit.
+  const captured = apply(state.reader, state.namespace, [body, limits]);
+  if (captured.originalReferences.length !== 0) sourceUnavailable();
+  const pending = [body];
+  for (let index = 0; index < pending.length; index++) {
+    const original = pending[index];
+    if (!Object.isFrozen(original)) sourceUnavailable();
+    for (const name of Reflect.ownKeys(original)) {
+      const value = field(original, name);
+      if (value !== null && typeof value === 'object') pending[pending.length] = value;
+    }
+  }
+  const packet = producer.snapshot.packet, actual = captured.packet;
+  const options = packet.options ?? Object.create(null);
+  if (actual.kind !== packet.kind || !sameSourceData(actual.parameters, options.parameters ?? null) ||
+      actual.readOnly !== options.readOnly || actual.stopBefore !== options.stopBefore ||
+      !sameSourceData(actual.unresolvedHistory, options.unresolvedHistory)) sourceUnavailable();
+  const allowed = ['submissionRef', 'attemptRef', 'kind', 'input', 'parameters',
+    'readOnly', 'stopBefore', 'unresolvedHistory'];
+  for (const name of Reflect.ownKeys(actual)) if (!allowed.includes(name)) sourceUnavailable();
+  if (options.submissionRef !== undefined && !sameSourceData(actual.submissionRef, options.submissionRef) ||
+      options.attemptId !== undefined && actual.attemptRef?.attemptId !== options.attemptId) sourceUnavailable();
+  if (packet.kind === 'aql') {
+    const expected = {text: packet.input, format: options.format};
+    if (options.parameterDeclarations !== undefined) expected.parameterDeclarations = options.parameterDeclarations;
+    if (!sameSourceData(actual.input, expected)) sourceUnavailable();
+  } else if (packet.kind !== 'program' || !sameSourceData(actual.input, packet.input)) sourceUnavailable();
+  return captured;
+}
+function bindSourceSubmission(entry, receipt, body) {
+  const producer = sourceReceipt(entry, receipt);
+  if (producer.body !== undefined) sourceUnavailable();
+  producer.boundSnapshot = sourceSubmissionProjection(entry, producer, body);
+  producer.body = body;
+}
+function currentSourceSubmission(entry, producer, body) {
+  if (producer.body !== body || producer.finished) sourceUnavailable();
+  const captured = sourceSubmissionProjection(entry, producer, body);
+  if (!sameSourceData(captured.packet, producer.boundSnapshot.packet)) sourceUnavailable();
+}
+function beforeSourceQuery(original, held, format, text, parameters, options, compute) {
+  if (compute) managedComputeCurrent(original, held);
+  else sourceCurrent(original, held);
+  // The initial supported public query has no external options/parameter
+  // graph. Refuse that unsupported backing BEFORE any getter/ownKeys; never
+  // silently discard a valid option or manufacture another admission.
+  if (options !== undefined || parameters !== undefined && parameters !== null ||
+      typeof text !== 'string' || !['sql', 'aql', 'aql-text'].includes(format)) sourceUnavailable();
+  const selected = freeze({format, parameters: null, readOnly: true});
+  return compute ? beforeManagedComputeSnapshot(original, held, 'aql', text, selected) :
+    table.beforeSourceSnapshot(original, held, 'aql', text, selected);
 }
 function sourceFailure(entry, cause) {
   const error = freeze({cause});
@@ -1252,22 +1565,22 @@ const table = module.exports = {
     return closeSource(managedComputeOriginal(original, originals, true));
   },
   beforeManagedComputeSnapshot,
+  beforeManagedComputeQuery(original, originals, format, text, parameters, options) {
+    return beforeSourceQuery(original, originals, format, text, parameters, options, true);
+  },
   bindManagedComputeSnapshot(original, originals, receipt, body) {
-    const entry = managedComputeCurrent(original, originals), producer = sourceReceipt(entry, receipt);
-    if (producer.body !== undefined || producer.finished || body === null ||
-        typeof body !== 'object' || isProxy(body) || !Object.isFrozen(body) ||
-        body.kind !== producer.snapshot.packet.kind || body.input !== producer.snapshot.packet.input) sourceUnavailable();
-    producer.body = body;
+    bindSourceSubmission(managedComputeCurrent(original, originals), receipt, body);
   },
   bindManagedComputeRequest(original, originals, receipt, body, request) {
     const entry = managedComputeCurrent(original, originals), producer = sourceReceipt(entry, receipt);
     if (producer.body !== body || producer.request !== undefined || producer.finished ||
         request === null || typeof request !== 'object' || isProxy(request)) sourceUnavailable();
+    currentSourceSubmission(entry, producer, body);
     producer.request = request;
   },
   managedComputeIntentCid(original, originals, receipt, body) {
     const entry = managedComputeCurrent(original, originals), producer = sourceReceipt(entry, receipt);
-    if (producer.body !== body || producer.finished) sourceUnavailable();
+    currentSourceSubmission(entry, producer, body);
     const identity = apply(state.compute.intent, state.namespace, [originals, original, body]);
     managedComputeCurrent(original, originals);
     return identity;
@@ -1279,8 +1592,35 @@ const table = module.exports = {
     producer.snapshot = undefined;
   },
   prepareManagedComputeRun: claimManagedComputeRun,
+  beforeManagedComputeResultRead(original, originals, schemaOrOptions, options) {
+    managedComputeCurrent(original, originals);
+    beforeResultRead(originals, schemaOrOptions, options);
+  },
+  assertManagedComputeResultReadCurrent(original, originals) {
+    managedComputeCurrent(original, originals);
+    if (resultInstallation?.originals !== originals) resultUnavailable();
+    resultCurrent(resultInstallation.original, originals);
+  },
+  beforeSourceManagedResultRead(original, originals, schemaOrOptions, options) {
+    sourceCurrent(original, originals);
+    beforeResultRead(originals, schemaOrOptions, options);
+  },
+  assertSourceManagedResultReadCurrent(original, originals) {
+    sourceCurrent(original, originals);
+    if (resultInstallation?.originals !== originals) resultUnavailable();
+    resultCurrent(resultInstallation.original, originals);
+  },
+  prepareHostResultPublicationInstallation: prepareResult,
+  assertHostResultPublicationInstallationCurrent(original, originals) {resultCurrent(original, originals);},
+  closeHostResultPublicationInstallation(original, originals) {return closeResult(resultOriginal(original, originals, true));},
+  openHostResultPublicationStore: openResultStore,
+  beforeHostResultPublicationOperation: beforeResultOperation,
+  admitHostResultPublicationRun: admitResultRun,
   prepareSourceManagedInstallation: prepareSource,
   assertSourceManagedInstallationCurrent(original, originals) {sourceCurrent(original, originals);},
+  beforeSourceManagedQuery(original, originals, format, text, parameters, options) {
+    return beforeSourceQuery(original, originals, format, text, parameters, options, false);
+  },
   beforeSourceSnapshot(original, originals, kind, input, options) {
     const entry = sourceCurrent(original, originals);
     if (entry.receipt !== undefined) sourceUnavailable();
@@ -1312,23 +1652,20 @@ const table = module.exports = {
     }
   },
   bindSourceSnapshot(original, originals, receipt, body) {
-    const entry = sourceCurrent(original, originals), producer = sourceReceipt(entry, receipt);
-    if (producer.body !== undefined || producer.finished || body === null ||
-        typeof body !== 'object' || isProxy(body) || !Object.isFrozen(body) ||
-        body.kind !== producer.snapshot.packet.kind || body.input !== producer.snapshot.packet.input) sourceUnavailable();
-    producer.body = body;
+    bindSourceSubmission(sourceCurrent(original, originals), receipt, body);
   },
   bindSourceRequest(original, originals, receipt, body, request) {
     const entry = sourceCurrent(original, originals), producer = sourceReceipt(entry, receipt);
     if (producer.body !== body || producer.request !== undefined || producer.finished ||
         request === null || typeof request !== 'object' || isProxy(request)) sourceUnavailable();
+    currentSourceSubmission(entry, producer, body);
     // The receiving Host's fixed transform binding must later recover this
     // same original, rather than identifying a clone by fields or intent CID.
     producer.request = request;
   },
   sourceIntentCid(original, originals, receipt, body) {
     const entry = sourceCurrent(original, originals), producer = sourceReceipt(entry, receipt);
-    if (producer.body !== body || producer.finished) sourceUnavailable();
+    currentSourceSubmission(entry, producer, body);
     const identity = apply(state.source.intent, state.namespace, [originals, original, body]);
     sourceCurrent(original, originals);
     return identity;
@@ -1373,6 +1710,12 @@ try {
     openssl:processOriginal.versions.openssl,platform:processOriginal.platform,arch:processOriginal.arch,
     eager:false,libraries:freeze({...processOriginal.versions})});
   const originalJournalService = beginJournalService(journalServiceRecipe, declaration, runtime);
+  const sourceEnvelope = declareSourceManagedPhaseEnvelope(declaration);
+  const sourceComputeEnvelope = declareSourceComputePhaseEnvelope(sourceEnvelope);
+  const managedComputeEnvelope = declareSourceFreeManagedComputePhaseEnvelope(declaration);
+  const resultServiceRecipe = declareHostResultServiceRecipe(declaration, journalServiceRecipe,
+    sourceComputeEnvelope, managedComputeEnvelope);
+  const originalResultService = beginResultService(resultServiceRecipe, originalJournalService, runtime);
   // Retain selected builtin constructor identities before namespace callbacks.
   // This is module/control custody only: no DatabaseSync is constructed and
   // no writable Journal capacity is issued by loading this builtin.
@@ -1386,11 +1729,9 @@ try {
   if (typeof journalNative.DatabaseSync !== 'function' ||
       typeof journalNative.StatementSync !== 'function') unavailable();
   bindJournalServiceNative(originalJournalService, sqliteOriginal, journalNative, journalFacilities);
+  bindResultServiceFacilities(originalResultService, journalFacilities);
   // Adopt the separate joint Source recipe before namespace, managed Source
   // metadata or raw SDK acquisition. This is not a second whole VM allowance.
-  const sourceEnvelope = declareSourceManagedPhaseEnvelope(declaration);
-  const sourceComputeEnvelope = declareSourceComputePhaseEnvelope(sourceEnvelope);
-  const managedComputeEnvelope = declareSourceFreeManagedComputePhaseEnvelope(declaration);
   const inventory = require('./initial-control-package-original.cjs').imageInventory;
   if (inventory === undefined) unavailable();
   const envelope = inspectOrdinaryInitialControlPhaseEnvelope(inventory,declaration,runtime);
@@ -1451,8 +1792,9 @@ try {
   }
   freeze(journal);
   const journalDisposition = bindJournalServiceNamespace(originalJournalService, namespace, journal);
+  bindResultServiceNamespace(originalResultService, namespace);
   state = {declaration,runtime,envelope,sourceEnvelope,sourceComputeEnvelope,runRequirements,
-    managedComputeEnvelope,compute,
+    managedComputeEnvelope,compute,resultServiceRecipe,resultService:originalResultService,
     inventory,images,namespace,consumer,validator,reader,source,journal,journalNative,journalServiceRecipe,
     journalService:originalJournalService,journalDisposition,prefixIntrinsics,
     directoryNativeImageLoader:field(directoryNativeImage,'loadHostJournalDirectoryNative')};
@@ -1461,4 +1803,5 @@ try {
   // failed prefix never becomes a second factory or a retrying image read.
   firstFailure = freeze({cause});
   if (journalService !== undefined) journalService.phase = 'failed';
+  if (resultService !== undefined) resultService.phase = 'failed';
 }

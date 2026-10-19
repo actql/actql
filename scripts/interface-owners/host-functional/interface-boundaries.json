@@ -8,6 +8,402 @@
   },
   "declarations": [
     {
+      "module": "adapters/host-node/node-host-result-installation.mjs",
+      "sha256": "daef2fab4458c1af99773c52c57e11733ad26d1b5aa90341d9ba6f76ac6c64ce",
+      "exports": [
+        "prepareHostResultPublicationInstallation"
+      ],
+      "operations": [
+        {
+          "name": "callbacks/callbacks",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "close",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "close/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "close/settled/settled",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "current",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "invoke",
+          "parameters": [
+            "index",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHostResultPublicationInstallation",
+          "parameters": [
+            "originals"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareHostResultPublicationInstallation/init:admitRun/init:admitRun",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHostResultPublicationInstallation/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareHostResultPublicationInstallation/init:beforeOperation/init:beforeOperation",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHostResultPublicationInstallation/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareHostResultPublicationInstallation/init:openStore/init:openStore",
+          "parameters": [
+            "options",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHostResultPublicationInstallation/prepareHostResultPublicationInstallation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareHostResultPublicationInstallation/prepareHostResultPublicationInstallation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./infer-trusted-node-preload.cjs",
+        "./node-public-initial-control-bootstrap.cjs",
+        "node:module"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing selected Host/Resource/Store Result purpose; support DATA and forwarding do not issue it",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "callbacks/callbacks",
+            "close",
+            "close/flight/flight",
+            "close/settled/settled",
+            "current",
+            "invoke",
+            "prepareHostResultPublicationInstallation",
+            "prepareHostResultPublicationInstallation/init:admitRun/init:admitRun",
+            "prepareHostResultPublicationInstallation/init:assertCurrent/init:assertCurrent",
+            "prepareHostResultPublicationInstallation/init:beforeOperation/init:beforeOperation",
+            "prepareHostResultPublicationInstallation/init:close/init:close",
+            "prepareHostResultPublicationInstallation/init:openStore/init:openStore",
+            "prepareHostResultPublicationInstallation/prepareHostResultPublicationInstallation",
+            "prepareHostResultPublicationInstallation/prepareHostResultPublicationInstallation#2",
+            "unavailable/unavailable"
+          ],
+          "exports": [
+            "prepareHostResultPublicationInstallation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary selected Node Host has a separate finite Local Result/publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/node-host-result-installation.mjs",
+                "anchor": "export async function prepareHostResultPublicationInstallation("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "control !== field(entry.subject, 'control')"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid')"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.store = store;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "same duty before its returned view observes it, that view receives the retained"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Host binds the Result control original after its actual Journal opens and"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.unknownCleanup = true;"
+              },
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Cleanup does not require current admission."
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.closedObservation = resultStatus(entry);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "anchor": "conditionalWireHistory: record("
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.storeOperations++;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "first-initialization, Account, Result and business-I/O authorization remain"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "legacy private Evidence key; a later key-dependent operation keeps its original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "Result Store rejects a foreign control or authority before creating its format"
+              },
+              {
+                "path": "adapters/host-node/host-result-service.test.mjs",
+                "anchor": "candidate refusal, Promise or Boolean cannot cross the actual durable record boundary"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/host-result-service-recipe.cjs",
+      "sha256": "2e6c262b32f14aa7422d5f82d368fc6ff3d038f8a55a5e8255648ae031115644",
+      "exports": [
+        "commonjs:declareHostResultServiceRecipe",
+        "commonjs:facilityFields"
+      ],
+      "operations": [
+        {
+          "name": "declareHostResultServiceRecipe",
+          "parameters": [
+            "control",
+            "journal",
+            "sourceCompute",
+            "sourceFreeCompute"
+          ],
+          "async": false
+        },
+        {
+          "name": "declareHostResultServiceRecipe/declareHostResultServiceRecipe",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "record/record",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectHostResultStoreArguments",
+          "parameters": [
+            "options",
+            "directory"
+          ],
+          "async": false
+        },
+        {
+          "name": "unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing selected Host/Resource/Store Result purpose; support DATA and forwarding do not issue it",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "declareHostResultServiceRecipe",
+            "declareHostResultServiceRecipe/declareHostResultServiceRecipe",
+            "record/record",
+            "selectHostResultStoreArguments",
+            "unavailable/unavailable"
+          ],
+          "exports": [
+            "commonjs:declareHostResultServiceRecipe",
+            "commonjs:facilityFields"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary selected Node Host has a separate finite Local Result/publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "anchor": "function selectHostResultStoreArguments("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "control !== field(entry.subject, 'control')"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid')"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.store = store;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "same duty before its returned view observes it, that view receives the retained"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Host binds the Result control original after its actual Journal opens and"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.unknownCleanup = true;"
+              },
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Cleanup does not require current admission."
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.closedObservation = resultStatus(entry);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "anchor": "conditionalWireHistory: record("
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.storeOperations++;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "first-initialization, Account, Result and business-I/O authorization remain"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "legacy private Evidence key; a later key-dependent operation keeps its original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "Result Store rejects a foreign control or authority before creating its format"
+              },
+              {
+                "path": "adapters/host-node/host-result-service.test.mjs",
+                "anchor": "candidate refusal, Promise or Boolean cannot cross the actual durable record boundary"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/host-journal-service-recipe.cjs",
       "sha256": "16ba5a61638050c0f8edbe5d1b69b0168ee3d587943e773450c78f1415b03218",
       "exports": [
@@ -21305,7 +21701,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f6d5d82d0ea102d89f9c990184bca8d05ec33d5d2453bf0850d132fb1431e0ee",
+      "sha256": "03816bf05b11f3fbaa96e10ca9ae693b273f550d3044751e0a25f699632b5c7f",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -21344,7 +21740,8 @@
             "submit",
             "lookupRequest",
             "checkSubmissionInput",
-            "bindOwnedRequest"
+            "bindOwnedRequest",
+            "admitPreparedSubmission"
           ],
           "async": false
         },
@@ -21680,6 +22077,10 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "export async function issueNodeClientSubmissionEpoch({journal, moon, authorizedScope}, request) {"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary selected Node Host has a separate finite Local Result/publication"
               }
             ],
             "inputsOutputs": [
@@ -21702,6 +22103,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"readOnly\": {\"const\": true}"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "admitPreparedSubmission"
               }
             ],
             "identity": [
@@ -21728,6 +22133,14 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "return journal.issueSubmissionEpoch(scopeFields(await authorizedScope(snapshot(request))), moon);"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "control !== field(entry.subject, 'control')"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid')"
               }
             ],
             "ownership": [
@@ -21750,6 +22163,14 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "assertSubmittedIntent(prepared, intent)"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.store = store;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "same duty before its returned view observes it, that view receives the retained"
               }
             ],
             "synchronization": [
@@ -21772,6 +22193,14 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Host binds the Result control original after its actual Journal opens and"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
               }
             ],
             "failure": [
@@ -21794,6 +22223,14 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.unknownCleanup = true;"
+              },
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
               }
             ],
             "cancellation": [
@@ -21816,6 +22253,14 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Cleanup does not require current admission."
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.closedObservation = resultStatus(entry);"
               }
             ],
             "resources": [
@@ -21842,6 +22287,14 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "max_bytes > 1048576"
+              },
+              {
+                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "anchor": "conditionalWireHistory: record("
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.storeOperations++;"
               }
             ],
             "extension": [
@@ -21860,6 +22313,14 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "first-initialization, Account, Result and business-I/O authorization remain"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "legacy private Evidence key; a later key-dependent operation keeps its original"
               }
             ],
             "verification": [
@@ -21890,6 +22351,14 @@
               {
                 "path": "adapters/host-node/client-submission-bootstrap-epoch.test.mjs",
                 "anchor": "test('bootstrap epoch uses the original immutable authenticated request and same Journal receiver',async()=>{"
+              },
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "Result Store rejects a foreign control or authority before creating its format"
+              },
+              {
+                "path": "adapters/host-node/host-result-service.test.mjs",
+                "anchor": "candidate refusal, Promise or Boolean cannot cross the actual durable record boundary"
               }
             ]
           }
@@ -61146,14 +61615,23 @@
     },
     {
       "module": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-      "sha256": "8dd9af4fdf6975d90d3447d2514140a0bb1b0d2c7d7d7a7bba22749912cd2648",
+      "sha256": "cc3f5de64ea2c36fd9cb1a697d74774080aa3aff4a9d7671fb06a0284630d2bd",
       "exports": [
         "commonjs:admitHostJournalRootFormat",
+        "commonjs:admitHostResultPublicationRun",
         "commonjs:assertHostJournalInstallationCurrent",
+        "commonjs:assertHostResultPublicationInstallationCurrent",
         "commonjs:assertInitialControlInstallationCurrent",
         "commonjs:assertManagedComputeInstallationCurrent",
+        "commonjs:assertManagedComputeResultReadCurrent",
         "commonjs:assertSourceManagedInstallationCurrent",
+        "commonjs:assertSourceManagedResultReadCurrent",
+        "commonjs:beforeHostResultPublicationOperation",
+        "commonjs:beforeManagedComputeQuery",
+        "commonjs:beforeManagedComputeResultRead",
         "commonjs:beforeManagedComputeSnapshot",
+        "commonjs:beforeSourceManagedQuery",
+        "commonjs:beforeSourceManagedResultRead",
         "commonjs:beforeSourceSnapshot",
         "commonjs:beginInitialControlInstallation",
         "commonjs:bindManagedComputeRequest",
@@ -61161,14 +61639,17 @@
         "commonjs:bindSourceRequest",
         "commonjs:bindSourceSnapshot",
         "commonjs:closeHostJournalInstallation",
+        "commonjs:closeHostResultPublicationInstallation",
         "commonjs:closeManagedComputeInstallation",
         "commonjs:closeSourceManagedInstallation",
         "commonjs:finishManagedComputeProducer",
         "commonjs:finishSourceProducer",
         "commonjs:managedComputeIntentCid",
         "commonjs:openHostJournalRequestJournal",
+        "commonjs:openHostResultPublicationStore",
         "commonjs:originalHostPublicationOwnership",
         "commonjs:prepareHostJournalInstallation",
+        "commonjs:prepareHostResultPublicationInstallation",
         "commonjs:prepareManagedComputeInstallation",
         "commonjs:prepareManagedComputeRun",
         "commonjs:prepareOriginalManagedRunPorts",
@@ -61209,6 +61690,15 @@
           "async": false
         },
         {
+          "name": "admitResultRun",
+          "parameters": [
+            "original",
+            "held",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
           "name": "allocateSourceBacking",
           "parameters": [
             "entry",
@@ -61246,6 +61736,13 @@
         {
           "name": "assertPrefixCurrent",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "assertResultServiceCurrent",
+          "parameters": [
+            "original"
+          ],
           "async": false
         },
         {
@@ -61307,10 +61804,50 @@
           "async": false
         },
         {
+          "name": "beforeResultOperation",
+          "parameters": [
+            "original",
+            "held",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "beforeResultRead",
+          "parameters": [
+            "held",
+            "schemaOrOptions",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "beforeSourceQuery",
+          "parameters": [
+            "original",
+            "held",
+            "format",
+            "text",
+            "parameters",
+            "options",
+            "compute"
+          ],
+          "async": false
+        },
+        {
           "name": "beginJournalService",
           "parameters": [
             "recipe",
             "declaration",
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginResultService",
+          "parameters": [
+            "recipe",
+            "journal",
             "runtime"
           ],
           "async": false
@@ -61348,6 +61885,38 @@
             "sqlite",
             "native",
             "facilities"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindResultServiceFacilities",
+          "parameters": [
+            "original",
+            "facilities"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindResultServiceNamespace",
+          "parameters": [
+            "original",
+            "namespace"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindResultServiceNamespace/bindResultServiceNamespace",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindSourceSubmission",
+          "parameters": [
+            "entry",
+            "receipt",
+            "body"
           ],
           "async": false
         },
@@ -61403,6 +61972,23 @@
           "async": false
         },
         {
+          "name": "closeResult",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "closeResult/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "closeResult/settled/settled",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "closeSource",
           "parameters": [
             "entry"
@@ -61419,6 +62005,15 @@
           "parameters": [
             "kind",
             "raw"
+          ],
+          "async": false
+        },
+        {
+          "name": "currentSourceSubmission",
+          "parameters": [
+            "entry",
+            "producer",
+            "body"
           ],
           "async": false
         },
@@ -61570,6 +62165,21 @@
           "name": "openJournal/settled/settled",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "openResultStore",
+          "parameters": [
+            "original",
+            "held",
+            "options",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openResultStore/flight/flight",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "operational/init:close/init:close",
@@ -61769,6 +62379,23 @@
           "async": false
         },
         {
+          "name": "prepareResult",
+          "parameters": [
+            "held"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareResult/prepareResult",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareResult/prepareResult#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareSource",
           "parameters": [
             "held"
@@ -61844,7 +62471,62 @@
           "async": false
         },
         {
+          "name": "resultCarrier",
+          "parameters": [
+            "entry",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "resultCarrier/resultCarrier",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "resultCarrier/resultCarrier#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "resultCurrent",
+          "parameters": [
+            "original",
+            "held"
+          ],
+          "async": false
+        },
+        {
+          "name": "resultOriginal",
+          "parameters": [
+            "original",
+            "held",
+            "closing"
+          ],
+          "async": false
+        },
+        {
+          "name": "resultStatus",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "resultUnavailable/resultUnavailable",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "sameOriginals",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameSourceData",
           "parameters": [
             "left",
             "right"
@@ -61934,12 +62616,29 @@
           "async": false
         },
         {
+          "name": "sourceSubmissionProjection",
+          "parameters": [
+            "entry",
+            "producer",
+            "body"
+          ],
+          "async": false
+        },
+        {
           "name": "sourceUnavailable/sourceUnavailable",
           "parameters": [],
           "async": false
         },
         {
           "name": "table/init:assertHostJournalInstallationCurrent/init:assertHostJournalInstallationCurrent",
+          "parameters": [
+            "original",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:assertHostResultPublicationInstallationCurrent/init:assertHostResultPublicationInstallationCurrent",
           "parameters": [
             "original",
             "originals"
@@ -61963,10 +62662,70 @@
           "async": false
         },
         {
+          "name": "table/init:assertManagedComputeResultReadCurrent/init:assertManagedComputeResultReadCurrent",
+          "parameters": [
+            "original",
+            "originals"
+          ],
+          "async": false
+        },
+        {
           "name": "table/init:assertSourceManagedInstallationCurrent/init:assertSourceManagedInstallationCurrent",
           "parameters": [
             "original",
             "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:assertSourceManagedResultReadCurrent/init:assertSourceManagedResultReadCurrent",
+          "parameters": [
+            "original",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:beforeManagedComputeQuery/init:beforeManagedComputeQuery",
+          "parameters": [
+            "original",
+            "originals",
+            "format",
+            "text",
+            "parameters",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:beforeManagedComputeResultRead/init:beforeManagedComputeResultRead",
+          "parameters": [
+            "original",
+            "originals",
+            "schemaOrOptions",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:beforeSourceManagedQuery/init:beforeSourceManagedQuery",
+          "parameters": [
+            "original",
+            "originals",
+            "format",
+            "text",
+            "parameters",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:beforeSourceManagedResultRead/init:beforeSourceManagedResultRead",
+          "parameters": [
+            "original",
+            "originals",
+            "schemaOrOptions",
+            "options"
           ],
           "async": false
         },
@@ -62033,6 +62792,14 @@
         },
         {
           "name": "table/init:closeHostJournalInstallation/init:closeHostJournalInstallation",
+          "parameters": [
+            "original",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:closeHostResultPublicationInstallation/init:closeHostResultPublicationInstallation",
           "parameters": [
             "original",
             "originals"
@@ -62123,6 +62890,7 @@
         "./host-journal-facility-fields.cjs",
         "./host-journal-native-image.cjs",
         "./host-journal-service-recipe.cjs",
+        "./host-result-service-recipe.cjs",
         "./initial-control-installation-owner.cjs",
         "./initial-control-package-custody.cjs",
         "./initial-control-package-original.cjs",
@@ -62147,6 +62915,91 @@
       "owner": "Existing private Host/Resource initial-control installation and original preparation custody",
       "role": "physical-io",
       "contracts": [
+        {
+          "operations": [
+            "beforeSourceQuery",
+            "bindSourceSubmission",
+            "currentSourceSubmission",
+            "sameSourceData",
+            "sourceSubmissionProjection",
+            "table/init:beforeManagedComputeQuery/init:beforeManagedComputeQuery",
+            "table/init:beforeSourceManagedQuery/init:beforeSourceManagedQuery"
+          ],
+          "exports": [
+            "commonjs:beforeManagedComputeQuery",
+            "commonjs:beforeSourceManagedQuery"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The selected query entry acquires the same Source/Compute producer before its"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "representations: AQL input becomes `{text, format, parameterDeclarations?}`,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function currentSourceSubmission(entry, producer, body) {"
+              },
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "query intake refuses unsupported raw originals before getters and reuses its one receipt"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "private synchronous continuation consumes that receipt once; SDK-owned query"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "uses one original receipt for capture, request, identity and terminal before wait"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "a selected missing or accessor query method refuses without invoking raw inputs"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "capture rejection finishes only its original producer and retains failed cleanup for close"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Snapshot, projection copies and traversal workspace coexist"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "without getters or enumeration, while unselected public grammar stays unchanged."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "actual SDK query and all retain one Root producer and its separate Result read original"
+              },
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "submission uncertainty retains the same query receipt and never resends"
+              }
+            ]
+          }
+        },
         {
           "operations": [
             "beforeManagedComputeSnapshot",
@@ -62737,6 +63590,145 @@
         },
         {
           "operations": [
+            "admitResultRun",
+            "assertResultServiceCurrent",
+            "beforeResultOperation",
+            "beforeResultRead",
+            "beginResultService",
+            "bindResultServiceFacilities",
+            "bindResultServiceNamespace",
+            "bindResultServiceNamespace/bindResultServiceNamespace",
+            "closeResult",
+            "closeResult/flight/flight",
+            "closeResult/settled/settled",
+            "openResultStore",
+            "openResultStore/flight/flight",
+            "prepareResult",
+            "prepareResult/prepareResult",
+            "prepareResult/prepareResult#2",
+            "resultCarrier",
+            "resultCarrier/resultCarrier",
+            "resultCarrier/resultCarrier#2",
+            "resultCurrent",
+            "resultOriginal",
+            "resultStatus",
+            "resultUnavailable/resultUnavailable",
+            "table/init:assertHostResultPublicationInstallationCurrent/init:assertHostResultPublicationInstallationCurrent",
+            "table/init:assertManagedComputeResultReadCurrent/init:assertManagedComputeResultReadCurrent",
+            "table/init:assertSourceManagedResultReadCurrent/init:assertSourceManagedResultReadCurrent",
+            "table/init:beforeManagedComputeResultRead/init:beforeManagedComputeResultRead",
+            "table/init:beforeSourceManagedResultRead/init:beforeSourceManagedResultRead",
+            "table/init:closeHostResultPublicationInstallation/init:closeHostResultPublicationInstallation"
+          ],
+          "exports": [
+            "commonjs:admitHostResultPublicationRun",
+            "commonjs:assertHostResultPublicationInstallationCurrent",
+            "commonjs:assertManagedComputeResultReadCurrent",
+            "commonjs:assertSourceManagedResultReadCurrent",
+            "commonjs:beforeHostResultPublicationOperation",
+            "commonjs:beforeManagedComputeResultRead",
+            "commonjs:beforeSourceManagedResultRead",
+            "commonjs:closeHostResultPublicationInstallation",
+            "commonjs:openHostResultPublicationStore",
+            "commonjs:prepareHostResultPublicationInstallation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary selected Node Host has a separate finite Local Result/publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function prepareResult(held) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "control !== field(entry.subject, 'control')"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid')"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.store = store;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "same duty before its returned view observes it, that view receives the retained"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Host binds the Result control original after its actual Journal opens and"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.unknownCleanup = true;"
+              },
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Cleanup does not require current admission."
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.closedObservation = resultStatus(entry);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "anchor": "conditionalWireHistory: record("
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.storeOperations++;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "first-initialization, Account, Result and business-I/O authorization remain"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "legacy private Evidence key; a later key-dependent operation keeps its original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "Result Store rejects a foreign control or authority before creating its format"
+              },
+              {
+                "path": "adapters/host-node/host-result-service.test.mjs",
+                "anchor": "candidate refusal, Promise or Boolean cannot cross the actual durable record boundary"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "captureJournalNativeBindings",
             "closeJournal",
             "closeJournal/flight/flight",
@@ -62951,7 +63943,7 @@
     },
     {
       "module": "adapters/host-node/node-source-managed-installation.mjs",
-      "sha256": "d10790705ef286480c0f43d7618db8d60e3c80027b4406b8468c7023cf3ab746",
+      "sha256": "7d4556b93a46f0432a39a0f018842d8e8e509c38ab4f26e51a36a771953bdbab",
       "exports": [
         "assertManagedComputeInstallationCurrent",
         "assertManagedComputePreparationCurrent",
@@ -63067,6 +64059,29 @@
           "async": false
         },
         {
+          "name": "prepareInstallation/view/init:assertResultReadCurrent/init:assertResultReadCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallation/view/init:beforeResultRead/init:beforeResultRead",
+          "parameters": [
+            "schemaOrOptions",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallation/view/init:beforeSourceQuery/init:beforeSourceQuery",
+          "parameters": [
+            "format",
+            "text",
+            "parameters",
+            "options"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
           "parameters": [
             "kind",
@@ -63144,6 +64159,15 @@
           "async": false
         },
         {
+          "name": "synchronousReceipt",
+          "parameters": [
+            "state",
+            "index",
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "syncVoid",
           "parameters": [
             "state",
@@ -63170,6 +64194,184 @@
       "owner": "Existing Host/Resource Source installation and original acquisition custody",
       "role": "physical-io",
       "contracts": [
+        {
+          "operations": [
+            "prepareInstallation/view/init:beforeSourceQuery/init:beforeSourceQuery",
+            "synchronousReceipt"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The selected query entry acquires the same Source/Compute producer before its"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "representations: AQL input becomes `{text, format, parameterDeclarations?}`,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function currentSourceSubmission(entry, producer, body) {"
+              },
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "query intake refuses unsupported raw originals before getters and reuses its one receipt"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "private synchronous continuation consumes that receipt once; SDK-owned query"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "uses one original receipt for capture, request, identity and terminal before wait"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "a selected missing or accessor query method refuses without invoking raw inputs"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "capture rejection finishes only its original producer and retains failed cleanup for close"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Snapshot, projection copies and traversal workspace coexist"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "without getters or enumeration, while unselected public grammar stays unchanged."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "actual SDK query and all retain one Root producer and its separate Result read original"
+              },
+              {
+                "path": "packages/sdk/original-query-intake.test.mjs",
+                "anchor": "submission uncertainty retains the same query receipt and never resends"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareInstallation/view/init:assertResultReadCurrent/init:assertResultReadCurrent",
+            "prepareInstallation/view/init:beforeResultRead/init:beforeResultRead"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary selected Node Host has a separate finite Local Result/publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "beforeResultRead(schemaOrOptions, options)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "control !== field(entry.subject, 'control')"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid')"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.store = store;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "same duty before its returned view observes it, that view receives the retained"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Host binds the Result control original after its actual Journal opens and"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.unknownCleanup = true;"
+              },
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Cleanup does not require current admission."
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.closedObservation = resultStatus(entry);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "anchor": "conditionalWireHistory: record("
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.storeOperations++;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "first-initialization, Account, Result and business-I/O authorization remain"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "legacy private Evidence key; a later key-dependent operation keeps its original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "Result Store rejects a foreign control or authority before creating its format"
+              },
+              {
+                "path": "adapters/host-node/host-result-service.test.mjs",
+                "anchor": "candidate refusal, Promise or Boolean cannot cross the actual durable record boundary"
+              }
+            ]
+          }
+        },
         {
           "operations": [
             "<module>",

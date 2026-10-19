@@ -4091,9 +4091,10 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2b6c601ed60328612092abe1c61cd17198c5d1e86323f428b9d12c8d64a9a0f5",
+      "sha256": "1afc464565223d33e3b9a57685bec0c95350b1e273c5f213cbcfa81a88c77bc3",
       "exports": [
         "PublicationStoreError",
+        "assertOriginalLocalPublicationStoreFacilityCurrent",
         "assertOriginalPreparedLocalPublicationStoreOwnership",
         "closePreparedLocalPublicationStoreOwnership",
         "openLocalPublicationStore",
@@ -4145,6 +4146,13 @@
           "name": "acquireStoreOwnership/ownership/init:release/init:release/acknowledged/acknowledged",
           "parameters": [
             "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertOriginalLocalPublicationStoreFacilityCurrent",
+          "parameters": [
+            "bindings"
           ],
           "async": false
         },
@@ -4237,7 +4245,8 @@
             "suppliedControl",
             "durability",
             "suppliedBootstrap",
-            "preparedOriginal"
+            "preparedOriginal",
+            "operationalCurrent"
           ],
           "async": true
         },
@@ -4248,7 +4257,8 @@
             "suppliedControl",
             "durability",
             "suppliedBootstrap",
-            "prepared"
+            "prepared",
+            "operationalCurrent"
           ],
           "async": true
         },
@@ -7681,6 +7691,108 @@
               {
                 "path": "adapters/store-local/ownership-retirement-read.test.mjs",
                 "anchor": "test('retirement retains the same failed metadata close before another read or owner removal'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "assertOriginalLocalPublicationStoreFacilityCurrent"
+          ],
+          "exports": [
+            "assertOriginalLocalPublicationStoreFacilityCurrent"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary selected Node Host has a separate finite Local Result/publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "operationalCurrent,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "control !== field(entry.subject, 'control')"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid')"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.store = store;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "same duty before its returned view observes it, that view receives the retained"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Host binds the Result control original after its actual Journal opens and"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.unknownCleanup = true;"
+              },
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Cleanup does not require current admission."
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.closedObservation = resultStatus(entry);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "anchor": "conditionalWireHistory: record("
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.storeOperations++;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "first-initialization, Account, Result and business-I/O authorization remain"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "legacy private Evidence key; a later key-dependent operation keeps its original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "Result Store rejects a foreign control or authority before creating its format"
+              },
+              {
+                "path": "adapters/host-node/host-result-service.test.mjs",
+                "anchor": "candidate refusal, Promise or Boolean cannot cross the actual durable record boundary"
               }
             ]
           }
