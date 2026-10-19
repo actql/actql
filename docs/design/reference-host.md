@@ -891,6 +891,16 @@ failures and refused attempts do not refill those counters. Positional scalar
 operand count and extent are checked before native binding. These conditions
 are not a heap reservation or permission and leave unselected callers unchanged.
 
+When those execution support conditions are selected, the same connection
+latches a synchronous prepare/execute call before invoking its original
+currentness or native callbacks. Reentry cannot begin another SQL call inside
+that original operation. A current boundary outside an active SQL call is not
+retroactively classified as native overlap. Settling the synchronous latch on
+return or failure is not a database, allocator or physical-close ACK: an
+unresolved original cursor still blocks new SQL and stays under database-close
+custody. This connection-local support condition supplies no capacity or new
+process-wide lock.
+
 Selected metadata reads use the original SQLite iterator instead of native
 `All()`'s complete result vector. They retain at most the supported row count
 and one lookahead row. Statements and unresolved cursors remain under the same

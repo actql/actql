@@ -231,6 +231,17 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
   let calls = 0, prepared = 0, bytes = 0;
   let statementCalls = 0;
   const statements = [], cursors = [];
+  let operationActive = false;
+  const beginOperation = () => {
+    if (executionLimits === undefined) return;
+    // The selected one-connection recipe must not start another preparation
+    // or execution from a current/native callback while this call is live.
+    // Latch before those callbacks, not after native acquisition. This is a
+    // synchronous operation fence, not native close or returned byte credit.
+    if (operationActive) fail('ClientRequestJournalSqlCleanupPending');
+    operationActive = true;
+  };
+  const endOperation = () => { operationActive = false; };
   const consume = (sql, isPrepare) => {
     assertCurrent?.();
     if (cursors.length !== 0) fail('ClientRequestJournalSqlCleanupPending');
@@ -291,64 +302,79 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
     }
     return Object.freeze({
       get(...values) {
-        operands(values); walFrames?.beforeStatement();
-        return applyOriginal(get, statement, values);
+        beginOperation();
+        try {
+          operands(values); walFrames?.beforeStatement();
+          return applyOriginal(get, statement, values);
+        } finally { endOperation(); }
       },
       run(...values) {
-        operands(values); walFrames?.beforeStatement();
-        return applyOriginal(run, statement, values);
+        beginOperation();
+        try {
+          operands(values); walFrames?.beforeStatement();
+          return applyOriginal(run, statement, values);
+        } finally { endOperation(); }
       },
       all(...values) {
-        operands(values);
-        walFrames?.beforeStatement();
-        const iterator = applyOriginal(iterate, statement, values);
-        const cursor = {iterator, next: undefined, end: undefined};
-        cursors.push(cursor);
-        let failed = false, primary;
-        const rows = [];
+        beginOperation();
         try {
-          cursor.next = iterator.next;
-          cursor.end = iterator.return;
-          if (typeof cursor.next !== 'function' || typeof cursor.end !== 'function') {
-            fail('ClientRequestJournalSqlUnavailable');
-          }
-          for (;;) {
-            const row = applyOriginal(cursor.next, iterator, []);
-            if (row.done === true) break;
-            // One original lookahead row proves overflow. Do not materialize
-            // native All()'s complete vector before checking the row ceiling.
-            if (rows.length === executionLimits.maxResultRows) {
+          operands(values);
+          walFrames?.beforeStatement();
+          const iterator = applyOriginal(iterate, statement, values);
+          const cursor = {iterator, next: undefined, end: undefined};
+          cursors.push(cursor);
+          let failed = false, primary;
+          const rows = [];
+          try {
+            cursor.next = iterator.next;
+            cursor.end = iterator.return;
+            if (typeof cursor.next !== 'function' || typeof cursor.end !== 'function') {
               fail('ClientRequestJournalSqlUnavailable');
             }
-            rows.push(row.value);
+            for (;;) {
+              const row = applyOriginal(cursor.next, iterator, []);
+              if (row.done === true) break;
+              // One original lookahead row proves overflow. Do not materialize
+              // native All()'s complete vector before checking the row ceiling.
+              if (rows.length === executionLimits.maxResultRows) {
+                fail('ClientRequestJournalSqlUnavailable');
+              }
+              rows.push(row.value);
+            }
+          } catch (cause) { failed = true; primary = cause; }
+          try {
+            if (typeof cursor.end !== 'function' ||
+                applyOriginal(cursor.end, iterator, [])?.done !== true) {
+              fail('ClientRequestJournalSqlCleanupPending');
+            }
+            cursors.pop();
+          } catch (cause) {
+            // Preserve the original iterator under the connection Owner. No new
+            // statement can run while it is unresolved; the original database
+            // close must finalize it before these retained aliases can retire.
+            fail('ClientRequestJournalSqlCleanupPending', failed ?
+              Object.freeze({primary, closeFailure: cause}) : cause);
           }
-        } catch (cause) { failed = true; primary = cause; }
-        try {
-          if (typeof cursor.end !== 'function' ||
-              applyOriginal(cursor.end, iterator, [])?.done !== true) {
-            fail('ClientRequestJournalSqlCleanupPending');
-          }
-          cursors.pop();
-        } catch (cause) {
-          // Preserve the original iterator under the connection Owner. No new
-          // statement can run while it is unresolved; the original database
-          // close must finalize it before these retained aliases can retire.
-          fail('ClientRequestJournalSqlCleanupPending', failed ?
-            Object.freeze({primary, closeFailure: cause}) : cause);
-        }
-        if (failed) throw primary;
-        return rows;
+          if (failed) throw primary;
+          return rows;
+        } finally { endOperation(); }
       },
     });
   };
   return Object.freeze({database: Object.freeze({
     prepare(sql) {
-      consume(sql, true); walFrames?.beforePrepare();
-      return wrap(applyOriginal(prepare, connection, [sql]));
+      beginOperation();
+      try {
+        consume(sql, true); walFrames?.beforePrepare();
+        return wrap(applyOriginal(prepare, connection, [sql]));
+      } finally { endOperation(); }
     },
     exec(sql) {
-      consume(sql, false); walFrames?.beforeExec(sql);
-      return applyOriginal(exec, connection, [sql]);
+      beginOperation();
+      try {
+        consume(sql, false); walFrames?.beforeExec(sql);
+        return applyOriginal(exec, connection, [sql]);
+      } finally { endOperation(); }
     },
     get isTransaction() { return applyOriginal(isTransaction, connection, []); },
   }), retireClosedNativeAliases() { statements.length = cursors.length = 0; }});
