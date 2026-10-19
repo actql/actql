@@ -1064,6 +1064,16 @@ co-phase before use, including allocator controls and failed attempts; request
 arithmetic does not issue that service. Allocation failure retains the same
 original cleanup, and neither failure nor close refills process-lived terms.
 
+Native wrapper and result-conversion history is separate from simultaneous
+live cardinality. The selected bounded cursor includes lookahead, terminal
+`next` and one original `return`; each may construct new protocol vectors even
+without a returned row. Cover cumulative wrapper, membership, vector/root-entry
+and result-backing requests. Retried payload allocations are attempts, not four
+successful originals. A client-side free-call upper neither accounts for the
+allocator's own cache eviction and metadata allocations nor acknowledges any
+region retirement. Those internal histories and shared baseline remain in the
+same complete service; they cannot be replaced by the peak live-vector count.
+
 The actual selected public prefix also retains its filesystem/crypto bindings
 before Host namespace initialization. The existing Journal facility-current
 operation compares those same functions, used filesystem constants, directory

@@ -357,10 +357,51 @@ function hostJournalNativeStructureRequests(input) {
   const representationColumns = 65535n, resultColumns = 24n;
   const resultRows = checked(X * checked(L + 1n));
   const resultCopies = checked(resultRows * resultColumns);
+  // Get uses two reserved column vectors. Iterator Next adds two protocol
+  // vectors, including the terminal/lookahead call; Return owns its separate
+  // pair even after Next reported done. The bounded wrapper calls Return once
+  // and retains a failed cursor instead of retrying native Return. Count every
+  // possible construction, not just the four simultaneously live vectors.
+  const protocolResults = checked(X * checked(L + 2n));
+  const columnVectorRequests = requestDemand(2n * resultRows);
+  const protocolVectorRequests = requestDemand(2n * protocolResults);
+  const vectorRequests = columnVectorRequests + protocolVectorRequests;
+  // These are client allocation-site requests, not a count of underlying
+  // malloc/new-handler retries, internal segment or metadata activity. An
+  // original can be freed at most once; a failed payload retry creates no
+  // successful original. Both bounds stay charged
+  // through their actual lifetime, without converting a free into byte credit.
+  const fixedNodeRequests = requestDemand(2n * wrapperOriginals + 2n * P);
+  const resultControlRequests = requestDemand(3n * resultCopies);
+  const payloadAttempts = checked(4n * resultCopies);
+  const nodeHistory = freeze({
+    quantityKind:'conditional-operation-attempt-history', completeNativeHistory:false,
+    requiresOriginalFixedSqlClosure:true, requiresSelectedNodeRuntime:true,
+    wrapperRequests:wrapperOriginals, pointerDataRequests:wrapperOriginals,
+    membershipNodeRequests:P, membershipBucketRequests:P,
+    resultRowsIncludingLookahead:resultRows, iteratorResultsIncludingReturn:protocolResults,
+    columnVectorRequests, protocolVectorRequests,
+    // StrongRootAllocator has one separate entry per allocated vector.
+    // Cover that alternative, not an additional claim that std::allocator
+    // simultaneously allocates another whole copy of the same vector.
+    strongRootEntryRequests:vectorRequests,
+    payloadAllocatorAttempts:payloadAttempts,
+    payloadSuccessfulOriginalsUpper:resultCopies, resultControlRequests,
+    clientAllocatorAttemptsUpper:requestDemand(fixedNodeRequests + payloadAttempts +
+      resultControlRequests + 2n * vectorRequests),
+    clientFreeCallsUpper:requestDemand(fixedNodeRequests + resultCopies +
+      resultControlRequests + 2n * vectorRequests),
+    allocatorInternalAllocationAttemptsIncluded:false,
+    allocatorInternalFreeCallsIncluded:false, coversSqliteRequests:false,
+    coversManagedHeap:false, coversAllocatorRegions:false,
+    numericalBackingClaim:false, allocationSuccessGuaranteed:false,
+    freeReturnsCredit:false, replenishedOnClose:false,
+  });
 
   const value = freeze({
     qualification:'partial-native-request-vectors', completePhase:false,
     replenishedOnClose:false,
+    nodeAllocationHistory:nodeHistory,
     nodeResults:freeze({
       qualification:'conditional-fixed-owned-sql-node-result-backing-subset', completeResultFacility:false,
       columnRepresentationUpper:representationColumns, fixedSqlColumnsUpper:resultColumns,
@@ -368,7 +409,7 @@ function hostJournalNativeStructureRequests(input) {
       representationValueCopiesUpper:checked(resultRows * representationColumns),
       rowHistoryUpper:resultRows, maximumValueCopies:resultCopies,
       keyConversionsUpper:resultCopies,
-      iteratorProtocolObjectsUpper:checked(X * checked(L + 2n)),
+      iteratorProtocolObjectsUpper:protocolResults,
       runResultObjectsUpper:X,
       // Get<=one row; bounded iterate consumes at most L+1 rows INCLUDING
       // overflow lookahead. Scalar/non-BLOB outputs may use no external copy;
@@ -384,7 +425,7 @@ function hostJournalNativeStructureRequests(input) {
       // final callback. Only ONE successful payload can result. Failed calls
       // and GC keep their shared runtime/allocator control lifetime; they do
       // not create four successful copies or supply an earlier physical ACK.
-      payloadAllocatorAttemptsUpper:checked(4n * resultCopies),
+      payloadAllocatorAttemptsUpper:payloadAttempts,
       successfulPayloadCopiesUpper:resultCopies,
       // LocalVector has either std::allocator or StrongRootAllocator. Cover
       // the latter's original pointer-sized prefix and separate root entry
