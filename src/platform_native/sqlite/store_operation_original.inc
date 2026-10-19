@@ -9,7 +9,7 @@ struct actql_native_store_operation {
   pthread_t thread;
   void *bound_database;
   bool open_attempted, binding_attempted, database_closed;
-  bool attempted, activated, flight, sql, sql_ready, cleanup, cleanup_ready, failed, closed, calling, callback_failed;
+  bool attempted, activated, flight, sql, sql_ready, cleanup, cleanup_ready, cleanup_only, failed, closed, calling, callback_failed;
   int32_t primary_code, cleanup_code, callback_code;
 };
 
@@ -96,7 +96,7 @@ MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_enter(
   if (value->calling) return actql_store_operation_failed(value, -2);
   if (!value->activated) return -1;
   if (cleanup != 0 && cleanup != 1) return -1;
-  if (!cleanup && (value->failed || value->flight || value->sql)) return -1;
+  if (!cleanup && (value->failed || value->cleanup_only || value->flight || value->sql)) return -1;
   /* Cleanup may recover the SAME failed flight only after its coordinator
    * confirms the actual old leave and entry; a missing ACK changes no latch. */
   if (cleanup && value->cleanup_ready && value->flight &&
@@ -106,7 +106,13 @@ MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_enter(
    * switch before any SQL latch is cleared. Healthy duplicate entry refuses. */
   /* An attempted switch remains outstanding even if its reply is lost. */
   value->flight = true;
-  if (cleanup) { value->cleanup = true; value->cleanup_ready = false; }
+  if (cleanup) {
+    /* Cleanup selection spends normal use even when its callback succeeds
+     * without latching an error. A return ACK ends a flight, not this history. */
+    value->cleanup_only = true;
+    value->cleanup = true;
+    value->cleanup_ready = false;
+  }
   int32_t code = actql_store_operation_route(value, cleanup ? 4 : 0);
   if (code == 0) {
     value->flight = true;
@@ -221,10 +227,12 @@ MOONBIT_FFI_EXPORT void actql_native_sqlite_database_fence_original_store(
       value->library == database->library) database->transaction_fenced = 1;
 }
 
-/* Existing cleanup work uses normal current scope while healthy. A retained
- * routing failure selects the same cleanup-only recovery, never a fresh use. */
+/* Existing cleanup work uses normal current scope before cleanup is selected.
+ * Both a retained failure and successful cleanup selection keep the SAME
+ * original cleanup-only route; no fabricated error is needed to retain it. */
 MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_enter_recovery(
     actql_native_store_operation *value) {
   if (!actql_store_operation_thread(value) || value->closed) return -1;
-  return actql_native_sqlite_store_operation_enter(value, value->failed ? 1 : 0);
+  return actql_native_sqlite_store_operation_enter(value,
+    value->failed || value->cleanup_only ? 1 : 0);
 }
