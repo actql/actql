@@ -58,7 +58,10 @@ bool actql_native_command_platform_available(void);
 
 /* The existing trusted entry's initial selection, BEFORE managed module init.
  * Exactly four initially-zero size_t slots: reserved payload bytes, separately
- * covered allocator metadata bytes, maximum source-bounded request, setups=1.
+ * covered allocator metadata/backing bytes, maximum source-bounded request,
+ * setups=1. The selected binding consumes one actual mapping: payload plus a
+ * separate 32 MiB metadata segment and at most 32 MiB alignment retention.
+ * These are necessary subsets, not the complete external/TLS/control quote.
  * The reader accepts only its actual source/backend/process/thread original
  * with complete initial coverage. It must not call managed_current or depend
  * on phase-two platform_current: begin itself supplies that conjunct later.

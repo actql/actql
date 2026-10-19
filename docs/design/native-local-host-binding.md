@@ -1597,24 +1597,31 @@ bootstrap, arena-registration, heap-descriptor and process/thread metadata.
 These external parent/backing terms are distinct from the exclusive managed
 payload and from Read, SQLite and Crypto storage. Before allocator initialization,
 the actual entry retains its original process/thread and complete source-bound
-selection. Its one-shot physical binding initializes that allocator, captures
-the actual parent default heap, reserves the exclusive payload and selects the
-heap created in that same reservation before managed module initialization.
+selection. Its one-shot physical binding acquires one actual mapping containing
+disjoint parent-metadata and exclusive-payload regions plus retained alignment
+space. It selects bounded allocator options before initialization: no automatic
+reservation, general arena growth, OS allocation fallback or destructive exit
+shortcut. It retains the previous values with the original and never restores
+them merely because a child or default heap closes. It then captures the actual
+parent default, registers the two non-overlapping regions and verifies that the
+new heap descriptor occupies the metadata region before selecting that heap
+for managed module initialization. Both registration records must fit the
+pinned allocator's existing static registration storage before use.
 An absent or incomplete selection cannot perform allocator setup.
-The profile selects the pinned allocator defaults and refuses ambient allocator
+The profile selects pinned finite allocator options and refuses ambient allocator
 options before setup, including case variants and unsupported option names.
 Its bounded startup environment observation allocates no storage and rewrites
-no option. On refusal, the entry must stop before subsequent automatic allocator
+no environment value. On refusal, the entry must stop before subsequent automatic allocator
 or module initializers; returning into those initializers cannot establish a
 pre-acquisition refusal.
 
 Partial setup retains that same receiver and any acquired reservation or heap;
 a duplicate or refused receiver inherits none of its cleanup responsibility.
 Normal current checks require the original thread, unchanged entry selection,
-actual reservation and selected default heap. Cleanup may restore only its own
-previous default, never an unrelated replacement. This restoration has a separate
+actual reservation, unchanged selected options and default heap. Cleanup may
+restore only its own previous default, never an unrelated replacement. This restoration has a separate
 acknowledgment: escaped managed aliases, heap descriptors, arena registration and
-their process-lived backing remain retained, without credit or another setup.
+their complete original mapping remain retained, without credit or another setup.
 No heap destruction, child close or process exit supplies their retirement ACK.
 
 The command Runtime retains its stronger filesystem selection through current
