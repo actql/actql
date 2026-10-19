@@ -95,6 +95,11 @@ def _default_directory() -> Path:
     """Choose the private standard location, never a Program-supplied path."""
     # The installed resolver already rejects non-Darwin/arm64 profiles.
     directory = Path.home() / 'Library' / 'Application Support' / 'ActQL' / 'Python Local'
+    return _private_state_directory(directory)
+
+
+def _private_state_directory(directory: Path) -> Path:
+    """Prepare the caller's Store through the same owned-directory checks."""
     parent = directory.parent
     parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     parent_info = parent.lstat()
@@ -199,7 +204,8 @@ class InstalledLocalHost:
             raise LocalProductCleanupPending(self) from failure
 
     @classmethod
-    def installed(cls, *, resources: LocalCoreResources | None = None) -> InstalledLocalHost:
+    def installed(cls, *, state_dir: str | os.PathLike[str] | None = None,
+                  resources: LocalCoreResources | None = None) -> InstalledLocalHost:
         """Resolve the selected cohort with no endpoint/token/internal paths."""
         components = installed_local_components()
         if resources is None:
@@ -217,7 +223,8 @@ class InstalledLocalHost:
             transfer_capacity=12 * 1024 * 1024, slots=64,
             resources=resources)
         try:
-            directory = _default_directory()
+            directory = (_default_directory() if state_dir is None
+                         else _private_state_directory(Path(state_dir)))
             now = lambda: time.time_ns() // 1_000_000
             observed_at = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
             return cls(core, directory, now=now, observed_at=observed_at, sdk_finite=True)

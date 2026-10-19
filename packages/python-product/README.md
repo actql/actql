@@ -32,7 +32,9 @@ start another Host, provide a token for Local, or select component paths.
 Remote connections continue to use the existing explicit `connect(endpoint,
 token)` API.
 
-The Local entry points are `Client.open()` and `await AsyncClient.open()`. They
+The short Local entry is `actql.open(state_dir=".actql")`; it returns the same
+context-managed `Client` used by `Client.open()` and `await AsyncClient.open()`.
+The Client factories also accept an explicit Store directory. They
 accept no endpoint, token, Wasm/library path, resources or allocator options.
 Both delegate to the same installed Host and existing Client model. The sync
 entry rejects an application event loop before I/O; use the async entry there.

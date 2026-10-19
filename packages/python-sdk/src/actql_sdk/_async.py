@@ -98,8 +98,8 @@ class AsyncClient:
         return type(token) is str and bool(token) and re.search(r'[\x00-\x20\x7f]', token) is None
 
     @classmethod
-    async def open(cls, *, signer=None):
-        """Open the selected installed Local product without Host/auth/path options.
+    async def open(cls, *, state_dir=None, signer=None):
+        """Open the installed Local product with an optional Store directory.
 
         The original runtime/profile supplier must be complete. An unavailable
         capacity original fails before module capture or physical VM creation;
@@ -111,7 +111,8 @@ class AsyncClient:
         from ._local_distribution import LocalInstallationError
         from ._local_worker_funding import LocalWorkerFundingUnavailable
         try:
-            host = InstalledLocalHost.installed()
+            options = {} if state_dir is None else {'state_dir': state_dir}
+            host = InstalledLocalHost.installed(**options)
         except LocalProductCleanupPending as failure:
             client = cls._from_local_host(failure.cleanup_host)
             client._closed = True

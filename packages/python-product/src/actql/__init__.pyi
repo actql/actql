@@ -1,3 +1,4 @@
+from os import PathLike as _PathLike
 from actql_sdk import (
     AsyncClient as AsyncClient, AsyncExecution as AsyncExecution,
     AsyncResult as AsyncResult, AsyncReader as AsyncReader,
@@ -12,3 +13,5 @@ from actql_sdk import (
     explain_check_reason as explain_check_reason, get_check_fixes as get_check_fixes,
     JSONValue as JSONValue, Scope as Scope, SourceFormat as SourceFormat, Token as Token,
 )
+
+def open(*, state_dir: str | _PathLike[str] = ..., signer: Signer | None = ...) -> Client: ...

@@ -2,6 +2,8 @@
 import asyncio
 import inspect
 from pathlib import Path
+import os
+import stat
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import Mock, patch
@@ -10,7 +12,7 @@ from actql_sdk import AsyncClient, Client, ClientError
 from actql_sdk._local_distribution import LocalInstallationError
 from actql_sdk._local_core import LocalCoreInitializationError
 from actql_sdk._local_worker_funding import LocalWorkerFundingUnavailable
-from actql_sdk._local_product import InstalledLocalHost, LocalProductCleanupPending
+from actql_sdk._local_product import InstalledLocalHost, LocalProductCleanupPending, _private_state_directory
 import test_local_distribution as components_fixture
 import test_local_product_operation_port as host_fixture
 
@@ -30,12 +32,58 @@ class LocalFactoryResourcesTests(unittest.TestCase):
             self.assertEqual((capture.call_count, vm.call_count, state.call_count), (0, 0, 0))
 
     def test_public_factories_allow_signer_without_host_token_path_or_capacity_arguments(self):
-        self.assertEqual(set(inspect.signature(Client.open).parameters), {'signer'})
-        self.assertEqual(set(inspect.signature(AsyncClient.open).parameters), {'signer'})
+        self.assertEqual(set(inspect.signature(Client.open).parameters), {'state_dir', 'signer'})
+        self.assertEqual(set(inspect.signature(AsyncClient.open).parameters), {'state_dir', 'signer'})
         with patch.object(InstalledLocalHost, 'installed', side_effect=AssertionError('No construction')) as build:
             for options in ({'resources': object()}, {'token': 'not-local'}, {'module': '/private/foreign'}):
                 with self.assertRaises(TypeError): Client.open(**options)
             self.assertEqual(build.call_count, 0)
+
+    def test_explicit_directory_does_not_bypass_original_funding_or_create_store(self):
+        case = components_fixture.LocalDistributionTests()
+        case.setUp(); self.addCleanup(case.doCleanups)
+        components = case.inspect()
+        with patch('actql_sdk._local_product.installed_local_components', return_value=components), \
+             patch('actql_sdk._local_product.LocalCore._from_installed_image', side_effect=AssertionError('No VM')) as vm, \
+             patch('actql_sdk._local_product._private_state_directory', side_effect=AssertionError('No Store')) as state:
+            with self.assertRaises(LocalInstallationError):
+                InstalledLocalHost.installed(state_dir='.actql')
+        vm.assert_not_called()
+        state.assert_not_called()
+
+    def test_selected_store_is_private_and_keeps_existing_original_files(self):
+        with TemporaryDirectory() as directory:
+            selected = Path(directory) / 'selected-state'
+            self.assertEqual(_private_state_directory(selected), selected)
+            self.assertEqual(stat.S_IMODE(selected.stat().st_mode), 0o700)
+            original = selected / 'original'
+            original.write_bytes(b'original-state')
+            identity = os.stat(selected)
+            self.assertEqual(_private_state_directory(selected), selected)
+            self.assertEqual((selected.stat().st_dev, selected.stat().st_ino), (identity.st_dev, identity.st_ino))
+            self.assertEqual(original.read_bytes(), b'original-state')
+
+    def test_selected_store_alias_refuses_without_touching_its_target(self):
+        with TemporaryDirectory() as directory:
+            target = Path(directory) / 'target'
+            target.mkdir(mode=0o700)
+            original = target / 'original'
+            original.write_bytes(b'original-state')
+            selected = Path(directory) / 'selected-state'
+            selected.symlink_to(target, target_is_directory=True)
+            identity = target.stat()
+            with self.assertRaises(ValueError): _private_state_directory(selected)
+            self.assertTrue(selected.is_symlink())
+            self.assertEqual((target.stat().st_dev, target.stat().st_ino), (identity.st_dev, identity.st_ino))
+            self.assertEqual(original.read_bytes(), b'original-state')
+
+    def test_nonprivate_selected_store_refuses_without_changing_permissions(self):
+        with TemporaryDirectory() as directory:
+            selected = Path(directory) / 'selected-state'
+            selected.mkdir(mode=0o700)
+            selected.chmod(0o755)
+            with self.assertRaises(ValueError): _private_state_directory(selected)
+            self.assertEqual(stat.S_IMODE(selected.stat().st_mode), 0o755)
 
 
 class AsyncLocalFactoryTests(unittest.IsolatedAsyncioTestCase):
@@ -110,6 +158,24 @@ class AsyncLocalFactoryTests(unittest.IsolatedAsyncioTestCase):
 
 
 class SyncLocalFactoryTests(unittest.TestCase):
+    def test_product_directory_factory_keeps_original_pending_cleanup_client(self):
+        import actql
+        with TemporaryDirectory() as directory:
+            case = host_fixture.LocalOperationPortTests(); self.addCleanup(case.doCleanups)
+            host, core, _, _ = case.host(Path(directory))
+            selected = Path(directory) / 'selected-state'
+            with patch.object(InstalledLocalHost, 'installed', side_effect=LocalProductCleanupPending(host)) as build:
+                with self.assertRaises(ClientError) as failure:
+                    actql.open(state_dir=selected)
+            build.assert_called_once_with(state_dir=selected)
+            client = failure.exception.cleanup_client
+            self.assertIsInstance(client, Client)
+            self.assertIs(client._client._local_host, host)
+            with patch.object(host, 'close', return_value=False):
+                with self.assertRaises(ClientError): client.close()
+            client.close()
+            self.assertTrue(core._closed)
+
     def test_same_argumentless_factory_negotiates_existing_host_and_closes_its_runner(self):
         with TemporaryDirectory() as directory:
             case = host_fixture.LocalOperationPortTests();self.addCleanup(case.doCleanups)
