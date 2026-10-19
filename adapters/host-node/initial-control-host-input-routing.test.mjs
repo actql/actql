@@ -81,27 +81,98 @@ test('Host passes raw input before awaiting and consumes only the same captured 
 });
 
 test('omitted open enters the same original begin before path selection and keeps its call-time path', async () => {
-  let selected = '/original/.actql', paths = 0;
-  const f = fixture(undefined, {packet: {}, path(value) {
-    assert.equal(value, '.actql'); assert.equal(f.prepares, 1);
-    paths++; return selected;
+  let selected = '/original', paths = 0;
+  const f = fixture(undefined, {packet: {}, path(...values) {
+    assert.equal(f.prepares, 1); paths++;
+    if (values.length === 1) {assert.equal(values[0], '.'); return selected;}
+    return resolve(...values);
   }});
   const pending = f.route(undefined, 'open');
   assert.equal(f.prepares, 1); assert.equal(paths, 1); assert.equal(f.reads, 0);
-  selected = '/replacement/.actql';
+  selected = '/replacement';
   f.finish(); const result = await pending;
-  assert.equal(paths, 1); assert.equal(f.reads, 1);
+  assert.equal(paths, 2); assert.equal(f.reads, 1);
   assert.equal(result.record.input, f.bundle.packet);
   assert.deepEqual(result.record.input, {});
   assert.equal(result.record.openOptions, result.options);
   assert.deepEqual(result.clientOptions, {mode: 'local', owner: 'local'});
-  assert.deepEqual(result.suppliedInstallation, {directory: '/original/.actql'});
+  assert.deepEqual({...result.suppliedInstallation}, {directory: '/original/.actql'});
+  assert.equal(Object.getPrototypeOf(result.suppliedInstallation), null);
   assert.equal((await result.control.close()).pending, true);
   assert.equal(f.closes, 0);
   for (const name of Object.keys(result.record)) result.record[name] = undefined;
   result.duty.releaseReferences(result.record);
   assert.equal((await result.control.close()).pending, false);
   assert.equal(f.closes, 1);
+});
+
+test('explicit open keeps original stateDir, installation and consent across initialization', async () => {
+  let cwd = '/original';
+  const raw = {stateDir: '.explorer', durability: 'durable', consentRefs: ['original'],
+    installation: {observation: Object.freeze({original: true})}};
+  const f = fixture(raw, {path(...values) {return values.length === 1 ? cwd : resolve(...values);}});
+  const pending = f.route(raw, 'open');
+  assert.equal(f.prepares, 1); assert.equal(f.reads, 0);
+  raw.stateDir = '.replacement'; raw.consentRefs[0] = 'replacement';
+  raw.installation = {}; cwd = '/replacement';
+  f.finish(); const result = await pending;
+  assert.equal(result.record.input, f.bundle.packet);
+  assert.equal(result.suppliedInstallation.directory, '/original/.explorer');
+  assert.equal(result.suppliedInstallation.observation, f.bundle.packet.installation.observation);
+  assert.deepEqual(result.clientOptions, {mode: 'local', owner: 'local',
+    durability: 'durable', consentRefs: ['original']});
+  assert.equal(Object.hasOwn(result.clientOptions, 'stateDir'), false);
+  assert.equal(Object.hasOwn(result.clientOptions, 'profile'), false);
+  assert.equal(result.record.openOptions, result.options);
+});
+
+test('explicit captured open retains existing closed fields and type refusals', async () => {
+  for (const raw of [{unknown: true}, {stateDir: ''}, {stateDir: 1},
+    {installation: null}, {installation: []}, {installation: {directory: '/foreign'}}]) {
+    const f = fixture(raw), pending = f.route(raw, 'open'); f.finish();
+    await assert.rejects(pending, {code: 'InvalidOpenOptions'});
+    assert.equal(f.prepares, 1); assert.equal(f.reads, 1); assert.equal(f.closes, 0);
+  }
+});
+
+test('captured open refuses inherited options added during initialization without reading them', async () => {
+  for (const name of ['stateDir', 'installation', 'durability', 'consentRefs']) {
+    const raw = name === 'stateDir' ? {} : {stateDir: '.explorer'};
+    const f = fixture(raw), pending = f.route(raw, 'open');
+    assert.equal(f.prepares, 1); assert.equal(f.reads, 0);
+    assert.equal(Object.hasOwn(f.bundle.packet, name), false);
+    let reads = 0;
+    assert.equal(Object.getOwnPropertyDescriptor(Object.prototype, name), undefined);
+    Object.defineProperty(Object.prototype, name, {configurable: true,
+      get() {reads++; throw new Error('UnownedOpenGetter');}});
+    try {
+      f.finish(); await assert.rejects(pending, {code: 'NodeInitialControlInputUnavailable'});
+      assert.equal(reads, 0);
+    } finally { delete Object.prototype[name]; }
+    assert.equal(f.reads, 1); assert.equal(f.closes, 0);
+  }
+});
+
+test('captured open projection never borrows later inherited profile or installation values', async () => {
+  const raw = {stateDir: '.explorer', installation: {}};
+  const f = fixture(raw), pending = f.route(raw, 'open');
+  let reads = 0;
+  for (const name of ['profile', 'authorization']) {
+    assert.equal(Object.getOwnPropertyDescriptor(Object.prototype, name), undefined);
+    Object.defineProperty(Object.prototype, name, {configurable: true,
+      get() {reads++; throw new Error('UnownedProjectionGetter');}});
+  }
+  try {
+    f.finish(); const result = await pending;
+    assert.equal(result.requestedProfile, undefined);
+    assert.equal(result.suppliedInstallation.authorization, undefined);
+    assert.equal(Object.hasOwn(result.clientOptions, 'profile'), false);
+    assert.equal(Object.getPrototypeOf(result.options), null);
+    assert.equal(Object.getPrototypeOf(result.suppliedInstallation), null);
+    assert.equal(reads, 0);
+  } finally {
+    delete Object.prototype.profile; delete Object.prototype.authorization;
+  }
 });
 
 test('open never drops fields from a nonempty supplier packet', async () => {
@@ -122,7 +193,7 @@ test('open path refusal does not abandon the original initialization or replace 
   assert.equal(f.prepares, 1); assert.equal(f.reads, 1); assert.equal(f.closes, 0);
 });
 
-test('the selected Host consumer forwards admitted connect and omitted open without a raw observation', async () => {
+test('the selected Host consumer forwards admitted connect and open without a raw observation', async () => {
   const consumer = tree.body.map(node => node.declaration ?? node)
     .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'connectInitialControlHostPreparation');
   assert.ok(consumer);
@@ -133,18 +204,20 @@ test('the selected Host consumer forwards admitted connect and omitted open with
     ['kind', 'rawInput', 'connectEmbeddedLocal', 'clientOperationError']);
   const connect = (input, entry) => {
     connects++;
-    if (entry === 'open') assert.equal(input, undefined);
-    else {assert.equal(entry, 'connect'); assert.equal(input, raw);}
+    assert.ok(entry === 'open' || entry === 'connect');
+    assert.ok(input === raw || entry === 'open' && (input === undefined || input === null));
     return originalPromise;
   };
   const error = code => Object.assign(new Error(code), {code});
-  for (const [kind, input] of [['open', raw], ['foreign', undefined], ['open', null]]) {
+  for (const [kind, input] of [['foreign', undefined]]) {
     assert.throws(() => route(kind, input, connect, error), {code: 'NodeInitialControlInputUnavailable'});
   }
   assert.equal(observations, 0); assert.equal(connects, 0);
   assert.equal(route('open', undefined, connect, error), originalPromise);
+  assert.equal(route('open', raw, connect, error), originalPromise);
+  assert.equal(route('open', null, connect, error), originalPromise);
   assert.equal(route('connect', raw, connect, error), originalPromise);
-  assert.equal(connects, 2); assert.equal(observations, 0);
+  assert.equal(connects, 4); assert.equal(observations, 0);
 });
 
 test('selected connect defaults only the admitted omitted owner and retains call-time installation', async () => {
@@ -177,7 +250,8 @@ test('failed original initialization retains the open path aliases until its ori
     retirements++;
   }};
   const retireReferences = compileFunction(
-    'let referencesRetired=false,referenceRetirement,mockPreparation,projectProfile,project,moon,duty;' +
+    'let referencesRetired=false,referenceRetirement,mockPreparation,projectProfile,project,moon,duty,' +
+    'mockAnswers,mockModelProfile,mockModelProfileRetire,mockModelFlight;' +
     source.slice(retire.start, retire.end) + '\nreturn retirePreparationReferences;',
     ['record', 'originalInstallation', 'profiles', 'host']) (record, originalInstallation, profiles, host);
   const caughtFailure = compileFunction('return async function(cause){' +

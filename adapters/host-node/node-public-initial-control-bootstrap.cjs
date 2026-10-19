@@ -810,15 +810,22 @@ function connectInitialControlHostPreparation(kind,raw) {
     if (mode === undefined || !own(mode,'value') || mode.value !== 'local') return undefined;
     const endpoint=descriptor(raw,'endpoint');
     if (endpoint !== undefined && own(endpoint,'value') && endpoint.value !== undefined) return undefined;
-  } else if (kind !== 'open' || raw !== undefined) inputUnavailable();
+  } else if (kind !== 'open') inputUnavailable();
   assertPrefixCurrent();
   if (preparation !== undefined || intake !== undefined) inputUnavailable();
   // The actual selected prefix's finite runtime/packet envelope precedes this
   // FIRST enumeration. Reader bounds do not retroactively fund acquisition.
-  const snapshot = kind === 'open' ? freeze({packet:freeze(Object.create(null)),originalReferences:freeze([])}) :
+  const snapshot = kind === 'open' && raw === undefined ? freeze({packet:freeze(Object.create(null)),originalReferences:freeze([])}) :
     apply(state.reader,state.namespace,[raw,inputLimits]);
   const packet = snapshot.packet;
   if (snapshot.originalReferences.length !== 0) inputUnavailable();
+  if (kind === 'open') {
+    // This selected recipe covers own DATA, not inherited option getters.
+    // Refuse that unsupported backing without invoking or silently dropping it.
+    for (const name of ['stateDir', 'installation', 'durability', 'consentRefs']) {
+      if (!own(packet,name) && name in packet) inputUnavailable();
+    }
+  }
   if (kind === 'connect') {
     const keys = Reflect.ownKeys(packet);
     if (keys.length !== 3 || !keys.includes('mode') || !keys.includes('installation') || !keys.includes('profile') ||

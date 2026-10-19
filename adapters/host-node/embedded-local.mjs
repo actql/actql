@@ -3899,11 +3899,11 @@ export async function publishInstalledEffect({effectProfilePath, directory,
 }
 
 // Only the actual early startup captures this operation. It admits the selected
-// raw Local connect input before invoking this receiver; open preserves its
-// omitted input route. This operation alone cannot manufacture that admission.
+// raw Local connect/open input before invoking this receiver. This operation
+// alone cannot manufacture that admission or inspect the caller's packet.
 export function connectInitialControlHostPreparation(kind, rawInput) {
   if (kind === 'connect') return connectEmbeddedLocal(rawInput, 'connect');
-  if (kind !== 'open' || rawInput !== undefined) {
+  if (kind !== 'open') {
     throw clientOperationError('NodeInitialControlInputUnavailable');
   }
   return connectEmbeddedLocal(rawInput, 'open');
@@ -4145,6 +4145,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   try {
   // Before options snapshot, Common import, Project read, normalization or
   // Provider installation. Missing actual startup coverage remains unavailable.
+  const omittedOpenInput = initialEntry === 'open' && options === undefined;
   const begun = beginInitialControlInstallation(originals, options);
   // Begin synchronously captures the admitted original packet. Keep only
   // that supplier-owned snapshot across its initialization await, not a raw
@@ -4155,7 +4156,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   // initialization awaits; do not resolve it again from a later process cwd.
   // A path failure still awaits and retains the original scope for cleanup.
   if (initialEntry === 'open') {
-    try { record.openStateDirectory = resolve('.actql'); }
+    try { record.openWorkingDirectory = resolve('.'); }
     catch (cause) { record.openPathFailure = {cause}; }
   }
   control = await begun;
@@ -4171,14 +4172,48 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   record.input = options;
   if (record.openPathFailure !== undefined) throw record.openPathFailure.cause;
   if (initialEntry === 'open') {
-    // Only the original supplier may produce this empty packet from omitted
-    // raw input after its acquisition coverage. Never drop fields from another
-    // packet, rerun the public validator, or manufacture a second admission.
-    if (Reflect.ownKeys(options).length !== 0) {
+    // Omission still corresponds to the same original empty packet. An
+    // explicit open packet uses that supplier's immutable snapshot, never a
+    // later caller read or another installation's admitted connect options.
+    if (omittedOpenInput && Reflect.ownKeys(options).length !== 0) {
       throw clientOperationError('NodeInitialControlOriginalChanged');
     }
-    options = {mode: 'local', owner: 'local',
-      installation: {directory: record.openStateDirectory}};
+    if (options === null || typeof options !== 'object' || Array.isArray(options)) {
+      throw clientOperationError('InvalidOpenOptions');
+    }
+    for (const key of Object.keys(options)) {
+      if (!['stateDir', 'installation', 'durability', 'consentRefs'].includes(key)) {
+        throw clientOperationError('InvalidOpenOptions');
+      }
+    }
+    // Freeze preserves the captured object's prototype, not its later state.
+    // Read only original own DATA after the await; an inherited option added
+    // meanwhile is unsupported backing, never a getter this Host may invoke.
+    const openFields = Object.create(null);
+    for (const name of ['stateDir', 'installation', 'durability', 'consentRefs']) {
+      const field = Object.getOwnPropertyDescriptor(options, name);
+      if (field === undefined) {
+        if (name in options) throw clientOperationError('NodeInitialControlInputUnavailable');
+      } else {
+        if (!Object.hasOwn(field, 'value')) throw clientOperationError('NodeInitialControlOriginalChanged');
+        openFields[name] = field.value;
+      }
+    }
+    if (openFields.stateDir !== undefined &&
+          (typeof openFields.stateDir !== 'string' || !openFields.stateDir) ||
+        openFields.installation !== undefined &&
+          (openFields.installation === null || typeof openFields.installation !== 'object' ||
+          Array.isArray(openFields.installation) || Object.hasOwn(openFields.installation, 'directory'))) {
+      throw clientOperationError('InvalidOpenOptions');
+    }
+    // Resolve against the original call-time working directory after reading
+    // the captured stateDir. Initialization awaits cannot redirect this Host.
+    record.openStateDirectory = resolve(record.openWorkingDirectory, openFields.stateDir ?? '.actql');
+    options = Object.assign(Object.create(null), {mode: 'local', owner: 'local',
+      ...(openFields.durability === undefined ? {} : {durability: openFields.durability}),
+      ...(openFields.consentRefs === undefined ? {} : {consentRefs: openFields.consentRefs}),
+      installation: Object.assign(Object.create(null), openFields.installation,
+        {directory: record.openStateDirectory})});
     record.openOptions = options;
   }
   if (initialEntry === 'connect' && options.mode === 'local' && options.owner === undefined) {
