@@ -82,3 +82,45 @@ test('literal NULL exception changes only the two contradicted vectors and expli
       {source:'decimal_divide(n,d,3)',issue:'TypeMismatch'},
       {source:"decimal_divide(d,'8',3)",issue:'TypeMismatch'}]});
 });
+
+function programEnvelope(stages, expression, row) {
+  const [a,b] = stages.cases.slice(0,2).map(item => structuredClone(item.envelope));
+  const port = row.import_mode === 1 ? {result:{stage:'a',result:'r'}} : row.import_mode === 2 ? {receipt:{stage:'a',effect:'d'}} : null;
+  if (port) b.local_body.inputs.rows = port;
+  return {version:'actql-program-semantics/0.1',actql_version:'actql/0.1',expression_contract_cid:expression,
+    parameters:a.parameters,bindings:a.bindings,
+    parameter_references:[a,b].flatMap((stage,index)=>stage.parameter_references.map(ref=>({...ref,path:`/stages/${index}${ref.path}`}))),
+    binding_references:a.binding_references.map(ref=>({...ref,path:`/stages/0${ref.path}`})),
+    program_template:{stages:[{id:'a',after:'initial',imports:{},stage_semantics_cid:cid(a)},
+      {id:'b',after:row.accepted?'accepted':'completed',imports:port?{rows:port}:{},stage_semantics_cid:cid(b)}],
+      exports:{out:{from:{stage:'b',result:'r'}}}}};
+}
+
+test('exact division preserves complete original Stage and Program bodies while repinning only declared expression dependencies', () => {
+  const oldExpression = cid(before.bodies[expressionPath]), newExpression = cid(read(expressionPath));
+  const names = ['stage-semantics','stage-definition','stage-parameter-declarations','program-semantics','program-definition','local-unit-stage-body'];
+  const old = Object.fromEntries(names.map(name => [name,before.bodies[`portability/corpus/${name}.json`]]));
+  const next = structuredClone(old);
+  for (const name of ['stage-semantics','local-unit-stage-body']) for (const row of next[name].cases) {
+    assert.equal(row.envelope.expression_contract_cid,oldExpression); assert.equal(cid(row.envelope),row.expected_cid);
+    row.envelope.expression_contract_cid=newExpression;row.expected_cid=cid(row.envelope);
+  }
+  for (const [index,row] of next['stage-definition'].cases.entries()) {
+    const shape = data => ({version:'actql-stage-definition/0.1',id:row.id,stage_semantics_cid:data['stage-semantics'].cases.find(item=>item.name===row.stage_case).expected_cid});
+    assert.equal(cid(shape(old)),old['stage-definition'].cases[index].expected_cid);row.expected_cid=cid(shape(next));
+  }
+  for (const [index,row] of next['program-semantics'].cases.entries()) {
+    assert.equal(cid(programEnvelope(old['stage-semantics'],oldExpression,row)),old['program-semantics'].cases[index].expected_cid);
+    row.expected_cid=cid(programEnvelope(next['stage-semantics'],newExpression,row));
+  }
+  for (const [index,row] of next['program-definition'].cases.entries()) {
+    const shape = data => ({version:'actql-program-definition/0.1',id:row.id,program_semantics_cid:data['program-semantics'].cases.find(item=>item.import_mode===row.import_mode&&item.accepted===row.accepted).expected_cid});
+    assert.equal(cid(shape(old)),old['program-definition'].cases[index].expected_cid);row.expected_cid=cid(shape(next));
+  }
+  for(const name of names) assert.deepEqual(read(`portability/corpus/${name}.json`),next[name]);
+  const managed = read('spec/contracts/actql-managed-retained-execution.json');
+  const prior = before.bodies['spec/contracts/actql-managed-retained-execution.json'];
+  assert.equal(managed.dependencies.fixed_compute_capacity.cid,cid(read('spec/contracts/actql-fixed-compute-capacity.json')));
+  managed.dependencies.fixed_compute_capacity.cid=prior.dependencies.fixed_compute_capacity.cid;
+  assert.deepEqual(managed,prior);
+});
