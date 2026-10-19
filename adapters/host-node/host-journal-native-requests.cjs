@@ -133,6 +133,10 @@ function hostJournalNativeStructureRequests(input) {
   const bindBeforeActive = checked((boundStatements - 1n) * retainedBindRequests);
   const generatedPayload = checked(D + B + 19644n);
   const translatedPayload = checked(2n * generatedPayload + 2n);
+  // Original binary preflight requires usable>=480; the reserved-byte
+  // header is one byte. Do not assume usable==pageSize for a saved database.
+  const usablePageLower = greater(480n, p - 255n);
+  const cursorOverflowRequest = checked(8n * ceil(generatedPayload, usablePageLower - 4n));
   // One-source fixed WHERE shapes under the selected source's default
   // planner20000+1000 budget. This is not a changed public work limit.
   const plannerLoopUsable = hostJournalNativeUsableUpper(208n);
@@ -163,6 +167,15 @@ function hostJournalNativeStructureRequests(input) {
     workspaces:freeze({pagerTemporaryRequest:p + 8n,
       btreeTemporaryRequest:p, balanceScratchRequest:7n * p,
       balanceOldNewPageRequests:2n * p}),
+    pagerControls:freeze({qualification:'selected-non-uri-unix-vfs-subset',
+      // Pager+embedded PCache+main/subjournal/journal file wrappers and path
+      // suffixes occupy ONE allocation. PCache1/PGroup/hash/pages and actual
+      // OS FD/path bookkeeping are distinct, not supplied by this subset.
+      combinedPagerRequestUpper:3751n, temporaryPathRequestUpper:1026n,
+      btreeRequestUpper:128n, sharedBtreeRequestUpper:240n,
+      walAndFileRequestUpper:848n,
+      embeddedFileWrapperCount:3n, standaloneEmbeddedFileAllocations:0n,
+      physicalFdAndZoneCoverage:false}),
     statements:freeze({count:P, vdbeRecordRequest:304n,
       mainDataRegisters:70n, mainCursors:6n, variableSlots:14n,
       mainArraysRequest:vmArrays, mainEmittedSlots:mainH,
@@ -218,6 +231,14 @@ function hostJournalNativeStructureRequests(input) {
       generatedPayloadRequestUpper:generatedPayload,
       eachTranslatedDataPayloadRequestUpper:translatedPayload,
       uniqueRcStringBlocks:90n, eachRcStringRequestUpper:checked(generatedPayload + 12n),
+      usablePageLower,
+      // aOverflow uses TWO Pgno arrays, hence8 rather than4 bytes per entry.
+      // Logical invalidation/shrink cannot credit the prior larger allocation.
+      eachCursorOverflowGrowth:preservingGrowth(cursorOverflowRequest, cursorOverflowRequest),
+      eachSavedIndexKeyRequestUpper:checked(generatedPayload + 17n),
+      cursorPagesAliasOriginalPager:true,
+      aggregateContextCoveredByP4Vector:true,
+      aggregateAccumulatorCoveredByDataVector:true,
       retainedMainAndChildArraysAlreadyCounted:true}),
     fixedSchema:freeze({
       qualification:'closed-own-ddl-retained-subset', completeSchema:false,
@@ -289,6 +310,8 @@ function hostJournalNativeStructureRequests(input) {
       subjournalChunk:allocation(1024n),
       pagerTemporary:allocation(p + 8n), btreeTemporary:allocation(p),
       balanceScratch:allocation(7n * p),
+      combinedPager:allocation(3751n), temporaryPath:allocation(1026n),
+      btree:allocation(128n), sharedBtree:allocation(240n), walAndFile:allocation(848n),
     }),
   });
 }

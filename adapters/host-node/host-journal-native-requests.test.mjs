@@ -240,3 +240,37 @@ test('planner keeps all linked grown arrays and only one active old pointer resi
   assert.equal(p.resetReturnsRegionCredit,false);
   assert(Object.isFrozen(p));
 });
+
+test('Pager file wrappers stay coallocated while pathname and Btree originals overlap separately', () => {
+  const {pagerControls:p,allocationBounds:a} = calculate(input());
+  assert.equal(p.combinedPagerRequestUpper,3751n);
+  assert.equal(p.temporaryPathRequestUpper,1026n);
+  assert.equal(p.embeddedFileWrapperCount,3n);
+  assert.equal(p.standaloneEmbeddedFileAllocations,0n);
+  assert.equal(a.combinedPager.heapUsableUpper,4096n);
+  assert.equal(a.temporaryPath.heapUsableUpper,1536n);
+  assert.equal(a.btree.heapUsableUpper,128n);
+  assert.equal(a.sharedBtree.heapUsableUpper,256n);
+  assert.equal(a.walAndFile.heapUsableUpper,896n);
+});
+
+test('cursor overflow accounts for reserved bytes and both original Pgno arrays', () => {
+  const a = calculate(input()).activeVm;
+  assert.equal(a.usablePageLower,3841n);
+  assert.equal(a.eachCursorOverflowGrowth.nextMaximum.request,8800n);
+  assert.equal(a.eachCursorOverflowGrowth.previousMaximum.request,8800n);
+  assert.equal(a.eachCursorOverflowGrowth.immediateCredit,false);
+  assert.equal(a.eachSavedIndexKeyRequestUpper,4218061n);
+  const small = calculate(input({pageBytes:512n})).activeVm;
+  assert.equal(small.usablePageLower,480n);
+  assert.equal(small.eachCursorOverflowGrowth.nextMaximum.request,70896n);
+});
+
+test('cursor page aliases and aggregate ownership do not multiply native originals', () => {
+  const a = calculate(input()).activeVm;
+  assert.equal(a.cursorPagesAliasOriginalPager,true);
+  assert.equal(a.aggregateContextCoveredByP4Vector,true);
+  assert.equal(a.aggregateAccumulatorCoveredByDataVector,true);
+  assert.equal(a.retainedMainAndChildArraysAlreadyCounted,true);
+  assert.equal(calculate(input()).completePhase,false);
+});
