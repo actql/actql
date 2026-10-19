@@ -461,6 +461,43 @@ use this same Owner rather than implement another answer selector. Operational
 installation, the configured Account and complete physical funding remain
 separate from this portable connection.
 
+##### Shared Run resources for the original local Mock
+
+The selected composed-input consumer may use the same original Run Ledger for
+Source, managed preparation and local Mock execution. This does not turn a
+Source or initial-control admission into Model credit. The actual Host must
+already supply the separately scoped local-Mock operational purpose and its
+complete simultaneous envelope before constructing the consumer or input.
+
+The Model Owner retains the exact original Mock provider and immutable Model
+limits when the same checked Run, graph, call scope and prepared rows hand off
+their original read capacity. The selected limits must remain within that
+graph's original execution contract. A larger shared physical Ledger is not a
+replacement for these Model ceilings. Existing dedicated startup, synchronous
+fixtures and asynchronous physical Providers keep their exact Ledger-limit
+correspondence and are not enabled by this connection.
+
+Before every attempt reservation, the existing Model reservation map enforces
+its own attempt and wire ceilings. Actual live reservation bytes, the original
+startup capacity and outstanding publication borrows independently enforce the
+Model retained/workspace ceilings before the same physical Ledger is charged.
+The original local implementation creates no Model I/O holdings. Closed-token
+byte observations do not release Source holdings, escaped aliases, unknown
+wire/quantity history or any physical backing. All slots remain reserved before
+the first dispatch; current Account, Entry and settlement rules are unchanged.
+Authenticated saved and Unknown attempts remain spent within this purpose.
+Their original Journal mask must exclude a fresh send reservation before saved
+call admission; reconciliation can add read custody, never erase that history.
+
+Publication retains its own exact borrowed byte amounts and spent planning
+steps. A refused reservation or settlement retains its original custody; a
+successful release cannot acknowledge another borrow or sibling. The existing
+Model in-progress fence protects each shared-purpose publication mutation.
+The sealed references/full limits, resident optional fields and selection flag,
+publication amounts/counters and bounded reservation-map scan overlap with
+Source, DAG, Model and Result holdings in the Host recipe. They are not free
+metadata, a numerical profile, a physical issuer or a cleanup acknowledgement.
+
 The existing Model Owner admits the selected `task`/`answers` document against
 the same original public Task declaration's output Contract. `default` and
 every `by_key` value, including unused entries, are checked under aggregate

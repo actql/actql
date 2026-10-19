@@ -242,6 +242,8 @@ pub fn prepare_model_response_reconciliation(ModelPreparedCallSet, Int, @run_pub
 
 pub fn prepare_original_model_consumer_startup(@run_publication_host.ClientModelReadConsumer, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferCallScope, @execution_relation.PreparedInferRows, Int64, Int64) -> Result[OriginalModelStartup, @run_publication_host.ClientModelInputCapacityIssue]
 
+pub fn prepare_original_model_provider_consumer_startup(@run_publication_host.ClientModelReadConsumer, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferCallScope, @execution_relation.PreparedInferRows, ModelProvider, ModelExecutionLimits, Int64, Int64) -> Result[OriginalModelStartup, @run_publication_host.ClientModelInputCapacityIssue]
+
 pub fn prepare_original_model_startup(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferCallScope, @execution_relation.PreparedInferRows, Int64, Int64) -> Result[OriginalModelStartup, @run_publication_host.ClientModelInputCapacityIssue]
 
 pub fn prepared_model_call_at(ModelPreparedCallSet, Int) -> @run_publication.RunEvidenceValue?
