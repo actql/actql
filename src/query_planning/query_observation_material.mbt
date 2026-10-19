@@ -32,6 +32,10 @@ fn emit_query_observation(
     writer,
     @context.program_identity_definition_cid(requirement.program),
   )
+  if requirement.query_run_definition_cid is Some(cid) {
+    @encode.key(writer, "run_definition_cid")
+    @encode.string_value(writer, cid)
+  }
   @encode.key(writer, "stage")
   @encode.string_value(writer, requirement.stage)
   @encode.end_object(writer)

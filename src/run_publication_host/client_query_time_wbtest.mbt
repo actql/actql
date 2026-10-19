@@ -268,6 +268,49 @@ test "query time acquisition retains its dependency until the same original Run 
       @planning.query_requirement_material(local_requirement),
     ),
   )
+  let original_wire = @encode.document_text(
+    @planning.query_requirement_document(local_requirement),
+  )
+  assert_true(
+    original_wire.contains(
+      "\"run_definition_cid\":\"" +
+      @publication.publication_contract_identity(definition) +
+      "\"",
+    ),
+  )
+  let (_, until) = @publication.run_definition_lifetime(definition).unwrap()
+  let other_definition = issue_client_effect_run_definition(
+    allowed, "scope", "another-query-source", "2026-10-09T00:00:00.000Z", until,
+  ).unwrap()
+  let other_request = client_query_time_test_request(
+    owner, "another-query-source",
+  )
+  let other_preparation = restore_client_effect_query_time_preparation(
+    owner, allowed, other_definition, other_request,
+  ).unwrap()
+  let other_requirement = @local_query_time.prepare_effect_local_query_requirement_at_query_time(
+    owner,
+    0,
+    0,
+    other_preparation,
+    other_request,
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  assert_true(
+    @planning.query_requirement_cid(local_requirement) !=
+    @planning.query_requirement_cid(other_requirement),
+  )
+  assert_eq(
+    @planning.query_material_cids(
+      @planning.query_requirement_material(local_requirement),
+    ),
+    @planning.query_material_cids(
+      @planning.query_requirement_material(other_requirement),
+    ),
+  )
   assert_true(
     @acquisition.query_acquisition_query_time(local_query) is Some(original) &&
     physical_equal(original, context),

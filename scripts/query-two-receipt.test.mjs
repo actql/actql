@@ -194,7 +194,13 @@ test('fixed preimages remain independent of product output and old profile ident
     assert.notEqual(contract.dependencies[key].cid,pin);
     const original=structuredClone(read(path));
     original.dependencies=historical.dependencies;
-    assert.deepEqual(original,historical,'only declared dependency identities changed');
+    if (name === 'actql-query-acquisition') {
+      for (const schema of Object.values(original.schemas)) {
+        delete schema.properties.owner.properties.run_definition_cid;
+      }
+      delete original.semantics.query_time_owner;
+    }
+    assert.deepEqual(original,historical,'only declared dependencies and the explicit original query-time owner extension changed');
   }
 });
 test('closed shapes do not replace receipt content, role, ordering and ownership checks',()=>{
