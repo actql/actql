@@ -13,6 +13,7 @@ import {admitEnvironment, prepare, compileTasks, taskExecutionShape, taskKeys,
   issueAllowedTaskRun, issueTaskRunDefinition, privateRunDefinition,
   prepareRetainedTaskInputEdge, retainedTaskInputEdgeFacts, taskInputBinding,
   prepareTaskRequest, issueTaskDispatch, prepareRetainedInputProducer,
+  prepareSubmittedIntent, prepareSourceProgram, sourceProgramMaterialInput, requestFields, admitRequestFields, prepareRequest,
   retainedInputProducerAvailable, retainedInputProducerFacts,
   prepareRetainedInputIntent, admitRetainedInputIntent, retainedInputIntentFacts,
   retainedInputPlanEnvelope, admitRetainedInputPlan, validateRetainedInputPlan,
@@ -44,8 +45,8 @@ const cid = fill => `sha256:${fill.repeat(64)}`;
 const fixture = await residentSourceEnvironment(fileURLToPath(new URL('../../', import.meta.url)));
 const environment = admitEnvironment(fixture.wire, fixture.cid, {rela: true});
 
-function run(body = document) {
-  const prepared = prepare(body, 'json', environment);
+function run(body = document, sourcePrepared) {
+  const prepared = sourcePrepared ?? prepare(body, 'json', environment);
   const compilation = compileTasks(prepared);
   const allowed = issueAllowedTaskRun(prepared, compilation, {
     executionContextCid: cid('a'), hostPolicyCid: cid('b'),
@@ -1215,4 +1216,98 @@ test('Effect progress rejects foreign Run authority competing attempts and forge
     assert.throws(() => inspectEffectTaskProgress(forged, original.definition, cid('c'), []),
       {message: 'ForeignRunHostHandle'});
   }
+});
+
+// Static original-Source dispatch/retained-custody composition only. These
+// protocol fixtures do not establish physical Source, capacity or a grant.
+const sourceDispatchText = 'SELECT id FROM records WHERE id > 0 ORDER BY id';
+function originalSourceRun(text = sourceDispatchText, parameters = null, parameterDeclarations) {
+  const snapshot = JSON.parse(fixture.wire).schema_snapshots.find(value => value.source_ref === 'connector://crm/main/r#v');
+  const publication = JSON.stringify({environmentCid: fixture.cid, aliases: [{
+    name: 'records', sourceRef: snapshot.source_ref, sourceViewContractCid: snapshot.source_view_contract_cid,
+    schemaContractCid: snapshot.carrier_schema_contract_cid,
+  }]});
+  const intent = prepareSubmittedIntent(JSON.stringify({kind: 'aql', input: {text, format: 'sql', ...(parameterDeclarations === undefined ? {} : {parameterDeclarations})}, parameters}),
+    {maxWireBytes: 65536, maxNodes: 8192, maxDepth: 64});
+  const selected = prepareSourceProgram(intent, environment, publication);
+  assert.equal(selected.kind, 'effect_free');
+  const original = run(undefined, selected.prepared);
+  assert.deepEqual(taskExecutionShape(original.prepared, original.compilation), {taskCount: 2, acquisitionCount: 1});
+  return original;
+}
+
+test('original Source initial dispatch preserves authored input and rejects copied or wrong requests', async () => {
+  const original = originalSourceRun();
+  const producer = coordinatorProducerFixture(original);
+  const request = prepareTaskRequest(original.prepared, original.compilation, producer.authority, 'original-request');
+  const fields = requestFields(request);
+  assert.notEqual(fields.callerInputIntentCid, cid('f'));
+  const retained = admitRequestFields(fields);
+  assert.deepEqual(issueTaskDispatch(original.prepared, original.compilation, original.admission,
+    original.definition, retained, 0, producer.selection), producer.issued);
+  const wrongSource = originalSourceRun(sourceDispatchText + ' ');
+  const wrongRequest = prepareTaskRequest(wrongSource.prepared, wrongSource.compilation, producer.authority, 'original-request');
+  assert.notEqual(requestFields(wrongRequest).callerInputIntentCid, fields.callerInputIntentCid);
+  assert.throws(() => issueTaskDispatch(original.prepared, original.compilation, original.admission,
+    original.definition, wrongRequest, 0, producer.selection), {code: 'RunHostDispatchRejected'});
+  assert.throws(() => issueTaskDispatch({...original.prepared}, original.compilation,
+    original.admission, original.definition, retained, 0, producer.selection), /ForeignRunHost(?:Handle|Compilation)/u);
+  assert.throws(() => issueTaskDispatch(original.prepared, original.compilation,
+    original.admission, original.definition, {...retained}, 0, producer.selection), /ForeignRunHostHandle/u);
+  const foreign = await import('./index.mjs?foreign-source-dispatch');
+  const foreignEnvironment = foreign.admitEnvironment(fixture.wire, fixture.cid, {rela: true});
+  const snapshot = JSON.parse(fixture.wire).schema_snapshots.find(value => value.source_ref === 'connector://crm/main/r#v');
+  const foreignIntent = foreign.prepareSubmittedIntent(JSON.stringify({kind: 'aql',
+    input: {text: sourceDispatchText, format: 'sql'}, parameters: null}),
+    {maxWireBytes: 65536, maxNodes: 8192, maxDepth: 64});
+  const foreignPrepared = foreign.prepareSourceProgram(foreignIntent, foreignEnvironment,
+    JSON.stringify({environmentCid: fixture.cid, aliases: [{name: 'records', sourceRef: snapshot.source_ref,
+      sourceViewContractCid: snapshot.source_view_contract_cid, schemaContractCid: snapshot.carrier_schema_contract_cid}]}));
+  const foreignRequest = foreign.prepareSourceRequest(foreignPrepared.prepared, foreignIntent, producer.authority, 'original-request');
+  assert.throws(() => issueTaskDispatch(original.prepared, original.compilation, original.admission,
+    original.definition, foreignRequest, 0, producer.selection), /ForeignRunHostHandle/u);
+  for (const changed of [originalSourceRun('SELECT id FROM records WHERE id > 1 ORDER BY id'),
+    originalSourceRun('SELECT id FROM records WHERE id > @limit ORDER BY id', {limit: 1}, {limit: {type: 'number'}})]) {
+    const changedRequest = prepareTaskRequest(changed.prepared, changed.compilation, producer.authority, 'original-request');
+    assert.throws(() => issueTaskDispatch(original.prepared, original.compilation, original.admission,
+      original.definition, changedRequest, 0, producer.selection), {code: 'RunHostDispatchRejected'});
+  }
+  const material = sourceProgramMaterialInput(original.prepared, fixture.wire);
+  const missing = run(material.document);
+  const arbitrary = prepareRequest(missing.prepared, producer.authority, 'original-request', fields.callerInputIntentCid);
+  assert.throws(() => issueTaskDispatch(missing.prepared, missing.compilation, missing.admission,
+    missing.definition, arbitrary, 0, producer.selection), {code: 'RunHostDispatchRejected'});
+});
+
+test('original Source retained dispatch preserves current committed input and rejects a foreign source request', () => {
+  const original = originalSourceRun();
+  const saved = retainedTransferFixture(original);
+  saved.commit();
+  const input = prepareRetainedTaskInput(saved.producer, saved.receipt, 'original-source-receiver', saved.current, inputLimits);
+  const facts = retainedTaskInputFacts(input);
+  const dispatch = issueConsumer(original, saved, input);
+  assert.equal(JSON.parse(dispatch.wire).run_definition_cid, privateRunDefinition(original.definition).cid);
+  assert.deepEqual(retainedTaskInputFacts(input), facts);
+  const foreign = originalSourceRun(sourceDispatchText + ' ');
+  const wrong = prepareTaskRequest(foreign.prepared, foreign.compilation, saved.completed.authority, 'original-request');
+  assert.throws(() => issueRetainedTaskDispatch(original.prepared, original.compilation, original.admission,
+    original.definition, wrong, 1, {...saved.completed.selection, dispatchId: 'consumer-1'}, input),
+  {code: 'RunHostRetainedTaskDispatchRejected'});
+  assert.throws(() => issueConsumer({...original, prepared: {...original.prepared}}, saved, input), /ForeignRunHost(?:Handle|Compilation)/u);
+  assert.throws(() => issueConsumer(original, saved, {...input}), /ForeignRunHostHandle/u);
+  assert.throws(() => issueConsumer(original, saved, input, {...saved.completed.selection, siteGeneration: 2}),
+    {code: 'RunHostRetainedTaskDispatchRejected'});
+  const missing = run(sourceProgramMaterialInput(original.prepared, fixture.wire).document);
+  const missingFixture = retainedTransferFixture(missing);
+  missingFixture.commit();
+  const missingInput = prepareRetainedTaskInput(missingFixture.producer, missingFixture.receipt,
+    'missing-source-receiver', missingFixture.current, inputLimits);
+  const request = prepareTaskRequest(original.prepared, original.compilation, saved.completed.authority, 'original-request');
+  const requestWithoutSource = prepareRequest(missing.prepared, saved.completed.authority, 'original-request',
+    requestFields(request).callerInputIntentCid);
+  assert.throws(() => issueRetainedTaskDispatch(missing.prepared, missing.compilation, missing.admission,
+    missing.definition, requestWithoutSource, 1, {...missingFixture.completed.selection, dispatchId: 'consumer-1'}, missingInput),
+  {code: 'RunHostRetainedTaskDispatchRejected'});
+  saved.authorized(false);
+  assert.throws(() => issueConsumer(original, saved, input), {code: 'RunHostRetainedTaskDispatchRejected'});
 });

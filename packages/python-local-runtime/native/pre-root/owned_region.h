@@ -52,6 +52,12 @@ int actql_native_owned_domain_has_child(actql_owned_capacity *lease,
 int actql_native_owned_domain_unborrowed(actql_owned_capacity *lease,
     const actql_owned_extent_view *view);
 
+/* Same-original sticky returned-header observation only. This is neither a
+ * process-stop proof nor allocation-level cleanup or physical retirement ACK.
+ * It does not enter, reset or lock a possibly borrowed child allocator. */
+int actql_native_owned_domain_returned(actql_owned_capacity *lease,
+    const actql_owned_extent_view *view);
+
 /* Borrow a trusted, exclusively initialized, exact-sized private regular FD.
  * This does not create/duplicate/close an FD or charge its physical overhead.
  * A failed acquisition may leave *out for the same original cleanup. */

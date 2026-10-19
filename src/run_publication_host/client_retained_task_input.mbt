@@ -421,6 +421,7 @@ pub fn prepare_client_retained_task_dispatch(
   selected : ClientValuesSiteSelection,
   input : ClientRetainedTaskInput,
   current : ClientRetainedInputCurrent,
+  source? : ClientSourcePreparation? = None,
 ) -> Result[@remote.DispatchRequest, ClientRetainedTaskDispatchIssue] {
   match validate_client_retained_task_input_current(input, current) {
     Ok(_) => ()
@@ -470,6 +471,7 @@ pub fn prepare_client_retained_task_dispatch(
       dispatch_id,
       selected,
       () => Ok(input.binding),
+      source,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Dispatch(issue))

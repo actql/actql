@@ -15344,7 +15344,7 @@
     },
     {
       "module": "packages/run-host-core/index.mjs",
-      "sha256": "50d40f7c89f2bccad81193d3314777a11a573a42f24719c35629dfe5e772cb17",
+      "sha256": "a0c6d61c8e35b06bce63e9c7db7c0b41ba1ccef75b8a9dea3cc693ac59d1bc53",
       "role": "physical-io",
       "exports": [
         "admitCapturedResultSnapshot",
@@ -19073,6 +19073,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "### Original source preparation in the portable Run Host"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "inputsOutputs": [
@@ -19091,6 +19095,10 @@
               {
                 "path": "packages/run-host-core/index.mjs",
                 "anchor": "export function prepareSourceProgram(intent, environment, publicationWire) {"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "identity": [
@@ -19113,6 +19121,10 @@
               {
                 "path": "src/run_publication_host/client_source_preparation.mbt",
                 "anchor": "physical_equal(value.environment, environment)"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "ownership": [
@@ -19131,6 +19143,10 @@
               {
                 "path": "src/run_publication_host/client_source_preparation.mbt",
                 "anchor": "pub struct ClientSourcePreparation {"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "synchronization": [
@@ -19149,6 +19165,10 @@
               {
                 "path": "packages/run-host-core/index.mjs",
                 "anchor": "original.intent !== intent"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "failure": [
@@ -19167,6 +19187,10 @@
               {
                 "path": "src/run_publication_host/client_effect_run_materials.mbt",
                 "anchor": "request is None || expected_request is None || request != expected_request"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "cancellation": [
@@ -19185,6 +19209,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "alone does not supply this original binding, current authority or a cleanup ACK."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "resources": [
@@ -19203,6 +19231,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "is name-binding metadata, not acquisition, permission or physical capacity."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "extension": [
@@ -19221,6 +19253,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "structured preparation and material bytes remain unchanged."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ],
             "verification": [
@@ -19239,6 +19275,10 @@
               {
                 "path": "packages/run-host-core/source-preparation.test.mjs",
                 "anchor": "test('source Effect materials require the same source preparation and independently retained request'"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Initial and retained-input task dispatch use that same original Source"
               }
             ]
           }

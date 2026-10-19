@@ -1707,3 +1707,25 @@ descriptor's consumed close is separate from the DB/WAL, copy and private-index
 descriptors. An unconfirmed path close retains the same inspection receiver and
 prevents another path acquisition or successful cleanup; its number is never
 retried. Generic inspection keeps its existing canonical-path behavior.
+
+## Selected Linux mapped backing
+
+The selected local Linux arm64 process-domain consumer may compile the existing
+physical backing provider with `ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN` and
+`_GNU_SOURCE`. This is an explicit private backend selection, not a resource
+issuer or a numerical profile. The actual trusted supervisor/process-domain
+admission and the original mapped backing remain separate conjunctive inputs.
+A kernel limit cannot construct an extent or replace the private regular FD.
+
+The existing provider retains exact FD size, owner/mode, generation and recipe,
+first-initialization checks, relative allocation and payload bounds, original
+loan/view/domain identity, and child-first cleanup. Failed unmap or protection
+keeps the same original carrier; returning a view does not return its parent
+loan, and closing the provider does not close its caller-owned descriptor.
+Copied, foreign, retired and mismatched originals retain their existing refusals.
+
+This selection covers the same POSIX mapping/storage ownership mechanism only.
+It does not emit the Rust allocation entrypoints or select the Darwin
+compiled-image hashing path, a Linux compiler or
+Engine image, Rust/VM admission, an installed Python supplier, or normal funding.
+The existing Darwin selection and its physical semantics remain unchanged.

@@ -27,6 +27,38 @@ pub fn slack_prepare_message_history(
 }
 
 ///|
+#export_name("slackPrepareMessageHistoryWindow")
+pub fn slack_prepare_message_history_window(
+  channel : String,
+  oldest : String?,
+  latest : String?,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_rows : Int,
+  max_cursor_bytes : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+  max_pages : Int,
+) -> Result[@catalog.SlackMessageHistory, @catalog.SlackMessagePageIssue] {
+  @catalog.prepare_slack_message_history_window(
+    channel,
+    oldest,
+    latest,
+    {
+      max_bytes,
+      max_nodes,
+      max_depth,
+      max_rows,
+      max_cursor_bytes,
+      max_value_nodes,
+      max_value_text_bytes,
+    },
+    max_pages,
+  )
+}
+
+///|
 #export_name("slackBeginMessageHistory")
 pub fn slack_begin_message_history(
   history : @catalog.SlackMessageHistory,
@@ -49,13 +81,18 @@ pub fn slack_message_history_request_json(
     Some(value) => value.to_json()
     None => Json::null()
   }
-  (
-    {
-      "channel": @catalog.slack_message_history_request_channel(request).to_json(),
-      "ordinal": @catalog.slack_message_history_request_ordinal(request).to_json(),
-      "cursor": cursor,
-      "latest": latest,
-    } : Json).stringify()
+  let value : Json = {
+    "channel": @catalog.slack_message_history_request_channel(request).to_json(),
+    "ordinal": @catalog.slack_message_history_request_ordinal(request).to_json(),
+    "cursor": cursor,
+    "latest": latest,
+  }
+  // An absent lower bound keeps the legacy private request bytes unchanged.
+  if @catalog.slack_message_history_request_oldest(request) is Some(oldest) &&
+    value is Object(fields) {
+    fields["oldest"] = oldest.to_json()
+  }
+  value.stringify()
 }
 
 ///|
@@ -146,6 +183,12 @@ pub fn slack_message_column_names() -> Array[String] {
 }
 
 ///|
+#export_name("slackMessageRelationFactsWire")
+pub fn slack_message_relation_facts_wire() -> String {
+  @catalog.slack_message_facts_wire()
+}
+
+///|
 #export_name("slackMessageSchemaWire")
 pub fn slack_message_schema_wire(
   max_bytes : Int,
@@ -153,4 +196,44 @@ pub fn slack_message_schema_wire(
   max_depth : Int,
 ) -> Result[String, @catalog.SlackMessagePageIssue] {
   @catalog.slack_message_schema_wire(max_bytes, max_nodes, max_depth)
+}
+
+///|
+#export_name("slackPrepareMessageHistoryFromChannel")
+pub fn slack_prepare_message_history_from_channel(
+  page : @catalog.SlackChannelListPage,
+  index : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_rows : Int,
+  max_cursor_bytes : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+  max_pages : Int,
+) -> Result[@catalog.SlackMessageHistory, @catalog.SlackMessagePageIssue] {
+  @catalog.prepare_slack_message_history_from_channel(
+    page,
+    index,
+    {
+      max_bytes,
+      max_nodes,
+      max_depth,
+      max_rows,
+      max_cursor_bytes,
+      max_value_nodes,
+      max_value_text_bytes,
+    },
+    max_pages,
+  )
+}
+
+///|
+#export_name("slackMessageHistoryMatchesChannel")
+pub fn slack_message_history_matches_channel(
+  history : @catalog.SlackMessageHistory,
+  page : @catalog.SlackChannelListPage,
+  index : Int,
+) -> Bool {
+  @catalog.slack_message_history_matches_channel(history, page, index)
 }
