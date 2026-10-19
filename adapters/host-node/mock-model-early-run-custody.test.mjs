@@ -9,10 +9,11 @@ const source=readFileSync(new URL('./installed-project-mock.mjs',import.meta.url
 const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
 const outer=tree.body.find(node=>node.type==='ExportNamedDeclaration'&&
   node.declaration?.id?.name==='installPreparedProjectMockSources').declaration;
-const functions=['sameRun','prepareManagedRun','prepareManagedMockModelRun','modelPreparation','retireModelRead'];
+const functions=['sameRun','prepareManagedRun','prepareManagedMockModelRun','modelPreparation','retireModelRead',
+  'closeSource','closeRead','close'];
 const slices=outer.body.body.flatMap(node=>{
   if(node.type==='FunctionDeclaration'&&functions.includes(node.id.name))return[source.slice(node.start,node.end)];
-  if(node.type==='VariableDeclaration'&&node.declarations[0].id.name==='sameRun')return[source.slice(node.start,node.end)];
+  if(node.type==='VariableDeclaration'&&['sameRun','close'].includes(node.declarations[0].id.name))return[source.slice(node.start,node.end)];
   return[];
 }).join('\n');
 assert.equal(slices.match(/(?:function |const )(?:sameRun|prepareManagedRun|prepareManagedMockModelRun|modelPreparation|retireModelRead)\b/gu).length,5);
@@ -20,6 +21,7 @@ assert.equal(slices.match(/(?:function |const )(?:sameRun|prepareManagedRun|prep
 function fixture({afterFactoryFailure,readFailure}={}){
   const calls=[],prepared={},request={},compiled={},runDefinition={},graph={},occurrence={};
   const records=new Map(),original={},admission={},value={},scope={},read={};
+  const sources=[],closedSources=new Set(),sourceReady=[true,true],sourceCloseCalls=[0,0];
   let issued=false;
   const current=()=>{calls.push('current');if(issued&&afterFactoryFailure)throw afterFactoryFailure;};
   const fail=code=>{throw Object.assign(new Error(code),{code});};
@@ -34,7 +36,8 @@ function fixture({afterFactoryFailure,readFailure}={}){
     assert.strictEqual(o,original);assert.strictEqual(p,prepared);calls.push('admission');return admission;
   },clientProgramInstalledManagedRunCheck(v,p,r){
     assert.strictEqual(v,value);assert.strictEqual(p,prepared);assert.strictEqual(r,request);calls.push('check');
-  }};
+  },clientProgramInstalledSourceReadRetire(){calls.push('retire-source');},
+  clientProgramInstalledManagedRunRetire(v){assert.strictEqual(v,value);calls.push('retire-parent');}};
   const control={beginCheckedClientMockModelManagedRun(a,p,r,c,d,g){
     assert.strictEqual(a,admission);assert.strictEqual(p,prepared);assert.strictEqual(r,request);
     assert.strictEqual(c,compiled);assert.strictEqual(d,runDefinition);assert.strictEqual(g,graph);
@@ -45,12 +48,18 @@ function fixture({afterFactoryFailure,readFailure}={}){
     if(readFailure)throw readFailure;return read;
   },stopCheckedClientInferOriginalReadPreparation(){calls.push('stop-read');},
   settleCheckedClientInferOriginalReadPreparation(){calls.push('settle-read');}};
-  const api=new Function('current','records','fail','checked','sourceManaged','moon','runtimeField',
-    slices+';return {prepareManagedMockModelRun,modelPreparation};')(
-      current,records,fail,checked,sourceManaged,moon,(value,index)=>value[index]);
+  const api=new Function('current','records','fail','checked','sourceManaged','moon','runtimeField','sources','closedSources',
+    'let closing=false;'+slices+';return {prepareManagedMockModelRun,modelPreparation,close,closeSource};')(
+      current,records,fail,checked,sourceManaged,moon,(value,index)=>value[index],sources,closedSources);
+  sources.push(...[0,1].map(index=>({close:()=>api.closeSource(index)})));
   const plan={compiled,runDefinition},selection={graph,occurrence};
   return{...api,calls,records,prepared,request,plan,selection,control,original,admission,value,scope,
-    begin(){api.prepareManagedMockModelRun(prepared,request,control,plan,selection);}};
+    sourceReady,sourceCloseCalls,
+    begin(){api.prepareManagedMockModelRun(prepared,request,control,plan,selection);},
+    attachSources(){
+      records.get(prepared).reads=[0,1].map(index=>({raw:{index},value:{index},closed:false,
+        close(){sourceCloseCalls[index]++;return{pending:!sourceReady[index]};}}));
+    }};
 }
 
 test('Mock installs its same original Run Scope before returning any Source preparation',()=>{
@@ -94,4 +103,33 @@ test('Mock read refusal retains the already issued Scope and its original admiss
   assert.strictEqual(held.model.readFailure,failure);
   assert.throws(()=>preparation.prepareRead(),error=>error===failure);
   assert.equal(f.calls.filter(call=>call==='scope').length,1);
+});
+
+test('Mock close keeps both originals until Source and Model cleanup acknowledge separately',async()=>{
+  const f=fixture();f.begin();f.attachSources();
+  const record=f.records.get(f.prepared),model=record.model;
+  const preparation=f.modelPreparation(f.prepared,f.plan);
+  preparation.retain();preparation.prepareRead();
+  f.sourceReady[0]=false;
+  await assert.rejects(f.close(),{message:'InstalledMockSourceCleanupPending'});
+  assert.strictEqual(record.original,f.original);assert.strictEqual(model.scope,f.scope);
+  assert.equal(f.calls.includes('settle-read'),false);
+  assert.equal(f.calls.includes('retire-parent'),false);
+  f.sourceReady[0]=true;
+  await assert.rejects(f.close(),{message:'InstalledMockSourceCleanupPending'});
+  assert.deepEqual(f.sourceCloseCalls,[2,1]);
+  assert.strictEqual(record.original,f.original);
+  assert.equal(f.calls.includes('settle-read'),false);
+  // This port models the SAME Model child's completed cleanup, not primary
+  // Source close, currentness, a copied Boolean or a new resource original.
+  preparation.retire();
+  await f.close();
+  assert.equal(f.records.size,0);
+  assert.equal(record.original,undefined);assert.equal(model.scope,undefined);
+  assert.equal(model.closed,true);
+  assert.throws(()=>preparation.retain(),{code:'ForeignInstalledModelPreparation'});
+  assert.throws(()=>preparation.prepareRead(),{code:'ForeignInstalledModelPreparation'});
+  await f.close();
+  assert.deepEqual(f.sourceCloseCalls,[2,1]);
+  assert.equal(f.calls.filter(call=>call==='retire-parent').length,1);
 });

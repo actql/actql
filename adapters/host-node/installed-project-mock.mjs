@@ -207,7 +207,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
       modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes,
       retain() {
-        if (model.taken || model.readAttempted) fail('ForeignInstalledModelPreparation');
+        if (model.closed || model.taken || model.readAttempted) fail('ForeignInstalledModelPreparation');
         model.taken = true;
       },
       prepareRead() {
@@ -215,6 +215,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         // same Ledger only when Local hands the actual prefix inputs to the
         // Model component: earlier Source/Compute mutations must not make a
         // previously issued claim stale, nor may they reset a spent claim.
+        if (model.closed) fail('ForeignInstalledModelPreparation');
         if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;
         if (!model.taken || model.readAttempted) fail('ForeignInstalledModelPreparation');
         model.readAttempted = true;
@@ -276,6 +277,22 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       } catch (error) {failures.push(error);}
     }
     if (failures.length) throw new AggregateError(failures, 'InstalledMockSourceCleanupPending');
+    // Retire only our managed references, after every original Source close
+    // and the same Run's cleanup have succeeded. A failed sibling or Model
+    // cleanup retains this whole record for its original retry; clearing it
+    // is not an FD/native acknowledgement or a promise about GC/RSS.
+    for (const record of records.values()) {
+      if (record.model !== undefined) {
+        const model = record.model;
+        model.closed = true;
+        model.control = model.compiled = model.runDefinition = model.graph = undefined;
+        model.occurrence = model.scope = model.budget = model.readFailure = undefined;
+      }
+      record.prepared = record.request = record.original = record.admission = record.value = undefined;
+      record.model = record.failure = undefined;
+      record.reads.length = 0;
+    }
+    records.clear();
   };
   try {
     for (const [index, original] of bundle.sources.entries()) {
