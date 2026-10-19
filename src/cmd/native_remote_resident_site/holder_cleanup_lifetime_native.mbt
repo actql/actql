@@ -120,11 +120,20 @@ fn holder_cleanup_caller_read_current(
     ) {
     (Some(operation), Some(current)) =>
       @site.site_operation_available(operation) && current()
+    (None, Some(current)) if resources.effect_host_caller_ordinary => current()
     (None, None) =>
       match resources.effect_host_setup.val {
         Some(scope) =>
-          scope.caller_operation is Some(operation) &&
-          @site.site_operation_available(operation) &&
+          (match scope.ordinary {
+            Some(_) =>
+              scope.profile is None &&
+              scope.caller_operation is None &&
+              scope.read_domain is None &&
+              scope.read_parent is None
+            None =>
+              scope.caller_operation is Some(operation) &&
+              @site.site_operation_available(operation)
+          }) &&
           scope.current_binding is Some(current) &&
           current()
         None => false
@@ -211,6 +220,7 @@ fn finish_holder_cleanup_lifetime(
     original_failure,
   )
   resources.effect_host_caller_current = None
+  resources.effect_host_caller_ordinary = false
   let operation = resources.effect_host_caller_operation
   resources.effect_host_caller_operation = None
   (operation, failure)
