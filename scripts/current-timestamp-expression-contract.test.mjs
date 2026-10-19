@@ -117,7 +117,29 @@ test('query time preserves date arithmetic and authority clocks under its separa
   const aoa = read('spec/contracts/actql-aoa.json');
   assert.equal(aoa.rela_scalar_law_manifest_cid, cid(scalar));
   assert.equal(aoa.expression_contract_cid, cid(inputs()[0]));
-  assert.deepEqual({...aoa, rela_scalar_law_manifest_cid: before.aoa_contract.rela_scalar_law_manifest_cid, expression_contract_cid: before.aoa_contract.expression_contract_cid}, before.aoa_contract);
+  const prior = structuredClone(aoa);
+  prior.rela_scalar_law_manifest_cid = before.aoa_contract.rela_scalar_law_manifest_cid;
+  prior.expression_contract_cid = before.aoa_contract.expression_contract_cid;
+  const ordered = prior.execution_contracts['REL.derive.ordered'];
+  const oldOrdered = before.aoa_contract.execution_contracts['REL.derive.ordered'];
+  for (const [name, value] of Object.entries({
+    expression_contract: inputs()[0], expression_node: inputs()[0].schemas.expression_node,
+    source_expression: inputs()[0].schemas.expression,
+  })) {
+    assert.equal(ordered.dependencies[name].cid, cid(value));
+    ordered.dependencies[name].cid = oldOrdered.dependencies[name].cid;
+  }
+  assert.deepEqual(ordered, oldOrdered);
+  const registry = read(aoa.pipeline_registry_file);
+  const currentPin = registry['REL.derive'].execution_extensions.ordered_bindings;
+  assert.equal(currentPin.cid, cid(aoa.execution_contracts['REL.derive.ordered']));
+  assert.deepEqual(aoa.target_registry_requirements['REL.derive'].execution_extensions.ordered_bindings, currentPin);
+  prior.target_registry_requirements['REL.derive'] = before.aoa_contract.target_registry_requirements['REL.derive'];
+  assert.equal(aoa.pipeline_registry_cid, cid(registry));
+  registry['REL.derive'].execution_extensions.ordered_bindings = prior.target_registry_requirements['REL.derive'].execution_extensions.ordered_bindings;
+  assert.equal(cid(registry), before.aoa_contract.pipeline_registry_cid);
+  prior.pipeline_registry_cid = cid(registry);
+  assert.deepEqual(prior, before.aoa_contract);
 });
 
 test('query time changes only declared Stage and Program identity dependencies with complete old envelopes retained', () => {

@@ -3,6 +3,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
+import {checkOrderedRegistration} from './ordered-derive-contract.mjs';
 
 export const currentTimestampLaws = {
   "current_timestamp": {
@@ -144,5 +145,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     writeFileSync(scalarPath, JSON.stringify(scalar, null, 2) + '\n');
     writeFileSync(aoaPath, JSON.stringify(aoa, null, 2) + '\n');
   }
+  if (!write) checkOrderedRegistration(aoa, bodies[0],
+    JSON.parse(readFileSync('spec/contracts/actql-stage-contracts.json', 'utf8')),
+    bodies[1], JSON.parse(readFileSync(aoa.pipeline_registry_file, 'utf8')));
   console.log('Original query-time contracts verified:', counts);
 }
