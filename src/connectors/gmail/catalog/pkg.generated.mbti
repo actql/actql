@@ -68,8 +68,6 @@ pub fn project_gmail_thread_list(Bytes, GmailThreadListLimits) -> Result[GmailTh
 // Errors
 
 // Types and methods
-type GmailHeaderDateIssue derive(Eq, @debug.Debug)
-
 pub(all) enum GmailLabelListIssue {
   InvalidLimits
   BudgetExceeded
