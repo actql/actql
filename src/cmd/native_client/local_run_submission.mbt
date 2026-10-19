@@ -15,6 +15,13 @@ fn local_run_random_nonce(
   let bytes = crypto
     .random_bytes(32)
     .unwrap_or_else(() => stop("LocalSubmissionNonceUnavailable"))
+  local_run_nonce_text(bytes)
+}
+
+///|
+// Encoding only. The selected caller obtains these bytes from its actual
+// captured Library, rather than importing another Library into the Read.
+fn local_run_nonce_text(bytes : Bytes) -> String {
   let out = StringBuilder()
   out.write_string("cli-")
   for byte in bytes {
@@ -111,9 +118,33 @@ fn local_select_run_submission(
       }
       let reference = @local_host.prepare_native_client_submission_reference(
         epoch,
-        local_run_random_nonce(crypto),
+        match business {
+          None => local_run_random_nonce(crypto)
+          Some(original) =>
+            local_run_nonce_text(
+              local_host_result(
+                original.capture.submission_nonce_in_original_read(
+                  settings.principal,
+                  settings.connection,
+                  scope,
+                ),
+              ),
+            )
+        },
       ).unwrap_or_else(() => stop("InvalidSubmissionRef"))
-      let attempt = local_run_random_nonce(crypto)
+      let attempt = match business {
+        None => local_run_random_nonce(crypto)
+        Some(original) =>
+          local_run_nonce_text(
+            local_host_result(
+              original.capture.submission_nonce_in_original_read(
+                settings.principal,
+                settings.connection,
+                scope,
+              ),
+            ),
+          )
+      }
       if !current() {
         stop("LocalSubmissionAuthorizationDenied")
       }
