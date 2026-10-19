@@ -41,6 +41,7 @@ pub(all) enum ArrayElementType {
   Number
   Timestamp
   Json
+  Signed64
 } derive(Eq, Debug)
 
 ///|
@@ -50,6 +51,7 @@ pub(all) enum CastType {
   Number
   Timestamp
   Decimal(Int, Int)
+  Array(ArrayElementType)
 } derive(Eq, Debug)
 
 ///|
@@ -399,6 +401,44 @@ fn comparison(kind : ExpressionKind) -> Bool {
 }
 
 ///|
+// Both source ARRAY constructors and NULL ARRAY contexts use this closed
+// annotation grammar. It supplies type evidence, never a value conversion.
+fn ExpressionParser::array_element_type(
+  self : ExpressionParser,
+) -> ArrayElementType raise ExpressionAbort {
+  self.spend()
+  let open = self.advance()
+  if open.value != Operator("<") {
+    raise ExpressionAbort(
+      "Expected ARRAY type opening angle bracket",
+      open.start,
+    )
+  }
+  let name = self.advance()
+  let target = match name.value {
+    Word(word) =>
+      match upper_ascii(word) {
+        "BOOL" | "BOOLEAN" => ArrayElementType::Boolean
+        "STRING" => ArrayElementType::String
+        "NUMBER" | "FLOAT64" | "DOUBLE" => ArrayElementType::Number
+        "TIMESTAMP" => ArrayElementType::Timestamp
+        "JSON" => ArrayElementType::Json
+        "INT64" => ArrayElementType::Signed64
+        _ => raise ExpressionAbort("Unsupported ARRAY element type", name.start)
+      }
+    _ => raise ExpressionAbort("Expected ARRAY element type", name.start)
+  }
+  let close = self.advance()
+  if close.value != Operator(">") {
+    raise ExpressionAbort(
+      "Expected ARRAY type closing angle bracket",
+      close.start,
+    )
+  }
+  target
+}
+
+///|
 fn ExpressionParser::small_integer(
   self : ExpressionParser,
 ) -> Int raise ExpressionAbort {
@@ -534,37 +574,7 @@ fn ExpressionParser::expression(
             let mut target : ArrayElementType? = None
             if t.value != Symbol(91) {
               if self.peek().value == Operator("<") {
-                ignore(self.advance())
-                let name = self.advance()
-                target = Some(
-                  match name.value {
-                    Word(word) =>
-                      match upper_ascii(word) {
-                        "BOOL" | "BOOLEAN" => ArrayElementType::Boolean
-                        "STRING" => ArrayElementType::String
-                        "FLOAT64" | "DOUBLE" => ArrayElementType::Number
-                        "TIMESTAMP" => ArrayElementType::Timestamp
-                        "JSON" => ArrayElementType::Json
-                        _ =>
-                          raise ExpressionAbort(
-                            "Unsupported ARRAY element type",
-                            name.start,
-                          )
-                      }
-                    _ =>
-                      raise ExpressionAbort(
-                        "Expected ARRAY element type",
-                        name.start,
-                      )
-                  },
-                )
-                let close = self.advance()
-                if close.value != Operator(">") {
-                  raise ExpressionAbort(
-                    "Expected ARRAY type closing angle bracket",
-                    close.start,
-                  )
-                }
+                target = Some(self.array_element_type())
               }
               let open = self.advance()
               if open.value != Symbol(91) {
@@ -910,6 +920,7 @@ fn ExpressionParser::expression(
               "STRING" => CastType::String
               "NUMBER" | "FLOAT64" | "DOUBLE" => CastType::Number
               "TIMESTAMP" => CastType::Timestamp
+              "ARRAY" => CastType::Array(self.array_element_type())
               "DECIMAL" => {
                 let open = self.advance()
                 if open.value != Symbol(40) {
