@@ -271,6 +271,7 @@ fn scalar_call(
     "SAFE_MULTIPLY" => ("SAFE_MULTIPLY", "safe_multiply", 2, 2)
     "STRPOS" => ("STRPOS", "strpos", 2, 2)
     "DATE_DIFF" => ("DATE_DIFF", "date_diff", 3, 3)
+    "DATE_TRUNC" => ("DATE_TRUNC", "date_trunc", 2, 2)
     "TO_NUMBER" => ("TO_NUMBER", "to_number", 1, 1)
     "TO_STRING" => ("TO_STRING", "to_string", 1, 1)
     "TO_BOOLEAN" => ("TO_BOOLEAN", "to_boolean", 1, 1)
@@ -683,6 +684,11 @@ fn append_resolved(
               if args.length() < minimum || args.length() > maximum {
                 raise Abort(InvalidArguments)
               }
+              if name == "date_trunc" &&
+                !(strings[args[1]] is Some("ms" | "s" | "m" | "h" | "d")) {
+                current = @query.expression_origin(ast, args[1])
+                raise Abort(InvalidArguments)
+              }
               if name == "date_diff" &&
                 !(strings[args[2]] is Some("ms" | "s" | "m" | "h" | "d")) {
                 current = @query.expression_origin(ast, args[2])
@@ -710,6 +716,10 @@ fn append_resolved(
                     ),
                   ]),
                 )
+              } else if name == "date_trunc" {
+                // SQL/Pipe has value-first spelling. Only the admitted literal
+                // unit moves into the unchanged Common unit-first body.
+                lowering.arguments(name, [nodes[args[1]], nodes[args[0]]])
               } else if name == "vector_score" {
                 let metric = if public_name == "VECTOR_SCORE" {
                   // Literal role follows transparent grouping in this bounded

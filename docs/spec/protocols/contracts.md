@@ -1798,7 +1798,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:a6af97a7b834e93126a6fbc66904857c8ef5ee802e2f8cdee255fef9a2db10c8 -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:9c10f11fe79841d2e2550469207110296b324a43d92f3718c659d3fdf3868c01 -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:3c07ce1eb5eeba94cb2be58d56f38ee200645a6b5cbcc554230b5811f5a03a9b -->
 
 <a id="parameter-value-projection"></a>

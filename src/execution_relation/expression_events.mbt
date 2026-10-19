@@ -122,7 +122,12 @@ fn expression_event_binary(
     Err(ComparisonChargeInvalidOperand) =>
       return Err({ kind: Scalar(InvalidOperand), expression: expr, })
   }
-  let value = match binary(op, left, right) {
+  let result = if op == @lower.DateTruncate {
+    temporal_truncation(expr, left, right)
+  } else {
+    binary(op, left, right)
+  }
+  let value = match result {
     Err(issue) => return Err({ kind: Scalar(issue), expression: expr, })
     Ok(value) => value
   }

@@ -165,7 +165,8 @@ fn check_backend_capabilities(
             | Strpos
             | StartsWith
             | EndsWith
-            | Contains => ()
+            | Contains
+            | DateTruncate => ()
           }
           pending.push(right)
           pending.push(left)

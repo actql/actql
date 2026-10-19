@@ -388,6 +388,12 @@ pub fn binary(
   right : Value,
 ) -> Result[Value, ScalarIssue] {
   match op {
+    DateTruncate =>
+      if left is Null || right is Null {
+        Ok(Null)
+      } else {
+        Err(InvalidOperand)
+      }
     // Text operations run through their retained, bounded cursor.
     // This scalar fallback handles only its NULL and invalid-domain cases.
     Contains | Strpos | StartsWith | EndsWith | TrimSet | LTrimSet | RTrimSet =>
@@ -490,7 +496,8 @@ pub fn binary(
         | Strpos
         | StartsWith
         | EndsWith
-        | Contains => Err(InvalidOperand)
+        | Contains
+        | DateTruncate => Err(InvalidOperand)
       }
       // Only this already-evaluated arithmetic operation is safe. Child,
       // operand-domain, control, cancellation and custody failures keep their
@@ -574,7 +581,8 @@ fn binary_comparison_result(
     | Strpos
     | StartsWith
     | EndsWith
-    | Contains => Err(InvalidOperand)
+    | Contains
+    | DateTruncate => Err(InvalidOperand)
   }
 }
 

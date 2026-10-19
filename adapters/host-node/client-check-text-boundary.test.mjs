@@ -791,6 +791,64 @@ for (const entrance of ['local', 'http']) {
     });
   }
 
+  test(`${entrance}: public DATE_TRUNC uses value then original literal unit`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    const clock = "CAST('1969-12-31T23:59:59.999999999Z' AS TIMESTAMP)";
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        ...['ms', 's', 'm', 'h', 'd'].map(unit => `SELECT DATE_TRUNC(${clock}, '${unit}') AS truncated`),
+        `SELECT ${clock} AS clock |> SELECT date_trunc(clock, ('m')) AS truncated`,
+        "SELECT `DaTe_TrUnC`(CAST(NULL AS TIMESTAMP), 's') AS truncated",
+        "SELECT DATE_TRUNC(@clock, 'ms') AS truncated",
+        "SELECT DATE_TRUNC(@day, 'd') AS truncated",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@clock') ? {parameterDeclarations: {clock: {type: 'timestamp'}},
+            parameters: {clock: '1969-12-31T23:59:59.999999999Z'}} : {}),
+          ...(text.includes('@day') ? {parameterDeclarations: {day: {type: 'date'}},
+            parameters: {day: '2000-02-29'}} : {})});
+        assert.equal(checked.report.verdict, 'verified', text);
+        assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+        assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      for (const text of [
+        `SELECT DATE_TRUNC(${clock}) AS bad`, `SELECT DATE_TRUNC(${clock}, 's', 'ms') AS bad`,
+        `SELECT DATE_TRUNC('s', ${clock}) AS bad`, `SELECT DATE_TRUNC(${clock}, 'MS') AS bad`,
+        `SELECT DATE_TRUNC(${clock}, 'month') AS bad`, `SELECT DATE_TRUNC(${clock}, NULL) AS bad`,
+        `SELECT DATE_TRUNC(${clock}, @unit) AS bad`, `SELECT DATE_TRUNC(${clock}, 'm' || 's') AS bad`,
+        "SELECT DATE_TRUNC(1, 's') AS bad", "SELECT DATE_TRUNC(@day, 's') AS bad",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@unit') ? {parameterDeclarations: {unit: {type: 'string'}}, parameters: {unit: 'ms'}} : {}),
+          ...(text.includes('@day') ? {parameterDeclarations: {day: {type: 'date'}}, parameters: {day: '2000-02-29'}} : {})});
+        assert.equal(checked.report.verdict, 'invalid', text);
+      }
+      const foreign = await client.check(`SELECT ACTQL.DATE_TRUNC(${clock}, 'ms') AS truncated`,
+        {kind: 'text', scope: 'bound_input', format});
+      assert.equal(foreign.report.verdict, 'undetermined');
+      assert.equal(foreign.report.coverage.limits[0].code, 'implementation_limit');
+    }
+  });
+
+  test(`${entrance}: original date_trunc Program uses the existing fixed UTC owner`, async t => {
+    const {client} = await publicCheck(t, entrance, {program: true});
+    const program = authoringProgram();
+    delete program.params;
+    program.stages[0].steps[0].values = {schema: {id: {type: 'timestamp', nullable: false}},
+      rows: [{id: '1969-12-31T23:59:59.999999999Z'}]};
+    program.stages[0].steps[1].derive = {n: {field: 'id'}};
+    const control = await client.check(program, {kind: 'program', scope: 'bound_input', parameters: {}});
+    assert.equal(control.report.verdict, 'verified', JSON.stringify(control.report));
+    assert.deepEqual(control.report.runnable, {verdict: 'yes', reasons: []});
+    program.stages[0].steps[1].derive = {n: {date_trunc: [{literal: 'ms'}, {field: 'id'}]}};
+    const checked = await client.check(program, {kind: 'program', scope: 'bound_input', parameters: {}});
+    assert.equal(checked.outcome, 'completed');
+    assert.equal(checked.report.verdict, 'verified');
+    assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+    assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+  });
+
   test(`${entrance}: documented to_number uses the existing CAST owner`, async t => {
     const {client} = await publicCheck(t, entrance);
     for (const format of ['sql', 'aql-text']) {

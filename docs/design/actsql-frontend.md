@@ -70,3 +70,12 @@ The remaining scalar function spellings `to_string`, `to_boolean` and
 schemas. No conversion runs during frontend lowering. Timestamp precision and
 admission, civil/offset domains and operational clocks remain independent
 existing-owner responsibilities; connecting the spelling does not widen them.
+
+## Fixed DATE_TRUNC source order
+
+SQL/Pipe uses the documented `DATE_TRUNC(value, literal_unit)` order and emits
+the existing Common unit-first node. Only an admitted literal unit moves; the
+original value subtree is neither evaluated nor copied. Legacy expression-text
+and structured Program bodies remain unit-first. There is no type-based order
+fallback. Common owns exact UTC bucket floor, Date day-only identity and all
+runtime failure, lazy-demand and resource behavior.
