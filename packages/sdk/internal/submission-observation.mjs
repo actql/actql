@@ -365,9 +365,11 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
   client = Object.freeze({
     startSource, newSubmission,
     sql: (text, parameters, options) => sourceQuery(startSource, ClientError,
-      retainQueryResult, retainQueryFailure, 'sql', text, parameters, options),
+      retainQueryResult, retainQueryFailure, 'sql', text, parameters, options,
+      sourcePreparation?.beforeResultRead, sourcePreparation?.assertResultReadCurrent),
     aql: (text, parameters, options) => sourceQuery(startSource, ClientError,
-      retainQueryResult, retainQueryFailure, 'aql-text', text, parameters, options),
+      retainQueryResult, retainQueryFailure, 'aql-text', text, parameters, options,
+      sourcePreparation?.beforeResultRead, sourcePreparation?.assertResultReadCurrent),
     lookupSubmission: async (submissionRef, {signal} = {}) => {
       let owned;
       try {owned = freezeInput(snapshotClientRequest(submissionRef));}

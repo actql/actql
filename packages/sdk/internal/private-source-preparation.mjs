@@ -30,7 +30,29 @@ export function captureSourcePreparation(port) {
       return field.value;
     });
   const [before, snapshot, request, finish, intent] = methods;
+  // Result support is separately selected by this same installation. Its
+  // absence cannot break connect or Source submission, but cannot fund a read.
+  const resultField = descriptor(receiver, 'beforeResultRead');
+  const beforeResult = resultField !== undefined && hasOwn(resultField, 'value') &&
+    typeof resultField.value === 'function' ? resultField.value : undefined;
+  const currentField = descriptor(receiver, 'assertResultReadCurrent');
+  const resultCurrent = currentField !== undefined && hasOwn(currentField, 'value') &&
+    typeof currentField.value === 'function' ? currentField.value : undefined;
+  const resultVoid = (method, args) => {
+    if (beforeResult === undefined || resultCurrent === undefined) throw unavailable();
+    const value = apply(method, receiver, args);
+    if (value !== undefined) {
+      if (value instanceof originalPromise) apply(promiseThen, value, [undefined, () => {}]);
+      throw unavailable();
+    }
+  };
   return Object.freeze({
+    beforeResultRead(schemaOrOptions, options) {
+      resultVoid(beforeResult, [schemaOrOptions, options]);
+    },
+    assertResultReadCurrent() {
+      resultVoid(resultCurrent, []);
+    },
     beforeSourceSnapshot(kind, input, options) {
       const receipt = apply(before, receiver, [kind, input, options]);
       if (receipt instanceof originalPromise) {
