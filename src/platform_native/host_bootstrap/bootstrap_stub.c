@@ -562,6 +562,40 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_context_cleanup_scope(
 #endif
 }
 
+/* A closed metadata projection of the same retained original after failed
+ * close. It does not enter/leave, return a user or acknowledge retirement. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_cleanup_snapshot(
+    actql_bootstrap_domain *record, int64_t *output, int32_t count) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (record == NULL || output == NULL || count != 16 ||
+        !record->read_attempted || record->read_context == NULL ||
+        record->read_prepare_scope) return ACTQL_OWNED_INVALID;
+    for (int32_t index = 0; index < count; index++)
+        if (output[index] != 0) return ACTQL_OWNED_INVALID;
+    uint64_t values[16] = {0};
+    int status = actql_read_context_cleanup_snapshot(record->read_context, values, 16);
+    if (status != ACTQL_OWNED_OK) return status;
+    for (int32_t index = 0; index < count; index++) output[index] = (int64_t)values[index];
+    return ACTQL_OWNED_OK;
+#else
+    (void)record; (void)output; (void)count;
+    return ACTQL_OWNED_INVALID;
+#endif
+}
+
+/* Actual selected public runtime-header facts only. They are neither a
+ * complete managed-object inventory nor a capacity/initial-service issuer. */
+MOONBIT_FFI_EXPORT int64_t actql_bootstrap_managed_value_layout(int32_t field) {
+    switch (field) {
+    case 0: return (int64_t)sizeof(struct moonbit_object);
+    case 1: return (int64_t)sizeof(uint16_t);
+    case 2: return (int64_t)sizeof(uint16_t); /* Selected String terminator. */
+    case 3: return (int64_t)sizeof(struct moonbit_valtype_array_header);
+    case 4: return (int64_t)sizeof(void *);
+    default: return -1;
+    }
+}
+
 /* Registration control is prepared before any Read/owned scope on this
  * thread. This observes only the same original's unentered state: it does not
  * enter a context, allocate control or acknowledge any owner retirement. */
