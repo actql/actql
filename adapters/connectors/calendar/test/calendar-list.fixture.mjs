@@ -72,7 +72,7 @@ async function rowOwner(verifyOriginalTransport) {
     close: () => checked(common.clientProgramRowSourceCloseAccounted(run))};
 }
 
-export async function calendarFixture(t, {account = 'allow'} = {}) {
+export async function calendarFixture(t, {account = 'allow', accounted = true} = {}) {
   const parent = join(repo, '_build', 'calendar-source-fixtures'); await mkdir(parent, {recursive: true});
   const root = await mkdtemp(join(parent, 'list-'));
   execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', 'server.key',
@@ -124,7 +124,7 @@ export async function calendarFixture(t, {account = 'allow'} = {}) {
     {subjectCid:scope.runInvocationCid});if(decision.action!=='dispatch')throw Object.assign(new Error('CalendarReadDenied'),{code:'CalendarReadDenied'});};
   const credential={control,journal,ca:cert,resolveSecret:async () => {state.resolutions++;await state.resolved?.();return state.secret;}};
   binding=openHttpsCredentialBinding({...credential,scope,maxSecretBytes:128});
-  row=await rowOwner(() => closeHttpsCredentialBinding(binding)==='closed');
+  if(accounted)row=await rowOwner(() => closeHttpsCredentialBinding(binding)==='closed');
   const initialAuthorization={grant,scope,useId:'initial'};
   const options={moon:provider,names:['summary','time_zone','access_role'],initialAuthorization,
     credential:{...credential,binding},limits:calendarReadLimits,current,

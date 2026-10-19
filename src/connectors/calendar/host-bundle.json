@@ -1,0 +1,17 @@
+{
+  "installation": {
+    "registration": "calendar",
+    "revision": "calendar/0.1",
+    "providerBundle": "connectors/calendar/host_node",
+    "responseHeaders": [],
+    "source": {
+      "profileVersion": "actql-installed-calendar-source/0.1",
+      "module": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
+      "exports": {
+        "check": "checkInstalledCalendarSourceProfile",
+        "identityParts": "installedCalendarSourceIdentityParts",
+        "load": "loadInstalledCalendarSource"
+      }
+    }
+  }
+}
