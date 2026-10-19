@@ -2064,6 +2064,10 @@ outer control lifetime. This preserves the same nominal Ledger, exact charges,
 quantity limits, serials and report state. An uncertain report or stop refuses
 this operation. It retires no physical allocation: an escaped old snapshot or
 output still keeps its original domain busy until its actual alias is released.
+The joined original Read applies this same relocation after stopping its claim
+and child Ledger, before its physical context close. Its workspace, read claim,
+inventory, report and parent-use acknowledgements still follow the actual
+physical retirement observation; relocation acknowledges none of them.
 
 The private process-import SQLite preparation may select Linux AArch64 GNU as a
 separate derived recipe. It retains the exact pinned SQLite, component and
