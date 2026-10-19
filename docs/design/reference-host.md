@@ -137,6 +137,34 @@ Replacing them with storage-independent transition guarantees requires a
 separately reviewed semantic change and failure/concurrency evidence.
 
 
+## Original query evaluation time
+
+Query invocation time belongs to the admitted Run, not to policy metadata or
+the current observation clock. Checking, lowering and structural compilation
+do not read a clock. For a genuinely new time-dependent invocation, the Host
+retains its actual sampler and receiver and captures one value after request
+lookup, before dependent acquisition and compilation. The existing Run
+definition binds that exact value as `created_at`. An older policy creation
+time is not a fresh invocation sample, and selecting query time does not
+extend `valid_until` or establish current authorization.
+
+The existing invocation preparation retains the original checked Program,
+request and admitted Timestamp sample. Final binding checks the same nominal
+compilation and Run definition, verifies the unchanged sample, and retains one
+opaque evaluation context. Source predicate preparation and downstream frames
+consume that same context, including lazy expressions when demanded. A static
+acquisition shape keeps its query-time dependency unresolved; it cannot pass
+physical material admission. Missing or foreign request/preparation bindings
+remain unbound rather than becoming literal substitutions or hidden Parameters.
+
+The request Journal confirms the original definition before dependent
+dispatch. Lookup, a racing issuer, approval continuation and recovery consume
+the winning saved definition; none samples a replacement time or issues a
+second Run to resolve missing material. The existing materials codec retains
+`created_at`, so legacy absent-operation bytes need no new member. Query time
+is computation data only: expiry, retention, rollback, current Account policy,
+physical resources and cleanup acknowledgements keep their separate owners.
+
 ## Initial Node control and preparation
 
 The selected Node startup may admit bounded original Project, configuration and
