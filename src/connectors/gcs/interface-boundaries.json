@@ -1022,7 +1022,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
-                "anchor": "type: 'decimal', precision: 19"
+                "anchor": "type: 'int64'"
               }
             ],
             "ownership": [
@@ -2770,7 +2770,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/README.md",
-                "anchor": "The existing Decimal(19,0) carrier"
+                "anchor": "The existing signed64 Value Owner"
               },
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
@@ -3193,7 +3193,7 @@
             "extension": [
               {
                 "path": "adapters/connectors/gcs/README.md",
-                "anchor": "The existing Decimal(19,0) carrier"
+                "anchor": "The existing signed64 Value Owner"
               },
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
@@ -3340,7 +3340,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
-                "anchor": "type: 'decimal', precision: 19"
+                "anchor": "type: 'int64'"
               }
             ],
             "ownership": [
@@ -5115,7 +5115,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/README.md",
-                "anchor": "The existing Decimal(19,0) carrier"
+                "anchor": "The existing signed64 Value Owner"
               },
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
@@ -5686,7 +5686,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
-                "anchor": "type: 'decimal', precision: 19"
+                "anchor": "type: 'int64'"
               },
               {
                 "path": "src/connectors/gcs/catalog/content_metadata.mbt",
@@ -6823,7 +6823,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
-                "anchor": "type: 'decimal', precision: 19"
+                "anchor": "type: 'int64'"
               },
               {
                 "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
@@ -8268,7 +8268,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
-                "anchor": "type: 'decimal', precision: 19"
+                "anchor": "type: 'int64'"
               },
               {
                 "path": "src/connectors/gcs/catalog/content_metadata.mbt",

@@ -45,7 +45,9 @@ fn check_impl(
   }
   let annotations : Array[TypedNode] = []
   let safe : Map[Int, Bool] = Map([])
+  let mut requires_query_time = false
   for node in nodes {
+    requires_query_time = requires_query_time || node.tag == "current_timestamp"
     let contract = resolve_type(t, node.inferred, node.source)
     if ["array", "empty_array", "object"].contains(node.tag) &&
       !constructor_safe(t, node.inferred, safe, node.source) {
@@ -63,6 +65,7 @@ fn check_impl(
     layout: nodes,
     profiles: names,
     pending,
+    requires_query_time,
     usage: {
       work: limits.max_work - budget.work,
       text_bytes: limits.max_text_bytes - budget.text,

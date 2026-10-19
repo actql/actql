@@ -6,7 +6,7 @@ import {readCheckReasonCatalog, validateCheckReasonCatalog, checkReasonSchemaFro
 import {buildCheckReasonCatalog, generateCheckReasonCatalog} from './generate-check-reason-catalog.mjs';
 const registry = JSON.parse(readFileSync(new URL('../spec/contracts/actql-protocol-schemas.json', import.meta.url)));
 const catalog = readCheckReasonCatalog();
-const fixed = JSON.parse(readFileSync(new URL('../portability/corpus/signed64-identities.json', import.meta.url)));
+const fixed = JSON.parse(readFileSync(new URL('./fixtures/check-consumer-condition-historical.json', import.meta.url)));
 test('catalog generates current facts wire, SDK metadata and reference outputs with independently fixed current pins', () => {
   assert.equal(registry.artifact_schema_cids.check_reason,
     fixed.checkSchemas.reason.cid);
@@ -15,7 +15,7 @@ test('catalog generates current facts wire, SDK metadata and reference outputs w
   // The retained catalog template is specialized by its existing owner for
   // the current checked grammar; do not rewrite its original template pin.
   assert.deepEqual(checkReasonSchemaFromCatalog(catalog,
-    fixed.valuesExecution.body.dependencies.canonical_value_contract.cid),
+    fixed.canonicalValueContractCid),
     registry.artifact_schemas.check_reason);
   assert.deepEqual(registry.artifact_schemas.check_reason, fixed.checkSchemas.reason.body);
   assert.deepEqual(registry.artifact_schemas.check_outcome, fixed.checkSchemas.outcome.body);

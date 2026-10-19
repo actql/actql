@@ -21,6 +21,7 @@ import {
   "actql/actql/check_environment" @environment,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/value_contract" @contract,
+  "actql/actql/run_publication" @publication,
 }
 
 import {

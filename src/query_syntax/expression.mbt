@@ -32,6 +32,7 @@ pub(all) enum ExpressionKind {
   Predicate(String, Array[Int])
   SearchedCase(Array[(Int, Int)], Int)
   Cast(Int, CastType)
+  Interval(Int, String)
 } derive(Eq, Debug)
 
 ///|
@@ -41,6 +42,7 @@ pub(all) enum ArrayElementType {
   Number
   Timestamp
   Json
+  Signed64
 } derive(Eq, Debug)
 
 ///|
@@ -50,6 +52,7 @@ pub(all) enum CastType {
   Number
   Timestamp
   Decimal(Int, Int)
+  Array(ArrayElementType)
 } derive(Eq, Debug)
 
 ///|
@@ -148,6 +151,7 @@ fn expression_subtree(
       Unary(_, child)
       | Parenthesized(child)
       | Cast(child, _)
+      | Interval(child, _)
       | Property(child, _) => pending.push(child)
       Binary(_, left, right) => {
         pending.push(left)
@@ -191,6 +195,7 @@ fn expression_subtree(
         Binary(op, left, right) => Binary(op, remap[left], remap[right])
         Parenthesized(child) => Parenthesized(remap[child])
         Cast(child, target) => Cast(remap[child], target)
+        Interval(child, unit) => Interval(remap[child], unit)
         Property(child, name) => Property(remap[child], name)
         Call(path, arguments) =>
           Call(path.copy(), arguments.map(argument => remap[argument]))
@@ -242,6 +247,7 @@ priv enum ExpressionFrame {
   CaseValue(Array[(Int, Int)], Int, Int, Int)
   CaseElse(Array[(Int, Int)], Int)
   CastTarget(Int)
+  IntervalUnit(Int)
 }
 
 ///|
@@ -322,6 +328,7 @@ fn ExpressionParser::add(
     Unary(_, child)
     | Parenthesized(child)
     | Cast(child, _)
+    | Interval(child, _)
     | Property(child, _) => child_depth = self.depths[child]
     Binary(_, left, right) =>
       child_depth = self.depths[left].max(self.depths[right])
@@ -396,6 +403,44 @@ fn comparison(kind : ExpressionKind) -> Bool {
     Predicate(_, _) => true
     _ => false
   }
+}
+
+///|
+// Both source ARRAY constructors and NULL ARRAY contexts use this closed
+// annotation grammar. It supplies type evidence, never a value conversion.
+fn ExpressionParser::array_element_type(
+  self : ExpressionParser,
+) -> ArrayElementType raise ExpressionAbort {
+  self.spend()
+  let open = self.advance()
+  if open.value != Operator("<") {
+    raise ExpressionAbort(
+      "Expected ARRAY type opening angle bracket",
+      open.start,
+    )
+  }
+  let name = self.advance()
+  let target = match name.value {
+    Word(word) =>
+      match upper_ascii(word) {
+        "BOOL" | "BOOLEAN" => ArrayElementType::Boolean
+        "STRING" => ArrayElementType::String
+        "NUMBER" | "FLOAT64" | "DOUBLE" => ArrayElementType::Number
+        "TIMESTAMP" => ArrayElementType::Timestamp
+        "JSON" => ArrayElementType::Json
+        "INT64" => ArrayElementType::Signed64
+        _ => raise ExpressionAbort("Unsupported ARRAY element type", name.start)
+      }
+    _ => raise ExpressionAbort("Expected ARRAY element type", name.start)
+  }
+  let close = self.advance()
+  if close.value != Operator(">") {
+    raise ExpressionAbort(
+      "Expected ARRAY type closing angle bracket",
+      close.start,
+    )
+  }
+  target
 }
 
 ///|
@@ -534,37 +579,7 @@ fn ExpressionParser::expression(
             let mut target : ArrayElementType? = None
             if t.value != Symbol(91) {
               if self.peek().value == Operator("<") {
-                ignore(self.advance())
-                let name = self.advance()
-                target = Some(
-                  match name.value {
-                    Word(word) =>
-                      match upper_ascii(word) {
-                        "BOOL" | "BOOLEAN" => ArrayElementType::Boolean
-                        "STRING" => ArrayElementType::String
-                        "FLOAT64" | "DOUBLE" => ArrayElementType::Number
-                        "TIMESTAMP" => ArrayElementType::Timestamp
-                        "JSON" => ArrayElementType::Json
-                        _ =>
-                          raise ExpressionAbort(
-                            "Unsupported ARRAY element type",
-                            name.start,
-                          )
-                      }
-                    _ =>
-                      raise ExpressionAbort(
-                        "Expected ARRAY element type",
-                        name.start,
-                      )
-                  },
-                )
-                let close = self.advance()
-                if close.value != Operator(">") {
-                  raise ExpressionAbort(
-                    "Expected ARRAY type closing angle bracket",
-                    close.start,
-                  )
-                }
+                target = Some(self.array_element_type())
               }
               let open = self.advance()
               if open.value != Symbol(91) {
@@ -602,6 +617,46 @@ fn ExpressionParser::expression(
               t.start,
               t.end,
             )
+          Word(name) if upper_ascii(name) == "INTERVAL" => {
+            let amount = self.peek()
+            // Integer spellings are retained as exact data in this source-only
+            // interval role. Ordinary Number nodes keep their existing meaning.
+            let sign = if amount.value == Symbol(43) ||
+              amount.value == Symbol(45) {
+              ignore(self.advance())
+              if amount.value == Symbol(45) {
+                "-"
+              } else {
+                ""
+              }
+            } else {
+              ""
+            }
+            if self.peek().value is Numeric(text) {
+              let number = self.advance()
+              guard exact_interval_integer(text, sign == "-") is Some(integer) else {
+                raise ExpressionAbort(
+                  "Expected exact signed64 interval integer",
+                  number.start,
+                )
+              }
+              result = self.add(
+                StringLiteral(integer.to_string()),
+                amount.start,
+                number.end,
+              )
+              frames.push(IntervalUnit(t.start))
+            } else {
+              if sign != "" {
+                raise ExpressionAbort(
+                  "Expected integral interval amount",
+                  amount.start,
+                )
+              }
+              frames.push(IntervalUnit(t.start))
+              frames.push(Enter(8, depth + 1))
+            }
+          }
           Word(name) if upper_ascii(name) == "CAST" => {
             let open = self.advance()
             if open.value != Symbol(40) {
@@ -908,8 +963,9 @@ fn ExpressionParser::expression(
             match upper_ascii(word) {
               "BOOL" | "BOOLEAN" => CastType::Boolean
               "STRING" => CastType::String
-              "FLOAT64" | "DOUBLE" => CastType::Number
+              "NUMBER" | "FLOAT64" | "DOUBLE" => CastType::Number
               "TIMESTAMP" => CastType::Timestamp
+              "ARRAY" => CastType::Array(self.array_element_type())
               "DECIMAL" => {
                 let open = self.advance()
                 if open.value != Symbol(40) {
@@ -954,6 +1010,29 @@ fn ExpressionParser::expression(
         let next = self.peek()
         self.require_keyword("END")
         result = self.add(SearchedCase(branches, result), start, next.end)
+      }
+      IntervalUnit(start) => {
+        let token = self.advance()
+        let unit = match token.value {
+          Word(name) =>
+            match upper_ascii(name) {
+              "NANOSECOND" => "ns"
+              "MICROSECOND" => "us"
+              "MILLISECOND" => "ms"
+              "SECOND" => "s"
+              "MINUTE" => "m"
+              "HOUR" => "h"
+              "DAY" => "d"
+              _ =>
+                raise ExpressionAbort(
+                  "Unsupported fixed interval unit",
+                  token.start,
+                )
+            }
+          _ =>
+            raise ExpressionAbort("Expected fixed interval unit", token.start)
+        }
+        result = self.add(Interval(result, unit), start, token.end)
       }
       Argument(path, args, start, depth) => {
         args.push(result)

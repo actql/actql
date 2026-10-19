@@ -8,6 +8,7 @@ struct FragmentRuntimeContext {
   physical : RegistryLimits
   root_result_bytes : Int64?
   all_expression_roots : Bool
+  query_time : @publication.QueryEvaluationTime?
 }
 
 ///|
@@ -66,6 +67,7 @@ fn prepare_fragment_runtime_context(
     physical,
     root_result_bytes: None,
     all_expression_roots: false,
+    query_time: None,
   })
 }
 

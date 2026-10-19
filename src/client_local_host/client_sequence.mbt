@@ -47,6 +47,48 @@ priv enum ClientLocalSequenceOwner {
 }
 
 ///|
+/// The same admitted invocation and request bind immutable sequence copies;
+/// no clock is read and no selected provider or physical capacity is issued.
+pub fn prepare_client_local_sequences_at_query_time(
+  prepared : @publication_host.PreparedClientProgram,
+  original : @publication_host.ClientQueryTimePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Array[@execution.GeneratedSequence]? {
+  prepare_client_local_sequences_owned(
+    Pure(prepared),
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    query_time=Some((original, request)),
+  )
+}
+
+///|
+pub fn prepare_client_effect_local_sequences_at_query_time(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  original : @publication_host.ClientQueryTimePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Array[@execution.GeneratedSequence]? {
+  prepare_client_local_sequences_owned(
+    Effect(prepared),
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    query_time=Some((original, request)),
+  )
+}
+
+///|
 fn client_local_owner_sequence_limits(
   value : ClientLocalSequenceOwner,
 ) -> @lower.SequenceLimits {
@@ -430,13 +472,25 @@ fn prepare_client_query_acquisition_prefix(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
+  query_time? : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )? = None,
 ) -> @execution.GeneratedSequence? {
-  let query = match prepared {
-    Pure(value) =>
+  let query = match (prepared, query_time) {
+    (Pure(value), Some((original, request))) =>
+      @publication_host.prepare_client_query_acquisition_at_query_time(
+        value, task, source_index, original, request,
+      )
+    (Effect(value), Some((original, request))) =>
+      @publication_host.prepare_client_effect_query_acquisition_at_query_time(
+        value, task, source_index, original, request,
+      )
+    (Pure(value), None) =>
       @publication_host.prepare_client_query_acquisition(
         value, task, source_index,
       )
-    Effect(value) =>
+    (Effect(value), None) =>
       @publication_host.prepare_client_effect_query_acquisition(
         value, task, source_index,
       )
@@ -455,6 +509,7 @@ fn prepare_client_query_acquisition_prefix(
     selected_task=Some(task),
     infer_prefix=Some((task, capture)),
     acquisition_source=Some((task, source_index)),
+    query_time~,
   ).bind(sequences => sequences.get(0))
 }
 
@@ -508,6 +563,10 @@ fn prepare_client_local_sequences_owned(
   acquisition_source? : (Int, Int)? = None,
   serialization_input? : (Int, @lower.PreparedSerialization)? = None,
   serialization_restore? : (Int, Int, Int)? = None,
+  query_time? : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )? = None,
 ) -> Array[@execution.GeneratedSequence]? {
   if registry_body.length() > 100000 || values_body.length() > 100000 {
     return None
@@ -636,14 +695,28 @@ fn prepare_client_local_sequences_owned(
     }
     let acquiring = match prepared {
       Pure(value) =>
-        @publication_host.prepare_client_query_acquisition(
-          value, task, source_index,
-        )
+        (match query_time {
+          Some((original, request)) =>
+            @publication_host.prepare_client_query_acquisition_at_query_time(
+              value, task, source_index, original, request,
+            )
+          None =>
+            @publication_host.prepare_client_query_acquisition(
+              value, task, source_index,
+            )
+        })
         is Ok(_)
       Effect(value) =>
-        @publication_host.prepare_client_effect_query_acquisition(
-          value, task, source_index,
-        )
+        (match query_time {
+          Some((original, request)) =>
+            @publication_host.prepare_client_effect_query_acquisition_at_query_time(
+              value, task, source_index, original, request,
+            )
+          None =>
+            @publication_host.prepare_client_effect_query_acquisition(
+              value, task, source_index,
+            )
+        })
         is Ok(_)
     }
     let sequence = match
@@ -892,6 +965,25 @@ fn prepare_client_local_sequences_owned(
       selected
     } else {
       sequence
+    }
+    let sequence = match query_time {
+      None => sequence
+      Some((original, request)) => {
+        let bound = match prepared {
+          Pure(value) =>
+            @publication_host.bind_client_query_time_sequence(
+              value, task, sequence, original, request, 100000, 10000,
+            )
+          Effect(value) =>
+            @publication_host.bind_client_effect_query_time_sequence(
+              value, task, sequence, original, request, 100000, 10000,
+            )
+        }
+        match bound {
+          Ok(value) => value
+          Err(_) => return None
+        }
+      }
     }
     generated.push(sequence)
   }

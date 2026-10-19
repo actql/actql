@@ -1,0 +1,72 @@
+[
+  {
+    "value": {
+      "quantize": {
+        "value": {
+          "$param": "amount"
+        },
+        "precision": 4,
+        "scale": 2,
+        "rounding": "half_even"
+      }
+    },
+    "preimage": "{\"quantize\":{\"precision\":4,\"rounding\":\"half_even\",\"scale\":2,\"value\":{\"$param\":\"amount\"}}}",
+    "cid": "sha256:8c967e4ca0b1e2fedddaf4a5cb455ed132ca150f0f3d1ebe5f09ae11d6a7777d"
+  },
+  {
+    "value": {
+      "quantize": {
+        "value": {
+          "$param": "amount"
+        },
+        "precision": 4,
+        "scale": 2,
+        "rounding": "half_up"
+      }
+    },
+    "preimage": "{\"quantize\":{\"precision\":4,\"rounding\":\"half_up\",\"scale\":2,\"value\":{\"$param\":\"amount\"}}}",
+    "cid": "sha256:96a673a9317d7d4109364d93ce2536dc5aa4af8aee18f2da73e10d4d70861ef9"
+  },
+  {
+    "value": {
+      "quantize": {
+        "value": {
+          "$param": "amount"
+        },
+        "precision": 4,
+        "scale": 2,
+        "rounding": "toward_zero"
+      }
+    },
+    "preimage": "{\"quantize\":{\"precision\":4,\"rounding\":\"toward_zero\",\"scale\":2,\"value\":{\"$param\":\"amount\"}}}",
+    "cid": "sha256:dc7ed2a271d74b887b37579b254e471b6d5f705adba2430c6d591f88874d7e83"
+  },
+  {
+    "value": {
+      "quantize": {
+        "value": {
+          "$param": "amount"
+        },
+        "precision": 4,
+        "scale": 2,
+        "rounding": "floor"
+      }
+    },
+    "preimage": "{\"quantize\":{\"precision\":4,\"rounding\":\"floor\",\"scale\":2,\"value\":{\"$param\":\"amount\"}}}",
+    "cid": "sha256:92a7932b81af8ec7aadcd6663bded8416b55cc7c4a836e018cd08a818a70cb08"
+  },
+  {
+    "value": {
+      "quantize": {
+        "value": {
+          "$param": "amount"
+        },
+        "precision": 4,
+        "scale": 2,
+        "rounding": "ceiling"
+      }
+    },
+    "preimage": "{\"quantize\":{\"precision\":4,\"rounding\":\"ceiling\",\"scale\":2,\"value\":{\"$param\":\"amount\"}}}",
+    "cid": "sha256:8b7c79a273a7dbde926cac70c60fa97ef77b393d12e7a8317882639f68066827"
+  }
+]

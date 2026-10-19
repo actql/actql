@@ -5,7 +5,7 @@ import {verifyIdentity} from './check-canonical-json.mjs';
 import {validCheckOutcome} from '../packages/client-wire/index.mjs';
 
 const read = path => JSON.parse(readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
-const independent = read('portability/corpus/signed64-identities.json').checkSchemas;
+const independent = read('scripts/fixtures/check-consumer-condition-historical.json').checkSchemas;
 const normative = read('spec/contracts/actql-protocol-schemas.json');
 const fixtures = ['check-location-domains.json', 'check-template.verified.json',
   'check-capacity-required.json', 'check-unused-parameter.invalid.json',

@@ -100,6 +100,8 @@ pub fn object_mutation_response_matches(ObjectMutationBinding, ObjectMutationReq
 
 pub fn object_mutation_response_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int, Bytes, Int) -> Result[String, ObjectRequestIssue]
 
+pub fn object_source_timestamp(String) -> String?
+
 pub fn object_upload_body_for(ObjectUploadBinding, ObjectUploadRequest) -> Result[Bytes, ObjectUploadIssue]
 
 pub fn object_upload_body_media_type(ObjectUploadRequest) -> String

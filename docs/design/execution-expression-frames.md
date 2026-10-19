@@ -90,5 +90,131 @@ An instant one nanosecond before the epoch therefore has a zero public
 millisecond difference while still being earlier under exact comparison and
 internal event-clock classification. This public result does not replace the
 exact event-clock projection or broaden trusted-now, expiry, rollback or
-cleanup clocks. `date_add`, `date_trunc`, civil/offset domains and dynamic clock
-material remain separate existing implementation responsibilities.
+cleanup clocks. Civil/offset domains and dynamic clock material remain separate
+existing implementation responsibilities.
+
+
+Fixed `date_trunc` uses the existing eager binary event path with the original
+unit and temporal value roots. Both are consumed once and retained through
+conversion, then released by that same event. The existing Value owner reads
+and formats bounded UTC seconds/nanoseconds, and checks the generated value
+against the original typed result contract's non-null refinement before normal
+expression output admission. Date day-only truncation preserves its value.
+Negative instants use the containing fixed UTC bucket; no binary64 timestamp,
+epoch-nanosecond Int64, Host Date or operational clock is introduced. Formatter
+workspace, contract/value records and input/output aliases overlap; logical
+root retirement is not physical cleanup acknowledgement or phase funding.
+
+### Exact fixed-unit temporal addition
+
+DATE_ADD shares the existing eager three-child temporal frame with DATE_DIFF.
+The frame retains the original timestamp/date, evaluated Number and unit roots
+through the result and charges their existing logical/control owners. Amount
+expressions still round under ordinary Number laws. The resulting bits select
+an exact signed significand/exponent duration; conversion does not multiply the
+unit in binary64 or reinterpret a shortest decimal spelling. Nonintegral
+nanoseconds and calendar overflow fail through ArithmeticFailure.
+
+A loose calendar-width guard bounds all integer scratch before allocation.
+The significand/unit product stays below 100 bits; divisibility is checked with
+trailing-zero count before a right shift, so tiny subnormals do not allocate an
+unbounded denominator. Whole seconds and a signed nanosecond remainder preserve
+the full calendar without an epoch-nanosecond Int64. Fixed structural workspace
+is reserved before integer and formatting scratch; those slots are not physical
+byte capacity. Generated calendar values return through the original Value
+owner and the original result contract. Timestamp/Date value identities, Run
+clocks, ordinary DATE_DIFF and physical authority remain separate.
+
+### Nullable exact Decimal conversion
+
+TRY_DECIMAL uses one existing child frame and a dedicated continuation with the
+same expression/child references as CAST. The original checked nullable Decimal
+contract supplies precision and scale. It reuses CAST conversion work, variable
+operand preflight, logical charges and original-root release; only the final
+unrepresentable-conversion result becomes NULL. Child, control, logical and
+workspace failures leave through their original errors before this boundary.
+No general error catch or frontend conversion is introduced. Cancellation
+retains caller input and releases only the frame's temporary holdings. Conversion
+scratch and original operand/result aliases overlap under the existing phase;
+a slot bound or logical release is not physical byte capacity or cleanup ACK.
+
+### Original query invocation time
+
+The zero-child CurrentTimestamp expression retains its authored operation.
+An optional opaque QueryEvaluationTime belongs to the original expression
+frame and carries the existing Run owner's checked Timestamp; the evaluator
+does not accept a timestamp String or a sampler callback. A demanded leaf
+without that context refuses. An undemanded lazy branch performs no clock
+read. The shared result event accounts for the borrowed checked value and its
+result root, and frame closure drops its context reference separately from
+escaped values and physical cleanup.
+
+The checked typing traversal records whether any declared expression node
+requires query time, including lazy branches. The bounded preparation getter
+uses the existing typed expression-slot inventory across all Carrier consumers;
+it does not scan text or JSON keys, and budget exhaustion never means false.
+Static compilation can retain that declared dependency, while actual Source
+binding and dispatch still require the same original preparation and admitted
+Run. No scope, clock authority or resource grant follows from the flag.
+
+### Exact Decimal quantization
+
+QUANTIZE retains one checked Decimal child and the original closed rounding
+mode in the existing expression frame. Its result contract supplies precision
+and scale. Bounded integer coefficient division selects an exact quotient and
+remainder; half-even tests quotient parity, half-up selects magnitude ties
+away from zero, and directed modes respect the original sign. Coefficient
+zero is canonical and result overflow fails before Value publication. No
+binary64 conversion or altered Decimal identity is involved.
+
+The admitted 38-digit/scale bounds limit integer scratch to at most 128 bits.
+Upscale overflow is rejected before multiplying, and smaller target scales use
+an exact power of ten. The fixed transform preflight covers representation
+passes and bounded arithmetic; 32 structural scratch entries are reserved
+before allocation and released on both conversion outcomes. Those entries are
+not a physical byte grant. Original operand/root, mode String, integer records
+and limbs, coefficient String, formatter and result overlap under the existing
+phase. Child/current/cancel, logical charging and original-root release remain
+owned by the original evaluator; NULL propagation does not catch those errors.
+
+### Explicit exact Decimal division
+
+DECIMAL_DIVIDE reuses the existing eager binary child order, consume events and
+root-release protocol. The private binary event receives the original frame's
+workspace only for the typed Decimal ratio branch; all previous operator paths
+retain their original behavior. The left is an admitted Decimal, the right an
+admitted Decimal or an exactly read safe-integer Number. Both child failures
+remain demanded before NULL propagation, and zero division fails without
+publishing a value. Shared private quotient/remainder rounding preserves the
+same five modes as QUANTIZE; neither operation passes through binary64.
+
+For scales 0..38, the target adjustment exponent is -38..76. The numerator is
+less than 10^114 (at most 379 bits), and the denominator less than 10^76. The
+rounded quotient is compared to 10^precision before formatting, so an overflow
+never constructs a 114-digit public coefficient. Parse/power/ratio/rounding,
+mode and contract references, both operand roots, integer limbs and loop
+temporaries, formatter and final value overlap under the existing phase.
+The 64 structural scratch entries and bounded control preflight are not a
+physical byte grant; logical retirement and GC are not cleanup ACKs. Original
+Value identity, wire schemas, clock domains and authority are unchanged.
+
+### Existing Decimal addition, subtraction and multiplication
+
+The checked binary expression's existing Decimal result contract supplies the
+precision and scale for these operations. The eager frame still demands both
+original children, charges their consumption and releases their individual
+roots. Only the typed Decimal branch uses exact signed integer coefficients;
+the context-free Number evaluator, SAFE operations and mixed-domain refusals
+retain their meanings. NULL propagation does not suppress child failures.
+
+Addition and subtraction align coefficients at the original maximum scale;
+multiplication keeps the sum of the original scales. Neither operation rounds.
+Admitted coefficients have at most 38 digits and alignment adds at most 38
+places. Aligned magnitudes and products are below 10^76; a sum's magnitude is
+below 2*10^76. The result is checked against the original precision before its
+coefficient is formatted. Zero is canonical. The existing structural workspace
+reserves 64 scratch entries and a bounded control preflight before integer
+work; these are not physical byte admission. Both operands, temporary integer
+limbs and powers, formatter output, result and root aliases can overlap under
+the existing phase. Scratch release is distinct from logical-root retirement
+and physical cleanup acknowledgement.

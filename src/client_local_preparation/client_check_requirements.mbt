@@ -112,3 +112,38 @@ fn write_check_parameter_admission(
   @encode.string_value(writer, "caller")
   @encode.end_object(writer)
 }
+
+///|
+/// Binding-stage demand, independent of declaration admission and defaults.
+/// The original Common template retains the exact operation occurrence.
+fn write_check_consumer_condition(
+  writer : @encode.Writer,
+  condition : @checked.TemplateParameterCondition,
+  expected : String,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "argument")
+  @encode.string_value(
+    writer,
+    if condition.minimum == 1L {
+      "count"
+    } else {
+      "offset"
+    },
+  )
+  @encode.key(writer, "constraint")
+  @encode.string_value(writer, "safe_integer")
+  @encode.key(writer, "expected_type")
+  @encode.string_value(writer, expected)
+  @encode.key(writer, "maximum")
+  @encode.number_value(writer, 9007199254740991.0)
+  @encode.key(writer, "minimum")
+  @encode.number_value(writer, condition.minimum.to_double())
+  @encode.key(writer, "operation")
+  @encode.string_value(writer, "take")
+  @encode.key(writer, "parameter")
+  @encode.string_value(writer, condition.declaration.name)
+  @encode.key(writer, "stage")
+  @encode.string_value(writer, "binding")
+  @encode.end_object(writer)
+}

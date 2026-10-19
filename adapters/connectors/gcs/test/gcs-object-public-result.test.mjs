@@ -24,7 +24,7 @@ import {GCS_FILE_LIST_OPERATION} from '../site/gcs-file-listing.mjs';
 
 // Provider text, expected rows and expected contracts are independent of the
 // product projection. Values exceed binary64's exact integer range; the final
-// result must keep Decimal(19,0), not acquire a String/Number contract.
+// result must keep the signed64 domain, not a Decimal/String/Number alias.
 const fields = ['name', 'size', 'generation', 'metageneration', 'updated', 'metadata'];
 const objects = [
   {bucket: 'actql-fixture', name: 'in/a-e\u0301%2F.csv',
@@ -47,7 +47,7 @@ const expected = [
   {name: 'in/c-null.csv', size: '1', generation: '3', metageneration: '1',
     updated: null, metadata: null},
 ];
-const integer = {type: 'decimal', precision: 19, scale: 0, nullable: false};
+const integer = {type: 'int64', nullable: false};
 const columns = [
   {name: 'name', contract: {type: 'string', nullable: false}},
   ...['size', 'generation', 'metageneration'].map(name => ({name, contract: integer})),
@@ -56,7 +56,7 @@ const columns = [
 ];
 
 for (const captureSort of [false, true]) {
-test(`public GCS Named Result preserves exact Decimal and JSON across same-Run reopening (${captureSort ? 'capture assertion and sort' : 'capture assertion'})`, async t => {
+test(`public GCS Named Result preserves exact signed64 and JSON across same-Run reopening (${captureSort ? 'capture assertion and sort' : 'capture assertion'})`, async t => {
   const scratch = await createOwnedScratch({parent: new URL('../../../../_build/', import.meta.url).pathname,
     prefix: 'gcs-public-typed-result-', label: 'GCS public typed Result'});
   const owner = userInfo().username;

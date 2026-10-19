@@ -1,0 +1,755 @@
+{
+  "query-acquisition-owner": {
+    "stage_semantics": {
+      "version": "actql-stage-semantics/0.1",
+      "expression_contract_cid": "sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35",
+      "parameters": {
+        "wanted": {
+          "type": "string"
+        }
+      },
+      "parameter_references": [
+        {
+          "name": "wanted",
+          "path": "/steps/0/filter/eq/1",
+          "type": {
+            "type": "string"
+          }
+        }
+      ],
+      "bindings": {},
+      "binding_references": [],
+      "local_body": {
+        "inputs": {
+          "records": {
+            "connector": "fixture",
+            "resource": "records",
+            "view": "scan",
+            "request": {
+              "tenant": "fixture"
+            }
+          }
+        },
+        "steps": [
+          {
+            "filter": {
+              "eq": [
+                {
+                  "field": "status"
+                },
+                {
+                  "$param": "wanted"
+                }
+              ]
+            }
+          },
+          {
+            "select": [
+              "id"
+            ],
+            "as": "selected"
+          }
+        ],
+        "results": {
+          "out": {
+            "from": "selected",
+            "fields": [
+              "id"
+            ]
+          }
+        },
+        "effects": {}
+      }
+    },
+    "program_semantics": {
+      "version": "actql-program-semantics/0.1",
+      "actql_version": "actql/0.1",
+      "expression_contract_cid": "sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35",
+      "parameters": {
+        "wanted": {
+          "type": "string"
+        }
+      },
+      "parameter_references": [
+        {
+          "name": "wanted",
+          "path": "/stages/0/steps/0/filter/eq/1",
+          "type": {
+            "type": "string"
+          }
+        }
+      ],
+      "bindings": {},
+      "binding_references": [],
+      "program_template": {
+        "stages": [
+          {
+            "id": "first",
+            "stage_semantics_cid": "sha256:77d8a4d050b7b9f686a8686f6f517e3f9c51b72741c3e99c9ce7d842b2c16d64",
+            "after": "initial",
+            "imports": {}
+          }
+        ],
+        "exports": {
+          "out": {
+            "from": {
+              "stage": "first",
+              "result": "out"
+            }
+          }
+        }
+      }
+    },
+    "program_semantics_cid": "sha256:5d42ed411bc5edae73afeb52a181a15cec33ab4ae172e2e6a01a7f415065e9d5",
+    "program_definition": {
+      "version": "actql-program-definition/0.1",
+      "id": "query.fixture",
+      "program_semantics_cid": "sha256:5d42ed411bc5edae73afeb52a181a15cec33ab4ae172e2e6a01a7f415065e9d5"
+    },
+    "program_definition_cid": "sha256:a3482552542ba80096357c8c25ff92f7b3fac2114da66dfd1ff2e1dcb2d66853",
+    "owner": {
+      "program_source_cid": "sha256:a3482552542ba80096357c8c25ff92f7b3fac2114da66dfd1ff2e1dcb2d66853",
+      "stage": "first",
+      "input": "records"
+    }
+  },
+  "query-acquisition-identities": [
+    {
+      "body": {
+        "version": "actql-query-acquisition/0.1",
+        "owner": {
+          "program_source_cid": "sha256:a3482552542ba80096357c8c25ff92f7b3fac2114da66dfd1ff2e1dcb2d66853",
+          "stage": "first",
+          "input": "records"
+        },
+        "source_ref": "connector://fixture/records#scan",
+        "source_contract_cid": "sha256:b6dadf2beda041fc3f9cccc66cec826b777dd2adc13732f261e362c2aea341d2",
+        "input_contract_cid": "sha256:7263e8377ceede3197740c6bee4949aaa96bc4852499dedd7b4b2c28a685d7b5",
+        "output_contract_cid": "sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b",
+        "request": {
+          "tenant": "fixture"
+        },
+        "parameter_values_cid": "sha256:ce3468bea3995136201f0f1242c8d388f927d5c1b751f60a6cccf6b539ef4897",
+        "filter": {
+          "occurrence": "/steps/0/filter",
+          "expression_cid": "sha256:11ee6436f22f4aac9ed90700d83925684aa80cdbdb30c186cd79ad45b31274b7"
+        },
+        "select": {
+          "occurrence": "/steps/1/select",
+          "fields": [
+            {
+              "input": "id",
+              "output": "id"
+            }
+          ]
+        },
+        "source_validation": {
+          "scope": "selected_scan",
+          "fields": [
+            "amount",
+            "id",
+            "status"
+          ]
+        },
+        "source_order_cid": "sha256:50fdab8a9d78cf61c8d9fb16bc8edc2282416ed4cbd0a907ea46faa11604544f",
+        "logical_guards": {
+          "max_rows": 2,
+          "max_value_bytes": 1000
+        }
+      },
+      "cid": "sha256:cfae1d0f9e41bdf7b08b737ec6401a9762c114697bceaec937997ea8b250ac92"
+    },
+    {
+      "body": {
+        "version": "actql-query-observation/0.1",
+        "requirement_cid": "sha256:cfae1d0f9e41bdf7b08b737ec6401a9762c114697bceaec937997ea8b250ac92",
+        "owner": {
+          "program_source_cid": "sha256:a3482552542ba80096357c8c25ff92f7b3fac2114da66dfd1ff2e1dcb2d66853",
+          "stage": "first",
+          "input": "records"
+        },
+        "source_ref": "connector://fixture/records#scan",
+        "source_contract_cid": "sha256:b6dadf2beda041fc3f9cccc66cec826b777dd2adc13732f261e362c2aea341d2",
+        "parameter_values_cid": "sha256:ce3468bea3995136201f0f1242c8d388f927d5c1b751f60a6cccf6b539ef4897",
+        "resolved_request_cid": "sha256:9e475b942ea0d73d63e2e4cdeffb72d0d145e5bbd3cdf4605d2acbca829cdde1",
+        "snapshot": {
+          "contract_cid": "sha256:b79f5ece34bfbbac75d18b3f91b44ede480e367a6b69cce5212798dbc4b3b0b3",
+          "token_cid": "sha256:e44aec26748c4401b41f05d34db446622b4fb4a077771d46dc8b7504bcb652a1"
+        },
+        "actual_access": {
+          "scope_cid": "sha256:bff3e1dd9e7ea27920e0fcf2c66b050a3e8a655d2828ba0f462d5f85c4362b8c",
+          "provider_scope_cid": null,
+          "received_rows": 2,
+          "received_fields": [
+            "id"
+          ],
+          "received_bytes": 23
+        },
+        "coverage": {
+          "scope_cid": "sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573",
+          "complete": true,
+          "source_validation_evidence_cid": "sha256:1c8ad37d594cdec2517681afea839382b0c3673596660e721a7889e0bf244d63",
+          "filter_evidence_cid": "sha256:d35244df3472bbd87d177115f088521f1b2cd4083e24c1d2e4d815826a9c0c0e",
+          "select_evidence_cid": "sha256:92f9681af56022bb31dcbebe62e887bd094574d4bf5bf16d1e06018baa53b6c7"
+        },
+        "output": {
+          "contract_cid": "sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b",
+          "rows_cid": "sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a",
+          "row_count": 2
+        },
+        "retention": "process"
+      },
+      "cid": "sha256:1756c3e041cfff7279beafaa2cf815bb2ce0533d442cd82c0570394eeaf9c4e0"
+    },
+    {
+      "body": {
+        "version": "actql-query-observation/0.1",
+        "requirement_cid": "sha256:cfae1d0f9e41bdf7b08b737ec6401a9762c114697bceaec937997ea8b250ac92",
+        "owner": {
+          "program_source_cid": "sha256:a3482552542ba80096357c8c25ff92f7b3fac2114da66dfd1ff2e1dcb2d66853",
+          "stage": "first",
+          "input": "records"
+        },
+        "source_ref": "connector://fixture/records#scan",
+        "source_contract_cid": "sha256:b6dadf2beda041fc3f9cccc66cec826b777dd2adc13732f261e362c2aea341d2",
+        "parameter_values_cid": "sha256:ce3468bea3995136201f0f1242c8d388f927d5c1b751f60a6cccf6b539ef4897",
+        "resolved_request_cid": "sha256:9e475b942ea0d73d63e2e4cdeffb72d0d145e5bbd3cdf4605d2acbca829cdde1",
+        "snapshot": {
+          "contract_cid": "sha256:b79f5ece34bfbbac75d18b3f91b44ede480e367a6b69cce5212798dbc4b3b0b3",
+          "token_cid": "sha256:e44aec26748c4401b41f05d34db446622b4fb4a077771d46dc8b7504bcb652a1"
+        },
+        "actual_access": {
+          "scope_cid": "sha256:7c70151348814d7f752b849f3517be090f91be12f77fb2a509cb7435e2dea819",
+          "provider_scope_cid": null,
+          "received_rows": 3,
+          "received_fields": [
+            "amount",
+            "id",
+            "status"
+          ],
+          "received_bytes": 120
+        },
+        "coverage": {
+          "scope_cid": "sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573",
+          "complete": true,
+          "source_validation_evidence_cid": "sha256:1c8ad37d594cdec2517681afea839382b0c3673596660e721a7889e0bf244d63",
+          "filter_evidence_cid": "sha256:d35244df3472bbd87d177115f088521f1b2cd4083e24c1d2e4d815826a9c0c0e",
+          "select_evidence_cid": "sha256:92f9681af56022bb31dcbebe62e887bd094574d4bf5bf16d1e06018baa53b6c7"
+        },
+        "output": {
+          "contract_cid": "sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b",
+          "rows_cid": "sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a",
+          "row_count": 2
+        },
+        "retention": "process"
+      },
+      "cid": "sha256:d3c041913b314a5fa571783c21926ad71aeb4e8326baf1b3a54b8cc68ca2a66f"
+    },
+    {
+      "body": {
+        "version": "actql-query-scan-scope/0.1",
+        "source_ref": "connector://fixture/records#scan",
+        "source_contract_cid": "sha256:b6dadf2beda041fc3f9cccc66cec826b777dd2adc13732f261e362c2aea341d2",
+        "resolved_request_cid": "sha256:9e475b942ea0d73d63e2e4cdeffb72d0d145e5bbd3cdf4605d2acbca829cdde1"
+      },
+      "cid": "sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573"
+    },
+    {
+      "body": {
+        "version": "actql-query-access-scope/0.1",
+        "requirement_cid": "sha256:cfae1d0f9e41bdf7b08b737ec6401a9762c114697bceaec937997ea8b250ac92",
+        "received_rows_cid": "sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a",
+        "received_fields": [
+          "id"
+        ]
+      },
+      "cid": "sha256:bff3e1dd9e7ea27920e0fcf2c66b050a3e8a655d2828ba0f462d5f85c4362b8c"
+    },
+    {
+      "body": {
+        "version": "actql-query-access-scope/0.1",
+        "requirement_cid": "sha256:cfae1d0f9e41bdf7b08b737ec6401a9762c114697bceaec937997ea8b250ac92",
+        "received_rows_cid": "sha256:410930adbff0caf978e1a8959e98f4cbee9a88bbbd58a0290ed66cdd5bbc52c9",
+        "received_fields": [
+          "amount",
+          "id",
+          "status"
+        ]
+      },
+      "cid": "sha256:7c70151348814d7f752b849f3517be090f91be12f77fb2a509cb7435e2dea819"
+    },
+    {
+      "body": {
+        "version": "actql-stage-semantics/0.1",
+        "expression_contract_cid": "sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35",
+        "parameters": {
+          "wanted": {
+            "type": "string"
+          }
+        },
+        "parameter_references": [
+          {
+            "name": "wanted",
+            "path": "/steps/0/filter/eq/1",
+            "type": {
+              "type": "string"
+            }
+          }
+        ],
+        "bindings": {},
+        "binding_references": [],
+        "local_body": {
+          "inputs": {
+            "records": {
+              "connector": "fixture",
+              "resource": "records",
+              "view": "scan",
+              "request": {
+                "tenant": "fixture"
+              }
+            }
+          },
+          "steps": [
+            {
+              "filter": {
+                "eq": [
+                  {
+                    "field": "status"
+                  },
+                  {
+                    "$param": "wanted"
+                  }
+                ]
+              }
+            },
+            {
+              "select": [
+                "id"
+              ],
+              "as": "selected"
+            }
+          ],
+          "results": {
+            "out": {
+              "from": "selected",
+              "fields": [
+                "id"
+              ]
+            }
+          },
+          "effects": {}
+        }
+      },
+      "cid": "sha256:77d8a4d050b7b9f686a8686f6f517e3f9c51b72741c3e99c9ce7d842b2c16d64"
+    },
+    {
+      "body": {
+        "version": "actql-program-semantics/0.1",
+        "actql_version": "actql/0.1",
+        "expression_contract_cid": "sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35",
+        "parameters": {
+          "wanted": {
+            "type": "string"
+          }
+        },
+        "parameter_references": [
+          {
+            "name": "wanted",
+            "path": "/stages/0/steps/0/filter/eq/1",
+            "type": {
+              "type": "string"
+            }
+          }
+        ],
+        "bindings": {},
+        "binding_references": [],
+        "program_template": {
+          "stages": [
+            {
+              "id": "first",
+              "stage_semantics_cid": "sha256:77d8a4d050b7b9f686a8686f6f517e3f9c51b72741c3e99c9ce7d842b2c16d64",
+              "after": "initial",
+              "imports": {}
+            }
+          ],
+          "exports": {
+            "out": {
+              "from": {
+                "stage": "first",
+                "result": "out"
+              }
+            }
+          }
+        }
+      },
+      "cid": "sha256:5d42ed411bc5edae73afeb52a181a15cec33ab4ae172e2e6a01a7f415065e9d5"
+    },
+    {
+      "body": {
+        "version": "actql-program-definition/0.1",
+        "id": "query.fixture",
+        "program_semantics_cid": "sha256:5d42ed411bc5edae73afeb52a181a15cec33ab4ae172e2e6a01a7f415065e9d5"
+      },
+      "cid": "sha256:a3482552542ba80096357c8c25ff92f7b3fac2114da66dfd1ff2e1dcb2d66853"
+    }
+  ],
+  "query-process-evidence": [
+    {
+      "body": {
+        "version": "actql-query-process-evidence/0.1",
+        "issuer": "fixture-process",
+        "attempt": "1",
+        "requirement_cid": "sha256:e8a54075fb984382e76832c0257657c36eae68f3a7a1162892a92ddfc08cf254",
+        "role": "source_validation",
+        "snapshot": null,
+        "scan_scope_cid": "sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573",
+        "actual_access": {
+          "scope_cid": "sha256:8b10ccd630eadfa023df2f365523095f13d312e4883d68d72e79edb3ec3552d9",
+          "provider_scope_cid": null,
+          "received_rows": 2,
+          "received_fields": [
+            "id"
+          ],
+          "received_bytes": 23
+        },
+        "output": {
+          "contract_cid": "sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b",
+          "rows_cid": "sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a",
+          "row_count": 2
+        }
+      },
+      "cid": "sha256:e998c4a6783c3e998610350b542577e187c42dcddaea0fdca7f2578f64a76ab2"
+    },
+    {
+      "body": {
+        "version": "actql-query-process-evidence/0.1",
+        "issuer": "fixture-process",
+        "attempt": "1",
+        "requirement_cid": "sha256:e8a54075fb984382e76832c0257657c36eae68f3a7a1162892a92ddfc08cf254",
+        "role": "filter",
+        "snapshot": null,
+        "scan_scope_cid": "sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573",
+        "actual_access": {
+          "scope_cid": "sha256:8b10ccd630eadfa023df2f365523095f13d312e4883d68d72e79edb3ec3552d9",
+          "provider_scope_cid": null,
+          "received_rows": 2,
+          "received_fields": [
+            "id"
+          ],
+          "received_bytes": 23
+        },
+        "output": {
+          "contract_cid": "sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b",
+          "rows_cid": "sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a",
+          "row_count": 2
+        }
+      },
+      "cid": "sha256:f7ea0cc71dc460ec032456d22aa06d5d58016c2ba8e73466914cbbc6491a47e4"
+    },
+    {
+      "body": {
+        "version": "actql-query-process-evidence/0.1",
+        "issuer": "fixture-process",
+        "attempt": "1",
+        "requirement_cid": "sha256:e8a54075fb984382e76832c0257657c36eae68f3a7a1162892a92ddfc08cf254",
+        "role": "select",
+        "snapshot": null,
+        "scan_scope_cid": "sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573",
+        "actual_access": {
+          "scope_cid": "sha256:8b10ccd630eadfa023df2f365523095f13d312e4883d68d72e79edb3ec3552d9",
+          "provider_scope_cid": null,
+          "received_rows": 2,
+          "received_fields": [
+            "id"
+          ],
+          "received_bytes": 23
+        },
+        "output": {
+          "contract_cid": "sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b",
+          "rows_cid": "sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a",
+          "row_count": 2
+        }
+      },
+      "cid": "sha256:800c488b0db36e0de2cc510a7518907f3df2d8a2b90910fc9bfd4af5739a7dba"
+    },
+    {
+      "body": {
+        "version": "actql-query-process-evidence/0.1",
+        "issuer": "fixture-process",
+        "attempt": "2",
+        "requirement_cid": "sha256:e8a54075fb984382e76832c0257657c36eae68f3a7a1162892a92ddfc08cf254",
+        "role": "source_validation",
+        "snapshot": null,
+        "scan_scope_cid": "sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573",
+        "actual_access": {
+          "scope_cid": "sha256:3f653096e26a76a182d7e4cf0b58b720773aa238f1501630f9f7143218bc3a1d",
+          "provider_scope_cid": null,
+          "received_rows": 3,
+          "received_fields": [
+            "amount",
+            "id",
+            "status"
+          ],
+          "received_bytes": 120
+        },
+        "output": {
+          "contract_cid": "sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b",
+          "rows_cid": "sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a",
+          "row_count": 2
+        }
+      },
+      "cid": "sha256:7da1fb324ba7a9831c2455fe685e1d91a54fc3b2b502f987d91f30da94c2d6ce"
+    },
+    {
+      "body": {
+        "version": "actql-query-process-evidence/0.1",
+        "issuer": "fixture-process",
+        "attempt": "2",
+        "requirement_cid": "sha256:e8a54075fb984382e76832c0257657c36eae68f3a7a1162892a92ddfc08cf254",
+        "role": "filter",
+        "snapshot": null,
+        "scan_scope_cid": "sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573",
+        "actual_access": {
+          "scope_cid": "sha256:3f653096e26a76a182d7e4cf0b58b720773aa238f1501630f9f7143218bc3a1d",
+          "provider_scope_cid": null,
+          "received_rows": 3,
+          "received_fields": [
+            "amount",
+            "id",
+            "status"
+          ],
+          "received_bytes": 120
+        },
+        "output": {
+          "contract_cid": "sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b",
+          "rows_cid": "sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a",
+          "row_count": 2
+        }
+      },
+      "cid": "sha256:326daa46f571f30f92adb823278cdc3c8dc631dc8f57240dd9dc5fc6224b87cc"
+    },
+    {
+      "body": {
+        "version": "actql-query-process-evidence/0.1",
+        "issuer": "fixture-process",
+        "attempt": "2",
+        "requirement_cid": "sha256:e8a54075fb984382e76832c0257657c36eae68f3a7a1162892a92ddfc08cf254",
+        "role": "select",
+        "snapshot": null,
+        "scan_scope_cid": "sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573",
+        "actual_access": {
+          "scope_cid": "sha256:3f653096e26a76a182d7e4cf0b58b720773aa238f1501630f9f7143218bc3a1d",
+          "provider_scope_cid": null,
+          "received_rows": 3,
+          "received_fields": [
+            "amount",
+            "id",
+            "status"
+          ],
+          "received_bytes": 120
+        },
+        "output": {
+          "contract_cid": "sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b",
+          "rows_cid": "sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a",
+          "row_count": 2
+        }
+      },
+      "cid": "sha256:1f5e8899cb1ec3691719698e4792442e6da8d71da227c550e8f15cff8f7d1123"
+    }
+  ],
+  "query-two-receipt": {
+    "requirement": {
+      "body": {
+        "version": "actql-query-acquisition/0.1",
+        "owner": {
+          "program_source_cid": "sha256:a3482552542ba80096357c8c25ff92f7b3fac2114da66dfd1ff2e1dcb2d66853",
+          "stage": "first",
+          "input": "records"
+        },
+        "source_ref": "connector://fixture/local-read#scan",
+        "source_contract_cid": "sha256:7bcef77b0a1627fbd4687b96f276f348e3aa564575e3fb16dd2991c664a535d1",
+        "input_contract_cid": "sha256:28f3024c1dd87266a93ae208b4026b3b69aa22420abbbc34e23f5044a95cf0c3",
+        "output_contract_cid": "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+        "request": {
+          "tenant": "fixture"
+        },
+        "parameter_values_cid": "sha256:ce3468bea3995136201f0f1242c8d388f927d5c1b751f60a6cccf6b539ef4897",
+        "filter": {
+          "occurrence": "/steps/0/filter",
+          "expression_cid": "sha256:5e3bb179b88e166f4ee5921e956a0ec00630a4de3065e30fddbe41df98187da4"
+        },
+        "select": {
+          "occurrence": "/steps/1/select",
+          "fields": [
+            {
+              "input": "id",
+              "output": "id"
+            }
+          ]
+        },
+        "source_validation": {
+          "scope": "selected_scan",
+          "fields": [
+            "amount",
+            "id"
+          ]
+        },
+        "source_order_cid": null,
+        "logical_guards": {
+          "max_rows": 2,
+          "max_value_bytes": 1000
+        }
+      },
+      "cid": "sha256:ff896afd03bcdd3be150e64af46babce0fa829ac39e1b035aee2598a18b5aede"
+    },
+    "receipts": [
+      {
+        "body": {
+          "version": "actql-query-receipt/0.1",
+          "issuer": "fixture-two-receipt",
+          "attempt": "1",
+          "read_view": "view-1",
+          "requirement_cid": "sha256:ff896afd03bcdd3be150e64af46babce0fa829ac39e1b035aee2598a18b5aede",
+          "snapshot": null,
+          "scan_scope_cid": "sha256:3befbdbe52d3d74d31f986dfce133ed29b71e3691ea871d5b47171e57c2b4b1b",
+          "role": "validation_scan",
+          "received_rows_cid": "sha256:f3d361fe4b7d5abb78027fd06b49ca9faca87ed483cd8979aa121096df4f8580",
+          "received_rows": 2,
+          "received_fields": [
+            "amount",
+            "id"
+          ],
+          "received_bytes": 43
+        },
+        "cid": "sha256:a5ec1eec45267be1acd69ab697514292e60c4e3d5af73894c30ccd2e38898d26"
+      },
+      {
+        "body": {
+          "version": "actql-query-receipt/0.1",
+          "issuer": "fixture-two-receipt",
+          "attempt": "1",
+          "read_view": "view-1",
+          "requirement_cid": "sha256:ff896afd03bcdd3be150e64af46babce0fa829ac39e1b035aee2598a18b5aede",
+          "snapshot": null,
+          "scan_scope_cid": "sha256:3befbdbe52d3d74d31f986dfce133ed29b71e3691ea871d5b47171e57c2b4b1b",
+          "role": "native_result",
+          "received_rows_cid": "sha256:280631f7b642776726d9874a54438209a4416c7fcfcb399bdfbb210e73560d64",
+          "received_rows": 1,
+          "received_fields": [
+            "id"
+          ],
+          "received_bytes": 10
+        },
+        "cid": "sha256:601a68117ff17de4179d0d4e3a58725a4466ef89af7f7e88794e9ac9e2f682a0"
+      }
+    ],
+    "records": [
+      {
+        "body": {
+          "version": "actql-query-two-receipt-evidence/0.1",
+          "issuer": "fixture-two-receipt",
+          "attempt": "1",
+          "read_view": "view-1",
+          "requirement_cid": "sha256:ff896afd03bcdd3be150e64af46babce0fa829ac39e1b035aee2598a18b5aede",
+          "snapshot": null,
+          "scan_scope_cid": "sha256:3befbdbe52d3d74d31f986dfce133ed29b71e3691ea871d5b47171e57c2b4b1b",
+          "role": "source_validation",
+          "accesses": {
+            "validation_scan_cid": "sha256:a5ec1eec45267be1acd69ab697514292e60c4e3d5af73894c30ccd2e38898d26",
+            "native_result_cid": "sha256:601a68117ff17de4179d0d4e3a58725a4466ef89af7f7e88794e9ac9e2f682a0"
+          },
+          "output": {
+            "contract_cid": "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+            "rows_cid": "sha256:280631f7b642776726d9874a54438209a4416c7fcfcb399bdfbb210e73560d64",
+            "row_count": 1
+          }
+        },
+        "cid": "sha256:661a2defe024f54503df7a983dbc41b26c45e80df6144118bd31a0554789218e"
+      },
+      {
+        "body": {
+          "version": "actql-query-two-receipt-evidence/0.1",
+          "issuer": "fixture-two-receipt",
+          "attempt": "1",
+          "read_view": "view-1",
+          "requirement_cid": "sha256:ff896afd03bcdd3be150e64af46babce0fa829ac39e1b035aee2598a18b5aede",
+          "snapshot": null,
+          "scan_scope_cid": "sha256:3befbdbe52d3d74d31f986dfce133ed29b71e3691ea871d5b47171e57c2b4b1b",
+          "role": "filter",
+          "accesses": {
+            "validation_scan_cid": "sha256:a5ec1eec45267be1acd69ab697514292e60c4e3d5af73894c30ccd2e38898d26",
+            "native_result_cid": "sha256:601a68117ff17de4179d0d4e3a58725a4466ef89af7f7e88794e9ac9e2f682a0"
+          },
+          "output": {
+            "contract_cid": "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+            "rows_cid": "sha256:280631f7b642776726d9874a54438209a4416c7fcfcb399bdfbb210e73560d64",
+            "row_count": 1
+          }
+        },
+        "cid": "sha256:004e021c1cf283a544117dfeb8513f464438c15b3fb9368add661b6a5e1b9ca3"
+      },
+      {
+        "body": {
+          "version": "actql-query-two-receipt-evidence/0.1",
+          "issuer": "fixture-two-receipt",
+          "attempt": "1",
+          "read_view": "view-1",
+          "requirement_cid": "sha256:ff896afd03bcdd3be150e64af46babce0fa829ac39e1b035aee2598a18b5aede",
+          "snapshot": null,
+          "scan_scope_cid": "sha256:3befbdbe52d3d74d31f986dfce133ed29b71e3691ea871d5b47171e57c2b4b1b",
+          "role": "select",
+          "accesses": {
+            "validation_scan_cid": "sha256:a5ec1eec45267be1acd69ab697514292e60c4e3d5af73894c30ccd2e38898d26",
+            "native_result_cid": "sha256:601a68117ff17de4179d0d4e3a58725a4466ef89af7f7e88794e9ac9e2f682a0"
+          },
+          "output": {
+            "contract_cid": "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+            "rows_cid": "sha256:280631f7b642776726d9874a54438209a4416c7fcfcb399bdfbb210e73560d64",
+            "row_count": 1
+          }
+        },
+        "cid": "sha256:72e972e642f92959770e2af6e2b6c1a26fb2621af4c91b91df7731cfdc97304c"
+      }
+    ],
+    "observation": {
+      "body": {
+        "version": "actql-query-two-receipt-observation/0.1",
+        "requirement_cid": "sha256:ff896afd03bcdd3be150e64af46babce0fa829ac39e1b035aee2598a18b5aede",
+        "owner": {
+          "program_source_cid": "sha256:a3482552542ba80096357c8c25ff92f7b3fac2114da66dfd1ff2e1dcb2d66853",
+          "stage": "first",
+          "input": "records"
+        },
+        "source_ref": "connector://fixture/local-read#scan",
+        "source_contract_cid": "sha256:7bcef77b0a1627fbd4687b96f276f348e3aa564575e3fb16dd2991c664a535d1",
+        "parameter_values_cid": "sha256:ce3468bea3995136201f0f1242c8d388f927d5c1b751f60a6cccf6b539ef4897",
+        "resolved_request_cid": "sha256:9e475b942ea0d73d63e2e4cdeffb72d0d145e5bbd3cdf4605d2acbca829cdde1",
+        "snapshot": null,
+        "evidence_contract_cid": "sha256:69c05b25a95a4cdff8e27e95974d65d07d12a72f04b6af498cd862c309b302bf",
+        "execution": {
+          "issuer": "fixture-two-receipt",
+          "attempt": "1",
+          "read_view": "view-1"
+        },
+        "accesses": {
+          "validation_scan_cid": "sha256:a5ec1eec45267be1acd69ab697514292e60c4e3d5af73894c30ccd2e38898d26",
+          "native_result_cid": "sha256:601a68117ff17de4179d0d4e3a58725a4466ef89af7f7e88794e9ac9e2f682a0"
+        },
+        "coverage": {
+          "scope_cid": "sha256:3befbdbe52d3d74d31f986dfce133ed29b71e3691ea871d5b47171e57c2b4b1b",
+          "complete": true,
+          "source_validation_evidence_cid": "sha256:661a2defe024f54503df7a983dbc41b26c45e80df6144118bd31a0554789218e",
+          "filter_evidence_cid": "sha256:004e021c1cf283a544117dfeb8513f464438c15b3fb9368add661b6a5e1b9ca3",
+          "select_evidence_cid": "sha256:72e972e642f92959770e2af6e2b6c1a26fb2621af4c91b91df7731cfdc97304c"
+        },
+        "output": {
+          "contract_cid": "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+          "rows_cid": "sha256:280631f7b642776726d9874a54438209a4416c7fcfcb399bdfbb210e73560d64",
+          "row_count": 1
+        },
+        "retention": "process"
+      },
+      "cid": "sha256:b2e5f049d25752efe664504491e24dd7c0c4b533e7c692e026f9b90b0b3e6b44"
+    }
+  }
+}

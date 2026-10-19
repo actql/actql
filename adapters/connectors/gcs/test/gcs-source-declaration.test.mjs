@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
 import {inspect} from 'node:util';
+import {createHash} from 'node:crypto';
 import * as moon from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as objectFixture from '../../../../_build/js/release/build/connectors/gcs/fixtures/object_source_node/object_source_node.js';
 import * as provider from '../../../../_build/js/release/build/connectors/gcs/host_node/host_node.js';
@@ -17,6 +18,24 @@ const profile = () => ({version: 'actql-installed-gcs-source/0.1', connectorId: 
   limits: {maxListingItems: 3, maxExaminedItems: 9, maxPages: 4, maxAttempts: 4,
     maxListingBytes: 32768, maxDurationMs: 10000, maxPathBytes: 1024,
     maxPageBytes: 8192, maxPageItems: 9, maxRequestBytes: 4096, maxContentBytes: 4096}});
+
+test('signed64 correction preserves the complete legacy declaration and refuses old objects Catalog substitution', () => {
+  // Historical complete declaration snapshots, taken before this correction.
+  // They are not expected identities recomputed from the new declaration.
+  const legacy = restoreGcsSourceDeclaration(moon, profile());
+  assert.equal(legacy.declared.catalog_cid,
+    'sha256:8f89f35c41829a021e74d721c0be3fb6b8512fb8fdc10e2647abc1c66eafc5cf');
+  assert.equal(createHash('sha256').update(JSON.stringify(legacy.declared)).digest('hex'),
+    'fe2014f60d585294551069e7b24dd076d78260230a50b9a37340ddd83deb3982');
+  const oldObjectsCatalog = 'sha256:ac2a85c1b2979f61a3d71cec092eeb5d5735b9a18ef789b8faa686dcda2e205d';
+  const current = restoreGcsSourceDeclaration(moon, profile(), undefined, {includeObjects: true});
+  assert.notEqual(current.declared.catalog_cid, oldObjectsCatalog);
+  assert.throws(() => restoreGcsSourceDeclaration(moon, profile(), oldObjectsCatalog,
+    {includeObjects: true}), {code: 'MoonBitHostFailure'});
+  const same = restoreGcsSourceDeclaration(moon, profile(), current.declared.catalog_cid,
+    {includeObjects: true});
+  assert.equal(same.declared.catalog, current.declared.catalog);
+});
 
 test('GCS declares listing and content as separate common Catalog acquisitions', () => {
   const input = profile();
@@ -57,7 +76,7 @@ test('exact decomposed/composed GCS scope strings never share a declaration scop
   assert.equal(original.versionCid, composed.versionCid);
 });
 
-test('ordinary objects declare exact Decimal contracts and genuine Sources beside the unchanged listing', () => {
+test('ordinary objects declare exact signed64 contracts and genuine Sources beside the unchanged listing', () => {
   const input = profile(), legacy = restoreGcsSourceDeclaration(moon, input);
   const original = restoreGcsSourceDeclaration(moon, input, undefined, {includeObjects: true});
   assert.equal(original.declared.views.length, 3);
@@ -68,7 +87,7 @@ test('ordinary objects declare exact Decimal contracts and genuine Sources besid
   const objects = original.declared.views.find(view => view.resource === 'objects');
   const schema = original.declared.contracts.map(JSON.parse).find(value => value.cid === objects.carrier_schema_cid);
   for (const field of ['size', 'generation', 'metageneration']) {
-    assert.deepEqual(schema.body.fields[field], {nullable: false, precision: 19, scale: 0, type: 'decimal'});
+    assert.deepEqual(schema.body.fields[field], {nullable: false, type: 'int64'});
   }
   assert.deepEqual(schema.body.fields.metadata, {nullable: true, type: 'json'});
   const environment = rowSourceCheckEnvironment(baseWire.trimEnd(), original.declared);
@@ -97,7 +116,7 @@ test('ordinary objects declare exact Decimal contracts and genuine Sources besid
   assert.equal(catalog.source_views.length, 3);
 });
 
-test('actual installed object contracts consume GCS Int64 as Decimal and metadata as exact JSON', () => {
+test('actual installed object contracts consume GCS Int64 in its own logical domain and metadata as exact JSON', () => {
   const original = restoreGcsSourceDeclaration(moon, profile(), undefined, {includeObjects: true});
   const objects = original.declared.views.find(view => view.resource === 'objects');
   const schema = original.declared.contracts.map(JSON.parse).find(value => value.cid === objects.carrier_schema_cid);
@@ -114,6 +133,20 @@ test('actual installed object contracts consume GCS Int64 as Decimal and metadat
   wrong.size = {type: 'string', nullable: false};
   assert.throws(() => checked(objectFixture.fixtureGcsObjectDataWire(JSON.stringify(wrong), row)),
     'the same textual transport must not masquerade as an admitted String carrier');
+  wrong.size = {type: 'decimal', precision: 19, scale: 0, nullable: false};
+  assert.throws(() => checked(objectFixture.fixtureGcsObjectDataWire(JSON.stringify(wrong), row)),
+    'equal emitted text must not substitute the old Decimal logical domain');
+  for (const size of ['0', '9007199254740992', '9007199254740993', '9223372036854775807']) {
+    const cells = JSON.parse(row); cells.size = size;
+    assert.equal(JSON.parse(checked(objectFixture.fixtureGcsObjectDataWire(
+      JSON.stringify(schema.body.fields), JSON.stringify(cells))))[0], size);
+  }
+  for (const size of ['9223372036854775808', '01', '-0', '1.0', 1]) {
+    const cells = JSON.parse(row); cells.size = size;
+    assert.throws(() => checked(objectFixture.fixtureGcsObjectDataWire(
+      JSON.stringify(schema.body.fields), JSON.stringify(cells))),
+    'signed64 admission must neither round, parse a Number nor widen the declared domain');
+  }
 });
 
 test('ordinary contents declares five public fields and retains its original lookup identity', () => {

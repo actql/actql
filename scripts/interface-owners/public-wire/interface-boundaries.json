@@ -7,7 +7,7 @@
     {
       "module": "packages/client-wire/client-host.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "1e4669fd9cd8ce944fa71eac5f148f70aaf11474b0c701c1ec604bd1db753e16",
+      "sha256": "43bd42b64a79271b328b8c9f994f51a9cbf3067521a8dbc842e66d4e4eab41a9",
       "exports": [
         "checkOutcomeProtocol",
         "checkOutcomeSchemaCid",
@@ -948,6 +948,10 @@
               {
                 "path": "scripts/client-check-report-rules.mjs",
                 "anchor": "jsCheckReportRules"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Take count and offset demands additionally retain"
               }
             ],
             "inputsOutputs": [
@@ -962,18 +966,30 @@
               {
                 "path": "docs/spec/protocols/contracts.md",
                 "anchor": "<!-- requirement-block: public-check.runnable-is-not-validity-or-authority -->"
+              },
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "Requirement for an original Take Parameter demand."
               }
             ],
             "identity": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| identity |"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Program, declaration and operation obligation."
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| ownership |"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Runtime resource/publication binding and"
               }
             ],
             "synchronization": [
@@ -984,12 +1000,20 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "Validation is synchronous."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "a fresh bound-input check and execution still requires an explicit request."
               }
             ],
             "failure": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| failure |"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "truncated reports cannot verify or become runnable."
               }
             ],
             "cancellation": [
@@ -1000,18 +1024,30 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "Validation performs no cancellation or I/O."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "observations, or trigger automatic execution/resending."
               }
             ],
             "resources": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| resources |"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Every condition is counted in the same requirement budget;"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| extension |"
+              },
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "This is not a generic predicate language."
               }
             ],
             "verification": [
@@ -1034,6 +1070,10 @@
               {
                 "path": "spec/requirements/contracts.json",
                 "anchor": "\"requirement_id\": \"actql.protocol.contracts/public-check.runnable-is-not-validity-or-authority\""
+              },
+              {
+                "path": "scripts/check-consumer-condition.test.mjs",
+                "anchor": "test('Take binding conditions are closed template Requirements"
               }
             ]
           }
@@ -1434,6 +1474,10 @@
               {
                 "path": "src/run_publication/run_wait.mbt",
                 "anchor": "pub fn run_wait_ready("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Take count and offset demands additionally retain"
               }
             ],
             "inputsOutputs": [
@@ -1452,6 +1496,10 @@
               {
                 "path": "docs/spec/language.md",
                 "anchor": "#### Text enumeration constraints"
+              },
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "Requirement for an original Take Parameter demand."
               }
             ],
             "identity": [
@@ -1466,6 +1514,10 @@
               {
                 "path": "docs/spec/language.md",
                 "anchor": "#### Text enumeration constraints"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Program, declaration and operation obligation."
               }
             ],
             "ownership": [
@@ -1476,6 +1528,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Runtime resource/publication binding and"
               }
             ],
             "synchronization": [
@@ -1490,6 +1546,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const observeStep = async promise => {"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "a fresh bound-input check and execution still requires an explicit request."
               }
             ],
             "failure": [
@@ -1500,6 +1560,10 @@
               {
                 "path": "src/run_publication/run_wait.mbt",
                 "anchor": "return Err(InvalidSince)"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "truncated reports cannot verify or become runnable."
               }
             ],
             "cancellation": [
@@ -1514,6 +1578,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "observations, or trigger automatic execution/resending."
               }
             ],
             "resources": [
@@ -1528,6 +1596,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Every condition is counted in the same requirement budget;"
               }
             ],
             "extension": [
@@ -1542,6 +1614,10 @@
               {
                 "path": "docs/spec/language.md",
                 "anchor": "#### Text enumeration constraints"
+              },
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "This is not a generic predicate language."
               }
             ],
             "verification": [
@@ -1572,6 +1648,10 @@
               {
                 "path": "scripts/protocol-value-contracts.test.mjs",
                 "anchor": "actual generated structural type validator keeps enum shape"
+              },
+              {
+                "path": "scripts/check-consumer-condition.test.mjs",
+                "anchor": "test('Take binding conditions are closed template Requirements"
               }
             ]
           }

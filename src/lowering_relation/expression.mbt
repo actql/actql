@@ -28,6 +28,7 @@ pub enum ExpressionBody {
   Many(ManyOperator, Array[Expression])
   Conditional(Expression, Expression, Expression)
   Case(Array[(Expression, Expression)], Expression)
+  CurrentTimestamp
 }
 
 ///|
@@ -79,6 +80,8 @@ pub(all) enum UnaryOperator {
   Round
   Trunc
   SafeNegate
+  TryDecimal
+  Quantize(String)
 } derive(Eq, Debug)
 
 ///|
@@ -113,6 +116,9 @@ pub(all) enum BinaryOperator {
   NullIf
   In
   NotIn
+  Contains
+  DateTruncate
+  DecimalDivide(String)
 } derive(Eq, Debug)
 
 ///|
@@ -136,6 +142,9 @@ pub(all) enum ManyOperator {
   RPad
   Between
   DateDifference
+  DateAddition
+  TimestampAddition
+  TimestampSubtraction
 } derive(Eq, Debug)
 
 ///|
@@ -196,6 +205,7 @@ pub fn expression_view_entries(value : Expression) -> Int {
     Field(_, _)
     | Literal(_)
     | TypedNull
+    | CurrentTimestamp
     | EmptyArray
     | Property(_, _, _)
     | Subscript(_, _)
@@ -242,7 +252,8 @@ fn expression_tag(
   source : @decode.Cursor,
 ) -> Unit raise ExpressionStop {
   match tag {
-    "field"
+    "current_timestamp"
+    | "field"
     | "literal"
     | "typed_literal"
     | "$param"
@@ -294,6 +305,7 @@ fn expression_tag(
     | "atan2"
     | "log"
     | "strpos"
+    | "contains"
     | "starts_with"
     | "ends_with"
     | "eq"
@@ -332,9 +344,16 @@ fn expression_tag(
     | "vector_score"
     | "vector_concat"
     | "cast"
+    | "try_decimal"
+    | "quantize"
+    | "decimal_divide"
     | "if"
     | "case"
-    | "date_diff" => ()
+    | "date_diff"
+    | "date_add"
+    | "timestamp_add"
+    | "timestamp_sub"
+    | "date_trunc" => ()
     "array" | "empty_array" | "object" | "property" | "subscript" => ()
     other => expression_fail(source, ExpressionNotImplemented(other))
   }
@@ -378,8 +397,20 @@ fn expression_children(
       }
       children
     }
-    "empty_array" | "literal" | "typed_literal" | "field" | "$param" => []
-    "cast" => {
+    "empty_array"
+    | "literal"
+    | "typed_literal"
+    | "field"
+    | "$param"
+    | "current_timestamp" => []
+    "decimal_divide" => {
+      let obj = @decode.open_object(body).unwrap()
+      [
+        @decode.lookup(obj, "left").unwrap(),
+        @decode.lookup(obj, "right").unwrap(),
+      ]
+    }
+    "cast" | "try_decimal" | "quantize" => {
       let obj = @decode.open_object(body).unwrap()
       [@decode.lookup(obj, "value").unwrap()]
     }
@@ -918,6 +949,7 @@ fn lower_typed_expression_measured(
           }
           Property(args[0], name, ordinal)
         }
+        "current_timestamp" => CurrentTimestamp
         "field" => {
           let name = @decode.text(body).unwrap()
           guard fields.get(name) is Some(target) else {
@@ -1040,6 +1072,17 @@ fn lower_typed_expression_measured(
         "chr" => Unary(Chr, args[0])
         "reverse" => Unary(Reverse, args[0])
         "cast" => Cast(args[0])
+        "try_decimal" => Unary(TryDecimal, args[0])
+        "decimal_divide" => {
+          let obj = @decode.open_object(body).unwrap()
+          let mode = @decode.text(@decode.lookup(obj, "rounding").unwrap()).unwrap()
+          Binary(DecimalDivide(mode), args[0], args[1])
+        }
+        "quantize" => {
+          let obj = @decode.open_object(body).unwrap()
+          let mode = @decode.text(@decode.lookup(obj, "rounding").unwrap()).unwrap()
+          Unary(Quantize(mode), args[0])
+        }
         "not" => Unary(Not, args[0])
         "is_null" => Unary(IsNull, args[0])
         "not_null" => Unary(NotNull, args[0])
@@ -1060,6 +1103,11 @@ fn lower_typed_expression_measured(
         "log" => Binary(Log, args[0], args[1])
         "strpos" => Binary(Strpos, args[0], args[1])
         "date_diff" => Many(DateDifference, args)
+        "date_add" => Many(DateAddition, args)
+        "timestamp_add" => Many(TimestampAddition, args)
+        "timestamp_sub" => Many(TimestampSubtraction, args)
+        "date_trunc" => Binary(DateTruncate, args[0], args[1])
+        "contains" => Binary(Contains, args[0], args[1])
         "starts_with" => Binary(StartsWith, args[0], args[1])
         "ends_with" => Binary(EndsWith, args[0], args[1])
         "eq" => Binary(Equal, args[0], args[1])
@@ -1154,7 +1202,11 @@ fn lower_typed_expression_measured(
           Case(clauses, otherwise) =>
             otherwise.uses_veca ||
             clauses.any(pair => pair.0.uses_veca || pair.1.uses_veca)
-          Field(_, _) | Literal(_) | TypedNull | EmptyArray => false
+          Field(_, _)
+          | Literal(_)
+          | TypedNull
+          | EmptyArray
+          | CurrentTimestamp => false
         },
       }
     }

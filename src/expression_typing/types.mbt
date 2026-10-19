@@ -79,6 +79,13 @@ struct TypedExpression {
   profiles : Array[String]
   pending : Array[Obligation]
   usage : Usage
+  requires_query_time : Bool
+}
+
+///|
+/// Declared semantic dependency, including lazy branches; not a clock sample.
+pub fn requires_query_time(value : TypedExpression) -> Bool {
+  value.requires_query_time
 }
 
 ///|

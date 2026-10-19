@@ -126,6 +126,14 @@ pub fn captured_dag_ledger(CapturedDAG) -> @physical_resources.Ledger
 
 pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
 
+pub fn captured_effect_checked_proposal_row_available(CapturedEffectCheckedProposalRow) -> Bool
+
+pub fn captured_effect_checked_proposal_row_field_at(CapturedEffectCheckedProposalRow, Int) -> (String, @value_admission.CheckedValue)?
+
+pub fn captured_effect_checked_proposal_row_field_count(CapturedEffectCheckedProposalRow) -> Int?
+
+pub fn captured_effect_checked_proposal_row_selector(CapturedEffectCheckedProposalRow) -> @value_admission.CheckedValue?
+
 pub fn captured_effect_command_key_validation_matches(CapturedEffectCommandKeyValidation, CapturedEffectInputs, Int, @stage_results.EffectCommandInputBinding) -> Bool
 
 pub fn captured_effect_command_requires_input_key(CapturedEffectInputs, Int, Int) -> Result[Bool, CapturedEffectCommandKeyIssue]
@@ -179,6 +187,8 @@ pub fn captured_effect_local_result_export_retained(CapturedEffectInputs, Captur
 pub fn captured_effect_local_result_matches_member(CapturedEffectInputs, Int, Int) -> Bool
 
 pub fn captured_effect_local_result_matches_source(CapturedEffectInputs, CapturedEffectLocalResult, @execution_query.CapturedSourceRelationIdentity) -> Bool
+
+pub fn captured_effect_local_result_original_row_available(CapturedEffectInputs, CapturedEffectLocalResultExport, @execution_relation.CompletedOutputExportOriginalRow) -> Bool
 
 pub fn captured_effect_local_result_stage(CapturedEffectLocalResult) -> Int
 
@@ -674,6 +684,8 @@ pub fn prepare_strategy_policy_request(StrategyChoiceSet, String, String, String
 
 pub fn prepare_task_offer(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Int, Array[@physical_cost.SerialEstimateLine], PhysicalEnvelope, Int) -> Result[TaskOffer, SearchIssue]
 
+pub fn project_captured_effect_checked_proposal_row(CapturedEffectProposalPlan, CapturedEffectLocalResultExport, @execution_relation.CompletedOutputExportOriginalRow, Int, Int, @value_admission.Limits) -> Result[CapturedEffectCheckedProposalRow, CapturedEffectCheckedProposalIssue]
+
 pub fn project_captured_effect_proposal_row(CapturedEffectProposalPlan, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int) -> Result[(String, String), CapturedEffectProposalIssue]
 
 pub fn rank_operational_candidates(PolicyCandidateSet, OperationalEstimateSidecar, Int, String, Int64, quantity? : String) -> Result[EmpiricalRanking, SearchIssue]
@@ -799,6 +811,8 @@ pub fn retained_task_projection_producer(RetainedTaskProjection) -> Int
 pub fn retained_task_projection_reference(RetainedTaskProjection, Int, Int) -> Result[CheckedTaskReference, CheckedTaskReferenceIssue]
 
 pub fn retained_task_projection_target(RetainedTaskProjection) -> @pipeline_typing.Target
+
+pub fn retire_captured_effect_checked_proposal_row(CapturedEffectCheckedProposalRow) -> Unit
 
 pub fn retire_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
@@ -952,6 +966,18 @@ pub(all) enum CapturedEffectCapabilityIssue {
   NotReady
   Current(@effect_application.EffectApplyCapabilityIssue)
 } derive(@debug.Debug)
+
+pub(all) enum CapturedEffectCheckedProposalIssue {
+  NotReady
+  ForeignExport
+  RowOrder
+  ProjectionUnavailable
+  ConversionUnavailable
+  OriginalRow(@execution_relation.CompletedExportOriginalRowIssue)
+  Projection(@stage_results.EffectPlanCheckedRowIssue)
+} derive(@debug.Debug)
+
+type CapturedEffectCheckedProposalRow
 
 pub(all) enum CapturedEffectCommandKeyIssue {
   ForeignOrigin
