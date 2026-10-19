@@ -265,6 +265,41 @@ test "take parameter declarations remain symbolic with separate bound value obli
 }
 
 ///|
+test "take accepts int64 count declarations while other count operations retain their profile" {
+  let params = @parameter.read_declarations(
+    Some(
+      cursor(
+        "{\"n\":{\"type\":\"int64\"},\"off\":{\"type\":\"int64\",\"nullable\":true}}",
+      ),
+    ),
+    { max_parameters: 10, max_nodes: 100, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+  let take = check_row(
+    Take,
+    cursor("{\"count\":{\"$param\":\"n\"},\"offset\":{\"$param\":\"off\"}}"),
+    input(),
+    Some(params),
+    limits(),
+  ).unwrap()
+  assert_true(
+    row_operation(take)
+    is Some(Take(count=Parameter("n"), offset=Parameter("off"))),
+  )
+  assert_true(
+    pending_validation_at(take, 0)
+    is Some({ kind: BoundInteger(name="n", minimum=1L), .. }),
+  )
+  assert_true(
+    pending_validation_at(take, 1)
+    is Some({ kind: BoundInteger(name="off", minimum=0L), .. }),
+  )
+  assert_true(
+    check_count_value(cursor("{\"$param\":\"n\"}"), 1L, Some(params), limits())
+    is Err({ kind: InvalidCount, .. }),
+  )
+}
+
+///|
 test "equality domains differ from order domains and whole-row distinct" {
   let types = [
     ("{\"type\":\"number\",\"nullable\":true}", true, true),

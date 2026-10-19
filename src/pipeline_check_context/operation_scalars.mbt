@@ -59,6 +59,17 @@ fn operation_scalar_value(
   value : @value.Value,
   demand : @pipeline.OperationScalarDemand,
 ) -> OperationScalarValue? {
+  if value is @value.Signed64(n) {
+    return match demand {
+      SafeInteger(_, minimum~) =>
+        if n >= minimum && n <= 9007199254740991L {
+          Some(Integer(n))
+        } else {
+          None
+        }
+      _ => None
+    }
+  }
   if demand is @pipeline.Timestamp(_) {
     guard value is @value.Timestamp(text) else { return None }
     return Some(Timestamp(text))
