@@ -232,7 +232,7 @@ test "complete template closure uses admitted defaults and refuses unsupported s
     )
     is TemplateOnly(Rejected(_)),
   )
-  for unsupported in [",{\"take\":1}", ",{\"sort\":[{\"n\":\"asc\"}]}"] {
+  for unsupported in [",{\"distinct\":true}", ",{\"take\":{\"$param\":\"x\"}}"] {
     let (program, environment, limits) = complete_template_fixture(
       suffix=unsupported,
     )
@@ -321,4 +321,80 @@ test "complete template closure verifies actual parameter-free SQL and AQL witho
       is InvalidRequest(BindingsInTemplateScope),
     )
   }
+}
+
+///|
+test "complete template closure retains original Sort and literal Take orders" {
+  for
+    suffix in [
+      ",{\"sort\":[{\"n\":\"desc\"}],\"as\":\"ordered\"}", ",{\"take\":1,\"as\":\"ordered\"}",
+      ",{\"sort\":[{\"n\":\"desc\"}]},{\"take\":{\"count\":1,\"offset\":0},\"as\":\"ordered\"}",
+    ] {
+    let (program, environment, limits) = complete_template_fixture(suffix~)
+    let result = @program_check.check_parsed_scoped(
+      program,
+      environment,
+      TemplateOnly,
+      None,
+      limits,
+    )
+    guard result is TemplateOnly(Verified(checked)) else {
+      fail(
+        "original ordered template must close through the existing order owner",
+      )
+    }
+    assert_true(
+      physical_equal(@program_check.template_checked_program(checked), program),
+    )
+    assert_eq(@program_check.template_checked_input_count(checked), 1)
+    assert_true(
+      @program_check.template_checked_input_at(checked, 0).unwrap().kind
+      is ParameterValue(_),
+    )
+  }
+}
+
+///|
+test "complete template accounts static order links in the original requirement budget" {
+  let (plain, environment, limits) = complete_template_fixture()
+  let (ordered, _, _) = complete_template_fixture(
+    suffix=",{\"sort\":[{\"n\":\"desc\"}]},{\"take\":1}",
+  )
+  let mut first_plain = -1
+  let mut first_ordered = -1
+  for requirements in 0..<32 {
+    let selected = {
+      ..limits,
+      compilation: {
+        ..limits.compilation,
+        structure: { ..limits.compilation.structure, requirements, },
+      },
+    }
+    if first_plain < 0 &&
+      @program_check.check_parsed_scoped(
+        plain,
+        environment,
+        TemplateOnly,
+        None,
+        selected,
+      )
+      is TemplateOnly(Verified(_)) {
+      first_plain = requirements
+    }
+    if first_ordered < 0 &&
+      @program_check.check_parsed_scoped(
+        ordered,
+        environment,
+        TemplateOnly,
+        None,
+        selected,
+      )
+      is TemplateOnly(Verified(_)) {
+      first_ordered = requirements
+    }
+  }
+  assert_true(first_plain > 0)
+  // Both programs retain the same one missing value, one publication and
+  // unchanged row-candidate bounds. Sort and Take add two static order links.
+  assert_eq(first_ordered, first_plain + 2)
 }

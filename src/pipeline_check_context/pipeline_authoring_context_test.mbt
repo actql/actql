@@ -1,5 +1,7 @@
 ///|
-fn authoring_context_fixture() -> (
+fn authoring_context_fixture(
+  ordered? : Bool = false,
+) -> (
   PipelineAuthoringClosure,
   PipelineOrderPreparation,
   CapacityStageLimits,
@@ -7,7 +9,11 @@ fn authoring_context_fixture() -> (
 ) raise {
   let pipeline = unbound_profile_pipeline(
     true,
-    suffix=",{\"rename\":{\"n\":\"id\"},\"as\":\"output\"}",
+    suffix=if ordered {
+      ",{\"sort\":[{\"n\":\"desc\"}]},{\"take\":1},{\"rename\":{\"n\":\"id\"},\"as\":\"output\"}"
+    } else {
+      ",{\"rename\":{\"n\":\"id\"},\"as\":\"output\"}"
+    },
   )
   let profiles = authoring_profile_proof(pipeline)
   let capacity = authoring_capacity()
@@ -188,5 +194,61 @@ test "authoring capacity context does not erase unconnected input obligations" {
   assert_true(
     prepare_pipeline_authoring_context(authoring, orders, limits, metadata)
     is Err(UnsupportedInputs),
+  )
+}
+
+///|
+test "authoring ordered context uses only its original producer and exact work budget" {
+  let (authoring, orders, limits, metadata) = authoring_context_fixture(
+    ordered=true,
+  )
+  let checked = prepare_pipeline_authoring_context(
+    authoring, orders, limits, metadata,
+  ).unwrap()
+  assert_eq(pipeline_authoring_context_order_count(checked), 2)
+  for index in 0..<2 {
+    let (step, owner, obligation, resolution) = pipeline_authoring_context_order_at(
+      checked, index,
+    ).unwrap()
+    assert_eq(step, 3 + index)
+    assert_true(
+      @pipeline.operation_order_demand(
+        @pipeline.operation_obligations_at(owner, obligation).unwrap(),
+      )
+      is Some(_),
+    )
+    assert_true(
+      match resolution {
+        SortSequence(_) => index == 0
+        TakeSequence(_) => index == 1
+        _ => false
+      },
+    )
+  }
+  assert_true(pipeline_authoring_context_order_at(checked, -1) is None)
+  assert_true(pipeline_authoring_context_order_at(checked, 2) is None)
+  let work = pipeline_authoring_context_usage(checked).0
+  assert_true(
+    prepare_pipeline_authoring_context(
+      authoring,
+      orders,
+      { ..limits, max_work: work, },
+      metadata,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    prepare_pipeline_authoring_context(
+      authoring,
+      orders,
+      { ..limits, max_work: work - 1, },
+      metadata,
+    )
+    is Err(_),
+  )
+  let (_, foreign, _, _) = authoring_context_fixture(ordered=true)
+  assert_true(
+    prepare_pipeline_authoring_context(authoring, foreign, limits, metadata)
+    is Err(ForeignOrders),
   )
 }

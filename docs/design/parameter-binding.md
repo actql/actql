@@ -48,6 +48,14 @@ uses its already admitted binding origin to locate either the supplied value
 or its declaration default. Equal Program bytes are not original membership;
 no input value, generated SQL location or execution authority is inferred.
 
+Source-free template checking connects Sort and literal Take obligations to the
+same pipeline's existing checked producer orders. Each requirement retains its
+original operation owner and the selected contextual resolution; the complete
+Program still closes publication, capacity and interpretation contracts. No
+execution Parameter is substituted to manufacture an order. Parameterized Take
+bounds retain their unresolved consumer conditions until those are connected;
+a literal-only order connection does not discharge them or authorize a Run.
+
 `default` and annotation `meta` belong only to named declarations, not nested
 type contracts. Metadata is nonempty canonical JSON-model data with reserved
 top-level `actql_` keys rejected; it never participates in binding decisions.

@@ -742,6 +742,10 @@ pub fn pattern_usage(PatternChecks) -> PatternUsage
 
 pub fn pipeline_authoring_capacity(PipelineAuthoringClosure) -> @check_environment.Capacity
 
+pub fn pipeline_authoring_context_order_at(PipelineAuthoringContext, Int) -> (Int, @pipeline_typing.OperationObligations, Int, @pipeline_typing.ContextualOrder)?
+
+pub fn pipeline_authoring_context_order_count(PipelineAuthoringContext) -> Int
+
 pub fn pipeline_authoring_context_orders(PipelineAuthoringContext) -> PipelineOrderPreparation
 
 pub fn pipeline_authoring_context_pipeline(PipelineAuthoringContext) -> PipelineContext
@@ -2743,6 +2747,7 @@ pub enum PipelineAuthoringContextIssue {
   Values(ValuesCapacityIssue)
   Capacity(@capacity_graph_preflight.PreparationIssue)
   Context(Issue)
+  Orders(OperationOrderIssue)
 }
 
 pub enum PipelineAuthoringIssue {

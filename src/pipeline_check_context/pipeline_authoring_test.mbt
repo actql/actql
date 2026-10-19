@@ -129,7 +129,10 @@ test "pipeline authoring cannot certify unresolved expressions or unconnected op
     close_pipeline_authoring(profiles, capacity, [resource], 100000, 100, 100)
     is Err(PendingExpression(1, _)),
   )
-  let unconnected = unbound_profile_pipeline(true, suffix=",{\"take\":1}")
+  let unconnected = unbound_profile_pipeline(
+    true,
+    suffix=",{\"distinct\":true}",
+  )
   let profiles = authoring_profile_proof(unconnected)
   let capacity = authoring_capacity()
   let resource = resolve_authoring_values_resources(

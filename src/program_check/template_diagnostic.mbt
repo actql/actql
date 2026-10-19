@@ -11,7 +11,7 @@ fn template_diagnostic_category(
     | Definition(OutputLimit)
     | Profiles(_, BudgetExceeded)
     | Pipeline(_, BudgetExceeded | ExpressionSlots(WorkLimit | SlotLimit))
-    | Context(_, BudgetExceeded)
+    | Context(_, BudgetExceeded | Orders(BudgetExceeded))
     | Publication(_, BudgetExceeded)
     | Contracts(BudgetExceeded | Collection(BudgetExceeded)) => CompileLimit
     Capacity(InvalidLimits | InvalidComponent | Policy(_))
