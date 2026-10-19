@@ -61,8 +61,10 @@ pub fn Library::open_database_with_custody(Self, String, Int64) -> Result[Databa
 pub fn Library::open_existing_database(Self, String, Int64) -> Result[Database, NativeSqliteIssue]
 pub fn Library::open_existing_database_with_custody(Self, String, Int64) -> Result[Database, NativeSqliteOpenFailure]
 pub fn Library::open_existing_journal_database_with_custody(Self, String, Int64) -> Result[Database, NativeSqliteOpenFailure]
+pub fn Library::open_existing_local_store_database_with_custody(Self, String, Int64) -> Result[Database, NativeSqliteOpenFailure]
 pub fn Library::open_inspection_database(Self, String, Int64) -> Database
 pub fn Library::open_journal_inspection_database(Self, String, Int64) -> Database
+pub fn Library::open_local_store_database_with_custody(Self, String, Int64) -> Result[Database, NativeSqliteOpenFailure]
 pub fn Library::version(Self) -> String
 
 pub(all) struct NativeCapacityUsage {

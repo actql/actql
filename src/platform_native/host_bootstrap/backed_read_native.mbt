@@ -401,3 +401,33 @@ pub fn[T, C] NativeHostBootstrap::require_backed_read_context_retired(
     Err(Bootstrap(ReadersPending))
   }
 }
+
+///|
+#borrow(domain)
+extern "C" fn read_context_scope_ffi(domain : PhysicalExtentDomain) -> Int = "actql_bootstrap_read_context_scope"
+
+///|
+pub(all) enum NativeBackedReadScope {
+  BackedReadUnentered
+  BackedReadEntered
+} derive(Eq, Debug)
+
+///|
+/// Observe this exact current original, not a missing/foreign/failed result as
+/// inactivity. Unentered does not imply another Read/owned scope is clear.
+pub fn[T, C] NativeHostBootstrap::observe_backed_read_context_scope(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[NativeBackedReadScope, NativeBackedExecutionIssue] {
+  match self.require_backed_read_context_current(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match read_context_scope_ffi(domain.physical) {
+    0 => Ok(BackedReadUnentered)
+    1 => Ok(BackedReadEntered)
+    code => Err(Bootstrap(Physical(code)))
+  }
+}
