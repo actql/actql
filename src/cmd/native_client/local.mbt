@@ -160,55 +160,5 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
     Some(value) => value
     None => stop("InvalidLocalCheckEnvironment")
   }
-  let format = match @frontend.select_format(required(child, "format")) {
-    Ok(value) => value
-    Err(_) => stop("UnsupportedLocalSourceFormat")
-  }
-  let supplied = optional(child, "parameters-file").map(name => {
-    local_input_cursor(text_file(input_root, name, 65536L))
-  })
-  let declarations = match optional(child, "parameter-declarations-file") {
-    None => None
-    Some(name) => {
-      if format != Text && format != Sql {
-        stop("external declarations require aql-text or sql")
-      }
-      let source = local_input_cursor(text_file(input_root, name, 65536L))
-      match
-        @parameters.read_declarations(Some(source), {
-          max_parameters: 1024,
-          max_nodes: 8192,
-          max_depth: 64,
-          max_text_bytes: 65536,
-        }) {
-        Ok(value) => Some(value)
-        Err(_) => stop("LocalDeclarationsNotAdmitted")
-      }
-    }
-  }
-  let context = match
-    @frontend.bind_query_context(
-      [],
-      @checked.checking_environment_cid(environment),
-      parameter_declarations=declarations,
-      model_tasks=@checked.checking_environment_model_tasks(environment),
-    ) {
-    Ok(value) => value
-    Err(_) => stop("InvalidLocalQueryContext")
-  }
-  let prepared = match
-    @local_host.prepare_native_client_program(
-      text_file(input_root, required(child, "program-file"), 65536L),
-      format,
-      environment,
-      supplied,
-      Some(context),
-      [],
-      @run_host.client_standard_effect_computation_limits(),
-    ) {
-    Ok(value) => value
-    Err(_) => stop("LocalPreparationNotReady")
-  }
-  let wire = local_static_plan_view(prepared)
-  local_explain_reply(wire, child.flags.get("json").unwrap_or(false))
+  local_explain_for_environment(environment, input_root, child)
 }
