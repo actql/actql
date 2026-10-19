@@ -228,7 +228,9 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           resource, fields: [...fields], dataPath: bundle.dataPath}),
         readAsset,
         limits: {maxPages: 1, maxPageBytes: 1048576, maxPageRows: 100, maxCaptureRows: 100},
-        originalPageLimits: {maxNodes: 4096, maxDepth: 64},
+        // Match the existing RowRun page decoder's depth envelope. A wider
+        // requested limit is rejected before even the original Mock read.
+        originalPageLimits: {maxNodes: 4096, maxDepth: 32},
         prepareSourceRead({checkedOwner, effectful, declaration: selected, occurrence}) {
           const run = sameRun(checkedOwner);
           if (effectful || selected !== declaration || occurrence.stage !== index ||

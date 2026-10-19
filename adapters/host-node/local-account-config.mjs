@@ -164,6 +164,8 @@ export async function createLocalAuthorizationGate({
   const configuration = none(accountConfig)
     ? configurationOf(accountConfiguration)
     : await readAccountConfiguration(accountConfig);
+  const installedContext = context ?? localAuthorizationContext(principal,
+    configuration.accountId);
   try {
     const gate = await createNodeAuthorizationGate({
       ...options,
@@ -173,10 +175,14 @@ export async function createLocalAuthorizationGate({
       // property. A wire-backed gate owns its immutable admitted configuration.
       readConfiguration: configuration.path === undefined ? undefined
         : () => observeAccountConfigurationWire({accountConfig: configuration.path}),
-      context: context ?? localAuthorizationContext(principal,
-        configuration.accountId),
+      context: installedContext,
     });
-    return gate;
+    // The installed row Source and its Checkpoint projection need the same
+    // admitted configuration and context, not a second Missing Account. The
+    // original gate still owns its file-current reader and decision methods;
+    // this retained DATA neither grants a tuple nor acknowledges cleanup.
+    return Object.freeze({...gate, accountConfiguration: configuration.text,
+      context: installedContext});
   } catch (error) {
     if (error?.code === 'ExecutionAuthorizationConfigurationRejected') {
       error.runtimeCode = ACCOUNT_CONFIG_INVALID;

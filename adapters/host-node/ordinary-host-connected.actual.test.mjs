@@ -113,9 +113,11 @@ test('ordinary actual Mock Host consumes the original Quickstart two-Source JOIN
       installation: {directory: '.actql'}, profile: 'mock'});
     const source = await readFile('churn-risk.aql', 'utf8');
     const query = source.slice(0, source.indexOf('|> INFER')).trimEnd() + ';';
+    // The original catalogue declares int64, whose schema-directed JSON wire
+    // is canonical decimal String, not Number (language signed64-values).
     assert.deepEqual(await client.sql(query).all(), [
-      {id: '001Acme', notes: 'Evaluating a competitor; usage down since June.', active_users: 4, trend: 'down'},
-      {id: '001Globex', notes: 'Several support tickets about the new pricing.', active_users: 12, trend: 'flat'},
+      {id: '001Acme', notes: 'Evaluating a competitor; usage down since June.', active_users: '4', trend: 'down'},
+      {id: '001Globex', notes: 'Several support tickets about the new pricing.', active_users: '12', trend: 'flat'},
     ]);
   } finally {try {await client?.close();} finally {process.chdir(cwd);}}
 });

@@ -3143,7 +3143,10 @@ export function openClientRequestJournal(directory, {
         Reflect.apply(checkStore, store, []);
         sourceOriginal = Object.freeze({ref: Object.freeze({...ref}), program, compiled,
           definition, identity, requestControl, publicationControl,
-          journal, store, checkStore,
+          // The same Owner may deliver its bounded method facade. Retain
+          // that exact original, which dispatch receives, not the inaccessible
+          // inner method table. Copies still fail the nominal Source check.
+          journal: deliveredJournal, store, checkStore,
           requestId: fields.requestId, requestScopeCid: fields.logicalRequestScopeCid,
           intentCid: fields.intentFingerprintCid});
         captureOriginal = capture;

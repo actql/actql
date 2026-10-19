@@ -12,7 +12,8 @@ import {request, requestControl, controls, definition, options}
 
 // Real same-file SQLite/COMMIT/reopen, with explicit semantic-control stand-ins.
 // These cases do not replace the separate actual Common binding counter.
-function fixture(t, limits = {maxRecords: 8, maxWireBytes: 4096}, missingJobProjection = false) {
+function fixture(t, limits = {maxRecords: 8, maxWireBytes: 4096}, missingJobProjection = false,
+  journalOptions = {}) {
   const parent = fileURLToPath(new URL('../../_build/source-operation-fixtures/', import.meta.url));
   fs.mkdirSync(parent, {recursive: true});
   const directory = fs.mkdtempSync(join(parent, 'case-'));
@@ -32,7 +33,7 @@ function fixture(t, limits = {maxRecords: 8, maxWireBytes: 4096}, missingJobProj
     clientRunStartAction: (_identity, _retained, _run, _cid, reserved, current) => !current ? 5 : reserved ? 1 : 0,
     clientRunPhysicalStartWithCancellationAction: (_identity, _retained, _run, _cid, reserved, fresh, current, cancelled) =>
       !current ? 5 : reserved && fresh && !cancelled ? 1 : 0});
-  let journal = openClientRequestJournal(directory, {sourceOperationLimits: limits});
+  let journal = openClientRequestJournal(directory, {...journalOptions, sourceOperationLimits: limits});
   const accepted = journal.acceptDefinition(request, options, control, publication);
   journal.reserveDispatch(request, {namespaceId: options.namespaceId, currentAuthorization: true}, control, publication);
   const ref = accepted.ref;
@@ -91,6 +92,24 @@ test('confirmed same-Journal physical claim issues one original scope and commit
   assert.equal(f.start({program: f.program, compiled: f.compiled, store: f.store, capture() {captured++;}}), false);
   assert.equal(captured, 0);
   assert.throws(() => f.port(source), {code: 'ClientRequestJournalClosed'});
+});
+
+test('bounded Journal facade remains the exact same Source operation owner without accepting a copy', t => {
+  const f = fixture(t, undefined, false, {maxJournalOperations: 16,
+    maxDatabaseBytes: 1024 * 1024,
+    primarySqlLimits: {maxCalls: 1000, maxPreparedStatements: 1000,
+      maxSqlBytes: 65536, maxTotalSqlBytes: 1024 * 1024},
+    primaryExecutionLimits: {maxStatementCalls: 1000, maxParameters: 64,
+      maxParameterBytes: 65536, maxResultRows: 1000}});
+  assert.equal(f.start(), true);
+  const source = f.source();
+  assert.throws(() => bindClientSourceOperation(f.scope, {...f.journal}, f.store,
+    f.program, f.prepared, f.occurrence), {code: 'ForeignClientSourceOperation'});
+  let sends = 0;
+  f.port(source)(f.original, () => {sends++;});
+  assert.equal(sends, 1);
+  assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, f.occurrence).originalWire,
+    f.original.wire);
 });
 
 test('copied scope and different original Program or prepared Source cannot bind a RowRun', t => {
