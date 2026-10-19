@@ -8818,6 +8818,65 @@
       ]
     },
     {
+      "module": "packages/sdk/internal/client-errors.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "e98bafe5e785d026f9890383e556870edad076165f45bc7c0389678b6e1806da",
+      "exports": ["ClientError", "RequestHeld"],
+      "operations": [],
+      "imports": ["./errors.mjs"],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "observation-presentation",
+      "owner": "existing public Client / installed Host port and Result reader boundary",
+      "rationale": "Deliver only the existing SDK error class originals before connection selection. This re-export issues no owned-failure classification, request, transport, permission or capacity; the SDK implementation retains its classification writers and state.",
+      "contracts": [
+        {
+          "operations": ["<module>"],
+          "exports": ["ClientError", "RequestHeld"],
+          "attributes": {
+            "responsibility": [
+              {"path": "packages/sdk/internal/client-errors.mjs", "anchor": "// Class-only delivery for the Node facade."}
+            ],
+            "inputsOutputs": [
+              {"path": "packages/sdk/internal/client-errors.mjs", "anchor": "export {ClientError, RequestHeld} from './errors.mjs';"}
+            ],
+            "identity": [
+              {"path": "packages/sdk/internal/errors.mjs", "anchor": "export class RequestHeld extends ClientError"},
+              {"path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs", "anchor": "test('SDK class delivery exports only the original two classes without the execution graph'"}
+            ],
+            "ownership": [
+              {"path": "packages/sdk/internal/errors.mjs", "anchor": "const ownedClientFailures = new WeakMap();"},
+              {"path": "packages/sdk/internal/client-errors.mjs", "anchor": "// refusal state remain private to the SDK implementation module."}
+            ],
+            "synchronization": {
+              "notApplicable": "This module only re-exports the same ESM class bindings. It has no callback, mutable classifier, asynchronous initialization, currentness assertion or synchronization operation; existing SDK methods retain those responsibilities."
+            },
+            "failure": [
+              {"path": "packages/sdk/internal/errors.mjs", "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."},
+              {"path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs", "anchor": "test('SDK class delivery cannot brand a borrowed options exception as SDK-owned'"}
+            ],
+            "cancellation": {
+              "notApplicable": "Delivery of existing error classes has no cancellation, cleanup, resend or recovery operation. RequestHeld remains the original held observation, never a retry or physical acknowledgement."
+            },
+            "resources": [
+              {"path": "packages/sdk/internal/errors.mjs", "anchor": "Object.assign(this, details);"},
+              {"path": "packages/node/index.mjs", "anchor": "// Only the SDK's original error classes belong to this Client-only prefix."},
+              {"path": "docs/design/reference-host.md", "anchor": "module still evaluates and retains its WeakMap, refusal-code Set, helper bindings"}
+            ],
+            "extension": [
+              {"path": "packages/sdk/internal/client-errors.mjs", "anchor": "export {ClientError, RequestHeld} from './errors.mjs';"},
+              {"path": "packages/sdk/package.json", "anchor": "\"./_internal/client-errors\": \"./internal/client-errors.mjs\""}
+            ],
+            "verification": [
+              {"path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs", "anchor": "test('SDK class delivery exports only the original two classes without the execution graph'"},
+              {"path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs", "anchor": "test('SDK class delivery cannot brand a borrowed options exception as SDK-owned'"},
+              {"path": "packages/sdk/connection-options-diagnostics.test.mjs", "anchor": "test('public option getter failures discard secret-bearing borrowed errors'"}
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "packages/sdk/internal/errors.mjs",
       "responsibilityFacet": "primary",
       "sha256": "c3ca3de47a0fe4d01f903e48352701cd1092d7b0ee25abedc796a9858520d130",
@@ -13207,7 +13266,7 @@
     },
     {
       "module": "packages/local-node/initial-control-public-dispatch.cjs",
-      "sha256": "4bf63123c2b35fa8104eeddf8206d337414be6c86fe19989a5d0cfa8ad1d76fa",
+      "sha256": "bfc268cb88703ab4415088065b61a66b416ab5e58c9fed61bd39591e91d68d0d",
       "exports": [
         "commonjs:selectedInitialControlHostPreparation"
       ],
@@ -13233,14 +13292,15 @@
         "./adapters/host-node/node-public-initial-control-bootstrap.cjs",
         "node:module",
         "node:path",
-        "node:process"
+        "node:process",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "existing public Client / installed Host port and Result reader boundary",
-      "rationale": "Private same-native-preload Client-only forwarding, captured before namespace reentry; no caller-created operational original, scope or byte authority.",
+      "rationale": "Private Client-only forwarding from the fixed preload original or supported ordinary Local selection; unselected import acquires no Local bootstrap, and no caller-created operational original, scope or byte authority is issued.",
       "contracts": [
         {
           "operations": [
@@ -13301,11 +13361,11 @@
             "failure": [
               {
                 "path": "packages/local-node/initial-control-public-dispatch.cjs",
-                "anchor": "let selectedInitialControlHostPreparation, ordinaryReceiver, ordinaryConnect;"
+                "anchor": "let selectedInitialControlHostPreparation, ordinaryReceiver, ordinaryConnect, ordinaryFailure;"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Ordinary imports return an immutable `undefined` selection without loading a"
+                "anchor": "An original bootstrap failure remains retained rather than reexecuting a partial"
               }
             ],
             "cancellation": [
@@ -13335,7 +13395,7 @@
               },
               {
                 "path": "packages/local-node/initial-control-public-dispatch.cjs",
-                "anchor": "// normal facade import neither loads that wrapper nor discovers a later table."
+                "anchor": "// selected before acquiring its bootstrap; an unselected import owns no loader."
               }
             ],
             "verification": [
@@ -13366,7 +13426,7 @@
     },
     {
       "module": "packages/node/initial-control-public-dispatch.cjs",
-      "sha256": "fcd64ae757e8b6686f5f07ef5b998c7bb8c3caa9e21e26b676bd8da925059d2d",
+      "sha256": "17c17311f229fdde83a014a15df0f6af78e941f633dd6fa0c95e3ba69a304807",
       "exports": [
         "commonjs:selectedInitialControlHostPreparation"
       ],
@@ -13392,14 +13452,15 @@
         "@actql/local-node/_internal/initial-control-public-dispatch",
         "node:module",
         "node:path",
-        "node:process"
+        "node:process",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "existing public Client / installed Host port and Result reader boundary",
-      "rationale": "Private same-native-preload Client-only forwarding, captured before namespace reentry; no caller-created operational original, scope or byte authority.",
+      "rationale": "Private Client-only forwarding from the fixed preload original or supported ordinary Local selection; unselected import acquires no Local bootstrap, and no caller-created operational original, scope or byte authority is issued.",
       "contracts": [
         {
           "operations": [
@@ -13460,11 +13521,11 @@
             "failure": [
               {
                 "path": "packages/node/initial-control-public-dispatch.cjs",
-                "anchor": "let selectedInitialControlHostPreparation, ordinaryReceiver, ordinaryConnect;"
+                "anchor": "let selectedInitialControlHostPreparation, ordinaryReceiver, ordinaryConnect, ordinaryFailure;"
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "Ordinary imports return an immutable `undefined` selection without loading a"
+                "anchor": "An original bootstrap failure remains retained rather than reexecuting a partial"
               }
             ],
             "cancellation": [
@@ -13494,7 +13555,7 @@
               },
               {
                 "path": "packages/node/initial-control-public-dispatch.cjs",
-                "anchor": "// normal facade import neither loads that wrapper nor discovers a later table."
+                "anchor": "// selected before acquiring its bootstrap; an unselected import owns no loader."
               }
             ],
             "verification": [
@@ -13526,7 +13587,7 @@
     {
       "module": "packages/sdk/internal/private-source-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3f4546c9e857bac49a34023f7bfc34d44ba63364bc5a8f63b824c993a94be9df",
+      "sha256": "7005d36bf19c62f1b3a2383b4755d79cfc7e0cca6920fa208911b5bd547575a5",
       "exports": [
         "captureSourcePreparation",
         "sourcePreparationPort"
@@ -13579,6 +13640,19 @@
           "async": false
         },
         {
+          "name": "captureSourcePreparation/init:intentCid/init:intentCid",
+          "parameters": [
+            "receipt",
+            "originalBody"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:intentCid/init:intentCid/init:intentCid",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "captureSourcePreparation/methods/methods",
           "parameters": [
             "name"
@@ -13606,6 +13680,8 @@
             "captureSourcePreparation/init:bindSourceRequest/init:bindSourceRequest",
             "captureSourcePreparation/init:bindSourceSnapshot/init:bindSourceSnapshot",
             "captureSourcePreparation/init:finishSourceProducer/init:finishSourceProducer",
+            "captureSourcePreparation/init:intentCid/init:intentCid",
+            "captureSourcePreparation/init:intentCid/init:intentCid/init:intentCid",
             "captureSourcePreparation/methods/methods",
             "unavailable/unavailable"
           ],
@@ -13630,6 +13706,10 @@
               {
                 "path": "packages/sdk/internal/private-source-preparation.mjs",
                 "anchor": "return apply(request, receiver, [receipt, originalBody, actualClonedRequest]);"
+              },
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "const value = apply(intent, receiver, [receipt, originalBody]);"
               }
             ],
             "ownership": [
@@ -13672,6 +13752,10 @@
               {
                 "path": "packages/sdk/private-source-preparation.test.mjs",
                 "anchor": "private Source forwarding retains the same receiver and original arguments"
+              },
+              {
+                "path": "packages/sdk/private-source-preparation.test.mjs",
+                "anchor": "Source intent identity refuses asynchronous or malformed observations without assimilation"
               }
             ]
           }

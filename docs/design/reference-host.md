@@ -374,9 +374,14 @@ it captures the same wrapper's original Client-only function and receiver.
 The actual fixed preload argv, `internal/preload` ancestor and same consumer's
 selected entry resolution are required together; forged Module/cache parent
 records in an unrelated preload cannot enroll a callback.
-Ordinary imports return an immutable `undefined` selection without loading a
-wrapper or Root. Application-time cache metadata or a caller-supplied table
-cannot enroll a later dispatch. The wrapper retains its child function and
+Supported ordinary imports retain a fixed forwarding function without loading
+the Local bootstrap or Root. Only fixed own-DATA Local selection acquires that
+bootstrap; Remote and explicit-endpoint connected Local routes remain separate.
+Selection does not invoke getters or Proxy traps and is not packet admission.
+An original bootstrap failure remains retained rather than reexecuting a partial
+module after its cache entry disappears. Unsupported invocation selections stay
+undefined. Application-time cache metadata or a caller-supplied table cannot
+enroll a later dispatch. The wrapper retains its child function and
 receiver once the synchronous child load completes; namespace reentry before
 then refuses without observing raw input. Later exports/method replacement
 does not change either captured link. This source/module boundary still
@@ -392,6 +397,14 @@ envelope. A frozen table, undefined selection or rejected call supplies no
 physical retirement acknowledgement or numerical capacity. Private root-level
 implementation files participate in the same ordinary package image inventory
 even though they are not public export subpaths.
+
+The Node facade's class-only SDK entry exports only the original `ClientError`
+and `RequestHeld` bindings, not classification writers. Its transitive errors
+module still evaluates and retains its WeakMap, refusal-code Set, helper bindings
+and module state. These are prefix holdings for the actual module lifetime;
+two exported classes do not imply evaluation of only two classes or retrospective
+Host coverage. The full SDK execution graph is acquired only after the selected
+Local prefix; unselected SDK routes retain their independent responsibilities.
 
 Selected image loading supplies immutable captured Source to the original Node
 compiler rather than delegating the body to a later pathname read. Uncaptured

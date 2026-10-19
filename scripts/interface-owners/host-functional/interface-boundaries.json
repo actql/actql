@@ -60727,7 +60727,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/node-host-journal-installation.mjs",
-                "anchor": "'closeHostJournalInstallation', 'openHostJournalRequestJournal'];"
+                "anchor": "'closeHostJournalInstallation', 'openHostJournalRequestJournal', 'originalHostPublicationOwnership'];"
               }
             ],
             "verification": [
