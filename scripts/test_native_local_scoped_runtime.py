@@ -98,17 +98,8 @@ class LocalScopedComposition(unittest.TestCase):
                            for symbol in MODULE.LOCAL_COMPONENT_PROVIDER_EXPORTS]
                 self.assertEqual(selected[-len(exports):], exports)
                 selected = selected[:-len(exports)]
-                self.assertEqual(selected[-1], MODULE.LOCAL_INITIAL_ENTRY_ANCHOR)
-                selected = selected[:-1]
-                archive = str(self.emission / 'native/release/build/cmd/native_client/libnative_client-0123456789abcdef.a')
-                original.remove(archive)
-                original.insert(original.index(str(self.home / 'lib/libmoonbitrun.o')), archive)
             if before[-1].endswith('/stdout_stub.c'):
                 self.assertEqual(selected[-1], '-DACTQL_NATIVE_CLIENT_SOURCE_SHA="' + self.source + '"')
-                selected = selected[:-1]
-                self.assertEqual(selected[-1], '-DACTQL_NATIVE_COMMAND_INITIAL_OS_RECIPE=1')
-                selected = selected[:-1]
-                self.assertEqual(selected[-1], '-DACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY=1')
                 selected = selected[:-1]
             elif before[-1].endswith('/bootstrap_stub.c'):
                 selected = selected[:-1]
@@ -116,11 +107,11 @@ class LocalScopedComposition(unittest.TestCase):
                 original[-1] = str(self.allocator / Path(before[-1]).name)
             self.assertEqual(selected, original)
 
-    def test_local_entry_archive_precedes_allocator_without_whole_archive(self):
+    def test_local_entry_keeps_original_link_order_without_startup_anchor(self):
         final = self.plan()[-1]
         archive = str(self.emission / 'native/release/build/cmd/native_client/libnative_client-0123456789abcdef.a')
-        self.assertLess(final.index(archive), final.index(str(self.home / 'lib/libmoonbitrun.o')))
-        self.assertEqual(final.count(MODULE.LOCAL_INITIAL_ENTRY_ANCHOR), 1)
+        self.assertGreater(final.index(archive), final.index(str(self.home / 'lib/libmoonbitrun.o')))
+        self.assertFalse(any('_actql_native_client_capture_command_entry' in value for value in final))
         self.assertFalse(any('force_load' in value or 'all_load' in value for value in final))
 
     def test_missing_original_initialization_members_refuse(self):
