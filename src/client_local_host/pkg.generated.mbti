@@ -219,6 +219,8 @@ pub fn prepare_client_effect_keyed_local_join(@run_publication_host.PreparedClie
 
 pub fn prepare_client_effect_local_sequences(@run_publication_host.PreparedClientEffectComputation, String, String, String?, String?, task_count? : Int?) -> Array[@execution_relation.GeneratedSequence]?
 
+pub fn prepare_client_effect_local_sequences_at_query_time(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, String, String, String?, String?) -> Array[@execution_relation.GeneratedSequence]?
+
 pub fn prepare_client_effect_serialization_prefix(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String?) -> @execution_relation.GeneratedSequence?
 
 pub fn prepare_client_infer_prefix(@run_publication_host.PreparedClientProgram, Int, Int, String, String, fragment_body? : String?, ordered_body? : String?) -> @execution_relation.GeneratedSequence?
@@ -228,6 +230,8 @@ pub fn prepare_client_infer_suffix(@run_publication_host.PreparedClientProgram, 
 pub fn prepare_client_keyed_local_join(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientKeyedLookupInput, String, String, String?, String?) -> ClientKeyedJoinPreparation?
 
 pub fn prepare_client_local_sequences(@run_publication_host.PreparedClientProgram, String, String, String?, String?, task_count? : Int?) -> Array[@execution_relation.GeneratedSequence]?
+
+pub fn prepare_client_local_sequences_at_query_time(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, String, String, String?, String?) -> Array[@execution_relation.GeneratedSequence]?
 
 pub fn prepare_client_query_residual(@execution_query.QuerySequence, @execution_query.QueryReceipt, () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, Int, max_name_bytes~ : Int) -> Result[ClientQueryResidual, ClientQueryResidualIssue]
 

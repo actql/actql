@@ -235,6 +235,48 @@ test "query time acquisition retains its dependency until the same original Run 
     preparation, owner, allowed, definition, request,
   ).unwrap()
   assert_true(physical_equal(repeated, context))
+  let assets = client_local_product_assets()
+  let sequences = @local_query_time.prepare_client_effect_local_sequences_at_query_time(
+    owner,
+    preparation,
+    request,
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  assert_true(sequences.length() > 0)
+  assert_true(
+    @execution.generated_sequence_query_time(sequences[0]) is Some(original) &&
+    physical_equal(original, context),
+  )
+  let requirement = prepare_client_effect_query_requirement_at_query_time(
+    owner,
+    sequences[0],
+    0,
+    0,
+    preparation,
+    request,
+    { max_rows: 100, max_value_bytes: 10000, },
+    {
+      max_work: 1000000,
+      max_fields: 100,
+      max_parameters: 100,
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      @planning.query_requirement_program(requirement),
+      @checked.source_identity(
+        @strategy.graph_program(
+          @strategy.checked_effect_computation_graph(owner.graph),
+        ),
+      ),
+    ),
+  )
   let graph = @strategy.checked_effect_computation_graph(owner.graph)
   let task = @strategy.graph_task_owner(graph, 0).unwrap()
   let predicate = @lower.lower_expression(task, 0, 0, {
