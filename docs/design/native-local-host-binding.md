@@ -1982,3 +1982,15 @@ outer control lifetime. This preserves the same nominal Ledger, exact charges,
 quantity limits, serials and report state. An uncertain report or stop refuses
 this operation. It retires no physical allocation: an escaped old snapshot or
 output still keeps its original domain busy until its actual alias is released.
+
+The private process-import SQLite preparation may select Linux AArch64 GNU as a
+separate derived recipe. It retains the exact pinned SQLite, component and
+provider-header inputs; the Darwin recipe and Python provider-bundle checks
+remain distinct. The ELF shared image has a closed component export set and
+imports its physical ports from the original executable. It has no component
+TLS, automatic initializer or ambient library search path, and cannot resolve a
+second SQLite or allocator provider. Inspection and compilation establish none
+of the actual binding, initial-control, heap, current or cleanup facts: the
+selected Native caller must obtain those from its same original provider before
+using the Library. A component built for another source or target cannot supply
+that correspondence.

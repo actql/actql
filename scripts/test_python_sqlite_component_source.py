@@ -40,9 +40,9 @@ class SQLiteSourceTests(unittest.TestCase):
         for name in ('component.c', 'component.h', 'api.h', 'NOTICE'):
             (self.source / name).write_bytes((SOURCE / name).read_bytes())
 
-    def stage(self):
+    def stage(self, process_target=None):
         (self.source / 'source.json').write_text(json.dumps(self.recipe))
-        return MODULE.prepare(self.archive, self.destination, source=self.source)
+        return MODULE.prepare(self.archive, self.destination, source=self.source, process_target=process_target)
 
     def test_stage_preserves_originals_without_build_load_or_adoption(self):
         before = self.archive.read_bytes()
@@ -118,3 +118,40 @@ class SQLiteSourceTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class LinuxProcessSQLiteSourceTests(unittest.TestCase):
+    setUp = SQLiteSourceTests.setUp
+    stage = SQLiteSourceTests.stage
+    def test_linux_selection_is_genuinely_derived_without_changing_source_or_heap(self):
+        record = self.stage('linux-arm64-gnu')
+        selected = record['selected_process_recipe']
+        original = (self.source / 'source.json').read_bytes()
+        self.assertEqual(record['original_recipe_sha256'], hashlib.sha256(original).hexdigest())
+        self.assertEqual(selected['target'], 'aarch64-unknown-linux-gnu')
+        self.assertIsNone(selected['deployment_target'])
+        self.assertFalse(selected['automatic_initializers'])
+        self.assertFalse(selected['component_tls'])
+        for name in ('upstream', 'local', 'provider_inputs', 'defines', 'memory'):
+            self.assertEqual(selected[name], self.recipe[name])
+        expected = (json.dumps(selected, sort_keys=True, separators=(',', ':')) + '\n').encode()
+        self.assertEqual(record['recipe_sha256'], hashlib.sha256(expected).hexdigest())
+        self.assertNotEqual(record['recipe_sha256'], record['original_recipe_sha256'])
+        self.assertEqual((self.destination / 'component.c').read_bytes(), (SOURCE / 'component.c').read_bytes())
+        self.assertEqual((self.destination / 'sqlite3.c').read_bytes(), b'pinned engine\n')
+        self.assertFalse(record['installed_supplier'])
+        self.assertEqual((record['compiled'], record['loaded']), (0, 0))
+
+    def test_default_darwin_recipe_identity_is_unchanged(self):
+        record = self.stage()
+        self.assertEqual(record['target'], 'aarch64-apple-darwin')
+        self.assertEqual(record['recipe_sha256'], hashlib.sha256((self.source / 'source.json').read_bytes()).hexdigest())
+        self.assertNotIn('selected_process_recipe', record)
+        self.assertNotIn('original_recipe_sha256', record)
+
+    def test_foreign_target_refuses_before_stage_publication(self):
+        for target in ('linux-x64-gnu', 'linux-arm64-musl', 'darwin-arm64', True):
+            with self.subTest(target=target):
+                with self.assertRaisesRegex(ValueError, 'target selection'):
+                    self.stage(target)
+                self.assertFalse(self.destination.exists())
