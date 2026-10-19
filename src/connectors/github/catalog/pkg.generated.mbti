@@ -12,7 +12,11 @@ pub fn add_comment_request(String, String) -> Result[String, CommentRequestIssue
 
 pub let api_version : String
 
+pub fn begin_issue_comments_read(GraphqlRepository, PageLimits, Int, Int) -> Result[IssueCommentsRead, GraphqlResponseIssue]
+
 pub fn begin_issue_page_read(Bytes, PageLimits, Int, String, Int64, String) -> Result[IssuePageRead, GraphqlResponseIssue]
+
+pub fn begin_pull_request_page_read(Bytes, PageLimits, Int, String, Int64, String) -> Result[PullRequestPageRead, GraphqlResponseIssue]
 
 pub fn canonical_timestamp(String) -> String?
 
@@ -25,6 +29,18 @@ pub let comment_subject_query : String
 pub fn comment_subject_request(String) -> Result[String, CommentRequestIssue]
 
 pub fn header_value(HeaderObservation, String) -> String?
+
+pub fn issue_comment_subjects_request(String, String, Int, String?) -> Result[String, GraphqlRequestIssue]
+
+pub fn issue_comments_read_accept(IssueCommentsRead, Bytes) -> Result[Unit, GraphqlResponseIssue]
+
+pub fn issue_comments_read_close(IssueCommentsRead) -> Unit
+
+pub fn issue_comments_read_next_request(IssueCommentsRead, Int) -> Result[String?, GraphqlResponseIssue]
+
+pub fn issue_comments_read_take_page(IssueCommentsRead) -> Result[GraphqlIssueCommentPage?, GraphqlResponseIssue]
+
+pub fn issue_comments_request(IssueCommentSubject, Int, String?) -> Result[String, GraphqlRequestIssue]
 
 pub fn issue_page_read_accept(IssuePageRead, Bytes) -> Result[Unit, GraphqlResponseIssue]
 
@@ -44,11 +60,29 @@ pub fn next_page(String?, String, String, Int, Int) -> Result[NextPage?, LinkIss
 
 pub fn project_comment_subject_response(Bytes, PageLimits, String, String, Int64, String) -> Result[CommentSubject, GraphqlResponseIssue]
 
+pub fn project_issue_comment_subjects_response(Bytes, PageLimits, GraphqlRepository, String) -> Result[GraphqlIssueCommentSubjectsPage, GraphqlResponseIssue]
+
+pub fn project_issue_comments_response(Bytes, PageLimits, IssueCommentSubject) -> Result[GraphqlIssueCommentPage, GraphqlResponseIssue]
+
 pub fn project_issue_page(Bytes, PageLimits) -> Result[IssuePage, IssuePageIssue]
 
 pub fn project_issues_response(Bytes, PageLimits, String, Int64, String) -> Result[GraphqlIssuePage, GraphqlResponseIssue]
 
+pub fn project_pull_requests_response(Bytes, PageLimits, String, Int64, String) -> Result[GraphqlPullRequestPage, GraphqlResponseIssue]
+
 pub fn project_repository_response(Bytes, PageLimits) -> Result[GraphqlRepository, GraphqlResponseIssue]
+
+pub fn pull_request_page_read_accept(PullRequestPageRead, Bytes) -> Result[Unit, GraphqlResponseIssue]
+
+pub fn pull_request_page_read_close(PullRequestPageRead) -> Unit
+
+pub fn pull_request_page_read_finish(PullRequestPageRead) -> Result[GraphqlPullRequestPage, GraphqlResponseIssue]
+
+pub fn pull_request_page_read_next_request(PullRequestPageRead, Int) -> Result[String?, GraphqlResponseIssue]
+
+pub let pull_requests_query : String
+
+pub fn pull_requests_request(String, Int, String?, PullRequestFilters) -> Result[String, GraphqlRequestIssue]
 
 pub fn rate_limit_basis(HeaderObservation) -> RateLimitBasis
 
@@ -93,9 +127,31 @@ pub(all) enum ExchangeFailure {
   Unexpected(Int)
 } derive(Eq, @debug.Debug)
 
+pub(all) struct GraphqlIssueCommentPage {
+  subject : IssueCommentSubject
+  rows : Array[IssueCommentRow]
+  has_next_page : Bool
+  end_cursor : String?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct GraphqlIssueCommentSubjectsPage {
+  repository : GraphqlRepository
+  subjects : Array[IssueCommentSubject]
+  has_next_page : Bool
+  end_cursor : String?
+} derive(Eq, @debug.Debug)
+
 pub(all) struct GraphqlIssuePage {
   repository : GraphqlRepository
   rows : Array[IssueRow]
+  pending_fields : Array[IssueFieldContinuation]
+  has_next_page : Bool
+  end_cursor : String?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct GraphqlPullRequestPage {
+  repository : GraphqlRepository
+  rows : Array[PullRequestRow]
   pending_fields : Array[IssueFieldContinuation]
   has_next_page : Bool
   end_cursor : String?
@@ -136,6 +192,51 @@ pub(all) struct HeaderObservation {
   entries : Array[(String, String)]
 } derive(Eq, @debug.Debug)
 
+pub(all) struct IssueCommentRow {
+  id : Int64
+  node_id : String
+  subject_number : Int64
+  author : String?
+  body : String
+  created_at : String
+  updated_at : String
+} derive(Eq, @debug.Debug)
+
+pub(all) struct IssueCommentSubject {
+  node_id : String
+  number : Int64
+  native_type : String
+  updated_at : String
+  repository : GraphqlRepository
+} derive(Eq, @debug.Debug)
+
+pub struct IssueCommentsRead {
+  repository : GraphqlRepository
+  limits : PageLimits
+  max_pages : Int
+  max_subjects : Int
+  mut pages : Int
+  mut rows : Int
+  subjects : Array[IssueCommentSubject]
+  row_ids : Array[Int64]
+  mut subject_index : Int
+  mut native_type : String
+  mut enumeration_after : String?
+  enumeration_cursors : Array[String]
+  mut enumeration_more : Bool
+  mut comment_after : String?
+  comment_cursors : Array[String]
+  mut pending : IssueCommentsReadRequest?
+  mut page : GraphqlIssueCommentPage?
+  mut complete : Bool
+  mut closed : Bool
+}
+
+pub enum IssueCommentsReadRequest {
+  Subjects(Int)
+  Comments(Int)
+}
+
 pub(all) struct IssueFieldContinuation {
   row_index : Int
   field : String
@@ -174,6 +275,7 @@ pub(all) enum IssuePageIssue {
 
 pub struct IssuePageRead {
   page : GraphqlIssuePage
+  pull_request : Bool
   limits : PageLimits
   max_pages : Int
   mut pages : Int
@@ -219,6 +321,31 @@ pub(all) struct PageLimits {
   max_nodes : Int
   max_depth : Int
   max_rows : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PullRequestFilters {
+  state : String
+  labels : Array[String]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PullRequestNativeFields {
+  base : String
+  head : String
+  draft : Bool
+  mergeable : Bool?
+  merged_at : String?
+  merged_by : String?
+  review_decision : String?
+} derive(Eq, @debug.Debug)
+
+pub struct PullRequestPageRead {
+  shared : IssuePageRead
+  native : Array[PullRequestNativeFields]
+}
+
+pub(all) struct PullRequestRow {
+  common : IssueRow
+  native : PullRequestNativeFields
 } derive(Eq, @debug.Debug)
 
 pub(all) struct RateLimitBasis {

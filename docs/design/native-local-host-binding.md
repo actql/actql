@@ -1479,3 +1479,39 @@ keeps the spent registration until its final acknowledgement, preventing another
 load. A closed physical component carrier or other managed value allocated inside
 Read still keeps that actual context busy while any external alias survives;
 releasing it only permits another same-original cleanup attempt, never new work.
+
+The private Python Read/Crypto transport keeps the existing Host resource pair,
+original Read and component in persistent typed out-slots. Component registration
+uses the outer control lifetime before the first Read entry. Loading consumes that
+same registration once inside its actual entered Read. A Library is admitted only
+through that original component; a matching pointer-shaped value or copied
+carrier cannot substitute for the original registration and current checks.
+
+Each Library and partially initialized Library retains its own close duty. A
+refused Library acquisition with no Library carrier releases only that reply's
+managed references. It cannot close the component. Component retirement waits for
+all Library acknowledgments, and transport reference release is separate from
+Read leave, context, domain, parent loan, descriptor and Host retirement. Unknown
+retains the same slots and prevents resending the foreign operation. Python entry
+refusals occur before registration or a foreign call and do not manufacture a
+foreign-operation Unknown.
+
+When the original Read is already entered by the caller, the component-only
+close path preserves that exact frame and its parent read use. It performs the
+original component close and retains partial cleanup, but does not invoke the
+legacy domain-owning cleanup's stop/enter/leave sequence. Consequently the
+same-frame DATA retirement can check the original current Read after the child
+ACK without reviving a stopped use or interpreting it as a parent ACK. Older
+domain-owning callers retain their separate cleanup sequence.
+
+When a retained adoption Journal finishes its cleanup stages, the same pair and
+Read use are logically stopped. Remaining Libraries and their component retire
+only in that original entered cleanup frame. A separate typed observation checks
+the original Host, pair, claimed Read, component, backing and physical context;
+it revalidates the existing unreturned cleanup use without restoring normal
+current. Only Library/component close and their corresponding close-result DATA
+release consume that observation. Load, Library acquisition, HMAC, verification
+and ordinary dispatch retain their normal-current requirements. The Library's
+own acknowledgment precedes component retirement, and neither acknowledges the
+Read, domains, loan, Host or descriptor. Failed or unknown cleanup retains the
+same receiver and all outstanding aliases.

@@ -56,6 +56,22 @@ Aggregate absorption, shared scans, brought-in captured inputs, changes feeds,
 prefix demand, take and checkpoints are separate contracts. The entry is not a
 replacement for the standard Program checking entries or a runnable-plan constructor.
 
+## Frontend capture placement
+
+The SQL/Pipe lowering supplies the existing filter/select boundary even when
+there is no authored `WHERE`; Common emits the true predicate as part of the
+checked Program. A Native Program is not rewritten by acquisition admission:
+its original shape must satisfy the selected execution entry.
+
+For an independent two-Source JOIN, the existing Script binder retains each
+Direct request in its own capture Stage before the local JOIN. This preserves
+the two-acquisition graph prefix and the original Parameter bindings. A right
+request requiring left-row keys stays at its JoinRight occurrence instead.
+Independence comes from the original Source request classification, not the
+JOIN spelling or equal schema. An unresolved Source retains its consumer
+placement and remains subject to ordinary rejection; it gains no capture proof.
+This placement supplies neither physical read authority nor capture evidence.
+
 ## Resource selection
 
 Acquisition guards are common to all realizations. Fragment limits belong to

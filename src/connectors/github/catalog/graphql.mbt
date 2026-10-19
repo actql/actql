@@ -359,6 +359,7 @@ fn graphql_issue_row(
   object : @decode.ObjectView,
   body_bytes : Bytes,
   max_bytes : Int,
+  pull_request? : Bool = false,
 ) -> Result[(IssueRow, Array[(String, String, Int64)]), IssuePageIssue] {
   let number = match @decode.field(object, "number") {
     Present(value) =>
@@ -380,6 +381,7 @@ fn graphql_issue_row(
   let state = match graphql_text(object, "state") {
     Ok("OPEN") => "open"
     Ok("CLOSED") => "closed"
+    Ok("MERGED") if pull_request => "merged"
     Ok(_) => return Err(InvalidField("state"))
     Err(issue) => return Err(issue)
   }
@@ -403,14 +405,20 @@ fn graphql_issue_row(
       }
     Missing => return Err(MissingRequiredField("author"))
   }
-  let state_reason = match nullable_text(object, "stateReason") {
-    Ok(None) => None
-    Ok(Some("COMPLETED")) => Some("completed")
-    Ok(Some("DUPLICATE")) => Some("duplicate")
-    Ok(Some("NOT_PLANNED")) => Some("not_planned")
-    Ok(Some("REOPENED")) => Some("reopened")
-    Ok(Some(_)) => return Err(InvalidField("stateReason"))
-    Err(issue) => return Err(issue)
+  // Issue-only stateReason is inapplicable to an admitted native PullRequest.
+  // This is not a missing-field fallback for Issue or an authored write input.
+  let state_reason = if pull_request {
+    None
+  } else {
+    match nullable_text(object, "stateReason") {
+      Ok(None) => None
+      Ok(Some("COMPLETED")) => Some("completed")
+      Ok(Some("DUPLICATE")) => Some("duplicate")
+      Ok(Some("NOT_PLANNED")) => Some("not_planned")
+      Ok(Some("REOPENED")) => Some("reopened")
+      Ok(Some(_)) => return Err(InvalidField("stateReason"))
+      Err(issue) => return Err(issue)
+    }
   }
   let url = match required_text(object, "url") {
     Ok(value) => value
@@ -499,13 +507,17 @@ fn graphql_issue_row(
 /// repository: another repository is refused, the same repository under
 /// another ID representation needs an explicit re-publication, and a renamed
 /// or transferred repository needs an explicit re-binding.
-pub fn project_issues_response(
+fn project_issue_like_response(
   body : Bytes,
   limits : PageLimits,
   expected_node_id : String,
   expected_database_id : Int64,
   expected_name_with_owner : String,
-) -> Result[GraphqlIssuePage, GraphqlResponseIssue] {
+  pull_requests : Bool,
+) -> Result[
+  (GraphqlIssuePage, Array[PullRequestNativeFields]),
+  GraphqlResponseIssue,
+] {
   let data = match admit_body(body, limits) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -534,7 +546,8 @@ pub fn project_issues_response(
   if repository.name_with_owner != expected_name_with_owner {
     return Err(BindingChanged)
   }
-  guard @decode.lookup(node, "issues") is Some(issues_cursor) &&
+  let connection = if pull_requests { "pullRequests" } else { "issues" }
+  guard @decode.lookup(node, connection) is Some(issues_cursor) &&
     @decode.open_object(issues_cursor) is Ok(issues) &&
     @decode.lookup(issues, "pageInfo") is Some(info_cursor) &&
     @decode.open_object(info_cursor) is Ok(info) &&
@@ -560,12 +573,30 @@ pub fn project_issues_response(
     return Err(BudgetExceeded)
   }
   let rows = []
+  let native_fields = []
   let pending_fields = []
   for item in nodes {
     guard @decode.open_object(item) is Ok(object) else {
       return Err(InvalidResponse)
     }
-    match graphql_issue_row(object, body, limits.max_bytes) {
+    if pull_requests {
+      match required_text(object, "__typename") {
+        Ok("PullRequest") => ()
+        Ok(other) => return Err(WrongType(other))
+        Err(issue) => return Err(Row(issue))
+      }
+      match graphql_pull_request_fields(object) {
+        Ok(value) => native_fields.push(value)
+        Err(issue) => return Err(Row(issue))
+      }
+    }
+    match
+      graphql_issue_row(
+        object,
+        body,
+        limits.max_bytes,
+        pull_request=pull_requests,
+      ) {
       Ok((row, pending)) => {
         for (field, after, total_count) in pending {
           pending_fields.push({
@@ -580,5 +611,25 @@ pub fn project_issues_response(
       Err(issue) => return Err(Row(issue))
     }
   }
-  Ok({ repository, rows, pending_fields, has_next_page, end_cursor, })
+  Ok(
+    (
+      { repository, rows, pending_fields, has_next_page, end_cursor, },
+      native_fields,
+    ),
+  )
+}
+
+///|
+/// Preserve the existing Issue admission and its exact wire projection.
+pub fn project_issues_response(
+  body : Bytes,
+  limits : PageLimits,
+  expected_node_id : String,
+  expected_database_id : Int64,
+  expected_name_with_owner : String,
+) -> Result[GraphqlIssuePage, GraphqlResponseIssue] {
+  project_issue_like_response(
+    body, limits, expected_node_id, expected_database_id, expected_name_with_owner,
+    false,
+  ).map(value => value.0)
 }

@@ -5,6 +5,7 @@
 ///|
 pub struct IssuePageRead {
   page : GraphqlIssuePage
+  pull_request : Bool
   limits : PageLimits
   max_pages : Int
   mut pages : Int
@@ -49,12 +50,28 @@ pub fn begin_issue_page_read(
     after: field.after,
     seen: [field.after],
   })
-  Ok({ page, limits, max_pages, pages: 1, pending, index: 0, closed: false, })
+  Ok({
+    page,
+    pull_request: false,
+    limits,
+    max_pages,
+    pages: 1,
+    pending,
+    index: 0,
+    closed: false,
+  })
 }
 
 ///|
-fn issue_field_query(field : String) -> String {
+fn issue_field_query(field : String, pull_request : Bool) -> String {
   // These are fixed read-only documents, never caller-supplied query text.
+  if pull_request {
+    return if field == "assignees" {
+      "query ActqlPullRequestAssignees($id: ID!, $number: Int!, $first: Int!, $after: String!) { node(id: $id) { __typename ... on Repository { id databaseId nameWithOwner pullRequest(number: $number) { __typename id number updatedAt assignees(first: $first, after: $after) { totalCount pageInfo { hasNextPage endCursor } nodes { login } } } } } }"
+    } else {
+      "query ActqlPullRequestLabels($id: ID!, $number: Int!, $first: Int!, $after: String!) { node(id: $id) { __typename ... on Repository { id databaseId nameWithOwner pullRequest(number: $number) { __typename id number updatedAt labels(first: $first, after: $after) { totalCount pageInfo { hasNextPage endCursor } nodes { name } } } } } }"
+    }
+  }
   if field == "assignees" {
     "query ActqlIssueAssignees($id: ID!, $number: Int!, $first: Int!, $after: String!) { node(id: $id) { __typename ... on Repository { id databaseId nameWithOwner issue(number: $number) { id number updatedAt assignees(first: $first, after: $after) { totalCount pageInfo { hasNextPage endCursor } nodes { login } } } } } }"
   } else {
@@ -85,7 +102,7 @@ pub fn issue_page_read_next_request(
     Some(
       (
         {
-          "query": issue_field_query(next.field).to_json(),
+          "query": issue_field_query(next.field, read.pull_request).to_json(),
           "variables": {
             "id": read.page.repository.node_id.to_json(),
             // The original GraphQL Int was checked before this conversion.
@@ -140,7 +157,8 @@ pub fn issue_page_read_accept(
   if repository.name_with_owner != read.page.repository.name_with_owner {
     return Err(BindingChanged)
   }
-  let issue = match @decode.field(node, "issue") {
+  let subject = if read.pull_request { "pullRequest" } else { "issue" }
+  let issue = match @decode.field(node, subject) {
     Present(value) =>
       match @decode.open_object(value) {
         Ok(object) => object
@@ -148,6 +166,13 @@ pub fn issue_page_read_accept(
       }
     ExplicitNull => return Err(SubjectUnavailable)
     Missing => return Err(InvalidResponse)
+  }
+  if read.pull_request {
+    match required_text(issue, "__typename") {
+      Ok("PullRequest") => ()
+      Ok(other) => return Err(WrongType(other))
+      Err(issue) => return Err(Row(issue))
+    }
   }
   guard required_text(issue, "id") is Ok(id) &&
     id == row.node_id &&

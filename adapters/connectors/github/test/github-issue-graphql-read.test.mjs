@@ -1,34 +1,11 @@
-// Independent HTTPS fixture tests for the node-bound GraphQL Issue read.
-// Expectations are hand-written from the GitHub GraphQL documentation:
-// `node(id:)` resolves the persisted global ID; `errors` (including
-// RATE_LIMITED in an HTTP 200) is never a page.
+// Independent original GitHub Issue boundary cases; expected rows stay local.
 import assert from 'node:assert/strict';
-import {generateKeyPairSync, randomUUID} from 'node:crypto';
-import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
-import {join} from 'node:path';
 import test from 'node:test';
-import * as commonMoon from
-  '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import * as moon from
-  '../../../../_build/js/release/build/connectors/github/host_node/host_node.js';
-import {runtimeCore} from '../../../host-common/runtime-core.mjs';
-import {openHttpsExchangeFixture} from
-  '../../../site-node/https-exchange-fixture.mjs';
-import {checked} from '../../../host-common/runtime-result.mjs';
-import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
-import {callHttpsCredentialResource, openHttpsCredentialBinding, closeHttpsCredentialBinding, withHttpsCredentialRunResponseOriginal} from
-  '../../../site-node/https-credential-resource.mjs';
-import {openSqliteCredentialJournal} from
-  '../../../site-node/sqlite-credential-journal.mjs';
-import {signRemoteCredentialGrant} from
-  '../../../site-node/remote-credential-signature.mjs';
-import {GITHUB_GRAPHQL_READ_OPERATION, readGitHubIssuesByNode} from
-  '../site/github-issue-graphql-read.mjs';
-import {graphqlRoute, issueReads} from './github-graphql.fixture.mjs';
+import * as moon from '../../../../_build/js/release/build/connectors/github/host_node/host_node.js';
+import {callHttpsCredentialResource, withHttpsCredentialRunResponseOriginal} from '../../../site-node/https-credential-resource.mjs';
+import {issueReads} from './github-graphql.fixture.mjs';
+import {openGitHubReadFixture as setup, accountedGitHubRows as accountedIssueRows} from './github-read.fixture.mjs';
 
-const control = runtimeCore(commonMoon).remoteCredentialControl;
-const cid = digit => `sha256:${digit.repeat(64)}`;
 const A = {nodeId: 'R_A', databaseId: 1296269, nameWithOwner: 'octo/hello'};
 const issues = count => Array.from({length: count}, (_, index) =>
   ({number: index + 1}));
@@ -39,66 +16,6 @@ const row = number => ({number: String(number), node_id: `I_${number}`,
   url: `https://github.com/octo/hello/issues/${number}`, milestone: null, created_at: '2026-10-01T00:00:00.000Z',
   updated_at: '2026-10-02T00:00:00.000Z', closed_at: null});
 
-async function setup(t, state, {faults = [], beforeAuthorize, accounted = false} = {}) {
-  const fixture = await openHttpsExchangeFixture(t, {faults,
-    routes: [graphqlRoute(() => state)]});
-  const root = await mkdtemp(join(tmpdir(), 'actql-github-graphql-'));
-  const authority = generateKeyPairSync('ed25519');
-  await writeFile(join(root, 'credential-authority.key'), authority.privateKey.export({format: 'pem', type: 'pkcs8'}), {mode: 0o600});
-  await writeFile(join(root, 'credential-authority.pub'), authority.publicKey.export({format: 'pem', type: 'spki'}));
-  const journal = openSqliteCredentialJournal(join(root, 'journal'), {
-    credentialAuthorities: new Map([['authority-a',
-      new Map([['key-a', authority.publicKey]])]]),
-  });
-  let binding;
-  let rowRun;
-  t.after(async () => {
-    if (binding !== undefined) assert.equal(closeHttpsCredentialBinding(binding), 'closed');
-    if (rowRun !== undefined) rowRun.close();
-    journal.close();
-    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
-      await writeFile(join(root, 'physical-requests.json'), JSON.stringify(fixture.seen()), {mode: 0o600});
-      t.diagnostic(`Retained GitHub GraphQL credential fixture: ${root}`);
-    } else await rm(root, {recursive: true, force: true});
-  });
-  const scope = Object.freeze({
-    issuerAuthority: 'authority-a', principal: 'principal-a',
-    namespaceId: 'namespace-a', environment: 'production', siteKey: 'site-a',
-    siteGeneration: 1, runtimeBundleCid: cid('a'),
-    connectorRegistration: 'github', connectorRevision: 'github/0.1',
-    resourceOrigin: fixture.origin, operation: GITHUB_GRAPHQL_READ_OPERATION,
-    runInvocationCid: cid('b'), taskAttempt: 1, dispatchRequestCid: cid('c'),
-    expiresUnixMilliseconds: 2_000_000_000_000n, maxUses: 32,
-  });
-  const grant = control.prepare(scope);
-  journal.acceptGrant(signRemoteCredentialGrant(grant, control,
-    {keyId: 'key-a', privateKey: authority.privateKey}), control);
-  const credential = {control, journal, resolveSecret: async () => 'token-a',
-    ca: fixture.ca, now: () => 1_999_999_999_999};
-  if (accounted) {
-    binding = openHttpsCredentialBinding({...credential, scope, maxSecretBytes: 128});
-    credential.binding = binding;
-    rowRun = await accountedIssueRows(() => closeHttpsCredentialBinding(binding) === 'closed');
-  }
-  let reads = 0;
-  const read = (overrides = {}) => {
-    const id = reads++;
-    return readGitHubIssuesByNode({moon, repository: A,
-      credential,
-      callResource: callHttpsCredentialResource,
-      authorizationFor: async index => {
-        await beforeAuthorize?.(index);
-        return {grant, scope, useId: `read-${id}-${index}`};
-      },
-      limits: {maxPages: 5, maxRows: 100, maxBytes: 100_000,
-        maxNodes: 10_000, maxDepth: 32, perPage: 100,
-        maxRequestBytes: 16_384},
-      ...(rowRun === undefined ? {} : {chargePage: rowRun.charge,
-        consumeObservation: rowRun.observe, consumePage: rowRun.page}),
-      ...overrides});
-  };
-  return {fixture, journal, read, rowRun, credential};
-}
 
 const world = (extra = {}) => ({
   repositories: new Map([['R_A', {databaseId: 1296269,
@@ -383,56 +300,6 @@ test('nested pages spend the existing request ceiling and current authorization 
 
 // Explicit component reservations exercise the original accounted RowRun;
 // they are not the installed Host's normal resource supplier.
-async function accountedIssueRows(verifyTransport) {
-  const read = name => readFile(new URL('../../../../' + name, import.meta.url), 'utf8');
-  const declaration = checked(commonMoon.clientProgramRowSourceRestoreRelationDeclaration(
-    'gh', 'github', 'github/0.1', await read('src/connectors/github/source-views.json'), undefined));
-  const declared = JSON.parse(commonMoon.clientProgramRowSourceDeclarationJson(declaration));
-  const environment = rowSourceCheckEnvironment((await read('spec/local-check-environment.json')).trimEnd(), declared);
-  const check = commonMoon.clientProgramCheckEnvironment(environment.wire, environment.evidenceCid,
-    false, false, true, false, false, false, false);
-  const view = declared.views[0];
-  const publication = JSON.stringify({environmentCid: environment.evidenceCid, aliases: [{name: 'gh.issues',
-    sourceRef: view.source_ref, sourceViewContractCid: view.view_cid, schemaContractCid: view.carrier_schema_cid}]});
-  const preparation = commonMoon.clientProgramPrepareSourceWithParameters(
-    'SELECT number, comments, state_reason, assignees, labels, url FROM gh.issues ORDER BY number',
-    'sql', check, publication, undefined, undefined);
-  const program = commonMoon.clientProgramPreparationReady(preparation);
-  assert.ok(program, commonMoon.clientProgramPreparationIssueCode(preparation));
-  const aoa = JSON.parse(await read('spec/contracts/actql-aoa.json'));
-  const requirement = checked(commonMoon.clientProgramPrepareLocalQueryRequirement(program, 0, 0,
-    await read('spec/dependencies/aoa-pipeline-registry.json'), JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
-  const acquisition = checked(commonMoon.clientProgramRowSourcePrepareAcquisition(declaration, requirement,
-    await read('spec/contracts/actql-query-acquisition.json'), await read('spec/contracts/actql-query-process-evidence.json')));
-  const ledger = checked(commonMoon.clientProgramAcquisitionLedger(1, 1, 100000n, 100000000n, 100000000n, 0));
-  const run = checked(commonMoon.clientProgramRowSourceStartAccounted(acquisition, randomUUID(), verifyTransport,
-    ledger, 100000n, 100000n));
-  checked(commonMoon.clientProgramRowSourceBegin(run, 100000, 5, 100, undefined));
-  let charges = 0;
-  let observations = 0;
-  let receivedBytes = 0;
-  return {
-    charge: body => { charges++; receivedBytes += body.byteLength; return checked(commonMoon.clientProgramRowSourceChargePage(run, body)); },
-    observe: charge => { observations++; return checked(commonMoon.clientProgramRowSourceConsumeObservationCharge(run, charge)); },
-    page: (rows, _page, {charge}) => checked(commonMoon.clientProgramRowSourceAcceptChargedPage(run, charge, Buffer.from(JSON.stringify(rows)))),
-    finish() {
-      checked(commonMoon.clientProgramRowSourceFinish(run));
-      const capture = checked(commonMoon.clientProgramRowSourceCapture(run));
-      const source = checked(commonMoon.clientProgramRowSourceCaptureSource(capture));
-      const relation = checked(commonMoon.clientProgramIdentifyCapturedSourceRelation(source));
-      return commonMoon.clientProgramCapturedSourceRowCount(relation);
-    },
-    counts: () => ({charges, observations}),
-    receivedBytes: () => receivedBytes,
-    transferredBytes: () => commonMoon.clientProgramMultiCapturedLedgerUsage(ledger)[3],
-    close() {
-      checked(commonMoon.clientProgramRowSourceCloseAccounted(run));
-      assert.deepEqual(commonMoon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
-    },
-  };
-}
 
 test('the same actual accounted RowRun admits child observations then captures exact array and int64 contracts', async t => {
   const state = world();

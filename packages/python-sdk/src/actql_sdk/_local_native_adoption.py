@@ -7,13 +7,16 @@ replace a missing installed supplier. Native retains every partial open.
 from __future__ import annotations
 
 from collections.abc import Callable
-from ctypes import byref, c_void_p
+from ctypes import byref, c_int32, c_uint16, c_void_p
 from math import isfinite
-from typing import Any, NoReturn
+from typing import TYPE_CHECKING, Any, NoReturn
 
 from ._local_native_control_custody import _OriginalArenaFact
 from ._local_native_host_resources import _OriginalHostResourcesCustody
 from ._local_native_shim_abi import bind
+
+if TYPE_CHECKING:
+    from ._local_native_read_crypto import _OriginalReadCryptoLibrary
 
 _RETIRED_ADOPTION_DATA = object()
 
@@ -50,8 +53,9 @@ class _OriginalAdoptionCustody:
     __slots__ = ('_resources', '_functions', '_preparation', '_original', '_reply',
                  '_host', '_pair', '_read', '_crypto', '_session', '_journal',
                  '_unknown', '_unknown_carrier', '_closed', '_journal_attempted',
-                 '_observed_originals')
+                 '_observed_originals', '_crypto_library')
     _resources: _OriginalHostResourcesCustody
+    _crypto_library: _OriginalReadCryptoLibrary | None
     _functions: _OriginalAdoptionFunctions
     _preparation: Callable[[Any], int] | None
     _original: c_void_p
@@ -69,9 +73,59 @@ class _OriginalAdoptionCustody:
     _observed_originals: tuple[int | None, int | None, int | None]
 
     @classmethod
+    def _open_from_original_library(
+        cls, resources: _OriginalHostResourcesCustody,
+        functions: _OriginalAdoptionFunctions, crypto: _OriginalReadCryptoLibrary, *,
+        parent_path: str, state_name: str, source_path: str, source_name: str,
+        account_id: str, configuration_files: tuple[str, ...],
+        managed_root_path: str | None, diagnostic_ceiling: int,
+    ) -> _OriginalAdoptionCustody:
+        """Transport the existing Native adoption input and actual Library.
+
+        This selects neither a Host nor a key, and does not initialize an
+        absent installation. The existing Native binding owns every open and
+        partial result. Its borrowed Library stays registered through DATA ACK.
+        """
+        from ._local_native_read_crypto import _OriginalReadCryptoLibrary
+        from ._local_native_runtime import _exact_utf16
+        if (cls is not _OriginalAdoptionCustody
+                or type(resources) is not _OriginalHostResourcesCustody
+                or type(functions) is not _OriginalAdoptionFunctions
+                or functions.library is not resources._functions.library
+                or type(crypto) is not _OriginalReadCryptoLibrary
+                or crypto._resources is not resources
+                or type(configuration_files) is not tuple or len(configuration_files) > 8
+                or type(diagnostic_ceiling) is not int
+                or not 0 < diagnostic_ceiling < 2**31
+                or managed_root_path is not None and type(managed_root_path) is not str):
+            raise ValueError('Original adoption Library or input is unavailable')
+        # Exact UTF-16 transport uses the existing closed Native input bounds.
+        # No path resolution, key creation, normalization or source substitution.
+        paths = tuple(_exact_utf16(value, 4096) for value in
+            (parent_path, state_name, source_path, source_name, account_id))
+        files = tuple(_exact_utf16(value, 4096) for value in configuration_files)
+        lengths = (c_int32 * len(files))(*(len(value) for value in files))
+        joined = (c_uint16 * sum(map(len, files)))(*(unit for value in files for unit in value))
+        managed = ((c_uint16 * 0)() if managed_root_path is None
+                   else _exact_utf16(managed_root_path, 4096))
+        prepare_utf16 = bind(functions.library, 'actql_local_adoption_prepare_utf16_into')
+
+        def prepare(out: Any) -> int:
+            args = tuple(item for value in paths for item in (value, len(value)))
+            return int(prepare_utf16(resources._host, resources._original,
+                resources._read._original, crypto._library, *args,
+                joined, len(joined), lengths, len(files), managed, len(managed),
+                int(managed_root_path is not None), diagnostic_ceiling, out))
+
+        return cls._open_original(resources, functions, prepare=prepare,
+                                  _crypto_library=crypto)
+
+    @classmethod
     def _open_original(cls, resources: _OriginalHostResourcesCustody,
                        functions: _OriginalAdoptionFunctions, *,
-                       prepare: Callable[[Any], int]) -> _OriginalAdoptionCustody:
+                       prepare: Callable[[Any], int],
+                       _crypto_library: _OriginalReadCryptoLibrary | None = None
+                       ) -> _OriginalAdoptionCustody:
         if (cls is not _OriginalAdoptionCustody
                 or type(resources) is not _OriginalHostResourcesCustody
                 or type(functions) is not _OriginalAdoptionFunctions
@@ -80,6 +134,7 @@ class _OriginalAdoptionCustody:
             raise ValueError('Original adoption assembly is unavailable')
         original = cls.__new__(cls)
         original._resources, original._functions = resources, functions
+        original._crypto_library = _crypto_library
         original._preparation = prepare
         original._original, original._reply = c_void_p(), c_void_p()
         original._host, original._pair, original._read = c_void_p(), c_void_p(), c_void_p()
@@ -96,7 +151,11 @@ class _OriginalAdoptionCustody:
             original._parents_current()
             if getattr(resources._read, '_adoption_original', None) is not None:
                 raise ValueError('Original adoption has already been selected')
+            if _crypto_library is not None:
+                original._require_crypto_library(unbound=True)
             resources._read._adoption_original = original
+            if _crypto_library is not None:
+                _crypto_library._adoption_original = original
             try:
                 original._status(prepare(out))
                 if original._original.value is None:
@@ -138,7 +197,9 @@ class _OriginalAdoptionCustody:
     def _check_originals(self) -> None:
         p = self._resources
         if (self._host.value != p._host.value or self._pair.value != p._original.value
-                or self._read.value != p._read._original.value or self._crypto.value is None):
+                or self._read.value != p._read._original.value or self._crypto.value is None
+                or self._crypto_library is not None
+                   and self._crypto.value != self._crypto_library._library.value):
             raise self._mark_unknown()
         observed = self._crypto.value, self._session.value, self._journal.value
         if any(old is not None and old != current
@@ -147,6 +208,25 @@ class _OriginalAdoptionCustody:
         # Correlate immutable aliases only. These addresses grant no use and
         # remain separate from the owned managed references in the out-slots.
         self._observed_originals = observed
+
+    def _require_crypto_library(self, *, unbound: bool = False) -> None:
+        from ._local_native_read_crypto import _OriginalReadCryptoLibrary
+        library = self._crypto_library
+        if library is None:
+            return
+        if type(library) is not _OriginalReadCryptoLibrary:
+            raise ValueError('Original adoption Library is unavailable')
+        library._check_original(entered=False)
+        parent = library._parent
+        if parent._unknown is not None:
+            raise parent._unknown
+        if (parent._closed or not parent._loaded
+                or library not in parent._libraries or library._library.value is None
+                or library._resources is not self._resources
+                or self._resources._read._crypto_original is not parent
+                or (library._adoption_original is not None if unbound
+                    else library._adoption_original is not self)):
+            raise ValueError('Original adoption Library is unavailable')
 
     def _parents_current(self) -> None:
         p = self._resources
@@ -165,6 +245,7 @@ class _OriginalAdoptionCustody:
         if self._unknown is not None:
             raise self._unknown
         self._parents_current()
+        self._require_crypto_library()
         if (self._closed or self._original.value is None
                 or self._resources._read._adoption_original is not self):
             raise ValueError('Original adoption is retired or unavailable')
@@ -221,6 +302,8 @@ class _OriginalAdoptionCustody:
                 self._closed = True
                 self._resources._read._adoption_original = _RETIRED_ADOPTION_DATA
                 self._preparation = None
+                if self._crypto_library is not None:
+                    self._crypto_library._adoption_original = _RETIRED_ADOPTION_DATA
             else:
                 self._drop_reply()
             return fact
