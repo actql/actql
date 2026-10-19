@@ -137,3 +137,23 @@ No general error catch or frontend conversion is introduced. Cancellation
 retains caller input and releases only the frame's temporary holdings. Conversion
 scratch and original operand/result aliases overlap under the existing phase;
 a slot bound or logical release is not physical byte capacity or cleanup ACK.
+
+### Exact Decimal quantization
+
+QUANTIZE retains one checked Decimal child and the original closed rounding
+mode in the existing expression frame. Its result contract supplies precision
+and scale. Bounded integer coefficient division selects an exact quotient and
+remainder; half-even tests quotient parity, half-up selects magnitude ties
+away from zero, and directed modes respect the original sign. Coefficient
+zero is canonical and result overflow fails before Value publication. No
+binary64 conversion or altered Decimal identity is involved.
+
+The admitted 38-digit/scale bounds limit integer scratch to at most 128 bits.
+Upscale overflow is rejected before multiplying, and smaller target scales use
+an exact power of ten. The fixed transform preflight covers representation
+passes and bounded arithmetic; 32 structural scratch entries are reserved
+before allocation and released on both conversion outcomes. Those entries are
+not a physical byte grant. Original operand/root, mode String, integer records
+and limbs, coefficient String, formatter and result overlap under the existing
+phase. Child/current/cancel, logical charging and original-root release remain
+owned by the original evaluator; NULL propagation does not catch those errors.

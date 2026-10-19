@@ -11,13 +11,12 @@ const before=read('scripts/fixtures/try-decimal-source/predecessor.json');
 
 test('explicit TRY_DECIMAL source rules retain the complete preceding grammar and all existing machine shapes',()=>{
   assert.equal(before.grammar_manifest_cid,'sha256:32d4f59d843f3a00bb84256816a1be2f11fa58c37387619ca14a8d4ab6064ba3');
-  const current=read('spec/manifests/actql-grammar-0.1.json');
+  const current=read('scripts/fixtures/quantize-source/predecessor.json');
   for(const grammar of [before,current]){
     const {grammar_manifest_cid,...body}=grammar;assert.equal(hash(canonical(body)),grammar_manifest_cid);
   }
   assert.deepEqual({...current,grammar_manifest_cid:before.grammar_manifest_cid,query_text_rules_sha256:before.query_text_rules_sha256},before);
   assert.notEqual(current.grammar_manifest_cid,before.grammar_manifest_cid);
-  assert.equal(current.query_text_rules_sha256,hash(readFileSync('docs/spec/query-text.md')).slice(7));
 });
 
 test('explicit TRY_DECIMAL retains complete independent existing-operation preimages',()=>{

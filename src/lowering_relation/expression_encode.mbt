@@ -181,6 +181,25 @@ fn emit_frames(
             pending.push(EndObject)
             pending.push(Expr(child))
           }
+          Unary(Quantize(rounding), arg) => {
+            guard expr.contract.shape is @contract.Decimal(precision~, scale~) &&
+              ["half_even", "half_up", "toward_zero", "floor", "ceiling"].contains(
+                rounding,
+              ) else {
+              raise @encode.InvalidStructure
+            }
+            pending.push(Op("quantize"))
+            @encode.begin_object(output)
+            @encode.key(output, "precision")
+            @encode.number_value(output, precision.to_double())
+            @encode.key(output, "rounding")
+            @encode.string_value(output, rounding)
+            @encode.key(output, "scale")
+            @encode.number_value(output, scale.to_double())
+            @encode.key(output, "value")
+            pending.push(EndObject)
+            pending.push(Expr(arg))
+          }
           Unary(TryDecimal, arg) => {
             // Preserve the existing distinct closed operation shape. P/S are
             // projected from the original checked result, not caller data.
@@ -230,7 +249,7 @@ fn emit_frames(
                   Round => "round"
                   Trunc => "trunc"
                   SafeNegate => "safe_negate"
-                  TryDecimal => raise @encode.InvalidStructure
+                  TryDecimal | Quantize(_) => raise @encode.InvalidStructure
                   Not => "not"
                   IsNull => "is_null"
                   NotNull => "not_null"

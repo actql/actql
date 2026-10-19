@@ -97,5 +97,7 @@ the existing bounded target shape and never evaluates or rounds the value.
 The public lookup's omitted-target spelling is not resolved by fabricating
 precision/scale: it keeps its implementation limitation. Explicit TRY_DECIMAL
 retains its existing distinct Common body and nullable target. The same target
-context resolves immediate NULL without changing its value. QUANTIZE and
-DECIMAL_DIVIDE remain separate existing conversion/rounding responsibilities.
+context resolves immediate NULL without changing its value. Explicit QUANTIZE
+retains its original Decimal operand, static target and closed rounding String.
+Its omitted-target public lookup remains unresolved without an actual target
+and rounding policy. DECIMAL_DIVIDE remains a separate existing responsibility.
