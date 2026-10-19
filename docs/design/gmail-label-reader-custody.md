@@ -136,15 +136,26 @@ of the typed rows does not supply a physical cleanup acknowledgement or release
 the original capture reservation. Stop and failure keep the original attempts;
 there is no replacement reader, grant retry or resend.
 
-This factory does not register threads in the installed Source profile. That
-connection requires the existing Host/Resource supplier to cover both list and
-dependent-get response transfers and their overlapping retained/workspace
-inventory. With list bound P, get bound T and per-response byte cap B, the raw
-response transfer bound includes (P + T) × B; the list grant still has its own
-P-use bound. A total-response check performed after charge does not reserve the
-failed response, and finite decoder bounds are not a capacity issuer. Missing
-normal supplies remain unavailable rather than borrowing the labels-only page
-reservation or treating a final ticket as proof of the whole prefix.
+The installed Source profile explicitly selects `resource: "threads"` to bind
+this factory. An absent selector keeps the original labels profile and identity;
+unknown selectors and mixed limit sets refuse rather than falling back. The
+Gmail Catalog supplies the same thread schema and original ID candidate-key
+facts to Common's ordinary declaration and Source alias admission. The selected
+thread target and binding remain distinct from the label target even at the
+same mailbox, Site and runtime. Neither declaration facts nor target DATA issue
+Account permission.
+
+The existing Host/Resource supplier must cover both list and dependent-get
+response transfers and their overlapping retained/workspace inventory. With
+list bound P, get bound T and per-response byte cap B, the original RowRun raw
+response envelope is (P + T) × B, one checked row per get and at most T captured
+rows. A thin same-Site delegate retains the original issuer method/receiver and
+keeps the list grant's P-use bound; the reader's separate original get grant
+retains its T-use bound. It does not create a second issuer or retarget a grant.
+The configured total-response byte check remains independent, including failure
+after charge. Finite decoder bounds are not a capacity issuer. Missing normal
+supplies remain unavailable rather than borrowing the labels-only reservation
+or treating a final ticket as proof of the whole prefix.
 
 ## Installed label preparation
 
