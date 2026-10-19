@@ -1,4 +1,33 @@
 ///|
+// Reenter only the same retained execution to retire its original children.
+fn LocalCommandBusinessOriginal::enter_children_cleanup(
+  business : LocalCommandBusinessOriginal,
+  host : @initial_arena.InstalledArenaHost,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard business.execution is Some(execution) else {
+    return Err(CommandBusinessChildren)
+  }
+  let scope = match host.observe_domain_retained_execution_scope(execution) {
+    Ok(value) => Ok(value)
+    Err(_) => host.observe_domain_retained_execution_cleanup_scope(execution)
+  }
+  match scope {
+    Err(issue) => return Err(CommandRetainedExecution(issue))
+    Ok(@initial_bootstrap.BackedReadEntered) => business.active = true
+    Ok(@initial_bootstrap.BackedReadUnentered) => {
+      // Retain the original attempted entry even if its acknowledgement is
+      // lost. Cleanup entry monotonically retires normal business access.
+      business.active = true
+      match host.enter_domain_retained_execution_cleanup(execution) {
+        Err(issue) => return Err(CommandRetainedExecution(issue))
+        Ok(_) => ()
+      }
+    }
+  }
+  Ok(())
+}
+
+///|
 // Retain the exact constructor outcome before reporting an application error.
 // Scope return or presentation failure cannot discard an acquired Work or a
 // partially initialized occurrence. The parent retires these before Store.
@@ -116,22 +145,9 @@ fn LocalCommandPreparationOriginal::close_business_children(
         }
       Ok(false) => ()
     }
-    let scope = match host.observe_domain_retained_execution_scope(execution) {
-      Ok(value) => Ok(value)
-      Err(_) => host.observe_domain_retained_execution_cleanup_scope(execution)
-    }
-    match scope {
-      Err(issue) => return Err(CommandRetainedExecution(issue))
-      Ok(@initial_bootstrap.BackedReadEntered) => business.active = true
-      Ok(@initial_bootstrap.BackedReadUnentered) => {
-        // Retain the original attempted entry even if its acknowledgement is
-        // lost. Cleanup entry monotonically retires normal business access.
-        business.active = true
-        match host.enter_domain_retained_execution_cleanup(execution) {
-          Err(issue) => return Err(CommandRetainedExecution(issue))
-          Ok(_) => ()
-        }
-      }
+    match business.enter_children_cleanup(host) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
     }
     if business.values_work is Some(work) {
       if !work.close() {
