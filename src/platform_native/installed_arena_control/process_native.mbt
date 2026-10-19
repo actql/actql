@@ -69,6 +69,7 @@ pub fn InstalledArenaHost::prepare_process(
   if domain.live_channel is Some(_) ||
     domain.sqlite_library is Some(_) ||
     domain.original_read is Some(_) ||
+    domain.retained_execution is Some(_) ||
     retained < 0L ||
     execution <= 0L ||
     nonce <= 0L {
