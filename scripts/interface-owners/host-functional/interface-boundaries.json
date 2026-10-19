@@ -43393,7 +43393,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-mock.mjs",
-                "anchor": "record.original = sourceManaged.prepareRun(prepared);"
+                "anchor": "record.original = model === undefined ? sourceManaged.prepareRun(prepared)"
               }
             ],
             "synchronization": [
