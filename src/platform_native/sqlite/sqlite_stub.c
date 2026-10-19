@@ -1249,9 +1249,10 @@ void *actql_native_sqlite_initialize_owned_journal_database(
 
 /* Same original one-shot binding before the first Database acquisition. A
  * failed scope or open retains this original; it cannot mint a replacement. */
-MOONBIT_FFI_EXPORT void *actql_native_sqlite_open_original_store_database(
+static void *actql_open_original_database(
   actql_native_sqlite_library *library, actql_native_store_operation *original,
-  moonbit_bytes_t path, int32_t length, int64_t max_body_bytes, int32_t existing
+  moonbit_bytes_t path, int32_t length, int64_t max_body_bytes, int32_t existing,
+  bool journal_exclusive
 ) {
   if (!actql_store_operation_thread(original) || original->library != library ||
       original->closed || original->open_attempted || original->binding_attempted ||
@@ -1260,10 +1261,40 @@ MOONBIT_FFI_EXPORT void *actql_native_sqlite_open_original_store_database(
   original->open_attempted = true;
   if (actql_store_operation_enter_sql(original, 0) != 0) return NULL;
   void *database = actql_open_database(library, path, length, max_body_bytes,
-    existing, 0, 0, true, original);
+    existing, 0, 0, journal_exclusive, original);
   /* Keep SQL entered until the typed caller has captured this exact ready or
    * failed-open reply and diagnostic. Its explicit finish then returns Read. */
   return database;
+}
+
+MOONBIT_FFI_EXPORT void *actql_native_sqlite_open_original_store_database(
+  actql_native_sqlite_library *library, actql_native_store_operation *original,
+  moonbit_bytes_t path, int32_t length, int64_t max_body_bytes, int32_t existing
+) {
+  return actql_open_original_database(library, original, path, length,
+    max_body_bytes, existing, true);
+}
+
+/* The fixed Remote coordinator retains its own original physical scope. This
+ * entrance preserves generic open/restore policy; it selects no Local WAL or
+ * Host/business supplier and grants no scope merely from a path or label. */
+MOONBIT_FFI_EXPORT void *actql_native_sqlite_open_original_remote_database(
+  actql_native_sqlite_library *library, actql_native_store_operation *original,
+  moonbit_bytes_t path, int32_t length, int64_t max_body_bytes, int32_t existing
+) {
+  return actql_open_original_database(library, original, path, length,
+    max_body_bytes, existing, false);
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_database_acquired(
+    actql_native_sqlite_database *database) {
+  return database != NULL;
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_has_no_database(
+    actql_native_store_operation *original) {
+  return actql_store_operation_thread(original) && !original->closed &&
+    !original->binding_attempted && original->bound_database == NULL;
 }
 
 // Whitebox-only loss of one schema constituent in an owner-created fixture.

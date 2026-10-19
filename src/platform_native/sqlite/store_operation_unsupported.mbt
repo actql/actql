@@ -86,3 +86,23 @@ pub fn NativeStoreOperationOriginal::pending_scope(
 ) -> Result[Bool, NativeSqliteIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn Library::open_original_remote_database_with_custody(
+  _self : Library,
+  _original : NativeStoreOperationOriginal,
+  _path : String,
+  _max_body_bytes : Int64,
+  existing? : Bool = false,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  ignore(existing)
+  Err({ original_issue: UnsupportedTarget, database: None, })
+}
+
+///|
+pub fn NativeSqliteOpenFailure::borrow_original_database_cleanup(
+  _self : NativeSqliteOpenFailure,
+  _original : NativeStoreOperationOriginal,
+) -> Result[Database?, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}

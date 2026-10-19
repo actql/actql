@@ -33,6 +33,9 @@ struct Store {
 struct NativePublicationStoreOpenFailure {
   original_issue : NativePublicationStoreIssue
   mut operation_original : @sqlite.NativeStoreOperationOriginal?
+  mut operation_database_alias : @sqlite.Database?
+  mut operation_return_pending : Bool
+  mut operation_children_closed : Bool
   mut root : @filesystem.Root?
   mut failed_root : @filesystem.NativeRootOpenFailure?
   mut lock : @filesystem.Lock?
@@ -104,6 +107,7 @@ fn NativePublicationStoreOpenFailure::retry_cleanup_in_scope(
 fn store_open_failure(
   original_issue : NativePublicationStoreIssue,
   operation_original? : @sqlite.NativeStoreOperationOriginal? = None,
+  operation_return_pending? : Bool = false,
   root? : @filesystem.Root? = None,
   failed_root? : @filesystem.NativeRootOpenFailure? = None,
   lock? : @filesystem.Lock? = None,
@@ -115,6 +119,9 @@ fn store_open_failure(
   {
     original_issue,
     operation_original,
+    operation_database_alias: None,
+    operation_return_pending,
+    operation_children_closed: false,
     root,
     failed_root,
     lock,
@@ -134,11 +141,45 @@ pub fn NativePublicationStoreOpenFailure::retry_cleanup(
   guard self.operation_original is Some(original) else {
     return self.retry_cleanup_in_scope()
   }
+  if self.operation_return_pending {
+    match original.leave_store() {
+      Ok(_) => {
+        self.operation_return_pending = false
+        self.operation_database_alias = None
+        if self.operation_children_closed {
+          self.operation_original = None
+          return Ok(())
+        }
+      }
+      Err(issue) =>
+        if self.operation_children_closed {
+          return Err(OperationRouting(Some(self.original_issue), issue))
+        }
+    }
+  }
+  // Retain the actual DATA shell separately before physical cleanup can clear
+  // its constructor field. Last-alias retirement follows confirmed return.
+  if self.operation_database_alias is None {
+    self.operation_database_alias = match self.database {
+      Some(database) => Some(database)
+      None =>
+        match self.failed_database {
+          Some(failure) =>
+            match failure.borrow_original_database_cleanup(original) {
+              Ok(database) => database
+              Err(issue) => return Err(Database(issue))
+            }
+          None => None
+        }
+    }
+  }
   match original.enter_cleanup() {
     Err(issue) => return Err(Database(issue))
     Ok(_) => ()
   }
   let result = self.retry_cleanup_in_scope()
+  self.operation_children_closed = result is Ok(_)
+  self.operation_return_pending = true
   let after = original.leave_store()
   match after {
     Err(issue) =>
@@ -152,6 +193,8 @@ pub fn NativePublicationStoreOpenFailure::retry_cleanup(
         ),
       )
     Ok(_) => {
+      self.operation_return_pending = false
+      self.operation_database_alias = None
       if result is Ok(_) {
         self.operation_original = None
       }
@@ -267,6 +310,7 @@ pub fn open_original_local_store_with_custody(
           store_open_failure(
             OperationRouting(None, issue),
             operation_original=Some(original),
+            operation_return_pending=true,
             root=Some(store.root),
             lock=Some(store.lock),
             database=Some(store.database),
@@ -275,12 +319,14 @@ pub fn open_original_local_store_with_custody(
           store_open_failure(
             OperationRouting(Some(primary), issue),
             operation_original=Some(original),
+            operation_return_pending=true,
           )
         Err(CleanupRequired(failure)) =>
           // Preserve the original primary, plus this separate return failure.
           store_open_failure(
             OperationRouting(Some(failure.issue()), issue),
             operation_original=Some(original),
+            operation_return_pending=true,
             root=failure.root,
             failed_root=failure.failed_root,
             lock=failure.lock,
