@@ -65029,6 +65029,480 @@
           }
         }
       ]
+    },
+    {
+      "exports": [
+        "Any",
+        "ORIGINS",
+        "PARAMETERS",
+        "POINTER",
+        "SIGNATURES",
+        "bind",
+        "bind_group",
+        "c_bool",
+        "c_double",
+        "c_int",
+        "c_int32",
+        "c_int64",
+        "c_size_t",
+        "c_ubyte",
+        "c_uint16",
+        "c_uint64",
+        "c_void_p"
+      ],
+      "imports": [
+        "ctypes",
+        "typing"
+      ],
+      "module": "packages/python-sdk/src/actql_sdk/_local_native_initial_abi.py",
+      "operations": [
+        {
+          "async": false,
+          "name": "bind",
+          "parameters": [
+            "library",
+            "symbol"
+          ]
+        },
+        {
+          "async": false,
+          "name": "bind_group",
+          "parameters": [
+            "library",
+            "prefix",
+            "names"
+          ]
+        }
+      ],
+      "sha256": "58a3a123275c648febb9fb5b81ad3c5b2b3eebd8c6160161787343407c895cb0",
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "E / existing Python Local Host, Native Bootstrap and original Runtime custody Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "bind",
+            "bind_group"
+          ],
+          "exports": [
+            "Any",
+            "ORIGINS",
+            "PARAMETERS",
+            "POINTER",
+            "SIGNATURES",
+            "bind",
+            "bind_group",
+            "c_bool",
+            "c_double",
+            "c_int",
+            "c_int32",
+            "c_int64",
+            "c_size_t",
+            "c_ubyte",
+            "c_uint16",
+            "c_uint64",
+            "c_void_p"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "scripts/generate-local-native-shim-bindings.py",
+                "anchor": "INITIAL_SYMBOLS"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Python binds this selected entrance through a separately generated closed ABI"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_abi.py",
+                "anchor": "SIGNATURES:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_abi.py",
+                "anchor": "PARAMETERS ="
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_abi.py",
+                "anchor": "ORIGINS ="
+              },
+              {
+                "path": "src/platform_native/host_bootstrap/python_initial_platform.c",
+                "anchor": "original == &python_original"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Duplicate refusal grants no custody of the first receiver"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_abi.py",
+                "anchor": "already selected library"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "actual interpreter"
+              },
+              {
+                "path": "src/platform_native/host_bootstrap/python_initial_platform.c",
+                "anchor": "PyGILState_Check"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "All error/slot storage precedes acquisition"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_abi.py",
+                "anchor": "arguments, result = SIGNATURES[symbol]"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "only restoration of the published same original can be attempted"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "This mechanism supplies no loader/prelude coverage by itself"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "worker, VM and business"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-local-native-shim-bindings.py",
+                "anchor": "--python-initial"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "without requiring its symbols on the older diagnostic component"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_native_initial_custody.py",
+                "anchor": "test_selected_generated_abi_and_default_signature_tables"
+              },
+              {
+                "path": "scripts/interface-generation-freshness.mjs",
+                "anchor": "pythonInitialABI"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "Any",
+        "Callable",
+        "NoReturn",
+        "PyDLL",
+        "Thread",
+        "annotations",
+        "bind",
+        "bind_control",
+        "byref",
+        "c_void_p",
+        "current_thread",
+        "getpid"
+      ],
+      "imports": [
+        "._local_initial_preparation",
+        "._local_native_initial_abi",
+        "._local_native_shim_abi",
+        "__future__",
+        "ctypes",
+        "os",
+        "threading",
+        "typing"
+      ],
+      "module": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+      "operations": [
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/__copy__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/__deepcopy__",
+          "parameters": [
+            "self",
+            "memo"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/__reduce__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/_require_receiver",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/initialize_control",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/prepare",
+          "parameters": [
+            "cls",
+            "initial",
+            "functions"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/require_control_current",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/require_current",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/restore_default",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PythonNativeInitialFunctions",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_PythonNativeInitialFunctions/__init__",
+          "parameters": [
+            "self",
+            "library"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PythonNativeInitialPending",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_PythonNativeInitialPending/__init__",
+          "parameters": [
+            "self",
+            "original"
+          ]
+        }
+      ],
+      "sha256": "b2b121ec8761ddc4fb5d73c86da80435246e2502e3a903ee2115789ef175e600",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "E / existing Python Local Host, Native Bootstrap and original Runtime custody Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "_OriginalPythonNativeInitial",
+            "_OriginalPythonNativeInitial/__copy__",
+            "_OriginalPythonNativeInitial/__deepcopy__",
+            "_OriginalPythonNativeInitial/__reduce__",
+            "_OriginalPythonNativeInitial/_require_receiver",
+            "_OriginalPythonNativeInitial/initialize_control",
+            "_OriginalPythonNativeInitial/prepare",
+            "_OriginalPythonNativeInitial/require_control_current",
+            "_OriginalPythonNativeInitial/require_current",
+            "_OriginalPythonNativeInitial/restore_default",
+            "_PythonNativeInitialFunctions",
+            "_PythonNativeInitialFunctions/__init__",
+            "_PythonNativeInitialPending",
+            "_PythonNativeInitialPending/__init__"
+          ],
+          "exports": [
+            "Any",
+            "Callable",
+            "NoReturn",
+            "PyDLL",
+            "Thread",
+            "annotations",
+            "bind",
+            "bind_control",
+            "byref",
+            "c_void_p",
+            "current_thread",
+            "getpid"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "class _OriginalPythonNativeInitial:"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "### Python initial control continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "def prepare("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "def initialize_control(self)"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "def require_control_current(self)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "self._original is not self"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "self._process != getpid()"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "self._thread is not current_thread()"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "original._runtime_slot = c_void_p()"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "original._pending = _PythonNativeInitialPending(original)"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "carrier retains those original references"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "if self._busy:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "self._runtime_attempted = True"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "self._call_failed or self._unknown"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "self._unknown = True"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "if failure is not self._pending:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Reply loss never repeats"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "except BaseException as failure:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "def restore_default(self)"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "cleanup after an earlier failure remains available"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "This continuation issues no"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "Restoring the managed default does not close a Runtime"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "self._functions.library"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "from ._local_native_initial_abi import bind"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "from ._local_native_shim_abi import bind as bind_control"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "without requiring its symbols on the older diagnostic component"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_native_initial_custody.py",
+                "anchor": "test_actual_same_initial_original_enters_control_once"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_initial_custody.py",
+                "anchor": "test_actual_same_python_original_and_native_custody"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

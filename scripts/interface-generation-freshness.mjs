@@ -45,6 +45,10 @@ export function interfaceGenerationFreshness(root) {
     'generate-local-duckdb-binding.py'];
   for (const name of localGenerators) execFileSync('python3', ['-B', join(root, 'scripts', name), '--check'], {
     cwd: root, timeout: 15000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
+  const pythonInitialABI = 'generate-local-native-shim-bindings.py --python-initial';
+  execFileSync('python3', ['-B', join(root, 'scripts/generate-local-native-shim-bindings.py'),
+    '--python-initial', '--check'], {
+    cwd: root, timeout: 15000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
   const assemblies = ['check-duckdb-environment-contract.mjs', 'connector-node-bundles.mjs', 'workers-composition.mjs'];
   for (const name of assemblies) execFileSync(process.execPath, [join(root, 'scripts', name)], {
     cwd: root, timeout: 15000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
@@ -59,5 +63,5 @@ export function interfaceGenerationFreshness(root) {
   Object.freeze(generated);
   checkedBindings.set(generated, realpathSync(root));
   return {qualification: 'read-only-generation-freshness; not-target-or-artifact-admission', generated,
-    checked: ['compiler-bindings', 'action-bindings', 'credential-fields', 'installation-preparation-fields', 'installation-preparation-bridge', ...generators, ...localGenerators, ...assemblies]};
+    checked: ['compiler-bindings', 'action-bindings', 'credential-fields', 'installation-preparation-fields', 'installation-preparation-bridge', ...generators, ...localGenerators, pythonInitialABI, ...assemblies]};
 }
