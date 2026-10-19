@@ -5,6 +5,7 @@
  * the original process lifetime. No component, member getter or caller DATA
  * can construct or replenish an entry. */
 #include "../../platform_native/host_bootstrap/command_platform.h"
+#include "command_output.h"
 #include <stdatomic.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -38,6 +39,7 @@ struct actql_native_command_platform_original {
   bool initial_coverage_complete;
   size_t initial_managed_selection[4];
   actql_native_initial_managed_original *initial_managed;
+  actql_bootstrap_command_output output_control;
   bool closing;
   actql_native_command_platform_load loads[2];
 };
@@ -118,6 +120,9 @@ __attribute__((constructor)) static void actql_command_capture_process_entry(voi
         actql_native_initial_managed_issue(actql_command_entry.initial_managed) != 0 ||
         !actql_native_initial_managed_current(actql_command_entry.initial_managed))
       actql_command_initial_refusal();
+    if (!actql_bootstrap_bind_command_output(
+        &actql_command_entry.output_control, stdout, stderr))
+      actql_command_initial_refusal();
     actql_command_entry.initial_envelope_admitted = true;
   }
 #endif
@@ -159,6 +164,8 @@ actql_native_command_platform_current(void) {
 #if defined(ACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY)
   if (!entry->initial_managed ||
       !actql_native_initial_managed_current(entry->initial_managed)) return NULL;
+  if (!actql_bootstrap_command_output_current(
+      &entry->output_control, stdout, stderr)) return NULL;
 #endif
   return actql_command_entry_thread(entry) &&
     entry->initial_envelope_admitted && !entry->closing ? entry : NULL;
