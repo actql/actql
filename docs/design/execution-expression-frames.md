@@ -178,3 +178,24 @@ temporaries, formatter and final value overlap under the existing phase.
 The 64 structural scratch entries and bounded control preflight are not a
 physical byte grant; logical retirement and GC are not cleanup ACKs. Original
 Value identity, wire schemas, clock domains and authority are unchanged.
+
+### Existing Decimal addition, subtraction and multiplication
+
+The checked binary expression's existing Decimal result contract supplies the
+precision and scale for these operations. The eager frame still demands both
+original children, charges their consumption and releases their individual
+roots. Only the typed Decimal branch uses exact signed integer coefficients;
+the context-free Number evaluator, SAFE operations and mixed-domain refusals
+retain their meanings. NULL propagation does not suppress child failures.
+
+Addition and subtraction align coefficients at the original maximum scale;
+multiplication keeps the sum of the original scales. Neither operation rounds.
+Admitted coefficients have at most 38 digits and alignment adds at most 38
+places. Aligned magnitudes and products are below 10^76; a sum's magnitude is
+below 2*10^76. The result is checked against the original precision before its
+coefficient is formatted. Zero is canonical. The existing structural workspace
+reserves 64 scratch entries and a bounded control preflight before integer
+work; these are not physical byte admission. Both operands, temporary integer
+limbs and powers, formatter output, result and root aliases can overlap under
+the existing phase. Scratch release is distinct from logical-root retirement
+and physical cleanup acknowledgement.
