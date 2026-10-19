@@ -2363,7 +2363,9 @@ It observes those original services without replacing an allocator or calling
 raw allocation/free callbacks on Python objects. The selected filesystem codec
 is UTF-8 with surrogateescape. Same-process, original-thread, interpreter,
 build and allocator correspondence is checked before and after the bounded
-state-directory encoding. Exact text is retained alongside its encoded bytes;
+state-directory encoding. The exact str receiver uses its immutable builtin
+UTF-8/surrogateescape encoding primitive, not an ambient replaceable filesystem
+helper. Exact text is retained alongside its encoded bytes;
 PathLike callbacks and unbounded input copies are not part of this entrance.
 
 An attempted copy is not retried after failure. The same error retains the

@@ -111,7 +111,9 @@ class _OriginalPythonPreparation:
         self._state_dir = value
         try:
             if value is not None:
-                encoded = os.fsencode(value)
+                # Exact str admits the immutable builtin codec receiver. Do
+                # not route this original through an ambient replaceable helper.
+                encoded = value.encode('utf-8', 'surrogateescape')
                 if not 0 < len(encoded) <= 4096:
                     raise ValueError('Original Python startup directory exceeds its byte bound')
                 self._state_dir_bytes = encoded

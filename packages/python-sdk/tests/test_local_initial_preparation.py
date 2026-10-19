@@ -72,6 +72,18 @@ class InitialPreparationTests(unittest.TestCase):
         self.assertFalse(original._attempted)
         original.retire_input()
 
+    def test_ambient_fsencode_substitution_cannot_change_original_bytes(self):
+        original = _OriginalPythonPreparation()
+        try:
+            with patch('actql_sdk._local_initial_preparation.os.fsencode',
+                    return_value=b'/foreign') as replacement:
+                original.capture_state_dir('/selected')
+                self.assertEqual(original._state_dir, '/selected')
+                self.assertEqual(original._state_dir_bytes, b'/selected')
+                replacement.assert_not_called()
+        finally:
+            original.retire_input()
+
     def test_changed_filesystem_codec_refuses_before_encoding(self):
         original = _OriginalPythonPreparation()
         with patch('actql_sdk._local_initial_preparation.sys.getfilesystemencoding',
@@ -94,16 +106,43 @@ class InitialPreparationTests(unittest.TestCase):
         self.assertFalse(original._attempted)
         original.retire_input()
 
-    def test_copy_failure_keeps_same_original_and_forbids_retry(self):
+    def test_post_copy_failure_keeps_same_original_and_forbids_retry(self):
         original = _OriginalPythonPreparation()
         failure = MemoryError('Selected allocator refused')
-        with patch('actql_sdk._local_initial_preparation.os.fsencode', side_effect=failure):
+        # Inject failure in the post-copy CAPI observation; do not replace
+        # the selected immutable builtin codec or change the global allocator.
+        with patch('actql_sdk._local_initial_preparation._interpreter',
+                side_effect=(original._interpreter, failure)):
             with self.assertRaises(_PythonPreparationPending) as caught:
                 original.capture_state_dir('/selected')
         self.assertIs(caught.exception.cleanup_preparation, original)
         self.assertIs(original._failure, failure)
         with self.assertRaises(_PythonPreparationPending): original.capture_state_dir('/replacement')
         self.assertEqual(original._state_dir, '/selected')
+        self.assertEqual(original._state_dir_bytes, b'/selected')
+        original.retire_input()
+
+    def test_closed_codec_preserves_unicode_surrogateescape_and_byte_boundary(self):
+        vectors = (('/café', b'/caf\xc3\xa9'),
+            ('/café', b'/cafe\xcc\x81'),
+            ('/\udc80\udcff', b'/\x80\xff'),
+            ('/' + '\U0001f642' * 1023 + 'abc',
+             b'/' + b'\xf0\x9f\x99\x82' * 1023 + b'abc'))
+        for text, expected in vectors:
+            with self.subTest(text=text):
+                original = _OriginalPythonPreparation()
+                original.capture_state_dir(text)
+                self.assertEqual(original._state_dir, text)
+                self.assertEqual(original._state_dir_bytes, expected)
+                self.assertLessEqual(len(expected), 4096)
+                original.retire_input()
+        original = _OriginalPythonPreparation()
+        with self.assertRaises(_PythonPreparationPending):
+            original.capture_state_dir('/\ud800')
+        self.assertIsInstance(original._failure, UnicodeEncodeError)
+        self.assertEqual(original._state_dir, '/\ud800')
+        with self.assertRaises(_PythonPreparationPending):
+            original.capture_state_dir('/replacement')
         original.retire_input()
 
     def test_encoding_limit_retains_original_failure(self):
