@@ -252,6 +252,40 @@ test "query time acquisition retains its dependency until the same original Run 
   ).unwrap()
   assert_true(physical_equal(repeated, context))
   let assets = client_local_product_assets()
+  let local_requirement = @local_query_time.prepare_effect_local_query_requirement_at_query_time(
+    owner,
+    0,
+    0,
+    preparation,
+    request,
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let local_query = @query.query_sequence_requirement(
+    @planning.query_material_owner(
+      @planning.query_requirement_material(local_requirement),
+    ),
+  )
+  assert_true(
+    @acquisition.query_acquisition_query_time(local_query) is Some(original) &&
+    physical_equal(original, context),
+  )
+  assert_true(
+    @local_query_time.prepare_effect_local_query_requirement_at_query_time(
+      owner,
+      0,
+      0,
+      preparation,
+      client_query_time_test_request(owner, "query-source"),
+      assets.registry,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    )
+    is Err(@local_query_time.Sequences),
+  )
   let sequences = @local_query_time.prepare_client_effect_local_sequences_at_query_time(
     owner,
     preparation,

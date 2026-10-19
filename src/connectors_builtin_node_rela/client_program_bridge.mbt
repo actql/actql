@@ -1979,6 +1979,50 @@ pub fn client_program_effect_prepare_local_query_requirement(
 }
 
 ///|
+#export_name("clientProgramPrepareLocalQueryRequirementAtQueryTime")
+pub fn client_program_prepare_local_query_requirement_at_query_time(
+  prepared : @publication_host.PreparedClientProgram,
+  stage : Int,
+  source_index : Int,
+  original : @publication_host.ClientQueryTimePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[
+  @planning.QueryRequirement,
+  @client_local_host.ClientLocalQueryIssue,
+] {
+  @client_local_host.prepare_local_query_requirement_at_query_time(
+    prepared, stage, source_index, original, request, registry_body, values_body,
+    fragment_body, ordered_body,
+  )
+}
+
+///|
+#export_name("clientProgramEffectPrepareLocalQueryRequirementAtQueryTime")
+pub fn client_program_effect_prepare_local_query_requirement_at_query_time(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  stage : Int,
+  source_index : Int,
+  original : @publication_host.ClientQueryTimePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[
+  @planning.QueryRequirement,
+  @client_local_host.ClientLocalQueryIssue,
+] {
+  @client_local_host.prepare_effect_local_query_requirement_at_query_time(
+    prepared, stage, source_index, original, request, registry_body, values_body,
+    fragment_body, ordered_body,
+  )
+}
+
+///|
 #export_name("clientProgramQueryRequirementCid")
 pub fn client_program_query_requirement_cid(
   requirement : @planning.QueryRequirement,
@@ -7205,6 +7249,61 @@ pub fn client_program_open_captured_local_effect_host(
     per_pair_ms,
     fragment_body~,
     ordered_body~,
+  )
+}
+
+///|
+/// Reuse the same captured Run opener and selected providers with the exact
+/// invocation context. This grants neither acquisition nor component capacity.
+#export_name("clientProgramOpenLocalEffectHostAtQueryTime")
+pub fn client_program_open_local_effect_host_at_query_time(
+  prepared : @publication_host.PreparedClientEffectRun,
+  original : @publication_host.ClientQueryTimePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  sources : Array[@query.CapturedInputSource],
+  ledger : @resources.Ledger?,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  providers : Array[@local.ManagedProvider],
+) -> ClientLocalEffectHost? {
+  if sources.length() > 2 {
+    return None
+  }
+  let source = if sources.length() == 1 { Some(sources[0]) } else { None }
+  let captured_sources = if sources.length() == 2 {
+    [(0, sources[0]), (1, sources[1])]
+  } else {
+    []
+  }
+  open_client_local_effect_host(
+    prepared,
+    source,
+    registry_body,
+    values_body,
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body~,
+    ordered_body~,
+    captured_sources~,
+    acquisition_ledger=ledger,
+    component_providers=providers,
+    query_time=Some((original, request)),
+  )
+}
+
+///|
+#export_name("clientProgramEffectRunQueryTimeMatches")
+pub fn client_program_effect_run_query_time_matches(
+  prepared : @publication_host.PreparedClientEffectRun,
+  original : @publication_host.ClientQueryTimePreparation,
+  request : @publication_host.ClientRequestIdentity,
+) -> Bool {
+  @publication_host.client_effect_run_query_time_matches(
+    prepared, original, request,
   )
 }
 

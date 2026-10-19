@@ -637,6 +637,8 @@ pub fn client_program_effect_prepare_keyed_acquisition(@run_publication_host.Pre
 
 pub fn client_program_effect_prepare_local_query_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
 
+pub fn client_program_effect_prepare_local_query_requirement_at_query_time(@run_publication_host.PreparedClientEffectComputation, Int, Int, @run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
+
 pub fn client_program_effect_prepare_query_acquisition(@run_publication_host.PreparedClientEffectComputation, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, @run_publication_host.ClientAcquisitionIssue]
 
 pub fn client_program_effect_prepare_query_acquisition_at_query_time(@run_publication_host.PreparedClientEffectComputation, Int, Int, @run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity) -> Result[@sourceview_resolution.QueryAcquisition, @run_publication_host.ClientAcquisitionIssue]
@@ -702,6 +704,8 @@ pub fn client_program_effect_run_materials_definition(@run_publication_host.Clie
 pub fn client_program_effect_run_materials_prepared(@run_publication_host.ClientEffectRunMaterials) -> @run_publication_host.PreparedClientEffectComputation
 
 pub fn client_program_effect_run_materials_target_selections(@run_publication_host.ClientEffectRunMaterials) -> Result[String?, @run_publication_host.ClientEffectUpdateTargetIssue]
+
+pub fn client_program_effect_run_query_time_matches(@run_publication_host.PreparedClientEffectRun, @run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity) -> Bool
 
 pub fn client_program_effect_run_start_current(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Bool
 
@@ -1191,6 +1195,8 @@ pub fn client_program_open_captured_local_host(@run_publication_host.PreparedCli
 
 pub fn client_program_open_captured_local_retained_host(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, String, String, Int64, Int64, Int64, Int64, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
+pub fn client_program_open_local_effect_host_at_query_time(@run_publication_host.PreparedClientEffectRun, @run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger?, String, String, String?, String?, Array[@local.ManagedProvider]) -> ClientLocalEffectHost?
+
 pub fn client_program_open_multi_captured_local_effect_host(@run_publication_host.PreparedClientEffectRun, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger, String, String, String?, String?) -> ClientLocalEffectHost?
 
 pub fn client_program_open_multi_captured_local_host(@run_publication_host.PreparedClientProgram, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger, String, String, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
@@ -1244,6 +1250,8 @@ pub fn client_program_prepare_effect_query_time(@run_publication_host.PreparedCl
 pub fn client_program_prepare_keyed_acquisition(@run_publication_host.PreparedClientProgram, Int, Int, Int?) -> Result[@run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedAcquisitionIssue]
 
 pub fn client_program_prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
+
+pub fn client_program_prepare_local_query_requirement_at_query_time(@run_publication_host.PreparedClientProgram, Int, Int, @run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
 
 pub fn client_program_prepare_multi_captured_effect_acquisition_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@actql/actql/connectors/duckdb/host.CaptureConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 

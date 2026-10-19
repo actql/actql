@@ -1402,7 +1402,13 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (count > 0) {
         if (sourceProfile === undefined) throw clientOperationError('ClientProgramNeedsInputs');
         try {
-          selectAcquiredEffectSources({moon, preparedEffect: preparedProgram,
+          const requiresQueryTime = typeof moon.clientProgramEffectRequiresQueryTime === 'function'
+            ? checked(moon.clientProgramEffectRequiresQueryTime(preparedProgram,
+              localContractLimits.maxNodes, localContractLimits.maxNodes)) : false;
+          if (typeof requiresQueryTime !== 'boolean') throw new Error('InvalidQueryTimeRequirement');
+          // Checking does not sample. A time-dependent physical requirement is
+          // sealed from the winning admitted Run before any Source preparation.
+          if (!requiresQueryTime) selectAcquiredEffectSources({moon, preparedEffect: preparedProgram,
             sourceProfile, registry, values, fragment, ordered});
         } catch (cause) {
           throw clientOperationError('ClientProgramUnsupported', cause);
@@ -1863,8 +1869,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             openComputation: async ({retainComputationOwner} = {}) => {
               facts.assertUpdateSelectionCurrent?.();
               if (inferSelections.has(facts.prepared) ||
-                  runtimeIsOk(moon.clientProgramEffectPrepareQueryAcquisition(
-                facts.prepared, 0, 0))) {
+                  moon.clientProgramEffectAcquisitionCount(facts.prepared) > 0) {
                 let ownedModelToken;
                 try {
                   let retainedModel = modelResume;
@@ -1888,7 +1893,8 @@ async function openInstalledHost(originalInstallation, preparation) {
                   }
                   const selectedSources = selectAcquiredEffectSources({moon,
                     preparedEffect: facts.prepared, sourceProfile,
-                    registry, values, fragment, ordered});
+                    registry, values, fragment, ordered,
+                    queryTimePreparation: facts.queryTimePreparation, requestIdentity: facts.identity});
                   const observeSourceRun = journal.observeRunCancellation(facts.ref, moon, control);
                   const sourceContinuation = acquiredEffectContinuation({
                     checkpoints: (selectedSources.length === 0 ||
@@ -1991,7 +1997,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       authorizeRunStart: ({principalId: actual, connection, ref}) =>
         hostConnection({principalId: actual, connection, ref}),
       prepareExecution: ({prepared, compilation, allowed, definition,
-        resultPolicyOriginal}) => {
+        resultPolicyOriginal, queryTimePreparation, queryTime, identity}) => {
         const sourceFreeInfer = inferSelections.has(prepared) &&
           moon.clientProgramEffectAcquisitionCount(prepared) === 0;
         const retainedResultDataPolicy = sourceFreeInfer
@@ -2000,10 +2006,10 @@ async function openInstalledHost(originalInstallation, preparation) {
           : undefined;
         const options = {moon, control, prepared,
           compilation, allowed, definition, authorityScopeCid, namespaceId,
-          storeAuthorityCid, now, resultDataPolicy: retainedResultDataPolicy};
+          storeAuthorityCid, now, resultDataPolicy: retainedResultDataPolicy,
+          queryTimePreparation, queryTime, identity};
         return inferSelections.has(prepared) ||
-          runtimeIsOk(moon.clientProgramEffectPrepareQueryAcquisition(prepared,
-          0, 0))
+          moon.clientProgramEffectAcquisitionCount(prepared) > 0
           ? acquiredEffectPublicationAdmission(options)
           : sourceFreeEffectPublicationPlan(options);
       },
