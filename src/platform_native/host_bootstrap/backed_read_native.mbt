@@ -435,6 +435,12 @@ pub fn[T, C] NativeHostBootstrap::observe_backed_read_context_scope(
 ///|
 /// Cleanup-only observation of the same retained context after logical stop.
 /// No current/entry/borrow/report or physical-retirement ACK is issued here.
+#borrow(domain)
+extern "C" fn read_context_cleanup_scope_ffi(
+  domain : PhysicalExtentDomain,
+) -> Int = "actql_bootstrap_read_context_cleanup_scope"
+
+///|
 pub fn[T, C] NativeHostBootstrap::observe_backed_read_cleanup_scope(
   self : NativeHostBootstrap[T],
   original : T,
@@ -448,11 +454,7 @@ pub fn[T, C] NativeHostBootstrap::observe_backed_read_cleanup_scope(
   if !domain.read_attempted || domain.read_retired {
     return Err(Bootstrap(Unavailable))
   }
-  let status = read_context_status_ffi(domain.physical)
-  if status != 0 {
-    return Err(Bootstrap(Physical(status)))
-  }
-  match read_context_scope_ffi(domain.physical) {
+  match read_context_cleanup_scope_ffi(domain.physical) {
     0 => Ok(BackedReadUnentered)
     1 => Ok(BackedReadEntered)
     code => Err(Bootstrap(Physical(code)))

@@ -104,6 +104,26 @@ pub fn NativeStoreOperationOriginal::cleanup_code(
 }
 
 ///|
+#borrow(original)
+extern "C" fn store_operation_pending_scope_ffi(
+  original : NativeStoreOperationOriginal,
+) -> Int = "actql_native_sqlite_store_operation_pending_scope"
+
+///|
+/// True or Err retains the original parent duty. False acknowledges no
+/// Database/Library/domain close and cannot revive normal use after failure.
+pub fn NativeStoreOperationOriginal::pending_scope(
+  self : NativeStoreOperationOriginal,
+) -> Result[Bool, NativeSqliteIssue] {
+  match store_operation_pending_scope_ffi(self) {
+    0 => Ok(false)
+    1 => Ok(true)
+    code =>
+      Err(Physical("original Store scope observation unavailable (\{code})"))
+  }
+}
+
+///|
 #borrow(database)
 extern "C" fn database_enter_store_sql_ffi(
   database : Database,

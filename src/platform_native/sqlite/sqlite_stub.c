@@ -197,6 +197,15 @@ int32_t actql_native_sqlite_test_library_database_children(
 }
 #include "store_operation_original.inc"
 
+/* A lifecycle observation, not a transition, normal-current proof or child ACK.
+ * A sticky old failure alone does not imply a pending physical scope. */
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_pending_scope(
+    actql_native_store_operation *value) {
+  if (!actql_store_operation_thread(value) || value->closed) return -1;
+  return value->calling || value->flight || value->sql ? 1 : 0;
+}
+
+
 static void *actql_adapter_allocate(actql_native_sqlite_library *library, size_t bytes) {
   if (library == NULL || !library->selected_component) return malloc(bytes);
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR

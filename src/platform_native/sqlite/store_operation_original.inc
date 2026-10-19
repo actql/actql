@@ -147,6 +147,7 @@ MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_cleanup(
   return actql_store_operation_thread(value) ? value->cleanup_code : -1;
 }
 
+
 static int32_t actql_store_operation_enter_sql(
     actql_native_store_operation *value, int32_t cleanup_allowed) {
   if (!actql_store_operation_thread(value) || value->closed) return -1;

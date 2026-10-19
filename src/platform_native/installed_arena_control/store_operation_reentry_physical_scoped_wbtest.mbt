@@ -96,6 +96,7 @@ fn store_reentry_original_call(
   // Release it explicitly; it is not an issuer, registry or retirement proof.
   receiver.original.val = Some(original)
   original.activate().retained_execution_value("Store reentry original stage 1")
+  assert_false(original.pending_scope().unwrap())
   let outer = if probe == 0 {
     original.enter_store()
   } else {
@@ -106,6 +107,7 @@ fn store_reentry_original_call(
   }
   let refused = outer is Err(_)
   assert_true(receiver.nested_refused)
+  assert_true(original.pending_scope().unwrap())
   assert_eq(original.primary_code(), -2)
   assert_true(original.enter_store() is Err(_))
   receiver.probe = -1
@@ -115,14 +117,17 @@ fn store_reentry_original_call(
   .enter_cleanup()
   .retained_execution_value("Store reentry original stage 3")
   assert_true(receiver.active)
+  assert_true(original.pending_scope().unwrap())
   original
   .leave_store()
   .retained_execution_value("Store reentry original stage 4")
   assert_false(receiver.active)
+  assert_false(original.pending_scope().unwrap())
   assert_eq(original.primary_code(), -2)
   original
   .close_checked()
   .retained_execution_value("Store reentry original stage 5")
+  assert_true(original.pending_scope() is Err(_))
   refused
 }
 

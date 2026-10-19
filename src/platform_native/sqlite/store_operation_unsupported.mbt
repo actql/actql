@@ -79,3 +79,10 @@ pub fn Database::insert_original_store_cleanup(
 ) -> Result[Int64, NativeSqliteIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn NativeStoreOperationOriginal::pending_scope(
+  _self : NativeStoreOperationOriginal,
+) -> Result[Bool, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
