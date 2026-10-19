@@ -227,3 +227,20 @@ test('fixed interval schemas close all units and independent exact integer preim
   const source = {timestamp_sub: [{current_timestamp: []}, {literal: '-9223372036854775808'}, {literal: 'ns'}]};
   assert.equal(canonical(source), '{"timestamp_sub":[{"current_timestamp":[]},{"literal":"-9223372036854775808"},{"literal":"ns"}]}');
 });
+
+
+test('fixed interval query grammar adds only the declared source operand and preserves its full predecessor', () => {
+  assert.equal(hash(retained.query_grammar).slice(7), retained.query_grammar_sha256);
+  assert.equal(retained.query_grammar_sha256, before.grammar_manifest.query_text_grammar_sha256);
+  const current = readFileSync('spec/grammar/actql-query-0.1.ebnf', 'utf8');
+  assert.equal(current.slice(0, retained.query_grammar.length), retained.query_grammar);
+  assert.equal(current.slice(retained.query_grammar.length), `
+(* A fixed interval is an operand role only at the shared Timestamp consumers;
+   integral tokens retain their exact signed spelling before Common admission. *)
+fixed_interval = "INTERVAL", ( [ "+" | "-" ], interval_integer | parameter_token | path ), fixed_interval_unit ;
+interval_integer = ? exact unsigned decimal digits, admitted in signed64 context without binary64 conversion ? ;
+fixed_interval_unit = "NANOSECOND" | "MICROSECOND" | "MILLISECOND"
+                    | "SECOND" | "MINUTE" | "HOUR" | "DAY" ;
+`);
+  assert.equal(read('spec/manifests/actql-grammar-0.1.json').query_text_grammar_sha256, hash(current).slice(7));
+});
