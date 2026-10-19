@@ -182,7 +182,7 @@ fn execute_native_local_product(
     stop("ExplicitLocalRootRequiresConfiguration")
   }
   if command_preparation_invocation.val is Some(original) {
-    return original.execute_product_check(matches, operation)
+    return original.execute_product_command(matches, operation)
   }
   let context = match command_preargument_retained_context() {
     Ok(Some(original)) => original

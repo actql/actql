@@ -83,6 +83,8 @@ priv struct LocalCommandPreparationOriginal {
   mut inner_library : @local_crypto.Library?
   mut product : @local_host.NativeLocalProductConfigurationCapture?
   mut adoption : @local_host.NativeLocalAdoptionCapture?
+  mut product_parent : @local_filesystem.Root?
+  mut product_parent_failure : @local_filesystem.NativeRootOpenFailure?
   mut selected_root : @local_filesystem.Root?
   mut selected_root_failure : @local_filesystem.NativeRootOpenFailure?
   mut journal : @local_host.NativeLocalJournalCapture?
@@ -149,6 +151,8 @@ fn prepare_local_command_preparation_original(
     inner_library: None,
     product: None,
     adoption: None,
+    product_parent: None,
+    product_parent_failure: None,
     selected_root: None,
     selected_root_failure: None,
     journal: None,
@@ -717,6 +721,20 @@ fn LocalCommandPreparationOriginal::close_checked(
             return Err(CommandUnavailable)
           }
         }
+        if self.product_parent_failure is Some(failure) {
+          command_preparation_value(
+            failure
+            .retry_cleanup()
+            .map_err(issue => CommandFilesystemCleanup(issue)),
+          )
+          self.product_parent_failure = None
+        }
+        if self.product_parent is Some(parent) {
+          command_preparation_value(
+            parent.close().map_err(issue => CommandFilesystemCleanup(issue)),
+          )
+          self.product_parent = None
+        }
         if self.product is Some(product) {
           command_preparation_value(
             product.close().map_err(issue => CommandAdoption(issue)),
@@ -925,6 +943,40 @@ fn LocalCommandPreparationOriginal::stage_product(
     Ok(())
   } catch {
     LocalCommandPreparationStop(issue) => {
+      self.retain_primary(issue)
+      Err(issue)
+    }
+  }
+}
+
+///|
+// The explicit initializer observes only the original Product parent. This
+// discovery capability is retained independently of the Product constructor's
+// own Roots/Lock, and closes before that original Lock may acknowledge release.
+fn LocalCommandPreparationOriginal::select_product_parent(
+  self : LocalCommandPreparationOriginal,
+  path : String,
+) -> Result[@local_filesystem.Root, LocalCommandPreparationIssue] {
+  if !self.phase_open ||
+    self.closing ||
+    self.closed ||
+    self.primary is Some(_) ||
+    self.product_parent is Some(_) ||
+    self.product_parent_failure is Some(_) {
+    return Err(CommandUnavailable)
+  }
+  match
+    @local_filesystem.open_root_in_current_read_context_with_custody(
+      path,
+      self.profile.diagnostic_ceiling,
+    ) {
+    Ok(parent) => {
+      self.product_parent = Some(parent)
+      Ok(parent)
+    }
+    Err(failure) => {
+      self.product_parent_failure = Some(failure)
+      let issue = CommandFilesystemCleanup(failure.issue())
       self.retain_primary(issue)
       Err(issue)
     }

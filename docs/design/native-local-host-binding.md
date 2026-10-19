@@ -1901,7 +1901,8 @@ initial entry's managed arena and OS-service lifetime remain separate. Help,
 version, parser errors and unselected compatibility calls do not acquire the
 command Host, Journal, Root or Read.
 
-The selected static-check candidate has a 208 MiB original file-backed Host,
+The selected static-check/explicit-initialization candidate has a 208 MiB
+original file-backed Host,
 with distinct 128 MiB Read and 64 MiB SQLite child mappings. The actual parent's
 control layout must fit alongside both children before acquisition. The Read
 occupied-page ceiling is 96 MiB; the SQLite-domain ceiling is 48 MiB and contains
@@ -1927,3 +1928,14 @@ Project discovery uses that same entered Read. Matches and reply values retire
 before child-first physical cleanup; a parse, output or process result is not a
 Root, Reader, domain, Library, descriptor or Lock acknowledgement. This selection
 does not resolve Mock/Account/Source suppliers or permit business execution.
+
+Explicit initial adoption uses that same command carrier, Runtime observation,
+Read/SQLite pair and two original Crypto Library borrows. It does not create a
+second Crypto-only Host. The Product parent observation is retained before its
+first inspection, and the existing Product capture independently decides
+creation versus restore under its original Lock and durable intent. A missing
+intent with an existing child refuses; an existing intent never regenerates
+original expiry, material or keys. The original initialization Session still
+proves first-key eligibility and durable custody. Runtime binding, Account
+checks and reply-current fences remain in their existing owners and must use
+the same actual Read/SQLite phase exchange.

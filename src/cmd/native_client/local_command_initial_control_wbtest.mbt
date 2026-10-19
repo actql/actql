@@ -164,7 +164,7 @@ test "Selected command preparation frontend does not acquire before covered oper
   for
     arguments in [
       ["original", "--mode", "remote", "check", "SELECT 1"],
-      ["original", "--mode", "local", "adopt"],
+      ["original", "--mode", "local", "connect"],
       ["original", "--mode", "local", "status", "--run-id", "unbound"],
     ] {
     let control = parse_native_initial_arguments(arguments, false)
@@ -178,6 +178,13 @@ test "Selected command preparation frontend does not acquire before covered oper
     false,
   )
   assert_true(local_command_preparation_selected(control.matches.unwrap()))
+  let initialization = parse_native_initial_arguments(
+    ["original", "--mode", "local", "adopt", "--initialize-signing"],
+    false,
+  )
+  assert_true(
+    local_command_preparation_selected(initialization.matches.unwrap()),
+  )
   // An unmeasured process must not select the compatibility path. Main performs
   // this real original observation before parse; reproduce that order here.
   let unmeasured = try {
@@ -211,4 +218,28 @@ test "Selected command preparation missing compiled layouts refuses before backi
   assert_eq(failure, "LocalCommandPreparationLayoutUnavailable")
   assert_true(command_preparation_invocation.val is None)
   assert_true(initial_crypto_invocation.val is None)
+}
+
+///|
+test "Selected command adoption metadata preserves existing exact reply bytes" {
+  let control = parse_native_initial_arguments(
+    ["original", "--mode", "local", "adopt", "--json"],
+    false,
+  )
+  let child = control.matches.unwrap().subcommand.unwrap().1
+  assert_eq(
+    local_adoption_metadata_reply(
+      true, "account", "configuration", "adoption", child,
+    ),
+    "{\"kind\":\"local_host_adopted\",\"mode\":\"local\",\"accountId\":\"account\",\"accountConfigurationCid\":\"configuration\",\"adoptionCid\":\"adoption\"}",
+  )
+  let plain = parse_native_initial_arguments(["original", "connect"], false)
+  let child = plain.matches.unwrap().subcommand.unwrap().1
+  assert_eq(
+    local_adoption_metadata_reply(
+      false, "account", "configuration", "adoption", child,
+    ),
+    "Local Host connected; no Run has been admitted.\nAccount: account\nAdoption: adoption",
+  )
+  assert_true(command_preparation_invocation.val is None)
 }

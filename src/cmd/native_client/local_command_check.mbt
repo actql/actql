@@ -37,12 +37,12 @@ fn[T] command_preparation_result(
 // The selected package and all of its original asset observations use the
 // Runtime's own full scopes. Only then enter the same consuming Read for the
 // retained Product/Host selection; do not nest Runtime acquisition inside it.
-fn LocalCommandPreparationOriginal::execute_product_check(
+fn LocalCommandPreparationOriginal::execute_product_command(
   self : LocalCommandPreparationOriginal,
   matches : @argparse.Matches,
   operation : String,
 ) -> String raise ClientStop {
-  if operation != "check" {
+  if operation != "check" && operation != "adopt" {
     stop("LocalCommandPreparationOperationUnavailable")
   }
   if !(matches.sources.get("config-root") is Some(@argparse.Default)) {
@@ -59,14 +59,50 @@ fn LocalCommandPreparationOriginal::execute_product_check(
   // Required HOME/path decoding and selection now allocate in the same
   // consuming Read; an explicit directory never obtains the HOME workspace.
   let location = local_product_original_location(optional(matches, "state-dir"))
-  command_preparation_result(
-    self.stage_product(location.parent_path, location.directory_name, None),
-  )
   let configuration_root = if location.parent_path == "/" {
     "/" + location.directory_name
   } else {
     location.parent_path + "/" + location.directory_name
   }
+  let originals = if operation == "adopt" {
+    let parent = command_preparation_result(
+      self.select_product_parent(location.parent_path),
+    )
+    let ownership = parent
+      .bootstrap_parent_ownership()
+      .unwrap_or_else(() => stop("LocalProductHomeUntrusted"))
+    let intent = parent
+      .inspect_generation("product-initialization.json")
+      .unwrap_or_else(() => stop("LocalProductCustodyUnavailable"))
+    if intent is Some(_) {
+      None // Restore the original selection; never regenerate expiry or keys.
+    } else {
+      if parent
+        .inspect_directory(location.directory_name)
+        .unwrap_or_else(() => stop("LocalProductCustodyUnavailable"))
+        is Some(_) {
+        stop("LocalProductCustodyLost")
+      }
+      let selected = @run_host.client_native_local_finite_product_originals(
+        configuration_root,
+        runtime.sqlite,
+        runtime.crypto,
+        local_utc_now(),
+        runtime.assets,
+        runtime.manifest,
+      ).unwrap_or_else(() => stop("LocalProductDefaultsNotAdmitted"))
+      if !(parent.bootstrap_parent_ownership() is Ok(current) &&
+        current == ownership) {
+        stop("LocalProductHomeUntrusted")
+      }
+      Some(selected)
+    }
+  } else {
+    None
+  }
+  command_preparation_result(
+    self.stage_product(location.parent_path, location.directory_name, originals),
+  )
   let original_runtime = text_file(configuration_root, "runtime.json", 65536L)
   local_product_require_same_runtime_wire(
     original_runtime,
@@ -106,8 +142,9 @@ fn LocalCommandPreparationOriginal::execute_product_check(
 // Continue the existing selected configuration comparisons. The same actual
 // adoption capture owns every partial Root/Lock and the original child Journal;
 // this path never loads a second SQLite Library or a stock Crypto fallback.
-fn LocalCommandPreparationOriginal::execute_adopted_check(
+fn LocalCommandPreparationOriginal::execute_adopted_command(
   self : LocalCommandPreparationOriginal,
+  operation : String,
   settings : LocalHostSettings,
   root : String,
   name : String,
@@ -130,7 +167,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_check(
         configuration_files: selected_files,
         managed_root_path: Some(settings.managed_root),
       },
-      false,
+      operation == "adopt",
     ),
   )
   let expected = [
@@ -146,11 +183,13 @@ fn LocalCommandPreparationOriginal::execute_adopted_check(
       stop("LocalConfigurationChanged")
     }
   }
-  // Host fields still come from the same admitted original configuration.
-  // No Run, initialization/key generation or replacement issue is selected.
+  // Only the actual explicit initializer may request its existing first-key
+  // branch. The Session independently decides eligibility and durable custody.
+  let initialize_signing = operation == "adopt" &&
+    child.flags.get("initialize-signing").unwrap_or(false)
   command_preparation_result(
-    self.open_adopted_journal(false, {
-      initialize_signing: false,
+    self.open_adopted_journal(initialize_signing, {
+      initialize_signing,
       ttl_ms: settings.ttl_ms,
       max_records: settings.record_limit,
       max_snapshot_bytes: settings.snapshot_bytes,
@@ -160,16 +199,52 @@ fn LocalCommandPreparationOriginal::execute_adopted_check(
   let crypto = self.inner_library.unwrap()
   command_preparation_result(
     self.read_command(fn(host, capture) {
-      Ok(
-        local_check_for_host(
-          host,
-          crypto,
-          name,
-          input_root,
-          child,
-          capture=Some(capture),
-        ),
-      ) catch {
+      try {
+        let body = if operation == "check" {
+          local_check_for_host(
+            host,
+            crypto,
+            name,
+            input_root,
+            child,
+            capture=Some(capture),
+          )
+        } else {
+          let runtime = self.runtime.unwrap()
+          let run_file = settings.run_file.unwrap_or_else(() => {
+            stop("LocalRunInstallationRequired")
+          })
+          local_host_result(
+            capture.bind_packaged_runtime_in_original_read(
+              runtime,
+              settings.principal,
+              settings.connection,
+              environment_name,
+              run_file,
+              "runtime.json",
+            ),
+          )
+          local_host_result(
+            capture.require_packaged_runtime_upgrade_in_original_read(),
+          )
+          let account = local_host_result(
+            capture.configuration_in_original_read(),
+          )
+          if account.account_id() != settings.account_id {
+            stop("LocalConfigurationChanged")
+          }
+          let body = local_adoption_metadata_reply(
+            true,
+            settings.account_id,
+            account.configuration_cid(),
+            host.adoption_cid(),
+            child,
+          )
+          local_host_result(capture.check_current_in_original_read())
+          body
+        }
+        Ok(body)
+      } catch {
         ClientStop(message) => Err(message)
       }
     }),

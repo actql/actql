@@ -94,12 +94,13 @@ fn local_command_installed_profile(
 }
 
 ///|
-// Select only the covered public static-check route. This pure frontend choice
+// Select the covered static-check and explicit initial-adoption routes. This choice
 // performs no project/configuration lookup and cannot create a physical Owner.
 fn local_command_preparation_selected(
   matches : @argparse.Matches,
 ) -> Bool raise ClientStop {
-  if !(matches.subcommand is Some(("check", _))) {
+  if !(matches.subcommand is Some(("check", _)) ||
+    matches.subcommand is Some(("adopt", _))) {
     return false
   }
   required(matches, "mode") == "local" ||
