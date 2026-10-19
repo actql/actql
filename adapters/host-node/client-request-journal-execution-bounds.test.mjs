@@ -151,12 +151,15 @@ test('failed original cursor close and pending database close retain the same na
   scratch.passed();
 });
 
-test('selected current callback cannot reenter the same Journal before native preparation', async () => {
+test('selected preparation current callback cannot reenter the same Journal before native preparation', async () => {
   const {scratch, directory} = await fixture();
   instrument(state => {
-    let journal, armed = false, nestedFailure, nestedAttempts = 0;
+    let journal, armed = false, currentReads = 0, nestedFailure, nestedAttempts = 0;
     journal = openClientRequestJournal(directory, {...options(), primaryCurrent() {
       if (!armed) return;
+      // ensureOpen has a current boundary before a SQL operation exists.
+      // Target the following consume current, inside actual preparation.
+      if (++currentReads === 1) return;
       armed = false;
       nestedAttempts++;
       try { journal.lookupReconciliationState(ref); }
@@ -167,6 +170,7 @@ test('selected current callback cannot reenter the same Journal before native pr
       armed = true;
       assert.equal(journal.lookupReconciliationState(ref), undefined);
       assert.equal(nestedAttempts, 1);
+      assert.equal(currentReads, 2);
       assert.equal(nestedFailure?.code, 'ClientRequestJournalSqlCleanupPending');
       assert.equal(state.nativeCalls, before + 1);
       assert.equal(journal.lookupReconciliationState(ref), undefined);
