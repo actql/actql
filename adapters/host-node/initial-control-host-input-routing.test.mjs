@@ -96,7 +96,8 @@ test('omitted open enters the same original begin before path selection and keep
   assert.deepEqual(result.record.input, {});
   assert.equal(result.record.openOptions, result.options);
   assert.deepEqual(result.clientOptions, {mode: 'local', owner: 'local'});
-  assert.deepEqual(result.suppliedInstallation, {directory: '/original/.actql'});
+  assert.deepEqual({...result.suppliedInstallation}, {directory: '/original/.actql'});
+  assert.equal(Object.getPrototypeOf(result.suppliedInstallation), null);
   assert.equal((await result.control.close()).pending, true);
   assert.equal(f.closes, 0);
   for (const name of Object.keys(result.record)) result.record[name] = undefined;
@@ -131,6 +132,46 @@ test('explicit captured open retains existing closed fields and type refusals', 
     const f = fixture(raw), pending = f.route(raw, 'open'); f.finish();
     await assert.rejects(pending, {code: 'InvalidOpenOptions'});
     assert.equal(f.prepares, 1); assert.equal(f.reads, 1); assert.equal(f.closes, 0);
+  }
+});
+
+test('captured open refuses inherited options added during initialization without reading them', async () => {
+  for (const name of ['stateDir', 'installation', 'durability', 'consentRefs']) {
+    const raw = name === 'stateDir' ? {} : {stateDir: '.explorer'};
+    const f = fixture(raw), pending = f.route(raw, 'open');
+    assert.equal(f.prepares, 1); assert.equal(f.reads, 0);
+    assert.equal(Object.hasOwn(f.bundle.packet, name), false);
+    let reads = 0;
+    assert.equal(Object.getOwnPropertyDescriptor(Object.prototype, name), undefined);
+    Object.defineProperty(Object.prototype, name, {configurable: true,
+      get() {reads++; throw new Error('UnownedOpenGetter');}});
+    try {
+      f.finish(); await assert.rejects(pending, {code: 'NodeInitialControlInputUnavailable'});
+      assert.equal(reads, 0);
+    } finally { delete Object.prototype[name]; }
+    assert.equal(f.reads, 1); assert.equal(f.closes, 0);
+  }
+});
+
+test('captured open projection never borrows later inherited profile or installation values', async () => {
+  const raw = {stateDir: '.explorer', installation: {}};
+  const f = fixture(raw), pending = f.route(raw, 'open');
+  let reads = 0;
+  for (const name of ['profile', 'authorization']) {
+    assert.equal(Object.getOwnPropertyDescriptor(Object.prototype, name), undefined);
+    Object.defineProperty(Object.prototype, name, {configurable: true,
+      get() {reads++; throw new Error('UnownedProjectionGetter');}});
+  }
+  try {
+    f.finish(); const result = await pending;
+    assert.equal(result.requestedProfile, undefined);
+    assert.equal(result.suppliedInstallation.authorization, undefined);
+    assert.equal(Object.hasOwn(result.clientOptions, 'profile'), false);
+    assert.equal(Object.getPrototypeOf(result.options), null);
+    assert.equal(Object.getPrototypeOf(result.suppliedInstallation), null);
+    assert.equal(reads, 0);
+  } finally {
+    delete Object.prototype.profile; delete Object.prototype.authorization;
   }
 });
 

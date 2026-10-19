@@ -4186,20 +4186,34 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         throw clientOperationError('InvalidOpenOptions');
       }
     }
-    if (options.stateDir !== undefined &&
-          (typeof options.stateDir !== 'string' || !options.stateDir) ||
-        options.installation !== undefined &&
-          (options.installation === null || typeof options.installation !== 'object' ||
-          Array.isArray(options.installation) || Object.hasOwn(options.installation, 'directory'))) {
+    // Freeze preserves the captured object's prototype, not its later state.
+    // Read only original own DATA after the await; an inherited option added
+    // meanwhile is unsupported backing, never a getter this Host may invoke.
+    const openFields = Object.create(null);
+    for (const name of ['stateDir', 'installation', 'durability', 'consentRefs']) {
+      const field = Object.getOwnPropertyDescriptor(options, name);
+      if (field === undefined) {
+        if (name in options) throw clientOperationError('NodeInitialControlInputUnavailable');
+      } else {
+        if (!Object.hasOwn(field, 'value')) throw clientOperationError('NodeInitialControlOriginalChanged');
+        openFields[name] = field.value;
+      }
+    }
+    if (openFields.stateDir !== undefined &&
+          (typeof openFields.stateDir !== 'string' || !openFields.stateDir) ||
+        openFields.installation !== undefined &&
+          (openFields.installation === null || typeof openFields.installation !== 'object' ||
+          Array.isArray(openFields.installation) || Object.hasOwn(openFields.installation, 'directory'))) {
       throw clientOperationError('InvalidOpenOptions');
     }
     // Resolve against the original call-time working directory after reading
     // the captured stateDir. Initialization awaits cannot redirect this Host.
-    record.openStateDirectory = resolve(record.openWorkingDirectory, options.stateDir ?? '.actql');
-    options = {mode: 'local', owner: 'local',
-      ...(options.durability === undefined ? {} : {durability: options.durability}),
-      ...(options.consentRefs === undefined ? {} : {consentRefs: options.consentRefs}),
-      installation: {...options.installation, directory: record.openStateDirectory}};
+    record.openStateDirectory = resolve(record.openWorkingDirectory, openFields.stateDir ?? '.actql');
+    options = Object.assign(Object.create(null), {mode: 'local', owner: 'local',
+      ...(openFields.durability === undefined ? {} : {durability: openFields.durability}),
+      ...(openFields.consentRefs === undefined ? {} : {consentRefs: openFields.consentRefs}),
+      installation: Object.assign(Object.create(null), openFields.installation,
+        {directory: record.openStateDirectory})});
     record.openOptions = options;
   }
   if (initialEntry === 'connect' && options.mode === 'local' && options.owner === undefined) {
