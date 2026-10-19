@@ -82,7 +82,7 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   matches : @argparse.Matches,
   operation : String,
 ) -> String raise ClientStop {
-  if operation != "check" && operation != "adopt" {
+  if operation != "check" && operation != "explain" && operation != "adopt" {
     stop("LocalCommandPreparationOperationUnavailable")
   }
   if !(matches.sources.get("config-root") is Some(@argparse.Default)) {
@@ -248,6 +248,10 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             input_root,
             child,
             capture=Some(capture),
+          )
+        } else if operation == "explain" {
+          local_check_context(host, crypto, name, capture=Some(capture)).explain(
+            input_root, child,
           )
         } else {
           let runtime = self.runtime.unwrap()

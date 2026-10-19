@@ -94,12 +94,13 @@ fn local_command_installed_profile(
 }
 
 ///|
-// Select the covered static-check and explicit initial-adoption routes. This choice
+// Select the covered static check/explain and explicit adoption routes. This choice
 // performs no project/configuration lookup and cannot create a physical Owner.
 fn local_command_preparation_selected(
   matches : @argparse.Matches,
 ) -> Bool raise ClientStop {
   if !(matches.subcommand is Some(("check", _)) ||
+    matches.subcommand is Some(("explain", _)) ||
     matches.subcommand is Some(("adopt", _))) {
     return false
   }
