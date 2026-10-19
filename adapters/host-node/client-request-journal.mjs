@@ -38,6 +38,11 @@ const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
 const applyOriginal = Reflect.apply;
+const operationDescriptors = Object.getOwnPropertyDescriptors;
+const operationDefineProperties = Object.defineProperties;
+const operationDefineProperty = Object.defineProperty;
+const operationKeys = Reflect.ownKeys, operationFreeze = Object.freeze;
+const OperationError = Error;
 const originalJournalCustodies = new WeakMap();
 const originalJournalCustodyGet = WeakMap.prototype.get;
 const originalJournalCustodySet = WeakMap.prototype.set;
@@ -126,6 +131,34 @@ function snapshotPrimaryExecutionLimits(value) {
     fail('InvalidClientRequestJournalConfiguration');
   }
   return Object.freeze(limits);
+}
+
+function boundJournalOperations(journal, maximum, assertCurrent) {
+  if (maximum === undefined) return journal;
+  let attempts = 0;
+  // Keep one refusal original, rather than allocate another error/stack for
+  // every call after exhaustion. A failed argument/current check still used
+  // this operation attempt; SQL counters alone cannot bound that prefix work.
+  const failure = new OperationError('ClientRequestJournalOperationUnavailable');
+  operationDefineProperty(failure, 'code', {value: 'ClientRequestJournalOperationUnavailable',
+    enumerable: true});
+  operationFreeze(failure);
+  const enter = () => {
+    if (attempts >= maximum) throw failure;
+    attempts++;
+    assertCurrent?.();
+  };
+  const descriptors = operationDescriptors(journal);
+  for (const name of operationKeys(descriptors)) {
+    const field = descriptors[name], original = field.value;
+    // These are the fixed authored Owner's own methods, not caller DATA.
+    // Cleanup remains reachable without operation/SQL credit or currentness.
+    if (typeof original !== 'function' || name === 'close' || name === 'closeObservationStorage') continue;
+    field.value = name === 'admitOrLookupDefinition'
+      ? async function () { enter(); return applyOriginal(original, journal, arguments); }
+      : function () { enter(); return applyOriginal(original, journal, arguments); };
+  }
+  return operationFreeze(operationDefineProperties({}, descriptors));
 }
 
 // One lifetime support counter for this Journal's two original writable
@@ -1263,6 +1296,7 @@ export function openClientRequestJournal(directory, {
   maxInspectionBytes = 64 * 1024 * 1024,
   maxDatabaseBytes,
   maxWalFrames,
+  maxJournalOperations,
   primarySqlLimits,
   primaryExecutionLimits,
   primarySchemaLimits,
@@ -1281,6 +1315,8 @@ export function openClientRequestJournal(directory, {
         (!Number.isSafeInteger(maxDatabaseBytes) || maxDatabaseBytes < 1) ||
       maxWalFrames !== undefined &&
         (!Number.isSafeInteger(maxWalFrames) || maxWalFrames < 1) ||
+      maxJournalOperations !== undefined &&
+        (!Number.isSafeInteger(maxJournalOperations) || maxJournalOperations < 1) ||
       maxRecords < 1 || !Number.isSafeInteger(maxRunDefinitionWireBytes) ||
       maxRunDefinitionWireBytes < 1024 ||
       !Number.isSafeInteger(submissionEpochTtlMs) || submissionEpochTtlMs < 1 ||
@@ -1303,6 +1339,10 @@ export function openClientRequestJournal(directory, {
     fail('InvalidClientRequestJournalConfiguration');
   }
   if (maxWalFrames !== undefined && (maxDatabaseBytes === undefined ||
+      primarySqlLimits === undefined || primaryExecutionLimits === undefined)) {
+    fail('InvalidClientRequestJournalConfiguration');
+  }
+  if (maxJournalOperations !== undefined && (maxDatabaseBytes === undefined ||
       primarySqlLimits === undefined || primaryExecutionLimits === undefined)) {
     fail('InvalidClientRequestJournalConfiguration');
   }
@@ -3334,10 +3374,11 @@ export function openClientRequestJournal(directory, {
       catch { /* The observation projection owns this separate connection. */ }
     },
   });
-  applyOriginal(originalJournalCustodySet, originalJournalCustodies, [journal, () =>
+  const deliveredJournal = boundJournalOperations(journal, maxJournalOperations, primaryCurrent);
+  applyOriginal(originalJournalCustodySet, originalJournalCustodies, [deliveredJournal, () =>
     Object.freeze({journalClosed: closed, databaseClosed,
       observationAttempted: observationStorageAttempted, observationDatabaseClosed})]);
-  return journal;
+  return deliveredJournal;
   } catch (error) {
     throwSqliteInitializationFailure(initializationCleanup, error, 'client-request-journal');
   }

@@ -1008,6 +1008,27 @@ once for their process lifetime, not refilled by a connection or Host close.
 This is the finite Journal facility, not a universal allocator lease or another
 business, Model or Effect allowance.
 
+SQL and native-statement counters do not bound an operation that refuses
+before reaching SQL, including its validation and any earlier native crypto
+work. The selected Journal may therefore additionally impose an original
+lifetime operation ceiling before its delivered methods inspect arguments or
+invoke currentness. Failed validation or currentness consumes that attempt;
+reentrancy, rollback and property replacement cannot refill it. The same
+original receiver and method are captured from the authored Journal record.
+Its asynchronous admission remains asynchronous. Once exhausted, it retains
+and rethrows one refusal original rather than allocating a new error on each
+denied call. Close and separate observation-close remain their exact original
+operations, available without operation credit or currentness.
+
+The delivered method record remains a nominal member of the original Journal
+custody observer; copying it is not independent custody. Its original method
+record, forwarding closures/receivers, operation count, retained refusal and
+escaped method aliases coexist for their real lifetimes. This support ceiling
+does not bound each operation's input/work by itself, fund any native or managed
+backing, create permission, or reset shared allocation domains. The full recipe
+must combine it with the original per-operation input/cardinality/SQL limits
+and physical facility before use. An unselected Journal is unchanged.
+
 Selected cold inspection may additionally bound the SQLite schema table's
 declared row payload and traversal before native SQLite opens the isolated
 copy. The resource reader follows table-btree pages and the same last valid
