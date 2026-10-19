@@ -85,9 +85,13 @@ fn store_reentry_original_call(
     probe,
     nested_refused: false,
   }
-  let original = reentry_prepare_store_operation(
-    library, receiver, store_reentry_route,
-  )
+  let original = reentry_prepare_store_operation(library, receiver, fn(
+    receiver,
+    library,
+    tag,
+  ) {
+    store_reentry_route(receiver, library, tag)
+  })
   // Only this finite counter holds a temporary backlink for the nested call.
   // Release it explicitly; it is not an issuer, registry or retirement proof.
   receiver.original.val = Some(original)
