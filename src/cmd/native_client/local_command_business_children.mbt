@@ -166,6 +166,10 @@ fn LocalCommandPreparationOriginal::close_business_children(
       Ok(false) => ()
     }
   }
+  match business.close_result_children() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   match business.close_publication_children() {
     Err(issue) => return Err(issue)
     Ok(_) => ()

@@ -35,6 +35,7 @@ priv enum LocalCommandPreparationIssue {
   CommandBusinessChildren
   CommandBusinessPublication
   CommandBusinessStore(@local_store.NativePublicationStoreIssue)
+  CommandBusinessResult(@local_result.NativeResultAccessIssue)
   CommandSqlite(@initial_arena.InstalledArenaSqliteIssue)
   CommandPair(@initial_arena.InstalledArenaLocalHostResourcesIssue)
   CommandRuntime(@local_host.NativeLocalPackagedRuntimeIssue)
@@ -186,6 +187,12 @@ fn prepare_local_command_preparation_original(
       publication_attempted: false,
       publication_result: None,
       publication_retired: false,
+      result_binding: None,
+      result_service: None,
+      result_session: None,
+      result_sink: None,
+      result_refusal: None,
+      result_cleanup_issue: None,
       active: false,
     }),
     backing: None,

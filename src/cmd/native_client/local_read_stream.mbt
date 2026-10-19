@@ -237,8 +237,27 @@ fn local_admitted_result_stream(
   max_output~ : Int,
   current~ : () -> Bool,
   store~ : @local_store.Store,
+  retained? : LocalCommandBusinessOriginal? = None,
 ) -> String raise ClientStop {
+  if retained is Some(original) {
+    guard original.store is Some(actual) &&
+      physical_equal(actual, store) &&
+      original.operation is Some(_) &&
+      original.store_root_operation is Some(_) &&
+      original.result_binding is None &&
+      original.result_service is None &&
+      original.result_session is None &&
+      original.result_sink is None &&
+      original.result_refusal is None &&
+      original.result_cleanup_issue is None else {
+      stop("LocalReadOriginalCustodyUnavailable")
+    }
+  }
   let refusal : Ref[@local_host.NativeLocalReadBindingIssue?] = Ref(None)
+  if retained is Some(original) {
+    original.result_binding = Some(binding)
+    original.result_refusal = Some(refusal)
+  }
   let authority = @local_result.install_native_result_access_authority(
     queried => {
       if !local_same_read_request(queried, request) {
@@ -252,7 +271,9 @@ fn local_admitted_result_stream(
         ) {
         Ok(_) => true
         Err(issue) => {
-          refusal.val = Some(issue)
+          if refusal.val is None {
+            refusal.val = Some(issue)
+          }
           false
         }
       }
@@ -266,13 +287,17 @@ fn local_admitted_result_stream(
           // An explicit sink limit can be smaller, never larger than the
           // adopted ceiling. The original grant's identity is unchanged.
           if max_output > value.max_bytes {
-            refusal.val = Some(@local_host.SelectionMismatch)
+            if refusal.val is None {
+              refusal.val = Some(@local_host.SelectionMismatch)
+            }
             return None
           }
           Some(value)
         }
         Err(issue) => {
-          refusal.val = Some(issue)
+          if refusal.val is None {
+            refusal.val = Some(issue)
+          }
           None
         }
       }
@@ -284,7 +309,9 @@ fn local_admitted_result_stream(
       match binding.authorize_read_delivery(selected.request, store, delivery) {
         Ok(_) => true
         Err(issue) => {
-          refusal.val = Some(issue)
+          if refusal.val is None {
+            refusal.val = Some(issue)
+          }
           false
         }
       }
@@ -303,6 +330,9 @@ fn local_admitted_result_stream(
   let service = @local_result.install_native_result_access_service(
     store, authority, local_utc_now, 65536, 8192, 64, 65536, 16384,
   ).unwrap_or_else(() => stop("LocalReadServiceUnavailable"))
+  if retained is Some(original) {
+    original.result_service = Some(service)
+  }
   let journal = local_host_result(host.run_journal())
   let epoch = local_host_result(host.epoch_authority())
   let prior = journal
@@ -358,6 +388,10 @@ fn local_admitted_result_stream(
         " lookup=delivery-attempt",
       )
     })
+  // Retain the acquired session before sink construction or another callback.
+  if retained is Some(original) {
+    original.result_session = Some(session)
+  }
   let sink = match native_local_stdout_sink(session, max_output) {
     Ok(value) => value
     Err(_) => {
@@ -366,6 +400,9 @@ fn local_admitted_result_stream(
       }
       stop("LocalReadSinkUnavailable attempt-id=" + attempt_id)
     }
+  }
+  if retained is Some(original) {
+    original.result_sink = Some(sink)
   }
   let mut result : String? = None
   while true {

@@ -37,6 +37,14 @@ priv struct LocalCommandBusinessOriginal {
   mut publication_attempted : Bool
   mut publication_result : @local_publication.NativeRunPublicationResult?
   mut publication_retired : Bool
+  // Retain the original payload path before poll/return/close can fail.
+  // These aliases do not acknowledge a Store, domain or delivery receipt.
+  mut result_binding : @local_host.NativeLocalReadPolicyBinding?
+  mut result_service : @local_result.NativeResultAccessService?
+  mut result_session : @local_result.NativeResultAccessSession?
+  mut result_sink : @local_result.NativeResultSink?
+  mut result_refusal : Ref[@local_host.NativeLocalReadBindingIssue?]?
+  mut result_cleanup_issue : @local_result.NativeResultAccessIssue?
   mut active : Bool
 }
 

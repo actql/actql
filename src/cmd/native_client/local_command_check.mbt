@@ -48,6 +48,7 @@ fn command_preparation_cleanup_kind(
     CommandBusinessChildren => "business-children"
     CommandBusinessPublication => "business-publication"
     CommandBusinessStore(_) => "business-store"
+    CommandBusinessResult(_) => "business-result"
     CommandPair(value) =>
       match value {
         @initial_arena.Read(_) => "pair-read"
