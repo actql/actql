@@ -7,6 +7,9 @@ struct Store {
   mut operation_body_active : Bool
   mut operation_return_pending : Bool
   mut operation_return_primary : NativePublicationStoreIssue?
+  // The exact acquired child stays here until the original return and that
+  // child's cleanup are confirmed. A reader count cannot replace its custody.
+  mut pending_result_delivery : ResultDelivery?
   authority_cid : String
   journal_identity : @filesystem.NativeFileOwnership
   capacity_bytes : Int64
@@ -216,6 +219,9 @@ fn[T] Store::with_original_read(
   if self.operation_body_active || self.operation_return_pending {
     return Err(CleanupPending)
   }
+  if !cleanup_work && self.pending_result_delivery is Some(_) {
+    return Err(CleanupPending)
+  }
   let before = if final_close {
     original.enter_cleanup()
   } else if cleanup_work {
@@ -253,6 +259,70 @@ fn[T] Store::complete_original_return(
       self.operation_return_pending = false
       self.operation_return_primary = None
       result
+    }
+  }
+}
+
+///|
+/// Reconcile only this Store's outstanding original return. No Store body,
+/// SQL, child close or acquisition is replayed. False means no pending duty;
+/// only the original coordinator's successful return clears the mirror.
+pub fn Store::reconcile_original_return(
+  self : Store,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  if self.operation_body_active {
+    return Err(CleanupPending)
+  }
+  if !self.operation_return_pending {
+    return Ok(false)
+  }
+  guard self.operation_original is Some(original) else {
+    return Err(CleanupPending)
+  }
+  let prior = self.operation_return_primary
+  // Keep the mirror latched and deny reentry throughout both callbacks.
+  self.operation_body_active = true
+  let returned = match original.leave_store() {
+    Ok(_) => Ok(())
+    Err(_) =>
+      // A failed normal return can only recover through the existing same
+      // original cleanup entry. Its success alone is not a return ACK.
+      match original.enter_cleanup() {
+        Err(issue) => Err(issue)
+        Ok(_) => original.leave_store()
+      }
+  }
+  self.operation_body_active = false
+  match returned {
+    Err(issue) => Err(OperationRouting(prior, issue))
+    Ok(_) => {
+      self.operation_return_pending = false
+      // Retain the original primary observation; this ACK cannot clear the
+      // underlying operation failure or restore normal dispatch.
+      Ok(true)
+    }
+  }
+}
+
+///|
+/// Close only a Result child whose successful acquisition could not be
+/// returned. The same Store retains it before the fallible return; no new
+/// delivery, Reader, attempt or SQL acquisition is issued by this method.
+pub fn Store::retry_pending_result_delivery_cleanup(
+  self : Store,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  match self.reconcile_original_return() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard self.pending_result_delivery is Some(original) else {
+    return Ok(false)
+  }
+  match original.close() {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      self.pending_result_delivery = None
+      Ok(true)
     }
   }
 }
@@ -1106,6 +1176,7 @@ fn open_store_owned_with_custody(
     operation_body_active: false,
     operation_return_pending: false,
     operation_return_primary: None,
+    pending_result_delivery: None,
     authority_cid,
     journal_identity,
     capacity_bytes,
@@ -3605,11 +3676,21 @@ pub fn Store::begin_result_delivery(
   max_delivery_bytes : Int64,
 ) -> Result[ResultDelivery, NativePublicationStoreIssue] {
   self.with_original_read(false, false, fn() {
-    self.begin_result_delivery_in_scope(
+    let acquired = self.begin_result_delivery_in_scope(
       index, manifest, grant, retention, binding, material_generation_cid, result_name,
       format, attempt_id, requested_at, schema_wire, fields, input_chunk_bytes, max_row_bytes,
       max_wire_bytes, max_nodes, max_depth, max_delivery_bytes,
     )
+    if acquired is Ok(original) {
+      // Publish child custody before with_original_read invokes leave_store.
+      // A failed return must not drop the only owning Reader/Delivery handle.
+      self.pending_result_delivery = Some(original)
+    }
+    acquired
+  }).map(original => {
+    // Only a confirmed original return exposes this same acquired child.
+    self.pending_result_delivery = None
+    original
   })
 }
 
@@ -4445,6 +4526,10 @@ fn Store::capacity_usage_in_scope(
 
 ///|
 pub fn Store::close(self : Store) -> Result[Bool, NativePublicationStoreIssue] {
+  if self.pending_result_delivery is Some(_) {
+    // The retained child has its own close/return ACK before parent cleanup.
+    return Err(CleanupPending)
+  }
   if self.operation_body_active {
     return Err(CleanupPending)
   }

@@ -508,6 +508,52 @@ fn store_failed_open_original_work(
     original.primary_code() == 55 &&
     original.cleanup_code() == 56 &&
     unentered_close_refused
+  } else if probe == 5 {
+    let authority = "sha256:" + "1".repeat(64)
+    let store = @store.open_original_local_store_with_custody(
+      library, original, path, authority, 128L, 4L, 4096L,
+      diagnostic_ceiling=Some(256),
+    ).unwrap()
+    let request = @payload.prepare_publication_payload_request(
+      authority,
+      "sha256:" + "2".repeat(64),
+      "sha256:" + "3".repeat(64),
+      "sha256:" + "4".repeat(64),
+      "sha256:" + "5".repeat(64),
+      "sha256:" + "6".repeat(64),
+      "sha256:" + "7".repeat(64),
+      "sha256:" + "8".repeat(64),
+      16L, 1L,
+    ).unwrap()
+    let writer = store.begin_payload(request).unwrap()
+    writer.append(b"same-original").unwrap()
+    let info = writer.seal().unwrap()
+    let reader = store.open_payload_reader(info.material_generation_cid).unwrap()
+    receiver.fail_normal_return = true
+    assert_true(store.capacity_usage() is Err(@store.OperationRouting(_, _)))
+    let sql_before = receiver.sql_entries
+    let normal_before = receiver.normal_entries
+    // The first cleanup return is also lost. This cannot clear the Store's
+    // mirror or close the retained Reader/Database in place of its own ACK.
+    receiver.fail_cleanup_return = true
+    assert_true(store.reconcile_original_return() is Err(@store.OperationRouting(_, _)))
+    assert_true(reader.close() is Err(@store.CleanupPending))
+    assert_eq(receiver.sql_entries, sql_before)
+    assert_eq(receiver.normal_entries, normal_before)
+    assert_true(store.reconcile_original_return().unwrap())
+    assert_false(store.reconcile_original_return().unwrap())
+    assert_eq(receiver.sql_entries, sql_before)
+    assert_eq(receiver.normal_entries, normal_before)
+    assert_eq(store_wal_library_children(library), 1)
+    assert_true(original.close_checked() is Err(_))
+    assert_true(store.capacity_usage() is Err(_))
+    reader.close().unwrap()
+    assert_eq(receiver.sql_entries, sql_before)
+    assert_true(store.close().unwrap())
+    original.close_checked().unwrap()
+    original.primary_code() == 33 &&
+    original.cleanup_code() == 44 &&
+    receiver.normal_entries == normal_before
   } else {
     let store = @store.open_original_local_store_with_custody(
       library,
@@ -574,4 +620,9 @@ test "failed cleanup SQL entry reaches same-original cleanup recovery" {
 ///|
 test "Store original association metadata neither reenters nor revives its scope" {
   store_wal_physical_case(false, open_probe=4)
+}
+
+///|
+test "Store return-only reconciliation precedes retained Reader cleanup without SQL replay" {
+  store_wal_physical_case(false, open_probe=5)
 }
