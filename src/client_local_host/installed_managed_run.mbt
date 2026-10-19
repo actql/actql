@@ -395,7 +395,15 @@ pub fn open_installed_managed_source_free_host(
   }
   let ledger = match
     prepare_installed_managed_run_ledger(
-      value, prepared, request, [], [], [], registry_body, values_body, fragment_body,
+      value,
+      prepared,
+      request,
+      [],
+      [],
+      [],
+      registry_body,
+      values_body,
+      fragment_body,
       ordered_body,
     ) {
     Err(issue) => return Err(issue)
@@ -438,11 +446,10 @@ pub fn retire_installed_managed_run(
       return Err(CleanupPending)
     }
   }
-  match @resources.report_node_managed_run_admission(value.admission) {
-    Err(issue) => return Err(Resource(issue))
-    Ok(_) => ()
-  }
-  match @resources.stop_node_managed_run_admission(value.admission) {
+  // Use the original admission's complete cleanup path too. It retains an
+  // early read bootstrap when later Scope construction did not return a view;
+  // successful child cleanup cannot strand that same initialization token.
+  match @resources.cleanup_node_managed_run_admission(value.admission) {
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
   }

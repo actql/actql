@@ -10,6 +10,10 @@ pub struct NodeManagedRunAdmission[P] {
   priv mut attempted : Bool
   priv mut cleaned : Bool
   priv mut ledger : Ledger?
+  // Resident even when absent. The selected same-Run envelope includes this
+  // early custody before any read-scope constructor or ordinary child token.
+  priv mut read_bootstrap_attempted : Bool
+  priv mut read_bootstrap : CapacityReservation?
 }
 
 ///|
@@ -26,6 +30,8 @@ fn[P] prepare_node_managed_run_original(
     attempted: false,
     cleaned: false,
     ledger: None,
+    read_bootstrap_attempted: false,
+    read_bootstrap: None,
   }
   value.original = Some(value)
   value
@@ -63,6 +69,10 @@ pub fn[P] cleanup_node_managed_run_admission(
   }
   match child.ledger {
     Some(ledger) => {
+      match cleanup_node_managed_run_read_bootstrap(value, ledger) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
       let usage = ledger_usage(ledger)
       if usage.uncertain_transfer_bytes != 0L ||
         usage.reserved_transfer_bytes != 0L ||
@@ -74,7 +84,8 @@ pub fn[P] cleanup_node_managed_run_admission(
         ledger.delegated_holdings != 0 {
         return Err(Unavailable)
       }
-      if ledger.original_inventory is Some(inventory) && inventory.park is Some(_) {
+      if ledger.original_inventory is Some(inventory) &&
+        inventory.park is Some(_) {
         return Err(Resource(ResourceParked))
       }
       match report_imported_child_ledger(child) {
@@ -110,6 +121,99 @@ pub fn[P] cleanup_node_managed_run_admission(
     }
   }
   value.cleaned = true
+  Ok(())
+}
+
+///|
+/// Reserve only from this already admitted original Run. This charges its
+/// existing capacity; it issues no Model purpose, physical supplier or second
+/// Ledger. The fixed Host must have selected that separate purpose first.
+/// Retain the token before the fallible post-current/scope-constructor steps,
+/// so the original admission also owns their partial-initialization cleanup.
+pub fn[P] reserve_node_managed_run_read_bootstrap(
+  value : NodeManagedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[CapacityReservation, ImportedChildLedgerIssue] {
+  match check_node_managed_run_preparation(value, prepared) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if value.cleaned || value.read_bootstrap_attempted {
+    return Err(AlreadyConsumed)
+  }
+  guard value.ledger is Some(original) && physical_equal(original, ledger) else {
+    return Err(ForeignOriginal)
+  }
+  // Latch before invoking original currentness. Reentry or a failed attempt
+  // cannot install a replacement bootstrap or retrospectively census a child.
+  value.read_bootstrap_attempted = true
+  match check_node_managed_run_admission(value, ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if retained_bytes <= 0L ||
+    execution_bytes <= 0L ||
+    ledger.next_capacity_serial != Some(-1) ||
+    ledger.original_inventory is Some(_) ||
+    !original_ledger_has_no_child_usage(ledger, 0L, 0L) {
+    return Err(Resource(InvalidCharge))
+  }
+  let bootstrap = match
+    reserve_capacity(ledger, retained_bytes, execution_bytes) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(token) => token
+  }
+  value.read_bootstrap = Some(bootstrap)
+  // The existing census predicate includes attempts, zero-byte identities,
+  // quantities and delegated children. Never weaken it to equal usage bytes.
+  if !original_ledger_has_only_bootstrap(ledger, bootstrap) {
+    return Err(Unavailable)
+  }
+  match check_node_managed_run_admission(value, ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => Ok(bootstrap)
+  }
+}
+
+///|
+fn[P] cleanup_node_managed_run_read_bootstrap(
+  value : NodeManagedRunAdmission[P],
+  ledger : Ledger,
+) -> Result[Unit, ImportedChildLedgerIssue] {
+  guard value.read_bootstrap is Some(bootstrap) else { return Ok(()) }
+  if !physical_equal(bootstrap.reservation.owner, ledger) {
+    return Err(ForeignOriginal)
+  }
+  if capacity_reservation_open(bootstrap) {
+    if ledger.original_inventory is Some(inventory) {
+      if !physical_equal(inventory.bootstrap, bootstrap) {
+        return Err(ForeignOriginal)
+      }
+      // Every original child, including zero bytes, must already have its own
+      // retirement. This is not an FD/backing or another Owner's physical ACK.
+      match finish_original_ledger_inventory(ledger, true) {
+        Ok(true) => ()
+        Ok(false) => return Err(Unavailable)
+        Err(Resource(issue)) => return Err(Resource(issue))
+        Err(_) => return Err(Unavailable)
+      }
+    } else {
+      // Scope construction refused before it installed a census. No ordinary
+      // child may have escaped this exact bootstrap-only initialization.
+      if ledger.next_capacity_serial != Some(-2) ||
+        !original_ledger_has_only_bootstrap(ledger, bootstrap) {
+        return Err(Unavailable)
+      }
+      match settle_capacity(ledger, bootstrap) {
+        Err(issue) => return Err(Resource(issue))
+        Ok(_) => ()
+      }
+    }
+  }
+  value.read_bootstrap = None
   Ok(())
 }
 
