@@ -750,6 +750,36 @@ for (const entrance of ['local', 'http']) {
     }
   });
 
+  test(`${entrance}: documented to_number uses the existing CAST owner`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        "SELECT CAST('12.5' AS NUMBER) AS value",
+        "SELECT to_number('12.5') AS value",
+        "SELECT To_NuMbEr(12.5) AS value",
+        "SELECT `to_number`(@input) AS value",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@input') ? {parameterDeclarations: {input: {type: 'string'}},
+            parameters: {input: '12.5'}} : {})});
+        assert.equal(checked.outcome, 'completed');
+        assert.equal(checked.report.verdict, 'verified', text);
+        assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+        assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      for (const text of ["SELECT to_number() AS bad", "SELECT to_number('1', '2') AS bad",
+        "SELECT to_number(TRUE) AS bad"]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format});
+        assert.equal(checked.report.verdict, 'invalid', text);
+      }
+      const foreign = await client.check("SELECT ACTQL.to_number('1') AS value",
+        {kind: 'text', scope: 'bound_input', format});
+      assert.equal(foreign.report.verdict, 'undetermined');
+      assert.equal(foreign.report.coverage.limits[0].code, 'implementation_limit');
+    }
+  });
+
   test(`${entrance}: documented CONTAINS uses the original exact string checker`, async t => {
     const {client} = await publicCheck(t, entrance);
     for (const format of ['sql', 'aql-text']) {

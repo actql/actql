@@ -308,6 +308,16 @@ within the existing bounded String/finite Number domains. BYTES and distinct
 INT64 overloads remain coverage gaps. All spellings preserve one common child,
 operand nullability, lazy demand, failure, resources and cancellation.
 
+`TO_NUMBER(value)` takes exactly one operand and lowers to the existing Common
+`cast` node with target `{"type":"number"}`, exactly as `CAST(value AS NUMBER)`.
+It preserves the original operand, Parameter binding, nullable type, evaluation
+failure and bounded conversion; the frontend neither parses numeric text nor
+converts a nonliteral Number, Decimal, Signed64 or String on the Host. Existing
+Common CAST typing determines which input domains are admitted. Ordinary
+case-insensitive and quoted function lookup applies; a foreign namespace does
+not select this conversion. This spelling does not add another machine node or
+change any previously admitted canonical expression body.
+
 `CONTAINS(value, part)` selects ActQL's existing ordered binary `contains`
 String predicate. It performs exact substring matching without normalization,
 case folding or collation; an empty part matches every non-NULL String.

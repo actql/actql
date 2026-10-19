@@ -21,8 +21,10 @@ test('NULL ARRAY grammar remains the complete predecessor of the CONTAINS connec
   assert.deepEqual(contains.before, vector.after);
   const {grammar_manifest_cid: priorCid, ...priorBody} = vector.after;
   assert.equal(`sha256:${sha(canonical(priorBody))}`, priorCid);
-  assert.deepEqual(read('spec/manifests/actql-grammar-0.1.json'), contains.after);
-  const {grammar_manifest_cid: cid, ...body} = contains.after;
+  const number = read('scripts/fixtures/number-conversion-source/identities.json');
+  assert.deepEqual(number.before, contains.after);
+  assert.deepEqual(read('spec/manifests/actql-grammar-0.1.json'), number.after);
+  const {grammar_manifest_cid: cid, ...body} = number.after;
   assert.equal(`sha256:${sha(canonical(body))}`, cid);
   assert.notEqual(cid, vector.before.grammar_manifest_cid);
   const language = readFileSync('docs/spec/language.md', 'utf8');
