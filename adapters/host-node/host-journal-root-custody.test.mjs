@@ -102,8 +102,16 @@ const hostPreparation = compileFunction(`
   let hostJournalAdmitRootFormat;
   let hostJournalOpenAttempted=false;const record={};
   return {${hostMethod('prepareHostJournal')},${hostMethod('openRequestJournal')},
-    ${hostMethod('publicationOwnership')}};`,
+    ${hostMethod('publicationOwnership')},${hostMethod('admitRootFormat')}};`,
 ['originals', 'prepareHostJournalInstallation', 'assertInitialControlHostPreparation', 'clientOperationError']);
+const rootFormatStatements = hostNodes.filter(node => node.type === 'IfStatement' &&
+  node.alternate?.expression?.type === 'AwaitExpression' &&
+  node.alternate.expression.argument?.callee?.object?.name === 'preparation' &&
+  node.alternate.expression.argument.callee.property?.name === 'admitRootFormat');
+assert.equal(rootFormatStatements.length, 1);
+const actualHostRootFormat = compileFunction(`return (async()=>{
+  ${hostSource.slice(rootFormatStatements[0].start, rootFormatStatements[0].end)};})();`,
+['root', 'preparation', 'admitHostRootFormat']);
 const storeAssignments = hostNodes.filter(node => node.type === 'AssignmentExpression' &&
   node.left.name === 'store' && node.right.type === 'AwaitExpression' &&
   node.right.argument.callee?.name === 'openLocalPublicationStore');
@@ -193,6 +201,22 @@ test('same Root format uses its retained native first view before real Journal a
   assert.equal(JSON.parse(readFileSync(join(f.physicalRoot, 'host-format.json'))).version,
     'actql-local-host-root/0.1');
   assert.equal((await f.root.close(original, f.originals)).pending, false);
+  f.scratch.passed();
+});
+
+test('actual selected Host statement and captured facade use the same Root format original', async () => {
+  const f = await fixture({isolatedHost: true});
+  const preparation = connectedHostPreparation(f);
+  const view = await preparation.prepareHostJournal();
+  // The adapter captured this same Root callback, not a replacement looked
+  // up after preparation or an arbitrary directory/format callback.
+  f.root.owner.admitHostJournalRootFormat = () => assert.fail('Replacement must not run');
+  await actualHostRootFormat(f.physicalRoot, preparation,
+    () => assert.fail('Selected Host must not enter its old stock path'));
+  await preparation.openRequestJournal(f.directory, {});
+  assert.equal(JSON.parse(readFileSync(join(f.physicalRoot, 'host-format.json'))).version,
+    'actql-local-host-root/0.1');
+  assert.equal((await view.close()).pending, false);
   f.scratch.passed();
 });
 
