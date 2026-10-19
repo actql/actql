@@ -150,18 +150,22 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
     stop("LocalOriginalRunReferenceMismatch")
   }
   let managed = local_result_host_value(
-    capture.managed_root_path_in_original_read(), "managed Store root",
-  ).unwrap_or_else(() => {
-      stop("LocalManagedRootRequired")
-    },
+    capture.managed_root_path_in_original_read(),
+    "managed Store root",
+  ).unwrap_or_else(() => stop("LocalManagedRootRequired"))
+  local_result_host_value(
+    capture.check_current_in_original_read(),
+    "Store current",
   )
-  local_result_host_value(capture.check_current_in_original_read(), "Store current")
   command_preparation_result(
     operation.activate().map_err(issue => CommandStoreOperation(issue)),
   )
   // Restore only the existing Store. Missing path/DB/custody cannot initialize
   // another namespace, schema, key or Run merely to obtain a public result.
   let store = self.open_business_store(sqlite, managed, run, existing=true)
-  local_result_host_value(capture.check_current_in_original_read(), "Store current")
+  local_result_host_value(
+    capture.check_current_in_original_read(),
+    "Store current",
+  )
   { owner: self, host, capture, original, binding, store, scope, }
 }
