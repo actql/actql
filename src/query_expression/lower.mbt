@@ -279,6 +279,7 @@ fn scalar_call(
     "TO_TIMESTAMP" => ("TO_TIMESTAMP", "to_timestamp", 1, 1)
     "TO_DECIMAL" => ("TO_DECIMAL", "to_decimal", 1, 3)
     "TRY_DECIMAL" => ("TRY_DECIMAL", "try_decimal", 1, 3)
+    "QUANTIZE" => ("QUANTIZE", "quantize", 2, 4)
     "SPLIT" => ("SPLIT", "split", 1, 2)
     "SUBSTR" | "SUBSTRING" => ("SUBSTR", "substring", 2, 3)
     "LEFT" => ("LEFT", "left", 2, 2)
@@ -698,6 +699,12 @@ fn append_resolved(
                 args.length() != 3 {
                 raise Abort(InvalidArguments)
               }
+              if name == "quantize" && args.length() == 2 {
+                raise Abort(UnsupportedFunction)
+              }
+              if name == "quantize" && args.length() != 4 {
+                raise Abort(InvalidArguments)
+              }
               if name == "date_trunc" &&
                 !(strings[args[1]] is Some("ms" | "s" | "m" | "h" | "d")) {
                 current = @query.expression_origin(ast, args[1])
@@ -730,7 +737,7 @@ fn append_resolved(
                     ),
                   ]),
                 )
-              } else if name == "to_decimal" || name == "try_decimal" {
+              } else if ["to_decimal", "try_decimal", "quantize"].contains(name) {
                 // Precision/scale are the existing literal target role, not
                 // evaluated operands or inferred properties of the input.
                 guard numbers[args[1]] is Some(precision) &&
@@ -747,7 +754,24 @@ fn append_resolved(
                   current = @query.expression_origin(ast, args[2])
                   raise Abort(InvalidArguments)
                 }
-                if name == "try_decimal" {
+                if name == "quantize" {
+                  guard strings[args[3]] is Some(rounding) &&
+                    ["half_even", "half_up", "toward_zero", "floor", "ceiling"].contains(
+                      rounding,
+                    ) else {
+                    current = @query.expression_origin(ast, args[3])
+                    raise Abort(InvalidArguments)
+                  }
+                  lowering.form(
+                    "quantize",
+                    lowering.object([
+                      ("value", nodes[args[0]]),
+                      ("precision", lowering.add(Number(precision))),
+                      ("scale", lowering.add(Number(scale))),
+                      ("rounding", lowering.add(String(rounding))),
+                    ]),
+                  )
+                } else if name == "try_decimal" {
                   lowering.form(
                     "try_decimal",
                     lowering.object([

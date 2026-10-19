@@ -791,6 +791,48 @@ for (const entrance of ['local', 'http']) {
     });
   }
 
+  test(`${entrance}: explicit QUANTIZE retains original Decimal target and rounding`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql','aql-text']) {
+      for (const mode of ['half_even','half_up','toward_zero','floor','ceiling']) {
+        for (const text of [
+          `SELECT QUANTIZE(CAST('1.235' AS DECIMAL(6,3)),4,2,'${mode}') AS amount`,
+          `SELECT QUANTIZE(@amount,(4),(2),'${mode}') AS rounded`,
+          `SELECT QUANTIZE(NULL,4,2,'${mode}') AS amount`,
+          `SELECT CAST('1.235' AS DECIMAL(6,3)) AS amount |> SELECT QUANTIZE(amount,4,2,'${mode}') AS rounded`,
+        ]) {
+          const checked = await client.check(text,{kind:'text',scope:'bound_input',format,
+            ...(text.includes('@amount') ? {parameterDeclarations:{amount:{type:'decimal',precision:6,scale:3}},parameters:{amount:'1.235'}} : {})});
+          assert.equal(checked.report.verdict,'verified',JSON.stringify(checked.report));
+          assert.deepEqual(checked.report.runnable,{verdict:'yes',reasons:[]});
+          assert.deepEqual(checked.report.coverage,{limits:[],unresolved:[]});
+          assert.equal(getCheckInput(checked,'source').text,text);
+        }
+      }
+      for (const text of [
+        "SELECT QUANTIZE(1.235,4,2,'half_even') AS bad",
+        "SELECT QUANTIZE('1.235',4,2,'half_even') AS bad",
+        "SELECT QUANTIZE(CAST('1.235' AS DECIMAL(6,3)),4,2,'nearest') AS bad",
+        "SELECT QUANTIZE(CAST('1.235' AS DECIMAL(6,3)),4,2,@mode) AS bad",
+        "SELECT QUANTIZE(CAST('1.235' AS DECIMAL(6,3)),@p,2,'floor') AS bad",
+        "SELECT QUANTIZE(CAST('1.235' AS DECIMAL(6,3)),4,2+0,'floor') AS bad",
+        "SELECT QUANTIZE(CAST('1.235' AS DECIMAL(6,3)),0,0,'floor') AS bad",
+        "SELECT QUANTIZE(@whole,18,0,'floor') AS bad",
+      ]) {
+        const checked = await client.check(text,{kind:'text',scope:'bound_input',format,
+          ...(text.includes('@mode') ? {parameterDeclarations:{mode:{type:'string'}},parameters:{mode:'floor'}} : {}),
+          ...(text.includes('@p') ? {parameterDeclarations:{p:{type:'number'}},parameters:{p:4}} : {}),
+          ...(text.includes('@whole') ? {parameterDeclarations:{whole:{type:'int64'}},parameters:{whole:'9007199254740993'}} : {})});
+        assert.equal(checked.report.verdict,'invalid',text);
+      }
+      for (const text of ["SELECT QUANTIZE(CAST('1.235' AS DECIMAL(6,3)),2) AS amount", "SELECT ACTQL.QUANTIZE(CAST('1.235' AS DECIMAL(6,3)),4,2,'floor') AS amount"]) {
+        const checked = await client.check(text,{kind:'text',scope:'bound_input',format});
+        assert.equal(checked.report.verdict,'undetermined');
+        assert.equal(checked.report.coverage.limits[0].code,'implementation_limit');
+      }
+    }
+  });
+
   test(`${entrance}: explicit TRY_DECIMAL retains the original nullable exact conversion`, async t => {
     const {client} = await publicCheck(t, entrance);
     for (const format of ['sql', 'aql-text']) {

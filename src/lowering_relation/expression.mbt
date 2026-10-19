@@ -80,6 +80,7 @@ pub(all) enum UnaryOperator {
   Trunc
   SafeNegate
   TryDecimal
+  Quantize(String)
 } derive(Eq, Debug)
 
 ///|
@@ -338,6 +339,7 @@ fn expression_tag(
     | "vector_concat"
     | "cast"
     | "try_decimal"
+    | "quantize"
     | "if"
     | "case"
     | "date_diff"
@@ -387,7 +389,7 @@ fn expression_children(
       children
     }
     "empty_array" | "literal" | "typed_literal" | "field" | "$param" => []
-    "cast" | "try_decimal" => {
+    "cast" | "try_decimal" | "quantize" => {
       let obj = @decode.open_object(body).unwrap()
       [@decode.lookup(obj, "value").unwrap()]
     }
@@ -1049,6 +1051,11 @@ fn lower_typed_expression_measured(
         "reverse" => Unary(Reverse, args[0])
         "cast" => Cast(args[0])
         "try_decimal" => Unary(TryDecimal, args[0])
+        "quantize" => {
+          let obj = @decode.open_object(body).unwrap()
+          let mode = @decode.text(@decode.lookup(obj, "rounding").unwrap()).unwrap()
+          Unary(Quantize(mode), args[0])
+        }
         "not" => Unary(Not, args[0])
         "is_null" => Unary(IsNull, args[0])
         "not_null" => Unary(NotNull, args[0])

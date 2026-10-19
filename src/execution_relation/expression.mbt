@@ -52,6 +52,7 @@ priv enum Continuation {
   Object(ObjectExpressionState)
   Cast(@lower.Expression, @lower.Expression)
   TryDecimal(@lower.Expression, @lower.Expression)
+  Quantize(@lower.Expression, String)
   Left(@lower.Expression, @lower.BinaryOperator, @lower.Expression)
   Right(@lower.Expression, @lower.BinaryOperator, Value, ExpressionRootLease?)
   VectorLeft(@lower.Expression, @lower.VectorMetric, @lower.Expression)
@@ -666,7 +667,9 @@ fn advance_expression_frame_impl(
             frame.state = Enter(child)
           }
           Unary(op, child) => {
-            if op == @lower.TryDecimal {
+            if op is @lower.Quantize(rounding) {
+              frame.stack.push(Quantize(expr, rounding))
+            } else if op == @lower.TryDecimal {
               frame.stack.push(TryDecimal(expr, child))
             } else {
               frame.stack.push(Unary(expr, op))
@@ -1313,6 +1316,25 @@ fn advance_expression_frame_impl(
               }
               Err(e) => return Err({ kind: Scalar(e), expression: expr, })
             }
+          }
+          Quantize(expr, rounding) => {
+            release_slots(workspace, 1)
+            frame.active = expr
+            if charge_value(value, frame.current_root) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            let converted = match
+              quantize_expression_value(
+                expr, value, rounding, budget, workspace,
+              ) {
+              Ok(value) => value
+              Err(issue) => return Err(issue)
+            }
+            if release(frame.current_root) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            frame.current_root = None
+            frame.state = Return(converted)
           }
           Cast(expr, child) | TryDecimal(expr, child) => {
             let decimal_failure_null = continuation is TryDecimal(_, _)

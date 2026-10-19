@@ -900,7 +900,7 @@ fn infer(
     "try_decimal" | "quantize" | "decimal_divide" => {
       let target = decimal_target(node)
       let child = nodes[node.children[0]]
-      if tag == "try_decimal" && immediate_null(child) {
+      if (tag == "try_decimal" || tag == "quantize") && immediate_null(child) {
         provide(t, child.inferred, typed(t, target, source), source)
       }
       let first = operand(t, nodes, node, 0)

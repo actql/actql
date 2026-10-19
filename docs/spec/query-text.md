@@ -353,6 +353,14 @@ control limit or admission failure remains a failure. Immediate NULL receives
 the explicit target context and stays NULL. No omitted precision/scale is
 fabricated, and ordinary CAST retains its existing failure behavior.
 
+`QUANTIZE(value, precision, scale, rounding)` keeps the same literal target
+roles and additionally requires one original String literal from
+`half_even|half_up|toward_zero|floor|ceiling`. Lowering preserves the existing
+`quantize` body and evaluates only its original Decimal operand. The Common
+Decimal owner rounds the exact coefficient, rejects result overflow and
+preserves NULL and demanded-child failure. No frontend evaluator, binary64
+intermediate, implicit conversion or omitted-target policy is introduced.
+
 `TO_STRING(value)`, `TO_BOOLEAN(value)` and `TO_TIMESTAMP(value)` each take
 exactly one operand and lower to the existing Common `cast` node with target
 `{"type":"string"}`, `{"type":"boolean"}` or `{"type":"timestamp"}` respectively.
