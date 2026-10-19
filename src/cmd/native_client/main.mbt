@@ -920,6 +920,26 @@ fn command() -> @argparse.Command {
       @argparse.Command("lookup-submission", options=[
         @argparse.OptionArg("submission-ref-file", required=true),
       ]),
+      @argparse.Command(
+        "approve",
+        positionals=[
+          @argparse.PositionArg(
+            "checkpoint-id",
+            num_args=@argparse.ValueRange::single(),
+          ),
+        ],
+        options=[@argparse.OptionArg("signer")],
+      ),
+      @argparse.Command(
+        "reject",
+        positionals=[
+          @argparse.PositionArg(
+            "checkpoint-id",
+            num_args=@argparse.ValueRange::single(),
+          ),
+        ],
+        options=[@argparse.OptionArg("signer")],
+      ),
       @argparse.Command("checkpoint-state", options=[
         @argparse.OptionArg("submission-ref-file", required=true),
         @argparse.OptionArg("ref-file", required=true),

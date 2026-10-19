@@ -256,8 +256,9 @@ fn initialize_native_client_run_journal(
   }
   for
     table in [
-      "client_effect_response_meta", "client_effect_response_bytes", "client_effect_row_receipt",
-      "client_cancellations", "client_cancel_custody", "client_cancel_originals",
+      "client_checkpoint_id_index", "client_effect_response_meta", "client_effect_response_bytes",
+      "client_effect_row_receipt", "client_cancellations", "client_cancel_custody",
+      "client_cancel_originals",
     ] {
     match
       scan_client_journal_value(
@@ -674,12 +675,19 @@ fn NativeClientRunJournal::save(
   self : NativeClientRunJournal,
   record : NativeClientRunRecord,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
-  match
+  if !self.transaction_active {
+    return Err(CustodyLost)
+  }
+  let before = match
     self.database.read(
       "client_runs",
       @host.client_request_scope_cid(record.request),
     ) {
-    Ok(current) if current.revision == record.revision => ()
+    Ok(current) if current.revision == record.revision =>
+      match read_run_record(current) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
     Ok(_) => return Err(Physical(@sqlite.Collision))
     Err(issue) => return Err(Physical(issue))
   }
@@ -691,15 +699,18 @@ fn NativeClientRunJournal::save(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  self.database
-  .compare_exchange(
-    "client_runs",
-    @host.client_request_scope_cid(record.request),
-    record.revision,
-    body,
-  )
-  .map(revision => { ..record, revision, })
-  .map_err(issue => Physical(issue))
+  let revision = match
+    self.database.compare_exchange(
+      "client_runs",
+      @host.client_request_scope_cid(record.request),
+      record.revision,
+      body,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Physical(issue))
+  }
+  let next = { ..record, revision, }
+  self.save_checkpoint_id_index(before, next).map(_ => next)
 }
 
 ///|
