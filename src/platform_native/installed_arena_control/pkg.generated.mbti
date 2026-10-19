@@ -316,6 +316,7 @@ pub fn InstalledArenaHost::enter_domain_original_read_consumer(Self, InstalledAr
 pub fn InstalledArenaHost::enter_domain_read(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::enter_domain_read_cleanup(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::enter_domain_retained_execution(Self, InstalledArenaRetainedExecution) -> Result[Unit, InstalledArenaRetainedExecutionIssue]
+pub fn InstalledArenaHost::enter_domain_retained_execution_cleanup(Self, InstalledArenaRetainedExecution) -> Result[Unit, InstalledArenaRetainedExecutionIssue]
 pub fn InstalledArenaHost::enter_local_host_cleanup(Self, InstalledArenaLocalHostResources, InstalledArenaLocalHostPhase) -> Result[Unit, InstalledArenaLocalHostResourcesIssue]
 pub fn InstalledArenaHost::enter_local_host_phase(Self, InstalledArenaLocalHostResources, InstalledArenaLocalHostPhase) -> Result[Unit, InstalledArenaLocalHostResourcesIssue]
 pub fn InstalledArenaHost::finish_sqlite_lookup(Self, InstalledArenaSqliteLookup) -> InstalledArenaSqliteDatabaseCall[Unit]
