@@ -105,7 +105,8 @@ fn[T] NativeLocalValuesOriginalAccess::in_original_read(
       _ => Ok(())
     }
   })
-  let body = match (current, output.val) {
+  let body : Result[T, NativeClientValuesWorkIssue] = match
+    (current, output.val) {
     (Err(issue), value) =>
       Err(
         OriginalOperation(
