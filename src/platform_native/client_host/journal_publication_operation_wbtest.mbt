@@ -5,11 +5,23 @@ test "Publication original routing preserves one policy packet and named read au
   let host = policy_host_fixture("publication-original-route")
   let crypto = epoch_test_crypto()
   let scope = host.authority_scope_cid("operator", "cli", crypto).unwrap()
-  let (request, prepared, compiled, definition) = journal_test_run(
+  let (request, prepared, unselected_compiled, definition) = journal_test_run(
     "publication-original-request",
     "publication-original-run",
     scope~,
   )
+  // A source-free Program has no contributing Source policy. Retain this
+  // rejection and explicitly admit the independent original fixture body.
+  assert_eq(@host.prepared_client_publication_data_policy_cid(prepared), None)
+  assert_true(
+    run_policy_originals_wire(prepared, compiled=unselected_compiled)
+    is Err(PublicationPolicy(@checked.MissingDependency)),
+  )
+  let cid = "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563"
+  let body = "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}"
+  let compiled = @host.with_client_source_free_result_policy(
+    unselected_compiled, cid, body, 65536, 8192, 64,
+  ).unwrap()
   host.journal.bind_run(request, prepared, compiled, definition, true).unwrap()
   |> ignore
   let calls : Array[String] = []
@@ -79,7 +91,6 @@ test "Publication original routing preserves one policy packet and named read au
     request,
     ReadResultPolicy("answer"),
   ).unwrap()
-  let cid = @host.prepared_client_publication_data_policy_cid(prepared).unwrap()
   let packet = host.journal
     .lookup_publication_policy_original(
       request,
