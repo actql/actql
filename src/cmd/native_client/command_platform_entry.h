@@ -208,10 +208,10 @@ actql_native_command_platform_current(void) {
 #if defined(ACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY)
   if (!entry->initial_managed ||
       !actql_native_initial_managed_current(entry->initial_managed)) return NULL;
-  if (!actql_bootstrap_command_output_current(
-      &entry->output_control, stdout, stderr)) return NULL;
   if (!actql_bootstrap_command_stdio_current(
       &entry->initial_stdio, stdout, stderr)) return NULL;
+  if (!actql_bootstrap_command_output_current(
+      &entry->output_control, stdout, stderr)) return NULL;
 #endif
   return actql_command_entry_thread(entry) &&
     entry->initial_envelope_admitted && !entry->closing ? entry : NULL;

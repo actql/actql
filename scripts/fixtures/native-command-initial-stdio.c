@@ -54,6 +54,8 @@ int main(int argc, char **argv) {
       stdout, stderr));
     assert(setup_calls == 2);
     if (strcmp(argv[1], "changed-metadata") == 0) {
+      assert(!actql_bootstrap_command_stdio_current(&streams, (FILE *)1, stderr));
+      assert(!actql_bootstrap_command_stdio_current(&streams, stdout, (FILE *)1));
       struct __sFILEX *extra = stdout->_extra;
       stdout->_extra = NULL;
       assert(!actql_bootstrap_command_stdio_current(&streams, stdout, stderr));
