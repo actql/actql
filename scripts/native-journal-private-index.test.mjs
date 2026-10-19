@@ -30,7 +30,8 @@ for (const name of ['generic', 'selected', 'stat-failure', 'close-unknown', 'rep
   'source-close-unknown', 'command-original-unavailable', 'selected-scratch-oversized',
   'selected-scratch-original', 'selected-path-unsupported',
   'selected-path-truncated', 'selected-path-overlap', 'selected-path-close-unknown',
-  'selected-source-oversized', 'selected-source-boundary']) {
+  'selected-source-oversized', 'selected-source-boundary',
+  'closed-no-reacquire', 'closed-preserves-replacement']) {
   test(`private Journal inspection index custody ${name}`, () => {
     const result = spawnSync(executable, [name, join(scratch, name)], {
       cwd: root, encoding: 'utf8', timeout: 10_000,
