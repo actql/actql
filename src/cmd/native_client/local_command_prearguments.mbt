@@ -71,7 +71,7 @@ fn command_preargument_retained_context() -> Result[
   LocalCommandPreparationIssue,
 ] {
   match command_preargument_selection_ffi() {
-    0 => command_preargument_context().map(Some)
+    0 => command_preargument_context().map(value => Some(value))
     5 => Ok(None)
     _ => Err(CommandUnavailable)
   }
