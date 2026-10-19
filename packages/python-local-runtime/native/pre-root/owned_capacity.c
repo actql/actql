@@ -1,5 +1,15 @@
-#if !defined(__APPLE__) || !defined(__aarch64__)
-#error "This unadopted candidate targets Darwin arm64 only"
+#if defined(__APPLE__) && defined(__aarch64__)
+/* Existing selected Darwin provider. */
+#elif defined(__linux__) && defined(__aarch64__) && \
+      defined(ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN)
+/* Only the selected local process-domain consumer enables this physical
+ * backend. Its actual private FD/mapping is still required independently of
+ * kernel process limits. This does not select image, Engine or Rust profiles. */
+#if !defined(_GNU_SOURCE)
+#error "The selected Linux provider requires _GNU_SOURCE before system headers"
+#endif
+#else
+#error "Owned backing requires Darwin arm64 or explicitly selected Linux arm64"
 #endif
 
 #include "owned_capacity.h"
@@ -490,7 +500,9 @@ int actql_native_owned_retire(actql_owned_capacity *lease, void *allocation) {
     return status;
 }
 
+#if defined(__APPLE__)
 #include "owned_rust_heap.inc"
+#endif
 
 static int prepare_capacity_close_locked(actql_owned_capacity *lease) {
     if (lease->active_scopes != 0) {

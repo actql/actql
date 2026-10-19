@@ -18,8 +18,8 @@
       "root": "provider",
       "path": "owned_capacity.c",
       "output": "owned_capacity.c",
-      "bytes": 22392,
-      "sha256": "12ed7bd55cea75d85a146da88528fac4810aa2773bf143498fe7058524bed0c9"
+      "bytes": 22941,
+      "sha256": "a6eae048d6510f8dc329d53d87e5a1683c29958c8cd7e481d9c39383c3293ec2"
     },
     {
       "root": "provider",
@@ -200,8 +200,8 @@
       "sha256": "4995faa31ac633768430bad1b7ea28699ab601e216fb357739a092cbea455022"
     },
     "owned_capacity.c": {
-      "bytes": 23313,
-      "sha256": "5e8db5ad3455ef393bea2f8ce65c062fb17d3e42a4327d92ef39710e2939cfa9"
+      "bytes": 23862,
+      "sha256": "a2e0689907ddfa15842dc9878a6a2b7a6f4f6cde3f6608bed87c48a9c66f786a"
     },
     "owned_capacity.h": {
       "bytes": 5212,
