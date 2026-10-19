@@ -209,4 +209,5 @@ function loadHostJournalDirectoryNative(packageRoot, expected, limits, assertRun
     throw entry.failure;
   }
 }
-module.exports = freeze({loadHostJournalDirectoryNative});
+module.exports = {loadHostJournalDirectoryNative};
+freeze(module.exports);

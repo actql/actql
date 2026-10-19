@@ -15,6 +15,21 @@ import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 
+test('private native image entry exposes one frozen operation without loading a native image', () => {
+  const child = spawnSync(process.execPath, ['--input-type=commonjs', '-e', `
+    const assert = require('node:assert/strict');
+    const original = Object.getOwnPropertyDescriptor(process, 'dlopen');
+    const entry = require(process.argv[1]);
+    assert.deepEqual(Object.keys(entry), ['loadHostJournalDirectoryNative']);
+    assert.equal(typeof entry.loadHostJournalDirectoryNative, 'function');
+    assert.equal(Object.isFrozen(entry), true);
+    assert.deepEqual(Object.getOwnPropertyDescriptor(process, 'dlopen'), original);
+  `, fileURLToPath(new URL('./host-journal-native-image.cjs', import.meta.url))],
+  {cwd: root, encoding: 'utf8', timeout: 10000});
+  assert.equal(child.status, 0, child.stderr);
+  assert.equal(child.signal, null);
+});
+
 test('selected Darwin Node initializes a private named image before unlinking its retained original', async () => {
   assert.equal(process.platform, 'darwin'); assert.equal(process.versions.node, '22.22.0');
   const selected = process.env.ACTQL_DIRECTORY_NATIVE_DIAGNOSTIC_ROOT;
