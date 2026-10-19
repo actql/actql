@@ -19,8 +19,8 @@ test "Both preparation carriers select only the supplied exact public Run operat
     local_command_preparation_operation_selected(local, "result", true),
   )
   let private = command().parse(argv=[
-    "--mode", "local", "start", "--program-file", "program.sql", "--format", "sql",
-    "--submission-ref-file", "original.json", "--operation-attempt-id", "original-attempt",
+    "--mode", "local", "start", "--program-file", "program.sql", "--submission-ref-file",
+    "original.json", "--operation-attempt-id", "original-attempt",
   ])
   assert_false(
     local_command_preparation_operation_selected(
@@ -44,8 +44,8 @@ test "Selected public Run chooses its operational preparation before any physica
   let remote = command().parse(argv=["--mode", "remote", "run", "program.aql"])
   assert_false(local_command_preparation_selected(remote))
   let private = command().parse(argv=[
-    "--mode", "local", "start", "--program-file", "program.sql", "--format", "sql",
-    "--submission-ref-file", "original.json", "--operation-attempt-id", "original-attempt",
+    "--mode", "local", "start", "--program-file", "program.sql", "--submission-ref-file",
+    "original.json", "--operation-attempt-id", "original-attempt",
   ])
   assert_false(local_command_preparation_selected(private))
 }
