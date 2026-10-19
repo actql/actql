@@ -191,3 +191,43 @@ pub fn slack_message_schema_wire(
 ) -> Result[String, @catalog.SlackMessagePageIssue] {
   @catalog.slack_message_schema_wire(max_bytes, max_nodes, max_depth)
 }
+
+///|
+#export_name("slackPrepareMessageHistoryFromChannel")
+pub fn slack_prepare_message_history_from_channel(
+  page : @catalog.SlackChannelListPage,
+  index : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_rows : Int,
+  max_cursor_bytes : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+  max_pages : Int,
+) -> Result[@catalog.SlackMessageHistory, @catalog.SlackMessagePageIssue] {
+  @catalog.prepare_slack_message_history_from_channel(
+    page,
+    index,
+    {
+      max_bytes,
+      max_nodes,
+      max_depth,
+      max_rows,
+      max_cursor_bytes,
+      max_value_nodes,
+      max_value_text_bytes,
+    },
+    max_pages,
+  )
+}
+
+///|
+#export_name("slackMessageHistoryMatchesChannel")
+pub fn slack_message_history_matches_channel(
+  history : @catalog.SlackMessageHistory,
+  page : @catalog.SlackChannelListPage,
+  index : Int,
+) -> Bool {
+  @catalog.slack_message_history_matches_channel(history, page, index)
+}
