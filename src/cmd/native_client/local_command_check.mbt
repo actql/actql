@@ -51,7 +51,8 @@ fn command_preparation_cleanup_kind(
     CommandBusinessResult(_) => "business-result"
     CommandPair(value) =>
       match value {
-        @initial_arena.Read(_) => "pair-read"
+        @initial_arena.Read(read) =>
+          "pair-read-" + command_preparation_read_cleanup_kind(read)
         @initial_arena.Sqlite(_) => "pair-sqlite"
         @initial_arena.Domain(_) => "pair-domain"
       }
@@ -66,6 +67,25 @@ fn command_preparation_cleanup_kind(
     CommandApplication(_) => "application"
     CommandFilesystem(_) => "filesystem"
     CommandFilesystemCleanup(_) => "filesystem-cleanup"
+  }
+}
+
+///|
+// Preserve the original failed cleanup family without exposing messages,
+// payloads, paths or opaque receivers. Physical status is the original code,
+// not an inferred acknowledgement or a replacement cleanup operation.
+fn command_preparation_read_cleanup_kind(
+  issue : @initial_arena.InstalledArenaOriginalReadIssue,
+) -> String {
+  match issue {
+    Domain(@initial_bootstrap.Bootstrap(@initial_bootstrap.Physical(code))) =>
+      "domain-physical(" + code.to_string() + ")"
+    Domain(@initial_bootstrap.Bootstrap(_)) => "domain-bootstrap"
+    Domain(@initial_bootstrap.Accounting(_)) => "domain-accounting"
+    Child(_) => "child-ledger"
+    Read(@initial_resources.CleanupPending) => "read-ledger-pending"
+    Read(_) => "read-ledger"
+    Buffer(_) => "workspace"
   }
 }
 
