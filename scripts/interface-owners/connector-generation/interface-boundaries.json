@@ -214,6 +214,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "installedConnectors/installedConnectors",
             "installedConnectors/installedConnectors/installedConnectors",
             "installedConnectors/installedConnectors/installedConnectors#10",

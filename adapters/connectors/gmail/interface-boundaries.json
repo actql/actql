@@ -1523,6 +1523,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "absolute/absolute",
             "checkInstalledGmailSourceProfile",
             "checkInstalledGmailSourceProfile/checkInstalledGmailSourceProfile",
@@ -2347,6 +2348,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "checkGmailThreadReaderLimits",
             "checkGmailThreadReaderLimits/checkGmailThreadReaderLimits",
             "checkGmailThreadReaderLimits/checkGmailThreadReaderLimits#2",
@@ -2563,6 +2565,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "gmail_thread_column_names",
             "gmail_thread_contracts",
             "gmail_thread_facts_wire",
@@ -2724,6 +2727,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "gmail_accept_thread",
             "gmail_accept_thread_list",
             "gmail_close_thread_read",
