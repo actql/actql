@@ -207,8 +207,16 @@ pub fn NativeFileObservation::command_component_member(
     Ok(_) => ()
   }
   let name = @utf8.encode(self.name)
-  Ok(observed_component_member_ffi(
-    self.root, self.stat, name, name.length(), kind,
-    @utf8.encode(source), @utf8.encode(manifest), @utf8.encode(digest),
-  ))
+  Ok(
+    observed_component_member_ffi(
+      self.root,
+      self.stat,
+      name,
+      name.length(),
+      kind,
+      @utf8.encode(source),
+      @utf8.encode(manifest),
+      @utf8.encode(digest),
+    ),
+  )
 }

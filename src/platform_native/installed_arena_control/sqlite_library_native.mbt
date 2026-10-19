@@ -92,7 +92,10 @@ pub fn InstalledArenaHost::prepare_sqlite_library(
       record.scope_open = true
       match
         @sqlite.load_current_component_with_custody(
-          path, heap_bytes, diagnostic_ceiling, command_member~,
+          path,
+          heap_bytes,
+          diagnostic_ceiling,
+          command_member~,
         ) {
         Ok(library) => record.library = Some(library)
         Err(@sqlite.RefusedBeforeAcquisition(issue)) =>
