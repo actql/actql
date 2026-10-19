@@ -181,7 +181,9 @@ test "actual managed alias keeps the original read consumer and loan until physi
 
 ///|
 test "actual original read cleanup preserves escaped usage until its last alias returns" {
+  println("original read usage: fixture acquisition")
   let fixture = original_read_consumer_fixture("consumer-usage-alias")
+  println("original read usage: original fixture acquired")
   let host = fixture.host
   let consumer = host
     .prepare_domain_original_read_consumer(fixture.read, 8192L, 16384L)
@@ -191,9 +193,11 @@ test "actual original read cleanup preserves escaped usage until its last alias 
   let held : Ref[@resources.LedgerUsage?] = Ref(None)
   let ledger = fixture.read.ledger.unwrap()
   host.enter_domain_original_read_consumer(consumer).unwrap()
+  println("original read usage: same consumer entered")
   @resources.charge_planning(ledger, 1).unwrap()
   held.val = Some(@resources.ledger_usage(ledger))
   host.leave_domain_original_read_consumer(consumer).unwrap()
+  println("original read usage: original scope left")
   assert_true(host.close_domain_original_read(fixture.read) is Err(_))
   assert_false(fixture.read.physical_retired.val || fixture.read.closed)
   assert_eq(held.val.unwrap().planning_work, 1)
@@ -204,6 +208,7 @@ test "actual original read cleanup preserves escaped usage until its last alias 
   // Neither a copied cleanup snapshot nor logical stop acknowledges this
   // escaped old allocation. Release it, then close the same original only.
   held.val = None
+  println("original read usage: external snapshot alias released")
   original_read_consumer_finish(fixture)
   assert_true(@resources.funded_read_consumer_origin(consumer.consumer) is None)
 }
