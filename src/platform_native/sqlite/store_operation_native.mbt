@@ -220,7 +220,23 @@ pub fn Library::open_original_local_store_database_with_custody(
       0
     },
   )
-  let result = sqlite_open_result_with_custody(database)
+  capture_original_database_open(original, database)
+}
+
+///|
+#borrow(database)
+extern "C" fn original_database_acquired_ffi(database : Database) -> Bool = "actql_native_sqlite_database_acquired"
+
+///|
+fn capture_original_database_open(
+  original : NativeStoreOperationOriginal,
+  database : Database,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  let result = if original_database_acquired_ffi(database) {
+    sqlite_open_result_with_custody(database)
+  } else {
+    Err({ original_issue: OperationRoutingBefore(-1), database: None, })
+  }
   let after = store_operation_finish_open_ffi(original)
   if after != 0 {
     return match result {
@@ -237,6 +253,79 @@ pub fn Library::open_original_local_store_database_with_custody(
     }
   }
   result
+}
+
+///|
+#borrow(library, original, path)
+extern "C" fn open_original_remote_database_ffi(
+  library : Library,
+  original : NativeStoreOperationOriginal,
+  path : Bytes,
+  length : Int,
+  max_body_bytes : Int64,
+  existing : Int,
+) -> Database = "actql_native_sqlite_open_original_remote_database"
+
+///|
+/// The trusted Remote coordinator supplies its same original Library/scope.
+/// Generic schema/PRAGMA/open-existing policy is unchanged. No Local WAL,
+/// replacement Database, physical supplier or permission is selected here.
+pub fn Library::open_original_remote_database_with_custody(
+  self : Library,
+  original : NativeStoreOperationOriginal,
+  path : String,
+  max_body_bytes : Int64,
+  existing? : Bool = false,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  if max_body_bytes < 0L {
+    return Err({ original_issue: InvalidLimit, database: None, })
+  }
+  let encoded = @utf8.encode(path)
+  capture_original_database_open(
+    original,
+    open_original_remote_database_ffi(
+      self,
+      original,
+      encoded,
+      encoded.length(),
+      max_body_bytes,
+      if existing {
+        1
+      } else {
+        0
+      },
+    ),
+  )
+}
+
+///|
+#borrow(original)
+extern "C" fn original_has_no_database_ffi(
+  original : NativeStoreOperationOriginal,
+) -> Bool = "actql_native_sqlite_store_operation_has_no_database"
+
+///|
+/// Retain the SAME failed Database DATA before retry_cleanup can acknowledge
+/// its physical close. The fixed caller holds this alias through the original
+/// scope return, then drops it before Library close. This is no cleanup ACK.
+pub fn NativeSqliteOpenFailure::borrow_original_database_cleanup(
+  self : NativeSqliteOpenFailure,
+  original : NativeStoreOperationOriginal,
+) -> Result[Database?, NativeSqliteIssue] {
+  match self.database {
+    Some(database) =>
+      if database_matches_store_operation_ffi(database, original) {
+        Ok(Some(database))
+      } else {
+        Err(OperationRoutingBefore(-1))
+      }
+    None =>
+      if original_has_no_database_ffi(original) {
+        Ok(None)
+      } else {
+        Err(OperationRoutingBefore(-1))
+      }
+  }
 }
 
 ///|

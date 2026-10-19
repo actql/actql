@@ -258,7 +258,10 @@ fn store_wal_original_work(
 }
 
 ///|
-fn store_wal_physical_case(normal_probe : Bool) -> Unit raise {
+fn store_wal_physical_case(
+  normal_probe : Bool,
+  open_probe? : Int = 0,
+) -> Unit raise {
   let root = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap()
   let component = @env.get_env_var("ACTQL_TEST_SQLITE_COMPONENT").unwrap()
   let page = domain_page_bytes()
@@ -317,12 +320,11 @@ fn store_wal_physical_case(normal_probe : Bool) -> Unit raise {
     ReadySqlite(value) => value
     PendingSqlite(_, _) => fail("original Store WAL Library pending")
   }
-  let result = store_wal_original_work(
-    host,
-    sqlite,
-    root + "/store",
-    normal_probe,
-  )
+  let result = if open_probe == 0 {
+    store_wal_original_work(host, sqlite, root + "/store", normal_probe)
+  } else {
+    store_failed_open_original_work(host, sqlite, root + "/store", open_probe)
+  }
   let children = store_wal_library_children(sqlite.library.unwrap())
   match host.close_sqlite_library(sqlite) {
     Ok(_) => ()
@@ -353,4 +355,104 @@ test "selected original Store WAL payload and separate physical cleanup" {
 ///|
 test "normal Store return failure reaches same-original cleanup without normal revival" {
   store_wal_physical_case(true)
+}
+
+///|
+fn store_failed_open_original_work(
+  host : InstalledArenaHost,
+  sqlite : InstalledArenaSqliteLibrary,
+  path : String,
+  probe : Int,
+) -> Bool raise {
+  let library = sqlite.library.unwrap()
+  let receiver : StoreWalReceiver = {
+    host,
+    domain: sqlite.domain,
+    library,
+    active: false,
+    cleanup: false,
+    sql: false,
+    sql_entries: 0,
+    normal_entries: 0,
+    fail_cleanup_return: false,
+    fail_normal_return: probe == 1,
+    return_ack_pending: false,
+  }
+  let original = store_wal_prepare_original(library, receiver, fn(
+    receiver,
+    library,
+    tag,
+  ) {
+    store_wal_route(receiver, library, tag)
+  })
+  original.activate().unwrap()
+  let result = if probe == 1 {
+    // The physical constructor succeeds, but its original return is lost.
+    // Cleanup must keep the Database DATA alias through a second lost return.
+    let failure = match
+      @store.open_original_local_store_with_custody(
+        library,
+        original,
+        path,
+        "sha256:" + "1".repeat(64),
+        128L,
+        4L,
+        4096L,
+        diagnostic_ceiling=Some(256),
+      ) {
+      Err(@store.CleanupRequired(value)) => value
+      _ => abort("constructor return loss did not retain original custody")
+    }
+    assert_true(original.pending_scope().unwrap())
+    receiver.fail_cleanup_return = true
+    let pending = failure.retry_cleanup() is Err(@store.OperationRouting(_, _))
+    let sql_count = receiver.sql_entries
+    let held = library.close_checked() is Err(_)
+    assert_true(original.pending_scope().unwrap())
+    failure.retry_cleanup().unwrap()
+    failure.retry_cleanup().unwrap()
+    let no_replay = receiver.sql_entries == sql_count
+    original.close_checked().unwrap()
+    pending && held && no_replay && original.primary_code() == 33
+  } else {
+    // The generic Remote entrance preserves open-existing refusal. This is a
+    // fresh missing path, not a replay or corruption of an earlier fixture.
+    original.enter_store().unwrap()
+    let failure = match
+      library.open_original_remote_database_with_custody(
+        original,
+        path + "/missing.sqlite3",
+        4096L,
+        existing=true,
+      ) {
+      Err(value) => value
+      Ok(_) => abort("missing Remote original was created")
+    }
+    original.leave_store().unwrap()
+    let retained_database = failure
+      .borrow_original_database_cleanup(original)
+      .unwrap()
+      .unwrap()
+    let held_before = library.close_checked() is Err(_)
+    original.enter_cleanup().unwrap()
+    failure.retry_cleanup().unwrap()
+    let pending = original.close_checked() is Err(_)
+    original.leave_store().unwrap()
+    let held_after = library.close_checked() is Err(_)
+    // Retaining this typed same-original DATA is distinct from both ACKs.
+    let same_alias_closed = retained_database.close_checked() is Ok(_)
+    original.close_checked().unwrap()
+    held_before && pending && held_after && same_alias_closed
+  }
+  result && !receiver.active && !receiver.sql && !receiver.return_ack_pending
+}
+
+///|
+test "failed Store constructor retains DATA through original cleanup return ACK" {
+  store_wal_physical_case(false, open_probe=1)
+}
+
+///|
+test "generic Remote failed open retains same DATA through physical and scope ACKs" {
+  store_wal_physical_case(false, open_probe=2)
 }
