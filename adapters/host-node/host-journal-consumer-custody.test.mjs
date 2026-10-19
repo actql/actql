@@ -23,6 +23,7 @@ const controls=nodes.filter(node=>node.type==='VariableDeclarator'&&
 assert.equal(methods.length,1);assert.equal(controls.length,1);
 const make=compileFunction(`
   let hostJournal,hostJournalClose,hostJournalOpen,hostJournalOwnership,hostJournalFlight,observedClose;
+  let hostJournalAdmitRootFormat;
   let sourceManaged=input.source,sourceManagedClose=input.source?.close;
   let control={},controlClose=input.controlClose,originals=input.originals;
   let originalInstallation={},duty;
@@ -54,8 +55,8 @@ test('actual Host awaits the Journal facility after subject retention and before
     .includes('preparation?.retainHostJournalPreparation('));
   const prepared=statements.findIndex(node=>node.type==='IfStatement'&&
     source.slice(node.start,node.end).includes('await preparation.prepareHostJournal()'));
-  const written=statements.findIndex(node=>node.type==='ExpressionStatement'&&
-    source.slice(node.start,node.end).startsWith('await admitHostRootFormat('));
+  const written=statements.findIndex(node=>node.type==='IfStatement'&&
+    source.slice(node.start,node.end).includes('await preparation.admitRootFormat(root)'));
   assert.ok(held>=0&&prepared>held&&written>prepared);
 });
 

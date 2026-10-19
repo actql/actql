@@ -20,8 +20,10 @@ const method=name=>{
 };
 const make=compileFunction(`
   let hostJournal,hostJournalClose,hostJournalOpen,hostJournalOwnership,hostJournalFlight;
+  let hostJournalAdmitRootFormat;
   let hostJournalOpenAttempted=false;
-  const record={};return {${method('prepareHostJournal')},${method('openRequestJournal')}};`,
+  const record={};return {${method('prepareHostJournal')},${method('openRequestJournal')},
+    ${method('admitRootFormat')}};`,
   ['originals','prepareHostJournalInstallation','assertInitialControlHostPreparation','clientOperationError']);
 const failure=code=>Object.assign(new Error(code),{code});
 function fixture(view){
@@ -81,5 +83,41 @@ test('actual selected Host assignment awaits its original opening flight without
   assert.strictEqual(await invoke(undefined,open,'/original/requests',options),journal);
   assert.equal(ordinary,1);
   await assert.rejects(invoke({},open,'/original/requests',options),TypeError);
+  assert.equal(ordinary,1);
+});
+
+test('selected Host retains its original root-format receiver before later current checks',async()=>{
+  const result={},failure=new Error('OriginalRootFormatPending');let calls=0,replaced=0;
+  const view={close(){return {pending:false};},admitRootFormat(root){
+    assert.strictEqual(this,view);assert.equal(root,'/original');calls++;throw failure;
+  },assertCurrent(){view.admitRootFormat=()=>{replaced++;return result;};}};
+  const f=fixture(view);await f.preparation.prepareHostJournal();
+  assert.throws(()=>f.preparation.admitRootFormat('/original'),error=>error===failure);
+  assert.equal(calls,1);assert.equal(replaced,0);
+});
+
+test('missing selected root-format port refuses without an unselected fallback',async()=>{
+  const f=fixture({assertCurrent(){},close(){return {pending:false};}});
+  await f.preparation.prepareHostJournal();
+  assert.throws(()=>f.preparation.admitRootFormat('/original'),
+    {code:'HostJournalPreparationUnavailable'});
+});
+
+test('actual root-format choice awaits the selected original and preserves the unprepared path',async()=>{
+  const choices=nodes.filter(node=>node.type==='IfStatement'&&
+    node.test.type==='BinaryExpression'&&
+    source.slice(node.start,node.end).includes('await preparation.admitRootFormat(root)'));
+  assert.equal(choices.length,1);
+  const invoke=compileFunction(`return (async()=>{${source.slice(choices[0].start,choices[0].end)}})();`,
+    ['preparation','admitHostRootFormat','root']);
+  let selected=0,ordinary=0,release,done=false;
+  const old=root=>{assert.equal(root,'/original');ordinary++;};
+  const preparation={admitRootFormat(root){assert.strictEqual(this,preparation);
+    assert.equal(root,'/original');selected++;return new Promise(resolve=>{release=resolve;});}};
+  const flight=invoke(preparation,old,'/original').then(()=>{done=true;});
+  assert.equal(selected,1);assert.equal(ordinary,0);assert.equal(done,false);
+  release();await flight;assert.equal(done,true);
+  await invoke(undefined,old,'/original');assert.equal(ordinary,1);
+  await assert.rejects(invoke({},old,'/original'),TypeError);
   assert.equal(ordinary,1);
 });
