@@ -709,6 +709,36 @@ for (const entrance of ['local', 'http']) {
     }
   });
 
+  test(`${entrance}: documented CONTAINS uses the original exact string checker`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        "SELECT CONTAINS('a😀b', '😀') AS found",
+        "SELECT cOnTaInS('abc', '') AS found",
+        "SELECT `CoNtAiNs`(NULL, 'a') AS found",
+        "SELECT 'a😀b' AS label |> SELECT CONTAINS(label, @part) AS found",
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@part') ? {parameterDeclarations: {part: {type: 'string'}}, parameters: {part: '😀'}} : {})});
+        assert.equal(checked.outcome, 'completed');
+        assert.equal(checked.report.verdict, 'verified', text);
+        assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+        assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      for (const text of ["SELECT CONTAINS('a') AS bad", "SELECT CONTAINS('a', 'b', 'c') AS bad",
+        "SELECT CONTAINS(1, 'a') AS bad", "SELECT CONTAINS('a', @part) AS bad"]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@part') ? {parameterDeclarations: {part: {type: 'number'}}, parameters: {part: 1}} : {})});
+        assert.equal(checked.report.verdict, 'invalid', text);
+      }
+      const unknown = await client.check("SELECT ACTQL.CONTAINS('a', 'a') AS value",
+        {kind: 'text', scope: 'bound_input', format});
+      assert.equal(unknown.report.verdict, 'undetermined');
+      assert.equal(unknown.report.coverage.limits[0].code, 'implementation_limit');
+    }
+  });
+
   test(`${entrance}: runnable uses the same structured Program Owner and original inputs`, async t => {
     const {client, counts} = await publicCheck(t, entrance, {program: true});
     const program = authoringProgram();
