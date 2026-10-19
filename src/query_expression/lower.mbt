@@ -271,6 +271,7 @@ fn scalar_call(
     "SAFE_MULTIPLY" => ("SAFE_MULTIPLY", "safe_multiply", 2, 2)
     "STRPOS" => ("STRPOS", "strpos", 2, 2)
     "DATE_DIFF" => ("DATE_DIFF", "date_diff", 3, 3)
+    "TO_NUMBER" => ("TO_NUMBER", "to_number", 1, 1)
     "SPLIT" => ("SPLIT", "split", 1, 2)
     "SUBSTR" | "SUBSTRING" => ("SUBSTR", "substring", 2, 3)
     "LEFT" => ("LEFT", "left", 2, 2)
@@ -684,7 +685,20 @@ fn append_resolved(
                 current = @query.expression_origin(ast, args[2])
                 raise Abort(InvalidArguments)
               }
-              if name == "vector_score" {
+              if name == "to_number" {
+                // This public spelling uses the existing Common CAST contract.
+                // Preserve the operand subtree and its original Parameter role.
+                lowering.form(
+                  "cast",
+                  lowering.object([
+                    ("value", nodes[args[0]]),
+                    (
+                      "target",
+                      lowering.object([("type", lowering.add(String("number")))]),
+                    ),
+                  ]),
+                )
+              } else if name == "vector_score" {
                 let metric = if public_name == "VECTOR_SCORE" {
                   // Literal role follows transparent grouping in this bounded
                   // postorder pass. Never evaluate a Parameter, field or CASE

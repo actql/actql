@@ -54,3 +54,13 @@ NULL propagation follows eager child evaluation; enclosing lazy demand remains
 owned by the Common evaluator. The canonical `contains` node already belongs to
 the expression contract, so this connection does not introduce another wire
 shape or reinterpret older Program identities.
+
+## Public Number conversion
+
+The documented `to_number` function and `CAST AS NUMBER` share the existing
+Common CAST contract. Source lowering emits the same target schema and one
+original operand subtree for both spellings. Conversion, nullable typing,
+invalid text, failure, lazy demand and resource accounting remain in the
+existing Common owners. The frontend does not evaluate text or broaden the
+Number, Decimal or Signed64 domains. Existing CAST and Program bytes remain
+unchanged; only the query-text rules identity advances for the new connection.
