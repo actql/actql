@@ -2652,6 +2652,7 @@ priv struct HolderOutputResources {
   // Same initial Site reservation, separate from snapshot retirement.
   mut effect_host_caller_operation : @site.SiteOperation?
   mut effect_host_caller_current : (() -> Bool)?
+  mut effect_host_caller_ordinary : Bool
   effect_host_setup : Ref[HolderEffectHostSetupScope?]
   effect_host_installation : Ref[HolderEffectHostOperatorInstallation?]
   effect_host_holding : Ref[@site.SiteHolding?]
@@ -2823,6 +2824,7 @@ fn open_holder_output_resources(
     effect_host_installation: Ref(None),
     effect_host_caller_operation: None,
     effect_host_caller_current: None,
+    effect_host_caller_ordinary: false,
     effect_host_holding: Ref(None),
     effect_catalog_files: Ref(None),
     effect_host_cleanup: Ref(None),
