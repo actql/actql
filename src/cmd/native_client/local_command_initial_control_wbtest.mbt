@@ -182,3 +182,20 @@ test "Selected command preparation frontend does not acquire before covered oper
   prepare_native_command_invocation(control.matches.unwrap())
   assert_true(command_preparation_invocation.val is None)
 }
+
+///|
+test "Selected command preparation missing compiled layouts refuses before backing" {
+  let failure = try {
+    ignore(
+      local_command_installed_profile(
+        "0000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001",
+      ),
+    )
+    "unexpected profile"
+  } catch {
+    ClientStop(message) => message
+  }
+  assert_eq(failure, "LocalCommandPreparationLayoutUnavailable")
+  assert_true(command_preparation_invocation.val is None)
+  assert_true(initial_crypto_invocation.val is None)
+}

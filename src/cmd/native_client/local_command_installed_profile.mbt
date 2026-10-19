@@ -78,7 +78,7 @@ fn local_command_installed_profile(
     diagnostic_ceiling: 4096,
     native_storage: {
       source,
-      max_snapshot_bytes: 4L * mib,
+      max_snapshot_bytes: 8L * mib,
       max_records: 32,
       read_selection: CommandReadFiniteFacility(read_ceiling),
       platform_selection: CommandPlatformInitialOsFacility,
