@@ -10,7 +10,9 @@ test "shared Mock cap counts authenticated saved and Unknown attempts as spent" 
     retained_bytes: 0L,
     execution_bytes: 0L,
   }
-  assert_eq(check_original_mock_attempt_budget(bound, 1, 1, 1, 1000L), Ok(()))
+  assert_true(
+    check_original_mock_attempt_budget(bound, 1, 1, 1, 1000L) is Ok(_),
+  )
   assert_true(
     check_original_mock_attempt_budget(
       { ..bound, attempts: 3, },

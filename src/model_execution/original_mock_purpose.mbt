@@ -226,12 +226,18 @@ fn check_original_mock_attempt_budget(
     return Err(InvalidLimits)
   }
   let mut remaining = bound.attempts
-  for count in [reservations, restored, unknown] {
-    if count > remaining {
-      return Err(Ledger(@resources.AttemptLimit))
-    }
-    remaining -= count
+  if reservations > remaining {
+    return Err(Ledger(@resources.AttemptLimit))
   }
+  remaining -= reservations
+  if restored > remaining {
+    return Err(Ledger(@resources.AttemptLimit))
+  }
+  remaining -= restored
+  if unknown > remaining {
+    return Err(Ledger(@resources.AttemptLimit))
+  }
+  remaining -= unknown
   if remaining <= 0 {
     return Err(Ledger(@resources.AttemptLimit))
   }
