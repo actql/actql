@@ -2,8 +2,15 @@
 import json
 from pathlib import Path
 
-from setuptools import setup
+from setuptools import Distribution, setup
 from wheel.bdist_wheel import bdist_wheel
+
+
+class LocalDistribution(Distribution):
+    def has_ext_modules(self):
+        # The ctypes library is platform-specific data, without a CPython ABI.
+        # Keep setuptools' installation scheme aligned with the binary wheel.
+        return True
 
 
 class LocalWheel(bdist_wheel):
@@ -20,4 +27,4 @@ class LocalWheel(bdist_wheel):
         return 'py3', 'none', 'macosx_11_0_arm64'
 
 
-setup(cmdclass={'bdist_wheel': LocalWheel})
+setup(distclass=LocalDistribution, cmdclass={'bdist_wheel': LocalWheel})
