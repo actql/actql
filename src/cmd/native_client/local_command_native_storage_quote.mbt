@@ -47,6 +47,9 @@ priv enum LocalCommandNativeStorageIssue {
 extern "C" fn native_storage_page_bytes() -> Int64 = "actql_native_command_storage_page_bytes"
 
 ///|
+extern "C" fn native_inspection_layout_field(field : Int) -> Int64 = "actql_journal_inspection_layout_field"
+
+///|
 priv struct LocalCommandNativeStorageQuote {
   source : String
   snapshot_bytes : Int64
@@ -107,6 +110,70 @@ fn native_storage_mem5_block(
     block *= 2L
   }
   Ok(block)
+}
+
+///|
+// Necessary simultaneous subset, not a complete Native holding quote. File
+// buffers use the original generic page route; they cannot share a managed
+// slab. Three source paths remain while either canonical-path temporaries or
+// directory/copy/cleanup paths coexist. Count the receiver separately, even
+// when a managed allocator could pack it beside another object. Complete
+// caller graphs, context/allocator metadata and failed-retirement retention
+// still belong to the caller's full Native/managed envelope.
+fn native_storage_inspection_minimum(
+  page : Int64,
+) -> Result[Int64, LocalCommandNativeStorageIssue] {
+  let payload = native_inspection_layout_field(0)
+  let overhead = native_inspection_layout_field(1)
+  let canonical = native_inspection_layout_field(2)
+  if payload <= 0L || overhead <= 0L || canonical <= 0L {
+    return Err(NativeStorageInvalidInput)
+  }
+  let receiver = match native_storage_sum([payload, overhead]) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  // Literal suffixes in the same inspection Owner: /actql-journal-format-XXXXXX
+  // is 28 bytes and /journal.sqlite3 is 16. Cleanup's longest suffix is -journal.
+  let requests = [
+    receiver,
+    4096L + 1L,
+    4096L + 4L + 1L,
+    4096L + 8L + 1L,
+    4096L + 1L,
+    canonical,
+    canonical,
+    4096L + 28L + 1L,
+    4096L + 28L + 16L + 1L,
+    4096L + 28L + 16L + 8L + 1L,
+  ]
+  let rounded : Array[Int64] = []
+  for bytes in requests {
+    match native_storage_page_round(bytes, page) {
+      Ok(value) => rounded.push(value)
+      Err(issue) => return Err(issue)
+    }
+  }
+  let resolving = match
+    native_storage_sum([rounded[4], rounded[5], rounded[6]]) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let copying = match native_storage_sum([rounded[7], rounded[8], rounded[9]]) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  native_storage_sum([
+    rounded[0],
+    rounded[1],
+    rounded[2],
+    rounded[3],
+    if resolving > copying {
+      resolving
+    } else {
+      copying
+    },
+  ])
 }
 
 ///|
@@ -171,6 +238,14 @@ fn quote_local_command_native_storage(
   }
   guard bounds.shared_control_bytes is Some(control) && control > 0L else {
     return Err(NativeStorageControlMissing)
+  }
+  let inspection = match
+    native_storage_inspection_minimum(native_storage_page_bytes()) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if native < inspection {
+    return Err(NativeStorageInsufficient)
   }
   let array = match native_storage_mem5_block(8L * regions) {
     Err(issue) => return Err(issue)
