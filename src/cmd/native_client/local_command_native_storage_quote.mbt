@@ -39,7 +39,7 @@ priv enum LocalCommandSqliteHeapSelection {
 priv enum LocalCommandSqlitePayloadRequirement {
   SqliteDemandPayload(Int64)
   SqliteNecessaryPayload(Int64)
-} derive(Eq, Show)
+}
 
 ///|
 priv enum LocalCommandNativeStorageIssue {

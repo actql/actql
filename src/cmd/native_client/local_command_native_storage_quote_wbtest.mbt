@@ -128,7 +128,7 @@ test "Native storage shared heaps count once and platform never charges Read" {
   assert_eq(quote.read_execution_bytes, profile.crypto_heap_bytes + 131083L)
   assert_eq(quote.platform_required_bytes, 19L)
   assert_eq(quote.sqlite_execution_bytes, profile.sqlite_heap_bytes + 17L)
-  assert_eq(quote.sqlite_payload_requirement, SqliteDemandPayload(295456L))
+  assert_true(quote.sqlite_payload_requirement is SqliteDemandPayload(295456L))
   assert_eq(quote.shared_control_bytes, 29L)
 }
 
@@ -274,7 +274,7 @@ test "Native storage cannot place Journal scan result copies outside the same he
     ..profile,
     native_storage: exact,
   }).unwrap()
-  assert_eq(quote.sqlite_payload_requirement, SqliteDemandPayload(295456L))
+  assert_true(quote.sqlite_payload_requirement is SqliteDemandPayload(295456L))
   // A large separate Read or outer platform value cannot repair this deficit.
   assert_true(
     quote_local_command_native_storage({
@@ -298,7 +298,9 @@ test "Native SQLite finite capacity is distinct from derived demand" {
   }
   let facility = { ..profile, native_storage: bounds, }
   let quote = quote_local_command_native_storage(facility).unwrap()
-  assert_eq(quote.sqlite_payload_requirement, SqliteNecessaryPayload(295456L))
+  assert_true(
+    quote.sqlite_payload_requirement is SqliteNecessaryPayload(295456L),
+  )
   assert_eq(quote.sqlite_execution_bytes, profile.sqlite_heap_bytes + 17L)
   // Capacity selection cannot supply physical current/platform authority.
   assert_true(
