@@ -2378,6 +2378,35 @@ discovery, loader work or a worker when their complete original supply and
 import/binding overlap are absent. The ordinary Host factory retains the same
 initial carrier on that unavailable outcome.
 
+### Python initial Native managed entrance
+
+The Python purpose uses a distinct opaque initial-platform original in the
+existing Bootstrap Owner. It cannot consume or reinterpret the Native command
+original. Its typed entrance reuses the same pinned MI217 physical mapping,
+metadata registration, exclusive payload, default selection and partial-return
+implementation. The selection reader must confirm the same actual interpreter,
+process, original thread, component/recipe and initial generation before the
+physical entrance observes allocator state. A later Host adopts that lifetime;
+it does not issue another baseline or reservation.
+
+Automatic allocator or Moon initialization must not precede this entrance. The
+private Python runtime derivation changes only the exact pinned object's one MI
+constructor registration into ordinary private data, preserving its instructions,
+symbols, relocations and TLS. Its selected link must reject remaining static
+initializers. The physical entrance also refuses an already initialized MI
+object before mapping; an empty arena inventory alone cannot make it fresh.
+The original command/toolchain object and explicit diagnostic interfaces retain
+their existing initialization meaning.
+
+The mapping and its metadata, alignment, options, default and partial state
+remain with that original. Restoring the previous default does not retire the
+mapping, registration, escaped allocations or process lifetime, and cannot fund
+another Host. This mechanism supplies no loader/prelude coverage by itself.
+Actual outside-arena initial services and their complete simultaneous envelope
+must precede load; the interpreter input service, worker, VM and business
+admissions remain separate. A type declaration or diagnostic finite selection
+does not supply a missing ordinary operational original.
+
 ### Bounded private worker selections
 
 The installed worker preparation ports accept exact path text, rather than
