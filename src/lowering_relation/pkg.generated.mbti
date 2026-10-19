@@ -2029,6 +2029,7 @@ pub(all) enum UnaryOperator {
   Round
   Trunc
   SafeNegate
+  TryDecimal
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {
