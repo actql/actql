@@ -70,9 +70,8 @@ fn group_execution_check(
     !physical_equal(owned.source, pending.source) {
     return Err(ForeignOccurrence(site.step))
   }
-  let rule = match select_group_execution_rule(
-    group, site.index, pending.kind, site.step,
-  ) {
+  let rule = match
+    select_group_execution_rule(group, site.index, pending.kind, site.step) {
     Ok(Some(value)) => value
     Ok(None) => return Ok(None)
     Err(issue) => return Err(issue)
