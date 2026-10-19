@@ -39,6 +39,18 @@ fn preparation_read_refusal_without_pair() -> (@sqlite.Library, @crypto.Library)
     is Err(OriginalResourceScopePending),
   )
   assert_true(
+    capture.lookup_submitted_run_original_by_id_in_original_read(
+      "principal", "connection", "selector-only",
+    )
+    is Err(OriginalResourceScopePending),
+  )
+  assert_true(
+    capture.lookup_submitted_run_state_by_id_in_original_read(
+      "principal", "connection", "selector-only", 0.0,
+    )
+    is Err(OriginalResourceScopePending),
+  )
+  assert_true(
     capture.authority_scope_cid_in_original_read("principal", "connection")
     is Err(OriginalResourceScopePending),
   )

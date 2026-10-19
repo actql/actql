@@ -315,6 +315,24 @@ pub fn NativeLocalHostConnection::lookup_submitted_run_state(
   request : @host.ClientRequestIdentity,
   now : Double,
 ) -> Result[NativeClientSavedRunState, NativeClientSavedRunStateIssue] {
+  self.lookup_submitted_run_state_with_operations(
+    crypto, principal, connection, reference, request, now,
+  )
+}
+
+///|
+fn NativeLocalHostConnection::lookup_submitted_run_state_with_operations(
+  self : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  reference : NativeClientSubmissionReference,
+  request : @host.ClientRequestIdentity,
+  now : Double,
+  operations? : NativeClientJournalOperationAccess? = None,
+  capture? : NativeLocalJournalCapture? = None,
+) -> Result[NativeClientSavedRunState, NativeClientSavedRunStateIssue] {
+  let reads = operations.map(value => value.reads)
   let authority = match
     native_local_policy_authority_for(
       self,
@@ -323,56 +341,61 @@ pub fn NativeLocalHostConnection::lookup_submitted_run_state(
       connection,
       request,
       ReadRunMaterials,
+      capture~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
   }
   match
-    self.journal.lookup_submitted_intent(
+    self.journal.lookup_submitted_intent_with_operations(
       self.epoch,
       reference,
       authority.scope,
       authority.current_for(self.journal, request),
       now,
+      operations~,
     ) {
     Ok(Submitted(value)) if value.run_admission is Some(_) => ()
     Ok(_) => return Err(Unavailable)
     Err(issue) => return Err(Journal(issue))
   }
   self.journal
-  .transaction(() => {
-    if !authority.current_for(self.journal, request) {
-      return Err(AuthorizationDenied)
-    }
-    let read : Result[NativeClientSavedRunState?, NativeClientRunJournalIssue] = match
-      self.journal.saved_run_state_locked(reference, request) {
-      Ok((original, run)) =>
-        match (original.run_state_original, original.run_state_observation) {
-          (Some(wire), Some((revision, Some(key)))) =>
-            @host.restore_client_run_state_original(run.definition, wire)
-            .map_err(_ => NativeClientRunJournalIssue::CustodyLost)
-            .bind(value => {
-              let observation = match
-                native_saved_state_observation(run, value, revision) {
-                Ok(result) => result
-                Err(issue) => return Err(issue)
-              }
-              if observation.key() != key ||
-                observation.wire(revision).to_option() !=
-                Some(value.state_wire()) {
-                return Err(CustodyLost)
-              }
-              Ok(Some({ original: value, control_revision: run.revision, }))
-            })
-          _ => Ok(None)
-        }
-      Err(issue) => Err(issue)
-    }
-    if !authority.current_for(self.journal, request) {
-      return Err(AuthorizationDenied)
-    }
-    read
-  })
+  .transaction_with_reads(
+    () => {
+      if !authority.current_for(self.journal, request) {
+        return Err(AuthorizationDenied)
+      }
+      let read : Result[NativeClientSavedRunState?, NativeClientRunJournalIssue] = match
+        self.journal.saved_run_state_locked(reference, request, reads~) {
+        Ok((original, run)) =>
+          match (original.run_state_original, original.run_state_observation) {
+            (Some(wire), Some((revision, Some(key)))) =>
+              @host.restore_client_run_state_original(run.definition, wire)
+              .map_err(_ => NativeClientRunJournalIssue::CustodyLost)
+              .bind(value => {
+                let observation = match
+                  native_saved_state_observation(run, value, revision) {
+                  Ok(result) => result
+                  Err(issue) => return Err(issue)
+                }
+                if observation.key() != key ||
+                  observation.wire(revision).to_option() !=
+                  Some(value.state_wire()) {
+                  return Err(CustodyLost)
+                }
+                Ok(Some({ original: value, control_revision: run.revision, }))
+              })
+            _ => Ok(None)
+          }
+        Err(issue) => Err(issue)
+      }
+      if !authority.current_for(self.journal, request) {
+        return Err(AuthorizationDenied)
+      }
+      read
+    },
+    reads~,
+  )
   .map_err(issue => NativeClientSavedRunStateIssue::Journal(issue))
   .bind(value => {
     match value {
