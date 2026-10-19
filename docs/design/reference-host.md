@@ -1162,6 +1162,16 @@ the prepared Store exclusion, separately from synchronous Journal filesystem
 operations. The fixed namespace checks those same originals before subject or
 ownership acquisition. A detected replacement does not revive on restoration;
 the correspondence table itself grants neither a facility nor authority.
+The selected Node SQLite iterator entry also reads the global `Iterator` and
+its `prototype` before returning a native cursor. The prefix captures that
+own-DATA constructor/prototype pair without invoking accessors or Proxy traps;
+the namespace compares the same originals and their descriptors before selected
+native use. A later getter or substituted pair refuses without invoking it,
+and restoration cannot revive detected invalidation. No global property is
+frozen by this check. The retained descriptors, constructor/prototype aliases
+and currentness records share the original module/Host lifetime; they are not
+additional capacity, a proof of arbitrary earlier runtime history, or a physical
+ACK. Returned cursors remain under their original connection's cleanup duty.
 Selected ownership retirement reads its original token through the bounded
 metadata reader, never an unrestricted `readFile`. That reader captures the
 original FileHandle close and receiver before stat/read callbacks. A failed

@@ -8,6 +8,7 @@ import {tmpdir} from 'node:os';
 import test from 'node:test';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
+import {types as nativeTypes} from 'node:util';
 import journalFacilityFields from './host-journal-facility-fields.cjs';
 import {createHostJournalDirectoryInspector, assertHostJournalDirectoryInspector}
   from './host-journal-directory.mjs';
@@ -44,6 +45,7 @@ const make = compileFunction(`
   let journalInstallation;
   const apply=Reflect.apply,descriptor=Object.getOwnPropertyDescriptor;
   const own=Object.hasOwn,freeze=Object.freeze;
+  const isProxy=nativeIsProxy;
   const journalPromise=Promise,journalPromiseResolve=Promise.resolve;
   const journalPromiseThen=Promise.prototype.then;
   const journalUnavailable=()=>{throw Object.assign(new Error('HostJournalPreparationUnavailable'),
@@ -56,7 +58,7 @@ const make = compileFunction(`
     ownership:journalPublicationOwnership,owner:{${originalOwner}},
     close:(original,held)=>closeJournal(journalOriginal(original,held,true))};`,
 ['state', 'assertSamePreparation', 'join', 'journalFacilityFields', 'localRoot',
-  'assertPrefixCurrent', 'createHostJournalDirectoryInspector']);
+  'assertPrefixCurrent', 'createHostJournalDirectoryInspector', 'nativeIsProxy']);
 
 // Portable Root protocol cases have an explicit directory-port double, not a
 // stock-Dir physical ACK claim. A selected matching Darwin diagnostic may use
@@ -183,7 +185,8 @@ async function fixture({covered = true, open, read, current, nativeCurrent, subj
     },
   })};
   const root = make(state, actual => assert.strictEqual(actual, originals), join, journalFacilityFields,
-    nativePackageRoot ?? '/explicit-fixture-package', runtimeCurrent, createHostJournalDirectoryInspector);
+    nativePackageRoot ?? '/explicit-fixture-package', runtimeCurrent, createHostJournalDirectoryInspector,
+    nativeTypes.isProxy);
   state.journalNative = Object.freeze({DatabaseSync,StatementSync,
     bindings:root.captureNative(fs,crypto,fs.promises)});
   return {scratch, originals, directory, physicalRoot, root, state};

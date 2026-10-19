@@ -20,7 +20,8 @@ const limits = Object.freeze({maxDatabaseBytes: 1048576,
     maxParameterBytes: 262144, maxResultRows: 128}});
 const nativeBindings = () => Object.freeze(Object.fromEntries(
   [['fs',fs],['promises',fs.promises],['crypto',crypto],['constants',fs.constants],['directory',fs.Dir.prototype],
-    ['hash',crypto.Hash.prototype],['hmac',crypto.Hmac.prototype],['realpath',fs.realpathSync]].map(([group,receiver]) =>
+    ['hash',crypto.Hash.prototype],['hmac',crypto.Hmac.prototype],['realpath',fs.realpathSync],
+    ['iteratorGlobal',globalThis],['iteratorConstructor',globalThis.Iterator]].map(([group,receiver]) =>
     [group,Object.freeze(Object.fromEntries(facilityFields[group].map(name =>
       [name,Object.getOwnPropertyDescriptor(receiver,name).value])))])));
 async function fixture() {
@@ -84,7 +85,8 @@ test('selected async filesystem replacement is rejected and restoration does not
       from ${JSON.stringify(new URL('./client-request-journal.mjs',import.meta.url).href)};
     const held=Object.freeze(Object.fromEntries([
       ['fs',fs],['crypto',crypto],['constants',fs.constants],['directory',fs.Dir.prototype],
-      ['hash',crypto.Hash.prototype],['hmac',crypto.Hmac.prototype],['realpath',fs.realpathSync]
+      ['hash',crypto.Hash.prototype],['hmac',crypto.Hmac.prototype],['realpath',fs.realpathSync],
+      ['iteratorGlobal',globalThis],['iteratorConstructor',globalThis.Iterator]
     ].map(([group,receiver])=>[group,Object.freeze(Object.fromEntries(fields[group].map(name=>
       [name,Object.getOwnPropertyDescriptor(receiver,name).value])))])));
     const selected=Object.freeze({...held,promises:Object.freeze({...fs.promises})});
@@ -116,7 +118,8 @@ for (const selected of ['crypto','directory','realpath']) {
         from ${JSON.stringify(new URL('./client-request-journal.mjs',import.meta.url).href)};
       const held=Object.freeze(Object.fromEntries([
         ['fs',fs],['promises',fs.promises],['crypto',crypto],['constants',fs.constants],['directory',fs.Dir.prototype],
-        ['hash',crypto.Hash.prototype],['hmac',crypto.Hmac.prototype],['realpath',fs.realpathSync]
+        ['hash',crypto.Hash.prototype],['hmac',crypto.Hmac.prototype],['realpath',fs.realpathSync],
+        ['iteratorGlobal',globalThis],['iteratorConstructor',globalThis.Iterator]
       ].map(([group,receiver])=>[group,Object.freeze(Object.fromEntries(fields[group].map(name=>
         [name,Object.getOwnPropertyDescriptor(receiver,name).value])))])));
       current(DatabaseSync,StatementSync,held);

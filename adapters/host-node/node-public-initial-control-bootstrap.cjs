@@ -314,9 +314,17 @@ function admitJournalRootFormat(original, held, root) {
   return flight;
 }
 function captureJournalNativeBindings(fsOriginal, cryptoOriginal, fsPromisesOriginal) {
+  // Native StatementSync::Iterate performs these JS reads before returning
+  // the cursor. Refuse accessors/proxies without entering their callbacks.
+  const iteratorOriginal = field(globalThis, 'Iterator');
+  if (typeof iteratorOriginal !== 'function' || isProxy(iteratorOriginal)) unavailable();
+  const iteratorPrototype = field(iteratorOriginal, 'prototype');
+  if (iteratorPrototype === null || typeof iteratorPrototype !== 'object' ||
+      isProxy(iteratorPrototype)) unavailable();
   const bindings = Object.create(null);
   for (const [group,receiver] of [['fs',fsOriginal],['crypto',cryptoOriginal],
     ['promises',fsPromisesOriginal],
+    ['iteratorGlobal',globalThis],['iteratorConstructor',iteratorOriginal],
     ['constants',field(fsOriginal,'constants')],
     ['directory',field(field(fsOriginal,'Dir'),'prototype')],
     ['realpath',field(fsOriginal,'realpathSync')],
@@ -325,7 +333,8 @@ function captureJournalNativeBindings(fsOriginal, cryptoOriginal, fsPromisesOrig
     const values = Object.create(null);
     for (const name of journalFacilityFields[group]) {
       const value = field(receiver,name);
-      if (typeof value !== (group === 'constants' ? 'number' : 'function')) unavailable();
+      if (typeof value !== (group === 'constants' ? 'number' :
+          group === 'iteratorConstructor' ? 'object' : 'function')) unavailable();
       values[name] = value;
     }
     bindings[group] = freeze(values);
@@ -855,7 +864,7 @@ const inputLimits = freeze({maxProperties:40,maxNodes:40,maxDepth:4,
 const prefixIntrinsics = [];
 const intrinsicSource = Function.prototype.toString;
 for (const [receiver,names] of [[Object,['getOwnPropertyDescriptor','hasOwn','freeze','create']],
-  [Reflect,['apply','ownKeys']],[Array,['isArray']],[globalThis,['Object','Reflect','Array','Promise','Buffer']]]) {
+  [Reflect,['apply','ownKeys']],[Array,['isArray']],[globalThis,['Object','Reflect','Array','Promise','Buffer','Iterator']]]) {
   for (const name of names) prefixIntrinsics.push(freeze({receiver,name,property:descriptor(receiver,name)}));
 }
 freeze(prefixIntrinsics);

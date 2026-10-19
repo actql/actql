@@ -58,6 +58,13 @@ const facilityNativeRealpath = facilityDescriptor(facilityRealpath, 'native')?.v
 const nativePathOptions = Object.freeze({__proto__: null, encoding: 'utf8'});
 const facilityHasOwn = Object.hasOwn, facilityIsProxy = utilTypes.isProxy;
 const facilityDatabase = DatabaseSync, facilityStatement = StatementSync;
+const facilityIteratorProperty = facilityDescriptor(globalThis, 'Iterator');
+// No getter/Proxy is evaluated while capturing this actual namespace. Missing
+// or unsupported originals remain absent and the selected fence refuses them.
+const facilityIteratorConstructor = facilityIteratorProperty !== undefined &&
+  facilityHasOwn(facilityIteratorProperty, 'value') &&
+  typeof facilityIteratorProperty.value === 'function' &&
+  !facilityIsProxy(facilityIteratorProperty.value) ? facilityIteratorProperty.value : undefined;
 const facilityOperations = Object.freeze([
   [facilityDatabase.prototype, 'open'], [facilityDatabase.prototype, 'close'],
   [facilityDatabase.prototype, 'prepare'], [facilityDatabase.prototype, 'exec'],
@@ -68,10 +75,11 @@ const facilityOperations = Object.freeze([
 const facilityPlatformOperations = Object.freeze([
   ['fs',facilityFs],['crypto',facilityCrypto],['constants',facilityFs.constants],
   ['promises',facilityFsPromises],
+  ['iteratorGlobal',globalThis],['iteratorConstructor',facilityIteratorConstructor],
   ['directory',facilityFs.Dir.prototype],['hash',facilityCrypto.Hash.prototype],
   ['hmac',facilityCrypto.Hmac.prototype],['realpath',facilityRealpath],
 ].flatMap(([group,receiver]) => facilityFields[group].map(name => Object.freeze({
-  group,receiver,name,property:facilityDescriptor(receiver,name),
+  group,receiver,name,property:receiver === undefined ? undefined : facilityDescriptor(receiver,name),
 }))));
 
 function originalJournalFacilityField(value, name) {
@@ -108,13 +116,13 @@ export function assertOriginalClientRequestJournalFacilityCurrent(database, stat
     // currentness; a detected change in the real operations is irreversible.
     for (const {group,name,property} of facilityPlatformOperations) {
       const selected = originalJournalFacilityField(nativeBindings,group);
-      if (property === undefined ||
+      if (property === undefined || !facilityHasOwn(property, 'value') ||
           originalJournalFacilityField(selected,name) !== property.value) {
         fail('ClientRequestJournalFacilityUnavailable');
       }
     }
     for (const {receiver,name,property} of facilityPlatformOperations) {
-      const current = facilityDescriptor(receiver,name);
+      const current = receiver === undefined ? undefined : facilityDescriptor(receiver,name);
       if (current === undefined || current.value !== property.value ||
           current.get !== property.get || current.set !== property.set ||
           current.writable !== property.writable || current.configurable !== property.configurable ||

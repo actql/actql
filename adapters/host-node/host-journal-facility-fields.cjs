@@ -10,6 +10,10 @@ module.exports = Object.freeze({
   // Existing Store exclusion performs asynchronous metadata/FD work before
   // the Journal. These are distinct originals, not the sync fs functions.
   promises:Object.freeze(['lstat','mkdir','open','rename','rmdir','unlink']),
+  // StatementSync::Iterate reads both before returning its native cursor.
+  // These aliases are correspondence, never a service or resource issuer.
+  iteratorGlobal:Object.freeze(['Iterator']),
+  iteratorConstructor:Object.freeze(['prototype']),
   crypto:Object.freeze(['Hash','Hmac','createHash','createHmac','randomBytes','randomUUID','timingSafeEqual']),
   constants:Object.freeze(['O_RDONLY','O_NOFOLLOW','O_NONBLOCK']),
   directory:Object.freeze(['readSync','closeSync']),
