@@ -136,16 +136,34 @@ test('actual public facade and SDK Remote dispatch do not acquire the Local load
   const f=fixture(t,{publicNode:true,actualFacade:true,inventory:false});const result=f.run(
     'import assert from"node:assert/strict";import Module from"node:module";'+
     'const names=["registerHooks","register"],before=names.map(name=>Object.getOwnPropertyDescriptor(Module,name));'+
-    'const facade=await import("@actql/node"),sdk=await import("@actql/sdk");'+
-    'assert.strictEqual(facade.ClientError,sdk.ClientError);assert.strictEqual(facade.RequestHeld,sdk.RequestHeld);'+
+    'const facade=await import("@actql/node"),require=Module.createRequire(import.meta.url);'+
+    'assert.equal(require.cache[require.resolve("@actql/sdk")],undefined);'+
     'let calls=0;const originalFetch=globalThis.fetch;'+
     'globalThis.fetch=async()=>{calls++;throw Error("ControlledTransportStop");};'+
     'try{for(const mode of ["remote","local"])await assert.rejects(facade.connect({mode,...(mode==="local"?{owner:"local"}:{}),endpoint:"https://host.example/",token:()=>"fixture-only"}),{code:"ClientTransportUnknown"});}'+
     'finally{globalThis.fetch=originalFetch;}'+
     'assert.equal(calls,2);'+
+    'const sdk=await import("@actql/sdk");'+
+    'assert.strictEqual(facade.ClientError,sdk.ClientError);assert.strictEqual(facade.RequestHeld,sdk.RequestHeld);'+
     'for(let i=0;i<names.length;i++)assert.deepEqual(Object.getOwnPropertyDescriptor(Module,names[i]),before[i]);'+
     'assert.equal(Module.createRequire(import.meta.url).cache['+
     JSON.stringify(join(f.root,'adapters/host-node/node-public-initial-control-bootstrap.cjs'))+'],undefined);');
+  assert.equal(result.status,0,result.stderr);
+});
+
+test('actual public facade retains tiny SDK class originals before selected Local refusal',t=>{
+  const f=fixture(t,{publicNode:true,actualFacade:true,inventory:false});const result=f.run(
+    'import assert from"node:assert/strict";import Module from"node:module";'+
+    'const facade=await import("@actql/node"),errors=await import("@actql/sdk/_internal/client-errors");'+
+    'assert.strictEqual(facade.ClientError,errors.ClientError);assert.strictEqual(facade.RequestHeld,errors.RequestHeld);'+
+    'const held=Object.freeze({requestId:"original"}),lookup=Object.freeze({original:true});'+
+    'const error=new facade.RequestHeld(held,lookup);assert.ok(error instanceof facade.ClientError);'+
+    'assert.strictEqual(error.held,held);assert.strictEqual(error.lookupContext,lookup);assert.equal(error.requestId,"original");'+
+    'const require=Module.createRequire(import.meta.url),sdkPath=require.resolve("@actql/sdk");'+
+    'assert.equal(require.cache[sdkPath],undefined);let read=0;'+
+    'await assert.rejects(facade.connect({mode:"local",get profile(){read++;throw Error("TooEarly");}}),'+
+    '{code:"NodeInitialControlAdmissionUnavailable"});'+
+    'assert.equal(read,0);assert.equal(require.cache[sdkPath],undefined);');
   assert.equal(result.status,0,result.stderr);
 });
 
