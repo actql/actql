@@ -178,7 +178,20 @@ test "Selected command preparation frontend does not acquire before covered oper
     false,
   )
   assert_true(local_command_preparation_selected(control.matches.unwrap()))
-  // The unselected test process cannot fabricate the initial launcher input.
+  // An unmeasured process must not select the compatibility path. Main performs
+  // this real original observation before parse; reproduce that order here.
+  let unmeasured = try {
+    prepare_native_command_invocation(control.matches.unwrap())
+    false
+  } catch {
+    ClientStop(message) => message == "LocalCommandPreparationUnavailable"
+  }
+  assert_true(unmeasured)
+  assert_false(
+    command_preparation_result(
+      command_preargument_bound(1048576, 1048576, 1048576, 8192),
+    ),
+  )
   prepare_native_command_invocation(control.matches.unwrap())
   assert_true(command_preparation_invocation.val is None)
 }
