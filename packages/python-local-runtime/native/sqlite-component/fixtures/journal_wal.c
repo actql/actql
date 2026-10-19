@@ -32,6 +32,7 @@ int main(int argc, char **argv) {
     assert(strcmp(name, "wal-copy") == 0 || strcmp(name, "missing-index") == 0 ||
         strcmp(name, "exclusive-conflict") == 0 ||
         strcmp(name, "command-record-bounds") == 0 ||
+        strcmp(name, "database-finalizer-current") == 0 ||
         strcmp(name, "domain-facility-minimum") == 0 ||
         strcmp(name, "domain-facility-exhaustion") == 0 ||
         strcmp(name, "finite-facility-exhaustion") == 0);
@@ -39,6 +40,7 @@ int main(int argc, char **argv) {
     const bool domain_minimum = strcmp(name, "domain-facility-minimum") == 0;
     const bool domain_exhaustion = domain_minimum || strcmp(name, "domain-facility-exhaustion") == 0;
     const bool command_bounds = strcmp(name, "command-record-bounds") == 0;
+    const bool finalizer_current = strcmp(name, "database-finalizer-current") == 0;
     /* A predeclared component-only capacity candidate, not an installed entry
      * profile. Exercise the normal command's original 8-row/131072-byte inputs;
      * no small conformance heap is promoted into ordinary capacity. */
@@ -128,7 +130,39 @@ int main(int argc, char **argv) {
         (moonbit_bytes_t)"ns", 2, (moonbit_bytes_t)"key", 3,
         (moonbit_bytes_t)"original", 8) == 0);
 
-    if (domain_minimum) {
+    if (finalizer_current) {
+        /* Physical DB/descriptor ACK does not return its managed Library child.
+         * Keep the real DB alias while invoking the exact finalizer callback
+         * under a different actual context. This avoids destroying the only
+         * receiver needed for confirmed original cleanup after the refusal. */
+        assert(actql_native_sqlite_close_checked(writer) == 1);
+        assert(writer->database == NULL && writer->error == NULL);
+        assert(actql_native_sqlite_test_result_storage_empty(writer));
+        assert(writer->library == library && writer->library_child);
+        assert(library->database_children == 1);
+        actql_read_context *other = NULL;
+        assert(actql_read_context_leave(context) == 0);
+        assert(actql_read_context_create(lease, &other) == 0 && other != context);
+        assert(actql_read_context_retain(other) == 0);
+        assert(actql_read_context_enter(other) == 0);
+        assert(actql_bootstrap_current_read_context() == other);
+        actql_native_sqlite_database_finalize(writer);
+        assert(writer->library == library && writer->library_child);
+        assert(library->database_children == 1);
+        assert(actql_native_sqlite_library_close_checked(library) == 0);
+        assert(!library->closing && library->dynamic_library != NULL);
+        assert(actql_read_context_leave(other) == 0);
+        assert(actql_read_context_release_after_owner_ack(other) == 0);
+        assert(actql_read_context_try_close(&other) == 0 && other == NULL);
+        assert(actql_read_context_enter(context) == 0);
+        /* Even in the correct frame the live DB alias prevents Library close.
+         * Only its actual last-alias finalization returns that original child. */
+        assert(actql_native_sqlite_library_close_checked(library) == 0);
+        assert(library->database_children == 1);
+        moonbit_decref(writer);
+        writer = NULL;
+        assert(library->database_children == 0);
+    } else if (domain_minimum) {
         uint64_t observed[16] = {0};
         assert(actql_native_owned_inventory(lease, observed, 16) == 0);
         assert(observed[3] <= domain_ceiling && observed[4] <= domain_ceiling);
@@ -294,8 +328,8 @@ int main(int argc, char **argv) {
             "actql_sqlite_component_descriptor_ack")(NULL) == 0);
         moonbit_decref(snapshot);
     }
-    close_database(writer);
-    if (!facility_exhaustion && !domain_exhaustion) {
+    if (!finalizer_current) close_database(writer);
+    if (!facility_exhaustion && !domain_exhaustion && !finalizer_current) {
         /* Generic restoration remains the generic route and sees the same row. */
         actql_native_sqlite_database *generic = actql_native_sqlite_open_existing_database(
             library, (moonbit_bytes_t)path, (int32_t)strlen(path),
