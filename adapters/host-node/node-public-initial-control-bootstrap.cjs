@@ -15,6 +15,10 @@ const processOriginal = require('node:process');
 const apply = Reflect.apply, descriptor = Object.getOwnPropertyDescriptor;
 const own = Object.hasOwn, freeze = Object.freeze;
 const journalFacilityFields = require('./host-journal-facility-fields.cjs');
+// Capture this private loader before namespace callbacks. This loads only its
+// JS control body; native image acquisition still requires the separate full
+// Journal disposition and is never funded by this reference alone.
+const directoryNativeImage = require('./host-journal-native-image.cjs');
 const {createInitialControlInstallationOwner} = require('./initial-control-installation-owner.cjs');
 const {declareOrdinaryInitialControlPhaseEnvelope, inspectOrdinaryInitialControlPhaseEnvelope}
   = require('./initial-control-phase-envelope.cjs');
@@ -1024,7 +1028,8 @@ try {
   }
   freeze(journal);
   state = {declaration,runtime,envelope,sourceEnvelope,sourceComputeEnvelope,runRequirements,
-    inventory,images,namespace,consumer,validator,reader,source,journal,journalNative,prefixIntrinsics};
+    inventory,images,namespace,consumer,validator,reader,source,journal,journalNative,prefixIntrinsics,
+    directoryNativeImageLoader:field(directoryNativeImage,'loadHostJournalDirectoryNative')};
 } catch(cause) {
   // Keep original FD/namespace/compile failure and its close-only duty. A
   // failed prefix never becomes a second factory or a retrying image read.

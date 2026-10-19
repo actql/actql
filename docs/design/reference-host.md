@@ -1055,6 +1055,26 @@ Neither JavaScript alias retirement nor native finalization supplies a close
 acknowledgement. The loaded module and shared allocator/library domains remain
 charged for their actual lifetimes after a successful child close.
 
+The private directory image loader keeps native binary facts separate from JS
+Source. After independent pre-use module/filesystem coverage, it verifies the
+selected package image, creates one nonescaping private copy and retains its
+same read descriptor. It closes the only writable descriptor and checks the
+copy hash before the ordinary named-image load, then verifies that same inode
+and hash before unlinking and closing it. This selected Darwin load does not
+disable code-signing or platform policy. No filename or writable descriptor is
+published during the load/unlink sequence. Actual startup ownership and the
+selected originals remain obligations; matching public DATA cannot supply them.
+The temporary directory is an explicit bounded input from that disposition,
+not an ambient environment read performed by the loader as its own supplier.
+
+The loader keeps the original native instance, captured operations and runtime
+current fence. Detected loader replacement does not revive after restoration.
+An initialization attempt, including a failure after native entry, is never
+replaced by another load. Partial file cleanup retains its own one-shot close
+outcomes independently of the process-lived loaded image and native allocator
+domain. Importing the loader control module does not acquire native bytes or
+issue the missing complete operational disposition.
+
 SQL and native-statement counters do not bound an operation that refuses
 before reaching SQL, including its validation and any earlier native crypto
 work. The selected Journal may therefore additionally impose an original
