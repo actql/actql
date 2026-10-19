@@ -79,6 +79,25 @@ fn[T] command_preparation_result(
 }
 
 ///|
+// Selection only: the downstream original/current/Account admissions remain
+// mandatory. A private submission or an absent business original cannot select
+// the public Run's operational route.
+fn local_command_preparation_operation_selected(
+  matches : @argparse.Matches,
+  operation : String,
+  business_selected : Bool,
+) -> Bool {
+  operation == "check" ||
+  operation == "explain" ||
+  operation == "adopt" ||
+  (
+    operation == local_run_original_operation() &&
+    matches.subcommand is Some(("run", _)) &&
+    business_selected
+  )
+}
+
+///|
 // The selected package and all of its original asset observations use the
 // Runtime's own full scopes. Only then enter the same consuming Read for the
 // retained Product/Host selection; do not nest Runtime acquisition inside it.
@@ -87,13 +106,11 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   matches : @argparse.Matches,
   operation : String,
 ) -> String raise ClientStop {
-  let public_run = operation == local_run_original_operation() &&
-    matches.subcommand is Some(("run", _)) &&
-    self.business is Some(_)
-  if operation != "check" &&
-    operation != "explain" &&
-    operation != "adopt" &&
-    !public_run {
+  if !local_command_preparation_operation_selected(
+      matches,
+      operation,
+      self.business is Some(_),
+    ) {
     stop("LocalCommandPreparationOperationUnavailable")
   }
   if !(matches.sources.get("config-root") is Some(@argparse.Default)) {

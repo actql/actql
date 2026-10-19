@@ -260,7 +260,11 @@ fn execute_native_local_adoption(
     root, settings,
   )
   if preparation is Some(original) {
-    if operation != "check" && operation != "explain" && operation != "adopt" {
+    if !local_command_preparation_operation_selected(
+        matches,
+        operation,
+        original.business is Some(_),
+      ) {
       stop("LocalCommandPreparationOperationUnavailable")
     }
     let additional : Array[(String, Bytes)] = []
