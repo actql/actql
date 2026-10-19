@@ -305,12 +305,18 @@ fn NativeLocalRunPolicyBinding::current_for(
 fn NativeLocalRunPolicyBinding::restore_read_original(
   self : NativeLocalRunPolicyBinding,
   record : NativeClientRunRecord,
+  reads? : NativeClientJournalReadAccess? = None,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[
   (NativeClientSubmissionReference, @host.ClientLocalRunPolicyOriginal),
   NativeClientRunJournalIssue,
 ] {
   let current = () => {
-    self.current_for(self.host.journal, Some(record.request), false)
+    match capture {
+      None => self.current_for(self.host.journal, Some(record.request), false)
+      Some(original) =>
+        self.current_in_original_read(original, Some(record.request), false)
+    }
   }
   if !current() {
     return Err(AuthorizationDenied)
@@ -337,11 +343,13 @@ fn NativeLocalRunPolicyBinding::restore_read_original(
       reference,
       self.scope,
       current(),
+      reads~,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  guard self.host.journal.retained_submission(reference) is Ok(Some(submission)) &&
+  guard self.host.journal.retained_submission(reference, reads~)
+    is Ok(Some(submission)) &&
     submission.run_admission is Some(admission) &&
     @host.client_request_identity_relation(admission.request, record.request) ==
     @host.SameRequest &&
