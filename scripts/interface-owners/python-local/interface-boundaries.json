@@ -45012,6 +45012,7 @@
         "SDKPayloadReaderCleanupPending",
         "SDKReadEvidenceCleanupPending",
         "StoredBytes",
+        "TYPE_CHECKING",
         "TypeVar",
         "annotations",
         "content_cid",
@@ -45943,7 +45944,8 @@
           "parameters": [
             "cls",
             "state_dir",
-            "resources"
+            "resources",
+            "_initial_preparation"
           ]
         },
         {
@@ -46005,7 +46007,7 @@
           ]
         }
       ],
-      "sha256": "39e1507f73071429b655c3e0a3869b1bea6a4dd653740ee5b65ff84edd5c669e",
+      "sha256": "c933d9c849317b67f46185a64e6228adbda22c2470f1698eaf7a534358f44260",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -46871,6 +46873,7 @@
             "SDKPayloadReaderCleanupPending",
             "SDKReadEvidenceCleanupPending",
             "StoredBytes",
+            "TYPE_CHECKING",
             "TypeVar",
             "annotations",
             "content_cid",
@@ -60020,6 +60023,7 @@
         "LocalWorkerFundingPending",
         "LocalWorkerFundingUnavailable",
         "OriginalWorkerFunding",
+        "TYPE_CHECKING",
         "abstractmethod",
         "annotations"
       ],
@@ -60279,7 +60283,7 @@
           ]
         }
       ],
-      "sha256": "4a21bd2e2bddc5b5c2f062de99785528706f72d4b6dc572784b24516e8d15ce2",
+      "sha256": "1c4d25a0e4fbe8c79e01e74f2442f966cbfdebedbbed3271d63564b809d50e1a",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -60892,6 +60896,7 @@
             "Any",
             "LocalComponents",
             "LocalCoreResources",
+            "TYPE_CHECKING",
             "abstractmethod",
             "annotations"
           ],
@@ -64733,6 +64738,7 @@
         "sys"
       ],
       "imports": [
+        "._local_worker_funding",
         "__future__",
         "ctypes",
         "os",
@@ -64783,6 +64789,21 @@
         },
         {
           "async": false,
+          "name": "_OriginalPythonPreparation/adopt_captured_state_dir",
+          "parameters": [
+            "self",
+            "value"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonPreparation/begin_native_attempt",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "_OriginalPythonPreparation/capture_state_dir",
           "parameters": [
             "self",
@@ -64791,9 +64812,31 @@
         },
         {
           "async": false,
+          "name": "_OriginalPythonPreparation/require_cleanup_service",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "_OriginalPythonPreparation/require_current",
           "parameters": [
             "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonPreparation/require_service_current",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonPreparation/retain_import_failure",
+          "parameters": [
+            "self",
+            "failure"
           ]
         },
         {
@@ -64823,11 +64866,18 @@
         },
         {
           "async": false,
+          "name": "_capture_initial_preparation",
+          "parameters": [
+            "state_dir"
+          ]
+        },
+        {
+          "async": false,
           "name": "_interpreter",
           "parameters": []
         }
       ],
-      "sha256": "4f23553df3d14e2e85dc8c1f1a94f1c301100e99e03ec0b2028e5a37c381abc1",
+      "sha256": "e845e0b64db067c6dbeae7cd687923807f146d11d874095ca27b04304a9a8b30",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "E / existing Python Host initial preparation and Resource Owners",
@@ -64841,12 +64891,18 @@
             "_OriginalPythonPreparation/__deepcopy__",
             "_OriginalPythonPreparation/__init__",
             "_OriginalPythonPreparation/__reduce__",
+            "_OriginalPythonPreparation/adopt_captured_state_dir",
+            "_OriginalPythonPreparation/begin_native_attempt",
             "_OriginalPythonPreparation/capture_state_dir",
+            "_OriginalPythonPreparation/require_cleanup_service",
             "_OriginalPythonPreparation/require_current",
+            "_OriginalPythonPreparation/require_service_current",
+            "_OriginalPythonPreparation/retain_import_failure",
             "_OriginalPythonPreparation/retire_input",
             "_PythonPreparationPending",
             "_PythonPreparationPending/__init__",
             "_allocator_snapshot",
+            "_capture_initial_preparation",
             "_interpreter"
           ],
           "exports": [
