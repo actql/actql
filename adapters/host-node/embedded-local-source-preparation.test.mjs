@@ -87,6 +87,59 @@ test('installed Host lease retains one original receiver and complete Source sna
   await f.client.close(); assert.equal(f.sends, 1); assert.equal(f.storeCloses, 1);
 });
 
+test('installed Host lease forwards query acquisition before raw options without a replacement Source snapshot', async () => {
+  let reads = 0, snapshots = 0, queries = 0;
+  const refusal = new Error('OriginalQueryUnavailable');
+  const raw = Object.defineProperty({}, 'signal', {get() {reads++; return undefined;}});
+  const receiver = {beforeSourceSnapshot() {snapshots++; assert.fail('NoSecondSnapshot');},
+    beforeSourceQuery(format, text, parameters, options) {
+      assert.equal(this, receiver);assert.equal(format, 'sql');assert.equal(text, 'SELECT 1');
+      assert.equal(parameters, undefined);assert.equal(options, raw);queries++;throw refusal;
+    }, bindSourceSnapshot() {}, bindSourceRequest() {}, finishSourceProducer() {}};
+  const f = await fixture(receiver, () => assert.fail('NoSubmission'));
+  await assert.rejects(f.client.sql('SELECT 1', undefined, raw), error => error === refusal);
+  assert.equal(queries, 1);assert.equal(snapshots, 0);assert.equal(reads, 0);assert.equal(f.sends, 0);
+  await f.client.close();assert.equal(f.storeCloses, 1);
+});
+
+test('installed Host lease retains the original Result read pair at the eager query boundary', async () => {
+  const queryRefusal = new Error('OriginalQueryUnavailable');let reads = 0, currents = 0;
+  const receiver = {beforeSourceSnapshot() {assert.fail('NoSnapshot');},
+    beforeSourceQuery() {throw queryRefusal;},bindSourceSnapshot() {},bindSourceRequest() {},finishSourceProducer() {},
+    beforeResultRead(schema, options) {
+      assert.equal(this, receiver);assert.equal(schema, undefined);assert.equal(options, undefined);reads++;
+    },assertResultReadCurrent() {assert.equal(this, receiver);currents++;}};
+  const f = await fixture(receiver, () => assert.fail('NoSubmission'));
+  receiver.beforeResultRead = () => assert.fail('ReplacementRead');
+  receiver.assertResultReadCurrent = () => assert.fail('ReplacementCurrent');
+  const query = f.client.sql('SELECT 1');const all = query.all();
+  assert.equal(reads, 1);
+  await assert.rejects(all, error => error === queryRefusal);
+  assert.equal(currents, 0);assert.equal(f.sends, 0);
+  await f.client.close();assert.equal(f.storeCloses, 1);
+});
+
+test('query alias cleanup retains the Host after sibling lease release until its same retry', async () => {
+  const receipt = {}, finishes = [];let released = false, queries = 0;
+  const f = await fixture({beforeSourceSnapshot() {assert.fail('NoSecondSnapshot');},
+    beforeSourceQuery() {queries++;return receipt;},bindSourceSnapshot() {},bindSourceRequest() {},
+    finishSourceProducer(original, terminal) {
+      assert.equal(original, receipt);assert.equal(terminal, 'failed');finishes.push(original);
+      if (!released) throw new Error('OriginalQueryAliasesPending');
+    }}, () => assert.fail('NoSubmission'));
+  const sibling = await f.acquire();
+  await assert.rejects(f.client.sql('SELECT 1', undefined, {unknown: true}), {code: 'InvalidQueryOptions'});
+  await assert.rejects(f.client.close(), {code: 'ClientCleanupPending'});
+  // This SDK has not released the failed-cleanup lease to the registry. The
+  // sibling may release its own lease, but cannot acknowledge the held Host.
+  await sibling.close();
+  assert.equal(f.storeCloses, 0);assert.equal(queries, 1);assert.equal(f.sends, 0);
+  released = true;
+  await f.client.close();await sibling.close();
+  assert.equal(f.storeCloses, 1);assert.equal(queries, 1);
+  assert.deepEqual(finishes, [receipt, receipt, receipt]);
+});
+
 test('close racing the first producer retirement retains the same retry and never releases Host custody early', async () => {
   const receipt = {};
   let finishes = 0, close;

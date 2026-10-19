@@ -25624,7 +25624,7 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "888f0463f193bdaa4c3a44f4547ac0bb12526238a8dbfac7d4aff0dced150ad2",
+      "sha256": "9cbf436bbfecf4bb3dc2070865b9aee48beae21a70d0c6521459e771076d4b65",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -25740,18 +25740,34 @@
           "async": true
         },
         {
-          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:assertResultReadCurrent/init:assertResultReadCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeResultRead/init:beforeResultRead",
           "parameters": [
-            "kind",
-            "input",
+            "schemaOrOptions",
             "options"
           ],
           "async": false
         },
         {
-          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeSourceSnapshot/init:beforeSourceSnapshot/pending/pending",
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeSourceQuery/init:beforeSourceQuery",
           "parameters": [
-            "resolve"
+            "format",
+            "text",
+            "parameters",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+          "parameters": [
+            "kind",
+            "input",
+            "options"
           ],
           "async": false
         },
@@ -25834,6 +25850,20 @@
         {
           "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/port/port#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/retainSourceProducer/retainSourceProducer",
+          "parameters": [
+            "receipt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/retainSourceProducer/retainSourceProducer/pending/pending",
+          "parameters": [
+            "resolve"
+          ],
           "async": false
         },
         {
@@ -26027,6 +26057,85 @@
       "contracts": [
         {
           "operations": [
+            "createEmbeddedHostRegistry/init:connect/init:connect/port/init:assertResultReadCurrent/init:assertResultReadCurrent",
+            "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeResultRead/init:beforeResultRead",
+            "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeSourceQuery/init:beforeSourceQuery",
+            "createEmbeddedHostRegistry/init:connect/init:connect/retainSourceProducer/retainSourceProducer"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The in-process Host lease preserves both private connections: query intake"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "beforeSourceQuery(format, text, parameters, options) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "beforeResultRead(schemaOrOptions, options) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local-source-preparation.test.mjs",
+                "anchor": "installed Host lease retains the original Result read pair at the eager query boundary"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "const retainSourceProducer = receipt => {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "sourceProducers.set(receipt, {pending, settled});"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "return retainSourceProducer(sourcePreparation.beforeSourceQuery(format, text, parameters, options));"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local-source-preparation.test.mjs",
+                "anchor": "installed Host lease forwards query acquisition before raw options without a replacement Source snapshot"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local-source-preparation.test.mjs",
+                "anchor": "query alias cleanup retains the Host after sibling lease release until its same retry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "uses the same pending producer inventory as direct Source submission, while"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "admission, Result permission or physical close acknowledgement."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-local-source-preparation.test.mjs",
+                "anchor": "assert.deepEqual(finishes, [receipt, receipt, receipt]);"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "<module>",
             "closing/closing",
             "createEmbeddedHostRegistry",
@@ -26058,7 +26167,7 @@
             "installedHostShutdown/shutdown/shutdown#9",
             "installedHostShutdown/shutdown/shutdown#12",
             "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
-            "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeSourceSnapshot/init:beforeSourceSnapshot/pending/pending",
+            "createEmbeddedHostRegistry/init:connect/init:connect/retainSourceProducer/retainSourceProducer/pending/pending",
             "createEmbeddedHostRegistry/init:connect/init:connect/port/init:bindSourceRequest/init:bindSourceRequest",
             "createEmbeddedHostRegistry/init:connect/init:connect/port/init:bindSourceSnapshot/init:bindSourceSnapshot",
             "createEmbeddedHostRegistry/init:connect/init:connect/port/init:finishSourceProducer/init:finishSourceProducer",

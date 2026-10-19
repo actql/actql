@@ -342,22 +342,38 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     if (answer !== undefined && typeof answer !== 'function') {
       throw new TypeError('InvalidLocalCheckpointAnswerPort');
     }
+    const retainSourceProducer = receipt => {
+      if (sourceProducers.has(receipt)) {
+        throw Object.assign(new Error('InstalledSourceProducerAlreadyPending'),
+          {code: 'InstalledSourceProducerAlreadyPending'});
+      }
+      let settled;
+      const pending = new Promise(resolve => {settled = resolve;});
+      sourceProducers.set(receipt, {pending, settled});
+      opened.sourceProducerPending = (opened.sourceProducerPending ?? 0) + 1;
+      handling.add(pending);
+      opened.handling.set(pending, undefined);
+      return receipt;
+    };
     const port = Object.freeze({
       ...(sourcePreparation === undefined ? {} : {[sourcePreparationPort]: Object.freeze({
         beforeSourceSnapshot(kind, input, options) {
           if (sealed || opened.closing) throw closing();
-          const receipt = sourcePreparation.beforeSourceSnapshot(kind, input, options);
-          if (sourceProducers.has(receipt)) {
-            throw Object.assign(new Error('InstalledSourceProducerAlreadyPending'),
-              {code: 'InstalledSourceProducerAlreadyPending'});
-          }
-          let settled;
-          const pending = new Promise(resolve => {settled = resolve;});
-          sourceProducers.set(receipt, {pending, settled});
-          opened.sourceProducerPending = (opened.sourceProducerPending ?? 0) + 1;
-          handling.add(pending);
-          opened.handling.set(pending, undefined);
-          return receipt;
+          return retainSourceProducer(sourcePreparation.beforeSourceSnapshot(kind, input, options));
+        },
+        beforeSourceQuery(format, text, parameters, options) {
+          if (sealed || opened.closing) throw closing();
+          // Query admission enters the SAME producer/lease lifetime. No
+          // second snapshot, receipt, pending owner or physical ACK is made.
+          return retainSourceProducer(sourcePreparation.beforeSourceQuery(format, text, parameters, options));
+        },
+        beforeResultRead(schemaOrOptions, options) {
+          if (sealed || opened.closing) throw closing();
+          return sourcePreparation.beforeResultRead(schemaOrOptions, options);
+        },
+        assertResultReadCurrent() {
+          if (sealed || opened.closing) throw closing();
+          return sourcePreparation.assertResultReadCurrent();
         },
         bindSourceSnapshot(receipt, body) {
           if (sealed || opened.closing) throw closing();

@@ -892,6 +892,14 @@ request lineage. Snapshot, projection copies and traversal workspace coexist
 with the original packet/body, query continuation and failure aliases in the
 same selected phase; no copy or Promise retirement refills the shared domain.
 
+The in-process Host lease preserves both private connections: query intake
+uses the same pending producer inventory as direct Source submission, while
+Result read/current operations forward to their independently captured pair.
+Sealing refuses new query/read work but still permits the same producer's
+alias-retirement retry. A pending producer prevents both its lease and a last
+sibling lease from finalizing the Host; Result forwarding supplies no Source
+admission, Result permission or physical close acknowledgement.
+
 The ordinary selected Node Host has a separate finite Local Result/publication
 service. Its actual package prefix retains the same startup/runtime/module and
 filesystem, crypto, Buffer, WebCrypto and Journal native originals before the
