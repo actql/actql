@@ -6,6 +6,7 @@ import {ownInvocationContext, ownInvocationAuthorization, invocationBindingsMatc
   invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
 import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
 import {requestTarget} from '../../../host-common/http-exchange.mjs';
+import {slackOriginalChannelName,prepareSlackOriginalChannelHistory} from './channel-list-read.mjs';
 
 export const SLACK_MESSAGE_HISTORY_OPERATION = 'slack:messages:history';
 export const SLACK_MESSAGE_REPLIES_OPERATION = 'slack:messages:replies';
@@ -145,6 +146,10 @@ async function executeRead(prepared, received, retainPage, retainIdentity, retai
     signal.throwIfAborted();
     await context.callbacks.current(operation);
     signal.throwIfAborted();
+    if (prepared.originalChannel !== undefined) {
+      await prepared.originalChannel.assertCurrent();
+      signal.throwIfAborted();
+    }
   };
   const request = async (operation,index,method,path,query,body) => {
     await verify(operation);
@@ -174,7 +179,11 @@ async function executeRead(prepared, received, retainPage, retainIdentity, retai
     return {response,charge,exchange};
   };
   try {
-    if (timeWindow !== undefined) {
+    if (prepared.originalChannel !== undefined) {
+      await verify(SLACK_MESSAGE_HISTORY_OPERATION);
+      history=prepared.originalChannel.control;
+      retainControl(history);
+    } else if (timeWindow !== undefined) {
       await verify(SLACK_MESSAGE_HISTORY_OPERATION);
       history=checked(windowProvider.slackPrepareMessageHistoryWindow(channel,timeWindow.oldest??undefined,timeWindow.latest??undefined,
         bound.maxResponseBytes,bound.maxNodes,bound.maxDepth,Math.min(bound.maxRows,historyPageSize),
@@ -247,7 +256,24 @@ function originalReader(value) {
 }
 
 export function createSlackMessageHistoryReader(options) {
-  const original = prepareRead(options), stop = new AbortController();
+  return createHistoryReader(prepareRead(options));
+}
+
+// This entry accepts only a token issued by the completed channel reader.
+// A caller-provided channel String or WHERE/window substitute is not accepted.
+export function createSlackMessageHistoryReaderFromChannel(options) {
+  const original = projectionRecord(options,['moon','channelSelection','workspaceId','names',
+    'initialAuthorization','credential','authorizationFor','limits','current',
+    'chargeResponse','consumeObservation','consumePage'],['signal'],'InvalidSlackChannelHistoryRead');
+  const channel = slackOriginalChannelName(original.channelSelection,original.moon);
+  const prepared = prepareRead({...original,channel});
+  const binding = prepareSlackOriginalChannelHistory(original.channelSelection,original.moon,
+    prepared.workspaceId,prepared.context.scope,prepared.context.credential,prepared.context.limits);
+  return createHistoryReader(Object.freeze({...prepared,originalChannel:binding}));
+}
+
+function createHistoryReader(original) {
+  const stop = new AbortController();
   const signal = original.signal === undefined ? stop.signal : AbortSignal.any([original.signal,stop.signal]);
   const state = {prepared:Object.freeze({...original,signal}),stop,phase:'ready',
     receivedResponses:0,receivedBodyBytes:0n,observations:[],exchanges:[],pages:new Map(),workspaceIdentity:undefined,control:undefined};
@@ -447,18 +473,18 @@ export function createSlackMessageRepliesReader(options) {
 const projectionLimitFields=['maxRows','maxOccurrences','maxWork','maxComparisonNodes',
   'maxComparisonDepth','maxComparisonTextBytes','maxRowsWireBytes','maxRowsWireNodes','maxRowsWireDepth'];
 
-function projectionRecord(value,required,optional=[]) {
+function projectionRecord(value,required,optional=[],code='InvalidSlackMessageProjection') {
   if (value===null || typeof value!=='object' || arrayIsArray(value) || types.isProxy(value)) {
-    fail('InvalidSlackMessageProjection');
+    fail(code);
   }
   const keys=Reflect.ownKeys(value);
   if (required.some(key=>!keys.includes(key)) || keys.some(key=>!required.includes(key)&&!optional.includes(key))) {
-    fail('InvalidSlackMessageProjection');
+    fail(code);
   }
   const result={};
   for (const key of keys) {
     const descriptor=Object.getOwnPropertyDescriptor(value,key);
-    if (!descriptor?.enumerable || !Object.hasOwn(descriptor,'value')) fail('InvalidSlackMessageProjection');
+    if (!descriptor?.enumerable || !Object.hasOwn(descriptor,'value')) fail(code);
     defineOwned(result,key,{value:descriptor.value,enumerable:true});
   }
   return freezeOwned(result);

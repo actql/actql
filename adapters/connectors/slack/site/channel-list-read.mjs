@@ -1,5 +1,6 @@
 // Vendor sequencing only. The Catalog owns response meaning; Credential owns
 // original token custody/uses. The caller owns RowRun, funding and final capture.
+import {types} from 'node:util';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {ownInvocationContext, ownInvocationAuthorization, invocationBindingsMatch,
   invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
@@ -9,6 +10,7 @@ import {requestTarget} from '../../../host-common/http-exchange.mjs';
 export const SLACK_CHANNEL_LIST_OPERATION = 'slack:channels:list';
 export const SLACK_WORKSPACE_IDENTITY_OPERATION = 'slack:workspace:identity';
 const readers = new WeakMap();
+const channelSelections = new WeakMap();
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
 const providerExports = ['slackProjectChannelList','slackChannelListIds','slackChannelListRowsWire',
@@ -35,7 +37,20 @@ function prepareRead({moon, workspaceId, names, initialAuthorization, credential
       !credential || typeof credential !== 'object' || !limits || typeof limits !== 'object') {
     fail('InvalidSlackChannelListRead');
   }
-  const provider = Object.freeze(Object.fromEntries(providerExports.map(name=>[name,moon?.[name]])));
+  if (!moon || typeof moon !== 'object' || types.isProxy(moon)) fail('InvalidSlackChannelListRead');
+  const capture = (name, optional = false) => {
+    const descriptor = Object.getOwnPropertyDescriptor(moon,name);
+    if (optional && descriptor === undefined) return undefined;
+    if (!descriptor || !Object.hasOwn(descriptor,'value') || typeof descriptor.value !== 'function') {
+      fail('InvalidSlackChannelListRead');
+    }
+    const method = descriptor.value;
+    return (...args) => Reflect.apply(method,moon,args);
+  };
+  const provider = Object.freeze(Object.fromEntries(providerExports.map(name=>[name,capture(name)])));
+  const historyPrepare = capture('slackPrepareMessageHistoryFromChannel',true);
+  const historyMatches = capture('slackMessageHistoryMatchesChannel',true);
+  if ((historyPrepare === undefined) !== (historyMatches === undefined)) fail('InvalidSlackChannelListRead');
   const context = ownInvocationContext({authorization:initialAuthorization,credential,limits,
     callbacks:{authorizationFor,current,chargeResponse,consumeObservation,consumePage}});
   if (providerExports.some(name=>typeof provider[name] !== 'function') ||
@@ -47,10 +62,10 @@ function prepareRead({moon, workspaceId, names, initialAuthorization, credential
   const columns = Object.freeze(provider.slackChannelListColumnNames().slice());
   if (names.length > columns.length || new Set(names).size !== names.length ||
       names.some(name=>!columns.includes(name))) fail('InvalidSlackChannelListRead');
-  return Object.freeze({provider,context,workspaceId,names:Object.freeze(names.slice()),signal});
+  return Object.freeze({provider,moon,historyPrepare,historyMatches,context,workspaceId,names:Object.freeze(names.slice()),signal});
 }
 
-async function executeRead(prepared, received) {
+async function executeRead(prepared, received, retainPage) {
   const {provider,context,workspaceId,names,signal} = prepared, bound = context.limits;
   const observations = [], cursors = new Set(), ids = new Set();
   let bytes = 0, totalRows = 0;
@@ -115,8 +130,10 @@ async function executeRead(prepared, received) {
       }
       const rows = JSON.parse(checked(provider.slackChannelListRowsWire(page,names,
         bound.maxRowsWireBytes,bound.maxRowsWireNodes,bound.maxRowsWireDepth)));
-      await context.callbacks.consumePage(rows,Object.freeze({charge}));
+      const retained = retainPage({page,response,charge,ids:Object.freeze(pageIds.slice()),consumed:false});
+      await context.callbacks.consumePage(rows,Object.freeze({charge,originalPage:retained.token}));
       await verify(SLACK_CHANNEL_LIST_OPERATION);
+      retained.consumed = true;
       totalRows += metadata.rowCount;
       if (metadata.nextCursor === null) return Object.freeze({pages:index+1,rowCount:totalRows,
         observations:Object.freeze(observations.slice())});
@@ -138,7 +155,7 @@ export function createSlackChannelListReader(options) {
   const original = prepareRead(options), stop = new AbortController();
   const signal = original.signal === undefined ? stop.signal : AbortSignal.any([original.signal,stop.signal]);
   const state = {prepared:Object.freeze({...original,signal}),stop,phase:'ready',
-    receivedResponses:0,receivedBodyBytes:0n};
+    receivedResponses:0,receivedBodyBytes:0n,pages:new Map(),result:undefined,failure:undefined};
   const handle = Object.freeze({
     async read() {
       const state = originalReader(this);
@@ -147,9 +164,12 @@ export function createSlackChannelListReader(options) {
       try {
         const result = await executeRead(state.prepared,response=>{
           state.receivedResponses++; state.receivedBodyBytes += BigInt(response.body.byteLength);
+        },record=>{
+          const retained = {...record,token:Object.freeze({}),selected:new Set()};
+          state.pages.set(retained.token,retained);return retained;
         });
-        state.phase = 'succeeded'; return result;
-      } catch (cause) {state.phase = 'failed'; throw cause;}
+        state.result = result;state.phase = 'succeeded'; return result;
+      } catch (cause) {state.failure = cause;state.phase = 'failed'; throw cause;}
     },
     requestStop(reason) {originalReader(this).stop.abort(reason);},
     observe() {
@@ -161,4 +181,60 @@ export function createSlackChannelListReader(options) {
   });
   readers.set(handle,state);
   return handle;
+}
+
+
+// A selection retains the completed reader and its actual response/charge
+// prefix. Equal row text, a copied token, or a page from another reader cannot
+// create this nominal selection. It does not issue a credential or capacity.
+export function selectSlackOriginalChannel(reader, originalPage, index) {
+  const source = originalReader(reader), page = source.pages.get(originalPage);
+  if (source.phase !== 'succeeded' || source.prepared.signal.aborted || !page?.consumed ||
+      !Number.isSafeInteger(index) || index < 0 || index >= page.ids.length || page.selected.has(index)) {
+    fail('ForeignSlackOriginalChannel');
+  }
+  const token = Object.freeze({});
+  page.selected.add(index);
+  channelSelections.set(token,{source,page,index,used:false,control:undefined});
+  return token;
+}
+
+function originalChannel(selection, moon) {
+  const selected = channelSelections.get(selection);
+  if (!selected || selected.source.prepared.moon !== moon || selected.source.phase !== 'succeeded' ||
+      selected.source.prepared.signal.aborted || !selected.page.consumed) fail('ForeignSlackOriginalChannel');
+  return selected;
+}
+
+// Scalar DATA for validation before preparation. No original page or raw
+// compiler representation escapes this receiver.
+export function slackOriginalChannelName(selection, moon) {
+  const selected = originalChannel(selection,moon);
+  return selected.page.ids[selected.index];
+}
+
+export function prepareSlackOriginalChannelHistory(selection, moon, workspaceId, scope, credential, bounds) {
+  const selected = originalChannel(selection,moon), source = selected.source.prepared;
+  if (selected.used || source.workspaceId !== workspaceId || !invocationBindingsMatch(scope,source.context.scope)) {
+    fail('ForeignSlackOriginalChannel');
+  }
+  const keys = Object.keys(source.context.credential);
+  if (Object.keys(credential).length !== keys.length || keys.some(key=>credential[key] !== source.context.credential[key])) {
+    fail('ForeignSlackOriginalChannel');
+  }
+  if (!source.historyPrepare || !source.historyMatches) fail('SlackChannelHistoryRuntimeUnavailable');
+  // A failed preparation retains its original selection and cannot be rebound.
+  selected.used = true;
+  const control = checked(source.historyPrepare(selected.page.page,selected.index,
+    bounds.maxResponseBytes,bounds.maxNodes,bounds.maxDepth,
+    Math.min(bounds.maxRows,bounds.pageSize,999),bounds.maxCursorBytes,
+    bounds.maxValueNodes,bounds.maxValueTextBytes,bounds.maxPages));
+  if (!source.historyMatches(control,selected.page.page,selected.index)) fail('ForeignSlackOriginalChannel');
+  selected.control = control;
+  const callback = source.context.callbacks.current, receiver = source.context.callbacks;
+  return Object.freeze({control,async assertCurrent(){
+    originalChannel(selection,moon);
+    await Reflect.apply(callback,receiver,[SLACK_CHANNEL_LIST_OPERATION]);
+    originalChannel(selection,moon);
+  }});
 }
