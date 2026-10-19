@@ -66,4 +66,5 @@ import {
   "actql/actql/bounded_execution" @bounded,
   "actql/actql/connectors/local",
   "actql/actql/physical_manifest" @cleanup_manifest,
+  "actql/actql/client_local_host" @local_query_time,
 } for "wbtest"

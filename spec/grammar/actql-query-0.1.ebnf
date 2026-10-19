@@ -288,12 +288,23 @@ path          = identifier, { ".", identifier } ;
 expression    = ? closed query expression grammar in query-text.md ? ;
 array_constructor = [ "ARRAY", [ "<", array_item_type, ">" ] ],
                     "[", [ expression, { ",", expression } ], "]" ;
-array_item_type = "BOOL" | "BOOLEAN" | "STRING" | "FLOAT64" | "DOUBLE"
-                | "TIMESTAMP" | "JSON" ;
+array_item_type = "BOOL" | "BOOLEAN" | "STRING" | "NUMBER" | "FLOAT64" | "DOUBLE"
+                | "INT64" | "TIMESTAMP" | "JSON" ;
+array_cast_context = "CAST", "(", expression, "AS", "ARRAY", "<",
+                     array_item_type, ">", ")" ;
 (* ARRAY annotations and compatible item types use the common checker.
-   JSON constructors/default INT64 remain common-contract coverage gaps. *)
+   Only an immediate NULL (parentheses allowed) is implemented as an ARRAY
+   cast type context; general ARRAY conversion remains a coverage gap.
+   JSON constructors/default empty-array item typing remain coverage gaps. *)
 identifier    = ? ASCII identifier or backtick-quoted identifier ? ;
 integer       = ? unsigned decimal or 0x/0X hexadecimal integer within the adopted exact range; context-specific positivity and role checks apply ? ;
 numeric_token = ? decimal numeric token or 0x/0X hexadecimal integer token; raw spelling is retained and exact admission is separate ? ;
 parameter_token = ? existing query named parameter token ? ;
 query_string  = ? one or more whitespace/comment-separated single-, double- or triple-quoted Unicode scalar string chunks, with per-chunk optional r/R raw prefix and the selected GoogleSQL decoding rules in query-text.md; decoded octal escapes use exactly three digits with first digit 0..3 (maximum \377) ? ;
+
+(* A fixed interval is an operand role only at the shared Timestamp consumers;
+   integral tokens retain their exact signed spelling before Common admission. *)
+fixed_interval = "INTERVAL", ( [ "+" | "-" ], interval_integer | parameter_token | path ), fixed_interval_unit ;
+interval_integer = ? exact decimal or 0x/0X hexadecimal integer token, admitted in signed64 context without binary64 conversion ? ;
+fixed_interval_unit = "NANOSECOND" | "MICROSECOND" | "MILLISECOND"
+                    | "SECOND" | "MINUTE" | "HOUR" | "DAY" ;

@@ -14,6 +14,7 @@ pub struct AuthoringRuntimeRequirement {
   step : Int
   owner : @pipeline.OperationObligations
   index : Int
+  priv group_rule : GroupExecutionRule?
 }
 
 ///|
@@ -111,8 +112,15 @@ pub fn close_pipeline_authoring(
       @pipeline.Values(_) => ()
       @pipeline.Unary(value) =>
         match @relation.operation(value) {
-          Derive | Select | Filter | Rename | Drop | Sort | Take | Distinct =>
-            ()
+          Derive
+          | Select
+          | Filter
+          | Rename
+          | Drop
+          | Sort
+          | Take
+          | Distinct
+          | Group => ()
           _ => return Err(UnsupportedOperation(step))
         }
       _ => return Err(UnsupportedOperation(step))
@@ -136,9 +144,36 @@ pub fn close_pipeline_authoring(
           orders.push({ step, owner, index, demand, })
           continue
         }
+        // Only the existing Take binding demand can survive this authoring
+        // boundary. The exact obligation owner/index remains retained; no
+        // representative value or declaration default discharges it.
+        if operation is @pipeline.Unary(value) &&
+          @relation.operation(value) == Take &&
+          @pipeline.operation_scalar_demand(requirement)
+          is Some(@pipeline.SafeInteger(_, ..)) {
+          runtime.push({ step, owner, index, group_rule: None, })
+          continue
+        }
+        // Retain only checks selected by the same Group execution owner used
+        // during bound compilation. Their input observations and enforcement
+        // remain future work; a binding condition or resource limit is not an
+        // execution rule merely because it belongs to a Group operation.
+        if operation is @pipeline.Unary(value) &&
+          @relation.operation(value) == Group &&
+          @relation.group(value) is Some(group) &&
+          requirement is @pipeline.RelationRequirement(pending) {
+          match select_group_execution_rule(group, index, pending.kind, step) {
+            Ok(Some(rule)) => {
+              runtime.push({ step, owner, index, group_rule: Some(rule), })
+              continue
+            }
+            Err(_) => return Err(PendingOperation(step, owner, index))
+            Ok(None) => ()
+          }
+        }
         match requirement {
           @pipeline.ValuesRequirement(@values.BindCell(_)) =>
-            runtime.push({ step, owner, index, })
+            runtime.push({ step, owner, index, group_rule: None, })
           @pipeline.ValuesRequirement(@values.ResolvePublicationResources) =>
             if !by_step.contains(step) {
               return Err(PendingOperation(step, owner, index))
@@ -186,6 +221,15 @@ pub fn pipeline_authoring_runtime_at(
   index : Int,
 ) -> AuthoringRuntimeRequirement? {
   value.runtime.get(index)
+}
+
+///|
+/// A retained Group rule is a static selection for this original requirement,
+/// not an observation of input rows or evidence that the rule was enforced.
+pub fn authoring_runtime_group_rule(
+  value : AuthoringRuntimeRequirement,
+) -> GroupExecutionRule? {
+  value.group_rule
 }
 
 ///|

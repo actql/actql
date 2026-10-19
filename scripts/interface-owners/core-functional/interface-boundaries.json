@@ -164,7 +164,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "7a00ae0f6227aae3587ea81c33da722ef0dc9dc5e0be551bbbcc9adc10e104d3",
+      "sha256": "f397e799835e7a38479dac64920c928f41ee9b47a2a232ddce961afd1f1a14ee",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -1760,6 +1760,17 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:bindClientQueryTime/init:bindClientQueryTime",
+          "parameters": [
+            "original",
+            "prepared",
+            "compiled",
+            "definition",
+            "request"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:bindInstalledModelRawCapturePolicy/init:bindInstalledModelRawCapturePolicy",
           "parameters": [
             "policy",
@@ -2354,6 +2365,13 @@
             "runtimeArtifactCid",
             "layoutArtifactCid",
             "probability"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:clientRequiresQueryTime/init:clientRequiresQueryTime",
+          "parameters": [
+            "prepared"
           ],
           "async": false
         },
@@ -3695,6 +3713,15 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareClientQueryTime/init:prepareClientQueryTime",
+          "parameters": [
+            "prepared",
+            "request",
+            "createdAt"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareDurableResultRowFrames/init:prepareDurableResultRowFrames",
           "parameters": [
             "limits"
@@ -4114,6 +4141,16 @@
           "name": "publicationControl/init:requestedEffectStopLifetime/init:requestedEffectStopLifetime",
           "parameters": [
             "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:restoreClientQueryTime/init:restoreClientQueryTime",
+          "parameters": [
+            "prepared",
+            "compiled",
+            "definition",
+            "request"
           ],
           "async": false
         },
@@ -7570,7 +7607,7 @@
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
               }
             ],
             "identity": [
@@ -8481,7 +8518,7 @@
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
               }
             ],
             "identity": [
@@ -8562,6 +8599,77 @@
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
                 "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:bindClientQueryTime/init:bindClientQueryTime",
+            "publicationControl/init:clientRequiresQueryTime/init:clientRequiresQueryTime",
+            "publicationControl/init:prepareClientQueryTime/init:prepareClientQueryTime",
+            "publicationControl/init:restoreClientQueryTime/init:restoreClientQueryTime"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
               }
             ]
           }

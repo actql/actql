@@ -83,7 +83,8 @@ fn advance_binary_comparison(
     | RTrimSet
     | Strpos
     | StartsWith
-    | EndsWith => false
+    | EndsWith
+    | Contains => false
     _ => true
   }
   let result = if comparison_operator &&

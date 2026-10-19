@@ -9,6 +9,9 @@ const object = properties => ({type: 'object', additionalProperties: false,
   required: Object.keys(properties), properties});
 const names = {type: 'array', items: text, uniqueItems: true};
 const owner = object({program_source_cid: cid, stage: text, input: text});
+// Optional only for old requirements. A newly bound query-time dependency
+// requires its original admitted Run identity in both acquisition and capture.
+owner.properties.run_definition_cid = cid;
 const pointer = {type: 'string', pattern: '^/steps/(0|[1-9][0-9]*)/(filter|select)$'};
 const protocol = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
 const capacity = JSON.parse(readFileSync('spec/contracts/actql-consumer-capacity.json', 'utf8'));
@@ -47,6 +50,7 @@ export const contract = {
   },
   semantics: {
     owner: 'program_source_cid_is_authority_bearing_program_definition_cid_not_program_semantics_or_source_text_hash',
+    query_time_owner: 'declared_query_time_dependency_requires_original_admitted_run_definition_cid_in_requirement_and_completed_observation_owner_with_same_nominal_context_and_saved_run_no_resample_no_grant',
     derivation: 'checked_exclusive_scan_filter_select_without_backend_cost_or_placement',
     capture: 'completed_select_output_before_any_consumer',
     identity: 'sha256_of_canonical_json_utf8_entire_body_no_self_cid',

@@ -4,12 +4,12 @@
     "query_acquisition": {
       "path": "spec/contracts/actql-query-acquisition.json",
       "pointer": "",
-      "cid": "sha256:ad68f7ceafeed528a29c05e726db799d0031ef46152c0385f64468d38094c606"
+      "cid": "sha256:5a95e60847276d02229eba9550dd9808a8a8c2764decd4dad667954f020db7cc"
     },
     "process_evidence": {
       "path": "spec/contracts/actql-query-process-evidence.json",
       "pointer": "",
-      "cid": "sha256:1127e59c08d7b7a780ec864e1040c2131366d96285b6f173f1629baaf75a7290"
+      "cid": "sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d"
     }
   },
   "schemas": {
@@ -271,6 +271,10 @@
             "input": {
               "type": "string",
               "minLength": 1
+            },
+            "run_definition_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
             }
           }
         },

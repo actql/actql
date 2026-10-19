@@ -30,6 +30,7 @@ priv enum CheckFinding {
   UnusedParameter(String, String?)
   QueryAliasAbsent(String, Array[@query_syntax.NamePart])
   RequiredValue(@parameters.Declaration, String)
+  ConsumerCondition(@checked.TemplateParameterCondition, String)
   CapacityPolicyRequired
   NumericProfileRequired
   // An obligation that cannot be discharged from disclosable evidence.
@@ -531,6 +532,11 @@ fn check_source_findings(
         ) => return Failed("check_internal")
         // This lowerer issue conflates unknown names with unsupported forms.
         // Without a distinct input violation it cannot justify author blame.
+        // The existing generic limit has no cast-specific public facts.
+        // Keep the original authored range in the lowerer's diagnostic; do
+        // not label a conversion as a function or invent a reason payload.
+        QueryLowering(Expression({ issue: UnsupportedCast, .. })) =>
+          findings.push(Limit("implementation_limit"))
         QueryLowering(Expression({ issue: UnsupportedFunction, origin, })) =>
           findings.push(FunctionLimit(check_authored_range(origin)))
         QueryLowering(
@@ -817,6 +823,21 @@ fn check_template_public_stop(
   if requirements != @checked.template_checked_input_count(checked) {
     findings.push(Limit("implementation_limit"))
     return Report
+  }
+  let conditions : Array[CheckFinding] = []
+  for index in 0..<@checked.template_checked_condition_count(checked) {
+    let condition = @checked.template_checked_condition_at(checked, index).unwrap()
+    guard @checked.template_condition_matches(checked, condition) &&
+      condition.declaration.name.length() <= 256 &&
+      check_declaration_type(condition.declaration) is Some(expected) &&
+      (expected == "number" || expected == "int64") else {
+      findings.push(Limit("implementation_limit"))
+      return Report
+    }
+    conditions.push(ConsumerCondition(condition, expected))
+  }
+  for condition in conditions {
+    findings.push(condition)
   }
   TemplateVerified(checked)
 }
@@ -1374,7 +1395,10 @@ fn write_check_report(
     .iter()
     .filter(finding => {
       finding
-      is (RequiredValue(_, _) | CapacityPolicyRequired | NumericProfileRequired)
+      is (RequiredValue(_, _)
+      | ConsumerCondition(_, _)
+      | CapacityPolicyRequired
+      | NumericProfileRequired)
     })
     .count()
   let template_report_limited = documents.scope == TemplateOnly &&
@@ -1447,6 +1471,7 @@ fn write_check_report(
     code in check_codes(findings, finding => {
       match finding {
         RequiredValue(_, _) => Some("parameter_value_required")
+        ConsumerCondition(_, _) => Some("parameter_consumer_condition")
         CapacityPolicyRequired => Some("host_capacity_policy_required")
         NumericProfileRequired => Some("numeric_reduction_profile_required")
         _ => None
@@ -2004,6 +2029,30 @@ fn write_check_report(
       @encode.end_object(writer)
       @encode.end_object(writer)
     }
+    if finding is ConsumerCondition(condition, expected) {
+      written_requirements += 1
+      @encode.begin_object(writer)
+      @encode.key(writer, "code")
+      @encode.string_value(writer, "parameter_consumer_condition")
+      @encode.key(writer, "facts")
+      write_check_consumer_condition(writer, condition, expected)
+      if documents.declarations_revision is Some(revision) {
+        write_check_structured_location(
+          writer,
+          if documents.structured_program {
+            "program"
+          } else {
+            "parameter_declarations"
+          },
+          revision,
+          (if documents.structured_program { "/params/" } else { "/" }) +
+          condition.declaration.name
+          .replace_all(old="~", new="~0")
+          .replace_all(old="/", new="~1"),
+        )
+      }
+      @encode.end_object(writer)
+    }
     if finding is RequiredValue(declaration, expected) {
       let name = declaration.name
       written_requirements = written_requirements + 1
@@ -2112,6 +2161,21 @@ fn check_outcome_attempt(
       @checked.template_checked_input_count(checked) !=
       findings.iter().filter(finding => finding is RequiredValue(_, _)).count() {
       return None
+    }
+    if stop is TemplateVerified(checked) {
+      let mut count = 0
+      for finding in findings {
+        if finding is ConsumerCondition(condition, expected) {
+          if !@checked.template_condition_matches(checked, condition) ||
+            check_declaration_type(condition.declaration) != Some(expected) {
+            return None
+          }
+          count += 1
+        }
+      }
+      if count != @checked.template_checked_condition_count(checked) {
+        return None
+      }
     }
     let writer = @encode.writer(65536, 4096, 16)
     @encode.begin_object(writer)

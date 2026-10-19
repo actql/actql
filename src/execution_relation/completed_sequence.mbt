@@ -119,6 +119,7 @@ fn evaluate_physical_sequence(
           invocation.output_budget,
           workspace,
           logical,
+          query_time=invocation.query_times.get(@lower.kernel_step(kernel)),
           aggregate_outputs=selected_aggregate_outputs_at(
             aggregate_outputs,
             @lower.kernel_step(kernel),

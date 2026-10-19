@@ -114,6 +114,10 @@ pub fn prepare_query_material(
   try {
     material_spend(budget, 1)
     let query = @query.query_sequence_requirement(owner)
+    if @acquisition.query_acquisition_query_time_required(query) &&
+      @acquisition.query_acquisition_query_time(query) is None {
+      return Err(UnboundRequest)
+    }
     guard @acquisition.pipeline_request_at(
         @acquisition.query_acquisition_owner(query),
         @acquisition.query_acquisition_source_index(query),

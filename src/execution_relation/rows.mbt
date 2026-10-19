@@ -195,6 +195,7 @@ fn evaluate_rows_with_workspace(
   analytic_envelope? : SelectedAnalyticEnvelope? = None,
   identity_limits? : ValueLimits? = None,
   numeric? : NumericAggregateExecution? = None,
+  query_time? : @publication.QueryEvaluationTime? = None,
 ) -> Result[Table, RowIssue] {
   evaluate_rows_dispatch(
     kernel,
@@ -271,6 +272,7 @@ fn evaluate_rows_with_workspace(
           analytic_envelope~,
           identity_limits~,
           numeric~,
+          query_time~,
         )
       },
     },
@@ -394,6 +396,7 @@ fn[T : RelationRows] evaluate_row_body(
   analytic_envelope? : SelectedAnalyticEnvelope? = None,
   identity_limits? : ValueLimits? = None,
   numeric? : NumericAggregateExecution? = None,
+  query_time? : @publication.QueryEvaluationTime? = None,
 ) -> Result[Table, RowIssue] {
   let rows : Array[Array[Value]] = []
   let names = match
@@ -413,6 +416,7 @@ fn[T : RelationRows] evaluate_row_body(
       analytic_envelope~,
       identity_limits~,
       numeric~,
+      query_time~,
     ) {
     Ok(names) => names
     Err(issue) => return Err(issue)
@@ -440,6 +444,7 @@ fn[T : RelationRows] evaluate_row_body_into(
   analytic_envelope? : SelectedAnalyticEnvelope? = None,
   identity_limits? : ValueLimits? = None,
   numeric? : NumericAggregateExecution? = None,
+  query_time? : @publication.QueryEvaluationTime? = None,
   preserve_filter_rows? : Bool = false,
   accept_presence_row? : ((Array[@admitted.Value?], Array[String], ValueUsage) -> Result[
     Unit,
@@ -456,7 +461,7 @@ fn[T : RelationRows] evaluate_row_body_into(
   }
   let scope = ordered_budget.map(b => {
     (
-      { budget: b, slots: [], free: [], limit: workspace.limit, } :
+      { query_time, budget: b, slots: [], free: [], limit: workspace.limit, } :
       ExpressionRoots)
   })
   let result = evaluate_row_body_impl(
@@ -814,6 +819,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
             control,
             workspace,
             logical_work=scope.map(s => s.budget),
+            query_time=scope.bind(s => s.query_time),
           ) {
           Ok(v) => v
           Err(e) => return Err(evaluation_row_issue(row_index, 0, e))
@@ -852,6 +858,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
             control,
             workspace,
             logical_work=scope.map(s => s.budget),
+            query_time=scope.bind(s => s.query_time),
           ) {
           Ok(v) => v
           Err(e) => return Err(evaluation_row_issue(row_index, 0, e))
@@ -926,6 +933,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
               control,
               workspace,
               logical_work=scope.map(s => s.budget),
+              query_time=scope.bind(s => s.query_time),
             ) {
             Ok(v) => {
               if scope is Some(s) {

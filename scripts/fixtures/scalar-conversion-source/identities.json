@@ -1,0 +1,218 @@
+{
+  "before": {
+    "version": "actql-grammar-manifest/0.1",
+    "source_grammar_cid": "sha256:e5394b831e775d5d51c72a35f06615cd11869f309003cd49a6b8c99315fdee1e",
+    "operations": [
+      "analytic",
+      "append",
+      "apply_graph_delta",
+      "asof_join",
+      "assert_rows",
+      "calendar_bucket",
+      "calendar_series",
+      "components",
+      "cross_join",
+      "dedupe_events",
+      "dedupe_rows",
+      "degree",
+      "derive",
+      "distinct",
+      "drop",
+      "edge_rows",
+      "events",
+      "except",
+      "filter",
+      "graft_graph",
+      "graph",
+      "graph_bounds",
+      "graph_diff",
+      "graphs_equal",
+      "group",
+      "infer",
+      "intersect",
+      "interval_join",
+      "join",
+      "json_pick",
+      "lag",
+      "match_edges",
+      "match_nodes",
+      "mean_graphs",
+      "merge_rankings",
+      "nearest",
+      "nest",
+      "node_rows",
+      "normalize_graph",
+      "normalize_vectors",
+      "pivot",
+      "pool_vectors",
+      "reach",
+      "rename",
+      "row_window",
+      "score_vectors",
+      "search_candidates",
+      "select",
+      "sequence",
+      "serialize",
+      "session",
+      "shortest_path",
+      "sort",
+      "subgraph",
+      "subtract_graphs",
+      "take",
+      "text_rank",
+      "time_series",
+      "to_events",
+      "to_vectors",
+      "top_k",
+      "top_k_by",
+      "traverse",
+      "union_graphs",
+      "unnest",
+      "unpivot",
+      "values",
+      "vectors",
+      "watermark_events",
+      "watermark_rows",
+      "window_events",
+      "window_group"
+    ],
+    "expression_contract_cid": "sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35",
+    "expression_text_grammar_sha256": "3138560ad7c029b23bee2d7446f1ee8155520ead50281aae1493f0219db7bc5c",
+    "expression_text_rules_sha256": "e08d5c75a99f543682e965fa3cd3c5778ecd8482c540d98ead562ad33303dd86",
+    "structural_text_grammar_sha256": "0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56",
+    "structural_text_rules_sha256": "5d2f2432181664678b364fc97c3545d1740b004cd7b073c4bf0d8181c30dcaae",
+    "query_text_grammar_sha256": "754e53e8797e6ed5b6cd0e19387cdefcc12b6b2dbfc29f85183a3a4df556acea",
+    "query_text_rules_sha256": "0485b79854d189d4cde4f5b849ecb60383170ad81db9efe6c3a46910478b88e0",
+    "grammar_manifest_cid": "sha256:2f84ece42203839c6dab83e38fd4542a88ac9cddf5eea256e080fe217841cebe"
+  },
+  "after": {
+    "version": "actql-grammar-manifest/0.1",
+    "source_grammar_cid": "sha256:e5394b831e775d5d51c72a35f06615cd11869f309003cd49a6b8c99315fdee1e",
+    "operations": [
+      "analytic",
+      "append",
+      "apply_graph_delta",
+      "asof_join",
+      "assert_rows",
+      "calendar_bucket",
+      "calendar_series",
+      "components",
+      "cross_join",
+      "dedupe_events",
+      "dedupe_rows",
+      "degree",
+      "derive",
+      "distinct",
+      "drop",
+      "edge_rows",
+      "events",
+      "except",
+      "filter",
+      "graft_graph",
+      "graph",
+      "graph_bounds",
+      "graph_diff",
+      "graphs_equal",
+      "group",
+      "infer",
+      "intersect",
+      "interval_join",
+      "join",
+      "json_pick",
+      "lag",
+      "match_edges",
+      "match_nodes",
+      "mean_graphs",
+      "merge_rankings",
+      "nearest",
+      "nest",
+      "node_rows",
+      "normalize_graph",
+      "normalize_vectors",
+      "pivot",
+      "pool_vectors",
+      "reach",
+      "rename",
+      "row_window",
+      "score_vectors",
+      "search_candidates",
+      "select",
+      "sequence",
+      "serialize",
+      "session",
+      "shortest_path",
+      "sort",
+      "subgraph",
+      "subtract_graphs",
+      "take",
+      "text_rank",
+      "time_series",
+      "to_events",
+      "to_vectors",
+      "top_k",
+      "top_k_by",
+      "traverse",
+      "union_graphs",
+      "unnest",
+      "unpivot",
+      "values",
+      "vectors",
+      "watermark_events",
+      "watermark_rows",
+      "window_events",
+      "window_group"
+    ],
+    "expression_contract_cid": "sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35",
+    "expression_text_grammar_sha256": "3138560ad7c029b23bee2d7446f1ee8155520ead50281aae1493f0219db7bc5c",
+    "expression_text_rules_sha256": "e08d5c75a99f543682e965fa3cd3c5778ecd8482c540d98ead562ad33303dd86",
+    "structural_text_grammar_sha256": "0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56",
+    "structural_text_rules_sha256": "5d2f2432181664678b364fc97c3545d1740b004cd7b073c4bf0d8181c30dcaae",
+    "query_text_grammar_sha256": "754e53e8797e6ed5b6cd0e19387cdefcc12b6b2dbfc29f85183a3a4df556acea",
+    "query_text_rules_sha256": "c9ca882b8135761d3711d0b6746ecbad307dce72e4548265348058d2977b1209",
+    "grammar_manifest_cid": "sha256:6039d890b9f679587879aee118d7ecbea2c67a21f6d101efde42c312e13219bc"
+  },
+  "expressions": [
+    {
+      "value": {
+        "cast": {
+          "value": {
+            "$param": "input"
+          },
+          "target": {
+            "type": "string"
+          }
+        }
+      },
+      "preimage": "{\"cast\":{\"target\":{\"type\":\"string\"},\"value\":{\"$param\":\"input\"}}}",
+      "cid": "sha256:7c1a3bcee6f86d3451b83b02689c236768f4e1e6a22a2e1a90b73955e91bcb9c"
+    },
+    {
+      "value": {
+        "cast": {
+          "value": {
+            "$param": "input"
+          },
+          "target": {
+            "type": "boolean"
+          }
+        }
+      },
+      "preimage": "{\"cast\":{\"target\":{\"type\":\"boolean\"},\"value\":{\"$param\":\"input\"}}}",
+      "cid": "sha256:a398aa69f1bda7b645258b12feb0a752e871bbe9bfb9ef0559543a20a0d9cc46"
+    },
+    {
+      "value": {
+        "cast": {
+          "value": {
+            "$param": "input"
+          },
+          "target": {
+            "type": "timestamp"
+          }
+        }
+      },
+      "preimage": "{\"cast\":{\"target\":{\"type\":\"timestamp\"},\"value\":{\"$param\":\"input\"}}}",
+      "cid": "sha256:e50423544801a2e31f060659e0d673227fc74bd83c1d8d48d93a95d1dc7f7e58"
+    }
+  ]
+}

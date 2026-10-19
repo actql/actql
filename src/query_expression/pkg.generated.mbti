@@ -45,6 +45,7 @@ pub(all) enum Issue {
   InvalidNumber
   Construction(@program_source_builder.Issue)
   Admission(@expression_syntax.Issue)
+  UnsupportedCast
 } derive(@debug.Debug)
 
 pub(all) struct Limits {

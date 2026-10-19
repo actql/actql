@@ -23,13 +23,19 @@ pub fn start_expression_execution(
   max_work : Int,
   max_frames : Int,
   max_workspace_slots : Int,
+  query_time? : @publication.QueryEvaluationTime? = None,
 ) -> Result[ExpressionExecution, EvalIssue] {
   let budget : ControlBudget = { remaining: max_work, max_frames, }
   let workspace = row_workspace(max_workspace_slots)
-  expression_frame(expression, input, slots, budget, workspace, None).map(frame => {
-    frame,
-    finished: false,
-  })
+  expression_frame(
+    expression,
+    input,
+    slots,
+    budget,
+    workspace,
+    None,
+    query_time~,
+  ).map(frame => { frame, finished: false, })
 }
 
 ///|

@@ -2,9 +2,10 @@
 // This owns no provider work, authorization or continuation identity.
 import {checked} from '../host-common/runtime-result.mjs';
 import {installedSourceFor} from './installed-source.mjs';
+import {prepareOriginalSourceQuery} from './original-query-preparation.mjs';
 
 export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile,
-  registry, values, fragment, ordered}) {
+  registry, values, fragment, ordered, queryTimePreparation, requestIdentity}) {
   const count = moon.clientProgramEffectAcquisitionCount(preparedEffect);
   if (![0, 1, 2].includes(count)) {
     throw new TypeError('UnsupportedEffectSourceCount');
@@ -12,8 +13,11 @@ export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile
   const selected = [];
   const owners = new Set();
   for (let task = 0; task < count; task++) {
-    const requirement = checked(moon.clientProgramEffectPrepareLocalQueryRequirement(
-      preparedEffect, task, 0, registry, values, fragment, ordered));
+    const requirement = queryTimePreparation === undefined
+      ? checked(moon.clientProgramEffectPrepareLocalQueryRequirement(
+        preparedEffect, task, 0, registry, values, fragment, ordered))
+      : prepareOriginalSourceQuery({moon, preparedEffect, stage: task, input: 0,
+        registry, values, fragment, ordered, queryTimePreparation, requestIdentity}).requirement;
     const adapter = installedSourceFor(sourceProfile,
       moon.clientProgramQueryRequirementSourceRef(requirement));
     if (typeof adapter.prepare !== 'function' || typeof adapter.open !== 'function') {

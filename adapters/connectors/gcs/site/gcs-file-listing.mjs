@@ -16,9 +16,10 @@ const encode = value => encodeURIComponent(value).replace(/[!'()*]/gu,
   char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
 
 function setup(options) {
-  const {target, limits, listing, credential, authorizationFor, chargePage,
+  const {moon, target, limits, listing, credential, authorizationFor, chargePage,
     resourceFor, callResource = callHttpsCredentialResource} = options;
-  if (!object(target) || !text(target.bucket, 222) ||
+  if ((moon !== undefined && typeof moon?.gcsObjectTimestamp !== 'function') ||
+      !object(target) || !text(target.bucket, 222) ||
       typeof target.prefix !== 'string' || !target.prefix.isWellFormed() ||
       Buffer.byteLength(target.prefix) > 1024 || !object(credential) ||
       !object(limits) || !positive(limits.maxPageBytes) ||
@@ -29,7 +30,7 @@ function setup(options) {
         chargePage, resourceFor, callResource].some(value => typeof value !== 'function')) {
     fail('InvalidGcsFileListing');
   }
-  return Object.freeze({target: Object.freeze({...target}),
+  return Object.freeze({moon, target: Object.freeze({...target}),
     limits: ownInvocationLimits(limits), credential: Object.freeze({...credential}),
     callbacks: Object.freeze({beginRequest: listing.beginRequest,
       consumePage: listing.consumePage, authorizationFor, chargePage,
@@ -47,7 +48,7 @@ function authorization(value, original) {
   return owned;
 }
 
-function page(body, target, maximum) {
+function page(body, target, maximum, moon) {
   let parsed;
   try { parsed = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(body)); }
   catch { fail('InvalidGcsFileListingPage'); }
@@ -63,6 +64,7 @@ function page(body, target, maximum) {
   // No delimiter, matchGlob, soft-deleted objects or all-version listing is
   // requested. Selection and duplicate/conflicting Resource facts belong to
   // the common listing owner, not this provider transport.
+  const timestamps = [];
   for (const item of items) {
     if (!object(item) || item.bucket !== target.bucket ||
         // Keep the original JSON object name, including legal controls.
@@ -78,8 +80,19 @@ function page(body, target, maximum) {
           !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/u.test(item.updated)))) {
       fail('GcsFileListingMetadataMismatch');
     }
+    // Retain the original report separately from the logical Timestamp.
+    // The ordinary provider uses the same exact Common projection as its
+    // object table; the explicit historical source-only ABI is unchanged.
+    let timestamp = item.updated;
+    if (timestamp !== undefined && moon !== undefined) {
+      timestamp = moon.gcsObjectTimestamp(timestamp);
+      if (typeof timestamp !== 'string' || Buffer.byteLength(timestamp) > 30) {
+        fail('GcsFileListingMetadataMismatch');
+      }
+    }
+    timestamps.push(timestamp);
   }
-  return {items, nextToken: parsed.nextPageToken};
+  return {items, timestamps, nextToken: parsed.nextPageToken};
 }
 
 // Site transport, not a second listing owner. The common owner checks the
@@ -88,7 +101,7 @@ function page(body, target, maximum) {
 // resourceFor; neither this transport nor a Program issues reference authority.
 // The prefix is an installed scope, not a translation of the ActQL glob.
 export async function readGcsFileListing(options) {
-  const {target, limits, credential, callbacks} = setup(options);
+  const {moon, target, limits, credential, callbacks} = setup(options);
   const signal = AbortSignal.any([AbortSignal.timeout(limits.maxTimeMs),
     ...(options.signal === undefined ? [] : [options.signal])]);
   let nextToken, firstScope, index = 0;
@@ -123,7 +136,7 @@ export async function readGcsFileListing(options) {
           pair[0] !== 'content-encoding' || pair[1] !== 'identity')) {
       fail('GcsFileListingRepresentationUnsupported');
     }
-    const observed = page(response.body, target, limits.maxPageItems);
+    const observed = page(response.body, target, limits.maxPageItems, moon);
     const items = [];
     for (const [position, item] of observed.items.entries()) {
       signal.throwIfAborted();
@@ -132,7 +145,7 @@ export async function readGcsFileListing(options) {
       if (!object(resource)) fail('GcsFileListingResourceUnavailable');
       items.push({resource, name: item.name, path: item.name, version: item.generation,
         media_type: item.contentType ?? null, size_bytes: Number(item.size),
-        modified_at: item.updated ?? null});
+        modified_at: observed.timestamps[position] ?? null});
       if ((position + 1) % 64 === 0) await yieldTurn(undefined, {signal});
     }
     const envelope = Buffer.from(JSON.stringify({items,
