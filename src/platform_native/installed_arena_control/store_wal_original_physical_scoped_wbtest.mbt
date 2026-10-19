@@ -488,9 +488,7 @@ fn store_failed_open_original_work(
     assert_true(original.leave_store() is Err(_))
     assert_true(original.enter_store() is Err(_))
     // Only failed+SQL can reach the original recovery. It acknowledges no DB.
-    assert_true(
-      original.enter_cleanup() is Err(@sqlite.Physical(_)),
-    )
+    assert_true(original.enter_cleanup() is Err(@sqlite.Physical(_)))
     assert_true(original.pending_scope().unwrap())
     assert_true(receiver.active && receiver.sql)
     assert_eq(original.cleanup_code(), 56)
@@ -501,11 +499,15 @@ fn store_failed_open_original_work(
     assert_true(original.close_checked() is Err(_))
     database.close_checked().unwrap()
     original.leave_store().unwrap()
+    // Keep the original Database DATA alias through the return ACK. Its last
+    // use before leave would correctly refuse finalization with flight=true.
+    let unentered_close_refused = database.close_checked() is Err(_)
     assert_true(library.close_checked() is Err(_))
     original.close_checked().unwrap()
     receiver.cleanup_sql_recoveries == 2 &&
     original.primary_code() == 55 &&
-    original.cleanup_code() == 56
+    original.cleanup_code() == 56 &&
+    unentered_close_refused
   }
   result && !receiver.active && !receiver.sql && !receiver.return_ack_pending
 }
