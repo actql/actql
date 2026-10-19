@@ -64827,7 +64827,7 @@
           "parameters": []
         }
       ],
-      "sha256": "13965f9c5e6e43a461ee5544b7382a189f58be33f042f261e8dc7652f2fd7238",
+      "sha256": "4f23553df3d14e2e85dc8c1f1a94f1c301100e99e03ec0b2028e5a37c381abc1",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "E / existing Python Host initial preparation and Resource Owners",
@@ -64955,11 +64955,19 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_initial_preparation.py",
-                "anchor": "def test_copy_failure_keeps_same_original_and_forbids_retry("
+                "anchor": "def test_post_copy_failure_keeps_same_original_and_forbids_retry("
               },
               {
                 "path": "packages/python-sdk/tests/test_local_initial_preparation.py",
                 "anchor": "def test_ordinary_factory_keeps_actual_initial_carrier_without_discovery("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_initial_preparation.py",
+                "anchor": "def test_ambient_fsencode_substitution_cannot_change_original_bytes("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_initial_preparation.py",
+                "anchor": "def test_closed_codec_preserves_unicode_surrogateescape_and_byte_boundary("
               }
             ]
           }
