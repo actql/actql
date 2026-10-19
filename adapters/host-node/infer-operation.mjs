@@ -112,9 +112,10 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   let originalStoreBootstrap;
   let originalPublicationCapacity;
   if (originalPreparation !== undefined) {
-    if (provider === undefined || acquiredInput !== undefined || composedInput !== undefined || keyedInput !== undefined ||
+    if (provider === undefined || acquiredInput !== undefined || keyedInput !== undefined ||
         restoredInput !== undefined || savedCapture !== undefined || savedSlots !== undefined ||
         originalPreparation === null || typeof originalPreparation !== 'object' ||
+        composedInput !== undefined && Object.hasOwn(originalPreparation, 'nodeInstallation') ||
         typeof originalPreparation.readRetainedBytes !== 'bigint' ||
         originalPreparation.readRetainedBytes <= 0n ||
         typeof originalPreparation.readExecutionBytes !== 'bigint' ||
@@ -127,7 +128,17 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     }
     // The original read owner retains the issued ticket if a later constructor
     // fails. No JS ownership map, claim reset or unowned-start fallback exists.
-    if (Object.hasOwn(originalPreparation, 'nodeInstallation')) {
+    if (composedInput !== undefined) {
+      const control = originalPreparation.control;
+      if (typeof control?.claimCheckedClientInferOriginalComposedPreparation !== 'function' ||
+          typeof control?.startCheckedClientOriginalComposedInferExecution !== 'function') {
+        throw new TypeError('InferOriginalComposedControlUnavailable');
+      }
+      originalConsumer = control.claimCheckedClientInferOriginalComposedPreparation(
+        originalPreparation.compiled, originalPreparation.runDefinition, graph,
+        originalPreparation.read, originalPreparation.readRetainedBytes,
+        originalPreparation.readExecutionBytes);
+    } else if (Object.hasOwn(originalPreparation, 'nodeInstallation')) {
       const selected = originalPreparation.nodeInstallation;
       if (selected === null || typeof selected !== 'object' ||
           Object.keys(selected).sort().join(',') !==
@@ -251,6 +262,13 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
           originalPreparation.readRetainedBytes, originalPreparation.readExecutionBytes,
           originalPreparation.modelRetainedBytes, originalPreparation.modelExecutionBytes)
 
+    : originalPreparation !== undefined && composedInput !== undefined
+    ? originalPreparation.control.startCheckedClientOriginalComposedInferExecution(
+      originalPreparation.compiled, originalPreparation.runDefinition,
+      composedInput.occurrence, graph, composedInput.prefix, composedInput.inputs,
+      provider, originalConsumer, originalPreparation.readRetainedBytes,
+      originalPreparation.readExecutionBytes, originalPreparation.modelRetainedBytes,
+      originalPreparation.modelExecutionBytes, composedInput.sources)
     : originalPreparation !== undefined && Object.hasOwn(originalPreparation, 'nodeInstallation')
     ? originalPreparation.control.startCheckedClientInferOriginalPreparation(
       originalPreparation.compiled, originalPreparation.runDefinition,
@@ -1033,7 +1051,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
 // installing Run retains physical custody before binding current admissions.
 export function openNodeComposedInferProvider({moon, selected, sources,
   control, plan, principalId, now, signal, retainOperation, retainCompleted,
-  durableCalls = false, restoredInput, generatedInput}) {
+  durableCalls = false, restoredInput, generatedInput, originalPreparation}) {
   if (selected?.occurrence === undefined ||
       typeof retainOperation !== 'function') {
     throw new TypeError('InvalidComposedInferProvider');
@@ -1056,7 +1074,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           computeSuffix: generatedInput === undefined ? selected.computeSuffix : undefined, provider: selected.provider,
           quantityCapacity: selected.quantityCapacity,
           physicalPreflight: selected.physicalPreflight,
-          egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput,
+          egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput, originalPreparation,
           retainOperation(value) { operation = value; retainOperation(value); }});
         operation.bindRun(control, plan);
         if (!durableCalls) operation.bindDispatch(control, {...plan, account: selected.account,
