@@ -2016,6 +2016,13 @@ calling/flight/SQL lifecycle: a sticky failure alone is not a pending scope,
 and an invalid observation is never inactivity. Neither an idle scope nor a
 successful return acknowledges Database, Library, domain or parent cleanup.
 
+Selecting cleanup also irreversibly spends that original operation's normal
+route when the cleanup callback succeeds without an error. This selection is
+retained separately from the current flight and from primary/cleanup failures.
+Returning a cleanup flight cannot clear it: subsequent cleanup work selects
+the same cleanup-only coordinator entry, while normal entry refuses. A spent
+normal route alone is neither a pending physical scope nor a retirement ACK.
+
 A failed entry can retain a nominal active flight without having entered its
 physical Read frame. Its cleanup completion must confirm that exact original
 context has no active frame and that any recorded owned-scope unwind completed.
