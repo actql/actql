@@ -356,7 +356,21 @@ fn NativeLocalStoreOperationReceiver::begin_cleanup(
   self.ready = false
   if self.business_pending {
     match original.host.leave_domain_retained_execution(self.execution) {
-      Err(issue) => return Err(StoreOperationExecution(issue))
+      Err(issue) =>
+        // A failed original C entry can retain only its nominal attempt. The
+        // existing cleanup port verifies this SAME context/lease had no C
+        // entry, unwinds its saved preparation scope, and never revives use.
+        match
+          original.host.finish_domain_retained_execution_failed_entry_cleanup(
+            self.execution,
+          ) {
+          Err(cleanup) => {
+            self.refuse(StoreOperationExecution(issue)) |> ignore
+            self.refuse(StoreOperationExecution(cleanup)) |> ignore
+            return Err(self.primary.unwrap_or(StoreOperationUnavailable))
+          }
+          Ok(_) => self.business_pending = false
+        }
       Ok(_) => self.business_pending = false
     }
   }

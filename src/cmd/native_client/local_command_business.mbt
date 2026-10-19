@@ -169,13 +169,26 @@ fn LocalCommandPreparationOriginal::close_business_execution(
       // The fixed Store coordinator may already have acknowledged this exact
       // business leave before a later Read/SQL switch failed. Observe its
       // actual original frame; a logical caller latch is not a second leave.
-      match host.observe_domain_retained_execution_scope(execution) {
+      let observed = match
+        host.observe_domain_retained_execution_scope(execution) {
+        Ok(scope) => Ok(scope)
+        Err(_) =>
+          host.observe_domain_retained_execution_cleanup_scope(execution)
+      }
+      match observed {
         Ok(@initial_bootstrap.BackedReadUnentered) => business.active = false
         Ok(@initial_bootstrap.BackedReadEntered) | Err(_) =>
           // A failed observation is not inactivity. Retain/retry only the
           // original scope this invocation already attempted to enter.
           match host.leave_domain_retained_execution(execution) {
-            Err(issue) => return Err(CommandRetainedExecution(issue))
+            Err(issue) =>
+              match
+                host.finish_domain_retained_execution_failed_entry_cleanup(
+                  execution,
+                ) {
+                Err(_) => return Err(CommandRetainedExecution(issue))
+                Ok(_) => business.active = false
+              }
             Ok(_) => business.active = false
           }
       }
