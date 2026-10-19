@@ -282,7 +282,9 @@ test('included native sum keeps old/new originals without adding the retained ha
   assert.equal(n.savepoint,4963500558336n);
   assert.equal(n.workspaces,51200n);
   assert.equal(n.pagerControls,6912n);
-  assert.equal(n.heapUsableUpper,4963506242526n);
+  assert.equal(n.connection,275375n);
+  assert.equal(n.activeParserBackings,7405564n);
+  assert.equal(n.heapUsableUpper,4963513923465n);
   assert.equal(n.sameInodeWalMappingBytes,32768n);
 });
 
@@ -335,4 +337,58 @@ test('whole-schema hashes and affinities retain borrowed names and original grow
   assert.equal(s.schemaParseAndReaderCovered,false);
   assert.equal(s.completeSchema,false);
   assert.equal(s.resetReturnsRegionCredit,false);
+});
+
+test('connection registration includes selected compiled-in modules even without virtual-table execution', () => {
+  const c = calculate(input()).connectionInitialization;
+  assert.equal(c.sqliteRecord.request,808n);
+  assert.equal(c.databaseSlotsInline,2n);
+  assert.equal(c.recursiveMutex.request,96n);
+  assert.equal(c.lookaside.request,120000n);
+  assert.equal(c.lookasideBackings,1n);
+  assert.equal(c.collationBlocks,3n);
+  assert.equal(c.eachCollationBlockRequestUpper,127n);
+  assert.equal(c.moduleRegistrations,12n);
+  assert.equal(c.functionRegistrationAttempts,32n);
+  assert.equal(c.overloadAttempts,10n);
+  assert.equal(c.registrationHashElements,47n);
+  assert.equal(c.coversAutomaticExtensions,false);
+  assert.equal(c.coversVirtualTableExecution,false);
+  assert.equal(c.sharedModuleRecordsCopied,false);
+  assert.equal(c.closeReturnsRegionCredit,false);
+  assert(Object.isFrozen(c));
+});
+
+test('FTS registration keeps inline API and locale header separate from real table/tokenizer execution', () => {
+  const {fts3:f3,fts5:f5} = calculate(input()).connectionInitialization;
+  assert.equal(f3.wrapperRequest,40n);
+  assert.equal(f3.tokenizerElements,3n);
+  assert.deepEqual(f3.copiedKeyRequests,[7n,7n,10n]);
+  assert.equal(f3.initialBucketArrayRequest,128n);
+  assert.equal(f3.tokenizersInstantiated,false);
+  assert.equal(f5.globalRequest,112n);
+  assert.equal(f5.auxiliaryRecords,4n);
+  assert.equal(f5.tokenizerRecords,4n);
+  assert.equal(f5.apiInline,true);
+  assert.equal(f5.localeRandomBytes,16n);
+  assert.equal(f5.localeHeaderInline,true);
+  assert.equal(f5.tokenizersInstantiated,false);
+  assert(Object.isFrozen(f3.copiedKeyRequests));
+});
+
+test('selected parser growth retains old plus new separately from its inline engine and caller stack', () => {
+  const p = calculate(input()).preparation.parser;
+  assert.equal(p.sqlBytesUpper,1751n);
+  assert.equal(p.liveEntriesUpper,29n * 1751n + 73n);
+  assert.equal(p.nativeCapacityEntriesUpper,51100n);
+  assert.equal(p.previousNativeEntriesUpper,25500n);
+  assert.equal(p.eachGrowth.previousMaximum.request,612000n);
+  assert.equal(p.eachGrowth.nextMaximum.request,1226400n);
+  assert.equal(p.eachGrowth.immediateCredit,false);
+  assert.equal(p.eachRunParserStackFrameBytes,2624n);
+  assert.equal(p.engineIncludedInFrame,true);
+  assert.equal(p.parseObjectIncludedInCallerStack,true);
+  assert.equal(p.nativeStackComplete,false);
+  assert.equal(p.fixedSchemaReaderVmCountedSeparately,true);
+  assert.equal(p.nativeFreeReturnsRegionCredit,false);
 });

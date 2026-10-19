@@ -100,9 +100,27 @@ function includedNativeComponents(value) {
     2n * u(work.btreeTemporaryRequest));
   const pagerControls = checked(a.combinedPager.heapUsableUpper + a.temporaryPath.heapUsableUpper +
     a.btree.heapUsableUpper + a.sharedBtree.heapUsableUpper + a.walAndFile.heapUsableUpper);
+  const init = value.connectionInitialization, f3 = init.fts3, f5 = init.fts5;
+  const connection = checked(init.sqliteRecord.heapUsableUpper +
+    init.recursiveMutex.heapUsableUpper + init.lookaside.heapUsableUpper +
+    init.collationBlocks * u(init.eachCollationBlockRequestUpper) +
+    init.moduleRegistrations * u(init.eachModuleAndNameRequestUpper) +
+    init.functionRegistrationAttempts * u(init.eachFunctionAndNameRequestUpper) +
+    init.overloadAttempts * (u(init.eachOverloadDestructorRequest) + u(init.eachOverloadDataNameRequestUpper)) +
+    init.registrationHashElements * u(init.eachHashElementRequest) +
+    init.growingRegistrationHashes * (init.eachRegistrationHashGrowth.previousMaximum.heapUsableUpper +
+      init.eachRegistrationHashGrowth.nextMaximum.heapUsableUpper) +
+    u(f3.wrapperRequest) + f3.tokenizerElements * u(f3.eachElementRequest) +
+    f3.copiedKeyRequests.reduce((sum, request) => sum + u(request), 0n) + u(f3.initialBucketArrayRequest) +
+    u(f5.globalRequest) + f5.auxiliaryRecords * u(f5.eachAuxiliaryAndNameRequestUpper) +
+    f5.tokenizerRecords * u(f5.eachTokenizerAndNameRequestUpper));
+  const parser = value.preparation.parser;
+  const activeParserBackings = checked(parser.activeParsers *
+    (parser.eachGrowth.previousMaximum.heapUsableUpper + parser.eachGrowth.nextMaximum.heapUsableUpper));
   return freeze({qualification:'included-stock-usable-subtotal-only', completeJournal:false,
-    cache, wal, savepoint, workspaces, pagerControls,
-    heapUsableUpper:checked(cache + wal + savepoint + workspaces + pagerControls),
+    cache, wal, savepoint, workspaces, pagerControls, connection, activeParserBackings,
+    heapUsableUpper:checked(cache + wal + savepoint + workspaces + pagerControls +
+      connection + activeParserBackings),
     // Same-inode WAL mappings are not heap malloc blocks and are not another
     // per-connection credit. Root must compose each real connection/copy and
     // the shared mapping once, together with all remaining facility terms.
@@ -182,6 +200,51 @@ function hostJournalNativeStructureRequests(input) {
   const value = freeze({
     qualification:'partial-native-request-vectors', completePhase:false,
     replenishedOnClose:false,
+    connectionInitialization:freeze({
+      qualification:'selected-ordinary-builtins-registration-subset', completeConnection:false,
+      // Actual selected openDatabase requests808 bytes; aDbStatic and the
+      // embedded Hash headers are inside that sqlite3, not extra allocations.
+      sqliteRecord:allocation(808n), databaseSlotsInline:2n,
+      // LP64 Darwin pthread_mutex_t plus every conditional SQLite debug/
+      // armor field fits96. Native pthread/platform bookkeeping is separate.
+      recursiveMutex:allocation(96n),
+      // Cover both stock one/two-size defaults, not caller/global config.
+      // The100-slot branch is the larger original. Small/big slots partition
+      // this one backing; do not add another allocation for every slot.
+      lookaside:allocation(1200n * 100n), lookasideBackings:1n,
+      // BINARY's three encodings share ONE three-CollSeq block. NOCASE and
+      // RTRIM each own another such block; each inline name is at most7B.
+      collationBlocks:3n, eachCollationBlockRequestUpper:127n,
+      // Registration still runs before the first authored SQL, even if no
+      // admitted statement ever uses an FTS/RTREE/JSON virtual table.
+      moduleRegistrations:12n, eachModuleAndNameRequestUpper:61n,
+      // Count all32 registration attempts, including the FTS5 snippet
+      // overload already supplied by FTS3. One attempt owns at most one new
+      // FuncDef/name. Read-only global builtin FuncDefs are not copied here.
+      functionRegistrationAttempts:32n, eachFunctionAndNameRequestUpper:95n,
+      overloadAttempts:10n, eachOverloadDestructorRequest:24n,
+      eachOverloadDataNameRequestUpper:16n,
+      // Function overload chains can share a hash key. Keeping one element
+      // per attempt is conservative without allocating another copied name.
+      registrationHashElements:47n, eachHashElementRequest:40n,
+      growingRegistrationHashes:2n,
+      eachRegistrationHashGrowth:preservingGrowth(1024n,1024n),
+      fts3:freeze({wrapperRequest:40n, tokenizerElements:3n,
+        eachElementRequest:40n, copiedKeyRequests:freeze([7n,7n,10n]),
+        initialBucketArrayRequest:128n,
+        hashHeadersInline:true, tokenizersInstantiated:false}),
+      fts5:freeze({globalRequest:112n, auxiliaryRecords:4n,
+        eachAuxiliaryAndNameRequestUpper:64n, tokenizerRecords:4n,
+        eachTokenizerAndNameRequestUpper:106n,
+        localeRandomBytes:16n, localeHeaderInline:true,
+        apiInline:true, tokenizersInstantiated:false}),
+      // These are registration objects, not virtual-table/index/tokenizer
+      // execution, automatic native extensions or application functions.
+      coversVirtualTableExecution:false, coversAutomaticExtensions:false,
+      coversNodeWrapperAndPlatform:false,
+      customSqliteConfigurationSupported:false,
+      sharedModuleRecordsCopied:false, closeReturnsRegionCredit:false,
+    }),
     cache:freeze({admittedPages:N, peakKeys:N + 1n,
       individualPageRequest:p + 272n,
       initialBulkRequest:checked(20n * (p + 272n)),
@@ -226,6 +289,23 @@ function hostJournalNativeStructureRequests(input) {
       metadataArrayRequest:6720n, metadataTextBlocks:120n, metadataTextRequest,
       savedSqlRequest:1625n}),
     preparation:freeze({completePrepare:false,
+      parser:freeze({
+        // The fixed current SQL plus rendered nested DDL is bounded1751B.
+        // Generated grammar DAG gives live<=29*B+73. yyGrowStack starts
+        // inline100, then grows2*old+100:51100 covers50852 live entries.
+        sqlBytesUpper:1751n, liveEntriesUpper:50852n,
+        nativeCapacityEntriesUpper:51100n, previousNativeEntriesUpper:25500n,
+        activeParsers:2n, entryBytes:24n,
+        eachGrowth:preservingGrowth(612000n,1226400n),
+        // Exact selected RunParser frame2624 includes engine2432/inline100.
+        // This is NOT the whole native thread/caller/recursive stack term.
+        eachRunParserStackFrameBytes:2624n, engineIncludedInFrame:true,
+        parseObjectIncludedInCallerStack:true,
+        nativeStackComplete:false,
+        growingBackingUsesGlobalAllocator:true,
+        fixedSchemaReaderVmCountedSeparately:true,
+        nativeFreeReturnsRegionCredit:false,
+      }),
       // Reprepare builds pNew while the old complete VM remains live, then
       // swaps/finalizes it. Fifty sequential retries are work/history, not
       // fifty simultaneous replacement VMs. Schema/bind payloads are not
