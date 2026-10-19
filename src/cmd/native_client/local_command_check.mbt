@@ -115,6 +115,12 @@ fn local_command_preparation_operation_selected(
   operation == "check" ||
   operation == "explain" ||
   operation == "adopt" ||
+  (
+    matches.subcommand is Some((selected, child)) &&
+    selected == operation &&
+    local_quick_query_requested(selected, child) &&
+    business_selected
+  ) ||
   local_checkpoint_action_selected(matches, operation) ||
   (
     operation == "status" &&
@@ -173,7 +179,9 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   } else {
     location.parent_path + "/" + location.directory_name
   }
-  let originals = if operation == "adopt" {
+  let (_, selected_child) = matches.subcommand.unwrap()
+  let quick_query = local_quick_query_requested(operation, selected_child)
+  let originals = if operation == "adopt" || quick_query {
     let parent = command_preparation_result(
       self.select_product_parent(location.parent_path),
     )
@@ -212,6 +220,10 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   command_preparation_result(
     self.stage_product(location.parent_path, location.directory_name, originals),
   )
+  // Selection is remembered only after the original excluded Product capture
+  // staged these initial bodies. The Native Session still proves first-key
+  // eligibility independently; restored/missing adopted state cannot rekey.
+  self.initial_product_selected = originals is Some(_)
   let original_runtime = text_file(configuration_root, "runtime.json", 65536L)
   local_product_require_same_runtime_wire(
     original_runtime,
@@ -279,7 +291,11 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
         configuration_files: selected_files,
         managed_root_path: Some(settings.managed_root),
       },
-      operation == "adopt",
+      operation == "adopt" ||
+      (
+        local_quick_query_requested(operation, child) &&
+        self.initial_product_selected
+      ),
     ),
   )
   let expected = [
@@ -295,10 +311,17 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
       stop("LocalConfigurationChanged")
     }
   }
-  // Only the actual explicit initializer may request its existing first-key
-  // branch. The Session independently decides eligibility and durable custody.
-  let initialize_signing = operation == "adopt" &&
-    child.flags.get("initialize-signing").unwrap_or(false)
+  // Trusted literal quick queries may initialize a genuinely absent default
+  // Host through the same original Session. This selects physical setup only,
+  // not Reviewer registration, Effect approval or missing-state repair.
+  let initialize_signing = (
+      operation == "adopt" &&
+      child.flags.get("initialize-signing").unwrap_or(false)
+    ) ||
+    (
+      local_quick_query_requested(operation, child) &&
+      self.initial_product_selected
+    )
   command_preparation_result(
     self.open_adopted_journal(initialize_signing, {
       initialize_signing,
@@ -342,6 +365,13 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             input_root,
             child,
             capture=Some(capture),
+          )
+        } else if local_quick_query_requested(operation, child) {
+          let runtime = preparation_runtime.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          self.execute_original_quick_query(
+            host, capture, settings, name, runtime, input_root, operation, child,
           )
         } else if operation == "result" {
           let runtime = preparation_runtime.unwrap_or_else(() => {

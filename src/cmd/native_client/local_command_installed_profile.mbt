@@ -101,6 +101,10 @@ fn local_command_preparation_selected(
   matches : @argparse.Matches,
 ) -> Bool raise ClientStop {
   if !(matches.subcommand is Some(("check", _)) ||
+    (
+      matches.subcommand is Some((operation, child)) &&
+      local_quick_query_requested(operation, child)
+    ) ||
     matches.subcommand is Some(("explain", _)) ||
     matches.subcommand is Some(("run", _)) ||
     local_checkpoint_action_selected(matches, "approve") ||
@@ -135,6 +139,10 @@ fn prepare_native_command_invocation(
   }
   if (
       matches.subcommand is Some(("run", _)) ||
+      (
+        matches.subcommand is Some((operation, child)) &&
+        local_quick_query_requested(operation, child)
+      ) ||
       matches.subcommand is Some(("status", _)) ||
       matches.subcommand is Some(("result", _))
     ) &&
@@ -164,6 +172,10 @@ fn prepare_native_command_invocation(
   // The full business candidate exists before backing/domain/Root acquisition,
   // not after epoch issuance, Program admission or first-start claims.
   let (profile, business) = if matches.subcommand is Some(("run", _)) ||
+    (
+      matches.subcommand is Some((operation, child)) &&
+      local_quick_query_requested(operation, child)
+    ) ||
     matches.subcommand is Some(("result", _)) {
     let (profile, business) = local_command_source_free_business_profile(
       static_profile,

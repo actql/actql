@@ -21,6 +21,22 @@ fn local_quick_query_format(
 }
 
 ///|
+// Refuse unsupported destinations before allocating a Submission or attempt.
+// A stdout byte receipt cannot acknowledge an internal material receiver.
+fn local_quick_query_delivery(
+  child : @argparse.Matches,
+) -> String raise ClientStop {
+  let format = local_quick_query_format(child)
+  if format == "table" {
+    stop("LocalQueryTablePresentationUnavailable")
+  }
+  if child.values.contains("output") {
+    stop("LocalResultFileDeliveryUnavailable")
+  }
+  format
+}
+
+///|
 fn normalize_native_query_arguments(
   matches : @argparse.Matches,
 ) -> Unit raise ClientStop {
@@ -71,16 +87,7 @@ fn local_quick_query(
   operation : String,
   child : @argparse.Matches,
 ) -> String raise ClientStop {
-  let format = local_quick_query_format(child)
-  // The existing delivery grant is for exact json/jsonl/csv bytes at stdout.
-  // It cannot certify transformed table bytes or authorize a file writer.
-  // These missing adapters refuse before allocating a submission or attempt.
-  if format == "table" {
-    stop("LocalQueryTablePresentationUnavailable")
-  }
-  if child.values.contains("output") {
-    stop("LocalResultFileDeliveryUnavailable")
-  }
+  let format = local_quick_query_delivery(child)
   let original = local_submission_start(
     host,
     settings,
@@ -92,6 +99,19 @@ fn local_quick_query(
     child,
     public_run=true,
   )
+  let result = local_quick_query_result(original, format)
+  local_public_result(host, settings, crypto, sqlite, result.0) catch {
+    ClientStop(issue) => stop(issue + result.1)
+  }
+}
+
+///|
+// Select the exact returned Run only. A refusal after submission includes the
+// original correlation; it never retries or starts a replacement query.
+fn local_quick_query_result(
+  original : String,
+  format : String,
+) -> (@argparse.Matches, String) raise ClientStop {
   let root = @decode.open_object(local_input_cursor(original)).unwrap_or_else(() => {
     stop("LocalQuerySavedStateUnavailable")
   })
@@ -119,7 +139,73 @@ fn local_quick_query(
     _ => stop("LocalQueryResultSelectionUnavailable" + correlation)
   }
   let (_, result) = selected.subcommand.unwrap()
-  local_public_result(host, settings, crypto, sqlite, result) catch {
+  (result, correlation)
+}
+
+///|
+// Use the same admitted business selection and its actual publication Store.
+// Run acceptance does not itself grant Result access: the existing captured
+// Result Owner independently restores/current-checks that exact returned Run.
+fn LocalCommandPreparationOriginal::execute_original_quick_query(
+  self : LocalCommandPreparationOriginal,
+  host : @local_host.NativeLocalHostConnection,
+  capture : @local_host.NativeLocalJournalCapture,
+  settings : LocalHostSettings,
+  configuration_name : String,
+  runtime : LocalPackagedRuntime,
+  input_root : String,
+  operation : String,
+  child : @argparse.Matches,
+) -> String raise ClientStop {
+  let format = local_quick_query_delivery(child)
+  let publication = self.prepare_business_submission(
+    host, capture, configuration_name, runtime, input_root, operation, child,
+  )
+  let physical = self.host.unwrap_or_else(() => {
+    stop("LocalBusinessOriginalUnavailable")
+  })
+  let pair = self.pair.unwrap_or_else(() => {
+    stop("LocalBusinessOriginalUnavailable")
+  })
+  let sqlite = physical
+    .borrow_local_host_sqlite(pair)
+    .unwrap_or_else(() => stop("LocalBusinessOriginalUnavailable"))
+  let crypto = self.inner_library.unwrap_or_else(() => {
+    stop("LocalBusinessOriginalUnavailable")
+  })
+  let original = local_submission_start(
+    host,
+    settings,
+    crypto,
+    sqlite,
+    publication.environment,
+    input_root,
+    operation,
+    child,
+    public_run=true,
+    business=Some(publication),
+  )
+  let (result, correlation) = local_quick_query_result(original, format)
+  try {
+    let selected = self.prepare_original_result(
+      host,
+      capture,
+      settings,
+      configuration_name,
+      runtime,
+      sqlite,
+      result,
+      publication=Some(publication),
+    )
+    local_public_result(
+      host,
+      settings,
+      crypto,
+      sqlite,
+      result,
+      prepared=Some(selected),
+    )
+  } catch {
     ClientStop(issue) => stop(issue + correlation)
   }
 }
