@@ -32,13 +32,11 @@ test "public Native run accepts a Program without private correlation files" {
   assert_eq(optional(child, "submission-ref-file"), None)
   assert_eq(optional(child, "operation-attempt-id"), None)
   assert_eq(optional(child, "request-id"), None)
-  // Legacy intake still requires the caller's complete saved correlation.
-  for operation in ["aql", "start"] {
+  // The private start spelling still requires complete saved correlation.
+  // The public literal aql spelling has a distinct parsed query entrance;
+  // its nonpublic intake is checked at the original submission Owner below.
+  for operation in ["start"] {
     let original = [operation, "--program-file", "literal.sql"]
-    if operation == "aql" {
-      original.push("--format")
-      original.push("sql")
-    }
     let complete = original.copy()
     for
       value in [
@@ -245,20 +243,24 @@ test "public run cannot issue another identity from a retired Host or an old non
     ttl_ms=60000.0,
   )
   let scope = public_run_scope(host, settings, crypto)
-  request_lookup_ok(host.close(), "public.retired.close")
-  let child = public_run_arguments().subcommand.unwrap().1
-  let retired = try {
+  let nonpublic = command().parse(
+      argv=["aql", "--program-file", "literal.sql", "--format", "sql"],
+      env=Map([]),
+    ).subcommand.unwrap().1
+  let original_required = try {
     local_select_run_submission(
-      host, settings, crypto, scope, "never-open", child, true,
+      host, settings, crypto, scope, "never-open", nonpublic, false,
     )
     |> ignore
     "unexpected success"
   } catch {
     ClientStop(message) => message
   }
-  let original_required = try {
+  request_lookup_ok(host.close(), "public.retired.close")
+  let child = public_run_arguments().subcommand.unwrap().1
+  let retired = try {
     local_select_run_submission(
-      host, settings, crypto, scope, "never-open", child, false,
+      host, settings, crypto, scope, "never-open", child, true,
     )
     |> ignore
     "unexpected success"
