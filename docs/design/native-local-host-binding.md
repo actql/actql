@@ -1960,3 +1960,11 @@ retains the original carrier and emits no staged success. The copied text,
 newline, UTF-8 buffer and static stdout buffer remain distinct simultaneous
 initial-control holdings; none is a physical cleanup acknowledgement. Streamed
 Result material remains outside this static metadata path.
+
+A closed Journal can still retain its original managed Database alias. After
+Read-side Session, Root and Crypto Library cleanup has acknowledged, retire the
+closed Journal and Adoption aliases inside that same pair's original SQLite
+cleanup frame. The Database finalizer must observe that actual context before
+it can retire its Library child. Dropping a reference, leaving a frame or
+closing a descriptor alone is not that acknowledgement; the Library, both
+contexts and the original backing still retain their separate close duties.
