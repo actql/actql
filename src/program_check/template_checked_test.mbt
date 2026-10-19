@@ -353,3 +353,48 @@ test "complete template closure retains original Sort and literal Take orders" {
     )
   }
 }
+
+///|
+test "complete template accounts static order links in the original requirement budget" {
+  let (plain, environment, limits) = complete_template_fixture()
+  let (ordered, _, _) = complete_template_fixture(
+    suffix=",{\"sort\":[{\"n\":\"desc\"}]},{\"take\":1}",
+  )
+  let mut first_plain = -1
+  let mut first_ordered = -1
+  for requirements in 0..<32 {
+    let selected = {
+      ..limits,
+      compilation: {
+        ..limits.compilation,
+        structure: { ..limits.compilation.structure, requirements, },
+      },
+    }
+    if first_plain < 0 &&
+      @program_check.check_parsed_scoped(
+        plain,
+        environment,
+        TemplateOnly,
+        None,
+        selected,
+      )
+      is TemplateOnly(Verified(_)) {
+      first_plain = requirements
+    }
+    if first_ordered < 0 &&
+      @program_check.check_parsed_scoped(
+        ordered,
+        environment,
+        TemplateOnly,
+        None,
+        selected,
+      )
+      is TemplateOnly(Verified(_)) {
+      first_ordered = requirements
+    }
+  }
+  assert_true(first_plain > 0)
+  // Both programs retain the same one missing value, one publication and
+  // unchanged row-candidate bounds. Sort and Take add two static order links.
+  assert_eq(first_ordered, first_plain + 2)
+}
