@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "owned_capacity.h"
+#include "owned_region.h"
 #include "scoped_read.h"
 #include "../../../../../src/platform_native/sqlite/sqlite_stub.c"
 #include "../../../../../src/platform_native/remote_journal/inspection_stub.c"
@@ -31,8 +32,10 @@ int main(int argc, char **argv) {
     assert(strcmp(name, "wal-copy") == 0 || strcmp(name, "missing-index") == 0 ||
         strcmp(name, "exclusive-conflict") == 0 ||
         strcmp(name, "command-record-bounds") == 0 ||
+        strcmp(name, "domain-facility-exhaustion") == 0 ||
         strcmp(name, "finite-facility-exhaustion") == 0);
     const bool facility_exhaustion = strcmp(name, "finite-facility-exhaustion") == 0;
+    const bool domain_exhaustion = strcmp(name, "domain-facility-exhaustion") == 0;
     const bool command_bounds = strcmp(name, "command-record-bounds") == 0;
     /* A predeclared component-only capacity candidate, not an installed entry
      * profile. Exercise the normal command's original 8-row/131072-byte inputs;
@@ -50,11 +53,40 @@ int main(int argc, char **argv) {
     assert(close(fd) == 0);
 
     actql_owned_capacity *lease = NULL;
+    actql_owned_capacity *parent = NULL;
+    actql_owned_extent_loan loan = {0};
+    actql_owned_extent_reference reference = {0};
+    actql_owned_extent_view view = {0};
+    void *parent_allocation = NULL;
+    int backing_fd = -1;
+    char backing_path[4096];
+    void *escaped_file = NULL;
     actql_read_context *context = NULL;
-    assert(actql_native_owned_acquire(domain_bytes,
-        1, recipe, &lease) == 0);
+    if (domain_exhaustion) {
+        const size_t page = (size_t)sysconf(_SC_PAGESIZE);
+        assert(snprintf(backing_path, sizeof(backing_path), "%s/domain-backing", directory) > 0);
+        backing_fd = open(backing_path, O_RDWR | O_CREAT | O_EXCL, 0600);
+        assert(backing_fd >= 0 && ftruncate(backing_fd, (off_t)(128 * page)) == 0);
+        assert(actql_native_owned_acquire_fd(backing_fd, 128 * page, 1, recipe, &parent) == 0);
+        assert(actql_native_owned_transfer(parent, 1, recipe) == 0);
+        assert(actql_native_owned_enter(parent) == 0);
+        assert(actql_native_owned_allocate(parent, 80 * page, 1, &parent_allocation) == 0);
+        assert(actql_native_owned_lend_extent(parent, parent_allocation, true, &loan) == 0);
+        assert(actql_native_owned_project_extent(&loan, &reference) == 0);
+        assert(actql_native_owned_map_extent_payload(backing_fd, &reference, page, domain_bytes, &view) == 0);
+        assert(actql_native_owned_acquire_extent_domain(&view, &lease) == 0);
+        assert(actql_native_owned_leave(parent) == 0);
+    } else {
+        assert(actql_native_owned_acquire(domain_bytes, 1, recipe, &lease) == 0);
+    }
     assert(actql_native_owned_transfer(lease, 1, recipe) == 0);
     assert(actql_native_owned_enter(lease) == 0);
+    /* One diagnostic whole-domain ceiling before its first context/receiver.
+     * It includes controls, managed slabs and the separate contained heap;
+     * it is not residual demand, another backing or an ordinary profile. */
+    const size_t domain_ceiling = 48 * (size_t)sysconf(_SC_PAGESIZE);
+    if (domain_exhaustion)
+        assert(actql_native_owned_bound_allocations(lease, domain_ceiling) == 0);
     assert(actql_read_context_create(lease, &context) == 0);
     assert(actql_read_context_retain(context) == 0);
     assert(actql_read_context_enter(context) == 0);
@@ -74,7 +106,52 @@ int main(int argc, char **argv) {
         (moonbit_bytes_t)"ns", 2, (moonbit_bytes_t)"key", 3,
         (moonbit_bytes_t)"original", 8) == 0);
 
-    if (facility_exhaustion) {
+    if (domain_exhaustion) {
+        const actql_sqlite_component_api *original_api = library->selected_api;
+        sqlite3 *original_database = writer->database;
+        void *original_module = library->dynamic_library;
+        uint64_t before[16] = {0};
+        assert(actql_native_owned_inventory(lease, before, 16) == 0);
+        assert(before[0] == domain_bytes && before[3] <= domain_ceiling);
+        assert(before[4] <= domain_ceiling && before[3] >= heap_bytes);
+        /* Fill only SAME-domain File extents after the real managed Library/
+         * Database and private heap exist. Exhaustion must not use the unused
+         * tail of the larger mapping or fall through to stock allocation. */
+        void *held[64] = {0};
+        size_t count = 0;
+        const size_t requests[] = {(size_t)sysconf(_SC_PAGESIZE), 16};
+        for (size_t kind = 0; kind < sizeof(requests)/sizeof(requests[0]); ++kind) {
+            while (count < 64) {
+                void *block = actql_native_file_scoped_allocate(requests[kind]);
+                if (!block) break;
+                held[count++] = block;
+            }
+            assert(count < 64);
+        }
+        assert(count > 0 && count < 64);
+        assert(actql_native_file_scoped_allocate(16) == NULL);
+        uint64_t full[16] = {0};
+        assert(actql_native_owned_inventory(lease, full, 16) == 0);
+        assert(full[3] == domain_ceiling && full[4] == domain_ceiling);
+        assert(full[0] > full[3]); /* The original mapping was not resized. */
+        assert(library->selected_api == original_api && library->dynamic_library == original_module);
+        assert(writer->database == original_database && writer->opened);
+        assert(actql_native_owned_bound_allocations(lease, domain_bytes) != 0);
+        /* Child cleanup cannot acknowledge this independently retained File
+         * payload. Releasing it permits only same-ceiling reuse, not refill or
+         * a new DB/library/claim after exhaustion. */
+        assert(actql_read_context_try_close(&context) != 0 && context != NULL);
+        escaped_file = held[0];
+        memset(escaped_file, 0xa5, 16);
+        for (size_t i = 1; i < count; ++i) actql_native_file_scoped_free(held[i]);
+        uint64_t released[16] = {0};
+        assert(actql_native_owned_inventory(lease, released, 16) == 0);
+        assert(released[3] > before[3] && released[3] < full[3]);
+        assert(released[4] == domain_ceiling);
+        assert(actql_native_owned_contains_live_span(lease, escaped_file, 16) == 0);
+        assert(library->selected_api == original_api && writer->database == original_database);
+        /* No read retry, inspection, replacement or reopen follows. */
+    } else if (facility_exhaustion) {
         /* The diagnostic's declared finite facility may refuse. This is not
          * an all-input demand bound or a command profile. Every held block is
          * issued by this SAME component API and freed through that API. */
@@ -189,7 +266,7 @@ int main(int argc, char **argv) {
         moonbit_decref(snapshot);
     }
     close_database(writer);
-    if (!facility_exhaustion) {
+    if (!facility_exhaustion && !domain_exhaustion) {
         /* Generic restoration remains the generic route and sees the same row. */
         actql_native_sqlite_database *generic = actql_native_sqlite_open_existing_database(
             library, (moonbit_bytes_t)path, (int32_t)strlen(path),
@@ -206,11 +283,38 @@ int main(int argc, char **argv) {
     }
     assert(actql_native_sqlite_library_close_checked(library) == 1);
     moonbit_decref(library);
+    if (domain_exhaustion) {
+        /* The actual child Library/module has acknowledged retirement, but
+         * the SAME domain still owns this independent File alias. */
+        assert(escaped_file != NULL);
+        assert(actql_native_owned_contains_live_span(lease, escaped_file, 16) == 0);
+        for (size_t i = 0; i < 16; ++i) assert(((unsigned char *)escaped_file)[i] == 0xa5);
+    }
     assert(actql_read_context_leave(context) == 0);
     assert(actql_native_owned_leave(lease) == 0);
     assert(actql_read_context_release_after_owner_ack(context) == 0);
+    if (domain_exhaustion) {
+        assert(actql_read_context_try_close(&context) == ACTQL_OWNED_BUSY && context != NULL);
+        assert(actql_native_owned_close_extent_view(&view) == ACTQL_OWNED_BUSY);
+        /* Free through the original provider AFTER scope leave, without
+         * reopening Read or invoking any function from the closed component. */
+        actql_native_file_scoped_free(escaped_file);
+        escaped_file = NULL;
+    }
     assert(actql_read_context_try_close(&context) == 0);
-    assert(actql_native_owned_try_close(&lease) == 0);
+    if (domain_exhaustion) {
+        assert(actql_native_owned_close_extent_view(&view) == ACTQL_OWNED_BUSY);
+        assert(actql_native_owned_close_extent_domain(&view, &lease) == 0 && lease == NULL);
+        assert(actql_native_owned_close_extent_view(&view) == 0);
+        assert(actql_native_owned_return_extent(&loan) == 0);
+        assert(actql_native_owned_enter(parent) == 0);
+        assert(actql_native_owned_retire(parent, parent_allocation) == 0);
+        assert(actql_native_owned_leave(parent) == 0);
+        assert(actql_native_owned_try_close(&parent) == 0 && parent == NULL);
+        assert(close(backing_fd) == 0 && unlink(backing_path) == 0);
+    } else {
+        assert(actql_native_owned_try_close(&lease) == 0);
+    }
     printf("{\"case\":\"%s\",\"passed\":true,\"originalsClosed\":true,"
         "\"domainPages\":%zu,\"heapPages\":%zu,\"installed\":false}\n",
         name, domain_bytes / (size_t)sysconf(_SC_PAGESIZE),
