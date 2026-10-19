@@ -196,7 +196,7 @@ function dependencyImages(root, destination, localManifest, cohort) {
 // The caller supplies exactly the bytes it will publish after its ordinary
 // import rewrite. Normal runtime assets are read from that same destination.
 // This returns only generated Source; it cannot issue or price a scope.
-export function renderInitialControlPackageOriginal({root, destination, inputs, outputs}) {
+export function renderInitialControlPackageOriginal({root, destination, inputs, outputs, nativeOutputs = new Map()}) {
   if (!(outputs instanceof Map) || !outputs.has(initialControlPackageOriginal)) {
     fail('MissingInitialControlPackageTemplate');
   }
@@ -204,6 +204,15 @@ export function renderInitialControlPackageOriginal({root, destination, inputs, 
   if (inputs.buildInputs !== undefined) return absent;
   const images = new Map(outputs);
   images.delete(initialControlPackageOriginal);
+  // Native executable bytes are never UTF8 Source and must not pass through
+  // the JS image loader. Their separate facts still do not authorize loading.
+  const nativeImages = [];
+  for (const [path, bytes] of nativeOutputs) {
+    if (!concrete(path) || !path.startsWith('_build/native/')) fail('InvalidInitialControlNativeImage');
+    if (path.endsWith('.node')) nativeImages.push(fact(path, bytes));
+    else if (path === '_build/native/directory-original.json') images.set(path, bytes);
+    else fail('InvalidInitialControlNativeImage');
+  }
   for (const file of inputs.runtimeFiles) {
     if (!concrete(file)) fail('InvalidInitialControlRuntimePath');
     const path = '_build/js/release/build/' + file, source = join(destination, path);
@@ -249,7 +258,7 @@ export function renderInitialControlPackageOriginal({root, destination, inputs, 
   ordinaryEngine: {node: process.versions.node, v8: process.versions.v8,
     openssl: process.versions.openssl, platform: process.platform, arch: process.arch, eager: false,
     libraries: {...process.versions}},
-  images: facts, packages: dependencies.packages, dependencies: dependencies.bindings,
+  images: facts, nativeImages, packages: dependencies.packages, dependencies: dependencies.bindings,
   localVersion: manifest.version,
   ...(releaseVersion(manifest, cohort).releaseVersion === undefined ? {} : {localReleaseVersion: cohort.packageVersion}),
   optionalSdk: dependencies.optionalSdk ?? null, optionalSdkCoverage: dependencies.optionalSdkCoverage,
