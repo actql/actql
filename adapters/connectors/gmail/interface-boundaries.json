@@ -1,6 +1,6 @@
 {
   "qualification": "Existing Owner source/reference projection only; not normal funding, retirement, installation, authentication or live Gmail acceptance",
-  "source": "943f0455a425bb638bcb49d7dc1b465c3f882e1d",
+  "source": "5fb2b479a44581d56a05af6cd5a64fdf7e97bd9d",
   "declarations": [
     {
       "module": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
@@ -460,18 +460,57 @@
     },
     {
       "module": "src/connectors/gmail/catalog/pkg.generated.mbti",
-      "sha256": "b2cb79f6fcff8e685c825e96af34a91c34d0ada8cb3a8423cc21986cbf5de2b3",
+      "sha256": "748f32491f9dcc53f4a983848e32a4d83dc6591ad5cfcb24a4518bcf617fee8e",
       "exports": [
+        "pub fn accept_gmail_thread(GmailThreadRead, GmailThreadRequest, Bytes) -> Result[GmailThreadProjection, GmailThreadReadIssue]",
+        "pub fn accept_gmail_thread_list(GmailThreadRead, GmailThreadRequest, Bytes) -> Result[GmailThreadListPage, GmailThreadReadIssue]",
+        "pub fn close_gmail_thread_read(GmailThreadRead) -> Unit",
         "pub fn gmail_label_list_column_names() -> Array[String]",
         "pub fn gmail_label_list_facts_wire() -> String",
         "pub fn gmail_label_list_ids(GmailLabelListPage) -> Array[String]",
         "pub fn gmail_label_list_row_count(GmailLabelListPage) -> Int",
         "pub fn gmail_label_list_rows_wire(GmailLabelListPage, Array[String], Int, Int, Int) -> Result[String, GmailLabelListIssue]",
         "pub fn gmail_label_list_schema_wire(Int, Int, Int) -> Result[String, GmailLabelListIssue]",
+        "pub fn gmail_thread_column_names() -> Array[String]",
+        "pub fn gmail_thread_facts_wire() -> String",
+        "pub fn gmail_thread_list_count(GmailThreadListPage) -> Int",
+        "pub fn gmail_thread_list_id_at(GmailThreadListPage, Int) -> String?",
+        "pub fn gmail_thread_list_next_page_token(GmailThreadListPage) -> String?",
+        "pub fn gmail_thread_projection_matches_request(GmailThreadProjection, GmailThreadRequest) -> Bool",
+        "pub fn gmail_thread_read_completed(GmailThreadRead) -> Bool",
+        "pub fn gmail_thread_request_is_list(GmailThreadRequest) -> Bool",
+        "pub fn gmail_thread_request_mailbox(GmailThreadRequest) -> String",
+        "pub fn gmail_thread_request_matches(GmailThreadRead, GmailThreadRequest) -> Bool",
+        "pub fn gmail_thread_request_ordinal(GmailThreadRequest) -> Int",
+        "pub fn gmail_thread_request_page_token(GmailThreadRequest) -> String?",
+        "pub fn gmail_thread_request_target_id(GmailThreadRequest) -> String?",
+        "pub fn gmail_thread_rows_wire(GmailThreadProjection, Array[String], Int, Int, Int) -> Result[String, GmailThreadIssue]",
+        "pub fn gmail_thread_schema_wire(Int, Int, Int) -> Result[String, GmailThreadIssue]",
+        "pub fn gmail_thread_value_at(GmailThreadProjection, Int) -> @value_admission.CheckedValue?",
+        "pub fn next_gmail_thread_request(GmailThreadRead) -> Result[GmailThreadRequest?, GmailThreadReadIssue]",
+        "pub fn prepare_gmail_thread_read(String, GmailThreadListLimits, GmailThreadLimits, Int, Int) -> Result[GmailThreadRead, GmailThreadReadIssue]",
         "pub fn project_gmail_label_list(Bytes, GmailLabelListLimits) -> Result[GmailLabelListPage, GmailLabelListIssue]",
-        "pub struct GmailLabelListPage {"
+        "pub fn project_gmail_thread(Bytes, GmailThreadListPage, Int, GmailThreadLimits) -> Result[GmailThreadProjection, GmailThreadIssue]",
+        "pub fn project_gmail_thread_list(Bytes, GmailThreadListLimits) -> Result[GmailThreadListPage, GmailThreadListIssue]",
+        "pub struct GmailLabelListPage {",
+        "pub struct GmailThreadListPage {",
+        "pub struct GmailThreadProjection {",
+        "pub struct GmailThreadRead {",
+        "pub struct GmailThreadRequest {"
       ],
       "operations": [
+        {
+          "name": "accept_gmail_thread",
+          "declaration": "pub fn accept_gmail_thread(GmailThreadRead, GmailThreadRequest, Bytes) -> Result[GmailThreadProjection, GmailThreadReadIssue]"
+        },
+        {
+          "name": "accept_gmail_thread_list",
+          "declaration": "pub fn accept_gmail_thread_list(GmailThreadRead, GmailThreadRequest, Bytes) -> Result[GmailThreadListPage, GmailThreadReadIssue]"
+        },
+        {
+          "name": "close_gmail_thread_read",
+          "declaration": "pub fn close_gmail_thread_read(GmailThreadRead) -> Unit"
+        },
         {
           "name": "gmail_label_list_column_names",
           "declaration": "pub fn gmail_label_list_column_names() -> Array[String]"
@@ -497,8 +536,88 @@
           "declaration": "pub fn gmail_label_list_schema_wire(Int, Int, Int) -> Result[String, GmailLabelListIssue]"
         },
         {
+          "name": "gmail_thread_column_names",
+          "declaration": "pub fn gmail_thread_column_names() -> Array[String]"
+        },
+        {
+          "name": "gmail_thread_facts_wire",
+          "declaration": "pub fn gmail_thread_facts_wire() -> String"
+        },
+        {
+          "name": "gmail_thread_list_count",
+          "declaration": "pub fn gmail_thread_list_count(GmailThreadListPage) -> Int"
+        },
+        {
+          "name": "gmail_thread_list_id_at",
+          "declaration": "pub fn gmail_thread_list_id_at(GmailThreadListPage, Int) -> String?"
+        },
+        {
+          "name": "gmail_thread_list_next_page_token",
+          "declaration": "pub fn gmail_thread_list_next_page_token(GmailThreadListPage) -> String?"
+        },
+        {
+          "name": "gmail_thread_projection_matches_request",
+          "declaration": "pub fn gmail_thread_projection_matches_request(GmailThreadProjection, GmailThreadRequest) -> Bool"
+        },
+        {
+          "name": "gmail_thread_read_completed",
+          "declaration": "pub fn gmail_thread_read_completed(GmailThreadRead) -> Bool"
+        },
+        {
+          "name": "gmail_thread_request_is_list",
+          "declaration": "pub fn gmail_thread_request_is_list(GmailThreadRequest) -> Bool"
+        },
+        {
+          "name": "gmail_thread_request_mailbox",
+          "declaration": "pub fn gmail_thread_request_mailbox(GmailThreadRequest) -> String"
+        },
+        {
+          "name": "gmail_thread_request_matches",
+          "declaration": "pub fn gmail_thread_request_matches(GmailThreadRead, GmailThreadRequest) -> Bool"
+        },
+        {
+          "name": "gmail_thread_request_ordinal",
+          "declaration": "pub fn gmail_thread_request_ordinal(GmailThreadRequest) -> Int"
+        },
+        {
+          "name": "gmail_thread_request_page_token",
+          "declaration": "pub fn gmail_thread_request_page_token(GmailThreadRequest) -> String?"
+        },
+        {
+          "name": "gmail_thread_request_target_id",
+          "declaration": "pub fn gmail_thread_request_target_id(GmailThreadRequest) -> String?"
+        },
+        {
+          "name": "gmail_thread_rows_wire",
+          "declaration": "pub fn gmail_thread_rows_wire(GmailThreadProjection, Array[String], Int, Int, Int) -> Result[String, GmailThreadIssue]"
+        },
+        {
+          "name": "gmail_thread_schema_wire",
+          "declaration": "pub fn gmail_thread_schema_wire(Int, Int, Int) -> Result[String, GmailThreadIssue]"
+        },
+        {
+          "name": "gmail_thread_value_at",
+          "declaration": "pub fn gmail_thread_value_at(GmailThreadProjection, Int) -> @value_admission.CheckedValue?"
+        },
+        {
+          "name": "next_gmail_thread_request",
+          "declaration": "pub fn next_gmail_thread_request(GmailThreadRead) -> Result[GmailThreadRequest?, GmailThreadReadIssue]"
+        },
+        {
+          "name": "prepare_gmail_thread_read",
+          "declaration": "pub fn prepare_gmail_thread_read(String, GmailThreadListLimits, GmailThreadLimits, Int, Int) -> Result[GmailThreadRead, GmailThreadReadIssue]"
+        },
+        {
           "name": "project_gmail_label_list",
           "declaration": "pub fn project_gmail_label_list(Bytes, GmailLabelListLimits) -> Result[GmailLabelListPage, GmailLabelListIssue]"
+        },
+        {
+          "name": "project_gmail_thread",
+          "declaration": "pub fn project_gmail_thread(Bytes, GmailThreadListPage, Int, GmailThreadLimits) -> Result[GmailThreadProjection, GmailThreadIssue]"
+        },
+        {
+          "name": "project_gmail_thread_list",
+          "declaration": "pub fn project_gmail_thread_list(Bytes, GmailThreadListLimits) -> Result[GmailThreadListPage, GmailThreadListIssue]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -592,6 +711,142 @@
               {
                 "path": "src/connectors/gmail/catalog/labels_wbtest.mbt",
                 "anchor": "test \"Gmail label list rejects foreign error and continuation envelopes"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No asynchronous request is started by these bounded pure functions or generated API declarations. The original caller retains cancellation, raw custody, Unknown and cleanup."
+            }
+          }
+        },
+        {
+          "operations": [
+            "accept_gmail_thread",
+            "accept_gmail_thread_list",
+            "close_gmail_thread_read",
+            "gmail_thread_column_names",
+            "gmail_thread_facts_wire",
+            "gmail_thread_list_count",
+            "gmail_thread_list_id_at",
+            "gmail_thread_list_next_page_token",
+            "gmail_thread_projection_matches_request",
+            "gmail_thread_read_completed",
+            "gmail_thread_request_is_list",
+            "gmail_thread_request_mailbox",
+            "gmail_thread_request_matches",
+            "gmail_thread_request_ordinal",
+            "gmail_thread_request_page_token",
+            "gmail_thread_request_target_id",
+            "gmail_thread_rows_wire",
+            "gmail_thread_schema_wire",
+            "gmail_thread_value_at",
+            "next_gmail_thread_request",
+            "prepare_gmail_thread_read",
+            "project_gmail_thread",
+            "project_gmail_thread_list"
+          ],
+          "exports": [
+            "pub fn accept_gmail_thread(GmailThreadRead, GmailThreadRequest, Bytes) -> Result[GmailThreadProjection, GmailThreadReadIssue]",
+            "pub fn accept_gmail_thread_list(GmailThreadRead, GmailThreadRequest, Bytes) -> Result[GmailThreadListPage, GmailThreadReadIssue]",
+            "pub fn close_gmail_thread_read(GmailThreadRead) -> Unit",
+            "pub fn gmail_thread_column_names() -> Array[String]",
+            "pub fn gmail_thread_facts_wire() -> String",
+            "pub fn gmail_thread_list_count(GmailThreadListPage) -> Int",
+            "pub fn gmail_thread_list_id_at(GmailThreadListPage, Int) -> String?",
+            "pub fn gmail_thread_list_next_page_token(GmailThreadListPage) -> String?",
+            "pub fn gmail_thread_projection_matches_request(GmailThreadProjection, GmailThreadRequest) -> Bool",
+            "pub fn gmail_thread_read_completed(GmailThreadRead) -> Bool",
+            "pub fn gmail_thread_request_is_list(GmailThreadRequest) -> Bool",
+            "pub fn gmail_thread_request_mailbox(GmailThreadRequest) -> String",
+            "pub fn gmail_thread_request_matches(GmailThreadRead, GmailThreadRequest) -> Bool",
+            "pub fn gmail_thread_request_ordinal(GmailThreadRequest) -> Int",
+            "pub fn gmail_thread_request_page_token(GmailThreadRequest) -> String?",
+            "pub fn gmail_thread_request_target_id(GmailThreadRequest) -> String?",
+            "pub fn gmail_thread_rows_wire(GmailThreadProjection, Array[String], Int, Int, Int) -> Result[String, GmailThreadIssue]",
+            "pub fn gmail_thread_schema_wire(Int, Int, Int) -> Result[String, GmailThreadIssue]",
+            "pub fn gmail_thread_value_at(GmailThreadProjection, Int) -> @value_admission.CheckedValue?",
+            "pub fn next_gmail_thread_request(GmailThreadRead) -> Result[GmailThreadRequest?, GmailThreadReadIssue]",
+            "pub fn prepare_gmail_thread_read(String, GmailThreadListLimits, GmailThreadLimits, Int, Int) -> Result[GmailThreadRead, GmailThreadReadIssue]",
+            "pub fn project_gmail_thread(Bytes, GmailThreadListPage, Int, GmailThreadLimits) -> Result[GmailThreadProjection, GmailThreadIssue]",
+            "pub fn project_gmail_thread_list(Bytes, GmailThreadListLimits) -> Result[GmailThreadListPage, GmailThreadListIssue]",
+            "pub struct GmailThreadListPage {",
+            "pub struct GmailThreadProjection {",
+            "pub struct GmailThreadRead {",
+            "pub struct GmailThreadRequest {"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The same Gmail Catalog owns the separate thread row projection."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The nominal Connector protocol retains"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The declared row keeps exact non-null thread ID"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Response"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Limits on wire bytes, rows, nodes, names and strings"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Neither declaration facts nor target DATA issue"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gmail/catalog/thread_wbtest.mbt",
+                "anchor": "test \"thread declaration retains the original exact ID candidate key\""
+              },
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-thread-capture.test.mjs",
+                "anchor": "binds list and dependent gets to the original installed capture"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gmail/catalog/thread.mbt",
+                "anchor": "pub fn gmail_thread_schema_wire("
+              },
+              {
+                "path": "src/connectors/gmail/catalog/thread.mbt",
+                "anchor": "pub fn gmail_thread_facts_wire()"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gmail/catalog/thread.mbt",
+                "anchor": "pub struct GmailThreadProjection"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The retained protocol includes all original pages"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Bounded synchronous Catalog projection and thin typed bridge perform no I/O, authorization, claim or capture. The physical caller and existing Common owners preserve original invocation and current checks."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gmail/catalog/thread.mbt",
+                "anchor": "pub(all) enum GmailThreadIssue"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Explicit null and malformed values"
               }
             ],
             "cancellation": {
@@ -723,16 +978,41 @@
     },
     {
       "module": "src/connectors/gmail/host_node/pkg.generated.mbti",
-      "sha256": "122258a8c5f4e76a87f0d8030cb434f188fe6ec45578c5a3b199ef7ab60f190a",
+      "sha256": "86c2f55e1a57b1529b3a54a03093fad51bfde282efd9179810a07e4156defe57",
       "exports": [
+        "pub fn gmail_accept_thread(@catalog.GmailThreadRead, @catalog.GmailThreadRequest, Bytes) -> Result[@catalog.GmailThreadProjection, @catalog.GmailThreadReadIssue]",
+        "pub fn gmail_accept_thread_list(@catalog.GmailThreadRead, @catalog.GmailThreadRequest, Bytes) -> Result[@catalog.GmailThreadListPage, @catalog.GmailThreadReadIssue]",
+        "pub fn gmail_close_thread_read(@catalog.GmailThreadRead) -> Unit",
         "pub fn gmail_label_list_column_names() -> Array[String]",
         "pub fn gmail_label_list_metadata_json(@catalog.GmailLabelListPage) -> String",
         "pub fn gmail_label_list_relation_facts_wire() -> String",
         "pub fn gmail_label_list_rows_wire(@catalog.GmailLabelListPage, Array[String], Int, Int, Int) -> Result[String, @catalog.GmailLabelListIssue]",
         "pub fn gmail_label_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.GmailLabelListIssue]",
-        "pub fn gmail_project_label_list(Bytes, Int, Int, Int, Int, Int, Int) -> Result[@catalog.GmailLabelListPage, @catalog.GmailLabelListIssue]"
+        "pub fn gmail_next_thread_request(@catalog.GmailThreadRead) -> Result[Array[@catalog.GmailThreadRequest], @catalog.GmailThreadReadIssue]",
+        "pub fn gmail_prepare_thread_read(String, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.GmailThreadRead, @catalog.GmailThreadReadIssue]",
+        "pub fn gmail_project_label_list(Bytes, Int, Int, Int, Int, Int, Int) -> Result[@catalog.GmailLabelListPage, @catalog.GmailLabelListIssue]",
+        "pub fn gmail_thread_column_names() -> Array[String]",
+        "pub fn gmail_thread_projection_matches_request(@catalog.GmailThreadProjection, @catalog.GmailThreadRequest) -> Bool",
+        "pub fn gmail_thread_read_completed(@catalog.GmailThreadRead) -> Bool",
+        "pub fn gmail_thread_relation_facts_wire() -> String",
+        "pub fn gmail_thread_request_json(@catalog.GmailThreadRequest) -> String",
+        "pub fn gmail_thread_request_matches(@catalog.GmailThreadRead, @catalog.GmailThreadRequest) -> Bool",
+        "pub fn gmail_thread_rows_wire(@catalog.GmailThreadProjection, Array[String], Int, Int, Int) -> Result[String, @catalog.GmailThreadIssue]",
+        "pub fn gmail_thread_schema_wire(Int, Int, Int) -> Result[String, @catalog.GmailThreadIssue]"
       ],
       "operations": [
+        {
+          "name": "gmail_accept_thread",
+          "declaration": "pub fn gmail_accept_thread(@catalog.GmailThreadRead, @catalog.GmailThreadRequest, Bytes) -> Result[@catalog.GmailThreadProjection, @catalog.GmailThreadReadIssue]"
+        },
+        {
+          "name": "gmail_accept_thread_list",
+          "declaration": "pub fn gmail_accept_thread_list(@catalog.GmailThreadRead, @catalog.GmailThreadRequest, Bytes) -> Result[@catalog.GmailThreadListPage, @catalog.GmailThreadReadIssue]"
+        },
+        {
+          "name": "gmail_close_thread_read",
+          "declaration": "pub fn gmail_close_thread_read(@catalog.GmailThreadRead) -> Unit"
+        },
         {
           "name": "gmail_label_list_column_names",
           "declaration": "pub fn gmail_label_list_column_names() -> Array[String]"
@@ -754,8 +1034,48 @@
           "declaration": "pub fn gmail_label_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.GmailLabelListIssue]"
         },
         {
+          "name": "gmail_next_thread_request",
+          "declaration": "pub fn gmail_next_thread_request(@catalog.GmailThreadRead) -> Result[Array[@catalog.GmailThreadRequest], @catalog.GmailThreadReadIssue]"
+        },
+        {
+          "name": "gmail_prepare_thread_read",
+          "declaration": "pub fn gmail_prepare_thread_read(String, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.GmailThreadRead, @catalog.GmailThreadReadIssue]"
+        },
+        {
           "name": "gmail_project_label_list",
           "declaration": "pub fn gmail_project_label_list(Bytes, Int, Int, Int, Int, Int, Int) -> Result[@catalog.GmailLabelListPage, @catalog.GmailLabelListIssue]"
+        },
+        {
+          "name": "gmail_thread_column_names",
+          "declaration": "pub fn gmail_thread_column_names() -> Array[String]"
+        },
+        {
+          "name": "gmail_thread_projection_matches_request",
+          "declaration": "pub fn gmail_thread_projection_matches_request(@catalog.GmailThreadProjection, @catalog.GmailThreadRequest) -> Bool"
+        },
+        {
+          "name": "gmail_thread_read_completed",
+          "declaration": "pub fn gmail_thread_read_completed(@catalog.GmailThreadRead) -> Bool"
+        },
+        {
+          "name": "gmail_thread_relation_facts_wire",
+          "declaration": "pub fn gmail_thread_relation_facts_wire() -> String"
+        },
+        {
+          "name": "gmail_thread_request_json",
+          "declaration": "pub fn gmail_thread_request_json(@catalog.GmailThreadRequest) -> String"
+        },
+        {
+          "name": "gmail_thread_request_matches",
+          "declaration": "pub fn gmail_thread_request_matches(@catalog.GmailThreadRead, @catalog.GmailThreadRequest) -> Bool"
+        },
+        {
+          "name": "gmail_thread_rows_wire",
+          "declaration": "pub fn gmail_thread_rows_wire(@catalog.GmailThreadProjection, Array[String], Int, Int, Int) -> Result[String, @catalog.GmailThreadIssue]"
+        },
+        {
+          "name": "gmail_thread_schema_wire",
+          "declaration": "pub fn gmail_thread_schema_wire(Int, Int, Int) -> Result[String, @catalog.GmailThreadIssue]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -852,12 +1172,124 @@
               "notApplicable": "No asynchronous request is started by these bounded pure functions or generated API declarations. The original caller retains cancellation, raw custody, Unknown and cleanup."
             }
           }
+        },
+        {
+          "operations": [
+            "gmail_accept_thread",
+            "gmail_accept_thread_list",
+            "gmail_close_thread_read",
+            "gmail_next_thread_request",
+            "gmail_prepare_thread_read",
+            "gmail_thread_column_names",
+            "gmail_thread_projection_matches_request",
+            "gmail_thread_read_completed",
+            "gmail_thread_relation_facts_wire",
+            "gmail_thread_request_json",
+            "gmail_thread_request_matches",
+            "gmail_thread_rows_wire",
+            "gmail_thread_schema_wire"
+          ],
+          "exports": [
+            "pub fn gmail_accept_thread(@catalog.GmailThreadRead, @catalog.GmailThreadRequest, Bytes) -> Result[@catalog.GmailThreadProjection, @catalog.GmailThreadReadIssue]",
+            "pub fn gmail_accept_thread_list(@catalog.GmailThreadRead, @catalog.GmailThreadRequest, Bytes) -> Result[@catalog.GmailThreadListPage, @catalog.GmailThreadReadIssue]",
+            "pub fn gmail_close_thread_read(@catalog.GmailThreadRead) -> Unit",
+            "pub fn gmail_next_thread_request(@catalog.GmailThreadRead) -> Result[Array[@catalog.GmailThreadRequest], @catalog.GmailThreadReadIssue]",
+            "pub fn gmail_prepare_thread_read(String, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.GmailThreadRead, @catalog.GmailThreadReadIssue]",
+            "pub fn gmail_thread_column_names() -> Array[String]",
+            "pub fn gmail_thread_projection_matches_request(@catalog.GmailThreadProjection, @catalog.GmailThreadRequest) -> Bool",
+            "pub fn gmail_thread_read_completed(@catalog.GmailThreadRead) -> Bool",
+            "pub fn gmail_thread_relation_facts_wire() -> String",
+            "pub fn gmail_thread_request_json(@catalog.GmailThreadRequest) -> String",
+            "pub fn gmail_thread_request_matches(@catalog.GmailThreadRead, @catalog.GmailThreadRequest) -> Bool",
+            "pub fn gmail_thread_rows_wire(@catalog.GmailThreadProjection, Array[String], Int, Int, Int) -> Result[String, @catalog.GmailThreadIssue]",
+            "pub fn gmail_thread_schema_wire(Int, Int, Int) -> Result[String, @catalog.GmailThreadIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The same Gmail Catalog owns the separate thread row projection."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The nominal Connector protocol retains"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The declared row keeps exact non-null thread ID"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Response"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Limits on wire bytes, rows, nodes, names and strings"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Neither declaration facts nor target DATA issue"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gmail/catalog/thread_wbtest.mbt",
+                "anchor": "test \"thread declaration retains the original exact ID candidate key\""
+              },
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-thread-capture.test.mjs",
+                "anchor": "binds list and dependent gets to the original installed capture"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gmail/catalog/thread.mbt",
+                "anchor": "pub fn gmail_thread_schema_wire("
+              },
+              {
+                "path": "src/connectors/gmail/catalog/thread.mbt",
+                "anchor": "pub fn gmail_thread_facts_wire()"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gmail/catalog/thread.mbt",
+                "anchor": "pub struct GmailThreadProjection"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The retained protocol includes all original pages"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Bounded synchronous Catalog projection and thin typed bridge perform no I/O, authorization, claim or capture. The physical caller and existing Common owners preserve original invocation and current checks."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gmail/catalog/thread.mbt",
+                "anchor": "pub(all) enum GmailThreadIssue"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Explicit null and malformed values"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No asynchronous request is started by these bounded pure functions or generated API declarations. The original caller retains cancellation, raw custody, Unknown and cleanup."
+            }
+          }
         }
       ]
     },
     {
       "module": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
-      "sha256": "4b16e87a182563e9e29cf15fa2269d36e613b543d49ab0160a3646d4f8d285ed",
+      "sha256": "b8a171c781d74be4882282faa5a96e1adf6043719c2345612eef6d53e360432f",
       "exports": [
         "INSTALLED_GMAIL_SITE_VERSION",
         "INSTALLED_GMAIL_SOURCE_VERSION",
@@ -882,6 +1314,13 @@
         },
         {
           "name": "checkInstalledGmailSourceProfile/checkInstalledGmailSourceProfile",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledGmailSourceProfile/checkInstalledGmailSourceProfile#2",
           "parameters": [
             "key"
           ],
@@ -964,6 +1403,13 @@
         {
           "name": "loadInstalledGmailSource/init:readPages/init:readPages",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGmailSource/readerSite/init:issueReadGrant/init:issueReadGrant",
+          "parameters": [
+            "input"
+          ],
           "async": false
         },
         {
@@ -1064,6 +1510,8 @@
         "../../../host-node/source-profile-json.mjs",
         "../../../site-node/https-credential-resource.mjs",
         "../site/gmail-label-list-read.mjs",
+        "../site/gmail-thread-read.mjs",
+        "./thread-reader.mjs",
         "node:crypto",
         "node:path"
       ],
@@ -1075,10 +1523,10 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "absolute/absolute",
             "checkInstalledGmailSourceProfile",
             "checkInstalledGmailSourceProfile/checkInstalledGmailSourceProfile",
+            "checkInstalledGmailSourceProfile/checkInstalledGmailSourceProfile#2",
             "checkSite",
             "checkSite/checkSite",
             "cid/cid",
@@ -1089,6 +1537,7 @@
             "loadInstalledGmailSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledGmailSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledGmailSource/init:readPages/init:readPages",
+            "loadInstalledGmailSource/readerSite/init:issueReadGrant/init:issueReadGrant",
             "loadInstalledGmailSource/target/target",
             "originalReaderFactory",
             "originalReaderFactory/init:prepare/init:prepare",
@@ -1115,6 +1564,10 @@
               {
                 "path": "docs/design/gmail-label-reader-custody.md",
                 "anchor": "## Installed label preparation"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The installed Source profile explicitly selects"
               }
             ],
             "inputsOutputs": [
@@ -1143,6 +1596,14 @@
               {
                 "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
                 "anchor": "connectorRegistration:registration,connectorRevision:revision,contextCid:"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The selected"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "thread target and binding remain distinct"
               }
             ],
             "ownership": [
@@ -1153,6 +1614,10 @@
               {
                 "path": "docs/design/gmail-label-reader-custody.md",
                 "anchor": "The wrapper retains its child, original binding"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "const originalIssueReadGrant=site.issueReadGrant;"
               }
             ],
             "synchronization": [
@@ -1167,6 +1632,14 @@
               {
                 "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
                 "anchor": "const result=await child.read();"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "keeps the list grant"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "createGmailThreadReaderFactory({moon:provider"
               }
             ],
             "failure": [
@@ -1209,6 +1682,10 @@
               {
                 "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
                 "anchor": "const pem=await readBoundedConfigurationText"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "response envelope is (P + T) × B"
               }
             ],
             "extension": [
@@ -1245,6 +1722,14 @@
               {
                 "path": "adapters/connectors/gmail/test/installed-gmail-source.test.mjs",
                 "anchor": "test('installed Gmail binding retains original connector identity"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-thread-capture.test.mjs",
+                "anchor": "binds list and dependent gets to the original installed capture"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-thread-capture.test.mjs",
+                "anchor": "cannot borrow the labels Account decision"
               }
             ]
           }
@@ -1658,11 +2143,33 @@
     },
     {
       "module": "adapters/connectors/gmail/host/thread-reader.mjs",
-      "sha256": "8b06c683281dd5d4669966e8492954e5c37459c491bc47ca9bca33ac6f1a33d6",
+      "sha256": "70eeb96719fd2af15c05ee8b26394da0dd4d4b271434208ef460395edf9dc190",
       "exports": [
+        "checkGmailThreadReaderLimits",
         "createGmailThreadReaderFactory"
       ],
       "operations": [
+        {
+          "name": "checkGmailThreadReaderLimits",
+          "parameters": [
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkGmailThreadReaderLimits/checkGmailThreadReaderLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkGmailThreadReaderLimits/checkGmailThreadReaderLimits#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
         {
           "name": "createGmailThreadReaderFactory",
           "parameters": [
@@ -1672,20 +2179,6 @@
             "mailbox",
             "limits",
             "maxSecretBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "createGmailThreadReaderFactory/createGmailThreadReaderFactory",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createGmailThreadReaderFactory/createGmailThreadReaderFactory#2",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -1854,10 +2347,10 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
+            "checkGmailThreadReaderLimits",
+            "checkGmailThreadReaderLimits/checkGmailThreadReaderLimits",
+            "checkGmailThreadReaderLimits/checkGmailThreadReaderLimits#2",
             "createGmailThreadReaderFactory",
-            "createGmailThreadReaderFactory/createGmailThreadReaderFactory",
-            "createGmailThreadReaderFactory/createGmailThreadReaderFactory#2",
             "createGmailThreadReaderFactory/factory/init:prepare/init:prepare",
             "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/authorizationFor/authorizationFor",
             "createGmailThreadReaderFactory/factory/init:prepare/init:prepare/closeTransport/closeTransport",
@@ -1882,6 +2375,7 @@
             "text/text"
           ],
           "exports": [
+            "checkGmailThreadReaderLimits",
             "createGmailThreadReaderFactory"
           ],
           "attributes": {
@@ -1903,6 +2397,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "const rowRun = Object.freeze({acquisition, run, requestId: nonce,"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/thread-reader.mjs",
+                "anchor": "export function checkGmailThreadReaderLimits(limits)"
               }
             ],
             "identity": [
@@ -2001,6 +2499,325 @@
                 "anchor": "Gmail installed reader fails closed for denied Account and missing capacity"
               }
             ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/gmail/catalog/thread.mbt",
+      "sha256": "e1c53321cdab9cf1dfa52193ffd4aadc87a2fe9062846fa5c940293d5e4ab1b1",
+      "exports": [],
+      "operations": [
+        {
+          "name": "gmail_thread_column_names",
+          "declaration": "gmail_thread_column_names ( ) - > Array [ String ]"
+        },
+        {
+          "name": "gmail_thread_contracts",
+          "declaration": "gmail_thread_contracts ( ) - > Array [ @ contract . Contract ]"
+        },
+        {
+          "name": "gmail_thread_facts_wire",
+          "declaration": "gmail_thread_facts_wire ( ) - > String"
+        },
+        {
+          "name": "gmail_thread_limits_valid",
+          "declaration": "gmail_thread_limits_valid ( limits : GmailThreadLimits ) - > Bool"
+        },
+        {
+          "name": "gmail_thread_message_date",
+          "declaration": "gmail_thread_message_date ( date : String ? , internal_date : Int64 ? , limits : GmailThreadLimits , ) - > Result [ String , GmailThreadIssue ]"
+        },
+        {
+          "name": "gmail_thread_rows_wire",
+          "declaration": "gmail_thread_rows_wire ( thread : GmailThreadProjection , names : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , GmailThreadIssue ]"
+        },
+        {
+          "name": "gmail_thread_schema_wire",
+          "declaration": "gmail_thread_schema_wire ( max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , GmailThreadIssue ]"
+        },
+        {
+          "name": "gmail_thread_text",
+          "declaration": "gmail_thread_text ( object : @ decode . ObjectView , name : String , ) - > Result [ String , GmailThreadIssue ]"
+        },
+        {
+          "name": "gmail_thread_value_at",
+          "declaration": "gmail_thread_value_at ( thread : GmailThreadProjection , index : Int , ) - > @ admitted . CheckedValue ?"
+        },
+        {
+          "name": "project_gmail_thread",
+          "declaration": "project_gmail_thread ( bytes : Bytes , targets : GmailThreadListPage , target_index : Int , limits : GmailThreadLimits , ) - > Result [ GmailThreadProjection , GmailThreadIssue ]"
+        },
+        {
+          "name": "project_gmail_thread_for_metadata_request",
+          "declaration": "project_gmail_thread_for_metadata_request ( bytes : Bytes , request : GmailThreadRequest , limits : GmailThreadLimits , ) - > Result [ GmailThreadProjection , GmailThreadIssue ]"
+        },
+        {
+          "name": "project_gmail_thread_original",
+          "declaration": "project_gmail_thread_original ( bytes : Bytes , targets : GmailThreadListPage , target_index : Int , limits : GmailThreadLimits , metadata_request : GmailThreadRequest ? , ) - > Result [ GmailThreadProjection , GmailThreadIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "existing Gmail Catalog / original selected thread projection Owner",
+      "contracts": [
+        {
+          "operations": [
+            "gmail_thread_column_names",
+            "gmail_thread_contracts",
+            "gmail_thread_facts_wire",
+            "gmail_thread_limits_valid",
+            "gmail_thread_message_date",
+            "gmail_thread_rows_wire",
+            "gmail_thread_schema_wire",
+            "gmail_thread_text",
+            "gmail_thread_value_at",
+            "project_gmail_thread",
+            "project_gmail_thread_for_metadata_request",
+            "project_gmail_thread_original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The same Gmail Catalog owns the separate thread row projection."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The nominal Connector protocol retains"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The declared row keeps exact non-null thread ID"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Response"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Limits on wire bytes, rows, nodes, names and strings"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Neither declaration facts nor target DATA issue"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gmail/catalog/thread_wbtest.mbt",
+                "anchor": "test \"thread declaration retains the original exact ID candidate key\""
+              },
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-thread-capture.test.mjs",
+                "anchor": "binds list and dependent gets to the original installed capture"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gmail/catalog/thread.mbt",
+                "anchor": "pub fn gmail_thread_schema_wire("
+              },
+              {
+                "path": "src/connectors/gmail/catalog/thread.mbt",
+                "anchor": "pub fn gmail_thread_facts_wire()"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gmail/catalog/thread.mbt",
+                "anchor": "pub struct GmailThreadProjection"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The retained protocol includes all original pages"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Bounded synchronous Catalog projection and thin typed bridge perform no I/O, authorization, claim or capture. The physical caller and existing Common owners preserve original invocation and current checks."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gmail/catalog/thread.mbt",
+                "anchor": "pub(all) enum GmailThreadIssue"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Explicit null and malformed values"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No asynchronous request is started by these bounded pure functions or generated API declarations. The original caller retains cancellation, raw custody, Unknown and cleanup."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/gmail/host_node/threads_bridge.mbt",
+      "sha256": "e7fb433b3191fb1174e5ac247f9625bdde557469e476fe19d0bb59f9c034c46b",
+      "exports": [],
+      "operations": [
+        {
+          "name": "gmail_accept_thread",
+          "declaration": "gmail_accept_thread ( read : @ catalog . GmailThreadRead , request : @ catalog . GmailThreadRequest , bytes : Bytes , ) - > Result [ @ catalog . GmailThreadProjection , @ catalog . GmailThreadReadIssue ]"
+        },
+        {
+          "name": "gmail_accept_thread_list",
+          "declaration": "gmail_accept_thread_list ( read : @ catalog . GmailThreadRead , request : @ catalog . GmailThreadRequest , bytes : Bytes , ) - > Result [ @ catalog . GmailThreadListPage , @ catalog . GmailThreadReadIssue ]"
+        },
+        {
+          "name": "gmail_close_thread_read",
+          "declaration": "gmail_close_thread_read ( read : @ catalog . GmailThreadRead ) - > Unit"
+        },
+        {
+          "name": "gmail_next_thread_request",
+          "declaration": "gmail_next_thread_request ( read : @ catalog . GmailThreadRead , ) - > Result [ Array [ @ catalog . GmailThreadRequest ] , @ catalog . GmailThreadReadIssue ]"
+        },
+        {
+          "name": "gmail_prepare_thread_read",
+          "declaration": "gmail_prepare_thread_read ( mailbox : String , max_bytes : Int , max_nodes : Int , max_depth : Int , max_page_rows : Int , max_id_bytes : Int , max_token_bytes : Int , max_messages : Int , max_labels : Int , max_headers : Int , max_header_units : Int , max_comment_depth : Int , max_value_nodes : Int , max_value_text_bytes : Int , max_pages : Int , max_threads : Int , ) - > Result [ @ catalog . GmailThreadRead , @ catalog . GmailThreadReadIssue ]"
+        },
+        {
+          "name": "gmail_thread_column_names",
+          "declaration": "gmail_thread_column_names ( ) - > Array [ String ]"
+        },
+        {
+          "name": "gmail_thread_projection_matches_request",
+          "declaration": "gmail_thread_projection_matches_request ( thread : @ catalog . GmailThreadProjection , request : @ catalog . GmailThreadRequest , ) - > Bool"
+        },
+        {
+          "name": "gmail_thread_read_completed",
+          "declaration": "gmail_thread_read_completed ( read : @ catalog . GmailThreadRead ) - > Bool"
+        },
+        {
+          "name": "gmail_thread_relation_facts_wire",
+          "declaration": "gmail_thread_relation_facts_wire ( ) - > String"
+        },
+        {
+          "name": "gmail_thread_request_json",
+          "declaration": "gmail_thread_request_json ( request : @ catalog . GmailThreadRequest , ) - > String"
+        },
+        {
+          "name": "gmail_thread_request_matches",
+          "declaration": "gmail_thread_request_matches ( read : @ catalog . GmailThreadRead , request : @ catalog . GmailThreadRequest , ) - > Bool"
+        },
+        {
+          "name": "gmail_thread_rows_wire",
+          "declaration": "gmail_thread_rows_wire ( thread : @ catalog . GmailThreadProjection , names : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ catalog . GmailThreadIssue ]"
+        },
+        {
+          "name": "gmail_thread_schema_wire",
+          "declaration": "gmail_thread_schema_wire ( max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ catalog . GmailThreadIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "existing Gmail Catalog / original selected thread projection Owner",
+      "contracts": [
+        {
+          "operations": [
+            "gmail_accept_thread",
+            "gmail_accept_thread_list",
+            "gmail_close_thread_read",
+            "gmail_next_thread_request",
+            "gmail_prepare_thread_read",
+            "gmail_thread_column_names",
+            "gmail_thread_projection_matches_request",
+            "gmail_thread_read_completed",
+            "gmail_thread_relation_facts_wire",
+            "gmail_thread_request_json",
+            "gmail_thread_request_matches",
+            "gmail_thread_rows_wire",
+            "gmail_thread_schema_wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The same Gmail Catalog owns the separate thread row projection."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The nominal Connector protocol retains"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The declared row keeps exact non-null thread ID"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Response"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Limits on wire bytes, rows, nodes, names and strings"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Neither declaration facts nor target DATA issue"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gmail/catalog/thread_wbtest.mbt",
+                "anchor": "test \"thread declaration retains the original exact ID candidate key\""
+              },
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-thread-capture.test.mjs",
+                "anchor": "binds list and dependent gets to the original installed capture"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gmail/catalog/thread.mbt",
+                "anchor": "pub fn gmail_thread_schema_wire("
+              },
+              {
+                "path": "src/connectors/gmail/catalog/thread.mbt",
+                "anchor": "pub fn gmail_thread_facts_wire()"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gmail/catalog/thread.mbt",
+                "anchor": "pub struct GmailThreadProjection"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The retained protocol includes all original pages"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Bounded synchronous Catalog projection and thin typed bridge perform no I/O, authorization, claim or capture. The physical caller and existing Common owners preserve original invocation and current checks."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gmail/catalog/thread.mbt",
+                "anchor": "pub(all) enum GmailThreadIssue"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Explicit null and malformed values"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No asynchronous request is started by these bounded pure functions or generated API declarations. The original caller retains cancellation, raw custody, Unknown and cleanup."
+            }
           }
         }
       ]
