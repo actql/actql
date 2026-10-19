@@ -17963,8 +17963,7 @@
         "dataclass",
         "hashlib",
         "json",
-        "metadata",
-        "resources"
+        "metadata"
       ],
       "imports": [
         "._local_distribution",
@@ -18074,7 +18073,7 @@
           ]
         }
       ],
-      "sha256": "d9e30023e5186ca6d0f3a1bf58a226c356b59e3eaeb01cda119e2428fa82a1d2",
+      "sha256": "9e7d5eee280d393dbd02be53f2d877af64af232c82f498b3cb52402c5b289c6b",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -18911,6 +18910,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_distribution.py",
                 "anchor": "def test_platform_binding_requires_same_recipe_without_a_fabricated_capacity("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_installed_image.py",
+                "anchor": "def test_platform_library_integrity_precedes_importing_its_package("
               }
             ]
           }
