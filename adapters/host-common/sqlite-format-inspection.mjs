@@ -124,8 +124,24 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
   const complete = new Error('SqliteSnapshotInspectionComplete');
   let primaryFailure = complete;
   const closeFile = original => {
-    if (Reflect.apply(original.close, undefined, [original.fd]) !== undefined) {
-      throw new TypeError('SqliteInspectionFileCleanupPending');
+    if (original.closeObserved === true) return;
+    if (original.closeAttempted === true) {
+      // A numeric FD may already have been consumed/reused when close throws.
+      // Retry observes the same Unknown, never another close of that number.
+      if (original.closeFailed === true) throw original.closeFailure;
+      throw original.closeUnknown;
+    }
+    original.closeUnknown = new TypeError('SqliteInspectionFileCloseUnknown');
+    original.closeAttempted = true;
+    try {
+      if (Reflect.apply(original.close, undefined, [original.fd]) !== undefined) {
+        throw original.closeUnknown;
+      }
+      original.closeObserved = true;
+    } catch (cause) {
+      original.closeFailed = true;
+      original.closeFailure = cause;
+      throw cause;
     }
   };
   const cleanup = {

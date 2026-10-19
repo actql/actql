@@ -1118,6 +1118,11 @@ cleanup retry does not close the same integer again, which may now belong to
 another descriptor. This differs from a retained object with an explicit
 retryable close protocol. A successful marker close and the original marker
 classification remain unchanged; restoration or EBADF is not an Unknown ACK.
+The isolated-copy Owner applies the same one-shot rule to its pinned source,
+copy writer and schema-reader numeric descriptors. It retains a failed close
+and the original inspection cause without touching a reused descriptor on
+retry. Its separately retained native database still follows that original
+wrapper's retryable close protocol before file/copy retirement.
 
 The private directory image loader keeps native binary facts separate from JS
 Source. After independent pre-use module/filesystem coverage, it verifies the
