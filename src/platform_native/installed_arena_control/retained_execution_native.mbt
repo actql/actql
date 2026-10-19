@@ -389,3 +389,40 @@ pub fn InstalledArenaHost::observe_domain_retained_execution_scope(
   }
   Ok(scope)
 }
+
+///|
+/// The fixed cleanup consumer can inspect an already-closing original. A
+/// failed observation is never inactivity; normal current and Ledger borrowing
+/// remain unavailable, and the actual scope must agree with its active latch.
+pub fn InstalledArenaHost::observe_domain_retained_execution_cleanup_scope(
+  self : InstalledArenaHost,
+  record : InstalledArenaRetainedExecution,
+) -> Result[
+  @bootstrap.NativeBackedReadScope,
+  InstalledArenaRetainedExecutionIssue,
+] {
+  match self.original_retained_execution(record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !record.closing ||
+    record.closed ||
+    record.physical_retired ||
+    !record.owns_read {
+    return Err(Domain(@bootstrap.Bootstrap(@bootstrap.Closing)))
+  }
+  let domain = record.domain
+  let scope = match
+    domain.backing.observe_backed_read_cleanup_scope(
+      self,
+      domain.domain.unwrap(),
+      domain,
+    ) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(value) => value
+  }
+  if record.active != (scope == @bootstrap.BackedReadEntered) {
+    return Err(Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)))
+  }
+  Ok(scope)
+}
