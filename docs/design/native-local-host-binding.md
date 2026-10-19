@@ -1730,7 +1730,7 @@ compiled-image hashing path, a Linux compiler or
 Engine image, Rust/VM admission, an installed Python supplier, or normal funding.
 The existing Darwin selection and its physical semantics remain unchanged.
 
-### Command-preparation Read facility containment
+## Command-preparation Read facility containment
 
 The selected Native command may distinguish a finite supplied Read facility
 from a complete input-graph demand bound. Existing managed and native demand
