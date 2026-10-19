@@ -254,6 +254,7 @@ pub fn Store::inspect_committed_publication(Self, String, String, String, Int, I
 pub fn Store::inspect_payload(Self, String) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue]
 pub fn Store::inspect_result_delivery(Self, String) -> Result[NativeResultDeliveryStatus, NativePublicationStoreIssue]
 pub fn Store::lookup_result_delivery(Self, @run_publication.DeliveryAttemptLookupScope) -> Result[NativeResultDeliveryLookup?, NativePublicationStoreIssue]
+pub fn Store::matches_original_operation(Self, @sqlite.NativeStoreOperationOriginal) -> Bool
 pub fn Store::observe_allocation(Self, (String) -> Unit) -> Unit
 pub fn Store::observe_publication_payload_facts(Self, Array[@run_publication.PublicationContract], Array[String], Int, Int, Int) -> Result[Unit, NativePublicationStoreIssue]
 pub fn Store::observe_trusted_clock(Self, String, String) -> Result[String, NativePublicationStoreIssue]

@@ -506,6 +506,14 @@ pub fn Store::custody_location(
 }
 
 ///|
+pub fn Store::matches_original_operation(
+  _self : Store,
+  _original : @sqlite.NativeStoreOperationOriginal,
+) -> Bool {
+  false
+}
+
+///|
 pub fn open_local_store_with_custody(
   _library : @sqlite.Library,
   _root_path : String,

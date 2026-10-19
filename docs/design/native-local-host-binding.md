@@ -1987,6 +1987,11 @@ alias duty remains held. The generic Remote operation entrance preserves its
 existing open/restore policy; selecting an original route does not select the
 Local Journal's exclusive-WAL policy or supply a new physical scope.
 
+The Store's original-association observation joins its stored route to the
+same Database/Library and existing process/thread identity without entering a
+phase. This metadata can remain associated after physical Store close and
+cannot supply currentness, business permission or an additional close ACK.
+
 A failed SQL transition inside cleanup keeps its attempted SQL flight even
 when it never became ready. Only that failed original may reach the existing
 cleanup recovery while its Read cleanup flight is still active. The coordinator

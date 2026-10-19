@@ -106,3 +106,11 @@ pub fn NativeSqliteOpenFailure::borrow_original_database_cleanup(
 ) -> Result[Database?, NativeSqliteIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn Database::matches_original_store_operation(
+  _self : Database,
+  _original : NativeStoreOperationOriginal,
+) -> Bool {
+  false
+}

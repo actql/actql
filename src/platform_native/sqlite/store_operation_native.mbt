@@ -351,6 +351,16 @@ extern "C" fn database_matches_store_operation_ffi(
 ) -> Bool = "actql_native_sqlite_database_matches_store_operation"
 
 ///|
+/// Original association only, including the existing process/thread fence.
+/// This neither enters a scope nor proves Library currentness or a close ACK.
+pub fn Database::matches_original_store_operation(
+  self : Database,
+  original : NativeStoreOperationOriginal,
+) -> Bool {
+  database_matches_store_operation_ffi(self, original)
+}
+
+///|
 /// The Store supplies an already-owned allocation identity or terminal custody
 /// record. Fresh claims/reservations keep the ordinary insert entrance. The
 /// same bound original and actual SQL frame remain mandatory on this path.

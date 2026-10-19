@@ -468,7 +468,7 @@ fn store_failed_open_original_work(
     let unentered_close_refused = retained_database.close_checked() is Err(_)
     original.close_checked().unwrap()
     held_before && pending && held_after && unentered_close_refused
-  } else {
+  } else if probe == 3 {
     original.enter_store().unwrap()
     let database = library
       .open_original_remote_database_with_custody(
@@ -508,6 +508,50 @@ fn store_failed_open_original_work(
     original.primary_code() == 55 &&
     original.cleanup_code() == 56 &&
     unentered_close_refused
+  } else {
+    let store = @store.open_original_local_store_with_custody(
+      library,
+      original,
+      path,
+      "sha256:" + "1".repeat(64),
+      128L,
+      4L,
+      4096L,
+      diagnostic_ceiling=Some(256),
+    ).unwrap()
+    let foreign_receiver = { ..receiver, }
+    let foreign = store_wal_prepare_original(library, foreign_receiver, fn(
+      receiver,
+      library,
+      tag,
+    ) {
+      store_wal_route(receiver, library, tag)
+    })
+    let normal_entries = receiver.normal_entries
+    let sql_entries = receiver.sql_entries
+    assert_true(store.matches_original_operation(original))
+    assert_false(store.matches_original_operation(foreign))
+    assert_eq(store.custody_location().unwrap().0, "sha256:" + "1".repeat(64))
+    assert_eq(receiver.normal_entries, normal_entries)
+    assert_eq(receiver.sql_entries, sql_entries)
+    original.enter_store().unwrap()
+    assert_true(store.matches_original_operation(original))
+    assert_eq(store.custody_location().unwrap().0, "sha256:" + "1".repeat(64))
+    assert_eq(receiver.normal_entries, normal_entries + 1)
+    assert_eq(receiver.sql_entries, sql_entries)
+    original.leave_store().unwrap()
+    foreign.close_checked().unwrap()
+    store.close().unwrap() |> ignore
+    // A closed Store can still retain the same association. Metadata is not
+    // permission to revive it, and retiring the original makes the match false.
+    assert_true(store.matches_original_operation(original))
+    original.close_checked().unwrap()
+    assert_false(store.matches_original_operation(original))
+    let entries_after_close = receiver.normal_entries
+    let sql_after_close = receiver.sql_entries
+    assert_true(store.capacity_usage() is Err(_))
+    receiver.normal_entries == entries_after_close &&
+    receiver.sql_entries == sql_after_close
   }
   result && !receiver.active && !receiver.sql && !receiver.return_ack_pending
 }
@@ -525,4 +569,9 @@ test "generic Remote failed open retains same DATA through physical and scope AC
 ///|
 test "failed cleanup SQL entry reaches same-original cleanup recovery" {
   store_wal_physical_case(false, open_probe=3)
+}
+
+///|
+test "Store original association metadata neither reenters nor revives its scope" {
+  store_wal_physical_case(false, open_probe=4)
 }
