@@ -125,6 +125,16 @@ commits the exact record under the original Run and task occurrence before
 entering the existing driver's one-shot send callback. Current Source,
 Account, Credential and physical resource checks remain separate.
 
+The Infer material inverse keeps the legacy single-task compiler unchanged.
+For a composed Program it selects exactly one original checked Model occurrence
+and rebuilds the installed graph together with both producers and enclosing
+Results. The complete graph and saved Run identity must agree; ambiguous Model
+inventories and substituted dependency graphs refuse. Result policy is the
+whole original checked publication policy, not a source-free unknown substitute.
+The journal retains its kind, CID and bytes, and restore compares all three to
+the policy derived from the restored original compilation. Neither this material
+nor its policy grants current Source, Model, resource or continuation authority.
+
 A prior record or a lost COMMIT reply never authorizes another POST. Cold
 lookup yields unresolved original DATA only; it does not reconstruct a live
 Job, Source, Run, permission or reservation. Missing storage bounds or Common

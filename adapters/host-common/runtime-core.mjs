@@ -2366,7 +2366,7 @@ function publicationControl(moon) {
           !moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
         throw new TypeError('Foreign Client original Infer Run');
       }
-      const resultPolicyOriginal = compiledSourceFreeResultPolicy(compiled);
+      const resultPolicyOriginal = control.compiledInferEvaluationPolicy(compiled);
       if (resultPolicyOriginal === undefined) throw new TypeError('Missing Client original Infer Result policy');
       const materialsWire = compiledRunResult(moon.clientProgramIssueInferRunMaterials(
         value, token(definition), environment, parameters), 'RunHostInferMaterialsRejected');
@@ -2403,7 +2403,19 @@ function publicationControl(moon) {
           !Array.isArray(profiles) || profiles.length !== 7 || profiles.some(value => typeof value !== 'boolean')) {
         throw new TypeError('Invalid Client original Infer materials');
       }
-      const policy = control.admitSourceFreeResultPolicy(original.resultPolicyOriginal, limits);
+      // A Source-backed Run retains its checked publication policy, not the
+      // source-free unknown policy. This copy is evidence only: after restoring
+      // the original compiler Owner, compare its complete policy below.
+      const savedPolicy = original.resultPolicyOriginal;
+      if (savedPolicy === null || typeof savedPolicy !== 'object' || Array.isArray(savedPolicy) ||
+          Object.keys(savedPolicy).sort().join(',') !== 'cid,kind,wire' ||
+          savedPolicy.kind !== 'data_policy' || typeof savedPolicy.cid !== 'string' ||
+          typeof savedPolicy.wire !== 'string' || savedPolicy.wire.length === 0 ||
+          Buffer.byteLength(savedPolicy.cid) > limits.maxWireBytes ||
+          Buffer.byteLength(savedPolicy.wire) > limits.maxWireBytes) {
+        throw new TypeError('Invalid Client original Infer Result policy');
+      }
+      const policy = Object.freeze({kind: savedPolicy.kind, cid: savedPolicy.cid, wire: savedPolicy.wire});
       const materials = compiledRunResult(moon.clientProgramAdmitInferRunMaterials(
         original.materialsWire, definition.identity, ...profiles), 'RunHostInferMaterialsRejected');
       let value = compiledRunResult(moon.clientProgramInferRunMaterialsCompiled(materials),
@@ -2419,6 +2431,11 @@ function publicationControl(moon) {
       value = compiledRunResult(moon.clientProgramBindCompiledInferResultPolicy(value,
         policy.cid, policy.wire, limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
       'RunHostResultPolicyRejected');
+      const actualPolicy = moon.clientProgramCompiledRunEvaluationPolicy(value);
+      if (actualPolicy === undefined || runtimeField(actualPolicy, 0) !== policy.kind ||
+          runtimeField(actualPolicy, 1) !== policy.cid || runtimeField(actualPolicy, 2) !== policy.wire) {
+        throw new TypeError('Foreign Client original Infer Result policy');
+      }
       const compiled = Object.freeze({kind: 'infer',
         template: inspectEvidence(moon.clientProgramCompiledRunTemplate(value)),
         compiledPlan: inspect(moon.clientProgramCompiledRunPlan(value)),
