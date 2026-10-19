@@ -26,8 +26,9 @@ const paths = [
     [1, `artifact_schemas/${name}/${name === 'plan_document' ? 'properties/plan/' : ''}properties/execution_material/properties/program/$defs/${part}`, 'source'])),
 ];
 const at = (bodies, [owner, path]) => path.split('/').reduce((value, key) => value[key], bodies[owner]);
-const isTime = shape => shape.properties?.op?.const === 'current_timestamp'
-  || shape.required?.includes('current_timestamp');
+const temporalNames = ['current_timestamp', 'timestamp_add', 'timestamp_sub'];
+const isTime = shape => temporalNames.includes(shape.properties?.op?.const)
+  || temporalNames.some(name => shape.required?.includes(name));
 function strip(value) {
   if (Array.isArray(value)) return value.map(strip);
   if (!value || typeof value !== 'object') return value;
@@ -55,7 +56,7 @@ test('query time retains complete preceding expression, scalar, containing schem
   assert.equal(hash(retained.expression_grammar).slice(7), before.expression_contract.grammar_sha256);
   const [expressions, protocol] = inputs();
   const prior = strip(expressions);
-  delete prior.laws.current_timestamp;
+  for (const name of temporalNames) delete prior.laws[name];
   prior.grammar_sha256 = before.expression_contract.grammar_sha256;
   assert.deepEqual(prior, before.expression_contract);
   for (const name of ['executable_plan', 'plan_document']) {
@@ -66,17 +67,18 @@ test('query time retains complete preceding expression, scalar, containing schem
   assert.equal(protocol.artifact_registry_cid, cid(protocol.artifact_schemas));
 });
 
-test('query time owns exactly ten closed zero-argument embeddings without changing previous alternatives', () => {
+test('query time and fixed intervals own their exact ten closed embeddings without changing previous alternatives', () => {
   const bodies = inputs();
   const grammar = readFileSync(bodies[0].grammar, 'utf8');
   const snapshot = structuredClone(bodies);
-  assert.deepEqual(updateCurrentTimestampContracts(...bodies, grammar), {source: 7, node: 3});
+  assert.deepEqual(updateCurrentTimestampContracts(...bodies, grammar), {source: 21, node: 9});
   assert.deepEqual(bodies, snapshot);
   for (const path of paths) {
     const matches = at(bodies, path).oneOf.filter(isTime);
-    assert.equal(matches.length, 1);
+    assert.equal(matches.length, 3);
+    const current = matches.find(shape => shape.properties?.op?.const === 'current_timestamp' || shape.required?.includes('current_timestamp'));
     const empty = {type: 'array', minItems: 0, maxItems: 0, items: false};
-    assert.deepEqual(matches[0], path[2] === 'source'
+    assert.deepEqual(current, path[2] === 'source'
       ? {type: 'object', additionalProperties: false, required: ['current_timestamp'], properties: {current_timestamp: empty}}
       : {type: 'object', additionalProperties: false, required: ['op', 'body'], properties: {op: {const: 'current_timestamp'}, body: empty}});
   }
@@ -102,7 +104,9 @@ test('query time preflight refuses missing, duplicated and foreign expression sc
 
 test('query time preserves date arithmetic and authority clocks under its separate original-Run law', () => {
   const scalar = read('spec/dependencies/aoa-rela-scalar-laws.json');
-  const {query_time: rule, ...time} = scalar.time;
+  const {query_time: rule, fixed_interval: interval, ...time} = scalar.time;
+  assert.match(interval.amount, /original integral source token/u);
+  assert.match(interval.duration, /without binary64 conversion/u);
   assert.deepEqual({...scalar, time}, before.scalar_law_manifest);
   assert.match(rule.signature, /Zero operands/u);
   assert.match(rule.value, /same admitted Run definition created_at/u);
@@ -201,4 +205,25 @@ test('query time retains fixed independent source and machine data preimages wit
     assert.equal(hash(row.canonical), row.data_cid);
     assert.doesNotMatch(row.canonical, /created_at|\$param|literal/u);
   }
+});
+
+test('fixed interval schemas close all units and independent exact integer preimages', () => {
+  const bodies = inputs();
+  for (const path of paths) for (const name of ['timestamp_add', 'timestamp_sub']) {
+    const schema = at(bodies, path).oneOf.find(shape => shape.properties?.op?.const === name || shape.required?.includes(name));
+    const args = path[2] === 'source' ? schema.properties[name] : schema.properties.body;
+    assert.equal(args.minItems, 3); assert.equal(args.maxItems, 3); assert.equal(args.items, false);
+    const unit = args.prefixItems[2];
+    assert.equal(unit.additionalProperties, false);
+    assert.deepEqual(path[2] === 'source' ? unit.properties.literal.enum : unit.properties.body.enum,
+      ['ns', 'us', 'ms', 's', 'm', 'h', 'd']);
+    assert.deepEqual(args.prefixItems.slice(0, 2), Array(2).fill({$ref: '#/$defs/' + (path[2] === 'node' && path[1].includes('machine_expression') ? 'machine_expression' : path[1].includes('source_expression') ? 'source_expression' : path[1].includes('artifact_schemas') ? 'value_expression' : 'expression')}));
+  }
+  const exact = 9007199254740993n;
+  assert.equal(exact / 1000000000n, 9007199n);
+  assert.equal(exact % 1000000000n, 254740993n);
+  const minimum = -9223372036854775808n;
+  assert.equal(-minimum, 9223372036854775808n);
+  const source = {timestamp_sub: [{current_timestamp: []}, {literal: '-9223372036854775808'}, {literal: 'ns'}]};
+  assert.equal(canonical(source), '{"timestamp_sub":[{"current_timestamp":[]},{"literal":"-9223372036854775808"},{"literal":"ns"}]}');
 });

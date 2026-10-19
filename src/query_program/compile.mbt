@@ -597,6 +597,10 @@ fn same_expression(
           pending.push((ax[i], ay[i]))
         }
       }
+      (Interval(ax, ux), Interval(ay, uy)) => {
+        if ux != uy { return false }
+        pending.push((ax, ay))
+      }
       (Unary(x, child_a), Unary(y, child_b)) => {
         if x != y {
           return false
@@ -9143,6 +9147,7 @@ fn join_reference_paths(
       Parenthesized(child)
       | Unary(_, child)
       | Cast(child, _)
+      | Interval(child, _)
       | Property(child, _) => pending.push(child)
       Binary(_, left, right) => {
         pending.push(right)

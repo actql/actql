@@ -229,6 +229,7 @@ pub(all) enum ExpressionKind {
   Predicate(String, Array[Int])
   SearchedCase(Array[(Int, Int)], Int)
   Cast(Int, CastType)
+  Interval(Int, String)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ExpressionLimits {

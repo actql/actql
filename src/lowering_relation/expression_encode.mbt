@@ -341,6 +341,8 @@ fn emit_frames(
                   Between => "between"
                   DateDifference => "date_diff"
                   DateAddition => "date_add"
+                  TimestampAddition => "timestamp_add"
+                  TimestampSubtraction => "timestamp_sub"
                 },
               ),
             )

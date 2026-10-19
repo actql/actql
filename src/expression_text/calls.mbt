@@ -116,6 +116,8 @@ fn Parser::call(
     | "if"
     | "date_trunc"
     | "date_add"
+    | "timestamp_add"
+    | "timestamp_sub"
     | "date_diff"
     | "to_decimal"
     | "try_decimal"

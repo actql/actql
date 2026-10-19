@@ -18,6 +18,16 @@ export const currentTimestampLaws = {
     "proof_status": "implementation-required-same-Run-Host-Source-and-recovery"
   }
 };
+export const fixedIntervalLaw = {
+  signature: 'Timestamp and exact signed64 amount with a fixed literal unit ns|us|ms|s|m|h|d; result is Timestamp with strict operand nullability.',
+  source: 'TIMESTAMP_ADD(value, INTERVAL amount UNIT), TIMESTAMP_SUB(value, INTERVAL amount UNIT), and Timestamp +/- INTERVAL amount UNIT lower to timestamp_add/sub(value, amount, literal_unit). DAY=24 hours; HOUR=60 minutes; MINUTE=60 seconds. No timezone, DST, month or year adjustment.',
+  amount: 'The original integral source token is retained exactly, not parsed through Number. The immediate canonical decimal String atom receives signed64 context at this consumer; int64 fields and Parameters keep their nominal checked domain. Nonliteral Number, Decimal and Text do not promote. Full min/max remain exact and subtraction does not negate min_int64 in Int64.',
+  duration: 'Multiply the exact signed integer by the fixed nanosecond factor without binary64 conversion; add/subtract with exact signed carry and preserve original fractional nanoseconds. Calendar/range overflow fails existing ArithmeticFailure.',
+  demand: 'Preserve original left-to-right eager child evaluation, strict NULL, surrounding lazy demand, root leases, logical value/work accounting, bounded workspace and cancellation. No first-class unbounded Interval value or general int64 arithmetic overload.',
+  compatibility: 'Existing date_add Number-bit duration law, short structured units, all former value/clock shapes and operational clock purposes are unchanged.',
+  proof_status: 'implementation-required-original-context-and-supported-backend-consumers',
+};
+for (const name of ['timestamp_add', 'timestamp_sub']) currentTimestampLaws[name] = structuredClone(fixedIntervalLaw);
 const operations = Object.keys(currentTimestampLaws);
 
 // These are the declared common-expression embeddings, not a global spelling
@@ -40,7 +50,11 @@ const named = (shape, name, kind) => kind === 'source'
   ? shape.required?.includes(name) || Object.hasOwn(shape.properties ?? {}, name)
   : shape.properties?.op?.const === name;
 function shape(name, kind, reference) {
-  const body = name === 'len' ? {$ref: `#/$defs/${reference}`} : {type: 'array', minItems: 0, maxItems: 0, items: false};
+  const body = name === 'len' ? {$ref: `#/$defs/${reference}`} : name === 'current_timestamp'
+    ? {type: 'array', minItems: 0, maxItems: 0, items: false}
+    : {type: 'array', minItems: 3, maxItems: 3, items: false,
+      prefixItems: [{$ref: `#/$defs/${reference}`}, {$ref: `#/$defs/${reference}`},
+        kind === 'source' ? {type: 'object', additionalProperties: false, required: ['literal'], properties: {literal: {enum: ['ns', 'us', 'ms', 's', 'm', 'h', 'd']}}} : {type: 'object', additionalProperties: false, required: ['op', 'body'], properties: {op: {const: 'literal'}, body: {enum: ['ns', 'us', 'ms', 's', 'm', 'h', 'd']}}}]};
   return kind === 'source'
     ? {type: 'object', additionalProperties: false, required: [name], properties: {[name]: body}}
     : {type: 'object', additionalProperties: false, required: ['op', 'body'],
@@ -80,7 +94,7 @@ export function updateCurrentTimestampContracts(expressions, protocol, grammar, 
     counts[kind]++;
     return {scope, kind, name, previous: matches[0], expected: shape(name, kind, reference)};
   }));
-  assert.deepEqual(counts, {source: 7, node: 3}, 'CURRENT_TIMESTAMP schema embedding count');
+  assert.deepEqual(counts, {source: 7 * operations.length, node: 3 * operations.length}, 'owned temporal schema embedding count');
   const ownedScopes = new Set(plans.map(plan => plan.scope));
   for (const root of [expressions.schemas, protocol.artifact_schemas]) walk(root, value => {
     if (!Array.isArray(value.oneOf)) return;
@@ -121,6 +135,8 @@ export function updateQueryTimeScalarLaw(scalar, write = false) {
   if (write) scalar.time.query_time = structuredClone(currentTimestampLaws.current_timestamp);
   else assert.deepEqual(scalar.time.query_time, currentTimestampLaws.current_timestamp,
     'stale query-time scalar law');
+  if (write) scalar.time.fixed_interval = structuredClone(fixedIntervalLaw);
+  else assert.deepEqual(scalar.time.fixed_interval, fixedIntervalLaw, 'stale exact fixed-interval law');
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

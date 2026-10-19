@@ -113,6 +113,15 @@
       "authority": "Query time is computation data only. It grants no Account, Source, Model, Effect, resource, expiry, retention or authorization-clock authority; operational clock contracts remain unchanged.",
       "identity": "The closed source is {current_timestamp:[]} and the closed machine node is {op:current_timestamp,body:[]}. Retain that zero-argument node in canonical emission; never fold it to an authored Timestamp literal. Earlier complete contract bodies keep their original identities.",
       "proof_status": "implementation-required-same-Run-Host-Source-and-recovery"
+    },
+    "fixed_interval": {
+      "signature": "Timestamp and exact signed64 amount with a fixed literal unit ns|us|ms|s|m|h|d; result is Timestamp with strict operand nullability.",
+      "source": "TIMESTAMP_ADD(value, INTERVAL amount UNIT), TIMESTAMP_SUB(value, INTERVAL amount UNIT), and Timestamp +/- INTERVAL amount UNIT lower to timestamp_add/sub(value, amount, literal_unit). DAY=24 hours; HOUR=60 minutes; MINUTE=60 seconds. No timezone, DST, month or year adjustment.",
+      "amount": "The original integral source token is retained exactly, not parsed through Number. The immediate canonical decimal String atom receives signed64 context at this consumer; int64 fields and Parameters keep their nominal checked domain. Nonliteral Number, Decimal and Text do not promote. Full min/max remain exact and subtraction does not negate min_int64 in Int64.",
+      "duration": "Multiply the exact signed integer by the fixed nanosecond factor without binary64 conversion; add/subtract with exact signed carry and preserve original fractional nanoseconds. Calendar/range overflow fails existing ArithmeticFailure.",
+      "demand": "Preserve original left-to-right eager child evaluation, strict NULL, surrounding lazy demand, root leases, logical value/work accounting, bounded workspace and cancellation. No first-class unbounded Interval value or general int64 arithmetic overload.",
+      "compatibility": "Existing date_add Number-bit duration law, short structured units, all former value/clock shapes and operational clock purposes are unchanged.",
+      "proof_status": "implementation-required-original-context-and-supported-backend-consumers"
     }
   },
   "unicode": {

@@ -319,6 +319,15 @@ It is not a frontend clock read, Timestamp literal, authored Parameter or
 authority for a Source/Effect or an operational clock. A missing original
 execution context remains an implementation limitation.
 
+SQL fixed intervals use `TIMESTAMP_ADD(value, INTERVAL amount UNIT)`,
+`TIMESTAMP_SUB(value, INTERVAL amount UNIT)` or Timestamp `+`/`-` that interval.
+The original integral token is retained exactly, and dynamic amounts require
+int64 fields or Parameters. The shared Common `timestamp_add`/`timestamp_sub`
+consumer uses fixed ns/us/ms/s/m/h/d durations without binary64 conversion,
+calendar-month or timezone interpretation. It preserves strict NULL, original
+child failure and enclosing lazy demand. This does not change DATE_ADD's
+existing Number-bit duration meaning or introduce a standalone Interval value.
+
 `DATE_TRUNC(value, literal_unit)` is the SQL/Pipe spelling for fixed UTC
 truncation. The unit is an original string literal in `ms`, `s`, `m`, `h`, `d`;
 parentheses may preserve that literal but a Parameter, expression, alternate

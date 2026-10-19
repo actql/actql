@@ -142,6 +142,8 @@ fn expression_role(
     | "concat"
     | "date_trunc"
     | "date_add"
+    | "timestamp_add"
+    | "timestamp_sub"
     | "date_diff"
     | "array"
     | "split"
@@ -196,7 +198,7 @@ fn arity(
     | "greatest"
     | "least" => size >= 1
     "vector_concat" => size >= 2
-    "if" | "between" | "replace" | "date_add" | "date_diff" => size == 3
+    "if" | "between" | "replace" | "date_add" | "date_diff" | "timestamp_add" | "timestamp_sub" => size == 3
     _ => size == 2
   }
   if !valid {

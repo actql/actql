@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "819b6c603d4267a2f9e42c7be40e67feec9bdb58e6e73ae29dde5f48b174f152",
+  "grammar_sha256": "03a408a9a071b5af85c51ba22e3e340559953073accbaa0f5d043a0c2640f187",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -5868,6 +5868,92 @@
                   "minItems": 0,
                   "maxItems": 0,
                   "items": false
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "timestamp_add"
+              ],
+              "properties": {
+                "timestamp_add": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/expression"
+                    },
+                    {
+                      "$ref": "#/$defs/expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "literal"
+                      ],
+                      "properties": {
+                        "literal": {
+                          "enum": [
+                            "ns",
+                            "us",
+                            "ms",
+                            "s",
+                            "m",
+                            "h",
+                            "d"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "timestamp_sub"
+              ],
+              "properties": {
+                "timestamp_sub": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/expression"
+                    },
+                    {
+                      "$ref": "#/$defs/expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "literal"
+                      ],
+                      "properties": {
+                        "literal": {
+                          "enum": [
+                            "ns",
+                            "us",
+                            "ms",
+                            "s",
+                            "m",
+                            "h",
+                            "d"
+                          ]
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -12292,6 +12378,108 @@
                   "minItems": 0,
                   "maxItems": 0,
                   "items": false
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "timestamp_add"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/expression"
+                    },
+                    {
+                      "$ref": "#/$defs/expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "op",
+                        "body"
+                      ],
+                      "properties": {
+                        "op": {
+                          "const": "literal"
+                        },
+                        "body": {
+                          "enum": [
+                            "ns",
+                            "us",
+                            "ms",
+                            "s",
+                            "m",
+                            "h",
+                            "d"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "timestamp_sub"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/expression"
+                    },
+                    {
+                      "$ref": "#/$defs/expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "op",
+                        "body"
+                      ],
+                      "properties": {
+                        "op": {
+                          "const": "literal"
+                        },
+                        "body": {
+                          "enum": [
+                            "ns",
+                            "us",
+                            "ms",
+                            "s",
+                            "m",
+                            "h",
+                            "d"
+                          ]
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -24178,6 +24366,92 @@
                   "items": false
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "timestamp_add"
+              ],
+              "properties": {
+                "timestamp_add": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "literal"
+                      ],
+                      "properties": {
+                        "literal": {
+                          "enum": [
+                            "ns",
+                            "us",
+                            "ms",
+                            "s",
+                            "m",
+                            "h",
+                            "d"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "timestamp_sub"
+              ],
+              "properties": {
+                "timestamp_sub": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "literal"
+                      ],
+                      "properties": {
+                        "literal": {
+                          "enum": [
+                            "ns",
+                            "us",
+                            "ms",
+                            "s",
+                            "m",
+                            "h",
+                            "d"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
             }
           ]
         },
@@ -29686,6 +29960,108 @@
                   "minItems": 0,
                   "maxItems": 0,
                   "items": false
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "timestamp_add"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "op",
+                        "body"
+                      ],
+                      "properties": {
+                        "op": {
+                          "const": "literal"
+                        },
+                        "body": {
+                          "enum": [
+                            "ns",
+                            "us",
+                            "ms",
+                            "s",
+                            "m",
+                            "h",
+                            "d"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "timestamp_sub"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "op",
+                        "body"
+                      ],
+                      "properties": {
+                        "op": {
+                          "const": "literal"
+                        },
+                        "body": {
+                          "enum": [
+                            "ns",
+                            "us",
+                            "ms",
+                            "s",
+                            "m",
+                            "h",
+                            "d"
+                          ]
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -37544,6 +37920,92 @@
                   "items": false
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "timestamp_add"
+              ],
+              "properties": {
+                "timestamp_add": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "literal"
+                      ],
+                      "properties": {
+                        "literal": {
+                          "enum": [
+                            "ns",
+                            "us",
+                            "ms",
+                            "s",
+                            "m",
+                            "h",
+                            "d"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "timestamp_sub"
+              ],
+              "properties": {
+                "timestamp_sub": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "literal"
+                      ],
+                      "properties": {
+                        "literal": {
+                          "enum": [
+                            "ns",
+                            "us",
+                            "ms",
+                            "s",
+                            "m",
+                            "h",
+                            "d"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
             }
           ]
         },
@@ -43054,6 +43516,108 @@
                   "items": false
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "timestamp_add"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "op",
+                        "body"
+                      ],
+                      "properties": {
+                        "op": {
+                          "const": "literal"
+                        },
+                        "body": {
+                          "enum": [
+                            "ns",
+                            "us",
+                            "ms",
+                            "s",
+                            "m",
+                            "h",
+                            "d"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "timestamp_sub"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "op",
+                        "body"
+                      ],
+                      "properties": {
+                        "op": {
+                          "const": "literal"
+                        },
+                        "body": {
+                          "enum": [
+                            "ns",
+                            "us",
+                            "ms",
+                            "s",
+                            "m",
+                            "h",
+                            "d"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
             }
           ]
         },
@@ -44185,6 +44749,24 @@
       "authority": "Query time is computation data only. It grants no Account, Source, Model, Effect, resource, expiry, retention or authorization-clock authority; operational clock contracts remain unchanged.",
       "identity": "The closed source is {current_timestamp:[]} and the closed machine node is {op:current_timestamp,body:[]}. Retain that zero-argument node in canonical emission; never fold it to an authored Timestamp literal. Earlier complete contract bodies keep their original identities.",
       "proof_status": "implementation-required-same-Run-Host-Source-and-recovery"
+    },
+    "timestamp_add": {
+      "signature": "Timestamp and exact signed64 amount with a fixed literal unit ns|us|ms|s|m|h|d; result is Timestamp with strict operand nullability.",
+      "source": "TIMESTAMP_ADD(value, INTERVAL amount UNIT), TIMESTAMP_SUB(value, INTERVAL amount UNIT), and Timestamp +/- INTERVAL amount UNIT lower to timestamp_add/sub(value, amount, literal_unit). DAY=24 hours; HOUR=60 minutes; MINUTE=60 seconds. No timezone, DST, month or year adjustment.",
+      "amount": "The original integral source token is retained exactly, not parsed through Number. The immediate canonical decimal String atom receives signed64 context at this consumer; int64 fields and Parameters keep their nominal checked domain. Nonliteral Number, Decimal and Text do not promote. Full min/max remain exact and subtraction does not negate min_int64 in Int64.",
+      "duration": "Multiply the exact signed integer by the fixed nanosecond factor without binary64 conversion; add/subtract with exact signed carry and preserve original fractional nanoseconds. Calendar/range overflow fails existing ArithmeticFailure.",
+      "demand": "Preserve original left-to-right eager child evaluation, strict NULL, surrounding lazy demand, root leases, logical value/work accounting, bounded workspace and cancellation. No first-class unbounded Interval value or general int64 arithmetic overload.",
+      "compatibility": "Existing date_add Number-bit duration law, short structured units, all former value/clock shapes and operational clock purposes are unchanged.",
+      "proof_status": "implementation-required-original-context-and-supported-backend-consumers"
+    },
+    "timestamp_sub": {
+      "signature": "Timestamp and exact signed64 amount with a fixed literal unit ns|us|ms|s|m|h|d; result is Timestamp with strict operand nullability.",
+      "source": "TIMESTAMP_ADD(value, INTERVAL amount UNIT), TIMESTAMP_SUB(value, INTERVAL amount UNIT), and Timestamp +/- INTERVAL amount UNIT lower to timestamp_add/sub(value, amount, literal_unit). DAY=24 hours; HOUR=60 minutes; MINUTE=60 seconds. No timezone, DST, month or year adjustment.",
+      "amount": "The original integral source token is retained exactly, not parsed through Number. The immediate canonical decimal String atom receives signed64 context at this consumer; int64 fields and Parameters keep their nominal checked domain. Nonliteral Number, Decimal and Text do not promote. Full min/max remain exact and subtraction does not negate min_int64 in Int64.",
+      "duration": "Multiply the exact signed integer by the fixed nanosecond factor without binary64 conversion; add/subtract with exact signed carry and preserve original fractional nanoseconds. Calendar/range overflow fails existing ArithmeticFailure.",
+      "demand": "Preserve original left-to-right eager child evaluation, strict NULL, surrounding lazy demand, root leases, logical value/work accounting, bounded workspace and cancellation. No first-class unbounded Interval value or general int64 arithmetic overload.",
+      "compatibility": "Existing date_add Number-bit duration law, short structured units, all former value/clock shapes and operational clock purposes are unchanged.",
+      "proof_status": "implementation-required-original-context-and-supported-backend-consumers"
     }
   },
   "regex_ast_contract": {

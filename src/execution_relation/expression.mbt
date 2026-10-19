@@ -758,14 +758,16 @@ fn advance_expression_frame_impl(
             guard children.get(0) is Some(first) else {
               return Err({ kind: Scalar(InvalidOperand), expression: expr, })
             }
-            if op == @lower.DateDifference || op == @lower.DateAddition {
+            if op == @lower.DateDifference || op == @lower.DateAddition || op == @lower.TimestampAddition || op == @lower.TimestampSubtraction {
               if children.length() != 3 || !reserve_slots(workspace, 6) {
                 return Err({ kind: WorkspaceLimit, expression: expr, })
               }
               frame.stack.push(
                 TemporalArguments({
                   expression: expr,
-                  addition: op == @lower.DateAddition,
+                  addition: op != @lower.DateDifference,
+                  interval: op == @lower.TimestampAddition || op == @lower.TimestampSubtraction,
+                  subtract: op == @lower.TimestampSubtraction,
                   children,
                   values: [],
                   roots: [],
@@ -858,7 +860,9 @@ fn advance_expression_frame_impl(
               | Greatest
               | Least
               | DateDifference
-              | DateAddition => Null
+              | DateAddition
+              | TimestampAddition
+              | TimestampSubtraction => Null
               Concat
               | ConcatStrict
               | Replace
@@ -1059,7 +1063,9 @@ fn advance_expression_frame_impl(
               if args.addition && !spend_control(budget, 64) {
                 return Err({ kind: ControlLimit, expression: args.expression, })
               }
-              let computed = if args.addition {
+              let computed = if args.interval {
+                temporal_interval(args.expression, unit, args.values[0], args.values[1], args.subtract)
+              } else if args.addition {
                 temporal_addition(
                   args.expression,
                   unit,
@@ -1719,7 +1725,9 @@ fn advance_expression_frame_impl(
               | RPad
               | Between
               | DateDifference
-              | DateAddition =>
+              | DateAddition
+              | TimestampAddition
+              | TimestampSubtraction =>
                 return Err({ kind: Scalar(InvalidOperand), expression: expr, })
               Coalesce => value
               Greatest | Least =>

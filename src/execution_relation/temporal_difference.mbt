@@ -4,6 +4,8 @@
 priv struct TemporalArgumentsState {
   expression : @lower.Expression
   addition : Bool
+  interval : Bool
+  subtract : Bool
   children : Array[@lower.Expression]
   values : Array[Value]
   roots : Array[ExpressionRootLease?]
