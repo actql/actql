@@ -60181,7 +60181,7 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_public_factory.py",
-                "anchor": "def test_unadopted_capacity_refuses_before_module_capture_vm_directory_or_fallback("
+                "anchor": "def test_missing_initial_funding_refuses_before_module_capture_vm_directory_or_fallback("
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_funding.py",
@@ -60315,7 +60315,7 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_public_factory.py",
-                "anchor": "def test_unadopted_capacity_refuses_before_module_capture_vm_directory_or_fallback("
+                "anchor": "def test_missing_initial_funding_refuses_before_module_capture_vm_directory_or_fallback("
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_funding.py",
@@ -60460,7 +60460,7 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_public_factory.py",
-                "anchor": "def test_unadopted_capacity_refuses_before_module_capture_vm_directory_or_fallback("
+                "anchor": "def test_missing_initial_funding_refuses_before_module_capture_vm_directory_or_fallback("
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_funding.py",
@@ -60605,7 +60605,7 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_public_factory.py",
-                "anchor": "def test_unadopted_capacity_refuses_before_module_capture_vm_directory_or_fallback("
+                "anchor": "def test_missing_initial_funding_refuses_before_module_capture_vm_directory_or_fallback("
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_funding.py",
@@ -60714,7 +60714,7 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_public_factory.py",
-                "anchor": "def test_unadopted_capacity_refuses_before_module_capture_vm_directory_or_fallback("
+                "anchor": "def test_missing_initial_funding_refuses_before_module_capture_vm_directory_or_fallback("
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_funding.py",
