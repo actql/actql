@@ -991,7 +991,11 @@ connection-local memory temporary storage before the Journal's schema/control
 statements. The pinned `TEMP_STORE=1` compile choice and effective `temp_store`
 selection are both checked; unsupported or ineffective selection refuses with
 the acquired original connection still owned by its existing cleanup. An
-unselected connection keeps its prior temporary-storage behavior. This selection
+unselected connection keeps its prior temporary-storage behavior. The selected
+own-DDL cold inspection applies the same checked selection to its original
+read-only isolated-copy connection before schema queries. It retains that
+connection's captured operations and cleanup through failed configuration;
+read-only source custody is unchanged. This selection
 removes the transient-file branch from this recipe, not its native allocations:
 the fixed CHECK-IN index still has a distinct Btree, Pager, cache, cursor and
 KeyInfo lifetime beside the main database. Its native requests and allocator

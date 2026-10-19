@@ -226,6 +226,15 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
     // The original wrapper and cleanup are retained before native open can
     // acquire a connection and then fail. GC is not its close acknowledgement.
     captureDatabaseCleanup();
+    // The selected own-DDL facility keeps temporary Btrees in this same
+    // connection's memory domain, including during cold schema inspection.
+    // Capture operations before open can invoke native/current callbacks.
+    const databasePrepare = schemaSqlSupport === undefined ? undefined : database.prepare;
+    const databaseExec = schemaSqlSupport === undefined ? undefined : database.exec;
+    if (schemaSqlSupport !== undefined &&
+        (typeof databasePrepare !== 'function' || typeof databaseExec !== 'function')) {
+      throw new TypeError('SqliteInspectionTemporaryUnavailable');
+    }
     assertCurrent?.();
     const databaseOpen = database.open;
     if (typeof databaseOpen !== 'function' ||
@@ -234,6 +243,27 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
       throw new TypeError('SqliteInspectionDatabaseOpenUnavailable');
     }
     assertCurrent?.();
+    if (schemaSqlSupport !== undefined) {
+      const supportedStatement = Reflect.apply(databasePrepare, database,
+        ["SELECT sqlite_compileoption_used('TEMP_STORE=1') AS supported"]);
+      const supportedGet = supportedStatement.get;
+      if (typeof supportedGet !== 'function' ||
+          Reflect.apply(supportedGet, supportedStatement, [])?.supported !== 1) {
+        throw Object.assign(new Error('SqliteInspectionTemporaryUnavailable'),
+          {code: 'SqliteInspectionTemporaryUnavailable'});
+      }
+      assertCurrent?.();
+      Reflect.apply(databaseExec, database, ['PRAGMA temp_store = MEMORY']);
+      assertCurrent?.();
+      const effectiveStatement = Reflect.apply(databasePrepare, database, ['PRAGMA temp_store']);
+      const effectiveGet = effectiveStatement.get;
+      if (typeof effectiveGet !== 'function' ||
+          Reflect.apply(effectiveGet, effectiveStatement, [])?.temp_store !== 2) {
+        throw Object.assign(new Error('SqliteInspectionTemporaryUnavailable'),
+          {code: 'SqliteInspectionTemporaryUnavailable'});
+      }
+      assertCurrent?.();
+    }
     result = inspect(database);
     if (existsSync(`${databasePath}-journal`) ||
         existsSync(walPath) !== hadWal || !validateSource() ||

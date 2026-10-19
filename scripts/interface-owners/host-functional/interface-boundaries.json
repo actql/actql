@@ -8939,7 +8939,7 @@
     {
       "module": "adapters/host-common/sqlite-format-inspection.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "addb580c1481451f8b96d3e48faab191df1f2bbb425e33c6883e0e241a6c364d",
+      "sha256": "b6c0f32afe09b12b6cebdc532e23c5e5187610a705a42e2844ef798e7e0e420c",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -9320,6 +9320,18 @@
               {
                 "path": "adapters/host-common/sqlite-format-inspection.test.mjs",
                 "anchor": "format failure and isolated close failure keep one retryable cleanup owner"
+              },
+              {
+                "path": "adapters/host-common/sqlite-inspection-temporary.test.mjs",
+                "anchor": "selected own-DDL inspection selects actual memory temporary storage before its callback"
+              },
+              {
+                "path": "adapters/host-common/sqlite-inspection-temporary.test.mjs",
+                "anchor": "selected temporary support refusal retains the same copy connection until original close"
+              },
+              {
+                "path": "adapters/host-common/sqlite-inspection-temporary.test.mjs",
+                "anchor": "selected inspection retains original prepare and exec before native open callbacks"
               }
             ]
           }
