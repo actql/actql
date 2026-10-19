@@ -1316,6 +1316,15 @@ cannot revive it. The same pair retains the consuming view and never restores
 its spent available-read port. Scope leave does not retire managed aliases or
 acknowledge material, domain, Library or Host cleanup.
 
+Each Read context may retain one managed-page search hint in its original
+backed context storage. It is only a placement candidate: under the existing
+context/capacity locks, allocation rechecks the exact context, process, live
+extent and fitting free block. A miss preserves the complete remaining search
+and original page acquisition. Free may update only that page's original
+context hint; final retirement clears it before physical cleanup. Neither a
+cached index nor restoration of free space issues capacity, permits an alias,
+changes current scope or acknowledges retirement.
+
 Small managed Moon allocations may share pages inside that same original Read
 domain. The existing provider owns these pages; headers, alignment, splitting,
 fragmentation and serial metadata consume their original physical capacity.
