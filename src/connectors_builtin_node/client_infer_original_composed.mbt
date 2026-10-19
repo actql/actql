@@ -1,4 +1,17 @@
 ///|
+/// Same-original fixed consumer bounds DATA for the selected Root's separate
+/// complete recipe. It issues no operational purpose, capacity or permission.
+#export_name("clientProgramOriginalComposedInferBounds")
+pub fn client_program_original_composed_infer_bounds(
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+) -> Result[@infer_host.Limits, @infer_host.Issue] {
+  @infer_host.original_composed_bounds(compiled, definition, occurrence, graph)
+}
+
+///|
 /// Thin same-Owner composed input connection. The actual installation supplies
 /// the original consumer and complete overlap; this entry issues no resources,
 /// Model IO access, Account permission or dispatch admission.
