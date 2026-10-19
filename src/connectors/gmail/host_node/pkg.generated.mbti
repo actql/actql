@@ -6,6 +6,12 @@ import {
 }
 
 // Values
+pub fn gmail_accept_thread(@catalog.GmailThreadRead, @catalog.GmailThreadRequest, Bytes) -> Result[@catalog.GmailThreadProjection, @catalog.GmailThreadReadIssue]
+
+pub fn gmail_accept_thread_list(@catalog.GmailThreadRead, @catalog.GmailThreadRequest, Bytes) -> Result[@catalog.GmailThreadListPage, @catalog.GmailThreadReadIssue]
+
+pub fn gmail_close_thread_read(@catalog.GmailThreadRead) -> Unit
+
 pub fn gmail_label_list_column_names() -> Array[String]
 
 pub fn gmail_label_list_metadata_json(@catalog.GmailLabelListPage) -> String
@@ -16,7 +22,25 @@ pub fn gmail_label_list_rows_wire(@catalog.GmailLabelListPage, Array[String], In
 
 pub fn gmail_label_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.GmailLabelListIssue]
 
+pub fn gmail_next_thread_request(@catalog.GmailThreadRead) -> Result[Array[@catalog.GmailThreadRequest], @catalog.GmailThreadReadIssue]
+
+pub fn gmail_prepare_thread_read(String, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.GmailThreadRead, @catalog.GmailThreadReadIssue]
+
 pub fn gmail_project_label_list(Bytes, Int, Int, Int, Int, Int, Int) -> Result[@catalog.GmailLabelListPage, @catalog.GmailLabelListIssue]
+
+pub fn gmail_thread_column_names() -> Array[String]
+
+pub fn gmail_thread_projection_matches_request(@catalog.GmailThreadProjection, @catalog.GmailThreadRequest) -> Bool
+
+pub fn gmail_thread_read_completed(@catalog.GmailThreadRead) -> Bool
+
+pub fn gmail_thread_request_json(@catalog.GmailThreadRequest) -> String
+
+pub fn gmail_thread_request_matches(@catalog.GmailThreadRead, @catalog.GmailThreadRequest) -> Bool
+
+pub fn gmail_thread_rows_wire(@catalog.GmailThreadProjection, Array[String], Int, Int, Int) -> Result[String, @catalog.GmailThreadIssue]
+
+pub fn gmail_thread_schema_wire(Int, Int, Int) -> Result[String, @catalog.GmailThreadIssue]
 
 // Errors
 

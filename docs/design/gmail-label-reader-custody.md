@@ -52,6 +52,66 @@ These private Catalog/transport boundaries do not by themselves register a
 normally installed Gmail Source, supply service-account authentication, prove
 live mailbox access or complete the other Gmail read/write/content operations.
 
+## Original thread list and dependent metadata gets
+
+The same Gmail Catalog owns the separate thread row projection. A list page
+selects ordered original target IDs and opaque continuation; it contains no
+logical message rows. `resultSizeEstimate` is an estimate, not a row count or
+proof that a selected extent is complete. An empty page with a continuation
+still requires its dependent next page. The nominal Connector protocol retains
+each original page, rejects repeated tokens and cross-page duplicate IDs, and
+issues one pending list or get occurrence at a time. Equal IDs, copied request
+DATA or a different read control cannot consume that pending occurrence.
+Malformed responses consume it without authorizing retry or a replacement.
+
+Each selected target uses `threads.get` with `format=metadata`, Subject and Date
+header selection, and the exact required message/thread identity, label IDs,
+internalDate and top-level header name/value fields. Only that same original
+selected response may interpret omitted `labelIds` or admitted payload
+`headers` as empty repeated collections. Explicit null and malformed values
+remain invalid. Generic projection, minimal/list responses and equal masks do
+not supply that nominal extent. Missing payload or missing/null thread messages
+are not repaired; only an explicitly complete empty message array establishes
+an empty thread. Original response digests and bytes remain distinct even when
+absent and explicit-empty collections project to equal logical values.
+
+The declared row keeps exact non-null thread ID, exact non-null int64 message
+count and non-null first-occurrence label-ID union. Subject is nullable and
+comes only from the first original message; duplicate selected Subject headers
+refuse instead of choosing a value. The nullable thread date maximizes all
+public message Dates, irrespective of conversation order. The source RFC Date
+parser uses the existing Value calendar/UTC conversion and preserves the
+distinction between malformed input, an unsupported valid instant and exhausted
+work. Only absent or genuinely malformed Date uses that message's exact int64
+internalDate fallback. Leap-second or output-range refusal is not malformed,
+and no host locale, Date object, binary64 conversion or current clock repairs it.
+
+The physical receiver retains the same original request, per-operation grant,
+response and charge. List and get have distinct uses; list authorization or token
+visibility does not grant dependent message metadata access. Awaited current
+checks fence actual send, response admission and successful charge consumption
+before constructing another Common request. List responses consume the original
+byte-only observation ticket; a get supplies its full checked row to the same
+RowRun. Query projection does not remove key or declared-field validation inputs.
+The last ticket cannot stand in for the list/get prefix, and an incomplete read
+cannot finish or capture that prefix as the complete Source.
+
+Vendor any-message search semantics do not by themselves preserve predicates
+on first-message Subject or maximum public Date. The existing query/acquisition
+Owner must prove pushdown correspondence or retain permitted residual filtering
+over the genuinely selected extent. Neither silently shrinking that extent nor
+inventing whole-mailbox capacity completes that dependency.
+
+The retained protocol includes all original pages, token/ID maps, dependent
+request controls, message/header cursors, exact Date and fallback strings,
+Subject and label values, checked column contracts and row wire. Response
+chunks, parse trees, FWS/comment scanning, calendar conversion, maximum-date
+comparison, output encoding and caller parsing workspaces can overlap those
+holdings. Escaped projections retain the same original get; closing the protocol
+prevents further work but does not retire those aliases, native transport or
+pending charges. Existing Host/Source capacity and custody must cover this
+whole graph independently of the finite decoder and request bounds.
+
 ## Installed label preparation
 
 The connector-owned Host manifest selects the label Source factory through the

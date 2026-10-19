@@ -836,6 +836,68 @@ apply this inference to reactions, files or other missing fields. Equal
 response DATA, a Source label or a caller Bool cannot supply the original
 history membership or observation/current/custody obligations.
 
+<!-- requirement-block: catalog-and-lock.gmail-original-thread-projection -->
+The Gmail threads Source projection MUST retain the exact original thread `id`
+and admit the complete selected message array before exposing a row. Its
+`message_count` is the exact non-null `int64` array length, never the list
+estimate or a count of matching messages. Nullable `subject` is the first
+original message's Subject header, matched ASCII case insensitively; preserve
+an explicit empty value and refuse duplicate Subject headers in that selected
+message. Do not substitute a later subject or snippet. Non-null `labels` is
+the exact label-ID union in first-occurrence message/label order. Nullable
+`last_message_date` is the maximum public message Date over all admitted
+messages, not the last array member or an internalDate-only ordering.
+A complete explicitly present empty `messages: []` projects count zero,
+subject NULL, last-message date NULL and labels []. Missing, null, list-only
+or incomplete messages do not establish that empty case. Refuse duplicate or
+foreign message/thread identity without repairing the original evidence.
+The logical contracts are `id: string NOT NULL`, `labels: ARRAY<string NOT
+NULL> NOT NULL`, `last_message_date: timestamp NULL`, `message_count: int64
+NOT NULL` and `subject: string NULL`; Source declaration, schema and Mapping
+retain their existing identities and nominal admission rules.
+
+<!-- requirement-block: catalog-and-lock.gmail-selected-metadata-repeated-fields -->
+The Gmail threads projection MUST NOT interpret absent message `labelIds` or
+absent admitted top-level payload `headers` as an empty repeated collection
+except under the same nominal complete `threads.get` metadata response,
+selecting Subject/Date and all required message identity, internalDate, labels
+and header name/value fields. Explicit
+null, wrong types and malformed entries remain refused. Generic, list,
+minimal, masked-out, foreign or incomplete DATA and a caller Boolean or equal
+mask cannot issue this extent. Do not repair missing parent payload or missing
+message extent. Equal logical empty collections do not equate the original
+absent and explicit-array response bytes, digests or custody.
+
+<!-- requirement-block: catalog-and-lock.gmail-message-date-projection catalog-and-lock.gmail-message-date-no-loss -->
+The valid original RFC message Date MUST convert exactly to the existing UTC
+Timestamp domain. Only an absent or genuinely malformed Date may fall back
+to that message's exact `internalDate` int64 epoch milliseconds. A valid but
+unsupported or unrepresentable Date, resource exhaustion or invalid fallback
+MUST NOT be relabelled malformed, rounded, sampled, replaced by NULL for a
+nonempty thread or silently omitted from the maximum. No Host Date parser,
+binary64 conversion or change to an operational clock supplies this meaning.
+
+<!-- requirement-block: catalog-and-lock.gmail-original-thread-acquisition -->
+Gmail thread acquisition MUST retain the original selected list request,
+every continued page and each dependent get occurrence with the same mailbox,
+Run, Account, current authorization and response custody. A list estimate,
+response hash, matching IDs, caller Bool or Source label does not establish
+complete messages, original membership, permission or physical retirement.
+An empty list page with a nonempty continuation token is not terminal.
+Refuse repeated continuation tokens or duplicate thread IDs across pages;
+bound exhaustion or a failed dependent get cannot publish a complete prefix.
+Consume the preceding response's original byte charge before another exchange
+or charge, and recheck the same original currentness after an awaited consumer
+before constructing the next Common request. List and get each require their
+own operation-specific authorized use; the last charge is accounting rather
+than evidence for the preceding response/row prefix. Unknown or cleanup
+failure retains its existing owner and never authorizes resend.
+A vendor any-message search is not automatically a predicate on the derived
+first subject or maximum public Date. Preserve every admitted field and row
+inside the genuinely bound selected extent before residual filtering, without
+silently narrowing a broader original request or inventing a whole-mailbox
+capacity exception.
+
 <!-- requirement-block: catalog-and-lock.canonical-preimage -->
 The Catalog self-CID MUST hash the complete canonical Catalog excluding only its
 root `catalog_cid`. SourceView and Command self-CIDs exclude only their root
