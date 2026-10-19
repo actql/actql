@@ -3899,11 +3899,11 @@ export async function publishInstalledEffect({effectProfilePath, directory,
 }
 
 // Only the actual early startup captures this operation. It admits the selected
-// raw Local connect input before invoking this receiver; open preserves its
-// omitted input route. This operation alone cannot manufacture that admission.
+// raw Local connect/open input before invoking this receiver. This operation
+// alone cannot manufacture that admission or inspect the caller's packet.
 export function connectInitialControlHostPreparation(kind, rawInput) {
   if (kind === 'connect') return connectEmbeddedLocal(rawInput, 'connect');
-  if (kind !== 'open' || rawInput !== undefined) {
+  if (kind !== 'open') {
     throw clientOperationError('NodeInitialControlInputUnavailable');
   }
   return connectEmbeddedLocal(rawInput, 'open');
@@ -4145,6 +4145,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   try {
   // Before options snapshot, Common import, Project read, normalization or
   // Provider installation. Missing actual startup coverage remains unavailable.
+  const omittedOpenInput = initialEntry === 'open' && options === undefined;
   const begun = beginInitialControlInstallation(originals, options);
   // Begin synchronously captures the admitted original packet. Keep only
   // that supplier-owned snapshot across its initialization await, not a raw
@@ -4155,7 +4156,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   // initialization awaits; do not resolve it again from a later process cwd.
   // A path failure still awaits and retains the original scope for cleanup.
   if (initialEntry === 'open') {
-    try { record.openStateDirectory = resolve('.actql'); }
+    try { record.openWorkingDirectory = resolve('.'); }
     catch (cause) { record.openPathFailure = {cause}; }
   }
   control = await begun;
@@ -4171,14 +4172,29 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   record.input = options;
   if (record.openPathFailure !== undefined) throw record.openPathFailure.cause;
   if (initialEntry === 'open') {
-    // Only the original supplier may produce this empty packet from omitted
-    // raw input after its acquisition coverage. Never drop fields from another
-    // packet, rerun the public validator, or manufacture a second admission.
-    if (Reflect.ownKeys(options).length !== 0) {
+    // Omission still corresponds to the same original empty packet. An
+    // explicit open packet uses that supplier's immutable snapshot, never a
+    // later caller read or another installation's admitted connect options.
+    if (omittedOpenInput && Reflect.ownKeys(options).length !== 0) {
       throw clientOperationError('NodeInitialControlOriginalChanged');
     }
+    if (options === null || typeof options !== 'object' || Array.isArray(options) ||
+        Object.keys(options).some(key => !['stateDir', 'installation',
+          'durability', 'consentRefs'].includes(key)) ||
+        options.stateDir !== undefined &&
+          (typeof options.stateDir !== 'string' || !options.stateDir) ||
+        options.installation !== undefined &&
+          (options.installation === null || typeof options.installation !== 'object' ||
+          Array.isArray(options.installation) || Object.hasOwn(options.installation, 'directory'))) {
+      throw clientOperationError('InvalidOpenOptions');
+    }
+    // Resolve against the original call-time working directory after reading
+    // the captured stateDir. Initialization awaits cannot redirect this Host.
+    record.openStateDirectory = resolve(record.openWorkingDirectory, options.stateDir ?? '.actql');
     options = {mode: 'local', owner: 'local',
-      installation: {directory: record.openStateDirectory}};
+      ...(options.durability === undefined ? {} : {durability: options.durability}),
+      ...(options.consentRefs === undefined ? {} : {consentRefs: options.consentRefs}),
+      installation: {...options.installation, directory: record.openStateDirectory}};
     record.openOptions = options;
   }
   if (initialEntry === 'connect' && options.mode === 'local' && options.owner === undefined) {

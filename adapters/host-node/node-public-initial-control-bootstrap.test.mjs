@@ -236,6 +236,16 @@ test('ordinary public Node delivery binds its own captured facade and the same L
   assert.equal(result.status,0,result.stderr);
 });
 
+test('actual public open forwards Explorer stateDir through the original bounded snapshot',t=>{
+  const f=fixture(t,{publicNode:true,actualFacade:true});const result=f.run(
+    'import assert from"node:assert/strict";import{open}from"@actql/node";'+
+    'const raw={stateDir:".explorer"};const pending=open(raw);raw.stateDir="replacement";'+
+    'const client=await pending;assert.equal(client.input.stateDir,".explorer");'+
+    'assert.equal(Object.hasOwn(client.input,"profile"),false);'+
+    'assert.equal((await client.scope.close()).pending,false);');
+  assert.equal(result.status,0,result.stderr);
+});
+
 test('ordinary connected Local HTTP selection stays unselected without traversing Host fields',t=>{
   const f=fixture(t,{publicNode:true});const result=f.run(
     'import assert from"node:assert/strict";import{connect}from"@actql/node";'+
