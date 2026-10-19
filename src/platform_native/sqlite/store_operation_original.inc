@@ -70,6 +70,13 @@ MOONBIT_FFI_EXPORT void *actql_native_sqlite_prepare_store_operation(
   /* Return original partial custody BEFORE any callback or physical call. */
   return value;
 }
+/* Separate generated test signature: the compiler emits one typed C
+ * declaration per imported symbol. Both finite callers use the SAME original
+ * bridge; no callback/layout cast or alternate acquisition is introduced. */
+MOONBIT_FFI_EXPORT void *actql_native_sqlite_test_prepare_store_wal_operation(
+    void *library, void *receiver, actql_native_store_operation_route route) {
+  return actql_native_sqlite_prepare_store_operation(library, receiver, route);
+}
 MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_activate(
     actql_native_store_operation *value) {
   if (!actql_store_operation_thread(value) || value->closed) return -1;

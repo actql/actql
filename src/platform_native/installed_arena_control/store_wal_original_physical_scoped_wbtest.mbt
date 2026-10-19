@@ -17,7 +17,7 @@ extern "C" fn store_wal_prepare_original(
   library : @sqlite.Library,
   receiver : StoreWalReceiver,
   route : FuncRef[(StoreWalReceiver, @sqlite.Library, Int) -> Int],
-) -> @sqlite.NativeStoreOperationOriginal = "actql_native_sqlite_prepare_store_operation"
+) -> @sqlite.NativeStoreOperationOriginal = "actql_native_sqlite_test_prepare_store_wal_operation"
 
 ///|
 fn store_wal_entered(receiver : StoreWalReceiver) -> Bool {
