@@ -176,7 +176,7 @@ fn LocalCommandPreparationOriginal::close_business_execution(
     }
   }
   if business.domain is Some(domain) {
-    match host.close_domain(domain) {
+    match host.close_domain_after_owner_ack(domain) {
       Err(issue) => return Err(CommandDomain(issue))
       Ok(_) => business.domain = None
     }
