@@ -63,7 +63,8 @@ def _select_target(manifest: dict[str, object], target: str | None) -> dict[str,
         raise ValueError('Unknown source closure target')
     variant = manifest.get('source_targets', {}).get(target)
     if (type(variant) is not dict
-            or set(variant) != {'deployment_target', 'required_defines', 'binary_inputs'}
+            or set(variant) != {'deployment_target', 'required_defines', 'binary_inputs', 'required_source_parameters'}
+            or variant['required_source_parameters'] != ['ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS']
             or variant['deployment_target'] is not None
             or variant['required_defines'] != [*manifest['required_defines'],
                                                '_GNU_SOURCE',
@@ -82,7 +83,8 @@ def _select_target(manifest: dict[str, object], target: str | None) -> dict[str,
     if replaced != set(variant['binary_inputs']):
         raise ValueError('Incomplete selected binary inputs')
     selected.update(target=target, deployment_target=None,
-                    required_defines=variant['required_defines'])
+                    required_defines=variant['required_defines'],
+                    required_source_parameters=variant['required_source_parameters'])
     return selected
 
 
@@ -133,6 +135,8 @@ def prepare(moonbit: Path, destination: Path, *, provider: Path = HERE,
         'normal_profile': None, 'installed_supplier': False,
         'compiled': 0, 'loaded': 0, 'public_e2e': 0,
     }
+    if 'required_source_parameters' in manifest:
+        record['required_source_parameters'] = manifest['required_source_parameters']
     destination.mkdir(parents=True, exist_ok=False)
     for name, data in outputs.items():
         with (destination / name).open('xb') as stream:

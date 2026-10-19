@@ -74,6 +74,7 @@ class ScopedReadSourceTests(unittest.TestCase):
             self.manifest['outputs'][output] = entry(b'darwin-input')
         self.manifest['source_targets'] = {'aarch64-unknown-linux-gnu': {
             'deployment_target': None,
+            'required_source_parameters': ['ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS'],
             'required_defines': ['DERIVED_READ', '_GNU_SOURCE',
                                  'ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN'],
             'binary_inputs': {path: entry(data) for path, data in binaries.items()},
@@ -84,6 +85,7 @@ class ScopedReadSourceTests(unittest.TestCase):
         result = self.prepare('aarch64-unknown-linux-gnu')
         self.assertEqual(result['target'], 'aarch64-unknown-linux-gnu')
         self.assertIsNone(result['deployment_target'])
+        self.assertEqual(result['required_source_parameters'], ['ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS'])
         self.assertIn('ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN', result['required_defines'])
         self.assertEqual((self.destination / 'libmoonbitrun.o').read_bytes(), b'linux-object')
         self.assertEqual(result['compiled'], 0)

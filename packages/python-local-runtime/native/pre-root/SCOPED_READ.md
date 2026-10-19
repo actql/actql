@@ -33,7 +33,20 @@ install a toolchain or compile either target.
 
 Linux consumers must use the recorded `_GNU_SOURCE` and
 `ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN` definitions alongside the scoped
-allocator definitions. The actual FD, mapping, extent, domain and Read context
+allocator definitions. Linux File control allocations additionally require a
+source-bound positive `ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS` count. The provider
+has no default cardinality. Its fixed exact-pointer records and entry word
+belong to initial control, separately from the stock blocks and Read arena;
+all must have actual coverage before provider initialization. Record storage
+is reused only after the corresponding original stock free. Missing capacity,
+concurrent/reentrant entry and unknown/interior/retired pointers refuse without
+falling through to stock free. Fork support requires a quiescent stock entry;
+an inherited active entry refuses before traversing any metadata. No inherited
+Read lock or context is reset or adopted, and child-local retirement cannot
+acknowledge the parent's copy. A finite diagnostic count does not supply the
+ordinary Host's missing count or initial-control original.
+
+The actual FD, mapping, extent, domain and Read context
 still require their original acquisition and cleanup. The Linux selection does
 not include Darwin image capture, Rust, Engine or VM support, or adopt an
 installed supplier or a normal numerical profile. A bootstrap consumer imports

@@ -10,8 +10,8 @@
   ],
   "patch": {
     "path": "scoped-read-review.patch",
-    "bytes": 32858,
-    "sha256": "1efe8461829d81a14ff86318a558cca7150dbd939765aaa245f7633781e7b9c6"
+    "bytes": 37718,
+    "sha256": "f22e6ac2a731683662e2ef00e6afb38958b6c9729bd0b2894d6ede72b3421a8d"
   },
   "inputs": [
     {
@@ -244,8 +244,8 @@
       "sha256": "d54ff31b625ae64ca4366bde62fd2b42ec08a377ef15d33a748dc67744b8ee91"
     },
     "scoped_read.inc": {
-      "bytes": 26566,
-      "sha256": "72e37a05aaac4fe3629ca97a23adcb2eec97cb1f5ee21a139b289310b676f4ed"
+      "bytes": 31323,
+      "sha256": "639679f50afdb95a8a41510906e92a8e941db2f2b80ed0a7a74e866345dd887d"
     },
     "sync_io.c": {
       "bytes": 6246,
@@ -276,7 +276,10 @@
           "bytes": 956034,
           "sha256": "7ce3aedd32e1e08f3e32e1a6ef38398e8d6f943806ad1a617f69d8f25c8c5a17"
         }
-      }
+      },
+      "required_source_parameters": [
+        "ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS"
+      ]
     }
   }
 }
