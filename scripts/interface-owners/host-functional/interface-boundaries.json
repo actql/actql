@@ -63303,6 +63303,335 @@
         }
       ],
       "referenceQualification": "Existing preparation/capture responsibilities only. References and explicit stopping ports establish no actual resource issuer, physical ACK, Account grant or installed Mock completion."
+    },
+    {
+      "module": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "ffd3f00746c87022127635d35d2794f84050f47aeba7a31abe9961f3fa297e96",
+      "exports": [
+        "inspectBoundedSqliteSchema",
+        "snapshotSqliteSchemaReadLimits",
+        "snapshotSqliteSchemaSqlSupport"
+      ],
+      "operations": [
+        {
+          "name": "at",
+          "parameters": [
+            "fd",
+            "target",
+            "position",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "be/be",
+          "parameters": [
+            "bytes",
+            "offset"
+          ],
+          "async": false
+        },
+        {
+          "name": "checksum",
+          "parameters": [
+            "bytes",
+            "length",
+            "little",
+            "previous"
+          ],
+          "async": false
+        },
+        {
+          "name": "committedWal",
+          "parameters": [
+            "wal",
+            "pageSize",
+            "page",
+            "limits",
+            "maxPages"
+          ],
+          "async": false
+        },
+        {
+          "name": "half/half",
+          "parameters": [
+            "bytes",
+            "offset"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectBoundedSqliteSchema",
+          "parameters": [
+            "database",
+            "wal",
+            "limits",
+            "maxSourceBytes",
+            "schemaSqlSupport"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectBoundedSqliteSchema/enqueue/enqueue",
+          "parameters": [
+            "number"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectBoundedSqliteSchema/readPage/readPage",
+          "parameters": [
+            "number",
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectBoundedSqliteSchema/readPayload/readPayload",
+          "parameters": [
+            "offset",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "serialBytes",
+          "parameters": [
+            "type"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotSqliteSchemaReadLimits",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotSqliteSchemaReadLimits/snapshotSqliteSchemaReadLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotSqliteSchemaSqlSupport",
+          "parameters": [
+            "value",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "supportsSchemaRecord",
+          "parameters": [
+            "payload",
+            "support"
+          ],
+          "async": false
+        },
+        {
+          "name": "unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "varint",
+          "parameters": [
+            "page",
+            "offset",
+            "limit",
+            "decode"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:buffer",
+        "node:fs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "C / existing isolated SQLite inspection and Host Journal owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "at",
+            "be/be",
+            "checksum",
+            "committedWal",
+            "half/half",
+            "inspectBoundedSqliteSchema",
+            "inspectBoundedSqliteSchema/enqueue/enqueue",
+            "inspectBoundedSqliteSchema/readPage/readPage",
+            "inspectBoundedSqliteSchema/readPayload/readPayload",
+            "serialBytes",
+            "snapshotSqliteSchemaReadLimits",
+            "snapshotSqliteSchemaReadLimits/snapshotSqliteSchemaReadLimits",
+            "snapshotSqliteSchemaSqlSupport",
+            "supportsSchemaRecord",
+            "unavailable/unavailable",
+            "varint"
+          ],
+          "exports": [
+            "inspectBoundedSqliteSchema",
+            "snapshotSqliteSchemaReadLimits",
+            "snapshotSqliteSchemaSqlSupport"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "// Resource-only preflight for the same isolated SQLite copy. This reads the"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "// schema table's declared payload lengths, not SQL meaning, row authority or"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "export function snapshotSqliteSchemaReadLimits(value) {"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "export function snapshotSqliteSchemaSqlSupport(value, limits) {"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "export function inspectBoundedSqliteSchema(database, wal, limits, maxSourceBytes, schemaSqlSupport) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "anchor": "// The same isolated-copy Owner retains these original read FDs before"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "const overlay = committedWal(wal, pageSize, page, limits, maxPages);"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "// A single streaming checksum pass finds the same last valid commit prefix."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "anchor": "outputs.push({fd, close: closeSync});"
+              },
+              {
+                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "anchor": "inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits, maxSourceBytes, schemaSqlSupport);"
+              },
+              {
+                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "anchor": "closeFile(outputs.at(-1));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "const readOriginal = readSync, apply = Reflect.apply, freeze = Object.freeze;"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "function at(fd, target, position, bytes = target.length) {"
+              },
+              {
+                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "anchor": "captureDatabaseCleanup();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "if (count > limits.maxWalFrames) unavailable();"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "payload.value > limits.maxSchemaBytes - payloadBytes) unavailable();"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "visited.size + pending.length + payloadPages.size >= limits.maxSchemaPages) unavailable();"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "anchor": "// before native SQLite construction; failure stays under cleanup below."
+              },
+              {
+                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "anchor": "while (outputs.length !== 0) {"
+              },
+              {
+                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "anchor": "// acquire a connection and then fail. GC is not its close acknowledgement."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "// is reused; all allocated payload backings together are bounded by the"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "// existing aggregate schema payload ceiling, not by GC between iterations."
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "const pending = [1], visited = new Set();"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "const latest = new Map();"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "// Unknown/equivalent spellings remain an unsupported backend recipe; SQLite"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "// still checks actual schema meaning after this support boundary."
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "anchor": "// issued here, and unselected inspection does not use this extra boundary."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mjs",
+                "anchor": "schema footprint inspection precedes native open and leaves original bytes unchanged"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mjs",
+                "anchor": "own-DDL support reads the committed WAL schema rather than the older main-file definition"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mjs",
+                "anchor": "an extra valid view stays unsupported before native open, without becoming a language error"
+              },
+              {
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mjs",
+                "anchor": "DB and WAL copying reuse one backing instead of assuming loop-local backing retirement"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Source and resource-support references only; SQLite remains the semantic decoder. No native backing, operational issuer, format permission, physical cleanup ACK or installed Host acceptance is issued by this preflight."
     }
   ],
   "generated": [],
@@ -63315,10 +63644,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 144,
-    "operations": 3468,
-    "exports": 906,
-    "explicitContractGroups": 172
+    "modules": 145,
+    "operations": 3632,
+    "exports": 929,
+    "explicitContractGroups": 180
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }
