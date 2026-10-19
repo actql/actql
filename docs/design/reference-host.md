@@ -1084,6 +1084,13 @@ Neither JavaScript alias retirement nor native finalization supplies a close
 acknowledgement. The loaded module and shared allocator/library domains remain
 charged for their actual lifetimes after a successful child close.
 
+Fixed Journal marker descriptors also consume their captured numeric-FD close
+once. A thrown or ambiguous result retains its original Unknown observation;
+cleanup retry does not close the same integer again, which may now belong to
+another descriptor. This differs from a retained object with an explicit
+retryable close protocol. A successful marker close and the original marker
+classification remain unchanged; restoration or EBADF is not an Unknown ACK.
+
 The private directory image loader keeps native binary facts separate from JS
 Source. After independent pre-use module/filesystem coverage, it verifies the
 selected package image, creates one nonescaping private copy and retains its

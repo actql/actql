@@ -483,8 +483,13 @@ function journalMarkerMatches(path, expected) {
   let original = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW |
     constants.O_NONBLOCK);
   const originalClose = closeSync;
+  let closeAttempted = false;
   const close = () => {
-    if (original === undefined) return;
+    if (original === undefined || closeAttempted) return;
+    // A numeric FD is not a retryable object. Latch before the original
+    // syscall: an error/ambiguous return may already have consumed it, and
+    // the same integer can now name another Owner's descriptor.
+    closeAttempted = true;
     if (applyOriginal(originalClose, undefined, [original]) !== undefined) {
       throw new TypeError('JournalMarkerCleanupPending');
     }
@@ -511,19 +516,19 @@ function journalMarkerMatches(path, expected) {
   } catch (cause) { failed = true; primary = cause; }
   try { close(); }
   catch (cause) {
-    const first = cause;
-    let latest = cause;
-    const status = () => Object.freeze({pending: original !== undefined,
-      errors: Object.freeze(first === latest ? [first] : [first, latest])});
-    const retry = () => {
-      try { close(); } catch (error) { latest = error; }
-      return status();
+    const observation = Object.freeze({pending: true, closeAttempted: true,
+      outcome: 'unknown', errors: Object.freeze([cause])});
+    const status = () => {
+      void original; void originalClose;
+      return observation;
     };
     const carrier = Object.assign(new Error('ClientRequestJournalInspectionCleanupPending',
       {cause: failed ? primary : cause}), {
       code: 'ClientRequestJournalInspectionCleanupPending',
       primaryFailure: failed ? primary : cause,
-      cleanupHandle: Object.freeze({status, retry}),
+      // Retry only observes this same unresolved original outcome. Neither
+      // EBADF, restoration, Promise settlement nor a reused FD is its ACK.
+      cleanupHandle: Object.freeze({status, retry: status}),
     });
     Object.defineProperty(carrier, 'cleanupPending', {get: () => status().pending});
     throw carrier;
