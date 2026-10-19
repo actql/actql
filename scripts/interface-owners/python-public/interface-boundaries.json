@@ -3303,7 +3303,6 @@
         "._errors",
         "._local_core",
         "._local_distribution",
-        "._local_initial_preparation",
         "._local_product",
         "._local_worker_funding",
         "._query",
@@ -3919,7 +3918,7 @@
           ]
         }
       ],
-      "sha256": "085eb053a62b51374fb14e64e6c22a888af80fad57a46b0a3b97b8420d4db6c7",
+      "sha256": "ae6724b52f264b75fd4b6d890f5a90742adcf89898df67fa5af1613e124bcc9e",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -4027,12 +4026,20 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_async.py",
                 "anchor": "\"\"\"Host transports and shared handles for facts owned by the existing Owner.\"\"\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Ordinary Python Host resources"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/python-sdk/src/actql_sdk/_async.py",
                 "anchor": "\"\"\"Host transports and shared handles for facts owned by the existing Owner.\"\"\""
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _state_directory_option("
               }
             ],
             "identity": [
@@ -4043,6 +4050,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_async.py",
                 "anchor": "\"\"\"Host transports and shared handles for facts owned by the existing Owner.\"\"\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Reopen uses the existing durable installation validation, locks and saved Run"
               }
             ],
             "ownership": [
@@ -4053,6 +4064,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_async.py",
                 "anchor": "\"\"\"Host transports and shared handles for facts owned by the existing Owner.\"\"\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "these ordinary limits cannot satisfy an imported-VM or worker-funding port."
               }
             ],
             "synchronization": [
@@ -4063,6 +4078,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_async.py",
                 "anchor": "\"\"\"Host transports and shared handles for facts owned by the existing Owner.\"\"\""
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "Capture the documented trusted PathLike once before acquisition."
               }
             ],
             "failure": [
@@ -4073,6 +4092,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_async.py",
                 "anchor": "\"\"\"Host transports and shared handles for facts owned by the existing Owner.\"\"\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "or inconsistent installed components still refuse; there is no raw-module,"
               }
             ],
             "cancellation": [
@@ -4083,6 +4106,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_async.py",
                 "anchor": "\"\"\"Host transports and shared handles for facts owned by the existing Owner.\"\"\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_public_factory.py",
+                "anchor": "def test_pending_constructor_keeps_cleanup_only_client_without_profile_io("
               }
             ],
             "resources": [
@@ -4093,6 +4120,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_async.py",
                 "anchor": "\"\"\"Host transports and shared handles for facts owned by the existing Owner.\"\"\""
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "Managed work/copy allowances, not reserved heap or a hard RSS ceiling."
               }
             ],
             "extension": [
@@ -4103,12 +4134,20 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_async.py",
                 "anchor": "\"\"\"Host transports and shared handles for facts owned by the existing Owner.\"\"\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "its original lifetime for callers that selected it."
               }
             ],
             "verification": [
               {
                 "path": "packages/python-sdk/tests/test_boundaries.py",
                 "anchor": "AsyncBoundaryTests"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_public_factory.py",
+                "anchor": "def test_normal_engine_allocation_failure_does_not_create_store_or_fallback("
               }
             ]
           }

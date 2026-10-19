@@ -7311,7 +7311,7 @@
           ]
         }
       ],
-      "sha256": "457ae5b958534fe864560004691fb7dc7d3a3976608c8a478dff343e51c1bdb7",
+      "sha256": "99c6549b5ba64baa5584a4d5e081f2881bab94de5e688c5d44e6566d59d42ab6",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -8163,6 +8163,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Instance-private Wasm facade"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Ordinary Python Host resources"
               }
             ],
             "inputsOutputs": [
@@ -8749,6 +8753,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Instance-private Wasm facade"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _state_directory_option("
               }
             ],
             "identity": [
@@ -8763,6 +8771,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Reopen uses the existing durable installation validation, locks and saved Run"
               }
             ],
             "ownership": [
@@ -8777,6 +8789,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "these ordinary limits cannot satisfy an imported-VM or worker-funding port."
               }
             ],
             "synchronization": [
@@ -8787,6 +8803,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "class LocalCore:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "Capture the documented trusted PathLike once before acquisition."
               }
             ],
             "failure": [
@@ -8801,6 +8821,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "or inconsistent installed components still refuse; there is no raw-module,"
               }
             ],
             "cancellation": [
@@ -8811,6 +8835,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "class LocalCore:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_public_factory.py",
+                "anchor": "def test_pending_constructor_keeps_cleanup_only_client_without_profile_io("
               }
             ],
             "resources": [
@@ -8825,6 +8853,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "Managed work/copy allowances, not reserved heap or a hard RSS ceiling."
               }
             ],
             "extension": [
@@ -8835,6 +8867,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "class LocalCore:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "its original lifetime for callers that selected it."
               }
             ],
             "verification": [
@@ -8853,6 +8889,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "class LocalCore:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_public_factory.py",
+                "anchor": "def test_normal_engine_allocation_failure_does_not_create_store_or_fallback("
               }
             ]
           }
@@ -46087,13 +46127,25 @@
         },
         {
           "async": false,
+          "name": "_ordinary_core_limits",
+          "parameters": []
+        },
+        {
+          "async": false,
           "name": "_private_state_directory",
           "parameters": [
             "directory"
           ]
+        },
+        {
+          "async": false,
+          "name": "_state_directory_option",
+          "parameters": [
+            "value"
+          ]
         }
       ],
-      "sha256": "c933d9c849317b67f46185a64e6228adbda22c2470f1698eaf7a534358f44260",
+      "sha256": "e3d6ec381d576b7ebd11f4a0eb67eef8d61c5c25d91f755bb1f00c0e7f0aa590",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -46211,7 +46263,9 @@
             "InstalledLocalHost/installed",
             "InstalledLocalHost/open",
             "InstalledLocalHost/profile",
-            "InstalledLocalHost/profile/original_scope"
+            "InstalledLocalHost/profile/original_scope",
+            "_ordinary_core_limits",
+            "_state_directory_option"
           ],
           "exports": [
             "InstalledLocalHost"
@@ -46229,6 +46283,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Ordinary Python Host resources"
               }
             ],
             "inputsOutputs": [
@@ -46243,6 +46301,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _state_directory_option("
               }
             ],
             "identity": [
@@ -46261,6 +46323,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Reopen uses the existing durable installation validation, locks and saved Run"
               }
             ],
             "ownership": [
@@ -46279,6 +46345,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "these ordinary limits cannot satisfy an imported-VM or worker-funding port."
               }
             ],
             "synchronization": [
@@ -46293,6 +46363,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "Capture the documented trusted PathLike once before acquisition."
               }
             ],
             "failure": [
@@ -46311,6 +46385,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "or inconsistent installed components still refuse; there is no raw-module,"
               }
             ],
             "cancellation": [
@@ -46325,6 +46403,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_public_factory.py",
+                "anchor": "def test_pending_constructor_keeps_cleanup_only_client_without_profile_io("
               }
             ],
             "resources": [
@@ -46343,6 +46425,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "Managed work/copy allowances, not reserved heap or a hard RSS ceiling."
               }
             ],
             "extension": [
@@ -46357,6 +46443,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "its original lifetime for callers that selected it."
               }
             ],
             "verification": [
@@ -46378,7 +46468,11 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_initial_preparation.py",
-                "anchor": "def test_ordinary_factory_keeps_actual_initial_carrier_without_discovery("
+                "anchor": "def test_ordinary_factory_does_not_require_the_private_initial_carrier("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_public_factory.py",
+                "anchor": "def test_normal_engine_allocation_failure_does_not_create_store_or_fallback("
               }
             ]
           }
@@ -60499,7 +60593,7 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_public_factory.py",
-                "anchor": "def test_missing_initial_funding_refuses_before_module_capture_vm_directory_or_fallback("
+                "anchor": "def test_normal_engine_allocation_failure_does_not_create_store_or_fallback("
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_funding.py",
@@ -60670,7 +60764,7 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_public_factory.py",
-                "anchor": "def test_missing_initial_funding_refuses_before_module_capture_vm_directory_or_fallback("
+                "anchor": "def test_normal_engine_allocation_failure_does_not_create_store_or_fallback("
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_funding.py",
@@ -60678,7 +60772,7 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_initial_preparation.py",
-                "anchor": "def test_ordinary_factory_keeps_actual_initial_carrier_without_discovery("
+                "anchor": "def test_ordinary_factory_does_not_require_the_private_initial_carrier("
               }
             ]
           }
@@ -60819,7 +60913,7 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_public_factory.py",
-                "anchor": "def test_missing_initial_funding_refuses_before_module_capture_vm_directory_or_fallback("
+                "anchor": "def test_normal_engine_allocation_failure_does_not_create_store_or_fallback("
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_funding.py",
@@ -60964,7 +61058,7 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_public_factory.py",
-                "anchor": "def test_missing_initial_funding_refuses_before_module_capture_vm_directory_or_fallback("
+                "anchor": "def test_normal_engine_allocation_failure_does_not_create_store_or_fallback("
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_funding.py",
@@ -61074,7 +61168,7 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_public_factory.py",
-                "anchor": "def test_missing_initial_funding_refuses_before_module_capture_vm_directory_or_fallback("
+                "anchor": "def test_normal_engine_allocation_failure_does_not_create_store_or_fallback("
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_funding.py",
@@ -65101,7 +65195,7 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_initial_preparation.py",
-                "anchor": "def test_ordinary_factory_keeps_actual_initial_carrier_without_discovery("
+                "anchor": "def test_ordinary_factory_does_not_require_the_private_initial_carrier("
               },
               {
                 "path": "packages/python-sdk/tests/test_local_initial_preparation.py",
