@@ -4178,10 +4178,15 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     if (omittedOpenInput && Reflect.ownKeys(options).length !== 0) {
       throw clientOperationError('NodeInitialControlOriginalChanged');
     }
-    if (options === null || typeof options !== 'object' || Array.isArray(options) ||
-        Object.keys(options).some(key => !['stateDir', 'installation',
-          'durability', 'consentRefs'].includes(key)) ||
-        options.stateDir !== undefined &&
+    if (options === null || typeof options !== 'object' || Array.isArray(options)) {
+      throw clientOperationError('InvalidOpenOptions');
+    }
+    for (const key of Object.keys(options)) {
+      if (!['stateDir', 'installation', 'durability', 'consentRefs'].includes(key)) {
+        throw clientOperationError('InvalidOpenOptions');
+      }
+    }
+    if (options.stateDir !== undefined &&
           (typeof options.stateDir !== 'string' || !options.stateDir) ||
         options.installation !== undefined &&
           (options.installation === null || typeof options.installation !== 'object' ||
