@@ -190,3 +190,93 @@ test "Native Local Values uses current submit authority without borrowing Source
     )
   }
 }
+
+///|
+test "Native Local Values retains the supplied Ledger and never replaces an exhausted one" {
+  // Ledger limits below are nominal Resource test fixtures, not physical Native
+  // funding or an installed command profile. The Journal is the real fixture.
+  let assets = @host.client_local_product_assets()
+  for supplied in [false, true] {
+    let suffix = supplied.to_string()
+    let database = epoch_test_database("values-supplied-ledger-" + suffix)
+    initialize_native_client_run_journal(database).unwrap()
+    let journal = open_native_client_run_journal(database, 8).unwrap()
+    let (request, prepared, compiled, definition) = journal_test_run(
+      "values-supplied-" + suffix,
+      "values-supplied-run-" + suffix,
+    )
+    journal.bind_run(request, prepared, compiled, definition, true).unwrap()
+    |> ignore
+    let ledger = @resources.create_ledger({
+      planning_work: if supplied {
+        1000
+      } else {
+        0
+      },
+      attempts: if supplied {
+        64
+      } else {
+        0
+      },
+      holdings: if supplied {
+        64
+      } else {
+        0
+      },
+      transfer_bytes: if supplied {
+        67108864L
+      } else {
+        0L
+      },
+      retained_bytes: if supplied {
+        536870912L
+      } else {
+        0L
+      },
+      execution_bytes: if supplied {
+        1073741824L
+      } else {
+        0L
+      },
+    }).unwrap()
+    let before = @resources.ledger_usage(ledger)
+    let work = open_native_client_local_values_work(
+      journal,
+      request,
+      prepared,
+      compiled,
+      definition,
+      assets.registry,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+      16,
+      1000,
+      () => true,
+      ledger=Some(ledger),
+    )
+    if supplied {
+      let work = work.unwrap()
+      assert_true(
+        physical_equal(@strategy.captured_dag_ledger(work.run), ledger),
+      )
+      assert_true(work.close())
+      guard journal.lookup(request, true) is Ok(Retained(record)) else {
+        fail("Original Run lost")
+      }
+      assert_true(record.physical_start_claimed)
+    } else {
+      let failure = work.unwrap_err()
+      assert_true(
+        native_client_values_work_failure_issue(failure) is Configuration,
+      )
+      assert_eq(@resources.ledger_usage(ledger), before)
+      guard journal.lookup(request, true) is Ok(Retained(record)) else {
+        fail("Original Run lost")
+      }
+      assert_false(record.physical_start_claimed)
+      assert_true(failure.close())
+    }
+    database.close_checked().unwrap()
+  }
+}

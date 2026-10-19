@@ -95,6 +95,7 @@ fn open_native_client_local_values_work(
   finalization_quantum : Int,
   max_finalization_rounds : Int,
   current : () -> Bool,
+  ledger? : @resources.Ledger? = None,
 ) -> Result[NativeClientValuesWork, NativeClientValuesWorkFailure] {
   if !current() {
     return Err(local_values_work_failure(AuthorizationDenied))
@@ -134,18 +135,32 @@ fn open_native_client_local_values_work(
     Ok(value) => value
     Err(issue) => return Err(local_values_work_failure(Normalization(issue)))
   }
-  guard @local.open_source_free_local_retained_host(
-      prepared,
-      registry_body,
-      values_body,
-      1L,
-      0L,
-      0L,
-      0L,
-      fragment_body~,
-      ordered_body~,
-    )
-    is Some(setup) else {
+  // A supplied Ledger remains the existing Resource Owner. A refused setup
+  // cannot fall back to the legacy constructor and silently obtain a new one.
+  let selected = match ledger {
+    Some(original) =>
+      @local.open_source_free_local_retained_host_on_ledger(
+        prepared,
+        original,
+        registry_body,
+        values_body,
+        fragment_body,
+        ordered_body,
+      )
+    None =>
+      @local.open_source_free_local_retained_host(
+        prepared,
+        registry_body,
+        values_body,
+        1L,
+        0L,
+        0L,
+        0L,
+        fragment_body~,
+        ordered_body~,
+      )
+  }
+  guard selected is Some(setup) else {
     return Err(local_values_work_failure(Configuration))
   }
   let run = @driver.dispatch_driver_run(@builtin.configured_host_driver(setup))
@@ -196,6 +211,8 @@ fn open_native_client_local_values_work(
 /// Submit scope comes from the currently adopted Host/Account, not the Program
 /// or a caller allow flag. A source-free Run needs no installed Source or Source
 /// read permission. Result publication and delivery still have their own gates.
+/// Trusted installed callers may supply their already-funded original Ledger;
+/// this entry neither issues its backing nor transfers a preparation budget.
 pub fn NativeLocalHostConnection::open_values_work(
   self : NativeLocalHostConnection,
   crypto : @crypto.Library,
@@ -211,6 +228,7 @@ pub fn NativeLocalHostConnection::open_values_work(
   ordered_body : String?,
   finalization_quantum : Int,
   max_finalization_rounds : Int,
+  ledger? : @resources.Ledger? = None,
 ) -> Result[NativeClientValuesWork, NativeClientValuesWorkFailure] {
   let authority = match
     native_local_policy_authority(
@@ -237,6 +255,7 @@ pub fn NativeLocalHostConnection::open_values_work(
     finalization_quantum,
     max_finalization_rounds,
     () => authority.current_for(self.journal, request),
+    ledger~,
   )
 }
 
