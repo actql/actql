@@ -136,6 +136,16 @@ pub fn close_pipeline_authoring(
           orders.push({ step, owner, index, demand, })
           continue
         }
+        // Only the existing Take binding demand can survive this authoring
+        // boundary. The exact obligation owner/index remains retained; no
+        // representative value or declaration default discharges it.
+        if operation is @pipeline.Unary(value) &&
+          @relation.operation(value) == Take &&
+          @pipeline.operation_scalar_demand(requirement)
+          is Some(@pipeline.SafeInteger(_, ..)) {
+          runtime.push({ step, owner, index, })
+          continue
+        }
         match requirement {
           @pipeline.ValuesRequirement(@values.BindCell(_)) =>
             runtime.push({ step, owner, index, })

@@ -2557,7 +2557,7 @@ differ, but their structured facts MUST agree.
 
 ### Public check outcome
 
-<!-- requirement-block: check-outcome.binding-json-facts check-outcome.binding-json-owned-issue check-outcome.binding-json-original-pointer check-outcome.expression-type-facts check-outcome.expression-type-owned-cause check-outcome.expression-type-generic-fallback check-outcome.expression-type-authored-position check-outcome.operation-domain-facts check-outcome.operation-domain-owned-cause check-outcome.operation-domain-input-origin check-outcome.check-must-not-be-relabelled check-outcome.fix-closed-shape check-outcome.fix-original-eof-revision check-outcome.fix-no-fabricated-proposal check-outcome.fix-atomic-current-context-recheck check-outcome.fix-explicit-pin-mismatch check-outcome.program-document-domain check-outcome.program-observation-no-write-authority check-outcome.frame-reason-facts check-outcome.frame-reason-owned-cause check-outcome.frame-index-is-not-authored-location check-outcome.exactly-one-outcome check-outcome.verdict-must-carry-scope-and-context check-outcome.verdict-must-agree-with-evidence check-outcome.partial-report-must-not-verify check-outcome.unavailable-must-omit-report-fields check-outcome.unavailable-must-not-depend-on-sources check-outcome.absent-and-inaccessible-must-match check-outcome.hidden-source-must-not-hide-violations check-outcome.limits-must-not-be-invalid check-outcome.context-ref-must-bind-the-checked-input check-outcome.context-ref-must-keep-values-exact check-outcome.context-ref-must-not-hash-values -->
+<!-- requirement-block: check-outcome.binding-json-facts check-outcome.binding-json-owned-issue check-outcome.binding-json-original-pointer check-outcome.expression-type-facts check-outcome.expression-type-owned-cause check-outcome.expression-type-generic-fallback check-outcome.expression-type-authored-position check-outcome.operation-domain-facts check-outcome.operation-domain-owned-cause check-outcome.operation-domain-input-origin check-outcome.check-must-not-be-relabelled check-outcome.fix-closed-shape check-outcome.fix-original-eof-revision check-outcome.fix-no-fabricated-proposal check-outcome.fix-atomic-current-context-recheck check-outcome.fix-explicit-pin-mismatch check-outcome.program-document-domain check-outcome.program-observation-no-write-authority check-outcome.frame-reason-facts check-outcome.frame-reason-owned-cause check-outcome.frame-index-is-not-authored-location check-outcome.exactly-one-outcome check-outcome.verdict-must-carry-scope-and-context check-outcome.verdict-must-agree-with-evidence check-outcome.bound-input-no-requirements check-outcome.partial-report-must-not-verify check-outcome.unavailable-must-omit-report-fields check-outcome.unavailable-must-not-depend-on-sources check-outcome.absent-and-inaccessible-must-match check-outcome.hidden-source-must-not-hide-violations check-outcome.limits-must-not-be-invalid check-outcome.context-ref-must-bind-the-checked-input check-outcome.context-ref-must-keep-values-exact check-outcome.context-ref-must-not-hash-values -->
 The registered `binding_json_invalid` reason MUST carry closed `facts.document` (`parameters` or `parameter_declarations`) and `facts.issue` from the JSON admission issue schema; budget exhaustion is a checking limit, never this input violation.
 Its issue MUST come from the existing authoritative JSON parser failure, without exposing duplicate member names, string values, parser messages or private causes; unknown issue families retain the defined generic reason without fabricated facts.
 Its optional structured location MUST refer to that submitted input and its immutable revision; preserving-path recovery cannot replace the authoritative issue, and uncertain paths are omitted rather than reported as text ranges.
@@ -2579,7 +2579,7 @@ Rejection-time `client.start(program)` observations additionally bind a `program
 The registered `query_frame_invalid` reason MUST carry closed `facts.issue: "invalid_bounds"` and MUST project only the common checker’s typed `Closure(Operations(Frames(InvalidFrame(_))))` violation. Its internal requirement index MUST NOT become an authored text range or submitted-input pointer. The current projection omits its location; a protected Source dependency does not acquire dependent frame facts. The reason and outcome schema identities are updated together; `actql-diagnostics/0.1` is unchanged.
 A check outcome MUST be exactly one of `completed` (a report), `failed` (a problem with an optional partial report) or `unavailable` (a problem and an opaque correlation reference).
 A verdict MUST be serialized with the report's requested `scope` and its opaque, Host-issued `context_ref`; `invalid` means a disclosable proven violation, `verified` means every obligation in the scope is publicly discharged, and `undetermined` covers everything else.
-A report MUST be rejected when its verdict disagrees with its own evidence: `verified` with any reason, Requirement, limit or unresolved boundary, `invalid` without a reason, or `undetermined` with a reason or with neither a limit nor an unresolved boundary; unknown codes do not make a report inconsistent.
+A report MUST be rejected when its verdict disagrees with its own evidence: `verified` with any reason, limit or unresolved boundary, `invalid` without a reason, or `undetermined` with a reason or with neither a limit nor an unresolved boundary; unknown codes do not make a report inconsistent. A verified `bound_input` report MUST have no Requirements. A verified `template_only` report MAY retain only completely projected original missing-value Requirements and binding-stage consumer conditions; these are not discharged execution obligations.
 A `failed` outcome's partial report MUST NOT have the verdict `verified`.
 An `unavailable` outcome MUST NOT carry a verdict, report, scope or context field; it is used only when the audience-bound context itself cannot be established, for example because the Host cannot consult the owner of that whole context binding. A Source read-decision owner governs its own names, not this whole binding; even failure of every installed Source read-decision owner does not establish whole-context unavailability.
 Whether a check is `unavailable` MUST NOT depend on which source names are published, mentioned or individually undecided: a source whose read decision is held, failed or otherwise undecided is hidden like an absent one, and the rest of the check continues.
@@ -2603,6 +2603,30 @@ an undetermined check names the limit that stopped it as the reason. The verdict
 uses the same check environment and disclosure rules and does not grant run,
 read, model, Effect or recovery authority. Partial failed reports never confer
 runnable authority; unavailable outcomes have no invented report.
+
+<!-- requirement-block: public-check.take-condition-facts public-check.take-condition-original-membership public-check.take-condition-foreign-refusal public-check.take-condition-default-separation public-check.take-condition-default-not-missing public-check.take-condition-bound-recheck public-check.take-condition-not-runnable public-check.take-condition-missing-separate public-check.take-condition-report-complete public-check.take-condition-report-limit public-check.take-condition-absent-compatibility -->
+A complete `template_only` check MAY retain a `parameter_consumer_condition`
+Requirement for an original Take Parameter demand. Its closed facts MUST carry
+`operation: "take"`, `argument: "count"` or `"offset"`, `constraint:
+"safe_integer"`, `stage: "binding"`, the admitted `parameter` and
+`expected_type` (`number` or `int64`), `maximum: 9007199254740991`, and
+`minimum: 1` for count or `0` for offset. This is not a generic predicate language.
+The Common template MUST retain the same Program, declaration, operation
+obligation and occurrence; a matching name, copied descriptor or equal body
+MUST NOT substitute for those originals. Optional public locations identify the
+original declaration, never an inferred SQL operation span.
+Declaration/default admission MUST remain separate from this consumer demand.
+A type-admitted default zero does not invalidate the template declaration, does
+not satisfy a positive count, and MUST NOT be reported as a missing value.
+Actual omitted/default and supplied values MUST re-enter ordinary bound checking;
+a valid override can satisfy the condition and an invalid override remains an
+operation error. A template condition MUST make `runnable` no, including when a
+valid default exists; it is not execution or authority evidence. Missing-value
+Requirements MUST remain separately visible when no supplied/default value exists.
+A verified template MUST retain every original consumer condition completely;
+omission, unavailable representation or exhausted reporting limits MUST leave
+it undetermined, never runnable. Old absent Requirement forms and reason meanings
+MUST remain unchanged; containing schema identities follow their complete bodies.
 
 ### Ranked candidate acquisition contract
 
@@ -2886,8 +2910,8 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:b7ef9aa8bde3be48f82ba74b6cdb253fa936050881285fe5f53f942946b65f08
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:692b481d25e23400f0f81e0ddade946aba2dafca4dd2f1fe6c22c7e15e5122c1
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:ee1c0c7799d2dd30aa084ec5699078cf14ada0687ac6bb9e48e1f714789a8535
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:abc1f9da9c6394f61d780139fe10ce220a25f6579ef80ed043a46c5704cf5f3b
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/explanation sha256:785c6c2f4ae5ab75803f6316fee6eaf00c4010857020960633c7b40b4fb52d8c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_source sha256:6730fdb00f7b0f21ae796bd55f686fb984cddac5b8da5325cec2114b82a37e1c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_barrier sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a

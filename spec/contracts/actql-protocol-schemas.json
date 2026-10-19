@@ -17279,7 +17279,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:8b06b5608ae75571b4d841454fa8529c189e33952b57f583da9df03330a4fa72",
+  "artifact_registry_cid": "sha256:a89eb0e3bcf22dff553b4feb649d62c6a6dbfc1d21886c7388e67f032f3a2593",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77",
@@ -17334,8 +17334,8 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:ee1c0c7799d2dd30aa084ec5699078cf14ada0687ac6bb9e48e1f714789a8535",
-    "check_reason": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf",
+    "check_outcome": "sha256:abc1f9da9c6394f61d780139fe10ce220a25f6579ef80ed043a46c5704cf5f3b",
+    "check_reason": "sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3",
     "content_generation": "sha256:a8e96d9a2a9d9e721f69b30da117dc0cdeca4c864cb21747b5551a9853fe037c",
@@ -87238,7 +87238,10 @@
                               "items": {
                                 "properties": {
                                   "code": {
-                                    "const": "parameter_value_required"
+                                    "enum": [
+                                      "parameter_value_required",
+                                      "parameter_consumer_condition"
+                                    ]
                                   }
                                 }
                               }
@@ -88347,6 +88350,91 @@
                                 }
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "argument",
+                              "constraint",
+                              "expected_type",
+                              "maximum",
+                              "minimum",
+                              "operation",
+                              "parameter",
+                              "stage"
+                            ],
+                            "properties": {
+                              "argument": {
+                                "enum": [
+                                  "count",
+                                  "offset"
+                                ]
+                              },
+                              "constraint": {
+                                "const": "safe_integer"
+                              },
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "int64"
+                                ]
+                              },
+                              "maximum": {
+                                "const": 9007199254740991
+                              },
+                              "minimum": {
+                                "enum": [
+                                  0,
+                                  1
+                                ]
+                              },
+                              "operation": {
+                                "const": "take"
+                              },
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "stage": {
+                                "const": "binding"
+                              }
+                            },
+                            "allOf": [
+                              {
+                                "if": {
+                                  "properties": {
+                                    "argument": {
+                                      "const": "count"
+                                    }
+                                  }
+                                },
+                                "then": {
+                                  "properties": {
+                                    "minimum": {
+                                      "const": 1
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "if": {
+                                  "properties": {
+                                    "argument": {
+                                      "const": "offset"
+                                    }
+                                  }
+                                },
+                                "then": {
+                                  "properties": {
+                                    "minimum": {
+                                      "const": 0
+                                    }
+                                  }
+                                }
+                              }
+                            ]
                           }
                         ]
                       }
@@ -89454,7 +89542,8 @@
                                   "numeric_reduction_profile_required",
                                   "program_structure_invalid",
                                   "source_selector_unregistered",
-                                  "query_alias_absent"
+                                  "query_alias_absent",
+                                  "parameter_consumer_condition"
                                 ]
                               }
                             }
@@ -89469,11 +89558,148 @@
                         }
                       },
                       {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_consumer_condition"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "argument",
+                                "constraint",
+                                "expected_type",
+                                "maximum",
+                                "minimum",
+                                "operation",
+                                "parameter",
+                                "stage"
+                              ],
+                              "properties": {
+                                "argument": {
+                                  "enum": [
+                                    "count",
+                                    "offset"
+                                  ]
+                                },
+                                "constraint": {
+                                  "const": "safe_integer"
+                                },
+                                "expected_type": {
+                                  "enum": [
+                                    "number",
+                                    "int64"
+                                  ]
+                                },
+                                "maximum": {
+                                  "const": 9007199254740991
+                                },
+                                "minimum": {
+                                  "enum": [
+                                    0,
+                                    1
+                                  ]
+                                },
+                                "operation": {
+                                  "const": "take"
+                                },
+                                "parameter": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 256
+                                },
+                                "stage": {
+                                  "const": "binding"
+                                }
+                              },
+                              "allOf": [
+                                {
+                                  "if": {
+                                    "properties": {
+                                      "argument": {
+                                        "const": "count"
+                                      }
+                                    }
+                                  },
+                                  "then": {
+                                    "properties": {
+                                      "minimum": {
+                                        "const": 1
+                                      }
+                                    }
+                                  }
+                                },
+                                {
+                                  "if": {
+                                    "properties": {
+                                      "argument": {
+                                        "const": "offset"
+                                      }
+                                    }
+                                  },
+                                  "then": {
+                                    "properties": {
+                                      "minimum": {
+                                        "const": 0
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "parameter_declarations",
+                                    "program"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "not": {
+                                "const": "parameter_consumer_condition"
+                              }
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "facts": {
+                              "not": {
+                                "required": [
+                                  "argument"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
                         "not": {
                           "properties": {
                             "code": {
                               "enum": [
                                 "parameter_value_required",
+                                "parameter_consumer_condition",
                                 "host_capacity_policy_required",
                                 "numeric_reduction_profile_required"
                               ]
@@ -89501,6 +89727,7 @@
                       "code": {
                         "enum": [
                           "parameter_value_required",
+                          "parameter_consumer_condition",
                           "host_capacity_policy_required",
                           "numeric_reduction_profile_required"
                         ]
@@ -90238,6 +90465,91 @@
                                 }
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "argument",
+                              "constraint",
+                              "expected_type",
+                              "maximum",
+                              "minimum",
+                              "operation",
+                              "parameter",
+                              "stage"
+                            ],
+                            "properties": {
+                              "argument": {
+                                "enum": [
+                                  "count",
+                                  "offset"
+                                ]
+                              },
+                              "constraint": {
+                                "const": "safe_integer"
+                              },
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "int64"
+                                ]
+                              },
+                              "maximum": {
+                                "const": 9007199254740991
+                              },
+                              "minimum": {
+                                "enum": [
+                                  0,
+                                  1
+                                ]
+                              },
+                              "operation": {
+                                "const": "take"
+                              },
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "stage": {
+                                "const": "binding"
+                              }
+                            },
+                            "allOf": [
+                              {
+                                "if": {
+                                  "properties": {
+                                    "argument": {
+                                      "const": "count"
+                                    }
+                                  }
+                                },
+                                "then": {
+                                  "properties": {
+                                    "minimum": {
+                                      "const": 1
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "if": {
+                                  "properties": {
+                                    "argument": {
+                                      "const": "offset"
+                                    }
+                                  }
+                                },
+                                "then": {
+                                  "properties": {
+                                    "minimum": {
+                                      "const": 0
+                                    }
+                                  }
+                                }
+                              }
+                            ]
                           }
                         ]
                       }
@@ -91345,7 +91657,8 @@
                                   "numeric_reduction_profile_required",
                                   "program_structure_invalid",
                                   "source_selector_unregistered",
-                                  "query_alias_absent"
+                                  "query_alias_absent",
+                                  "parameter_consumer_condition"
                                 ]
                               }
                             }
@@ -91356,6 +91669,142 @@
                             "required": [
                               "facts"
                             ]
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_consumer_condition"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "argument",
+                                "constraint",
+                                "expected_type",
+                                "maximum",
+                                "minimum",
+                                "operation",
+                                "parameter",
+                                "stage"
+                              ],
+                              "properties": {
+                                "argument": {
+                                  "enum": [
+                                    "count",
+                                    "offset"
+                                  ]
+                                },
+                                "constraint": {
+                                  "const": "safe_integer"
+                                },
+                                "expected_type": {
+                                  "enum": [
+                                    "number",
+                                    "int64"
+                                  ]
+                                },
+                                "maximum": {
+                                  "const": 9007199254740991
+                                },
+                                "minimum": {
+                                  "enum": [
+                                    0,
+                                    1
+                                  ]
+                                },
+                                "operation": {
+                                  "const": "take"
+                                },
+                                "parameter": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 256
+                                },
+                                "stage": {
+                                  "const": "binding"
+                                }
+                              },
+                              "allOf": [
+                                {
+                                  "if": {
+                                    "properties": {
+                                      "argument": {
+                                        "const": "count"
+                                      }
+                                    }
+                                  },
+                                  "then": {
+                                    "properties": {
+                                      "minimum": {
+                                        "const": 1
+                                      }
+                                    }
+                                  }
+                                },
+                                {
+                                  "if": {
+                                    "properties": {
+                                      "argument": {
+                                        "const": "offset"
+                                      }
+                                    }
+                                  },
+                                  "then": {
+                                    "properties": {
+                                      "minimum": {
+                                        "const": 0
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "parameter_declarations",
+                                    "program"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "not": {
+                                "const": "parameter_consumer_condition"
+                              }
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "facts": {
+                              "not": {
+                                "required": [
+                                  "argument"
+                                ]
+                              }
+                            }
                           }
                         }
                       }
@@ -91391,7 +91840,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf"
+              "const": "sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -91531,7 +91980,10 @@
                               "items": {
                                 "properties": {
                                   "code": {
-                                    "const": "parameter_value_required"
+                                    "enum": [
+                                      "parameter_value_required",
+                                      "parameter_consumer_condition"
+                                    ]
                                   }
                                 }
                               }
@@ -92640,6 +93092,91 @@
                                 }
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "argument",
+                              "constraint",
+                              "expected_type",
+                              "maximum",
+                              "minimum",
+                              "operation",
+                              "parameter",
+                              "stage"
+                            ],
+                            "properties": {
+                              "argument": {
+                                "enum": [
+                                  "count",
+                                  "offset"
+                                ]
+                              },
+                              "constraint": {
+                                "const": "safe_integer"
+                              },
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "int64"
+                                ]
+                              },
+                              "maximum": {
+                                "const": 9007199254740991
+                              },
+                              "minimum": {
+                                "enum": [
+                                  0,
+                                  1
+                                ]
+                              },
+                              "operation": {
+                                "const": "take"
+                              },
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "stage": {
+                                "const": "binding"
+                              }
+                            },
+                            "allOf": [
+                              {
+                                "if": {
+                                  "properties": {
+                                    "argument": {
+                                      "const": "count"
+                                    }
+                                  }
+                                },
+                                "then": {
+                                  "properties": {
+                                    "minimum": {
+                                      "const": 1
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "if": {
+                                  "properties": {
+                                    "argument": {
+                                      "const": "offset"
+                                    }
+                                  }
+                                },
+                                "then": {
+                                  "properties": {
+                                    "minimum": {
+                                      "const": 0
+                                    }
+                                  }
+                                }
+                              }
+                            ]
                           }
                         ]
                       }
@@ -93747,7 +94284,8 @@
                                   "numeric_reduction_profile_required",
                                   "program_structure_invalid",
                                   "source_selector_unregistered",
-                                  "query_alias_absent"
+                                  "query_alias_absent",
+                                  "parameter_consumer_condition"
                                 ]
                               }
                             }
@@ -93762,11 +94300,148 @@
                         }
                       },
                       {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_consumer_condition"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "argument",
+                                "constraint",
+                                "expected_type",
+                                "maximum",
+                                "minimum",
+                                "operation",
+                                "parameter",
+                                "stage"
+                              ],
+                              "properties": {
+                                "argument": {
+                                  "enum": [
+                                    "count",
+                                    "offset"
+                                  ]
+                                },
+                                "constraint": {
+                                  "const": "safe_integer"
+                                },
+                                "expected_type": {
+                                  "enum": [
+                                    "number",
+                                    "int64"
+                                  ]
+                                },
+                                "maximum": {
+                                  "const": 9007199254740991
+                                },
+                                "minimum": {
+                                  "enum": [
+                                    0,
+                                    1
+                                  ]
+                                },
+                                "operation": {
+                                  "const": "take"
+                                },
+                                "parameter": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 256
+                                },
+                                "stage": {
+                                  "const": "binding"
+                                }
+                              },
+                              "allOf": [
+                                {
+                                  "if": {
+                                    "properties": {
+                                      "argument": {
+                                        "const": "count"
+                                      }
+                                    }
+                                  },
+                                  "then": {
+                                    "properties": {
+                                      "minimum": {
+                                        "const": 1
+                                      }
+                                    }
+                                  }
+                                },
+                                {
+                                  "if": {
+                                    "properties": {
+                                      "argument": {
+                                        "const": "offset"
+                                      }
+                                    }
+                                  },
+                                  "then": {
+                                    "properties": {
+                                      "minimum": {
+                                        "const": 0
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "parameter_declarations",
+                                    "program"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "not": {
+                                "const": "parameter_consumer_condition"
+                              }
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "facts": {
+                              "not": {
+                                "required": [
+                                  "argument"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
                         "not": {
                           "properties": {
                             "code": {
                               "enum": [
                                 "parameter_value_required",
+                                "parameter_consumer_condition",
                                 "host_capacity_policy_required",
                                 "numeric_reduction_profile_required"
                               ]
@@ -93794,6 +94469,7 @@
                       "code": {
                         "enum": [
                           "parameter_value_required",
+                          "parameter_consumer_condition",
                           "host_capacity_policy_required",
                           "numeric_reduction_profile_required"
                         ]
@@ -94531,6 +95207,91 @@
                                 }
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "argument",
+                              "constraint",
+                              "expected_type",
+                              "maximum",
+                              "minimum",
+                              "operation",
+                              "parameter",
+                              "stage"
+                            ],
+                            "properties": {
+                              "argument": {
+                                "enum": [
+                                  "count",
+                                  "offset"
+                                ]
+                              },
+                              "constraint": {
+                                "const": "safe_integer"
+                              },
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "int64"
+                                ]
+                              },
+                              "maximum": {
+                                "const": 9007199254740991
+                              },
+                              "minimum": {
+                                "enum": [
+                                  0,
+                                  1
+                                ]
+                              },
+                              "operation": {
+                                "const": "take"
+                              },
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "stage": {
+                                "const": "binding"
+                              }
+                            },
+                            "allOf": [
+                              {
+                                "if": {
+                                  "properties": {
+                                    "argument": {
+                                      "const": "count"
+                                    }
+                                  }
+                                },
+                                "then": {
+                                  "properties": {
+                                    "minimum": {
+                                      "const": 1
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "if": {
+                                  "properties": {
+                                    "argument": {
+                                      "const": "offset"
+                                    }
+                                  }
+                                },
+                                "then": {
+                                  "properties": {
+                                    "minimum": {
+                                      "const": 0
+                                    }
+                                  }
+                                }
+                              }
+                            ]
                           }
                         ]
                       }
@@ -95638,7 +96399,8 @@
                                   "numeric_reduction_profile_required",
                                   "program_structure_invalid",
                                   "source_selector_unregistered",
-                                  "query_alias_absent"
+                                  "query_alias_absent",
+                                  "parameter_consumer_condition"
                                 ]
                               }
                             }
@@ -95649,6 +96411,142 @@
                             "required": [
                               "facts"
                             ]
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_consumer_condition"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "argument",
+                                "constraint",
+                                "expected_type",
+                                "maximum",
+                                "minimum",
+                                "operation",
+                                "parameter",
+                                "stage"
+                              ],
+                              "properties": {
+                                "argument": {
+                                  "enum": [
+                                    "count",
+                                    "offset"
+                                  ]
+                                },
+                                "constraint": {
+                                  "const": "safe_integer"
+                                },
+                                "expected_type": {
+                                  "enum": [
+                                    "number",
+                                    "int64"
+                                  ]
+                                },
+                                "maximum": {
+                                  "const": 9007199254740991
+                                },
+                                "minimum": {
+                                  "enum": [
+                                    0,
+                                    1
+                                  ]
+                                },
+                                "operation": {
+                                  "const": "take"
+                                },
+                                "parameter": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 256
+                                },
+                                "stage": {
+                                  "const": "binding"
+                                }
+                              },
+                              "allOf": [
+                                {
+                                  "if": {
+                                    "properties": {
+                                      "argument": {
+                                        "const": "count"
+                                      }
+                                    }
+                                  },
+                                  "then": {
+                                    "properties": {
+                                      "minimum": {
+                                        "const": 1
+                                      }
+                                    }
+                                  }
+                                },
+                                {
+                                  "if": {
+                                    "properties": {
+                                      "argument": {
+                                        "const": "offset"
+                                      }
+                                    }
+                                  },
+                                  "then": {
+                                    "properties": {
+                                      "minimum": {
+                                        "const": 0
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "parameter_declarations",
+                                    "program"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "not": {
+                                "const": "parameter_consumer_condition"
+                              }
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "facts": {
+                              "not": {
+                                "required": [
+                                  "argument"
+                                ]
+                              }
+                            }
                           }
                         }
                       }
@@ -95702,7 +96600,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf"
+              "const": "sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -95748,7 +96646,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf"
+              "const": "sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -96504,6 +97402,91 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "argument",
+                "constraint",
+                "expected_type",
+                "maximum",
+                "minimum",
+                "operation",
+                "parameter",
+                "stage"
+              ],
+              "properties": {
+                "argument": {
+                  "enum": [
+                    "count",
+                    "offset"
+                  ]
+                },
+                "constraint": {
+                  "const": "safe_integer"
+                },
+                "expected_type": {
+                  "enum": [
+                    "number",
+                    "int64"
+                  ]
+                },
+                "maximum": {
+                  "const": 9007199254740991
+                },
+                "minimum": {
+                  "enum": [
+                    0,
+                    1
+                  ]
+                },
+                "operation": {
+                  "const": "take"
+                },
+                "parameter": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "stage": {
+                  "const": "binding"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "argument": {
+                        "const": "count"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "minimum": {
+                        "const": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "argument": {
+                        "const": "offset"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "minimum": {
+                        "const": 0
+                      }
+                    }
+                  }
+                }
+              ]
             }
           ]
         }
@@ -97611,7 +98594,8 @@
                     "numeric_reduction_profile_required",
                     "program_structure_invalid",
                     "source_selector_unregistered",
-                    "query_alias_absent"
+                    "query_alias_absent",
+                    "parameter_consumer_condition"
                   ]
                 }
               }
@@ -97622,6 +98606,142 @@
               "required": [
                 "facts"
               ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "parameter_consumer_condition"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "argument",
+                  "constraint",
+                  "expected_type",
+                  "maximum",
+                  "minimum",
+                  "operation",
+                  "parameter",
+                  "stage"
+                ],
+                "properties": {
+                  "argument": {
+                    "enum": [
+                      "count",
+                      "offset"
+                    ]
+                  },
+                  "constraint": {
+                    "const": "safe_integer"
+                  },
+                  "expected_type": {
+                    "enum": [
+                      "number",
+                      "int64"
+                    ]
+                  },
+                  "maximum": {
+                    "const": 9007199254740991
+                  },
+                  "minimum": {
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  },
+                  "operation": {
+                    "const": "take"
+                  },
+                  "parameter": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "stage": {
+                    "const": "binding"
+                  }
+                },
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "argument": {
+                          "const": "count"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "minimum": {
+                          "const": 1
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "argument": {
+                          "const": "offset"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "minimum": {
+                          "const": 0
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "structured"
+                  },
+                  "document_id": {
+                    "enum": [
+                      "parameter_declarations",
+                      "program"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "not": {
+                  "const": "parameter_consumer_condition"
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "not": {
+                  "required": [
+                    "argument"
+                  ]
+                }
+              }
             }
           }
         }

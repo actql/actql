@@ -12,7 +12,7 @@ const cancellation = {kind:'accepted',ref:wireRef,cancelRef,revision:8};
 const held = {kind:'held', requestId:'original',prepareAttemptId:'prepare-a',state:'resuming',durability:'durable',lookupExpiresAt:'2026-10-04T10:00:00Z'};
 const revision = 'rev:'+'1'.repeat(64);
 // Explicit current pins copied from the registered owner, not resolved at test time.
-const report = {version:'actql-check-outcome/0.1',reason_schema_cid:'sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e',outcome_schema_cid:'sha256:988a8893ede0e64a351f077f28c7b7c82a9b2988467b8eb8a02755ad3530ca7b',outcome:'completed',report:{context_ref:'ctx:fixture',scope:{kind:'bound_input'},verdict:'invalid',runnable:{verdict:'no',reasons:[{code:'future_violation'}]},inputs:[{document_id:'source',revision,kind:'text',byte_length:10}],reasons:[{code:'future_violation',location:{kind:'text',document_id:'source',revision,start_byte:1,end_byte:5,precision:'exact'}}],requirements:[],coverage:{limits:[],unresolved:[]}}};
+const report = {version:'actql-check-outcome/0.1',reason_schema_cid:'sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5',outcome_schema_cid:'sha256:abc1f9da9c6394f61d780139fe10ce220a25f6579ef80ed043a46c5704cf5f3b',outcome:'completed',report:{context_ref:'ctx:fixture',scope:{kind:'bound_input'},verdict:'invalid',runnable:{verdict:'no',reasons:[{code:'future_violation'}]},inputs:[{document_id:'source',revision,kind:'text',byte_length:10}],reasons:[{code:'future_violation',location:{kind:'text',document_id:'source',revision,start_byte:1,end_byte:5,precision:'exact'}}],requirements:[],coverage:{limits:[],unresolved:[]}}};
 const vectors=[];
 const add = (name,operation,value,expected,extra={}) => vectors.push({name,operation,valueJSON:q(value),expected,...extra});
 const raw = (name,operation,valueJSON,expected,extra={}) => vectors.push({name,operation,valueJSON,expected,...extra});
@@ -107,7 +107,7 @@ for (const [label,name,expected] of [
  const value=structuredClone(report);
  value.report.verdict='verified';value.report.runnable={verdict:'no',reasons:[{code:'parameter_value_required'}]};value.report.scope={kind:'template_only'};value.report.reasons=[];
  value.report.requirements=[{code:'parameter_value_required',facts:{parameter:'object',expected_type:'object',admission:{
-  kind:'parameter_declaration',contract_schema_cid:'sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c',
+  kind:'parameter_declaration',contract_schema_cid:'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1',
   contract:{type:'object',nullable:false,additional_properties:false,fields:{[name]:{type:'string',nullable:false}}},
   constraints:[],supplier:'caller',
  }}}];

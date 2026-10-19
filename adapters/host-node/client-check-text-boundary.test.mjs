@@ -708,9 +708,71 @@ for (const entrance of ['local', 'http']) {
     }
     const conditional = await client.check('SELECT 1 AS n ORDER BY n LIMIT @count',
       {kind: 'text', scope: 'template_only', format: 'sql', parameterDeclarations: {count: {type: 'int64'}}});
-    assert.equal(conditional.report.verdict, 'undetermined');
-    assert.ok(conditional.report.coverage.limits.some(limit => limit.code === 'implementation_limit'));
+    assert.equal(conditional.report.verdict, 'verified');
+    assert.deepEqual(conditional.report.coverage, {limits: [], unresolved: []});
+    assert.equal(conditional.report.requirements[1].code, 'parameter_consumer_condition');
     assert.equal(conditional.report.requirements[0].facts.parameter, 'count');
+  });
+
+  test(`${entrance}: Take defaults and overrides retain separate binding conditions`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const type of ['number', 'int64']) {
+      const value = n => type === 'int64' ? String(n) : n;
+      for (const format of ['sql', 'aql-text']) {
+        const text = format === 'sql'
+          ? 'SELECT 1 AS n ORDER BY n LIMIT @count OFFSET @offset'
+          : 'SELECT 1 AS n |> ORDER BY n |> LIMIT @count OFFSET @offset';
+        for (const countDefault of [undefined, value(0), value(1)]) {
+          const count = countDefault === undefined ? {type} : {type, default: countDefault};
+          const options = {kind: 'text', format, scope: 'template_only',
+            parameterDeclarations: {count, offset: {type, default: value(0)}}};
+          const template = await client.check(text, options);
+          assert.equal(template.report.verdict, 'verified');
+          assert.deepEqual(template.report.coverage, {limits: [], unresolved: []});
+          const conditions = template.report.requirements.filter(r => r.code === 'parameter_consumer_condition');
+          assert.deepEqual(conditions.map(r => r.facts), [
+            {parameter: 'count', expected_type: type, operation: 'take', argument: 'count',
+              constraint: 'safe_integer', minimum: 1, maximum: 9007199254740991, stage: 'binding'},
+            {parameter: 'offset', expected_type: type, operation: 'take', argument: 'offset',
+              constraint: 'safe_integer', minimum: 0, maximum: 9007199254740991, stage: 'binding'},
+          ]);
+          for (const condition of conditions) {
+            assert.equal(resolveCheckLocation(template, condition.location).pointer, '/' + condition.facts.parameter);
+            assert.equal(resolveCheckLocation(structuredClone(template), condition.location), undefined);
+          }
+          assert.equal(template.report.runnable.verdict, 'no');
+          assert.ok(template.report.runnable.reasons.some(r => r.code === 'parameter_consumer_condition'));
+          assert.equal(template.report.requirements.some(r => r.code === 'parameter_value_required'), countDefault === undefined);
+          const bound = {...options, scope: 'bound_input'};
+          const valid = await client.check(text, {...bound, parameters: {count: value(1)}});
+          assert.equal(valid.report.verdict, 'verified');
+          assert.deepEqual(valid.report.requirements, []);
+          const maximum = await client.check(text, {...bound,
+            parameters: {count: value(9007199254740991), offset: value(9007199254740991)}});
+          assert.equal(maximum.report.verdict, 'verified');
+          const foreignType = await client.check(text, {...bound,
+            parameters: {count: type === 'int64' ? 1 : '1'}});
+          assert.equal(foreignType.report.verdict, 'invalid');
+          assert.ok(foreignType.report.reasons.some(r => r.code === 'supplied_value_type_mismatch'));
+          for (const parameters of [{count: value(0)}, {count: value(-1)},
+            {count: value(9007199254740992)}, {count: value(1), offset: value(-1)},
+            {count: value(1), offset: value(9007199254740992)},
+            ...(type === 'number' ? [{count: 1.5}, {count: 1, offset: 0.5}] : [])]) {
+            const invalid = await client.check(text, {...bound, parameters});
+            assert.equal(invalid.report.verdict, 'invalid');
+            assert.ok(invalid.report.reasons.some(r => r.code === 'operation_parameter_invalid'));
+          }
+          if (countDefault !== undefined) {
+            const omitted = await client.check(text, bound);
+            assert.equal(omitted.report.verdict, countDefault === value(0) ? 'invalid' : 'verified');
+            if (countDefault === value(0)) {
+              assert.equal(omitted.report.reasons[0].code, 'operation_parameter_invalid');
+              assert.equal(omitted.report.requirements.some(r => r.code === 'parameter_value_required'), false);
+            }
+          }
+        }
+      }
+    }
   });
 
   test(`${entrance}: SQL and Pipe DISTINCT templates retain typed Parameter and Result obligations`, async t => {

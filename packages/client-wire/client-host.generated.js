@@ -9949,6 +9949,91 @@ const schemas = {
                               }
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "argument",
+                            "constraint",
+                            "expected_type",
+                            "maximum",
+                            "minimum",
+                            "operation",
+                            "parameter",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "argument": {
+                              "enum": [
+                                "count",
+                                "offset"
+                              ]
+                            },
+                            "constraint": {
+                              "const": "safe_integer"
+                            },
+                            "expected_type": {
+                              "enum": [
+                                "number",
+                                "int64"
+                              ]
+                            },
+                            "maximum": {
+                              "const": 9007199254740991
+                            },
+                            "minimum": {
+                              "enum": [
+                                0,
+                                1
+                              ]
+                            },
+                            "operation": {
+                              "const": "take"
+                            },
+                            "parameter": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "stage": {
+                              "const": "binding"
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "if": {
+                                "properties": {
+                                  "argument": {
+                                    "const": "count"
+                                  }
+                                }
+                              },
+                              "then": {
+                                "properties": {
+                                  "minimum": {
+                                    "const": 1
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "if": {
+                                "properties": {
+                                  "argument": {
+                                    "const": "offset"
+                                  }
+                                }
+                              },
+                              "then": {
+                                "properties": {
+                                  "minimum": {
+                                    "const": 0
+                                  }
+                                }
+                              }
+                            }
+                          ]
                         }
                       ]
                     }
@@ -11056,7 +11141,8 @@ const schemas = {
                                 "numeric_reduction_profile_required",
                                 "program_structure_invalid",
                                 "source_selector_unregistered",
-                                "query_alias_absent"
+                                "query_alias_absent",
+                                "parameter_consumer_condition"
                               ]
                             }
                           }
@@ -11071,11 +11157,148 @@ const schemas = {
                       }
                     },
                     {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "parameter_consumer_condition"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "argument",
+                              "constraint",
+                              "expected_type",
+                              "maximum",
+                              "minimum",
+                              "operation",
+                              "parameter",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "argument": {
+                                "enum": [
+                                  "count",
+                                  "offset"
+                                ]
+                              },
+                              "constraint": {
+                                "const": "safe_integer"
+                              },
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "int64"
+                                ]
+                              },
+                              "maximum": {
+                                "const": 9007199254740991
+                              },
+                              "minimum": {
+                                "enum": [
+                                  0,
+                                  1
+                                ]
+                              },
+                              "operation": {
+                                "const": "take"
+                              },
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "stage": {
+                                "const": "binding"
+                              }
+                            },
+                            "allOf": [
+                              {
+                                "if": {
+                                  "properties": {
+                                    "argument": {
+                                      "const": "count"
+                                    }
+                                  }
+                                },
+                                "then": {
+                                  "properties": {
+                                    "minimum": {
+                                      "const": 1
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "if": {
+                                  "properties": {
+                                    "argument": {
+                                      "const": "offset"
+                                    }
+                                  }
+                                },
+                                "then": {
+                                  "properties": {
+                                    "minimum": {
+                                      "const": 0
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "parameter_consumer_condition"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "argument"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
                       "not": {
                         "properties": {
                           "code": {
                             "enum": [
                               "parameter_value_required",
+                              "parameter_consumer_condition",
                               "host_capacity_policy_required",
                               "numeric_reduction_profile_required"
                             ]
@@ -11100,6 +11323,7 @@ const schemas = {
                     "code": {
                       "enum": [
                         "parameter_value_required",
+                        "parameter_consumer_condition",
                         "host_capacity_policy_required",
                         "numeric_reduction_profile_required"
                       ]
@@ -11837,6 +12061,91 @@ const schemas = {
                               }
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "argument",
+                            "constraint",
+                            "expected_type",
+                            "maximum",
+                            "minimum",
+                            "operation",
+                            "parameter",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "argument": {
+                              "enum": [
+                                "count",
+                                "offset"
+                              ]
+                            },
+                            "constraint": {
+                              "const": "safe_integer"
+                            },
+                            "expected_type": {
+                              "enum": [
+                                "number",
+                                "int64"
+                              ]
+                            },
+                            "maximum": {
+                              "const": 9007199254740991
+                            },
+                            "minimum": {
+                              "enum": [
+                                0,
+                                1
+                              ]
+                            },
+                            "operation": {
+                              "const": "take"
+                            },
+                            "parameter": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "stage": {
+                              "const": "binding"
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "if": {
+                                "properties": {
+                                  "argument": {
+                                    "const": "count"
+                                  }
+                                }
+                              },
+                              "then": {
+                                "properties": {
+                                  "minimum": {
+                                    "const": 1
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "if": {
+                                "properties": {
+                                  "argument": {
+                                    "const": "offset"
+                                  }
+                                }
+                              },
+                              "then": {
+                                "properties": {
+                                  "minimum": {
+                                    "const": 0
+                                  }
+                                }
+                              }
+                            }
+                          ]
                         }
                       ]
                     }
@@ -12944,7 +13253,8 @@ const schemas = {
                                 "numeric_reduction_profile_required",
                                 "program_structure_invalid",
                                 "source_selector_unregistered",
-                                "query_alias_absent"
+                                "query_alias_absent",
+                                "parameter_consumer_condition"
                               ]
                             }
                           }
@@ -12955,6 +13265,142 @@ const schemas = {
                           "required": [
                             "facts"
                           ]
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "parameter_consumer_condition"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "argument",
+                              "constraint",
+                              "expected_type",
+                              "maximum",
+                              "minimum",
+                              "operation",
+                              "parameter",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "argument": {
+                                "enum": [
+                                  "count",
+                                  "offset"
+                                ]
+                              },
+                              "constraint": {
+                                "const": "safe_integer"
+                              },
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "int64"
+                                ]
+                              },
+                              "maximum": {
+                                "const": 9007199254740991
+                              },
+                              "minimum": {
+                                "enum": [
+                                  0,
+                                  1
+                                ]
+                              },
+                              "operation": {
+                                "const": "take"
+                              },
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "stage": {
+                                "const": "binding"
+                              }
+                            },
+                            "allOf": [
+                              {
+                                "if": {
+                                  "properties": {
+                                    "argument": {
+                                      "const": "count"
+                                    }
+                                  }
+                                },
+                                "then": {
+                                  "properties": {
+                                    "minimum": {
+                                      "const": 1
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "if": {
+                                  "properties": {
+                                    "argument": {
+                                      "const": "offset"
+                                    }
+                                  }
+                                },
+                                "then": {
+                                  "properties": {
+                                    "minimum": {
+                                      "const": 0
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "parameter_consumer_condition"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "argument"
+                              ]
+                            }
+                          }
                         }
                       }
                     }
@@ -13096,7 +13542,10 @@ const schemas = {
                             "items": {
                               "properties": {
                                 "code": {
-                                  "const": "parameter_value_required"
+                                  "enum": [
+                                    "parameter_value_required",
+                                    "parameter_consumer_condition"
+                                  ]
                                 }
                               }
                             }
@@ -13171,7 +13620,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf"
+            "const": "sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -14236,6 +14685,91 @@ const schemas = {
                               }
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "argument",
+                            "constraint",
+                            "expected_type",
+                            "maximum",
+                            "minimum",
+                            "operation",
+                            "parameter",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "argument": {
+                              "enum": [
+                                "count",
+                                "offset"
+                              ]
+                            },
+                            "constraint": {
+                              "const": "safe_integer"
+                            },
+                            "expected_type": {
+                              "enum": [
+                                "number",
+                                "int64"
+                              ]
+                            },
+                            "maximum": {
+                              "const": 9007199254740991
+                            },
+                            "minimum": {
+                              "enum": [
+                                0,
+                                1
+                              ]
+                            },
+                            "operation": {
+                              "const": "take"
+                            },
+                            "parameter": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "stage": {
+                              "const": "binding"
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "if": {
+                                "properties": {
+                                  "argument": {
+                                    "const": "count"
+                                  }
+                                }
+                              },
+                              "then": {
+                                "properties": {
+                                  "minimum": {
+                                    "const": 1
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "if": {
+                                "properties": {
+                                  "argument": {
+                                    "const": "offset"
+                                  }
+                                }
+                              },
+                              "then": {
+                                "properties": {
+                                  "minimum": {
+                                    "const": 0
+                                  }
+                                }
+                              }
+                            }
+                          ]
                         }
                       ]
                     }
@@ -15343,7 +15877,8 @@ const schemas = {
                                 "numeric_reduction_profile_required",
                                 "program_structure_invalid",
                                 "source_selector_unregistered",
-                                "query_alias_absent"
+                                "query_alias_absent",
+                                "parameter_consumer_condition"
                               ]
                             }
                           }
@@ -15358,11 +15893,148 @@ const schemas = {
                       }
                     },
                     {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "parameter_consumer_condition"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "argument",
+                              "constraint",
+                              "expected_type",
+                              "maximum",
+                              "minimum",
+                              "operation",
+                              "parameter",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "argument": {
+                                "enum": [
+                                  "count",
+                                  "offset"
+                                ]
+                              },
+                              "constraint": {
+                                "const": "safe_integer"
+                              },
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "int64"
+                                ]
+                              },
+                              "maximum": {
+                                "const": 9007199254740991
+                              },
+                              "minimum": {
+                                "enum": [
+                                  0,
+                                  1
+                                ]
+                              },
+                              "operation": {
+                                "const": "take"
+                              },
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "stage": {
+                                "const": "binding"
+                              }
+                            },
+                            "allOf": [
+                              {
+                                "if": {
+                                  "properties": {
+                                    "argument": {
+                                      "const": "count"
+                                    }
+                                  }
+                                },
+                                "then": {
+                                  "properties": {
+                                    "minimum": {
+                                      "const": 1
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "if": {
+                                  "properties": {
+                                    "argument": {
+                                      "const": "offset"
+                                    }
+                                  }
+                                },
+                                "then": {
+                                  "properties": {
+                                    "minimum": {
+                                      "const": 0
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "parameter_consumer_condition"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "argument"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
                       "not": {
                         "properties": {
                           "code": {
                             "enum": [
                               "parameter_value_required",
+                              "parameter_consumer_condition",
                               "host_capacity_policy_required",
                               "numeric_reduction_profile_required"
                             ]
@@ -15387,6 +16059,7 @@ const schemas = {
                     "code": {
                       "enum": [
                         "parameter_value_required",
+                        "parameter_consumer_condition",
                         "host_capacity_policy_required",
                         "numeric_reduction_profile_required"
                       ]
@@ -16124,6 +16797,91 @@ const schemas = {
                               }
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "argument",
+                            "constraint",
+                            "expected_type",
+                            "maximum",
+                            "minimum",
+                            "operation",
+                            "parameter",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "argument": {
+                              "enum": [
+                                "count",
+                                "offset"
+                              ]
+                            },
+                            "constraint": {
+                              "const": "safe_integer"
+                            },
+                            "expected_type": {
+                              "enum": [
+                                "number",
+                                "int64"
+                              ]
+                            },
+                            "maximum": {
+                              "const": 9007199254740991
+                            },
+                            "minimum": {
+                              "enum": [
+                                0,
+                                1
+                              ]
+                            },
+                            "operation": {
+                              "const": "take"
+                            },
+                            "parameter": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "stage": {
+                              "const": "binding"
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "if": {
+                                "properties": {
+                                  "argument": {
+                                    "const": "count"
+                                  }
+                                }
+                              },
+                              "then": {
+                                "properties": {
+                                  "minimum": {
+                                    "const": 1
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "if": {
+                                "properties": {
+                                  "argument": {
+                                    "const": "offset"
+                                  }
+                                }
+                              },
+                              "then": {
+                                "properties": {
+                                  "minimum": {
+                                    "const": 0
+                                  }
+                                }
+                              }
+                            }
+                          ]
                         }
                       ]
                     }
@@ -17231,7 +17989,8 @@ const schemas = {
                                 "numeric_reduction_profile_required",
                                 "program_structure_invalid",
                                 "source_selector_unregistered",
-                                "query_alias_absent"
+                                "query_alias_absent",
+                                "parameter_consumer_condition"
                               ]
                             }
                           }
@@ -17242,6 +18001,142 @@ const schemas = {
                           "required": [
                             "facts"
                           ]
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "parameter_consumer_condition"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "argument",
+                              "constraint",
+                              "expected_type",
+                              "maximum",
+                              "minimum",
+                              "operation",
+                              "parameter",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "argument": {
+                                "enum": [
+                                  "count",
+                                  "offset"
+                                ]
+                              },
+                              "constraint": {
+                                "const": "safe_integer"
+                              },
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "int64"
+                                ]
+                              },
+                              "maximum": {
+                                "const": 9007199254740991
+                              },
+                              "minimum": {
+                                "enum": [
+                                  0,
+                                  1
+                                ]
+                              },
+                              "operation": {
+                                "const": "take"
+                              },
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "stage": {
+                                "const": "binding"
+                              }
+                            },
+                            "allOf": [
+                              {
+                                "if": {
+                                  "properties": {
+                                    "argument": {
+                                      "const": "count"
+                                    }
+                                  }
+                                },
+                                "then": {
+                                  "properties": {
+                                    "minimum": {
+                                      "const": 1
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "if": {
+                                  "properties": {
+                                    "argument": {
+                                      "const": "offset"
+                                    }
+                                  }
+                                },
+                                "then": {
+                                  "properties": {
+                                    "minimum": {
+                                      "const": 0
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "parameter_consumer_condition"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "argument"
+                              ]
+                            }
+                          }
                         }
                       }
                     }
@@ -17382,7 +18277,10 @@ const schemas = {
                             "items": {
                               "properties": {
                                 "code": {
-                                  "const": "parameter_value_required"
+                                  "enum": [
+                                    "parameter_value_required",
+                                    "parameter_consumer_condition"
+                                  ]
                                 }
                               }
                             }
@@ -17476,7 +18374,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf"
+            "const": "sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -17522,7 +18420,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf"
+            "const": "sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -19241,8 +20139,8 @@ const optionalRequestFields = {
   }
 };
 
-export const checkReasonSchemaCid = "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf";
-export const checkOutcomeSchemaCid = "sha256:ee1c0c7799d2dd30aa084ec5699078cf14ada0687ac6bb9e48e1f714789a8535";
+export const checkReasonSchemaCid = "sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5";
+export const checkOutcomeSchemaCid = "sha256:abc1f9da9c6394f61d780139fe10ce220a25f6579ef80ed043a46c5704cf5f3b";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function finiteWireNumber(value) {
