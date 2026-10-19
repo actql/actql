@@ -37,7 +37,7 @@ export async function installedSlackChannelsFixture(t,{account='allow',resource=
     baseEnvironmentWire:await readFile(new URL('spec/local-check-environment.json',repo),'utf8'),
     resolveSecret:async()=>{f.state.resolutions++;await f.state.resolved?.();return f.state.secret;},readerCapacity:capacity};
   const load=async(overrides={})=>{const source=await loadInstalledSlackSource(profile,{...options,...overrides});sources.push(source);return source;};
-  const prepare=async(source,{format='sql',selection='id, name',resource:selectedResource=resource,predicate,parameterDeclarations,parameters}={})=>{
+  const prepare=async(source,{format='sql',selection='id, name',resource:selectedResource=resource,predicate,text:originalText,parameterDeclarations,parameters}={})=>{
     const env=JSON.parse(source.environmentWire);
     const check=common.clientProgramCheckEnvironment(source.environmentWire,env.evidence_bundle_cid,
       false,false,true,false,false,false,false);assert.ok(check);
@@ -45,8 +45,8 @@ export async function installedSlackChannelsFixture(t,{account='allow',resource=
     const publication=JSON.stringify({environmentCid:env.evidence_bundle_cid,aliases:[{name:'slack.'+selectedResource,
       sourceRef:view.source_ref,sourceViewContractCid:view.source_view_contract_cid,
       schemaContractCid:view.carrier_schema_contract_cid}]});
-    const text=format==='sql'?`SELECT ${selection} FROM slack.${selectedResource}${predicate===undefined?'':' WHERE '+predicate}`
-      :`FROM slack.${selectedResource}${predicate===undefined?'':' |> WHERE '+predicate} |> SELECT ${selection}`;
+    const text=originalText??(format==='sql'?`SELECT ${selection} FROM slack.${selectedResource}${predicate===undefined?'':' WHERE '+predicate}`
+      :`FROM slack.${selectedResource}${predicate===undefined?'':' |> WHERE '+predicate} |> SELECT ${selection}`);
     const outcome=common.clientProgramPrepareSourceWithParameters(text,format,check,publication,parameterDeclarations,parameters);
     const preparedProgram=common.clientProgramPreparationReady(outcome);
     assert.ok(preparedProgram,common.clientProgramPreparationIssueCode(outcome));
