@@ -41,7 +41,7 @@ fn native_storage_arithmetic_profile() -> LocalCommandPreparationProfile {
       managed_read_execution_bytes: Some(11L),
       loader_platform_execution_bytes: Some(19L),
       native_read_execution_bytes: Some(131072L),
-      sqlite_other_heap_bytes: Some(32L),
+      sqlite_other_heap_bytes: Some(131584L),
       sqlite_external_execution_bytes: Some(17L),
       shared_control_bytes: Some(29L),
     },
@@ -128,7 +128,7 @@ test "Native storage shared heaps count once and platform never charges Read" {
   assert_eq(quote.read_execution_bytes, profile.crypto_heap_bytes + 131083L)
   assert_eq(quote.platform_required_bytes, 19L)
   assert_eq(quote.sqlite_execution_bytes, profile.sqlite_heap_bytes + 17L)
-  assert_eq(quote.sqlite_heap_payload_bytes, 163904L)
+  assert_eq(quote.sqlite_heap_payload_bytes, 295456L)
   assert_eq(quote.shared_control_bytes, 29L)
 }
 
@@ -250,5 +250,41 @@ test "Native storage inspection subset refuses a positive underquote" {
       native_storage: exact,
     })
     is Err(CommandNativeStorage(NativeStoragePlatformUnadmitted)),
+  )
+}
+
+///|
+test "Native storage cannot place Journal scan result copies outside the same heap" {
+  let profile = native_storage_arithmetic_profile()
+  // Independent original caller dimensions: 131072 body + 512 key, each
+  // already a MEMSYS5 power-of-two block. No VM/cache/DB adequacy is claimed.
+  let too_small = {
+    ..profile.native_storage,
+    sqlite_other_heap_bytes: Some(131583L),
+  }
+  assert_true(
+    quote_local_command_native_storage({ ..profile, native_storage: too_small, })
+    is Err(NativeStorageInsufficient),
+  )
+  let exact = {
+    ..profile.native_storage,
+    sqlite_other_heap_bytes: Some(131584L),
+  }
+  let quote = quote_local_command_native_storage({
+    ..profile,
+    native_storage: exact,
+  }).unwrap()
+  assert_eq(quote.sqlite_heap_payload_bytes, 295456L)
+  // A large separate Read or outer platform value cannot repair this deficit.
+  assert_true(
+    quote_local_command_native_storage({
+      ..profile,
+      native_storage: {
+        ..too_small,
+        managed_read_execution_bytes: Some(1000000L),
+        loader_platform_execution_bytes: Some(1000000L),
+      },
+    })
+    is Err(NativeStorageInsufficient),
   )
 }
