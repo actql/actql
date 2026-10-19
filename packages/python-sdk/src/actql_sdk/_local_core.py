@@ -24,6 +24,8 @@ from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 from ._local_native_holding import _NativeHoldingLease
 
+_NORMAL_HOST_OPERATION_FUEL = 1_000_000_000
+_NORMAL_HOST_CLEANUP_FUEL = 100_000_000
 
 
 class LocalCoreError(RuntimeError):
@@ -344,7 +346,8 @@ class LocalCore:
                               transfer_capacity: int, slots: int = 64,
                               _host_capacity_bytes: int = 0,
                               _physical_holding: _NativeHoldingLease | None = None,
-                              _child_control: _OriginalChildControlPipe | None = None) -> LocalCore:
+                              _child_control: _OriginalChildControlPipe | None = None,
+                              _ordinary_host: bool = False) -> LocalCore:
         if not _valid_core_limits(transfer_capacity, slots, 100_000_000, resources,
                                   _host_capacity_bytes):
             raise ValueError('Invalid installed Local Core artifact or capacity')
@@ -358,6 +361,8 @@ class LocalCore:
                  else _checked_installed_image_file(components))
         return cls(None, digest=components.module_sha256, transfer_capacity=transfer_capacity,
                    resources=resources, slots=slots, _compiled_image=image,
+                   fuel=_NORMAL_HOST_OPERATION_FUEL if _ordinary_host else 100_000_000,
+                   _ordinary_host=_ordinary_host,
                    _host_capacity_bytes=_host_capacity_bytes, _physical_holding=_physical_holding,
                    _child_control=_child_control)
 
@@ -366,7 +371,8 @@ class LocalCore:
                  _compiled_image: _InstalledImageInput | _InstalledImageFileInput | None = None,
                  _host_capacity_bytes: int = 0,
                  _physical_holding: _NativeHoldingLease | None = None,
-                 _child_control: _OriginalChildControlPipe | None = None) -> None:
+                 _child_control: _OriginalChildControlPipe | None = None,
+                 _ordinary_host: bool = False) -> None:
         from ._local_engine import _InstalledImageInput, _InstalledImageFileInput
         from ._local_native_image import _NativeImageHolding
         from ._local_image_recipe import _SelectedImageRecipe
@@ -388,9 +394,12 @@ class LocalCore:
         if not original_valid or not _valid_core_limits(transfer_capacity, slots, fuel, resources,
                                                        _host_capacity_bytes):
             raise ValueError('Invalid installed Local Core artifact or capacity')
+        if type(_ordinary_host) is not bool or (_ordinary_host and _compiled_image is None):
+            raise ValueError('Ordinary Host fuel requires the installed image')
         if _compiled_image is not None:
             _compiled_image.recipe.validate()
-            if fuel != 100_000_000:
+            expected_fuel = _NORMAL_HOST_OPERATION_FUEL if _ordinary_host else 100_000_000
+            if fuel != expected_fuel:
                 raise ValueError('Installed Local image requires the original instruction fuel')
         if _physical_holding is not None and (type(_physical_holding) is not _NativeHoldingLease
                                                or _compiled_image is None):
@@ -416,6 +425,9 @@ class LocalCore:
         self._retired = False
         self._closing = False
         self._invoking = False
+        self._ordinary_host = _ordinary_host
+        self._host_fuel_phase: str | None = 'initial' if _ordinary_host else None
+        self._host_initial_claimed = False
         self._engine: Any = None
         self._engine_configuration: Any = None
         self._pool_configuration: Any = None
@@ -548,6 +560,7 @@ class LocalCore:
                                                 resources.attempts, resources.holdings,
                                                 resources.transfer_bytes, resources.retained_bytes,
                                                 resources.execution_bytes, _host_capacity_bytes))
+                self._host_fuel_phase = None
         except BaseException as error:
             self._retired = True
             self._closing = True
@@ -630,6 +643,8 @@ class LocalCore:
             raise RuntimeError('Local Core is closed')
         if self._invoking:
             raise RuntimeError('Local Core callbacks cannot reenter the instance')
+        if getattr(self, '_ordinary_host', False) and self._host_fuel_phase is None:
+            raise RuntimeError('Local Core requires its admitted Host operation')
         self._invoking = True
         try:
             with self._native_scope():
@@ -648,6 +663,55 @@ class LocalCore:
         if type(result) is not int:
             raise RuntimeError('Invalid Local Core scalar response')
         return result
+
+    @contextmanager
+    def _host_operation(self, *, initial: bool = False) -> Iterator[None]:
+        """One outer operation; internal calls never replenish its fuel.
+
+        The initial factory continues the constructor's original allowance.
+        A failed operation fences normal work; only explicit original cleanup
+        may obtain its independent finite allowance afterwards.
+        """
+        if not getattr(self, '_ordinary_host', False):
+            yield
+            return
+        with self._lock:
+            if self._host_fuel_phase is not None or self._invoking:
+                raise RuntimeError('Original Host operation is already active')
+            if self._closed or self._retired or self._closing:
+                raise RuntimeError('Original Host normal work is fenced')
+            if initial:
+                if self._host_initial_claimed:
+                    raise RuntimeError('Original Host bootstrap was already attempted')
+                self._host_initial_claimed = True
+            else:
+                self._store.set_fuel(_NORMAL_HOST_OPERATION_FUEL)
+            self._host_fuel_phase = 'operation'
+        try:
+            yield
+        finally:
+            with self._lock:
+                self._host_fuel_phase = None
+
+    @contextmanager
+    def _host_cleanup(self) -> Iterator[None]:
+        """Same-original close only; joining never refreshes an active scope."""
+        if not getattr(self, '_ordinary_host', False) or self._closed or self._store is None:
+            yield
+            return
+        with self._lock:
+            if self._invoking:
+                raise RuntimeError('Original Host callback cannot start cleanup')
+            joined = self._host_fuel_phase is not None
+            if not joined:
+                self._store.set_fuel(_NORMAL_HOST_CLEANUP_FUEL)
+                self._host_fuel_phase = 'cleanup'
+        try:
+            yield
+        finally:
+            if not joined:
+                with self._lock:
+                    self._host_fuel_phase = None
 
     @staticmethod
     def _check(operation: str, code: int) -> None:
@@ -3473,6 +3537,10 @@ class LocalCore:
             return True
 
     def close(self) -> bool:
+        with self._host_cleanup():
+            return self._close_core()
+
+    def _close_core(self) -> bool:
         """Keep the same instance on pending cleanup; do not cancel a Run."""
         with self._lock:
             if self._closed:

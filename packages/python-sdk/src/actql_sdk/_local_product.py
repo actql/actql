@@ -271,13 +271,14 @@ class InstalledLocalHost:
         # worker originals or any operation's current permission.
         core = LocalCore._from_installed_image(components,
             transfer_capacity=12 * 1024 * 1024, slots=64,
-            resources=resources)
+            resources=resources, _ordinary_host=True)
         try:
-            directory = (_default_directory() if directory_option is None
-                         else _private_state_directory(directory_option))
-            now = lambda: time.time_ns() // 1_000_000
-            observed_at = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
-            return cls(core, directory, now=now, observed_at=observed_at, sdk_finite=True)
+            with core._host_operation(initial=True):
+                directory = (_default_directory() if directory_option is None
+                             else _private_state_directory(directory_option))
+                now = lambda: time.time_ns() // 1_000_000
+                observed_at = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+                return cls(core, directory, now=now, observed_at=observed_at, sdk_finite=True)
         except LocalProductCleanupPending:
             raise
         except BaseException:
@@ -292,13 +293,6 @@ class InstalledLocalHost:
             raise ValueError('Copied installed Local Host')
 
     async def open(self, operation: str, payload: bytes) -> httpx.Response:
-        """Use the existing SDK's closed operation wire without HTTP or a token.
-
-        Profile/admission and completed original Run observations use their
-        existing Owners. Other operations still need their own observations; no outcome
-        is fabricated from a physical write, exception, or unsupported request.
-        The public installed factory remains gated on Result/recovery assembly.
-        """
         self._active()
         if any(not work.stopped for work in self._physical_work):
             raise ValueError('Original Local physical invocation is still active')
@@ -306,12 +300,26 @@ class InstalledLocalHost:
         if (type(operation) is not str or not wire.valid_body(operation, body)  # type: ignore[no-untyped-call]
                 or body['connection'] != _LOCAL_SELECTION):
             raise ValueError('Invalid original Local Client operation')
+        with self._core._host_operation():
+            return await self._open_operation(operation, body)
+
+    async def _open_operation(self, operation: str, body: dict[str, Any]) -> httpx.Response:
+        """Use the existing SDK's closed operation wire without HTTP or a token.
+
+        Profile/admission and completed original Run observations use their
+        existing Owners. Other operations still need their own observations; no outcome
+        is fabricated from a physical write, exception, or unsupported request.
+        The public installed factory remains gated on Result/recovery assembly.
+        """
         work: OriginalLocalWork | None = None
         with self._core._lock:
             if operation == 'connect':
-                raw = wire_bytes(self.profile())  # type: ignore[no-untyped-call]
+                raw = wire_bytes(self._profile())  # type: ignore[no-untyped-call]
             elif operation == 'submit-intent':
                 intent = {key: body[key] for key in ('kind', 'input', 'parameters')}
+                for key in ('stopBefore', 'readOnly'):
+                    if key in body:
+                        intent[key] = body[key]
                 identity = content_cid({'version': 'actql-submitted-intent/0.1',
                     'intent': intent}, data_keys=True)  # type: ignore[no-untyped-call]
                 if body['intentCid'] != identity:
@@ -619,6 +627,11 @@ class InstalledLocalHost:
             return captured[0]
 
     def profile(self) -> dict[str, Any]:
+        self._active()
+        with self._core._host_operation():
+            return self._profile()
+
+    def _profile(self) -> dict[str, Any]:
         """Read original Core scope and explicitly issue its authenticated epoch.
 
         No submitted input, Run, Source, Compute, Model or Effect is started.
@@ -2424,6 +2437,13 @@ class InstalledLocalHost:
                     raise LocalStorageError('Original publication write conflicted; lookup is required')
 
     def close(self) -> bool:
+        self._nominal()
+        if any(not work.stopped for work in self._physical_work):
+            return False
+        with self._core._host_cleanup():
+            return self._close_originals()
+
+    def _close_originals(self) -> bool:
         """Stop this Host's resources only; never cancel/replay/delete a Run."""
         self._nominal()
         if any(not work.stopped for work in self._physical_work):

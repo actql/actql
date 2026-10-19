@@ -1842,8 +1842,9 @@ and Submission revisions. Preparing and unresolved history remain distinct.
 Successful private inspection is neither a COMMIT acknowledgement nor dispatch,
 physical-start, retry, publication, Result-read or resource-release authority.
 Store ACK, the public Local Client, restoration and externally installed wheel
-acceptance remain separate required product connections. Default 100M fuel and
-existing capacity bounds are unchanged. Earlier private ABI modules are refused
+acceptance remain separate required product connections. The raw diagnostic
+retains its 100M lifetime fuel; the ordinary Host uses the operation policy below.
+Existing capacity bounds are unchanged. Earlier private ABI modules are refused
 by the loader and installed manifest; no repository/Node/CLI fallback exists.
 
 ## First-adoption bootstrap metadata
@@ -1864,7 +1865,8 @@ borrow is returned; failure keeps the same handle for explicit cleanup retry.
 The trusted installed Host uses this metadata only for explicit first adoption.
 Reopen, attach and resume restore the saved originals and never regenerate their
 policy, expiry or identity from current defaults. Installed component selection
-remains lazy, exact-cohort and exact-ABI. Default 100M fuel, existing capacity
+remains lazy, exact-cohort and exact-ABI. The raw diagnostic retains its 100M
+lifetime fuel; ordinary operations use the policy below. Existing capacity
 bounds and independent public Local/wheel/Store-ACK acceptance are unchanged.
 
 Saved originals are read through the existing `LocalFileRoot` physical Owner.
@@ -1942,8 +1944,9 @@ two fixed CIDs, bounded by that serialized input's size plus 256 bytes. Separate
 holding covers both 262KiB raw-row copies. Full close succeeds at output cleanup
 before returning the original input borrow; failure retains the same ticket and
 parent. No global memory, full Host adoption, public Local, runtime/wheel or
-Store-ACK completion follows from this component connection. The default 100M
-fuel and original Root limits are unchanged.
+Store-ACK completion follows from this component connection. Raw diagnostic
+100M lifetime fuel and original Root limits are unchanged; ordinary Host fuel
+follows the operation policy below.
 
 Private ABI51 adds `actql_run_install_current_configuration` for product
 assembly. It uses the original live `actql_current_*` material and only the
@@ -2631,3 +2634,34 @@ Wasmtime dependency. It does not ship an unused private runtime, import an
 unused Host-capacity declaration or claim installed execution from compilation.
 The original arena-backed recipe, private provider-link checks and strong
 same-image physical verifier remain distinct and unchanged in meaning.
+
+### Ordinary Host operation fuel
+
+The ordinary installed factory uses a finite 1,000,000,000-instruction fuel
+allowance for initialization and bootstrap together, and for each subsequent
+admitted outer Host operation. Initialization does not receive a second budget
+when the same factory begins bootstrap. These are runtime execution ceilings,
+not capacity reservations, permission or a guarantee that every input fits.
+The prior single 100M lifetime allowance does not cover ordinary initialization
+of the complete packaged contracts. The raw diagnostic retains that original
+lifetime policy; its evidence does not establish ordinary operation acceptance.
+
+The serialized Host boundary installs fuel before new work only. Every private
+ABI call, callback and nested phase shares that operation's remaining fuel.
+Each already bounded Result delivery advance is an admitted phase: accepting
+the previous chunk, checking current state and offering the next chunk share
+one allowance. Backpressure does not keep an operation active between advances.
+Run work, rows, calls, transfer, retained values and durable history remain
+cumulative under their existing Owners; fresh instruction fuel resets none of
+them. The Engine and compiled-image configuration still consumes fuel and its
+identity is unchanged by this runtime policy.
+
+An exhausted operation fails once and fences further normal Core work. It is
+not refueled, retried, recreated or resent. Explicit same-original cleanup has
+an independent finite 100,000,000-instruction allowance per outer close attempt.
+Nested cleanup shares the current allowance, including when cleanup occurs
+inside an active normal operation. Cleanup may only execute existing close
+methods and cannot revive normal work, issue authority, acknowledge uncertain
+COMMIT or infer release. Failed or pending cleanup retains its original handles
+and carrier. A later explicit close attempt remains cleanup-only and preserves
+all actual child, alias, FD, Store, Engine and parent acknowledgement boundaries.
