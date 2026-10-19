@@ -86,7 +86,7 @@ fn local_command_preparation_operation_selected(
   matches : @argparse.Matches,
   operation : String,
   business_selected : Bool,
-) -> Bool {
+) -> Bool raise ClientStop {
   operation == "check" ||
   operation == "explain" ||
   operation == "adopt" ||
