@@ -12,6 +12,10 @@ struct StoreWalReceiver {
 }
 
 ///|
+#borrow(library)
+extern "C" fn store_wal_library_children(library : @sqlite.Library) -> Int = "actql_native_sqlite_test_library_database_children"
+
+///|
 #borrow(library, receiver)
 extern "C" fn store_wal_prepare_original(
   library : @sqlite.Library,
@@ -253,9 +257,20 @@ test "selected original Store WAL payload and separate physical cleanup" {
     PendingSqlite(_, _) => fail("original Store WAL Library pending")
   }
   let result = store_wal_original_work(host, sqlite, root + "/store")
-  host
-  .close_sqlite_library(sqlite)
-  .retained_execution_value("Store WAL Library ACK")
+  let children = store_wal_library_children(sqlite.library.unwrap())
+  match host.close_sqlite_library(sqlite) {
+    Ok(_) => ()
+    Err(Library(_)) =>
+      fail("Store WAL Library ACK pending; Database children=\{children}")
+    Err(Domain(@bootstrap.Bootstrap(@bootstrap.Physical(code)))) =>
+      fail(
+        "Store WAL Library scope cleanup code=\{code}; Database children=\{children}",
+      )
+    Err(Domain(_)) =>
+      fail(
+        "Store WAL Library domain cleanup pending; Database children=\{children}",
+      )
+  }
   host
   .close_domain_after_owner_ack(domain)
   .retained_execution_value("Store WAL domain ACK")

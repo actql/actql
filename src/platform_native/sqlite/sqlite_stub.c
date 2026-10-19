@@ -189,6 +189,12 @@ static bool actql_library_available(actql_native_sqlite_library *library) {
 static bool actql_database_library_available(actql_native_sqlite_library *library) {
   return library == NULL || !library->selected_component || actql_library_available(library);
 }
+/* Whitebox lifetime observation only. A count acknowledges no physical owner. */
+int32_t actql_native_sqlite_test_library_database_children(
+    actql_native_sqlite_library *library) {
+  if (library == NULL || library->database_children > INT_MAX) return -1;
+  return (int32_t)library->database_children;
+}
 #include "store_operation_original.inc"
 
 static void *actql_adapter_allocate(actql_native_sqlite_library *library, size_t bytes) {
