@@ -5,6 +5,27 @@ pub(all) enum InstalledArenaLocalHostCryptoIssue {
 }
 
 ///|
+/// Close only this original component inside the caller's already entered
+/// normal or cleanup Read. The caller retains the frame and every parent ACK;
+/// this port neither enters nor leaves a domain or creates reply DATA.
+pub fn InstalledArenaHost::close_local_host_read_crypto_component(
+  self : InstalledArenaHost,
+  pair : InstalledArenaLocalHostResources,
+  read : InstalledArenaOriginalRead,
+  component : InstalledArenaCryptoComponent,
+) -> Result[Unit, InstalledArenaLocalHostCryptoIssue] {
+  self
+  .close_read_crypto_component_in_original_frame(pair, read, component)
+  .map_err(issue => {
+    match issue {
+      ReadResourcesIssue(issue) => Resources(issue)
+      ReadComponentIssue(issue) => Crypto(issue)
+      ReadLibraryIssue(issue) => Crypto(Signature(issue))
+    }
+  })
+}
+
+///|
 /// The original trusted assembly covers this fixed registration in its existing
 /// outer control envelope, after the Read claim but before its first entry.
 /// It neither loads a component nor supplies another control/domain/profile.
@@ -99,7 +120,11 @@ pub fn InstalledArenaHost::prepare_local_host_read_crypto(
     return Err(Crypto(Domain(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed))))
   }
   let primary = self.load_crypto_component_original(
-    record, path, heap_bytes, diagnostic_ceiling, command_member~,
+    record,
+    path,
+    heap_bytes,
+    diagnostic_ceiling,
+    command_member~,
   )
   record.failed = primary is Some(_)
   match primary {
