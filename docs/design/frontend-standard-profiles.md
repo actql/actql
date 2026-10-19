@@ -322,3 +322,28 @@ GoogleSQL's INT64 search parameters are explicitly adapted to existing integral
 finite Number values without an INT64 or safe-integer cap. This is scoped
 STRING/default-binary coverage; BYTES, collation, regex and implicit coercion
 remain outside the increment. Existing profiles and resource limits do not move.
+
+### Exact Decimal division at a public scale
+
+The public three-argument `decimal_divide(left, right, scale)` selects the
+existing complete division body with precision 38 and division-only `exact`.
+The target is static and independent of values, while the original operands
+remain the two demanded children. Common uses its bounded integer coefficient
+ratio and requires zero remainder before producing a fitting coefficient. An
+inexact quotient fails; no frontend ratio calculation or hidden rounding mode
+can make it representable. Explicit five-argument division retains its five
+original rounding policies and may also select `exact`. Quantize keeps only its
+original five policies.
+
+Immediate literal NULL receives only the scoped Decimal context: the declared
+nullable result for the left, and the resolved left contract for a NULL divisor.
+This is not non-null input evidence or permission to type an unknown field or
+Parameter. Both children remain demanded before NULL propagation, so a failing
+child remains a failure. Saved complete source and machine bodies retain all
+five fields; omitted fields are never reconstructed by a machine reader.
+
+The adopted precision default closes the public explicit-scale form. The
+separate two-argument spelling still lacks an adopted scale policy and remains
+an implementation/documentary obligation. Existing expression bytes retain
+their identities; changed containing schemas, laws and grammar are repinned
+with their full predecessor bodies and independent preimages.

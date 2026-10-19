@@ -127,7 +127,7 @@ fn Parser::call(
     "split" => (1, 2)
     "substring" | "lpad" | "rpad" => (2, 3)
     "quantize" => (2, 4)
-    "decimal_divide" => (5, 5)
+    "decimal_divide" => (3, 5)
     "regex_match" => (2, 3)
     "regex_extract" | "regex_replace" => (3, 4)
     "concat" | "concat_strict" | "coalesce" | "greatest" | "least" =>
@@ -139,6 +139,9 @@ fn Parser::call(
     raise InvalidArguments(token.start, token.end)
   }
   if name == "quantize" && args.length() != 2 && args.length() != 4 {
+    raise InvalidArguments(token.start, token.end)
+  }
+  if name == "decimal_divide" && args.length() != 3 && args.length() != 5 {
     raise InvalidArguments(token.start, token.end)
   }
   // Normalize only documented aliases after validating their own arity.
@@ -193,7 +196,12 @@ fn Parser::call(
       } else {
         ["value", "precision", "scale", "rounding"]
       }
-    "decimal_divide" => ["left", "right", "precision", "scale", "rounding"]
+    "decimal_divide" =>
+      if args.length() == 3 {
+        ["left", "right", "scale"]
+      } else {
+        ["left", "right", "precision", "scale", "rounding"]
+      }
     "split_part" => ["value", "delimiter", "index"]
     "substring" => ["value", "start", "length"]
     "utf8_truncate" => ["value", "max_bytes"]
@@ -209,7 +217,8 @@ fn Parser::call(
     let body = []
     for i, arg in args {
       let key = fields[i]
-      if name == "quantize" && args.length() == 2 && i == 1 {
+      if (name == "quantize" && args.length() == 2 && i == 1) ||
+        (name == "decimal_divide" && args.length() == 3 && i == 2) {
         // The adopted public authoring default becomes a complete old body;
         // no structured reader or evaluator guesses omitted fields.
         body.push(("precision", self.node(@map.Number(38.0))))
@@ -244,6 +253,9 @@ fn Parser::call(
     if name == "quantize" && args.length() == 2 {
       body.push(("rounding", self.node(@map.String("half_even"))))
     }
+    if name == "decimal_divide" && args.length() == 3 {
+      body.push(("rounding", self.node(@map.String("exact"))))
+    }
     if ["to_decimal", "try_decimal", "quantize", "decimal_divide"].contains(
         name,
       ) {
@@ -258,6 +270,7 @@ fn Parser::call(
     }
     if name == "quantize" || name == "decimal_divide" {
       match body[body.length() - 1].1.value {
+        @map.String("exact") if name == "decimal_divide" => ()
         @map.String(
           "half_even"
           | "half_up"
