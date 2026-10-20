@@ -318,3 +318,14 @@ test "Named numeric arguments share query literal admission" {
     assert_true(numeric_literal(token) is Err(InvalidNumber), msg=token)
   }
 }
+
+///|
+test "searched CASE preserves omitted ELSE for Common completion and keeps explicit NULL distinct" {
+  assert_eq(
+    emit("CASE WHEN TRUE THEN 3 END"),
+    "{\"case\":{\"when\":[{\"then\":{\"literal\":3},\"when\":{\"literal\":true}}]}}",
+  )
+  let explicit = "{\"case\":{\"else\":{\"literal\":null},\"when\":[{\"then\":{\"literal\":3},\"when\":{\"literal\":true}}]}}"
+  assert_eq(emit("CASE WHEN TRUE THEN 3 ELSE NULL END"), explicit)
+  assert_eq(emit("CASE WHEN TRUE THEN 3 ELSE (NULL) END"), explicit)
+}

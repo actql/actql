@@ -17,6 +17,32 @@ audit work cannot issue evidence. These are bounded implementation applicability
 limits, not new restrictions on language semantics or the overall Python Local
 product's completion conditions.
 
+The checked-expression extension uses one additional closed catalog,
+`actql-effect-free-local-checked-expressions-completion-free-catalog.json`, for
+the explicitly listed context-free operations already supported by the checked
+lowering and execution owners. Fixed operation semantics, including ABS, are
+execution semantics rather than source completions. The same catalog covers
+their combinations with explicit casts and actually supplied Parameters; it is
+not a family of catalogs for individual functions. Checked membership-list
+auxiliaries are listed separately and their original children are still audited.
+Run-bound query time, optional vector operations and unknown tags are not admitted
+by this closed set. This is an implementation boundary, not a language ban.
+
+The original traversal selects this identity only after encountering a listed
+extension node and completing the entire audit. Programs using only the preceding
+node sets keep their four original catalog and journal bytes. A new scalar does
+not hide a default, template, implicit NULL or implicit Source selection below
+it. Lazy execution does not exempt an unselected child from the preparation
+inventory. Original binding origins, declaration and stage joins, single-root
+and work limits remain unchanged. The inventory adds one retained Boolean; no
+caller Boolean or successful type check can issue normalization custody.
+
+SQL/Pipe CASE without ELSE keeps that field absent in the Common form. The
+original parsed source distinguishes its synthetic END-anchored NULL from an
+authored ELSE NULL. Preserving this distinction lets the existing Common
+implicit-ELSE completion owner report the omission; lowering must not erase it
+by manufacturing an explicit literal before the audit.
+
 Explicitly supplied Parameters use a second closed catalog under the same Local
 profile, `actql-effect-free-local-supplied-parameters-completion-free-catalog.json`.
 The audit retains the original complete `BoundValues` owner and requires every
@@ -44,7 +70,7 @@ explicit casts with no Parameters and with actually supplied Parameters. The two
 previous catalogs and journals remain byte-identical when no cast is present.
 
 Implicit NULL, template/default completion, implicit Source selection and
-unsupported operations remain refusals even beneath an explicit cast. A nullable
+uninstalled relation operations remain refusals even beneath an explicit cast. A nullable
 cast of an authored literal NULL retains that literal and checked target; it is
 never an empty String or fabricated value. Execution failure, demand, bounds and
 backend support continue to belong to the existing checked execution owners;
