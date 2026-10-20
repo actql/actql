@@ -135,22 +135,26 @@ export function openLocalFileRoot({native, path, assertCurrent}) {
         if (metadata.size > BigInt(bounds.maxFileBytes) ||
             metadata.size > BigInt(bounds.maxReadBytes - readBytes)) fail('LocalFileBytesLimit');
         readBytes += Number(metadata.size);
-        const chunks = [], hash = createHash('sha256');
+        // One bounded original output buffer avoids retaining one Buffer and
+        // array slot per possible short read, then duplicating them at concat.
+        // The caller retains its actual raw-buffer holding until capture ends.
+        const bytes = collect ? Buffer.allocUnsafeSlow(Number(metadata.size)) : undefined;
+        const hash = createHash('sha256');
         let offset = 0;
         while (offset < Number(metadata.size)) {
           check();
-          const bytes = call('fileRootRead', slot.original, offset,
+          const chunk = call('fileRootRead', slot.original, offset,
             Math.min(65536, Number(metadata.size) - offset));
-          if (!Buffer.isBuffer(bytes) || bytes.length === 0 ||
-              bytes.length > Math.min(65536, Number(metadata.size) - offset)) fail('LocalFileChanged');
-          hash.update(bytes);if (collect) chunks.push(bytes);
-          offset += bytes.length;
+          if (!Buffer.isBuffer(chunk) || chunk.length === 0 ||
+              chunk.length > Math.min(65536, Number(metadata.size) - offset)) fail('LocalFileChanged');
+          hash.update(chunk);if (collect) chunk.copy(bytes, offset);
+          offset += chunk.length;
           await yieldTurn(undefined, {signal});
         }
         check();
         if (!equalMetadata(metadata, readMetadata(call('fileRootStat', slot.original)))) fail('LocalFileChanged');
         return {version: 'sha256:' + hash.digest('hex'),
-          ...(collect ? {bytes: Buffer.concat(chunks, offset)} : {})};
+          ...(collect ? {bytes} : {})};
       }
       function execute(operation) {
         check();if (flight !== undefined || failure !== undefined) fail('LocalFileReadAlreadyAttempted');

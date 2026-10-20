@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {readFile} from 'node:fs/promises';
 import {dirname, resolve} from 'node:path';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
@@ -7,6 +8,7 @@ import {loadInstalledProjectConnections} from '../../../host-node/installed-proj
 import {createInstalledRowSource,rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 import {composeInstalledCheckEnvironment} from '../../../host-node/installed-check-environment.mjs';
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
+import {AcquisitionOpenError} from '../../../host-common/acquisition-outcome.mjs';
 import {openLocalFileRoot} from '../site/root-filesystem.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
@@ -201,6 +203,17 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
       typeof sourceManaged?.prepareRun!=='function'||typeof sourceManaged?.prepareRead!=='function'||
       typeof moon?.clientProgramLocalFileTimestamp!=='function') fail('LocalFilesManagedReadUnavailable');
   const bundle=preparation.originalsForRuntime(moon),sources=[],runs=new Map(),reads=new WeakMap();
+  // The same received file overlaps its native chunk and the Store writer's
+  // exact append snapshot. Row decoding has its existing page workspace in
+  // addition. These are demand on the original Content Ledger, not an issuer.
+  const keyedTransports=new Map(bundle.sources.map(entry=>[entry,Object.freeze({
+    transferBytes:BigInt(entry.limits.maxReadBytes)+
+      BigInt(entry.limits.maxPages)*BigInt(entry.limits.maxPageBytes),
+    executionBytes:2n*BigInt(entry.limits.maxFileBytes)+65536n+BigInt(entry.limits.maxPageBytes),
+  })]));
+  const [queryContract,evidenceContract]=await Promise.all(
+    ['actql-query-acquisition.json','actql-query-process-evidence.json'].map(name=>
+      readFile(new URL('../../../../spec/contracts/'+name,import.meta.url),'utf8')));
   let closing=false;
   const current=()=>{
     if(closing)fail('LocalFilesInstallationClosing');
@@ -232,14 +245,72 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
         (run.admission,prepared,request));sameRun(prepared);
     }catch(cause){run.failed=true;run.failure=cause;throw cause;}
   }
+  function prepareContentRun(prepared,request,recipe){
+    current();
+    const prior=runs.get(prepared);
+    if(prior!==undefined){
+      if(prior.recipe!==recipe)fail('ForeignLocalFilesContentPreparation');
+      sameRun(prepared);
+      checked(moon.clientProgramInstalledManagedRunCheck(prior.value,prepared,request));return;
+    }
+    if(runs.size===4096)fail('LocalFilesRunLimit');
+    const run={prepared,request,effectful:false,recipe,original:undefined,admission:undefined,value:undefined,
+      reads:new Map(),retired:false,failed:false,failure:undefined};
+    runs.set(prepared,run);
+    try{
+      const keyed=checked(moon.clientProgramSelectSingleKeyedAcquisition(prepared));
+      const coordinates=moon.clientProgramKeyedDirectAcquisitionCoordinates(keyed);
+      const stage=coordinates?._0,input=coordinates?._1;
+      if(!Number.isSafeInteger(stage)||!Number.isSafeInteger(input))fail('LocalFilesContentPreparationUnavailable');
+      const requirement=checked(moon.clientProgramPrepareLocalQueryRequirement(prepared,stage,input,
+        recipe.registry,recipe.values,recipe.fragment,recipe.ordered));
+      const directRef=moon.clientProgramQueryRequirementSourceRef(requirement);
+      const facts=checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(keyed));
+      const direct=bundle.sources.find(entry=>JSON.parse(entry.wire).views.some(view=>
+        view.resource==='files'&&view.source_ref===directRef));
+      const content=bundle.sources.find(entry=>JSON.parse(entry.wire).views.some(view=>
+        view.resource==='contents'&&view.source_ref===facts[0]));
+      if(direct===undefined||content===undefined)fail('LocalFilesContentPreparationUnavailable');
+      const acquisition=checked(moon.clientProgramRowSourcePrepareAcquisition(direct.declaration,
+        requirement,queryContract,evidenceContract));
+      const capacity=moon.clientProgramInstalledRowCaptureCapacity(acquisition);
+      if(capacity===undefined)fail('LocalFilesContentPreparationUnavailable');
+      run.keyed=keyed;run.contentEntry=content;
+      run.selected=checked(moon.clientProgramInstalledManagedKeyedContentPrepare(prepared,capacity,keyed,
+        content.declaration,content.limits.maxPageBytes,content.limits.maxPageBytes,1000000,
+        [BigInt(direct.limits.maxPages)*BigInt(direct.limits.maxPageBytes),keyedTransports.get(content).transferBytes],
+        [BigInt(direct.limits.maxPageBytes),keyedTransports.get(content).executionBytes],content.limits.maxPageBytes,1000000,
+        recipe.registry,recipe.values,recipe.fragment,recipe.ordered,recipe.task,recipe.step,
+        recipe.prefixRetainedBytes,recipe.prefixExecutionBytes));
+      // Retain both physical-purpose original and its admission before any
+      // fallible current/start/take. A failed begin never issues a replacement.
+      run.original=sourceManaged.prepareContentRun(prepared,run.selected);
+      current();run.admission=checked(moon.clientProgramNodeLocalContentRunPrepare(run.original,prepared));
+      run.value=checked(moon.clientProgramInstalledManagedKeyedContentRunBegin(
+        run.admission,prepared,request,run.selected));sameRun(prepared);
+    }catch(cause){run.failed=true;run.failure=cause;throw cause;}
+  }
+  function contentLedger(prepared,request,recipe,direct,keyed,capacity){
+    const run=sameRun(prepared);
+    if(run.recipe!==recipe||run.keyed!==keyed||capacity===undefined)fail('ForeignLocalFilesContentPreparation');
+    const transport=keyedTransports.get(run.contentEntry);
+    if(capacity.transferBytes!==transport.transferBytes||capacity.executionBytes!==transport.executionBytes||
+        capacity.maxBytes!==run.contentEntry.limits.maxPageBytes||capacity.maxWork!==1000000)
+      fail('ForeignLocalFilesContentPreparation');
+    checked(moon.clientProgramInstalledManagedKeyedContentCheckPreparation(run.selected,prepared));
+    return checked(moon.clientProgramInstalledManagedRunPrepareLedger(run.value,prepared,request,
+      [direct.capacity],[direct.transferBytes],[direct.executionBytes],
+      recipe.registry,recipe.values,recipe.fragment,recipe.ordered));
+  }
   function captureClose(read){
     if(!read.closeCaptured){read.close=read.raw.close;read.closeCaptured=true;}
     if(typeof read.close!=='function')fail('LocalFilesManagedReadUnavailable');
   }
   async function closeRead(read){
     if(read.closed)return;
-    if(read.value!==undefined)checked(moon.clientProgramInstalledSourceReadRetire(read.value));
     if(read.physical!==undefined&&!acknowledged(await read.physical.close()))fail('LocalFileCleanupPending');
+    if(read.value!==undefined)checked((read.keyed?moon.clientProgramInstalledKeyedSourceReadRetire:
+      moon.clientProgramInstalledSourceReadRetire)(read.value));
     captureClose(read);
     if(!acknowledged(await Reflect.apply(read.close,read.raw,[])))fail('LocalFileCleanupPending');
     read.closed=true;
@@ -280,15 +351,24 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
         connectorRevision:'local/0.1',bindingCid:cid({scope:entry.scopeCid,declaration:entry.wire,
           account_context:authorization.context.contextCid}),authorization,readOperation:'read',referenceIssuer:issuer,
         site:Object.freeze({connection:entry.connection,
-          // Keyed Content needs its own actual child/capture connection. It
-          // must never borrow listing credit or receive a fabricated grant.
-          issueReadGrant(){fail('LocalFilesContentReadUnavailable');},
+          issueReadGrant({operation,decision,resource,runInvocationCid,dispatchRequestCid,maxUses}){
+            current();
+            if(operation!=='read'||!['files','contents'].includes(resource)||
+                !/^sha256:[0-9a-f]{64}$/u.test(runInvocationCid)||
+                !/^sha256:[0-9a-f]{64}$/u.test(dispatchRequestCid)||!positive(maxUses)||
+                decision?.action!=='dispatch'||decision.boundary!=='acquisition'||
+                decision.tuple?.connection!==entry.connection||decision.tuple?.resource!==resource||
+                decision.tuple?.operation!=='read'||!authorization.issued(decision)||
+                decision.contextCid!==authorization.context.contextCid)fail('LocalFilesReadGrantNotAuthorized');
+            return Object.freeze({runInvocationCid,dispatchRequestCid});
+          },
           async close(){for(const run of runs.values())for(const read of run.reads.values())
             if(read.entry===entry)await closeRead(read);}}),
         physicalTarget:(resource,fields)=>({connection:entry.connection,root:entry.rootPath,
           resource,fields:[...fields],scope_cid:entry.scopeCid}),
         limits:{maxPages:entry.limits.maxPages,maxPageBytes:entry.limits.maxPageBytes,
           maxPageRows:entry.limits.maxPageRows,maxCaptureRows:entry.limits.maxFiles},
+        originalKeyedTransport:keyedTransports.get(entry),
         prepareSourceRead({checkedOwner,effectful,declaration,occurrence}){
           const run=sameRun(checkedOwner),index=occurrence.stage;
           if(effectful!==run.effectful||declaration!==entry.declaration||occurrence.input!==0||
@@ -302,7 +382,75 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
           current();read.value=checked(moon.clientProgramInstalledManagedRunSourceRead(run.value,index));
           reads.set(read.value,{run,read});return read.value;
         },
+        prepareKeyedSourceRead({checkedOwner,keyedAcquisition,request,declaration}){
+          const run=sameRun(checkedOwner);
+          if(run.recipe===undefined||run.keyed!==keyedAcquisition||run.contentEntry!==entry||
+              declaration!==entry.declaration||run.reads.has(request))fail('LocalFilesSourcePreparationMismatch');
+          const raw=sourceManaged.prepareKeyedRead(checkedOwner,declaration,run.original,request);
+          const read={raw,entry,keyed:true,value:undefined,reader:undefined,physical:undefined,
+            close:undefined,closeCaptured:false,retain:undefined,closed:false,attempted:false};
+          run.reads.set(request,read);captureClose(read);read.retain=raw.retainChild;
+          if(typeof read.retain!=='function')fail('LocalFilesManagedReadUnavailable');
+          sameRun(checkedOwner);
+          read.value=checked(moon.clientProgramInstalledManagedKeyedSourceRead(
+            run.value,keyedAcquisition,request,declaration));
+          reads.set(read.value,{run,read});return read.value;
+        },
+        async closeKeyedSourceRead(original){
+          const retained=reads.get(original);
+          if(retained===undefined||!retained.read.keyed||retained.read.entry!==entry)
+            fail('ForeignLocalFilesContentPreparation');
+          await closeRead(retained.read);return Object.freeze({pending:false});
+        },
         async readPages(options){
+          if(options.resource==='contents'){
+            const retained=reads.get(options.rowRun.originalKeyedRead);
+            if(retained===undefined||!retained.read.keyed||retained.read.entry!==entry||
+                typeof options.capturedResourcePath!=='function'||typeof options.captureContent!=='function')
+              fail('LocalFilesSourcePreparationMismatch');
+            const {run,read}=retained;sameRun(run.prepared);
+            if(read.closed||read.attempted)fail('LocalFilesSourcePreparationMismatch');
+            read.attempted=true;
+            let entered=false;
+            try{
+              const path=await options.capturedResourcePath();
+              const request=JSON.parse(options.requestWire);
+              if(!text(path,entry.limits.maxPathBytes)||
+                  canonical(request.resource)!==canonical(resourceFor(path))||
+                  typeof request.version!=='string')fail('LocalFilesContentResourceMismatch');
+              await options.verifyRead();options.signal?.throwIfAborted();sameRun(run.prepared);
+              await options.beginRequest(Buffer.from(options.requestWire));entered=true;
+              const checkRead=()=>{sameRun(run.prepared);
+                checked(moon.clientProgramInstalledKeyedSourceReadCheckCurrent(read.value));};
+              read.physical=physicalReadChild({namespace:nativeFilesystem,path:entry.rootPath,assertCurrent:checkRead});
+              Reflect.apply(read.retain,read.raw,[read.physical]);checkRead();
+              const limits=Object.fromEntries(['maxEntries','maxDepth','maxPathBytes','maxFiles','maxFileBytes','maxReadBytes']
+                .map(name=>[name,entry.limits[name]]));
+              read.reader=read.physical.start({limits,signal:options.signal,assertCurrent:checkRead});
+              const file=await read.reader.read(path,{expectedVersion:request.version,
+                contentVersion:entry.versionMode==='content'});
+              checkRead();
+              // This is the same native body, not synthetic encoded output.
+              // Each bounded slice consumes its own ticket before the next;
+              // configured file and aggregate read ceilings remain unchanged.
+              for(let offset=0;offset<file.bytes.length;offset+=entry.limits.maxPageBytes){
+                const charge=options.chargePage(file.bytes.subarray(offset,offset+entry.limits.maxPageBytes));
+                options.consumeObservation(charge);
+              }
+              const mediaType=mime(path),content=await options.captureContent({bytes:file.bytes,
+                mediaType,contentCid:'sha256:'+createHash('sha256').update(file.bytes).digest('hex')});
+              await options.consumePage([{resource:request.resource,version:file.version,path,
+                media_type:mediaType,content}]);
+              if(!acknowledged(await read.physical.close()))fail('LocalFileCleanupPending');
+              return;
+            }catch(cause){
+              let stopped=false;
+              const cleanup=async()=>{stopped=read.physical===undefined||acknowledged(await read.physical.close());return stopped;};
+              try{await cleanup();}catch{/* The same native owner remains pending. */}
+              throw new AcquisitionOpenError(cause,stopped?(entered?'stopped':'not_started'):'unknown',
+                stopped?undefined:Object.freeze({close:cleanup,cleanup,cleanupPending:()=>!stopped}));
+            }
+          }
           if(options.resource!=='files'||options.listing===undefined)fail('LocalFilesContentReadUnavailable');
           const retained=reads.get(options.rowRun.originalRead);
           if(retained===undefined)fail('LocalFilesSourcePreparationMismatch');
@@ -367,6 +515,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
       queryAliases:Object.freeze(sources.flatMap(source=>source.queryAliases)),
       admitsSource:ref=>sources.some(source=>source.admitsSource(ref)),
       prepareManagedRun:(prepared,request)=>prepareRun(prepared,request,false),
-      prepareManagedEffectRun:(prepared,request)=>prepareRun(prepared,request,true),close});
+      prepareManagedEffectRun:(prepared,request)=>prepareRun(prepared,request,true),
+      prepareManagedContentRun:prepareContentRun,managedContentLedger:contentLedger,close});
   }catch(cause){throw await retainInstalledHostInitializationFailure(cause,{sourceProfile:{close}});}
 }

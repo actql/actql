@@ -690,6 +690,19 @@ read authority or acknowledges physical cleanup. Model-composed Content and
 other unsupported backend shapes remain separate connections, not language
 restrictions.
 
+The Local Connector resolves keyed Content through the original captured
+listing path and exact Resource/version pair, then obtains a current original
+Account read decision. It does not reverse a Resource CID into a path, scan a
+replacement listing or borrow metadata permission for content. The same native
+Root child is retained before construction/current checks; failed physical
+cleanup is reachable independently of Core capture retirement. Native reads
+use one bounded exact-size output buffer and at most one 64 KiB temporary
+chunk, rather than an unbounded collection of short-read control records.
+That output overlaps the Store writer's append snapshot and the encoded row
+workspace in the original declared Content demand. Raw bytes and encoded rows
+consume distinct ordered observation tickets; neither ticket grants access or
+acknowledges the other owner's cleanup.
+
 This preparation grants no key, Account, Content reference or Result authority.
 Private derivation evidence still requires its original purpose-confined key;
 a no-key Result Store cannot infer key initialization from a missing file.
