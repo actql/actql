@@ -2,12 +2,43 @@ import './generate-check-reason-catalog.test.mjs';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {test} from 'node:test';
-import {buildClientHostWire} from './generate-client-host-wire.mjs';
+import {buildClientHostWire, nativeProgramSchema} from './generate-client-host-wire.mjs';
 
 const registry = JSON.parse(await readFile(new URL(
   '../spec/contracts/actql-client-host.json', import.meta.url), 'utf8'));
 const protocol = JSON.parse(await readFile(new URL(
   '../spec/contracts/actql-protocol-schemas.json', import.meta.url), 'utf8'));
+
+test('Native schema discovery preserves the full registered Program schema', async () => {
+  const output = nativeProgramSchema(protocol);
+  assert.equal(output, await readFile(new URL(
+    '../src/cmd/native_client/program_schema.generated.mbt', import.meta.url), 'utf8'));
+  // Decode both string layers, independently of the generation function: the
+  // first is the Moon string literal, the second is the original JSON body.
+  const literal = output.slice(output.indexOf('-> String {\n  ') + '-> String {\n  '.length, -3);
+  const actual = JSON.parse(JSON.parse(literal));
+  const original = protocol.artifact_schemas.executable_plan.properties.execution_material.properties.program;
+  assert.deepEqual(actual, original);
+  assert.equal(actual.$id, 'https://smooth.dev/schemas/actql/0.1.json');
+  assert.ok(actual.$defs && actual.properties && actual.allOf);
+});
+
+test('Native schema discovery tracks annotations without changing wire guards', () => {
+  const changed = structuredClone(protocol);
+  changed.artifact_schemas.executable_plan.properties.execution_material.properties.program
+    .description = 'An independently changed schema annotation.';
+  assert.notEqual(nativeProgramSchema(changed), nativeProgramSchema(protocol));
+  assert.deepEqual(buildClientHostWire(registry, changed), buildClientHostWire(registry, protocol));
+  for (const program of [undefined, null, [], false, 'not-a-schema']) {
+    const missing = structuredClone(protocol);
+    missing.artifact_schemas.executable_plan.properties.execution_material.properties.program = program;
+    assert.throws(() => nativeProgramSchema(missing), /MissingProgramSchema/);
+  }
+  const oversized = structuredClone(protocol);
+  oversized.artifact_schemas.executable_plan.properties.execution_material.properties.program
+    .description = 'x'.repeat(1048576);
+  assert.throws(() => nativeProgramSchema(oversized), /NativeProgramSchemaOutputLimit/);
+});
 
 test('optional request fields are closed projections of the registered operation', async () => {
   const {validClientBody} = await import('../packages/client-wire/index.mjs');
