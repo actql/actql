@@ -1460,6 +1460,31 @@ Source. Selection, pagination and matching use the existing SourceView and
 file-list contracts; a LIMIT or page boundary is not a complete-listing witness.
 No metadata observation implicitly grants content-read authority.
 
+<!-- requirement-block: file-sources.declared-metadata-schema -->
+The listing Owner MUST admit the canonical required role base plus the full
+explicitly declared typed Source metadata schema, without projecting away
+additional columns. The canonical required role base is `resource`, `version`, `name`, `path`,
+`media_type`, `size_bytes` and `modified_at`, not an exclusive seven-field
+schema. The existing Resource kind and logical role domains remain exact;
+resource/name are nonnullable and version obeys its original capability.
+Canonical metadata can be refined to nonnullable by the Source declaration.
+The complete additional typed metadata remains visible to LIST_FILES, including
+Local `size:int64` and `modified_time:timestamp`. Ordinary full-schema presence
+and value admission applies without invented NULL/zero values, field dropping,
+Int64-to-Number conversion or Timestamp precision loss.
+
+<!-- requirement-block: file-sources.full-schema-correspondence -->
+The profile's `listing_schema_contract_cid` MUST identify the complete actual
+output schema, retained through the same original acquisition, capture, Result
+and restore; unchanged seven-field bodies retain their original identities.
+Additional schema/row/byte work is charged within existing budgets and the same
+Source lifetime, with original Source/Catalog/Environment/current/installation
+and acquisition/capture/Result/restore correspondence retained. Related native
+and canonical metadata comes from the same actual physical observation.
+Additional Source fields do not extend the separate fixed completed-listing
+report, whose original correlation, scan, issuer, funding and cleanup remain
+required; a matching shape or CID is not such evidence or a grant.
+
 <!-- requirement-block: file-sources.contents-versioned-correlation -->
 The `connection.contents` Source MUST declare `acquisition.kind: fetch`,
 `observation.kind: capture`, correlation on the ordered key `(resource, version)`
