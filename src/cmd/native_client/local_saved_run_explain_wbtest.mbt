@@ -69,7 +69,9 @@ test "saved explain bounds an original ID without acquiring an invocation" {
 test "saved explain canonicalizes the same actual compiler view before strict envelope admission" {
   let plan = local_static_plan_view(
     explain_fixture(explain_fixture_chain, Json),
-  )
+  ) catch {
+    ClientStop(issue) => fail("saved-plan compiler fixture: " + issue)
+  }
   let reference = Json::object(
     Map([
       ("namespaceId", Json::string("workspace:original")),
@@ -77,7 +79,9 @@ test "saved explain canonicalizes the same actual compiler view before strict en
       ("runDefinitionCid", Json::string("sha256:" + "b".repeat(64))),
     ]),
   )
-  let wire = local_saved_run_plan_reply(reference, plan)
+  let wire = local_saved_run_plan_reply(reference, plan) catch {
+    ClientStop(issue) => fail("saved-plan reply: " + issue)
+  }
   let value = @publication.parse_interactive_run_control_shape(
     "run_plan_view", wire, 65536, 8192, 64,
   ).unwrap()
