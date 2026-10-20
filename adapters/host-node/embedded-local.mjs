@@ -17,6 +17,8 @@ import {mkdir, readFile, stat} from 'node:fs/promises';
 import {homedir, userInfo} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {createRequire} from 'node:module';
+import {existsSync} from 'node:fs';
 import {validClientConnection} from '../../packages/client-wire/index.mjs';
 import {createEmbeddedHostRegistry, installedHostShutdown} from './embedded-local-lifecycle.mjs';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody,
@@ -65,6 +67,8 @@ import {loadInstalledProjectMockAnswers} from './installed-project-mock-answers.
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 import {prepareInstalledProjectMock, installPreparedProjectMockSources, installedMockRequestRealization}
   from './installed-project-mock.mjs';
+import {prepareInstalledProjectLocalFiles, installPreparedProjectLocalFiles, LOCAL_FILES_DEFAULT_LIMITS}
+  from '../connectors/local/host/installed-project-files.mjs';
 import {installPreparedProjectMockEffects, observeInstalledMockEffectResources}
   from './installed-mock-row-effect.mjs';
 import {installedRuntimeBundleCid} from './source-profile-json.mjs';
@@ -72,7 +76,8 @@ import {initializeOrdinaryMockAccount} from './ordinary-mock-account.mjs';
 import {ordinaryHostJournalInstallation} from './ordinary-host-journal.mjs';
 import {prepareSourceManagedInstallation, assertSourceManagedInstallationCurrent,
   assertSourceManagedPreparationCurrent, prepareManagedComputeInstallation,
-  assertManagedComputeInstallationCurrent, assertManagedComputePreparationCurrent}
+  assertManagedComputeInstallationCurrent, assertManagedComputePreparationCurrent,
+  prepareProjectSourceManagedInstallation}
   from './node-source-managed-installation.mjs';
 import {installNodeInferRun} from './installed-infer-run.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
@@ -163,6 +168,19 @@ import {localContractLimits, localOutputLimits,
 import {installNodeContentRun} from './installed-content-run.mjs';
 
 const packageRoot = fileURLToPath(new URL('../../', import.meta.url));
+const require = createRequire(import.meta.url);
+function localProjectFilesystem() {
+  // Normal native delivery and Node's ABI checks, not a selected-preload image
+  // recipe. Load failure stays a supported-backend gap; it never selects a
+  // weaker pathname reader or another installation's resource original.
+  const suffix = `_build/native/directory-darwin-${process.arch}.node`;
+  const packaged = join(packageRoot, suffix);
+  const sourceCheckout = join(packageRoot, 'packages/local-node', suffix);
+  if (process.platform !== 'darwin' || !existsSync(packaged) && !existsSync(sourceCheckout)) {
+    throw clientOperationError('LocalFilesNativeUnavailable');
+  }
+  return require(existsSync(packaged) ? packaged : sourceCheckout);
+}
 const runtimeUrl = new URL('../../_build/js/release/build/' +
   'connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 const now = () => new Date().toISOString();
@@ -261,6 +279,22 @@ export function readInstalledMockPreparation(originals) {
   return retained.view.originalsForRuntime(retained.runtime);
 }
 
+// This exact Connector factory result is retained by the existing Host before
+// preparing its service. Equal connection text or a caller's view cannot
+// replace the same issued Project/runtime association.
+export function readInstalledProjectSourcePreparation(originals) {
+  assertSourceManagedHostPreparation(originals);
+  const {projectSourcePreparation, projectRuntime, project} = originals.installation;
+  if (projectSourcePreparation === undefined || project === undefined) {
+    throw clientOperationError('InstalledProjectSourcePreparationUnavailable');
+  }
+  const bundle = projectSourcePreparation.originalsForRuntime(projectRuntime);
+  if (bundle.project !== installedProjectOriginalsForRuntime(project, projectRuntime)) {
+    throw clientOperationError('ForeignInstalledProjectSourcePreparation');
+  }
+  return bundle;
+}
+
 // The real Root already retained the separate managed-Compute premise before
 // the packet snapshot. This exact checked original supplies only the existing
 // Core inventory for its bounds check, never a replacement issuer or Ledger.
@@ -276,26 +310,67 @@ function readSourceManagedRunRequirementsOwned(originals, checkedPrepared, effec
   assertSourceManagedHostPreparation(originals);
   originalSourceManagedHostRequest(originals, checkedPrepared);
   const {initialControl, projectRuntime: moon} = originals.installation;
-  const retained = profiles.mockPreparation(originals.host, originals.installation,
-    originals.generation);
+  if (!effectful && moon.clientProgramAcquisitionCount(checkedPrepared) === 0) {
+    // A Source installation also owns its joint Compute purpose. The exact
+    // checked zero-capture graph, not the configured Source count, selects
+    // empty acquisition inputs on that same original parent.
+    return readManagedComputeRunRequirements(originals, checkedPrepared);
+  }
+  const projectSources = originals.installation.projectSourcePreparation === undefined ? undefined :
+    readInstalledProjectSourcePreparation(originals);
+  const retained = projectSources === undefined ? profiles.mockPreparation(originals.host,
+    originals.installation, originals.generation) : undefined;
   const requirements = effectful ? moon.clientProgramInstalledEffectManagedRunRequirements
     : moon.clientProgramInstalledManagedRunRequirements;
-  if (retained.runtime !== moon || initialControl === undefined ||
+  if ((projectSources === undefined && retained.runtime !== moon) || initialControl === undefined ||
       typeof requirements !== 'function') {
     throw clientOperationError('NodeManagedRunAdmissionUnavailable');
   }
-  const mock = retained.view.originalsForRuntime(moon);
+  const bundle = projectSources ?? retained.view.originalsForRuntime(moon);
   const asset = path => readInitialControlInstallationAsset(initialControl, originals, path);
   const aoa = JSON.parse(asset('spec/contracts/actql-aoa.json'));
   // Each selected physical child reads its original complete bounded file
   // once. Its original raw bytes remain charged alongside decoded/captured
   // rows; this is not a byte total sampled from the successful template.
   const documentBytes = 1048576n;
+  const declarations = [], transferBytes = [], executionBytes = [];
+  if (projectSources === undefined) {
+    for (const source of bundle.sources) {
+      declarations.push(source.declaration); transferBytes.push(documentBytes); executionBytes.push(documentBytes);
+    }
+  } else {
+    const count = effectful ? moon.clientProgramEffectAcquisitionCount(checkedPrepared)
+      : moon.clientProgramAcquisitionCount(checkedPrepared);
+    if (!Number.isSafeInteger(count) || count < 1 || count > 32) {
+      throw clientOperationError('InstalledSourcePreparationMismatch');
+    }
+    const prepareRequirement = effectful ? moon.clientProgramEffectPrepareLocalQueryRequirement
+      : moon.clientProgramPrepareLocalQueryRequirement;
+    const registry = asset('spec/dependencies/aoa-pipeline-registry.json');
+    const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+    const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+    const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+    for (let stage = 0; stage < count; stage++) {
+      // Common selects the actual occurrence's original requirement. A
+      // connection ordinal, duplicate declaration or matching CID alone is
+      // not the checked capture prefix. Repeated views retain separate slots.
+      const requirement = checked(Reflect.apply(prepareRequirement, moon,
+        [checkedPrepared, stage, 0, registry, values, fragment, ordered]));
+      const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);
+      const matches = bundle.sources.filter(source =>
+        JSON.parse(source.wire).views.some(view => view.source_ref === sourceRef));
+      if (matches.length !== 1) throw clientOperationError('InstalledSourcePreparationMismatch');
+      const source = matches[0];
+      declarations.push(source.declaration);
+      transferBytes.push(BigInt(source.limits.maxPages) * BigInt(source.limits.maxPageBytes));
+      executionBytes.push(BigInt(source.limits.maxPageBytes));
+    }
+  }
   const limits = checked(Reflect.apply(requirements, moon, [
-    checkedPrepared, mock.sources.map(source => source.declaration),
+    checkedPrepared, declarations,
     asset('spec/contracts/actql-query-acquisition.json'),
     asset('spec/contracts/actql-query-process-evidence.json'),
-    [documentBytes, documentBytes], [documentBytes, documentBytes],
+    transferBytes, executionBytes,
     asset('spec/dependencies/aoa-pipeline-registry.json'),
     JSON.stringify(aoa.execution_contracts['REL.values']),
     JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
@@ -307,7 +382,10 @@ function readSourceManagedRunRequirementsOwned(originals, checkedPrepared, effec
   }
   assertSourceManagedHostPreparation(originals);
   originalSourceManagedHostRequest(originals, checkedPrepared);
-  retained.view.originalsForRuntime(moon);
+  if (projectSources === undefined) retained.view.originalsForRuntime(moon);
+  else if (readInstalledProjectSourcePreparation(originals) !== projectSources) {
+    throw clientOperationError('ForeignInstalledProjectSourcePreparation');
+  }
   return Object.freeze({planningWork: Number(limits[0]), attempts: Number(limits[1]),
     holdings: Number(limits[2]), transferBytes: limits[3],
     retainedBytes: limits[4], executionBytes: limits[5]});
@@ -472,7 +550,7 @@ const bytesCid = bytes => `sha256:${createHash('sha256')
 const publicKeyCid = value => bytesCid(createPublicKey(value).export({
   type: 'spki', format: 'der'}));
 
-async function embeddedInstallationIdentity(root, installation, project, moon) {
+async function embeddedInstallationIdentity(root, installation, project, moon, projectSources) {
   validateSourceNamespace(installation?.sourceNamespace);
   validateSourceNamespace(installation?.sourceSelectorNamespace);
   const connectorTable = installation?.connectorTable;
@@ -508,6 +586,8 @@ async function embeddedInstallationIdentity(root, installation, project, moon) {
       configuration: bytesCid(Buffer.from(installedProjectOriginalsForRuntime(project, moon).configurationWire, 'utf8')),
       registry: installedProjectOriginalsForRuntime(project, moon).modelRegistryWire === undefined ? null :
         bytesCid(Buffer.from(installedProjectOriginalsForRuntime(project, moon).modelRegistryWire, 'utf8')),
+      ...(projectSources === undefined ? {} : {connections:
+        bytesCid(Buffer.from(projectSources.originalsForRuntime(moon).connections.wire, 'utf8'))}),
     }}),
     source, effect, accountIdentity, ordinary,
     ...(installation?.sourceSelectorNamespace === undefined ? {} : {
@@ -722,7 +802,9 @@ async function openInstalledHost(originalInstallation, preparation) {
   if (preparation === undefined) await admitHostRootFormat(root);
   else await preparation.admitRootFormat(root);
   const originalSourcePreparation = preparation?.sourcePreparation();
-  if (originalSourcePreparation === undefined && registerModelProviders !== undefined) {
+  const mockSourceInstallation = originalSourcePreparation !== undefined &&
+    projectProfile?.originalsForRuntime(projectRuntime).selected === 'mock';
+  if (!mockSourceInstallation && registerModelProviders !== undefined) {
     // The normal Host trusts its supported platform and embedding application.
     // Retain the actual installation/currentness identity, not an exact patch,
     // preload ancestry, process-once lifetime or whole-runtime allocation proof.
@@ -762,7 +844,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   // The explicit Mock profile never registers a configured physical Provider.
   // Its portable Model owner retains the original fixture Task and answers;
   // neither that DATA installation nor this empty physical table grants send.
-  modelProviders = originalSourcePreparation === undefined
+  modelProviders = !mockSourceInstallation
     ? installModelProviders(moon, registerModelProviders,
       modelRuntimeView === undefined ? undefined : assertModelRuntime,
       modelRuntimeView === undefined ? undefined : assertNewModelRuntime,
@@ -954,7 +1036,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   }
   try {
     const installationSourcePreparation = preparation?.sourcePreparation();
-    if (installationSourcePreparation !== undefined) {
+    if (mockSourceInstallation) {
       // Consume the SAME selected physical Source preparation. An explicit
       // Mock installation must not load configured live Source profiles, and
       // its actual Account gate still defaults to Missing, never to Allow.
@@ -967,12 +1049,21 @@ async function openInstalledHost(originalInstallation, preparation) {
         throw clientOperationError('InstalledSourcePreparationChanged');
       }
       projectTasks = mockModels;
+    } else if (installationSourcePreparation !== undefined) {
+      if (selectedSourcePaths.length !== 0) {
+        throw clientOperationError('InstalledProjectSourceCompositionUnavailable');
+      }
+      sourceProfile = await preparation.installProjectSources(moon, baseEnvironmentWire,
+        () => createLocalAuthorizationGate({...authorization, principal: principalId}));
+      if (preparation.sourcePreparation() !== installationSourcePreparation) {
+        throw clientOperationError('InstalledSourcePreparationChanged');
+      }
     } else {
       sourceProfile = await loadInstalledSources(selectedSourcePaths,
         {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
           resolveSecret: resolveSourceSecret, connectorTable});
     }
-    if (installationSourcePreparation === undefined) {
+    if (!mockSourceInstallation) {
       installedEffect = await loadInstalledEffects(selectedEffectPaths, {root, principalId, moon,
         runtimeUrl, baseEnvironmentWire, resolveSecret: resolveEffectSecret, connectorTable});
     } else {
@@ -2463,7 +2554,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     faultInjection: authorization?.faultInjection,
     fragment, ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
     runInfer, runContent, retainedRelationOutput, observation,
-    managedComputeRequired: originalRequestPreparation !== undefined && originalSourcePreparation === undefined,
+    managedComputeRequired: originalRequestPreparation !== undefined,
     computeConfigurations: {local:localSnapshotConfiguration}});
   const startDispatch = dispatchOwner.start;
   const recoverEffectCapture = (ref, signal) => {
@@ -2947,7 +3038,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       sourceProfile.prepareManagedMockModelRun(submission.preparedProgram, requested,
         control, early.plan, selectedModel,
         () => preparation.modelPublicationCapacity(submission.preparedProgram));
-    } else if (acquisitionCount === 2 && typeof sourceProfile?.prepareManagedRun === 'function') {
+    } else if (acquisitionCount > 0 && typeof sourceProfile?.prepareManagedRun === 'function') {
       // The actual same Host's early admission is only being claimed here,
       // not issued after compilation or reconstructed from graph limits.
       sourceProfile.prepareManagedRun(submission.preparedProgram, requested);
@@ -3367,7 +3458,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         sourceProfile.prepareManagedMockModelRun(submission.preparedProgram, requested,
           control, early.plan, selection,
           () => preparation.modelPublicationCapacity(submission.preparedProgram));
-      } else if (acquisitionCount === 2 && typeof sourceProfile?.prepareManagedRun === 'function') {
+      } else if (acquisitionCount > 0 && typeof sourceProfile?.prepareManagedRun === 'function') {
         sourceProfile.prepareManagedRun(submission.preparedProgram, requested);
       } else if (acquisitionCount === 0) {
         preparation.prepareManagedComputeRun(moon, submission.preparedProgram, requested);
@@ -4459,7 +4550,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     generation: host, supplier: connectEmbeddedLocal, moduleLifetime: import.meta});
   profiles.registerPreparation(host, originalInstallation, host);
   let control, controlClose, duty, observedClose, referenceRetirement;
-  let moon, project, projectProfile, mockPreparation, sourceManaged, sourceManagedClose;
+  let moon, project, projectProfile, mockPreparation, projectSourcePreparation, sourceManaged, sourceManagedClose;
   let computeManaged, computeManagedClose, computeManagedFlight;
   let resultPublication, resultPublicationClose, resultPublicationFlight;
   let hostJournal, hostJournalClose, hostJournalOpen, hostJournalOwnership, hostJournalFlight;
@@ -4475,6 +4566,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     // still owns its semantic references; do not abandon it on this path.
     const retainedMock = profiles.retainedMockPreparation(host, originalInstallation, host);
     (mockPreparation ?? retainedMock?.view)?.retire(moon);
+    projectSourcePreparation?.retire(moon);
     // The Model owner can decline retirement while the original execution
     // still uses these answers. Keep every original and callback on failure;
     // Source, Journal, Promise settlement and process exit cannot ACK it.
@@ -4491,7 +4583,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       projectProfile?.retire(moon);
       if (project !== undefined) retireInstalledProjectConfiguration(project, moon);
     }
-    mockPreparation = projectProfile = project = moon = referenceRetirement = undefined;
+    mockPreparation = projectSourcePreparation = projectProfile = project = moon = referenceRetirement = undefined;
     for (const key of Object.keys(record)) record[key] = undefined;
     // This private installation bag holds backreferences, not canonical DATA.
     // Its opaque identity remains the same for the original cleanup pair.
@@ -4501,6 +4593,14 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   }
   const initialControl = Object.freeze({async close() {
     if (observedClose !== undefined) return observedClose;
+    for (const run of record.computeRuns?.values() ?? []) if (!run.closed) {
+      // Dispatch has closed its actual children before this initial duty.
+      // Source-free Runs on either joint Source/Compute or Compute-only
+      // installations retire before their same parent service can close.
+      if (run.value !== undefined) checked(Reflect.apply(run.retire, run.runtime, [run.value]));
+      else if (run.admission !== undefined) checked(Reflect.apply(run.cleanup, run.runtime, [run.admission]));
+      run.closed = true;
+    }
     if (sourceManaged !== undefined) {
       const observation = await Reflect.apply(sourceManagedClose, sourceManaged, []);
       const pending = observation !== null && typeof observation === 'object'
@@ -4511,13 +4611,6 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       sourceManaged = sourceManagedClose = undefined;
     }
     if (computeManaged !== undefined) {
-      for (const run of record.computeRuns?.values() ?? []) if (!run.closed) {
-        // Dispatch has stopped/reclaimed its DAG before this initial duty.
-        // A failed begin still owns its SAME Resource admission without Run.
-        if (run.value !== undefined) checked(Reflect.apply(run.retire, run.runtime, [run.value]));
-        else if (run.admission !== undefined) checked(Reflect.apply(run.cleanup, run.runtime, [run.admission]));
-        run.closed = true;
-      }
       // The acquired original survives a failed first callback observation.
       // An observed close is captured once and cannot be replaced during
       // another child's await. Closing the Journal is not this child's ACK.
@@ -4705,7 +4798,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return resultPublication.modelPublicationCapacity(prepared);
     },
     bindSourceRequest(parent, derived) {
-      if (mockPreparation !== undefined) {
+      if (sourceManaged !== undefined) {
         assertSourceManagedInstallationCurrent(sourceManaged, originals);
       } else if (computeManaged !== undefined) {
         assertManagedComputeInstallationCurrent(computeManaged, originals);
@@ -4714,7 +4807,9 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     },
     prepareManagedCompute() {
       assertInitialControlHostPreparation(originals);
-      if (mockPreparation !== undefined) throw clientOperationError('ForeignInstalledComputePreparation');
+      if (mockPreparation !== undefined || projectSourcePreparation !== undefined) {
+        throw clientOperationError('ForeignInstalledComputePreparation');
+      }
       if (computeManagedFlight !== undefined) return computeManagedFlight;
       // The real Host calls only after its original Journal opens. A failed
       // factory/partial carrier stays on this same flight; no replacement.
@@ -4738,7 +4833,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     requestPreparation() {
       // Reuse the one private SDK lineage protocol, not Source authority.
       // Source installation/model selection below remains a separate entry.
-      if (mockPreparation !== undefined) {
+      if (sourceManaged !== undefined) {
         assertSourceManagedInstallationCurrent(sourceManaged, originals);
         return sourceManaged;
       }
@@ -4747,10 +4842,13 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return computeManaged;
     },
     prepareManagedComputeRun(runtime, prepared, request) {
-      if (runtime !== moon || computeManaged === undefined || mockPreparation !== undefined) {
+      const manager = computeManaged ?? sourceManaged;
+      if (runtime !== moon || manager === undefined) {
         throw clientOperationError('ForeignInstalledComputePreparation');
       }
-      assertManagedComputeInstallationCurrent(computeManaged, originals);
+      const assertCurrent = computeManaged === undefined
+        ? assertSourceManagedInstallationCurrent : assertManagedComputeInstallationCurrent;
+      assertCurrent(manager, originals);
       const runs = record.computeRuns ??= new Map();
       let run = runs.get(prepared);
       if (run !== undefined) {
@@ -4776,21 +4874,29 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         if (![run.retire, run.cleanup, run.check, run.prepare, run.begin].every(value => typeof value === 'function')) {
           throw clientOperationError('NodeManagedRunRuntimeUnavailable');
         }
-        run.original = computeManaged.prepareRun(prepared);
-        assertManagedComputeInstallationCurrent(computeManaged, originals);
+        run.original = manager.prepareRun(prepared);
+        assertCurrent(manager, originals);
         run.admission = checked(Reflect.apply(run.prepare, runtime, [run.original, prepared]));
         run.value = checked(Reflect.apply(run.begin, runtime, [run.admission, prepared, request]));
-        assertManagedComputeInstallationCurrent(computeManaged, originals);
+        assertCurrent(manager, originals);
         checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
         return run.value;
       } catch (error) {run.failure = error; throw error;}
     },
     sourcePreparation() {
-      if (mockPreparation === undefined) return undefined;
+      if (sourceManaged === undefined) return undefined;
       // Missing or retired selected coverage cannot become an unselected SDK
       // connection. Check the exact wrapper in its private original inventory.
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
       return sourceManaged;
+    },
+    installProjectSources(runtime, baseEnvironmentWire, authorizationFor) {
+      if (runtime !== moon || projectSourcePreparation === undefined || mockPreparation !== undefined) {
+        throw clientOperationError('ForeignInstalledProjectSourcePreparation');
+      }
+      assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      return installPreparedProjectLocalFiles({moon, preparation: projectSourcePreparation,
+        sourceManaged, baseEnvironmentWire, authorizationFor, nativeFilesystem: localProjectFilesystem()});
     },
     installMockSources(runtime, baseEnvironmentWire, authorizationFor) {
       if (runtime !== moon || mockPreparation === undefined) {
@@ -5063,6 +5169,23 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     record.mockPreparation = mockPreparation;
     mockPreparation.originalsForRuntime(moon);
     sourceManaged.assertCurrent();
+  } else if (selectedProfile.selected === undefined && project !== undefined) {
+    // This existing Connector prepares declaration DATA without business
+    // discovery. Retain its actual factory result before post-await current;
+    // the later Host installs real Root/readers on the same joint service.
+    projectSourcePreparation = await prepareInstalledProjectLocalFiles(moon, project, {
+      limits: LOCAL_FILES_DEFAULT_LIMITS,
+      assertCurrent: () => assertInitialControlInstallationCurrent(control, originals),
+    });
+    record.projectSourcePreparation = projectSourcePreparation;
+    originalInstallation.projectSourcePreparation = projectSourcePreparation;
+    assertInitialControlInstallationCurrent(control, originals);
+    if (projectSourcePreparation !== undefined) {
+      sourceManaged = await prepareProjectSourceManagedInstallation(originals);
+      record.sourceManaged = sourceManaged;
+      sourceManagedClose = sourceManaged.close;
+      assertSourceManagedInstallationCurrent(sourceManaged, originals);
+    }
   }
   if (selectedProfile.selected !== undefined && selectedProfile.selected !== 'mock') {
     // No other named physical-profile supplier exists here. Keep its original
@@ -5071,7 +5194,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   }
   const root = installation?.directory === undefined ? project?.stateDirectory ?? localStateRoot() :
     resolve(installation.directory);
-  const identity = await embeddedInstallationIdentity(root, installation, project, moon);
+  const identity = await embeddedInstallationIdentity(root, installation, project, moon, projectSourcePreparation);
   assertInitialControlInstallationCurrent(control, originals);
   Object.assign(originalInstallation, {root, project, projectProfile, projectRuntime: moon,
     authorization: installation?.authorization,

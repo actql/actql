@@ -693,6 +693,21 @@ This projection remains managed demand, not a physical supplier or read grant.
 The separate local Mock Model purpose retains its own supported shape and
 early original Scope; extending plain Source bookkeeping does not issue it.
 
+An ordinary Project Local Source retains its exact connection declaration and
+the same issued Project/runtime before installing the actual rooted reader.
+The checked QueryRequirement selects a declaration for each capture occurrence;
+the number of configured connections is not the Run's capture count. Repeated
+reads of one declaration have distinct occurrence and child custody. The same
+joint service can also admit a checked source-free Compute graph with empty
+Source arrays, without creating another parent or borrowing listing bytes.
+Captured original reader close/status callbacks and their receivers survive
+currentness refusal. A pending child does not suppress independent sibling
+cleanup, and every actual reader must acknowledge retirement before its Run
+and installation retire. Managed reference retirement is not a native ACK.
+Changing original connection bytes changes installation reuse identity; equal
+Source labels cannot replace the retained declaration. Explicit Mock setup is
+separate and never follows merely from installing a normal Local Source.
+
 Partial initialization retains the same admission even when no Run view was
 returned. If Resource proves that neither the imported child nor its origin
 published a Ledger, cleanup reports a distinct unpublished-initialization

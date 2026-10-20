@@ -69,7 +69,7 @@ test('legacy unprepared and existing Mock Source entries do not acquire a Comput
 });
 
 function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, retire = () => {},
-  runtime = {}, controlClose = async () => ({pending: false})}) {
+  runtime = {}, source, controlClose = async () => ({pending: false})}) {
   const declarations = declared('connectEmbeddedLocal').body.body
     .filter(node => node.type === 'VariableDeclaration').flatMap(node => node.declarations);
   const initial = declarations.find(node => node.id.name === 'initialControl');
@@ -86,17 +86,20 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
     prepareManagedComputeInstallation: held => {assert.strictEqual(held, originals); return factory();},
     assertInitialControlHostPreparation: held => {assert.strictEqual(held, originals); current();},
     assertManagedComputeInstallationCurrent: (value, held) => {assert.strictEqual(held, originals); current(value);},
-    assertSourceManagedInstallationCurrent: () => {assert.fail('Compute is not Source');},
+    assertSourceManagedInstallationCurrent: (value, held) => {
+      assert.strictEqual(value, source); assert.strictEqual(held, originals); current(value);
+    },
     clientOperationError: code => Object.assign(new Error(code), {code}),
     retirePreparationReferences: retire, controlClose, originals, runtime,
     checked: value => value,
-    beforeChild, beforeChildClose,
+    beforeChild, beforeChildClose, source,
   };
   return new Function(...Object.keys(ports), `
     let computeManaged, computeManagedClose, computeManagedFlight, observedClose;
     let resultPublication, resultPublicationClose, resultPublicationFlight;
-    let sourceManaged=beforeChild, sourceManagedClose=beforeChildClose, hostJournal;
-    let moon=runtime, mockPreparation, control={}, duty, originalInstallation=originals.installation;
+    let sourceManaged=source??beforeChild, sourceManagedClose=source?.close??beforeChildClose, hostJournal;
+    let moon=runtime, mockPreparation=source===undefined?undefined:{}, projectSourcePreparation;
+    let control={}, duty, originalInstallation=originals.installation;
     const host=originals.host, record={}, adopted=true;
     const profiles={bindSourceRequest(...args){record.lineage=args;}};
     const initialControl=${text(initial.init)};
@@ -256,6 +259,41 @@ test('same ordinary Host retains separate Run records for successive prepared re
   assert.deepEqual(retired, [a, b]);
 });
 
+test('Source Host opens a source-free Run on its same joint parent and retires it before Root close', async () => {
+  const p = managedRunPorts(), original = {}, prepared = {}, request = {};
+  let preparations = 0, rootCloses = 0;
+  const source = {prepareRun(value) {assert.strictEqual(value, prepared); preparations++; return original;},
+    close() {assert.strictEqual(this, source); assert.deepEqual(p.log.at(-1), ['retire']);
+      rootCloses++; return {pending: false};}};
+  const f = lifecycle({runtime: p.runtime, source,
+    factory: () => assert.fail('No replacement Compute installation')});
+  assert.strictEqual(f.preparation.requestPreparation(), source);
+  assert.strictEqual(f.preparation.sourcePreparation(), source);
+  assert.strictEqual(f.preparation.prepareManagedComputeRun(p.runtime, prepared, request), p.value);
+  assert.strictEqual(f.preparation.prepareManagedComputeRun(p.runtime, prepared, request), p.value);
+  assert.equal(preparations, 1);
+  await f.initialControl.close();
+  assert.equal(rootCloses, 1);
+});
+
+test('Source Host retains failed source-free start cleanup without replacing its original parent', async () => {
+  const marker = new Error('OriginalSourceHostBeginUnknown');
+  const p = managedRunPorts({clientProgramInstalledManagedRunBegin() {throw marker;}});
+  let cleanups = 0, rootCloses = 0, ready = false;
+  p.runtime.clientProgramNodeManagedRunCleanup = function(admission) {
+    assert.strictEqual(this, p.runtime); assert.strictEqual(admission, p.admission); cleanups++;
+    if (!ready) throw marker;
+  };
+  const source = {prepareRun: () => ({}), close() {rootCloses++; return {pending: false};}};
+  const f = lifecycle({runtime: p.runtime, source}), prepared = {}, request = {};
+  assert.throws(() => f.preparation.prepareManagedComputeRun(p.runtime, prepared, request), error => error === marker);
+  await assert.rejects(f.initialControl.close(), error => error === marker);
+  assert.equal(rootCloses, 0);
+  ready = true;
+  await f.initialControl.close();
+  assert.equal(cleanups, 2); assert.equal(rootCloses, 1);
+});
+
 const dispatchSource = readFileSync(new URL('./client-dispatch-owner.mjs', import.meta.url), 'utf8');
 const dispatchAst = parse(dispatchSource, {ecmaVersion: 'latest', sourceType: 'module'});
 function sourceFreeOpening() {
@@ -296,4 +334,53 @@ test('actual dispatcher propagates missing/foreign/parked original refusal witho
   assert.throws(() => open({managedRun: original}, {clientProgramOpenSourceFreeLocalHost: legacy,
     clientProgramOpenInstalledManagedSourceFreeHost() {throw marker;}}, {}, {}, false, value => value),
     error => error === marker);
+});
+
+function singleSourceOpening() {
+  const matches = [];
+  visit(dispatchAst, node => {
+    if (node.type === 'IfStatement' && node.test.type === 'Identifier' &&
+        node.test.name === 'singleAccounted' && dispatchSource.slice(node.start, node.end)
+          .includes('clientProgramPrepareSingleCapturedLocalInstalledLedger')) matches.push(node);
+  });
+  assert.equal(matches.length, 1);
+  return new AsyncFunction('installedSource', 'moon', 'preparedProgram', 'requested', 'checked', `
+    const singleAccounted=true, checkpoints=undefined, submission={},held={preparedSource:{}};
+    const prepareAcquisition=()=>held.preparedSource;
+    const registry='registry',values='values',fragment='fragment',ordered='ordered',entry={};let ledger;
+    ${dispatchSource.slice(matches[0].start, matches[0].end)}
+    return {ledger,entry};`);
+}
+
+test('single Source dispatcher keeps the original managed parent and singleton capacity arrays', async () => {
+  const run = {}, capacity = {}, prepared = {}, request = {}, ledger = {}, open = singleSourceOpening();
+  const source = {ledgerCapacity: () => ({managedRun: run, capacity, transferBytes: 3n, executionBytes: 5n})};
+  const result = await open(source, {clientProgramInstalledManagedRunPrepareLedger(...args) {
+    assert.deepEqual(args, [run, prepared, request, [capacity], [3n], [5n],
+      'registry', 'values', 'fragment', 'ordered']); return ledger;
+  }, clientProgramPrepareSingleCapturedLocalInstalledLedger() {assert.fail('Accounting fallback');}},
+  prepared, request, value => value);
+  assert.strictEqual(result.ledger, ledger); assert.strictEqual(result.entry.acquisitionLedger, ledger);
+});
+
+test('single Source dispatcher preserves managed missing/parked refusal instead of scalar fallback', async () => {
+  const open = singleSourceOpening(), marker = new Error('OriginalResourceParked');
+  const source = {ledgerCapacity: () => ({managedRun: {}, capacity: {}, transferBytes: 3n, executionBytes: 5n})};
+  const legacy = () => assert.fail('Accounting fallback');
+  await assert.rejects(open(source, {clientProgramPrepareSingleCapturedLocalInstalledLedger: legacy},
+    {}, {}, value => value), /InstalledSingleSourceOriginalRunUnavailable/u);
+  await assert.rejects(open(source, {clientProgramPrepareSingleCapturedLocalInstalledLedger: legacy,
+    clientProgramInstalledManagedRunPrepareLedger() {throw marker;}}, {}, {}, value => value),
+  error => error === marker);
+});
+
+test('unprepared single Source retains its existing accounting constructor and argument shape', async () => {
+  const open = singleSourceOpening(), capacity = {}, prepared = {}, ledger = {};
+  const source = {ledgerCapacity: () => ({capacity, transferBytes: 3n, executionBytes: 5n})};
+  const result = await open(source, {clientProgramPrepareSingleCapturedLocalInstalledLedger(...args) {
+    assert.deepEqual(args, [prepared, capacity, 3n, 5n, 'registry', 'values', 'fragment', 'ordered']);
+    return ledger;
+  }, clientProgramInstalledManagedRunPrepareLedger() {assert.fail('No managed original');}},
+  prepared, {}, value => value);
+  assert.strictEqual(result.ledger, ledger);
 });
