@@ -60,6 +60,8 @@ import {
   "actql/actql/decode_core" @decode,
   "actql/actql/sourceview_resolution" @sourceviews,
   "actql/actql/relation_typing" @relation,
+  "actql/actql/relation_append" @append,
+  "actql/actql/relation_set" @set,
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/expression_typing" @typing,
   "actql/actql/expression_text",
