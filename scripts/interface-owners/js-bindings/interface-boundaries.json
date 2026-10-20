@@ -15415,7 +15415,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "f6b6a4220f45e033163df2f108d72ae2f40b66a389ffffe5ffbf668beb34e8a0",
+      "sha256": "440555d389aa40dafbb69631f16a398fc8a70c4fa7d70df62cda341873d72559",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -19626,6 +19626,14 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:runDefinitionLifetime/init:runDefinitionLifetime",
+          "parameters": [
+            "runDefinition",
+            "expectedCid"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:runDefinitionRunId/init:runDefinitionRunId",
           "parameters": [
             "runDefinition"
@@ -23342,6 +23350,7 @@
             "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed/init:runCancellationConfirmed",
             "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed/init:runCancellationConfirmed#2",
             "publicationControl/init:runChainValid/init:runChainValid",
+            "publicationControl/init:runDefinitionLifetime/init:runDefinitionLifetime",
             "publicationControl/init:runDefinitionRunId/init:runDefinitionRunId",
             "publicationControl/init:seal/init:seal",
             "publicationControl/init:sealRequestedEffectStop/init:sealRequestedEffectStop",
@@ -23401,6 +23410,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "`stopBefore`"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An Effect Checkpoint, whether issued by genuine Account delegation or an"
               }
             ],
             "inputsOutputs": [
@@ -23415,6 +23428,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"request_optional_fields\""
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "pub fn client_local_checkpoint_run_lifetime("
               }
             ],
             "identity": [
@@ -23429,6 +23446,10 @@
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
                 "anchor": "fn check_requested_effect_stop_original("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "if @publication.publication_contract_identity(definition) != expected_cid {"
               }
             ],
             "ownership": [
@@ -23443,6 +23464,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "originalSubmittedIntent("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "runDefinition: facts.retained?.runDefinition ?? facts.runDefinition,"
               }
             ],
             "synchronization": [
@@ -23457,6 +23482,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const expires = checkpointEnd(created, requestedStop === undefined"
               }
             ],
             "failure": [
@@ -23471,6 +23500,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "if (!Number.isFinite(expires) || expires <= created) {"
               }
             ],
             "cancellation": [
@@ -23481,6 +23514,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -23503,6 +23540,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "function cleanupCustody("
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and reference retirement remain with the original Host/Run resource lifetime."
               }
             ],
             "extension": [
@@ -23517,6 +23558,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "does not renew the Run, replace a saved Checkpoint or relax Common's lifetime"
               }
             ],
             "verification": [
@@ -23539,6 +23584,14 @@
               {
                 "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
                 "anchor": "test('requested first Effect pauses Account Allow"
+              },
+              {
+                "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
+                "anchor": "test(`delegated Effect expiry preserves the original Run deadline:"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('Checkpoint lifetime projects only the same original admitted Run without renewal'"
               }
             ]
           }
@@ -37361,7 +37414,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "815f4946fbeee9ebe7ca6b2f0e113889a5f3ce7072ecf24ff3022dc8c587b855",
+      "sha256": "aa0f7309d4d3dfa284c5e6d004d1cc6dc50ff0c663dc909899d86d498ed46570",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -124803,7 +124856,7 @@
   ],
   "counts": {
     "modules": 58,
-    "operations": 3579,
+    "operations": 3580,
     "exports": 567,
     "explicitContractGroups": 788
   }

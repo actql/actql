@@ -208,6 +208,20 @@ function admittedRun(control, programDefinitionCid) {
   });
 }
 
+test('Checkpoint lifetime projects only the same original admitted Run without renewal', () => {
+  const control = runtimeCore(moon).publicationControl;
+  const {run, invoked} = admittedRun(control, cid('6'));
+  const lifetime = control.runDefinitionLifetime(run, run.identity);
+  assert.deepEqual(lifetime, {createdAt: '2026-09-18T00:00:00.000Z',
+    validUntil: '2026-09-18T02:00:00.000Z'});
+  assert.equal(Object.isFrozen(lifetime), true);
+  assert.throws(() => control.runDefinitionLifetime(run, cid('f')));
+  assert.throws(() => control.runDefinitionLifetime(invoked, invoked.identity));
+  assert.throws(() => control.runDefinitionLifetime({...run}, run.identity),
+    /Foreign publication contract/u);
+  assert.deepEqual(control.runDefinitionLifetime(run, run.identity), lifetime);
+});
+
 function deliveryRoot(control) {
   const artifact = control.seal('result_artifact', JSON.stringify({
     version: 'actql-result-artifact/0.1',

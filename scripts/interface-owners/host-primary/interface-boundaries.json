@@ -4448,7 +4448,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "815f4946fbeee9ebe7ca6b2f0e113889a5f3ce7072ecf24ff3022dc8c587b855",
+      "sha256": "aa0f7309d4d3dfa284c5e6d004d1cc6dc50ff0c663dc909899d86d498ed46570",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",

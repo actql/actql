@@ -12894,7 +12894,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d0372237a0aea20109408ec7f3107567c5e4926d155880585b90a4d984cc69d7",
+      "sha256": "c163a879d75e667b2dd0a4241befd0940a157432ff2556e85862c4265623668a",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -13435,6 +13435,7 @@
           "parameters": [
             "runId",
             "runDefinitionCid",
+            "runDefinition",
             "unitId",
             "declaredResults",
             "reviewWire",
@@ -13453,6 +13454,14 @@
           "parameters": [
             "resumption",
             "subjectCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/checkpointEnd/checkpointEnd",
+          "parameters": [
+            "created",
+            "stopLifetime"
           ],
           "async": false
         },
@@ -14467,6 +14476,7 @@
             "installRemoteCheckpoints/init:describe/init:describe",
             "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization",
             "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/checkedStopView/checkedStopView",
+            "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/checkpointEnd/checkpointEnd",
             "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/cleanupPending/cleanupPending",
             "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/cleanupPending/cleanupPending/cleanupPending",
             "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/close/close",
@@ -14627,6 +14637,10 @@
               {
                 "path": "src/run_publication/effect_review_projection.mbt",
                 "anchor": "pub fn project_effect_review_projection("
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An Effect Checkpoint, whether issued by genuine Account delegation or an"
               }
             ],
             "inputsOutputs": [
@@ -14657,6 +14671,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "const originalReview = (subjectCid, claims) =>"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "pub fn client_local_checkpoint_run_lifetime("
               }
             ],
             "identity": [
@@ -14691,6 +14709,10 @@
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "value.review_projection_cid !== artifactCid"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "if @publication.publication_contract_identity(definition) != expected_cid {"
               }
             ],
             "ownership": [
@@ -14721,6 +14743,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "same review holding: its historical `semantic_cid` still addresses complete"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "runDefinition: facts.retained?.runDefinition ?? facts.runDefinition,"
               }
             ],
             "synchronization": [
@@ -14751,6 +14777,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "facts.assertUpdateSelectionCurrent?.();"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const expires = checkpointEnd(created, requestedStop === undefined"
               }
             ],
             "failure": [
@@ -14781,6 +14811,10 @@
               {
                 "path": "adapters/host-node/local-continuation-evidence.mjs",
                 "anchor": "fail('ContinuationEvidenceRetired')"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "if (!Number.isFinite(expires) || expires <= created) {"
               }
             ],
             "cancellation": [
@@ -14807,6 +14841,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "and cleanup custody remain with their existing Owners."
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
@@ -14837,6 +14875,10 @@
               {
                 "path": "src/run_publication_host/client_private_continuation_retention.mbt",
                 "anchor": "15L + 8L * max_entries.to_int64()"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and reference retirement remain with the original Host/Run resource lifetime."
               }
             ],
             "extension": [
@@ -14867,6 +14909,10 @@
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "value?.version === 'actql-review-projection/0.1'"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "does not renew the Run, replace a saved Checkpoint or relax Common's lifetime"
               }
             ],
             "verification": [
@@ -14901,6 +14947,14 @@
               {
                 "path": "packages/sdk/effect-review-checkpoints.test.mjs",
                 "anchor": "test('Effect semantic review verification rejects"
+              },
+              {
+                "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
+                "anchor": "test(`delegated Effect expiry preserves the original Run deadline:"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('Checkpoint lifetime projects only the same original admitted Run without renewal'"
               }
             ]
           }
@@ -73393,7 +73447,7 @@
   ],
   "counts": {
     "modules": 162,
-    "operations": 4114,
+    "operations": 4115,
     "exports": 1012,
     "explicitContractGroups": 228
   },

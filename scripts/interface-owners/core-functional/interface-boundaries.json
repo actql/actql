@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "f6b6a4220f45e033163df2f108d72ae2f40b66a389ffffe5ffbf668beb34e8a0",
+      "sha256": "440555d389aa40dafbb69631f16a398fc8a70c4fa7d70df62cda341873d72559",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -4380,6 +4380,14 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:runDefinitionLifetime/init:runDefinitionLifetime",
+          "parameters": [
+            "runDefinition",
+            "expectedCid"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:runDefinitionRunId/init:runDefinitionRunId",
           "parameters": [
             "runDefinition"
@@ -7352,6 +7360,7 @@
             "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed/init:runCancellationConfirmed",
             "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed/init:runCancellationConfirmed#2",
             "publicationControl/init:runChainValid/init:runChainValid",
+            "publicationControl/init:runDefinitionLifetime/init:runDefinitionLifetime",
             "publicationControl/init:runDefinitionRunId/init:runDefinitionRunId",
             "publicationControl/init:seal/init:seal",
             "publicationControl/init:sealRequestedEffectStop/init:sealRequestedEffectStop",
@@ -7698,6 +7707,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "### Original INFER materials in the installed Host"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An Effect Checkpoint, whether issued by genuine Account delegation or an"
               }
             ],
             "inputsOutputs": [
@@ -7724,6 +7737,10 @@
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "pub fn client_local_checkpoint_run_lifetime("
               }
             ],
             "identity": [
@@ -7750,6 +7767,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "if @publication.publication_contract_identity(definition) != expected_cid {"
               }
             ],
             "ownership": [
@@ -7776,6 +7797,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const restoredInferRuns = new WeakSet();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "runDefinition: facts.retained?.runDefinition ?? facts.runDefinition,"
               }
             ],
             "synchronization": [
@@ -7802,6 +7827,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const expires = checkpointEnd(created, requestedStop === undefined"
               }
             ],
             "failure": [
@@ -7828,6 +7857,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "if (!Number.isFinite(expires) || expires <= created) {"
               }
             ],
             "cancellation": [
@@ -7850,6 +7883,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
@@ -7880,6 +7917,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and reference retirement remain with the original Host/Run resource lifetime."
               }
             ],
             "extension": [
@@ -7906,6 +7947,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "compilation and existing custody path."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "does not renew the Run, replace a saved Checkpoint or relax Common's lifetime"
               }
             ],
             "verification": [
@@ -7944,6 +7989,14 @@
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
                 "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              },
+              {
+                "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
+                "anchor": "test(`delegated Effect expiry preserves the original Run deadline:"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('Checkpoint lifetime projects only the same original admitted Run without renewal'"
               }
             ]
           }
