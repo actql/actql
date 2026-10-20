@@ -238,11 +238,11 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       },
       async retire() {
         if (model.closed || run.retired) return true;
-        retireModelRead(model);
         // Source capture can still be borrowed by the Local DAG. Its own
         // retirement/FD checks, not Model completion, decide when each read
         // is closed. The same scope then checks the whole original census.
         for (const read of run.reads) await closeRead(read);
+        retireModelRead(model);
         if (model.control.finishCheckedClientInferOriginalReadScope(model.compiled,
           model.runDefinition, model.graph, model.scope, true) !== true) return false;
         retireRunRecord(run);
@@ -252,8 +252,11 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
   function retireModelRead(model) {
     if (model.read === undefined) return;
     if (inferOriginalReadCleanupComplete(model.read)) {
-      // The same operation already received Core's successful cleanup. Drop
-      // only this alias; a second settlement would spend the original twice.
+      // Core stopped the same consuming execution, not this parent's read
+      // reservation. Its separate owning cleanup settles that original once
+      // after Source custody above has closed; a failed settlement retains it.
+      model.control.settleCheckedClientInferOriginalReadPreparation(model.compiled,
+        model.runDefinition, model.graph, model.read, true);
       model.read = undefined;
       return;
     }

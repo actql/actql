@@ -561,19 +561,21 @@ Durable Model binding uses the same Mock profile's canonical installation,
 configuration-contract and configuration originals. Equal replacement bytes
 cannot adopt its Task, answer inventory or currentness. Existing Account,
 Entry, settlement, saved-original and no-resend checks remain independent.
-The Model child settles its read only after its own cleanup; the Run's final
-census/bootstrap retirement also waits for the other children. Closing one
-Source, dropping a JavaScript reference or retiring that read cannot acknowledge
-its sibling or the whole Run.
-After the Model owner confirms its original cleanup, the parent drops its
-read alias instead of stopping or settling that spent descriptor again. A
-never-consumed read still follows its original preparation cleanup path;
-pending or failed Model cleanup cannot produce the completed observation.
+The consuming Model execution and its parent's original read reservation have
+separate cleanup. Core execution cleanup stops the consumer but leaves the
+read reservation with its original parent. After Model cleanup and the actual
+Source custody have closed, that parent settles the same read once, then drops
+its alias. A refused settlement retains that exact read for its owning retry.
+The Run's final census/bootstrap retirement also waits for the other children;
+closing one Source or dropping a JavaScript reference cannot acknowledge its
+sibling or the whole Run. A never-consumed read still follows its original
+preparation cleanup path.
 
 The Node operation snapshots the exact read it claims. Its private weak
 membership observation becomes true only after that operation receives the
-existing Core execution's successful cleanup result. The parent can then drop
-its consumed descriptor alias without trying to stop the spent read again.
+existing Core execution's successful cleanup result. This does not observe or
+settle the separate original read reservation. The parent still owns that
+settlement and drops its descriptor alias only after it succeeds.
 There is no setter or synthetic acknowledgement: stop, pending cleanup, a
 thrown cleanup result, a copied read or another child's completion cannot mark
 this original. Until the actual acknowledgement, the existing parent keeps
