@@ -17,20 +17,20 @@ export function installedHostShutdown(host) {
   const shutdown = createInstalledHostShutdown({
     stop: prepareShutdown === undefined ? () => {
       host.stopModelRuntime?.();
-      return host.checkpoints?.stop();
+      return (host.runAcceptance ?? host.checkpoints)?.stop();
     } : async () => {
       host.stopModelRuntime?.();
       // The same Host's deferred constructor may already hold a physical
       // child. Observe that original to terminal before enumerating shutdown
       // duties; never replace it or turn its Promise into an ACK.
       await Reflect.apply(prepareShutdown,host,[]);
-      return host.checkpoints?.stop();
+      return (host.runAcceptance ?? host.checkpoints)?.stop();
     },
     drain: () => prepareShutdown === undefined
       ? host.dispatchOwner.drain() : host.dispatchOwner?.drain(),
     retire: () => prepareShutdown === undefined
       ? host.retireTerminalEffects() : host.retireTerminalEffects?.(),
-    checkpoint: () => host.checkpoints?.close(),
+    checkpoint: () => (host.runAcceptance ?? host.checkpoints)?.close(),
     journal: closeRequestJournal === undefined ? () => host.journal.close() :
       () => Reflect.apply(closeRequestJournal, host, []),
     source: () => host.sourceProfile?.close(),

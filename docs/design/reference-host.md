@@ -14,6 +14,17 @@ the Host. Conflicting account settings are errors, not a rule-priority system.
 Encrypted evidence, secure defaults, retention and recovery guarantees remain
 unchanged.
 
+An admitted Account configuration does not itself select the optional signed
+Checkpoint service. Account-only ordinary installations still evaluate the
+same Host-resolved request tuple and current principal/configuration, and may
+execute Account-Allow reads without Reviewer or Checkpoint signer settings.
+Omitted signing settings mean that capability is absent; explicitly supplied
+partial or malformed Checkpoint settings remain installation errors. Delegate
+and operations requiring an approval, claim or requested-stop Checkpoint stay
+unavailable without their real signing and durable continuation support. This
+does not create an Account grant or replace Store integrity keys with Reviewer
+keys; existing saved Preview, Run and Unknown recovery remains unchanged.
+
 The [OSS authorization behavior draft](oss-host-authorization.md) details Local
 configuration, immediate/deferred adapters, CLI resolution and crash recovery.
 Its pending product choices are not changes to current defaults.

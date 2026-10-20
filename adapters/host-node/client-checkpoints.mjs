@@ -195,6 +195,88 @@ function captureEffectTargets(effectTargets) {
   });
 }
 
+// Account admission and signed Checkpoint continuation are distinct Host
+// capabilities. An omitted signer configuration does not make an admitted
+// Account invalid; any explicitly selected Checkpoint option still takes the
+// existing complete validation/installation path below.
+export async function installHostRunAcceptance(options) {
+  const {authorization, ownerPrincipal, authorityScopeCid, namespaceId,
+    siteKey, realizationKey} = options;
+  const checkpointFields = ['reviewers', 'hostKey', 'reviewReaders',
+    'answeringAuthorities', 'effectRequiredClaims', 'checkpointTtlMs',
+    'leaseMs', 'maxReviewBytes', 'resumeAfterAnswer', 'faultInjection',
+    'sweepPage', 'decide'];
+  if (authorization === undefined) return Object.freeze({});
+  if (authorization === null || typeof authorization !== 'object' ||
+      Array.isArray(authorization) ||
+      checkpointFields.some(name => name in authorization)) {
+    const checkpoints = await installRemoteCheckpoints(options);
+    return Object.freeze({checkpoints, runAcceptance: checkpoints});
+  }
+  const {accountConfig, accountConfiguration, decisionTimeoutMs = 30_000,
+    maxInFlightDecisions = 16, maxRetainedDecisions = 1024} = authorization;
+  const decisionBudget = createAuthorizationDecisionBudget({
+    maxInFlightDecisions, maxRetainedDecisions});
+  let gate;
+  try {
+    gate = await createLocalAuthorizationGate({accountConfig,
+      accountConfiguration, principal: ownerPrincipal, decisionTimeoutMs,
+      decisionBudget});
+  } catch (cause) {
+    decisionBudget.close();
+    throw cause;
+  }
+  const tuple = Object.freeze({connection: siteKey, resource: realizationKey,
+    operation: 'write'});
+  let stopped = false;
+  const stop = () => {
+    stopped = true;
+    gate.close();
+    decisionBudget.close();
+  };
+  const runAcceptance = Object.freeze({
+    async acceptRun({requested, captured, signal}) {
+      if (stopped) fail('ExecutionAuthorizationStopped');
+      if (captured.principalId !== ownerPrincipal) fail('ClientConnectionDenied');
+      const subject = Object.freeze({
+        version: 'actql-remote-run-acceptance-request/0.1',
+        authority_scope_cid: authorityScopeCid, namespace_id: namespaceId,
+        logical_request_scope_cid: requested.logicalRequestScopeCid,
+        intent_fingerprint_cid: requested.intentFingerprintCid,
+        site_key: siteKey, realization_key: realizationKey,
+      });
+      // No decision callback, deferral journal or signer exists here. The
+      // same Account evaluator refuses Delegate; it is never an Allow or a
+      // synthetic approval. Source/Effect gates keep their own exact tuples.
+      const scope = gate.withContext({principal: gate.principal,
+        contextCid: gate.contextCid});
+      try {
+        const decision = await scope.authorize('preparation', tuple,
+          {subjectCid: contentCid(subject), signal, allowDeferral: false});
+        if (stopped) fail('ExecutionAuthorizationStopped');
+        if (decision.action !== 'dispatch') {
+          const error = new ExecutionAuthorizationError(decision);
+          throw coded(error.runtimeCode ?? 'ACTQL_E_DELEGATION_UNAVAILABLE', error);
+        }
+        scope.assertAccountCurrent(decision);
+        return {kind: 'dispatch'};
+      } finally {
+        // Share the installation's real budget, not an installation-long
+        // cache of completed request decisions or a fresh capacity credit.
+        scope.close();
+      }
+    },
+    stop,
+    close() {
+      stop();
+      if (gate.cleanupPending() || decisionBudget.cleanupPending()) {
+        fail('ExecutionAuthorizationCleanupPending');
+      }
+    },
+  });
+  return Object.freeze({runAcceptance});
+}
+
 // Install the Checkpoint connection for one installed Host scope. Returns
 // undefined when the Host installs no Run-acceptance protection (then its
 // in-process Site is unprotected and pure compute is covered, as before).

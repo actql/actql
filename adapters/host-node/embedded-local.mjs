@@ -146,7 +146,7 @@ import * as publicationStoreModule from '../store-local/publication-store.mjs';
 import {createLocalRetainedStore} from '../store-local/files.mjs';
 import {installLocalRetainedStore, installLocalSnapshotStore} from
   '../local-node/retained-store.mjs';
-import {installRemoteCheckpoints} from './client-checkpoints.mjs';
+import {installHostRunAcceptance} from './client-checkpoints.mjs';
 import {createLocalCheckpointAnswer} from './local-checkpoint-answer.mjs';
 import {installClientOwnerObservations} from './client-owner-observations.mjs';
 import {installClientStaticPlan} from './client-interactive-plan.mjs';
@@ -1324,6 +1324,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   }
   let effectEvidenceKey = mockAccount?.evidenceKey;
   let checkpoints;
+  let runAcceptance;
   let modelController;
   let dispatchOwner;
   let diagnostic;
@@ -1596,7 +1597,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         observation, inferEvidence: evidenceConfiguration,
         getCheckpoints: () => checkpoints});
     }
-    checkpoints = await installRemoteCheckpoints({root, namespaceId,
+    ({checkpoints, runAcceptance} = await installHostRunAcceptance({root, namespaceId,
       authorityScopeCid, ownerPrincipal: principalId,
       siteKey: authorization?.siteKey ?? 'actql-remote-host',
       realizationKey: sourceProfile?.realizationKey ?? REALIZATION_KEY,
@@ -1618,7 +1619,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           sourceRef: installedSourceReadAccesses(sourceProfile)[0].sourceRef}}
         : {sources: (sourceProfile?.sources ?? [sourceProfile]).flatMap(source =>
           installedSourceReadAccesses(source).map(access => ({
-            sourceRef: access.sourceRef, ...source.readAuthorization})))})});
+            sourceRef: access.sourceRef, ...source.readAuthorization})))})}));
   const projectRunObservation = (ref, state, retained) => {
     if (observation === undefined) return;
     try {
@@ -2955,8 +2956,8 @@ async function openInstalledHost(originalInstallation, preparation) {
           revision: existing.revision};
       }
     }
-    if (checkpoints !== undefined &&
-        (checkpoints.heldOrigin(requestId) ||
+    if (runAcceptance !== undefined &&
+        (checkpoints?.heldOrigin(requestId) ||
          journal.lookup({namespaceId, authorityScopeCid, requestId}, moon) ===
            undefined)) {
       const requestedFacts = {
@@ -2968,7 +2969,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         parameters, resultNames,
         ...capturedUpdateOriginal(submission),
         ...(submission.submission === undefined ? {} : {submission: submission.submission})};
-      const decided = await checkpoints.acceptRun({requested: requestedFacts,
+      const decided = await runAcceptance.acceptRun({requested: requestedFacts,
         captured});
       if (decided.kind !== 'dispatch') {
         const existing = journal.lookupDefinition({namespaceId,
@@ -3086,8 +3087,8 @@ async function openInstalledHost(originalInstallation, preparation) {
           revision: existing.revision};
       }
     }
-    if (checkpoints !== undefined &&
-        (checkpoints.heldOrigin(requestId) ||
+    if (runAcceptance !== undefined &&
+        (checkpoints?.heldOrigin(requestId) ||
          journal.lookup({namespaceId, authorityScopeCid, requestId}, moon) ===
            undefined)) {
       const requestedFacts = {
@@ -3095,11 +3096,11 @@ async function openInstalledHost(originalInstallation, preparation) {
         intentFingerprintCid: moon.clientRequestIntentCid(requested),
       };
       const captured = captureSubmission(submission, resultNames, preparedSource, preparedSources, keyedSource);
-      let decided = await checkpoints.acceptRun({requested: requestedFacts,
+      let decided = await runAcceptance.acceptRun({requested: requestedFacts,
         captured});
       // Run acceptance allowed or permitted: a Program that reads the
       // installed source has its read decided before any Run exists.
-      if (decided.kind === 'dispatch') {
+      if (decided.kind === 'dispatch' && checkpoints !== undefined) {
         decided = await checkpoints.acceptAcquisition({
           requested: requestedFacts, captured});
       }
@@ -4251,7 +4252,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       ? ingress.perform(operation, request, signal)
       : observation.run(operation, undefined, () => ingress.perform(operation, request, signal)),
   });
-  return Object.assign(host, {port, store, journal, hostOperations, checkpoints, diagnostic,
+  return Object.assign(host, {port, store, journal, hostOperations, checkpoints, runAcceptance, diagnostic,
     closeRequestJournal: closeHostRequestJournal,
     ...(preparation === undefined ? {closePublicationOwnership: closeHostPublicationOwnership} : {}),
     observation, ownerViews,
@@ -4263,7 +4264,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     diagnostic?.close();
     effectEvidenceKey?.key.fill(0);
     throw await retainInstalledHostInitializationFailure(cause,
-      {journal, closeJournal: closeHostRequestJournal, store, checkpoints, dispatchOwner,
+      {journal, closeJournal: closeHostRequestJournal, store, checkpoints: runAcceptance, dispatchOwner,
         sourceProfile, installedEffect, observation, ownerViews,
         closeInitializationJournal: publicationOpeningFailure !== undefined && publicationOpeningFailure.cause === cause
           ? closeHostRequestJournal : undefined,
@@ -4393,7 +4394,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     diagnostic?.close();
     effectEvidenceKey?.key.fill(0);
     throw await retainInstalledHostInitializationFailure(cause,
-      {journal, closeJournal: closeHostRequestJournal, store, checkpoints, dispatchOwner,
+      {journal, closeJournal: closeHostRequestJournal, store, checkpoints: runAcceptance, dispatchOwner,
         sourceProfile, installedEffect, observation, ownerViews,
         publicationOwnership: preparation === undefined ? {close: closeHostPublicationOwnership} : undefined});
   }
