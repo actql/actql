@@ -37,6 +37,55 @@ pub fn NativeLocalReadPolicyBinding::prepare_material_receiver(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  // Join the physical Store custody and retained checked Policy before the
+  // material workspace. Metadata observation is not a payload read or grant.
+  let resolved = match
+    store.resolve_committed_result(
+      request.namespace_id,
+      request.authority_scope_cid,
+      request.run_definition_cid,
+      request.result_name,
+      65536,
+      8192,
+      64,
+    ) {
+    Ok(Some(value)) => value
+    Ok(None) => return Err(Journal(CustodyLost))
+    Err(issue) => return Err(Journal(PublicationObservation(issue)))
+  }
+  let facts : @result_access.NativeResultReadFacts = {
+    ..facts,
+    public_index_entry_cid: @publication.publication_contract_identity(
+      resolved.public_index_entry,
+    ),
+    result_manifest_cid: @publication.publication_contract_identity(
+      resolved.result_manifest,
+    ),
+    result_artifact_cid: resolved.read.result_artifact_cid,
+    result_definition_cid: resolved.read.result_definition_cid,
+    material_generation_cid: resolved.read.material_generation_cid,
+  }
+  guard self.capture is Some(capture) else { return Err(MaterialUnavailable) }
+  let policy = match
+    capture.resolve_result_policy_original_in_original_read(
+      self.principal,
+      self.connection,
+      original,
+      store,
+      facts,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Adoption(issue))
+  }
+  if !self.selection.data_policy_cids.contains(
+      @publication.captured_effect_dependency_body_cid(policy),
+    ) {
+    return Err(PolicyNotSelected)
+  }
+  match self.require_request_selection(original, facts) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   let receiver = match
     @result_access.prepare_native_result_material_receiver(
       store,
