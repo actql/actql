@@ -1,12 +1,27 @@
 ///|
-/// One native-capable Local Values task occurrence. The checked strategy,
-/// resource ledger and managed completion remain owned by their existing
-/// MoonBit modules; this adapter only drives their installed operations.
+/// Retained native-capable Local Values execution. The legacy constructor
+/// drives one task; the source-free graph entry retains every original task.
+/// Checked strategy, resource Ledger and managed completions remain owned by
+/// their existing modules; this adapter drives only their installed operations.
 pub struct LocalValuesExecution {
   run : @strategy.CapturedDAG
   operations : @local_driver.LocalManagedDispatchOperations[Int]
   completed : @execution.ManagedCompletedOutput[Int]
   available : Ref[Bool]
+  tasks : (
+    (Int) -> (
+      @local_driver.LocalManagedDispatchOperations[Int],
+      @execution.ManagedCompletedOutput[Int],
+    )?,
+    () -> Bool,
+  )?
+}
+
+///|
+priv struct LocalValuesTaskExecution {
+  operations : @local_driver.LocalManagedDispatchOperations[Int]
+  mut settled : Bool
+  mut completed : @execution.ManagedCompletedOutput[Int]?
 }
 
 ///|
@@ -251,6 +266,7 @@ pub fn execute_source_free_values_guarded(
     operations,
     completed,
     available,
+    tasks: None,
   }
   if !require_current() {
     // Completion already transferred cleanup to this execution. Repeating
@@ -294,6 +310,10 @@ pub fn LocalValuesExecution::rows(
 
 ///|
 pub fn LocalValuesExecution::close(self : LocalValuesExecution) -> Bool {
+  if self.tasks is Some((_, cleanup)) {
+    self.available.val = false
+    return cleanup()
+  }
   if !self.available.val {
     return (self.operations.cleanup_refresh)()
   }

@@ -4,6 +4,8 @@ priv enum LocalCompletionFreeAudit {
   DistinctComplete(Int, @parameters.BoundValues?, Bool, Bool, Bool, Bool, Bool)
   SortCompleted(Int, Array[LocalSortNormalizationEntry])
   DistinctSortCompleted(Int, Array[LocalSortNormalizationEntry])
+  SetComplete(Int, @parameters.BoundValues?, Bool, Bool, Bool, Bool, Bool, Bool)
+  SetSortCompleted(Int, Array[LocalSortNormalizationEntry], Bool)
   ProfileNotInstalled
   CompletionObserved
 }
@@ -21,12 +23,23 @@ struct LocalCompletionFreeInventory {
   takes : Bool
   sorts : Bool
   distincts : Bool
+  sets : Bool
 }
 
 ///|
 fn local_audit_uses_distinct(audit : LocalCompletionFreeAudit) -> Bool {
   match audit {
     DistinctComplete(_, _, _, _, _, _, _) | DistinctSortCompleted(_, _) => true
+    SetComplete(_, _, _, _, _, _, _, distincts)
+    | SetSortCompleted(_, _, distincts) => distincts
+    _ => false
+  }
+}
+
+///|
+fn local_audit_uses_set(audit : LocalCompletionFreeAudit) -> Bool {
+  match audit {
+    SetComplete(_, _, _, _, _, _, _, _) | SetSortCompleted(_, _, _) => true
     _ => false
   }
 }
@@ -465,7 +478,7 @@ fn audit_local_completion_free_units(
   units : Array[BuiltUnit],
   requirements : @context.StageRequirementClosure,
 ) -> LocalCompletionFreeAudit {
-  if units.length() < 1 || units.length() > 3 {
+  if units.is_empty() {
     return ProfileNotInstalled
   }
   // Invocation Bindings remain a separate completion domain.
@@ -473,6 +486,31 @@ fn audit_local_completion_free_units(
     return ProfileNotInstalled
   }
   let mut remaining = 10000
+  // The earlier catalogues retain their three-unit scope. A binary set query
+  // can have separate original seed, operand, merge and publication units.
+  // Audit that original shape, never a flattened or substituted Program.
+  if units.length() > 3 {
+    if units.length() > remaining {
+      return ProfileNotInstalled
+    }
+    remaining -= units.length()
+    let mut original_binary = false
+    for unit in units {
+      for index in 0..<@pipeline.step_count(unit.pipeline) {
+        if remaining <= 0 {
+          return ProfileNotInstalled
+        }
+        remaining -= 1
+        match @pipeline.step_at(unit.pipeline, index).unwrap().operation {
+          @pipeline.Append(..) | @pipeline.Set(..) => original_binary = true
+          _ => ()
+        }
+      }
+    }
+    if !original_binary {
+      return ProfileNotInstalled
+    }
+  }
   let names = @syntax.program_parameter_names(program)
   let supplied_parameters = if names.is_empty() {
     None
@@ -527,10 +565,14 @@ fn audit_local_completion_free_units(
   let mut takes = false
   let mut sorts = false
   let mut distincts = false
+  let mut sets = false
   let sort_entries : Array[LocalSortNormalizationEntry] = []
   let sources : Array[(Int, Int)] = []
   let mut roots = 0
   for unit in units {
+    if remaining <= 0 {
+      return ProfileNotInstalled
+    }
     remaining -= 1
     for execution in unit.source_execution {
       if remaining <= 0 {
@@ -547,7 +589,7 @@ fn audit_local_completion_free_units(
       if !sources.contains(key) {
         sources.push(key)
         roots += 1
-        if roots > 1 {
+        if sources.length() > 1 {
           return ProfileNotInstalled
         }
       }
@@ -560,11 +602,19 @@ fn audit_local_completion_free_units(
       remaining -= 1
       let step = @pipeline.step_at(pipeline, index).unwrap()
       match step.operation {
-        @pipeline.Values(_) => {
-          roots += 1
-          if roots > 1 {
+        @pipeline.Values(_) => roots += 1
+        @pipeline.Append(..) | @pipeline.Set(..) => {
+          guard audit_local_completion_free_binary(
+              step.operation,
+              pipeline,
+              index,
+              remaining,
+            )
+            is Some(left) else {
             return ProfileNotInstalled
           }
+          remaining = left
+          sets = true
         }
         @pipeline.Unary(operation) => {
           match @relation.operation(operation) {
@@ -671,18 +721,32 @@ fn audit_local_completion_free_units(
       }
     }
   }
-  if roots != 1 {
+  if roots < 1 || (roots != 1 && !sets) {
     return ProfileNotInstalled
   }
   if !sort_entries.is_empty() {
     guard canonical_local_sort_entries(sort_entries, remaining) is Some(left) else {
       return ProfileNotInstalled
     }
-    return if distincts {
+    return if sets {
+      SetSortCompleted(10000 - left, sort_entries, distincts)
+    } else if distincts {
       DistinctSortCompleted(10000 - left, sort_entries)
     } else {
       SortCompleted(10000 - left, sort_entries)
     }
+  }
+  if sets {
+    return SetComplete(
+      10000 - remaining,
+      supplied_parameters,
+      explicit_cast,
+      checked_expressions,
+      groups,
+      takes,
+      sorts,
+      distincts,
+    )
   }
   if distincts {
     return DistinctComplete(
@@ -731,6 +795,16 @@ pub fn local_program_completion_free_inventory(
       groups,
       takes,
       sorts
+    )
+    | SetComplete(
+      work,
+      supplied_parameters,
+      explicit_cast,
+      checked_expressions,
+      groups,
+      takes,
+      sorts,
+      _
     ) =>
       Ok({
         owner,
@@ -742,10 +816,13 @@ pub fn local_program_completion_free_inventory(
         takes,
         sorts,
         distincts: local_audit_uses_distinct(owner.local_completion_free_audit),
+        sets: local_audit_uses_set(owner.local_completion_free_audit),
       })
     ProfileNotInstalled => Err(ProfileNotInstalled)
-    CompletionObserved | SortCompleted(_, _) | DistinctSortCompleted(_, _) =>
-      Err(CompletionObserved)
+    CompletionObserved
+    | SortCompleted(_, _)
+    | DistinctSortCompleted(_, _)
+    | SetSortCompleted(_, _, _) => Err(CompletionObserved)
   }
 }
 
@@ -818,4 +895,12 @@ pub fn local_completion_free_inventory_uses_distinct(
   inventory : LocalCompletionFreeInventory,
 ) -> Bool {
   inventory.distincts
+}
+
+///|
+/// Metadata of original checked Append/Set inputs, never row or Source authority.
+pub fn local_completion_free_inventory_uses_set(
+  inventory : LocalCompletionFreeInventory,
+) -> Bool {
+  inventory.sets
 }
