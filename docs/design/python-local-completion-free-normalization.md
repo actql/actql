@@ -116,6 +116,29 @@ the same audit must retain its real nonempty semantic entries. The distinct-awar
 catalogue has a new identity; unchanged programs retain their prior catalogue and
 journal bytes. Metadata traversal remains charged to the existing audit bound.
 
+The Append/Set revision admits the existing checked binary operations rather
+than another evaluator. It retains the exact pipeline occurrence, both ordered
+input roles and targets, their original schemas, the checked typed alignment
+and its original output schema. Append keeps left-then-right order; Except and
+Intersect keep their existing complete-row comparison, duplicate and earliest
+left-occurrence rules. Neither operation creates a semantic completion entry
+or supplies row completeness, input authority or a new total-order witness.
+
+An ordinary public set query can retain separate seed, operand, merge and final
+publication stages. The preceding three-stage, single-root catalogues remain
+unchanged for programs without an original Append/Set. The set revision audits
+the actual complete checked units instead of flattening that Program. A bounded
+prepass above the old stage scope, every unit/step visit and each typed alignment
+entry consume the same 10,000-work limit. Its stage ceiling derives from that
+unchanged work bound; ordinary preparation, execution and physical limits are
+still independently enforced. Multiple original Values roots are traversed;
+the maximum of one explicitly selected physical Source is unchanged. Default,
+template, implicit NULL, sole-view and unsupported-operation refusals apply to
+both operands. Supplied Parameters retain the same original declaration and
+binding owner across all stages. The complete pre-set catalogue, schema and
+canonical preimages remain available, and earlier preparations retain every
+prior catalogue/journal byte and identity.
+
 SQL/Pipe CASE without ELSE keeps that field absent in the Common form. The
 original parsed source distinguishes its synthetic END-anchored NULL from an
 authored ELSE NULL. Preserving this distinction lets the existing Common

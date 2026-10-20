@@ -12,10 +12,13 @@
       "membership_list"
     ],
     "checked_operations": [
+      "append",
       "derive",
       "distinct",
+      "except",
       "filter",
       "group",
+      "intersect",
       "select",
       "sort",
       "take",
@@ -132,7 +135,7 @@
     ],
     "group_key_selection": "authored",
     "max_source_inputs": 1,
-    "max_stages": 3,
+    "max_stages": 10000,
     "parameter_declarations": "none-or-all-supplied-original-values",
     "proof": "original-checked-owner-audit",
     "source_selection": "explicit",
@@ -150,7 +153,17 @@
     },
     "distinct_scope": "original-same-pipeline-step-whole-row-or-authored-required-key-projection",
     "distinct_input": "complete-original-row-and-presence-admission-remains-with-execution",
-    "distinct_order": "existing-first-occurrence-no-new-total-order"
+    "distinct_order": "existing-first-occurrence-no-new-total-order",
+    "binary_set_scope": "original-same-pipeline-step-both-targets-schemas-and-typed-alignment",
+    "binary_set_roots": "all-original-Values-roots-audited-under-same-work-limit; maximum-one-selected-Source",
+    "binary_set_rows": "existing-complete-typed-row-admission-and-comparison-owners",
+    "append_order": "original-left-then-right",
+    "set_duplicates": [
+      "all",
+      "distinct"
+    ],
+    "set_order": "original-earliest-left-occurrences-no-new-total-order",
+    "binary_set_stage_scope": "complete-original-units; prepass-and-every-unit-step-alignment-visit-charged-to-same-audit-work-limit"
   },
   "profile": "actql-effect-free-local-completion-free/0.1",
   "rules": [
