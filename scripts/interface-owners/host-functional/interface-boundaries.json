@@ -12894,11 +12894,12 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c163a879d75e667b2dd0a4241befd0940a157432ff2556e85862c4265623668a",
+      "sha256": "6b330558745dc4173acd5c23579765dcc5e6ab03ca94c4d6f48e84a315eb4eba",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
         "MAX_MODEL_INPUT_BYTES",
+        "installHostRunAcceptance",
         "installRemoteCheckpoints"
       ],
       "operations": [
@@ -12985,6 +12986,39 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "installHostRunAcceptance",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "installHostRunAcceptance/installHostRunAcceptance",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHostRunAcceptance/runAcceptance/init:acceptRun/init:acceptRun",
+          "parameters": [
+            "requested",
+            "captured",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "installHostRunAcceptance/runAcceptance/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostRunAcceptance/stop/stop",
+          "parameters": [],
           "async": false
         },
         {
@@ -15148,6 +15182,116 @@
               {
                 "path": "adapters/host-node/local-checkpoint-signing-custody.test.mjs",
                 "anchor": "test('same original signing claim and saved outcome survive actual Journal close and reopen'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installHostRunAcceptance",
+            "installHostRunAcceptance/installHostRunAcceptance",
+            "installHostRunAcceptance/runAcceptance/init:acceptRun/init:acceptRun",
+            "installHostRunAcceptance/runAcceptance/init:close/init:close",
+            "installHostRunAcceptance/stop/stop"
+          ],
+          "exports": [
+            "installHostRunAcceptance"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An admitted Account configuration does not itself select the optional signed"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "export async function installHostRunAcceptance(options) {"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "async acceptRun({requested, captured, signal}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const tuple = Object.freeze({connection: siteKey, resource: realizationKey,"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "if (captured.principalId !== ownerPrincipal) fail('ClientConnectionDenied');"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const scope = gate.withContext({principal: gate.principal,"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "({checkpoints, runAcceptance} = await installHostRunAcceptance({root, namespaceId,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "scope.assertAccountCurrent(decision);"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "if (stopped) fail('ExecutionAuthorizationStopped');"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "if (decision.action !== 'dispatch') {"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "checkpointFields.some(name => name in authorization)) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "{subjectCid: contentCid(subject), signal, allowDeferral: false});"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "stopped = true;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const decisionBudget = createAuthorizationDecisionBudget({"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "scope.close();"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "partial or malformed Checkpoint settings remain installation errors. Delegate"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/account-only-run-acceptance.test.mjs",
+                "anchor": "test('Account-only acceptance uses the admitted tuple and exposes no Checkpoint capability'"
+              },
+              {
+                "path": "adapters/host-node/account-only-run-acceptance.test.mjs",
+                "anchor": "['Delegate without a signer'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-project-files-host.actual.test.mjs",
+                "anchor": "test('ordinary Project Local files use one actual managed Run"
               }
             ]
           }
@@ -26766,7 +26910,7 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9cbf436bbfecf4bb3dc2070865b9aee48beae21a70d0c6521459e771076d4b65",
+      "sha256": "938482d1eab359259ec6fc9ce61c6bb0395e9114edc1b7242b3cdf8d75ba0886",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -73676,9 +73820,9 @@
   ],
   "counts": {
     "modules": 162,
-    "operations": 4122,
-    "exports": 1014,
-    "explicitContractGroups": 230
+    "operations": 4127,
+    "exports": 1015,
+    "explicitContractGroups": 231
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }
