@@ -37,6 +37,22 @@ inventory. Original binding origins, declaration and stage joins, single-root
 and work limits remain unchanged. The inventory adds one retained Boolean; no
 caller Boolean or successful type check can issue normalization custody.
 
+The Group extension selects one further closed catalog for the existing count,
+count-if and extrema reductions, including combinations with the checked scalar,
+explicit-cast and actually supplied Parameter alternatives. It traverses every
+original aggregate argument and filter, and charges each authored key and
+aggregate against the same audit limit. COUNT retains its existing finite Number
+result; this extension introduces no numeric conversion or reduction evaluator.
+
+The original Group checker separately retains whether additional prefix keys
+were supplied. Equal effective key sets cannot prove that those keys were authored.
+Only the original ordinary Group with authored keys is installed here. Numeric
+policy, ordered and collection reductions and WindowGroup keep their existing
+completion, resource and execution obligations; their remaining connection is a
+product implementation gap rather than a language restriction. The five earlier
+catalogs and journals retain their exact bodies and identities for preparations
+without Group. This catalog issues no Source, Account or execution authority.
+
 SQL/Pipe CASE without ELSE keeps that field absent in the Common form. The
 original parsed source distinguishes its synthetic END-anchored NULL from an
 authored ELSE NULL. Preserving this distinction lets the existing Common
