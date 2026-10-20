@@ -9340,9 +9340,10 @@
     },
     {
       "module": "adapters/host-node/infer-operation.mjs",
-      "sha256": "81970facff4a5c64d20b69a528bee5cc3c50c0e5eb9a43a04f5634c5aaedc9b9",
+      "sha256": "20b3cbacb5cf14771e0caae6c76eb1675bdbb84217bb48757733ac72c1afa923",
       "role": "physical-io",
       "exports": [
+        "inferOriginalReadCleanupComplete",
         "openNodeComposedInferProvider",
         "openNodeInferOperation",
         "selectOriginalInferMetadataAcquisition",
@@ -9372,6 +9373,13 @@
           "name": "codecLimits/codecLimits/codecLimits",
           "parameters": [
             "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "inferOriginalReadCleanupComplete",
+          "parameters": [
+            "read"
           ],
           "async": false
         },
@@ -10306,6 +10314,13 @@
           "async": false
         },
         {
+          "name": "startCompleteInferObservation/startCompleteInferObservation",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
           "name": "withNodeInferResult",
           "parameters": [
             "moon",
@@ -10681,6 +10696,117 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "inferOriginalReadCleanupComplete",
+            "startCompleteInferObservation/startCompleteInferObservation"
+          ],
+          "exports": [
+            "inferOriginalReadCleanupComplete"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "export function inferOriginalReadCleanupComplete(read) {"
+              },
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "export function startCompleteInferObservation("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "export function inferOriginalReadCleanupComplete(read) {"
+              },
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "if (operations.some(operation => originalOperations.has(operation))) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "cleanedOriginalReads.add(originalRead);"
+              },
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "let originalPublicationCapacity;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "reclaimed = checked(moon.clientProgramCleanupInferExecution(active));"
+              },
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "if (originalPublicationCapacity !== undefined) return false;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "if (!moon.clientProgramInferExecutionStopped(active)) return false;"
+              },
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "if (operations.length !== 1 || ledger !== undefined || content !== undefined) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "function cleanup() {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "src/model_execution/original_publication_capacity.mbt",
+                "anchor": "pub fn original_model_publication_capacity_current("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "return checked(moon.clientProgramStartCompleteInferObservationIssuance(active,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "inferOriginalReadCleanupComplete"
+              },
+              {
+                "path": "adapters/host-node/infer-original-publication-caller.test.mjs",
+                "anchor": "test('complete original observation consumes the same single Model publication borrow without a Ledger'"
+              },
+              {
+                "path": "adapters/host-node/infer-original-publication-caller.test.mjs",
+                "anchor": "test('complete original observation rejects foreign copied missing mixed and alternate Ledger owners'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -10697,7 +10823,7 @@
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
-      "sha256": "56a97a6f7bc53d2dc33e00ebe2dc4155b1a9be5d2936dc9127d50c50695297ed",
+      "sha256": "3f89834866bd09d8a65b0c057d5f5302c56b4399f5806da0445ff14167af5778",
       "role": "physical-io",
       "exports": [
         "runInstalledComposedInfers"
@@ -11617,7 +11743,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
-      "sha256": "628db51c88e518b8643808717d990e159730726b50d6b2abf269b391b53a6fd4",
+      "sha256": "a794d669b085b34ffc371dd77158d829d4c88c4a4649b24592de0e2008f56ad9",
       "role": "physical-io",
       "exports": [
         "installNodeModelContinuation"
@@ -12342,6 +12468,14 @@
           "async": false
         },
         {
+          "name": "requireModelDispatchPreparation",
+          "parameters": [
+            "moon",
+            "selected"
+          ],
+          "async": false
+        },
+        {
           "name": "same/same",
           "parameters": [
             "a",
@@ -12580,6 +12714,86 @@
               {
                 "path": "src/client_infer_host/pkg.generated.mbti",
                 "anchor": "pub fn acquire_capture(Execution) -> @model_execution.VerifiedModelCapture?"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "requireModelDispatchPreparation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "anchor": "function requireModelDispatchPreparation(moon, selected) {"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn original_model_mock_provider("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn original_model_mock_provider("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "anchor": "const cp = originalPreparation === undefined ? checkpoints() : installOriginalJournal();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "anchor": "if (!owner.currentProvider()) fail('ModelProviderBindingChanged');"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "anchor": "function requireModelDispatchPreparation(moon, selected) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "anchor": "throw selected.egressFailure ?? new Error('InstalledModelEgressUnavailable');"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-mock-models.actual.test.mjs",
+                "anchor": "test('same live Core Mock installation admits no-I/O preparation without fabricating egress'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock-models.actual.test.mjs",
+                "anchor": "test('external Provider preparation keeps the original egress refusal'"
               }
             ]
           }

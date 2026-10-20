@@ -4446,7 +4446,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "b34535be182ae747e79b96df623813bc7d28eb5f1d1a0e4e32eefc16db81cb77",
+      "sha256": "2ddff8d5eb02c630ce0b73bcdeeab3baf08b0c072aaffaa126e301f33b6c42e0",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -4661,6 +4661,13 @@
           "name": "connectEmbeddedLocal/preparation/init:installMockSources/init:installMockSources/init:installMockSources",
           "parameters": [
             "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:modelPublicationCapacity/init:modelPublicationCapacity",
+          "parameters": [
+            "prepared"
           ],
           "async": false
         },
@@ -5984,6 +5991,11 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService/submissionService",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#2",
           "parameters": [
             "submission"
@@ -6014,13 +6026,18 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#2",
           "parameters": [
             "error"
           ],
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#2",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#3",
           "parameters": [
             "status"
           ],
@@ -8691,6 +8708,96 @@
           "exports": [
             "readLocalMockModelRunRequirements"
           ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:modelPublicationCapacity/init:modelPublicationCapacity",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService/submissionService",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#3"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {

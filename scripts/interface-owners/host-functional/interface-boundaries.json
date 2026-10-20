@@ -42978,7 +42978,7 @@
     },
     {
       "module": "adapters/host-node/installed-project-mock.mjs",
-      "sha256": "29612aa1c28387f84065c1e3dfcd9ba24e0217601c45c6dbd86fb855ab2dfae5",
+      "sha256": "78c060b3062fde5634ff7f0845a01de3618e3625a39afede3a12e725ee3920f5",
       "exports": [
         "installPreparedProjectMockSources",
         "installedMockRequestRealization",
@@ -43135,13 +43135,19 @@
           "async": true
         },
         {
+          "name": "installPreparedProjectMockSources/modelPreparation/publicationCapacity/publicationCapacity",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectMockSources/prepareManagedMockModelRun",
           "parameters": [
             "prepared",
             "request",
             "control",
             "plan",
-            "selection"
+            "selection",
+            "publicationCapacity"
           ],
           "async": false
         },
@@ -43253,6 +43259,7 @@
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
+        "./infer-operation.mjs",
         "./installed-check-environment.mjs",
         "./installed-host-cleanup.mjs",
         "./installed-project-configuration.mjs",
@@ -43549,6 +43556,94 @@
         {
           "operations": [
             "installPreparedProjectMockSources/retireRunRecord"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installPreparedProjectMockSources/modelPreparation/publicationCapacity/publicationCapacity"
           ],
           "exports": [],
           "attributes": {
@@ -68997,7 +69092,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-result.mjs",
-      "sha256": "2f4fc784dcb4223bbd7f6a4044385a638609ba3ac98669bd2b957d38c650b00b",
+      "sha256": "d4f755187b7463e3464514c2cb88f1ac7879a07028bd490eebd26fb715b461a7",
       "exports": [
         "prepareOrdinaryHostResult"
       ],
@@ -69034,19 +69129,31 @@
           "async": false
         },
         {
-          "name": "prepareOrdinaryHostResult/init:admitRun/init:admitRun",
+          "name": "prepareOrdinaryHostResult/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryHostResult/view/init:admitRun/init:admitRun",
           "parameters": [
             "prepared"
           ],
           "async": false
         },
         {
-          "name": "prepareOrdinaryHostResult/init:beforeOperation/init:beforeOperation",
+          "name": "prepareOrdinaryHostResult/view/init:beforeOperation/init:beforeOperation",
           "parameters": [],
           "async": false
         },
         {
-          "name": "prepareOrdinaryHostResult/init:openStore/init:openStore",
+          "name": "prepareOrdinaryHostResult/view/init:modelPublicationCapacity/init:modelPublicationCapacity",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryHostResult/view/init:openStore/init:openStore",
           "parameters": [
             "options",
             "control"
@@ -69054,14 +69161,9 @@
           "async": false
         },
         {
-          "name": "prepareOrdinaryHostResult/init:openStore/init:openStore/flight/flight",
+          "name": "prepareOrdinaryHostResult/view/init:openStore/init:openStore/flight/flight",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "prepareOrdinaryHostResult/status/status",
-          "parameters": [],
-          "async": false
         }
       ],
       "imports": [
@@ -69083,10 +69185,6 @@
             "prepareOrdinaryHostResult/close",
             "prepareOrdinaryHostResult/close/flight/flight",
             "prepareOrdinaryHostResult/current/current",
-            "prepareOrdinaryHostResult/init:admitRun/init:admitRun",
-            "prepareOrdinaryHostResult/init:beforeOperation/init:beforeOperation",
-            "prepareOrdinaryHostResult/init:openStore/init:openStore",
-            "prepareOrdinaryHostResult/init:openStore/init:openStore/flight/flight",
             "prepareOrdinaryHostResult/status/status"
           ],
           "exports": [
@@ -69151,6 +69249,94 @@
               {
                 "path": "adapters/host-node/ordinary-host-result.test.mjs",
                 "anchor": "test('ordinary"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryHostResult/view/init:admitRun/init:admitRun",
+            "prepareOrdinaryHostResult/view/init:beforeOperation/init:beforeOperation",
+            "prepareOrdinaryHostResult/view/init:modelPublicationCapacity/init:modelPublicationCapacity",
+            "prepareOrdinaryHostResult/view/init:openStore/init:openStore",
+            "prepareOrdinaryHostResult/view/init:openStore/init:openStore/flight/flight"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "admitRun(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "modelPublicationCapacity(prepared) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "const admitted = admittedRuns.get(prepared);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "const originalOwnership = journal.publicationOwnership();"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "async function close() {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "if (openFlight !== undefined) return openFlight;"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "modelPublicationCapacity(prepared) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "throw new TypeError('HostResultPublicationRunUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "async function close() {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "return Object.freeze({resultCount, maxRows, maxContractBytes: localContractLimits.maxWireBytes});"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/node-host-result-installation.mjs",
+                "anchor": "if (!explicitStartup) return prepareOrdinaryHostResult(originals,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-host-result.test.mjs",
+                "anchor": "test('ordinary Model publication uses the same admitted Run and live Store, not copied limits'"
               }
             ]
           }
