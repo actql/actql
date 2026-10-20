@@ -976,6 +976,34 @@ for (const entrance of ['local', 'http']) {
     }
   });
 
+  test(`${entrance}: TRY_NUMBER admits original Number identity without String profile promotion`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        'SELECT TRY_NUMBER(1.25) AS n',
+        'SELECT 1.25 AS n |> SELECT TRY_NUMBER(n) AS parsed',
+        'SELECT TRY_NUMBER(CAST(NULL AS NUMBER)) AS n',
+        'SELECT TRY_NUMBER(@n) AS n',
+        'SELECT TRY_NUMBER(1 / 0) AS n',
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@n') ? {parameterDeclarations: {n: {type: 'number'}}, parameters: {n: 1.25}} : {})});
+        assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+        assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      for (const text of [
+        'SELECT TRY_NUMBER(TRUE) AS n',
+        "SELECT TRY_NUMBER(CAST('1.25' AS DECIMAL(3,2))) AS n",
+        'SELECT TRY_NUMBER(@whole) AS n',
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@whole') ? {parameterDeclarations: {whole: {type: 'int64'}}, parameters: {whole: '9007199254740993'}} : {})});
+        assert.equal(checked.report.verdict, 'invalid', text);
+      }
+    }
+  });
+
   test(`${entrance}: explicit TRY_DECIMAL retains the original nullable exact conversion`, async t => {
     const {client} = await publicCheck(t, entrance);
     for (const format of ['sql', 'aql-text']) {

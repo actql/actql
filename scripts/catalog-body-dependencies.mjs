@@ -3,6 +3,9 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {machineCid} from './actql-spec-family.mjs';
 import {resolvePointer} from './check-canonical-json.mjs';
+import {verifyTryNumberIdentityContracts} from './try-number-identity-contract.mjs';
+
+verifyTryNumberIdentityContracts();
 
 // The interpretation contract is not the concrete Check Environment envelope.
 const contract = JSON.parse(readFileSync('spec/contracts/actql-check-environment.json', 'utf8'));

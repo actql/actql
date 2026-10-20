@@ -6,6 +6,7 @@ import test from 'node:test';
 import {updateDecimalDivisionContracts} from './decimal-division-exact-contract.mjs';
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const before = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/decimal-division-exact/predecessor.json.gz')));
+const beforeNumberIdentity = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/try-number-identity/predecessor.json.gz')));
 const expressionPath = 'spec/contracts/actql-expressions.json';
 const protocolPath = 'spec/contracts/actql-protocol-schemas.json';
 const scalarPath = 'spec/dependencies/aoa-rela-scalar-laws.json';
@@ -29,7 +30,12 @@ function removeExact(value) {
 
 test('exact division restores the complete original expression/protocol/scalar bodies and five-mode bytes', () => {
   assert.equal(before.source, '2d59f72f7ef3d288415e93db445146b1a2d48847');
-  const expression = read(expressionPath), protocol = read(protocolPath), scalar = read(scalarPath);
+  // Current division admission is still checked. The complete-body historical
+  // comparison stops before the independently tested Number identity extension.
+  assert.ok(updateDecimalDivisionContracts(read(expressionPath), read(protocolPath), read(scalarPath)).source > 0);
+  const expression = structuredClone(beforeNumberIdentity.bodies[expressionPath]);
+  const protocol = structuredClone(beforeNumberIdentity.bodies[protocolPath]);
+  const scalar = structuredClone(beforeNumberIdentity.bodies[scalarPath]);
   assert.ok(updateDecimalDivisionContracts(expression, protocol, scalar).source > 0);
   removeExact(expression); delete expression.laws.decimal_divide;
   assert.deepEqual(expression, before.bodies[expressionPath]);
@@ -68,7 +74,7 @@ test('exact division has independently authored complete preimages and exact-rat
 
 test('literal NULL exception changes only the two contradicted vectors and explicit new context cases', () => {
   const old = before.bodies['portability/corpus/actql-expression-typing-v0.1.json'];
-  const current = read('portability/corpus/actql-expression-typing-v0.1.json');
+  const current = beforeNumberIdentity.bodies['portability/corpus/actql-expression-typing-v0.1.json'];
   const resolved = ["decimal_divide(NULL,n,8,2,'half_even')", "decimal_divide(d,NULL,8,2,'half_even')"];
   assert.deepEqual(old.negative.filter(entry => resolved.includes(entry.source)), resolved.map(source => ({source, issue: 'NullTypeUnresolved'})));
   assert.deepEqual(current, {...old,

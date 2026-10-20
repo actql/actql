@@ -1,0 +1,46 @@
+[
+  {
+    "value": {
+      "try_number": {
+        "value": {
+          "literal": 1.25
+        }
+      }
+    },
+    "preimage": "{\"try_number\":{\"value\":{\"literal\":1.25}}}",
+    "cid": "sha256:fe941b498338254e6f299db05006fa534954e21a1d9fd7fb0aeeafbde8f88d22"
+  },
+  {
+    "value": {
+      "try_number": {
+        "value": {
+          "literal": -1
+        }
+      }
+    },
+    "preimage": "{\"try_number\":{\"value\":{\"literal\":-1}}}",
+    "cid": "sha256:f2669db696b20d3b05581202e0d73d7304f40d763db714f5adf15f11058d817c"
+  },
+  {
+    "value": {
+      "try_number": {
+        "value": {
+          "field": "n"
+        }
+      }
+    },
+    "preimage": "{\"try_number\":{\"value\":{\"field\":\"n\"}}}",
+    "cid": "sha256:60805627a0ff2b5a64d59ce09659cdbc967f4dcc6e49acb85062d8d0d6f27896"
+  },
+  {
+    "value": {
+      "try_number": {
+        "value": {
+          "$param": "p"
+        }
+      }
+    },
+    "preimage": "{\"try_number\":{\"value\":{\"$param\":\"p\"}}}",
+    "cid": "sha256:c00522ee3cca573644329d877e5d87ef674424c877884405dedec2eda478cca5"
+  }
+]

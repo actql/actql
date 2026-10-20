@@ -21,7 +21,8 @@ test('TRY_NUMBER query rules preserve their full predecessor and all existing ma
   }
   assert.deepEqual(read('spec/manifests/actql-grammar-0.1.json'), vector.after);
   assert.deepEqual({...vector.after, grammar_manifest_cid: vector.before.grammar_manifest_cid,
-    query_text_rules_sha256: vector.before.query_text_rules_sha256}, vector.before);
+    query_text_rules_sha256: vector.before.query_text_rules_sha256,
+    expression_contract_cid: vector.before.expression_contract_cid}, vector.before);
   const current = readFileSync('docs/spec/query-text.md', 'utf8');
   const start = current.indexOf('`TRY_NUMBER(value)` takes exactly one original operand');
   const end = current.indexOf('`CONTAINS(value, part)` selects ActQL', start);
@@ -38,7 +39,7 @@ test('TRY_NUMBER expectations retain complete independent closed expression prei
     assert.deepEqual(Object.keys(record.value), ['try_number']);
     assert.deepEqual(Object.keys(record.value.try_number), ['value']);
   }
-  assert.equal(hash(canonical(read('spec/contracts/actql-expressions.json'))), vector.before.expression_contract_cid);
+  assert.equal(hash(canonical(read('spec/contracts/actql-expressions.json'))), vector.after.expression_contract_cid);
   const program = read('spec/contracts/actql-protocol-schemas.json').artifact_schemas
     .executable_plan.properties.execution_material.properties.program;
   assert.equal(hash(canonical(program)), vector.before.source_grammar_cid);
