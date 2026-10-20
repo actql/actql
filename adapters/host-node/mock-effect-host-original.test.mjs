@@ -38,7 +38,8 @@ function fixture() {
   const facts = {prepared, compilation, allowed, definition, identity, modelCompiled: compiled, runDefinition};
   const mockEffectRuns = new Map(), mockEffectOriginals = new WeakMap(), earlyMockEffectPlans = new WeakMap();
   const inferSelections = new WeakMap();
-  let current = true, ownedRecovery = true, physicalFailure;
+  let current = true, ownedRecovery = true, physicalFailure, savedAuthorization = 'saved-authorization';
+  const reissuedAllowed = {}, reissuedDefinition = {};
   const refusal = new Error('OriginalHostNotCurrent');
   const currentHost = () => {if (!current) throw refusal;};
   const clientOperationError = code => Object.assign(new Error(code), {code});
@@ -53,12 +54,26 @@ function fixture() {
     return actualLimits;
   }};
   const moon = {clientProgramBindCompiledEffectRun(p, a, d) {
-    assert.strictEqual(p, prepared); assert.strictEqual(a, allowed); assert.strictEqual(d, definition);
+    assert.strictEqual(p, prepared);
+    assert(a === allowed && d === definition || a === reissuedAllowed && d === reissuedDefinition);
     calls.push('typed-run'); return {$tag: 1, _0: {}};
-  }, clientRequestCallerId(value) {assert.strictEqual(value, identity); return value.request;}};
+  }, clientRequestCallerId(value) {assert.strictEqual(value, identity); return value.request;},
+  strategyPublicationContractJson(value) {
+    return value === definition || value === reissuedDefinition ? 'saved-definition' : value?.wire;
+  }, clientProgramAllowedEffectRunPrepared(value) {
+    assert(value === allowed || value === reissuedAllowed); return 'saved-prepared';
+  }, clientProgramAllowedEffectRunAuthorization(value) {
+    assert(value === allowed || value === reissuedAllowed); return 'saved-authorization';
+  }, strategyRunEvidenceJson(value) {return value;}};
   const journal = {lookupOwnedDefinition(key, core, control) {
     assert.strictEqual(core, moon); assert.equal(key.requestId, identity.request);
     calls.push('saved-journal'); return ownedRecovery ? {runDefinition} : undefined;
+  }, resolveDefinition(originalIdentity, {namespaceId}, core, owner) {
+    assert.strictEqual(originalIdentity, identity); assert.equal(namespaceId, 'namespace');
+    assert.strictEqual(core, moon); assert.strictEqual(owner, control);
+    calls.push('same-journal');
+    return ownedRecovery ? {runDefinition: {wire: 'saved-definition'},
+      runAdmissionEvidence: {prepared: 'saved-prepared', authorization: savedAuthorization}} : undefined;
   }};
   const control = {}, preparation = {assertResultPublicationCurrent: currentHost,
     admitEffectResultPublicationRun(p) {assert.strictEqual(p, prepared); calls.push('result-purpose');},
@@ -86,7 +101,9 @@ function fixture() {
       journal, 'namespace', 'authority', control, sourceProfile, inferSelections, earlyMockEffectPlans);
   return {...api, calls, facts, originalFacts: facts, actualLimits, inferSelections, earlyMockEffectPlans,
     refusal, revoke() {current = false;}, failPhysical(value) {physicalFailure = value;},
-    denyRecovery() {ownedRecovery = false;}};
+    denyRecovery() {ownedRecovery = false;},
+    changeSavedAuthorization() {savedAuthorization = 'different-authorization';},
+    readmittedFacts: {...facts, allowed: reissuedAllowed, definition: reissuedDefinition}};
 }
 
 test('winning Effect definition prepares the same Source Scope before actual file-owner binding', () => {
@@ -133,4 +150,47 @@ test('saved Effect binding requires the same Journal original before restoring l
   assert.throws(() => f.mockEffectResources.bindRunOriginal({recovered}),
     {code: 'ForeignInstalledMockEffectRun'});
   assert.deepEqual(f.calls, ['saved-journal']);
+});
+
+test('same winning Journal readmission retains the existing physical Run original once', () => {
+  const f = fixture(); f.prepareDefinition(f.facts);
+  const original = f.mockEffectResources.bindRunOriginal(f.facts);
+  assert.strictEqual(f.mockEffectResources.bindRunOriginal(f.readmittedFacts), original);
+  assert.strictEqual(f.mockEffectResources.bindRunOriginal(f.readmittedFacts), original);
+  assert.equal(f.calls.filter(call => call === 'same-journal').length, 1);
+  assert.equal(f.calls.filter(call => call === 'typed-run').length, 2);
+  assert.equal(f.calls.filter(call => call === 'physical-original').length, 1);
+  assert.equal(f.calls.filter(call => call === 'source-scope').length, 1);
+});
+
+test('readmission refuses missing Journal and changed authorization without replacing original', () => {
+  for (const change of ['denyRecovery', 'changeSavedAuthorization']) {
+    const f = fixture(); f.prepareDefinition(f.facts); f[change]();
+    assert.throws(() => f.mockEffectResources.bindRunOriginal(f.readmittedFacts),
+      {code: 'ForeignInstalledMockEffectRun'});
+    assert.equal(f.calls.filter(call => call === 'same-journal').length, 1);
+    assert.equal(f.calls.filter(call => call === 'typed-run').length, 1);
+    assert.strictEqual(f.mockEffectResources.bindRunOriginal(f.facts),
+      f.mockEffectResources.bindRunOriginal(f.facts));
+  }
+});
+
+test('equal definition DATA cannot replace the typed same-Journal readmission', () => {
+  const f = fixture(); f.prepareDefinition(f.facts);
+  assert.throws(() => f.mockEffectResources.bindRunOriginal({...f.readmittedFacts,
+    definition: {wire: 'saved-definition'}}));
+  assert.equal(f.calls.filter(call => call === 'same-journal').length, 1);
+  assert.equal(f.calls.filter(call => call === 'physical-original').length, 1);
+  assert.strictEqual(f.mockEffectResources.bindRunOriginal(f.facts),
+    f.mockEffectResources.bindRunOriginal(f.facts));
+});
+
+test('an empty readmission cache never accepts missing original handles', () => {
+  const f = fixture(); f.prepareDefinition(f.facts);
+  assert.throws(() => f.mockEffectResources.bindRunOriginal({...f.facts,
+    allowed: undefined, definition: undefined}), {code: 'ForeignInstalledMockEffectRun'});
+  assert.strictEqual(f.mockEffectResources.bindRunOriginal(f.readmittedFacts),
+    f.mockEffectResources.bindRunOriginal(f.facts));
+  assert.throws(() => f.mockEffectResources.bindRunOriginal({...f.readmittedFacts,
+    identity: {request: 'original'}}), {code: 'ForeignInstalledMockEffectRun'});
 });

@@ -806,7 +806,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (mockEffectRuns.size === 4096) throw clientOperationError('InstalledMockEffectRunLimit');
     retained = {prepared: facts.prepared, compilation: facts.compilation, allowed: facts.allowed,
       definition: facts.definition, identity: facts.identity, original: Object.freeze({}),
-      checkedRun: undefined, limits: undefined, failure: undefined};
+      checkedRun: undefined, limits: undefined, failure: undefined,
+      readmittedAllowed: undefined, readmittedDefinition: undefined};
     mockEffectRuns.set(facts.prepared, retained);
     mockEffectOriginals.set(retained.original, retained);
     try {
@@ -836,11 +837,40 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       const retained = mockEffectRuns.get(facts.prepared);
       if (retained === undefined || retained.compilation !== facts.compilation ||
-          retained.definition !== facts.definition || retained.identity !== facts.identity ||
-          facts.allowed !== undefined && retained.allowed !== facts.allowed) {
+          retained.identity !== facts.identity) {
         throw clientOperationError('ForeignInstalledMockEffectRun');
       }
       assertMockEffectRunOriginal(retained.original);
+      const initial = retained.definition === facts.definition &&
+        (facts.allowed === undefined || retained.allowed === facts.allowed);
+      const readmitted = retained.readmittedDefinition !== undefined &&
+        retained.readmittedDefinition === facts.definition &&
+        retained.readmittedAllowed === facts.allowed;
+      if (!initial && !readmitted) {
+        // start() reconstructs validated local handles from the winning
+        // Journal even in this process. Equal CIDs or copied DATA are not that
+        // original: authenticate the same request/record, its exact saved
+        // evidence and the new typed Common binding, without reissuing any
+        // physical Run/Scope or replacing its retained file-owner original.
+        const saved = journal.resolveDefinition(retained.identity,
+          {namespaceId}, moon, control);
+        const evidence = saved?.runAdmissionEvidence;
+        if (facts.allowed === undefined || saved?.runDefinition?.wire === undefined ||
+            saved.runDefinition.wire !== moon.strategyPublicationContractJson(retained.definition) ||
+            saved.runDefinition.wire !== moon.strategyPublicationContractJson(facts.definition) ||
+            evidence?.prepared !== moon.strategyRunEvidenceJson(
+              moon.clientProgramAllowedEffectRunPrepared(facts.allowed)) ||
+            evidence?.authorization !== moon.strategyRunEvidenceJson(
+              moon.clientProgramAllowedEffectRunAuthorization(facts.allowed))) {
+          throw clientOperationError('ForeignInstalledMockEffectRun');
+        }
+        const checkedRun = checked(moon.clientProgramBindCompiledEffectRun(
+          facts.prepared, facts.allowed, facts.definition));
+        assertMockEffectRunOriginal(retained.original);
+        retained.checkedRun = checkedRun;
+        retained.readmittedAllowed = facts.allowed;
+        retained.readmittedDefinition = facts.definition;
+      }
       return retained.original;
     },
     assertCurrent(original) {assertMockEffectRunOriginal(original);},

@@ -191,6 +191,16 @@ and retained-request recovery receive the same opaque Run original through the
 existing Row Effect member. Neither a copied adapter nor matching CIDs replace
 the original membership checks.
 
+Starting the accepted Run may reconstruct new allowed/definition handles from
+the winning Journal, even without a process restart. The Host checks the same
+original request and compilation, resolves that request through the existing
+Journal, compares its saved definition and admission evidence, and validates
+the reconstructed pair through Common's typed Effect binding. Only then may
+those handles reuse the same retained physical Run original. Matching CIDs or
+copied definition DATA alone cannot do so. A bounded latest-pair cache retains
+those ordinary control references; it issues no new Scope, capacity, Run or
+cleanup acknowledgement and does not replace the original Model preparation.
+
 Ownership of Source capture, Model work and file requests is separate. The
 early Mock Scope and both Sources compose on one original Run Ledger; their
 retirement does not retire the later business Run's conditional file requests.

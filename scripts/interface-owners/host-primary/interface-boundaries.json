@@ -4448,7 +4448,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "239aaf898dc2aaecfbda64478992875ef5694a3876465e31cd61b912e468e1f6",
+      "sha256": "f61ebfbf425756eec7bc3980657e1f9db3f6c4cdbbfcb862e64ed6f734bbbd30",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -9151,6 +9151,14 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
+              },
+              {
+                "path": "adapters/host-node/mock-effect-host-original.test.mjs",
+                "anchor": "test('same winning Journal readmission retains the existing physical Run original once'"
+              },
+              {
+                "path": "adapters/host-node/mock-effect-host-original.test.mjs",
+                "anchor": "test('equal definition DATA cannot replace the typed same-Journal readmission'"
               }
             ]
           }
