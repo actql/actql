@@ -11,9 +11,15 @@ pub(all) enum ClientLocalNormalizationIssue {
 /// Original preparation owns the completion inventory and its issued bytes.
 /// The normative journal preimage has no additional Program binding fields;
 /// this opaque projection and the original materials chain own those links.
+priv enum ClientLocalNormalizationInventory {
+  CompletionFree(@checked.LocalCompletionFreeInventory)
+  SortCompletion(@checked.LocalSortNormalizationInventory)
+}
+
+///|
 struct ClientLocalNormalization {
   preparation : PreparedClientProgram
-  audit : @checked.LocalCompletionFreeInventory
+  audit : ClientLocalNormalizationInventory
   evidence : @publication.RunEvidenceValue
 }
 
@@ -23,9 +29,22 @@ pub fn client_local_completion_free_catalog_cid() -> String {
 }
 
 ///|
-fn local_normalization_catalog_cid(
+fn local_completion_free_catalog_cid(
   inventory : @checked.LocalCompletionFreeInventory,
 ) -> String {
+  if @checked.local_completion_free_inventory_parameters_defaulted(inventory) {
+    return if @checked.local_completion_free_inventory_uses_set(inventory) {
+      local_default_set_catalog_cid()
+    } else {
+      local_default_parameter_catalog_cid()
+    }
+  }
+  if @checked.local_completion_free_inventory_uses_set(inventory) {
+    return "sha256:0f0003ec6a1ec4520a7b9615b916d903dafc138e94145e5a57d45a1bf7937f33"
+  }
+  if @checked.local_completion_free_inventory_uses_distinct(inventory) {
+    return "sha256:4cbc2466af84dc925b7e79c91c0a7a19a2a16873bb6e7975e8f6855a954831d8"
+  }
   if @checked.local_completion_free_inventory_uses_sort(inventory) {
     return "sha256:aa08e331a77f389359583e74ce6d7c801ad76a21d13520e55571f71a237ff24e"
   }
@@ -57,6 +76,85 @@ fn local_normalization_catalog_cid(
 }
 
 ///|
+fn local_default_parameter_catalog_cid() -> String {
+  "sha256:096c228635c4a08bbe7080f3447a9ca35b439fdb5113a17b0cca2b7735a55d2d"
+}
+
+///|
+fn local_normalization_catalog_cid(
+  inventory : ClientLocalNormalizationInventory,
+) -> String {
+  match inventory {
+    CompletionFree(value) => local_completion_free_catalog_cid(value)
+    SortCompletion(value) =>
+      if @checked.local_sort_normalization_inventory_parameters_defaulted(value) {
+        if @checked.local_sort_normalization_inventory_uses_set(value) {
+          local_default_set_catalog_cid()
+        } else {
+          local_default_parameter_catalog_cid()
+        }
+      } else if @checked.local_sort_normalization_inventory_uses_set(value) {
+        "sha256:0f0003ec6a1ec4520a7b9615b916d903dafc138e94145e5a57d45a1bf7937f33"
+      } else if @checked.local_sort_normalization_inventory_uses_distinct(value) {
+        "sha256:4cbc2466af84dc925b7e79c91c0a7a19a2a16873bb6e7975e8f6855a954831d8"
+      } else {
+        "sha256:43da977432e59fa094193c21ef4a11ba10de94f54400ef2576d6293b12500a57"
+      }
+  }
+}
+
+///|
+fn local_normalization_inventory_matches(
+  inventory : ClientLocalNormalizationInventory,
+  owner : @checked.CheckedProgram,
+) -> Bool {
+  match inventory {
+    CompletionFree(value) =>
+      @checked.local_completion_free_inventory_matches(value, owner)
+    SortCompletion(value) =>
+      @checked.local_sort_normalization_inventory_matches(value, owner)
+  }
+}
+
+///|
+fn local_sort_normalization_journal_body(
+  inventory : @checked.LocalSortNormalizationInventory,
+  catalog_cid : String,
+) -> Result[String, ClientLocalNormalizationIssue] {
+  try {
+    let writer = @encode.writer(1024, 32, 8)
+    @encode.begin_object(writer)
+    @encode.key(writer, "entries")
+    @encode.begin_array(writer)
+    for index in 0..<@checked.local_sort_normalization_entry_count(inventory) {
+      guard @checked.local_sort_normalization_entry_at(inventory, index)
+        is Some((path, authored, canonical)) else {
+        return Err(ForeignPreparation)
+      }
+      @encode.begin_object(writer)
+      @encode.key(writer, "authored")
+      @encode.string_value(writer, authored)
+      @encode.key(writer, "canonical")
+      @encode.string_value(writer, canonical)
+      @encode.key(writer, "path")
+      @encode.string_value(writer, path)
+      @encode.key(writer, "rule")
+      @encode.string_value(writer, "sort.candidate_key_completion")
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    @encode.key(writer, "rule_catalog_cid")
+    @encode.string_value(writer, catalog_cid)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-normalization-journal/0.1")
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => Err(Evidence(@publication.RunEvidenceEncoding))
+  }
+}
+
+///|
 /// Issue only from the inventory retained by the original checked preparation.
 /// No parse, compile, Source acquisition or physical Effect operation occurs.
 pub fn issue_prepared_client_local_normalization(
@@ -69,16 +167,29 @@ pub fn issue_prepared_client_local_normalization(
     }
     return Ok(original)
   }
-  let inventory = match
-    @checked.local_program_completion_free_inventory(
-      @strategy.graph_program(owner.graph),
-    ) {
-    Ok(value) => value
+  let program = @strategy.graph_program(owner.graph)
+  let inventory : ClientLocalNormalizationInventory = match
+    @checked.local_program_sort_normalization_inventory(program) {
+    Ok(Some(value)) => SortCompletion(value)
+    Ok(None) =>
+      match @checked.local_program_completion_free_inventory(program) {
+        Ok(value) => CompletionFree(value)
+        Err(issue) => return Err(Inventory(issue))
+      }
     Err(issue) => return Err(Inventory(issue))
   }
-  let wire = "{\"entries\":[],\"rule_catalog_cid\":\"" +
-    local_normalization_catalog_cid(inventory) +
-    "\",\"version\":\"actql-normalization-journal/0.1\"}"
+  let catalog_cid = local_normalization_catalog_cid(inventory)
+  let wire = match inventory {
+    CompletionFree(_) =>
+      "{\"entries\":[],\"rule_catalog_cid\":\"" +
+      catalog_cid +
+      "\",\"version\":\"actql-normalization-journal/0.1\"}"
+    SortCompletion(value) =>
+      match local_sort_normalization_journal_body(value, catalog_cid) {
+        Ok(wire) => wire
+        Err(issue) => return Err(issue)
+      }
+  }
   let journal = match
     @publication.seal_run_evidence_value(
       "normalization_journal", wire, 1024, 32, 8,
@@ -106,7 +217,7 @@ pub fn prepared_client_local_normalization_evidence(
   if !physical_equal(owner, value.preparation) ||
     !(owner.local_normalization is Some(original) &&
     physical_equal(original, value)) ||
-    !@checked.local_completion_free_inventory_matches(
+    !local_normalization_inventory_matches(
       value.audit,
       @strategy.graph_program(owner.graph),
     ) {
@@ -143,4 +254,9 @@ pub fn restore_prepared_client_local_normalization(
     Ok(value) => Ok(value)
     Err(issue) => Err(Evidence(issue))
   }
+}
+
+///|
+fn local_default_set_catalog_cid() -> String {
+  "sha256:a9d402c6c62d80cc8aed4a55d0753acec16dab22e7cd31399f4bc5459a248d45"
 }

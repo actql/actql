@@ -36,6 +36,7 @@ priv struct LocalCommandBusinessOriginal {
   mut publication_cleanup_failure : @local_publication.NativeCapturedRunPublicationCancellationIssue?
   mut publication_attempted : Bool
   mut publication_result : @local_publication.NativeRunPublicationResult?
+  mut run_receipt_original : @local_host.NativeLocalObservedRunState?
   mut publication_retired : Bool
   // Retain the original payload path before poll/return/close can fail.
   // These aliases do not acknowledge a Store, domain or delivery receipt.
@@ -57,11 +58,15 @@ priv struct LocalCommandBusinessOriginal {
 fn local_command_source_free_business_profile(
   static_profile : LocalCommandPreparationProfile,
 ) -> (LocalCommandPreparationProfile, LocalCommandBusinessProfile) raise ClientStop {
+  // The existing Local host admits at most 32 physical tasks. Declare their
+  // one-shot attempts, output holdings and bounded transfers before acquiring
+  // the facility; the exact Program quote below can still refuse this budget.
+  let task_capacity = 32
   let limits : @initial_resources.LedgerLimits = {
     planning_work: 100000,
-    attempts: 1,
-    holdings: 1,
-    transfer_bytes: 1000000L,
+    attempts: task_capacity,
+    holdings: task_capacity,
+    transfer_bytes: task_capacity.to_int64() * 1000000L,
     retained_bytes: 536870912L,
     execution_bytes: 536870912L,
   }
@@ -106,9 +111,10 @@ fn local_command_source_free_business_profile(
     host_limits: {
       ..original,
       planning_work: original.planning_work + limits.planning_work,
-      // The original business provisioning attempt and the unchanged task
-      // attempt are declared once. Scope changes and child close do not refill.
+      // The original business provisioning attempt and declared task attempts
+      // occur once. Scope changes and child close do not refill them.
       attempts: original.attempts + 1 + limits.attempts,
+      holdings: original.holdings + limits.holdings,
       transfer_bytes: original.transfer_bytes + limits.transfer_bytes,
       execution_bytes: arena,
     },
@@ -254,7 +260,7 @@ fn LocalCommandPreparationOriginal::require_business_program(
     business.execution is Some(execution) else {
     return Err(CommandUnavailable)
   }
-  guard @local_values.single_source_free_local_ledger_limits(
+  guard @local_values.source_free_local_ledger_limits(
       prepared,
       assets.registry,
       assets.values,

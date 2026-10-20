@@ -102,6 +102,7 @@ fn local_result_delivery_item(
 fn local_result_delivery_selection(
   child : @argparse.Matches,
   directory : String,
+  run_presentation? : Bool = false,
 ) -> LocalResultDeliverySelection raise ClientStop {
   let files : Array[LocalResultFileSelection] = []
   match child.values.get("deliver") {
@@ -110,7 +111,8 @@ fn local_result_delivery_selection(
         stop("InvalidLocalResultDelivery")
       }
       for name in ["output", "result", "format"] {
-        if child.values.contains(name) {
+        if child.values.contains(name) &&
+          !(run_presentation && name == "format") {
           stop("ConflictingLocalResultDelivery")
         }
       }
@@ -119,7 +121,11 @@ fn local_result_delivery_selection(
       }
     }
     None => {
-      let format = local_result_format(child)
+      let format = if run_presentation {
+        "jsonl"
+      } else {
+        local_result_format(child)
+      }
       if optional(child, "output") is Some(path) {
         let result_name = optional(child, "result")
         if result_name is Some(name) &&
@@ -137,7 +143,7 @@ fn local_result_delivery_selection(
   let receipt = match optional(child, "receipt") {
     None => None
     Some(path) => {
-      if files.is_empty() {
+      if files.is_empty() && !run_presentation {
         stop("LocalResultReceiptRequiresFile")
       }
       Some(local_result_output_path(directory, path))
@@ -154,7 +160,7 @@ fn local_result_delivery_selection(
     stop("ConflictingLocalResultDestination")
   }
   let json = child.flags.get("json").unwrap_or(false)
-  if json && files.is_empty() {
+  if json && files.is_empty() && !run_presentation {
     stop("LocalResultJsonEnvelopeUnavailable")
   }
   { files, receipt, json, }

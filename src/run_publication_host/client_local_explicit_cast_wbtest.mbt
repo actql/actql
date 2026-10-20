@@ -4,6 +4,7 @@ let local_explicit_cast_public_sql : String = "SELECT 4 AS id, '日本語' AS no
 ///|
 fn local_explicit_cast_original(
   text? : String = local_explicit_cast_public_sql,
+  format? : @source_frontend.Format = @source_frontend.Sql,
 ) -> PreparedClientProgram {
   let environment = admit_client_check_environment(
     run_materials_environment_wire,
@@ -15,11 +16,7 @@ fn local_explicit_cast_original(
     [],
     @checked.checking_environment_cid(environment),
   ).unwrap()
-  let lowered = @source_frontend.lower(
-    text,
-    @source_frontend.Sql,
-    Some(context),
-  ).unwrap()
+  let lowered = @source_frontend.lower(text, format, Some(context)).unwrap()
   prepare_parsed_effect_free_client_program(
     lowered.program.unwrap(),
     environment,
@@ -129,10 +126,7 @@ test "explicit CAST with original supplied Parameters uses its own exact alterna
     None,
     text="SELECT CAST(@id AS NUMBER) AS id",
   )
-  assert_true(
-    issue_prepared_client_local_normalization(defaulted)
-    is Err(Inventory(ProfileNotInstalled)),
-  )
+  ignore(local_default_parameter_normalization(defaulted))
 }
 
 ///|
@@ -145,8 +139,21 @@ test "explicit CAST does not waive actual completion or uninstalled relation ope
     is Err(Inventory(CompletionObserved)),
   )
   assert_true(implicit_else.local_normalization is None)
-  let unsupported = local_explicit_cast_original(
+  let distinct = local_explicit_cast_original(
     text="SELECT DISTINCT CAST(ABS(-1) AS NUMBER) AS value",
+  )
+  ignore(local_distinct_normalization(distinct))
+  let output = local_distinct_execute(distinct)
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_eq(@execution.completed_column_name(output, 0), Some("value"))
+  assert_true(
+    @execution.completed_cell(output, 0, 0) is Some(Number(value)) &&
+    value == 1.0,
+  )
+  let unsupported = local_group_original_document(
+    (
+      #|{"version":"actql/0.1","id":"local.unsupported-cast-drop","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"other":{"type":"number","nullable":false}},"rows":[{"id":-1,"other":2}]},"as":"input"},{"derive":{"value":"cast(abs(id) as NUMBER)"}},{"drop":["other"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
   )
   assert_true(
     issue_prepared_client_local_normalization(unsupported)

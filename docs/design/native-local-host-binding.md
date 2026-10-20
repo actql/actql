@@ -31,6 +31,13 @@ project selection retains its configured Store and declarations. Outside a
 project, the default Local installation is selected through the same bounded
 configuration and current-authorization owners.
 
+Operator-selected Program, declaration and parameter inputs split bounded
+absolute or input-directory-relative metadata into an original filesystem Root
+and an exact ordinary basename. The command's entered Read uses the existing
+bounded UTF-8 Reader and retains its same partial failure through cleanup.
+Managed installation/configuration names keep their separate entry. Reading a
+file does not supply a parameter contract or bypass Common admission.
+
 A genuinely absent default source-free installation may be initialized by
 this caller under the existing Product exclusion and initialization intent.
 The same adoption Session independently admits the Account, Store and required
@@ -47,6 +54,18 @@ Result-read policy. A same-command read uses the Store that published the same
 request and keeps its Values, publication and delivery children until their
 actual acknowledgements. It does not open a second Store or rerun the query
 after an uncertain response.
+
+The source-free Local entry quotes the original prepared graph before physical
+acquisition. Its finite task inventory includes each input port and retains
+predecessor outputs beside dependent task work on the same Run Ledger. The
+executor follows the existing checked DAG, imports only its exact completed
+producer references, and finalizes each original task once. It neither flattens
+the submitted Program into a synthetic Values task nor turns a source-free
+selection into Source, INFER or Effect admission. The legacy single-task Effect
+entry keeps its separate admission and authority boundary. Named Result export
+selects its checked physical task, not an assumed task zero. Refusal after a
+completed predecessor retains all acquired task cleanup without restarting that
+predecessor or selecting a replacement Run.
 
 JSON, JSONL and CSV stdout retain their actual bytes-receipt route. A table
 requires its own admitted material receiver followed by a separately observed
@@ -117,6 +136,16 @@ children; a failed export cannot undo or resend outputs. A multi-delivery
 receipt file preserves the authored order of successful existing receipt
 objects without claiming an atomic aggregate outcome. Business success,
 physical cleanup and unresolved delivery remain separate observations.
+
+A public Program `run` submits once before forwarding any requested output to
+the same saved-Result/File path. Input representation and output encoding remain
+separate; `--output` selects JSONL while each `--deliver` item selects its format.
+The Run receipt is the existing commit view's original `run_receipt` contract,
+retained by the same accepted publication observation. Export rechecks independent
+current RunRead and excludes Host/Store namespaces. It does not issue another
+receipt, substitute a Result delivery receipt, certify aggregate output success,
+or make an uncommitted/Unknown Run committed. The original observation and every
+partial export child remain with existing command cleanup until their own ACKs.
 
 ## Ordinary product startup boundary
 

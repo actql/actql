@@ -9,6 +9,7 @@ struct NativeLocalObservedRunState {
   request : @host.ClientRequestIdentity
   definition : @publication.PublicationContract
   manifest : @publication.PublicationContract
+  receipt : @publication.PublicationContract
   wire : String
 }
 
@@ -162,6 +163,10 @@ fn NativeLocalHostConnection::finalize_observed_run_state_candidate(
     Ok(value) => value
     Err(issue) => return Err(Candidate(@native_publication.State(issue)))
   }
+  let receipt = match projection.view_contract(view, 3) {
+    Ok(value) => value
+    Err(issue) => return Err(Candidate(Publication(Commit(issue))))
+  }
   let accepted : NativeLocalObservedRunState = {
     host: self,
     publisher,
@@ -169,10 +174,44 @@ fn NativeLocalHostConnection::finalize_observed_run_state_candidate(
     request,
     definition,
     manifest,
+    receipt,
     wire,
   }
   if !accepted.require_current_for(self, request) {
     return Err(AuthorizationDenied)
   }
   Ok(accepted)
+}
+
+///|
+/// Export metadata only from the same accepted publication and independent
+/// current RunRead. This does not grant payload delivery or acknowledge a file.
+/// Managed installation/state paths remain excluded from ordinary exports.
+pub fn NativeLocalObservedRunState::original_run_receipt_for_export(
+  self : NativeLocalObservedRunState,
+  path : String,
+  parent : String,
+  name : String,
+) -> Result[@publication.PublicationContract, NativeLocalObservedRunStateIssue] {
+  if !local_read_file_location(path, parent, name) ||
+    local_read_file_inside(path, self.host.session.state_path) {
+    return Err(ForeignOriginal)
+  }
+  if !self.require_current_for(self.host, self.request) {
+    return Err(AuthorizationDenied)
+  }
+  let capture = match self.publisher.authority.capture {
+    Some(value) => value
+    None => return Err(OriginalUnavailable)
+  }
+  match capture.managed_root_path_in_original_read() {
+    Ok(Some(directory)) if local_read_file_inside(path, directory) =>
+      return Err(ForeignOriginal)
+    Ok(_) => ()
+    Err(_) => return Err(OriginalUnavailable)
+  }
+  if !self.require_current_for(self.host, self.request) {
+    return Err(AuthorizationDenied)
+  }
+  Ok(self.receipt)
 }

@@ -92,11 +92,7 @@ test "checked scalars retain actual Parameter origin and use the same catalog wi
       local_parameter_values_identity(supplied),
       local_parameter_values_identity(defaulted),
     )
-    assert_true(
-      issue_prepared_client_local_normalization(defaulted)
-      is Err(Inventory(ProfileNotInstalled)),
-    )
-    assert_true(defaulted.local_normalization is None)
+    ignore(local_default_parameter_normalization(defaulted))
     assert_true(
       prepared_client_local_normalization_evidence(defaulted, issued)
       is Err(ForeignPreparation),
@@ -114,8 +110,21 @@ test "a supported scalar never hides implicit completion or uninstalled relation
     is Err(Inventory(CompletionObserved)),
   )
   assert_true(implicit_else.local_normalization is None)
-  let uncovered_relation = local_explicit_cast_original(
+  let distinct = local_explicit_cast_original(
     text="SELECT DISTINCT ABS(-3) AS value",
+  )
+  ignore(local_distinct_normalization(distinct))
+  let output = local_distinct_execute(distinct)
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_eq(@execution.completed_column_name(output, 0), Some("value"))
+  assert_true(
+    @execution.completed_cell(output, 0, 0) is Some(Number(value)) &&
+    value == 3.0,
+  )
+  let uncovered_relation = local_group_original_document(
+    (
+      #|{"version":"actql/0.1","id":"local.unsupported-scalar-drop","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"other":{"type":"number","nullable":false}},"rows":[{"id":-3,"other":2}]},"as":"input"},{"derive":{"value":"abs(id)"}},{"drop":["other"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
   )
   assert_true(
     issue_prepared_client_local_normalization(uncovered_relation)

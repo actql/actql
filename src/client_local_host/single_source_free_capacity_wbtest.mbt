@@ -64,3 +64,59 @@ test "single source-free quote refuses Source acquisition and foreign registry b
     is None,
   )
 }
+
+///|
+test "the original public UNION graph is outside the single-task quote before any physical supply" {
+  let assets = @publication_host.client_local_product_assets()
+  guard @json.parse(assets.environment) is Object(fields) &&
+    fields.get("evidence_bundle_cid") is Some(String(cid)) else {
+    fail("ordinary original product Environment evidence missing")
+  }
+  let environment = @publication_host.admit_client_check_environment(
+    assets.environment,
+    cid,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let context = @frontend.bind_query_context([], cid).unwrap()
+  let original = @frontend.lower(
+    "SELECT 1 AS n UNION ALL SELECT 2 AS n",
+    @frontend.Sql,
+    Some(context),
+  ).unwrap()
+  let prepared = @publication_host.prepare_parsed_effect_free_client_program(
+    original.program.unwrap(),
+    environment,
+    None,
+    @publication_host.client_standard_program_preparation_limits(),
+  ).unwrap()
+  let graph = @publication_host.prepared_client_graph(prepared)
+  // Six authored stages retain eight physical tasks after the existing
+  // checked carrier splitter; a stage count is not a task count.
+  assert_eq(@strategy.graph_task_count(graph), 8)
+  assert_eq(@publication_host.prepared_client_acquisition_count(prepared), 0)
+  assert_true(@strategy.graph_source_free_inputs_complete(graph))
+  assert_false(@strategy.graph_program_has_effects(graph))
+  assert_true(
+    @publication_host.issue_prepared_client_local_normalization(prepared)
+    is Ok(_),
+  )
+  let sequences = prepare_client_local_sequences(
+    prepared,
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  assert_eq(sequences.length(), 8)
+  assert_true(
+    single_source_free_local_ledger_limits(
+      prepared,
+      assets.registry,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    )
+    is None,
+  )
+}

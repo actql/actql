@@ -10,7 +10,14 @@ fn local_take_normalization(
   owner : PreparedClientProgram,
 ) -> ClientLocalNormalization raise {
   let issued = issue_prepared_client_local_normalization(owner).unwrap()
-  assert_true(@checked.local_completion_free_inventory_uses_take(issued.audit))
+  assert_true(
+    @checked.local_completion_free_inventory_uses_take(
+      match issued.audit {
+        CompletionFree(value) => value
+        SortCompletion(_) => fail("completion-free original expected")
+      },
+    ),
+  )
   assert_eq(
     @publication.run_evidence_value_json(
       prepared_client_local_normalization_evidence(owner, issued).unwrap(),
@@ -101,10 +108,7 @@ test "Take keeps actual default origin separate from equal supplied values" {
     local_parameter_values_identity(defaulted),
   )
   let issued = local_take_normalization(supplied)
-  assert_true(
-    issue_prepared_client_local_normalization(defaulted)
-    is Err(Inventory(ProfileNotInstalled)),
-  )
+  ignore(local_default_parameter_normalization(defaulted))
   assert_true(
     prepared_client_local_normalization_evidence(defaulted, issued)
     is Err(ForeignPreparation),

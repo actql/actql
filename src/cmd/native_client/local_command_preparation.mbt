@@ -188,6 +188,7 @@ fn prepare_local_command_preparation_original(
       publication_cleanup_failure: None,
       publication_attempted: false,
       publication_result: None,
+      run_receipt_original: None,
       publication_retired: false,
       result_binding: None,
       result_service: None,
@@ -673,6 +674,7 @@ fn LocalCommandPreparationOriginal::text_file(
   root : String,
   name : String,
   maximum : Int64,
+  ordinary_name? : Bool = false,
 ) -> Result[String, LocalCommandPreparationIssue] {
   if (!self.phase_open && !self.journal_read_open) ||
     self.closing ||
@@ -680,13 +682,22 @@ fn LocalCommandPreparationOriginal::text_file(
     self.primary is Some(_) {
     return Err(CommandUnavailable)
   }
-  match
+  let result = if ordinary_name {
+    @files.read_bounded_ordinary_text_file_in_current_read_context_with_custody(
+      root,
+      name,
+      maximum,
+      self.profile.diagnostic_ceiling,
+    )
+  } else {
     @files.read_bounded_text_file_in_current_read_context_with_custody(
       root,
       name,
       maximum,
       self.profile.diagnostic_ceiling,
-    ) {
+    )
+  }
+  match result {
     Ok(text) => Ok(text)
     Err(failure) => {
       self.read_failure = Some(failure)

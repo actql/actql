@@ -47,7 +47,15 @@ test "Local three-stage typed Derive has independent journal bytes and exact ori
     @publication.run_evidence_value_identity(journal),
     "sha256:068f6d7eefb587836c72426fb4d579406247a97b27120621880cbd4a23874880",
   )
-  assert_true(@checked.local_completion_free_inventory_work(issued.audit) > 0)
+  assert_true(
+    @checked.local_completion_free_inventory_work(
+      match issued.audit {
+        CompletionFree(value) => value
+        SortCompletion(_) => fail("completion-free original expected")
+      },
+    ) >
+    0,
+  )
   assert_true(
     physical_equal(
       issued,

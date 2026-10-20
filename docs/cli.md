@@ -52,8 +52,8 @@ a complete Program with mock fixtures that runs without credentials. The
 ## Quick queries
 
 ```text
-actql sql <query> [--parameter-declarations-file <file>] [--params <file>] [--format <table|json|jsonl|csv>] [--output <file>]
-actql aql <query> [--parameter-declarations-file <file>] [--params <file>] [--format <table|json|jsonl|csv>] [--output <file>]
+actql sql <query> [--parameter-declarations-file <file>] [--params <file>] [--format <table|json|jsonl|csv>] [--output <file>] [--json]
+actql aql <query> [--parameter-declarations-file <file>] [--params <file>] [--format <table|json|jsonl|csv>] [--output <file>] [--json]
 ```
 
 ```text
@@ -70,6 +70,10 @@ id    name
 (`table` by default). They are the command-line form of the libraries' `sql()`
 and `aql()`: read-only, no Effects, no Checkpoints. A query with an Effect is
 refused; put it in a Program file and use `run`.
+
+For quick queries, `--json` selects structured command diagnostics on stderr.
+It does not change the Result row encoding chosen by `--format`, wrap successful
+rows in a command-response object, or turn a delivery failure into success.
 
 For `@name` parameters, `--parameter-declarations-file` supplies a JSON object
 of named value contracts; `--params` supplies a separate JSON object of values.
@@ -94,6 +98,11 @@ actql sql 'SELECT @id AS id' --parameter-declarations-file declarations.json --p
 The result is `{"id":7}`. An undeclared parameter, a missing required value or
 a value outside its declared contract is refused. The same option works with
 literal Pipe queries through `aql`.
+
+Program, declaration and parameter file paths may be absolute or relative to
+the selected input directory (the working directory by default). Ordinary file
+names preserve spaces and Unicode; the same byte, JSON and value-contract
+limits apply.
 
 With an explicit `json`, `jsonl` or `csv` format, `--output` delivers that saved
 Result to an exclusively created file instead of stdout:
@@ -183,7 +192,12 @@ actually used, from its record. See [Plans and pushdown](guides/plans-and-pushdo
 | `--json` | Print the Run state as data instead of the human summary |
 
 `run` publishes Results and reports the Run state; it does not stream rows.
-Read them with `result` or deliver them to files.
+Read them with `result` or deliver them to files. `run --output` writes the sole
+Result as JSONL; repeated `--deliver` entries select their own formats.
+`run --receipt` exports the original Run receipt, independently of per-delivery
+receipts. Existing destinations are not replaced. If export or delivery fails
+after admission, inspect the reported original Run instead of resubmitting the
+Program; files already delivered are not rolled back.
 
 All three commands accept `--connectors`, `--model-tasks` and `--lock` to
 override the configured files, and `--bindings <file>` for pre-bound inputs.
@@ -302,6 +316,10 @@ actql schema
 syntax and `schema` the JSON schema of the Program model. Agents use these
 instead of guessing.
 
+`schema` writes the registered Program JSON Schema as one JSON object followed
+by a newline. It does not inspect a database, select a project, initialize a
+Local Host or create a Run. It works in an empty directory without credentials.
+
 ## Integrity
 
 ```text
@@ -352,6 +370,15 @@ when sharing output.
 | `2` | The command line is invalid |
 
 Errors carry a stable `ACTQL_E_*` code in both the human output and the JSON.
+When a command fails before a Run exists, `--json` writes one diagnostic
+object such as `{"code":"ACTQL_E_PARAMETER_MISSING","message":"A required declared parameter has no supplied value or default."}`
+to stderr and leaves stdout empty. Human diagnostics expose the same code and
+message. `ACTQL_E_PARAMETER_INVALID` reports an original supplied-value type or
+constraint rejection; neither code causes a second preparation or submission.
+Diagnostics omit parameter values and authored Program text. A separate cleanup
+failure remains a separate `ACTQL_E_CLEANUP_PENDING` diagnostic; it does not
+erase the primary failure or establish cleanup completion. A real Run retains
+its existing Run state, terminal outcome and delivery reports.
 Unknown commands, unknown options and extra arguments are errors; options may
 come before or after the Program path.
 

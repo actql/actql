@@ -6,10 +6,10 @@ schema and independently authored canonical preimages accompany the catalog.
 The Resident Effect catalog, CID and applicability remain unchanged.
 
 The original common checked Program performs a separate bounded audit of the
-selected Source owners and typed operation/expression owners. The installed
+selected Source owners and typed operation/expression owners. The initial
 slice covers one explicit Source or Values root, at most three stages, Filter,
 Select and Derive, including ordinary typed add, subtract and multiply. It does
-not install default or Invocation Binding completion, template
+not install Invocation Binding completion, template
 completion, implicit NULL, sole-view selection, other operations or additional
 roots. Those paths remain explicitly refused for this publication profile;
 ordinary checker success does not imply an empty completion inventory. Exhausted
@@ -31,7 +31,7 @@ by this closed set. This is an implementation boundary, not a language ban.
 The original traversal selects this identity only after encountering a listed
 extension node and completing the entire audit. Programs using only the preceding
 node sets keep their four original catalog and journal bytes. A new scalar does
-not hide a default, template, implicit NULL or implicit Source selection below
+not hide a template, implicit NULL or implicit Source selection below
 it. Lazy execution does not exempt an unselected child from the preparation
 inventory. Original binding origins, declaration and stage joins, single-root
 and work limits remain unchanged. The inventory adds one retained Boolean; no
@@ -60,7 +60,9 @@ reads the original checked Take; it does not turn an author default into a
 supplied value or parse a logical value a second time.
 
 For a Parameter role, the audit requires the same declaration and admitted
-Supplied binding retained by the original preparation, and the existing closed
+binding retained by the original preparation (Supplied in the preceding
+revision, or the original declared Default in the default-aware revision),
+and the existing closed
 SafeInteger resolution for the exact pipeline and step. Equal names, values or
 CIDs from another pipeline are insufficient. Count and offset retain their
 separate minimum conditions. Every role, binding search and resolution visit
@@ -78,13 +80,66 @@ It does not infer a key from values or treat physical enumeration as that witnes
 The latter strategy identifies the new Sort producer and retains the prior
 owned order only as a tie dependency, rather than copying the prior full order.
 
-Appending an actual missing identity term is semantic completion and still needs
-its proper normalization entry; it cannot receive this empty journal. Connecting
-that record remains implementation work, not a language restriction on Sort.
-Every term, resolution and covered key component consumes the existing audit
-budget. The complete pre-order catalogue, schema and fixture are retained, and
-preparations without Sort keep all seven preceding catalogue/journal identities.
-No new Host profile, wire version, permission or sorting evaluator is introduced.
+Appending an actual missing identity term is semantic completion and cannot
+receive this empty journal. The same bounded-relation catalogue has a revision
+with the frozen `sort.candidate_key_completion` rule. A separate nominal
+inventory retains each actual original operation and `SortOrder`, the decoded
+Program path, its authored Sort array and its completed canonical array. The
+legacy completion-free inventory continues to refuse those occurrences.
+
+The existing preparation issuer selects that inventory directly from the
+original precomputed audit. It emits the existing four-field entries, ordered
+by original path, under the corresponding catalogue CID. The original authored
+terms retain their priority, direction and null placement; only the actual
+missing selected-key fields are appended ascending with nulls last. Saved
+journal restoration still requires the exact retained preparation and issued
+bytes. Equal bodies, copied preparations and an empty journal cannot substitute
+for the original occurrence.
+
+Every term, resolution, covered key component, emitted text and path comparison
+consumes the existing audit budget. The existing journal limits of 1,024 bytes,
+32 nodes and depth 8 remain bounded implementation limits; a larger journal
+refuses atomically without truncation or an empty-evidence fallback. This does
+not impose a language restriction on Sort or claim complete Sort coverage.
+The complete pre-completion catalogue, schema and fixture are retained. A Sort
+without actual appended terms keeps that prior identity; preparations without
+Sort retain all seven earlier catalogue/journal identities. No new Host profile,
+wire version, permission or sorting evaluator is introduced.
+
+The bounded-relation catalogue also admits the existing checked DISTINCT operation.
+Its audit retains the same original pipeline step and schema: whole-row DISTINCT
+preserves the input schema, while keyed DISTINCT retains each authored Required
+reference and its original contract in the checked projection. Canonical schema
+storage order does not replace authored key priority. Complete input row and
+presence admission, exact typed equality, NULL versus omission and first occurrence
+remain with the existing execution owners. DISTINCT supplies no new total order
+and creates no completion journal entry. If a later Sort actually appends keys,
+the same audit must retain its real nonempty semantic entries. The distinct-aware
+catalogue has a new identity; unchanged programs retain their prior catalogue and
+journal bytes. Metadata traversal remains charged to the existing audit bound.
+
+The Append/Set revision admits the existing checked binary operations rather
+than another evaluator. It retains the exact pipeline occurrence, both ordered
+input roles and targets, their original schemas, the checked typed alignment
+and its original output schema. Append keeps left-then-right order; Except and
+Intersect keep their existing complete-row comparison, duplicate and earliest
+left-occurrence rules. Neither operation creates a semantic completion entry
+or supplies row completeness, input authority or a new total-order witness.
+
+An ordinary public set query can retain separate seed, operand, merge and final
+publication stages. The preceding three-stage, single-root catalogues remain
+unchanged for programs without an original Append/Set. The set revision audits
+the actual complete checked units instead of flattening that Program. A bounded
+prepass above the old stage scope, every unit/step visit and each typed alignment
+entry consume the same 10,000-work limit. Its stage ceiling derives from that
+unchanged work bound; ordinary preparation, execution and physical limits are
+still independently enforced. Multiple original Values roots are traversed;
+the maximum of one explicitly selected physical Source is unchanged. Default,
+template, implicit NULL, sole-view and unsupported-operation refusals apply to
+both operands. Supplied Parameters retain the same original declaration and
+binding owner across all stages. The complete pre-set catalogue, schema and
+canonical preimages remain available, and earlier preparations retain every
+prior catalogue/journal byte and identity.
 
 SQL/Pipe CASE without ELSE keeps that field absent in the Common form. The
 original parsed source distinguishes its synthetic END-anchored NULL from an
@@ -94,8 +149,8 @@ by manufacturing an explicit literal before the audit.
 
 Explicitly supplied Parameters use a second closed catalog under the same Local
 profile, `actql-effect-free-local-supplied-parameters-completion-free-catalog.json`.
-The audit retains the original complete `BoundValues` owner and requires every
-binding's actual origin to be `Supplied`, together with the same declaration
+That preceding audit retains the original complete `BoundValues` owner and requires
+every binding's actual origin to be `Supplied`, together with the same declaration
 owner and original stage identities. It admits the existing typed `$param` node;
 it does not insert a value or complete a declaration. Equal effective-value CIDs
 cannot distinguish a default from a supplied value and therefore cannot select
@@ -118,7 +173,7 @@ conversion or infer a target from a result value. Separate closed catalogs cover
 explicit casts with no Parameters and with actually supplied Parameters. The two
 previous catalogs and journals remain byte-identical when no cast is present.
 
-Implicit NULL, template/default completion, implicit Source selection and
+Implicit NULL, template completion, implicit Source selection and
 uninstalled relation operations remain refusals even beneath an explicit cast. A nullable
 cast of an authored literal NULL retains that literal and checked target; it is
 never an empty String or fabricated value. Execution failure, demand, bounds and
@@ -148,3 +203,31 @@ observation, invocation, derivation, ordering and artifact issuance remain with
 the existing portable publication Owners. Snapshot traversal uses their bounded
 preparation and retains the original consumer pin; cancellation and cleanup do
 not transfer responsibility to a new Owner.
+
+Declared Parameter defaults are invocation binding, rather than Source
+normalization. The bounded-relation catalogue also covers actual `Default`
+origins retained by the original `BoundValues`. For each selected default the
+audit projects its original declaration and checks the exact name, parameter
+type and checked default value, while preserving the shared binding owner across
+all stages. Equal supplied values retain the same values CID but do not replace
+that provenance. A supplied override, including explicit nullable NULL, does not
+select the default. The existing operation-scalar requirements still govern
+Take count and offset independently of the Parameter's domain.
+
+The default-aware catalogue has a new identity and retains the full preceding
+catalogue. Programs with no selected defaults keep their previous catalogue and
+journal bytes. Selecting a default adds no Source rule or journal entry. Actual
+Sort completions still carry their original nonempty journal; neither a default
+nor a matching values CID permits empty evidence in its place. The audit retains
+original binding aliases and charges default correspondence checks to its
+existing work bound. It does not re-resolve saved Run materials or supply
+execution, Account or cleanup authority.
+
+The same original-binding audit composes with the bounded binary SET capability.
+Its default-aware revision retains both complete predecessor catalogues. Original
+SET without selected defaults and original defaults without SET keep their prior
+identities. A checked Program that uses both selects the combined capability
+from its nominal audit. Every lowered stage still shares the one original
+BoundValues; the extension does not flatten stages, replace typed alignment or
+supply a multi-task execution coordinator. Actual Sort completions retain their
+original paths and nonempty entries in this revision as well.

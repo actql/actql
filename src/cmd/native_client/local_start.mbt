@@ -79,7 +79,7 @@ fn local_aql_intent_input(
     if format != "aql-text" && format != "sql" {
       stop("external declarations require aql-text or sql")
     }
-    input["parameterDeclarations"] = json_file(root, file, 65536L)
+    input["parameterDeclarations"] = local_input_json_file(root, file, 65536L)
   }
   Json::object(input)
 }
@@ -104,7 +104,7 @@ fn local_intent_wire(
       child,
     )
   } else if operation == "start" {
-    json_file(root, required(child, "program-file"), 65536L)
+    local_input_json_file(root, required(child, "program-file"), 65536L)
   } else {
     let format = required(child, "format")
     guard @frontend.select_format(format) is Ok(_) else {
@@ -112,13 +112,13 @@ fn local_intent_wire(
     }
     local_aql_intent_input(
       root,
-      text_file(root, required(child, "program-file"), 65536L),
+      local_input_text_file(root, required(child, "program-file"), 65536L),
       format,
       child,
     )
   }
   let parameters = match optional(child, "parameters-file") {
-    Some(file) => json_file(root, file, 65536L)
+    Some(file) => local_input_json_file(root, file, 65536L)
     None => Json::null()
   }
   let fields : Map[String, Json] = Map([

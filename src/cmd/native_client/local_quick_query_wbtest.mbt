@@ -6,6 +6,30 @@ fn quick_query_arguments(argv : ArrayView[String]) -> @argparse.Matches raise {
 }
 
 ///|
+test "Quick query diagnostic JSON leaves original intent and row encoding unchanged" {
+  for operation in ["sql", "aql"] {
+    let plain = quick_query_arguments([
+      operation, "SELECT 1 AS id", "--format", "csv",
+    ])
+    let structured = quick_query_arguments([
+      operation, "SELECT 1 AS id", "--format", "csv", "--json",
+    ])
+    assert_false(local_command_json_selected(plain))
+    assert_true(local_command_json_selected(structured))
+    let plain_child = plain.subcommand.unwrap().1
+    let structured_child = structured.subcommand.unwrap().1
+    assert_eq(local_quick_query_format(plain_child), "csv")
+    assert_eq(local_quick_query_format(structured_child), "csv")
+    assert_eq(
+      local_intent_wire("/never-open-this-root", operation, plain_child),
+      local_intent_wire("/never-open-this-root", operation, structured_child),
+    )
+    assert_true(command_preparation_invocation.val is None)
+    assert_true(initial_crypto_invocation.val is None)
+  }
+}
+
+///|
 // Report only the closed issue variant, never the submitted document or wire.
 fn quick_query_intent_original(
   wire : String,
