@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdirSync, renameSync, symlinkSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, readFileSync, renameSync, symlinkSync, writeFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -8,6 +8,7 @@ import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {createOwnedScratch} from '../../../../scripts/owned-scratch.mjs';
 import {openLocalFileRoot} from './root-filesystem.mjs';
+import {prepareLocalFileWrite} from './root-file-writer.mjs';
 
 const root=fileURLToPath(new URL('../../../../',import.meta.url));
 const require=createRequire(import.meta.url);
@@ -37,6 +38,129 @@ test.before(async()=>{
 });
 test.after(()=>{scratch?.passed();});
 const directory=name=>{const path=join(scratch.path,name);mkdirSync(path);return path;};
+
+test('actual Local write child defers acquisition, streams exact bytes and closes every original FD',()=>{
+  const path=directory('writer-child');mkdirSync(join(path,'nested'));let checks=0;
+  const bytes=Buffer.from('exact e\u0301\n');
+  const child=prepareLocalFileWrite({native,rootPath:path,path:'nested/result.txt',
+    temporaryName:'.stage',maxBytes:bytes.length,assertCurrent(){checks++;}});
+  assert.deepEqual(child.status(),{pending:true});assert.equal(checks,0,'no covered I/O at factory time');
+  child.start();child.write(bytes.subarray(0,3));child.write(bytes.subarray(3));
+  assert.deepEqual(child.publish(),{path:'nested/result.txt',bytes:bytes.length});
+  assert.deepEqual(readFileSync(join(path,'nested/result.txt')),bytes);
+  assert.equal(child.close().pending,false);assert.equal(child.status().pending,false);
+  assert.throws(()=>child.write(bytes),{code:'LocalFileWriteClosing'});
+  assert.throws(()=>child.start(),{code:'LocalFileWriteAlreadyAttempted'});
+});
+
+test('actual Local write child keeps acquired cleanup before current refusal and never retries publish',()=>{
+  const path=directory('writer-child-current');let checks=0;
+  const stopped=Object.assign(new Error('current retired'),{code:'TestCurrentRetired'});
+  const child=prepareLocalFileWrite({native,rootPath:path,path:'result',temporaryName:'.stage',
+    maxBytes:8,assertCurrent(){if(++checks===5)throw stopped;}});
+  assert.throws(()=>child.start(),error=>error===stopped);
+  assert.equal(child.close().pending,false);assert.equal(existsSync(join(path,'.stage')),false);
+  let publishes=0;
+  const observedNative={...native,fileRootPublish(...args){publishes++;return native.fileRootPublish(...args);}};
+  const pending=prepareLocalFileWrite({native:observedNative,rootPath:path,path:'result',temporaryName:'.again',
+    maxBytes:8,assertCurrent(){}});
+  pending.start();pending.write(Buffer.from('one'));writeFileSync(join(path,'result'),'keep');
+  assert.throws(()=>pending.publish(),{code:'LocalFileDestinationExists'});
+  assert.throws(()=>pending.publish(),{code:'LocalFileDestinationExists'});
+  assert.equal(publishes,1,'the original failed publication is never attempted again');
+  assert.equal(readFileSync(join(path,'result'),'utf8'),'keep');assert.equal(pending.close().pending,false);
+});
+
+test('actual Local write child retains exact POSIX names and rejects concurrently mutable byte backing',()=>{
+  const path=directory('writer-child-exact'),name='exact\\e\u0301.txt';
+  const child=prepareLocalFileWrite({native,rootPath:path,path:name,temporaryName:'.stage',
+    maxBytes:3,assertCurrent(){}});
+  child.start();child.write(Buffer.from('one'));assert.deepEqual(child.publish(),{path:name,bytes:3});
+  assert.equal(child.close().pending,false);assert.equal(readFileSync(join(path,name),'utf8'),'one');
+  const shared=prepareLocalFileWrite({native,rootPath:path,path:'never',temporaryName:'.shared',
+    maxBytes:3,assertCurrent(){}});
+  shared.start();
+  assert.throws(()=>shared.write(Buffer.from(new SharedArrayBuffer(3))),{code:'InvalidLocalFileWriteBytes'});
+  assert.equal(shared.close().pending,false);assert.equal(existsSync(join(path,'never')),false);
+});
+
+test('actual Local file write stages exact bounded bytes and atomically publishes only once',()=>{
+  const path=directory('write'),sub=join(path,'sub');mkdirSync(sub);
+  const root=native.openFileRoot(path),parent=native.openFileDirectory(root,'sub',1);
+  const writer=native.openRootFileWriter(parent,'.original-stage','result.txt',8);
+  assert.equal(native.fileRootCurrent(writer),undefined);
+  assert.equal(existsSync(join(sub,'result.txt')),false,'staging does not publish a target');
+  native.fileRootWrite(writer,Buffer.from('exact'));
+  native.fileRootWrite(writer,Buffer.from('\n'));
+  assert.throws(()=>native.fileRootWrite(writer,Buffer.from('more')),{code:'LocalFileWriteUnavailable'});
+  assert.equal(native.fileRootStat(writer).size,6n);
+  native.fileRootPublish(writer,false);
+  assert.equal(existsSync(join(sub,'.original-stage')),false);
+  assert.deepEqual(readFileSync(join(sub,'result.txt')),Buffer.from('exact\n'));
+  assert.throws(()=>native.fileRootPublish(writer,false),{code:'LocalFileWriteUnavailable'});
+  assert.throws(()=>native.fileRootWrite(writer,Buffer.from('!')),{code:'LocalFileWriteUnavailable'});
+  assert.deepEqual(native.fileRootClose(writer),closed);
+  assert.deepEqual(native.fileRootClose(parent),closed);
+  assert.deepEqual(native.fileRootClose(root),closed);
+});
+
+test('actual Local create refuses an existing destination, abort removes only its original staging file',()=>{
+  const path=directory('create-only');writeFileSync(join(path,'result'),'old');
+  const root=native.openFileRoot(path),writer=native.openRootFileWriter(root,'.stage','result',4);
+  native.fileRootWrite(writer,Buffer.from('new'));
+  assert.throws(()=>native.fileRootPublish(writer,false),{code:'LocalFileDestinationExists'});
+  assert.equal(readFileSync(join(path,'result'),'utf8'),'old');
+  assert.deepEqual(native.fileRootClose(root),{outcome:'pending',errno:0});
+  // Parent stopping blocks more work, not cleanup of its same acquired child.
+  assert.deepEqual(native.fileRootClose(writer),closed);
+  assert.equal(existsSync(join(path,'.stage')),false);
+  assert.deepEqual(native.fileRootClose(root),closed);
+});
+
+test('actual Local abort and explicit replacement preserve original directory and symlink boundaries',()=>{
+  const path=directory('replace'),outside=directory('write-outside');
+  writeFileSync(join(outside,'keep'),'outside');symlinkSync(join(outside,'keep'),join(path,'result'));
+  const root=native.openFileRoot(path);
+  const abort=native.openRootFileWriter(root,'.aborted','unused',4);
+  native.fileRootWrite(abort,Buffer.from('temp'));
+  assert.deepEqual(native.fileRootClose(abort),closed);
+  assert.equal(existsSync(join(path,'.aborted')),false);assert.equal(existsSync(join(path,'unused')),false);
+  const writer=native.openRootFileWriter(root,'.stage','result',4);
+  native.fileRootWrite(writer,Buffer.from('new'));native.fileRootPublish(writer,true);
+  assert.deepEqual(native.fileRootClose(writer),closed);
+  assert.equal(readFileSync(join(path,'result'),'utf8'),'new');
+  assert.equal(readFileSync(join(outside,'keep'),'utf8'),'outside','rename replaces an entry, never follows it');
+  assert.deepEqual(native.fileRootClose(root),closed);
+});
+
+test('actual Local writer retains failed-open cleanup and serializes same-root writers',()=>{
+  const path=directory('writer-custody'),root=native.openFileRoot(path);
+  const first=native.openRootFileWriter(root,'.first','one',4);
+  const independent=native.openFileRoot(path);
+  const foreignLock=native.openRootFileWriter(independent,'.other-host','other',4);
+  assert.throws(()=>native.fileRootCurrent(foreignLock),{code:'LocalFileOriginalChanged'});
+  assert.equal(existsSync(join(path,'.other-host')),false);
+  assert.deepEqual(native.fileRootClose(foreignLock),closed);
+  assert.deepEqual(native.fileRootClose(independent),closed);
+  const blocked=native.openRootFileWriter(root,'.second','two',4);
+  assert.throws(()=>native.fileRootCurrent(blocked),{code:'LocalFileOriginalChanged'});
+  assert.equal(existsSync(join(path,'.second')),false);
+  assert.deepEqual(native.fileRootClose(blocked),closed);
+  assert.deepEqual(native.fileRootClose(first),closed);
+  writeFileSync(join(path,'.collision'),'keep');
+  const collision=native.openRootFileWriter(root,'.collision','three',4);
+  assert.throws(()=>native.fileRootCurrent(collision),{code:'LocalFileOriginalChanged'});
+  assert.deepEqual(native.fileRootClose(collision),closed);
+  assert.equal(readFileSync(join(path,'.collision'),'utf8'),'keep');
+  const empty=native.openRootFileWriter(root,'.empty','empty',1);
+  native.fileRootPublish(empty,false);assert.equal(readFileSync(join(path,'empty')).length,0);
+  assert.deepEqual(native.fileRootClose(empty),closed);
+  for(const candidate of [{...root},Object.create(root)])
+    assert.throws(()=>native.openRootFileWriter(candidate,'.copy','copy',1),{code:'ForeignLocalFileRoot'});
+  for(const name of ['../escape','/escape','..','.','bad\0name'])
+    assert.throws(()=>native.openRootFileWriter(root,'.bad',name,1),{code:'InvalidLocalFileWrite'});
+  assert.deepEqual(native.fileRootClose(root),closed);
+});
 
 test('actual root opens nested file by original directory FDs, returns exact metadata and copied chunks',()=>{
   const path=directory('nested'),child=join(path,'sub');mkdirSync(child);
