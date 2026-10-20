@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {access, mkdir, mkdtemp, readFile, stat} from 'node:fs/promises';
 import {join} from 'node:path';
+import {inspect} from 'node:util';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {scaffoldProject} from '../../packages/native-cli/lib/project-scaffold.mjs';
 
@@ -27,10 +28,14 @@ test('Account-only actual Host refuses a requested Effect stop without writing o
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local', profile: 'mock',
       installation: {directory: '.actql', authorization: {accountConfiguration,
         observe: (event, detail) => diagnostics.push({event, ...detail})}}});
-    const execution = await client.startSource(
-      "SELECT '001Acme' AS id, 'high' AS risk |> RESULT updates " +
-      '|> EFFECT UPDATE salesforce.Account ID id SET (Churn_Risk__c = risk);',
-      {format: 'aql', stopBefore: 'commit'});
+    const originalSource = await readFile('churn-risk.aql', 'utf8');
+    const source = originalSource.slice(0, originalSource.indexOf('|> INFER')) +
+      '|> RESULT updates |> EFFECT UPDATE salesforce.Account ' +
+      "ID id SET (Churn_Risk__c = 'high', Risk_Reason__c = notes);";
+    const checked = await client.check(source, {kind: 'text', scope: 'bound_input', format: 'aql'});
+    t.diagnostic(JSON.stringify({check: checked}));
+    assert.equal(checked.report.verdict, 'verified');
+    const execution = await client.startSource(source, {format: 'aql', stopBefore: 'commit'});
     const state = await execution.wait();
     t.diagnostic(JSON.stringify({state, diagnostics}));
     assert.notEqual(state.status, 'succeeded');
@@ -42,7 +47,10 @@ test('Account-only actual Host refuses a requested Effect stop without writing o
       [original.dev, original.ino, original.mtimeNs]);
     await assert.rejects(access('.actql/mock-account'), {code: 'ENOENT'});
     await assert.rejects(access('.actql/checkpoints/journal'), {code: 'ENOENT'});
-  } catch (cause) { primary = cause; }
+  } catch (cause) {
+    primary = cause;
+    t.diagnostic(JSON.stringify({originalFailure: inspect(cause, {depth: 6}), diagnostics}));
+  }
   finally {
     try { await client?.close(); }
     catch (cause) { primary = primary === undefined ? cause
