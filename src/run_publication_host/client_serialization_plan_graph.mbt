@@ -304,7 +304,11 @@ fn client_serialization_source_inventory_supported(
     return false
   }
   client_keyed_acquisition_reaches_serialization(
-    owner, keyed, task, step, max_work~,
+    owner,
+    keyed,
+    task,
+    step,
+    max_work~,
   )
 }
 
@@ -337,7 +341,8 @@ pub fn client_keyed_acquisition_reaches_serialization(
   let mut current = task
   let mut remaining = max_work
   while current != keyed_task {
-    if current <= keyed_task || remaining <= 0 ||
+    if current <= keyed_task ||
+      remaining <= 0 ||
       @strategy.graph_task_input_count(graph, current) != Some(1) {
       return false
     }
@@ -354,7 +359,8 @@ pub fn client_keyed_acquisition_reaches_serialization(
         let producer = @strategy.data_edge_producer(edge)
         guard predecessor is None &&
           @strategy.data_edge_input(edge) == 0 &&
-          producer >= keyed_task && producer < current &&
+          producer >= keyed_task &&
+          producer < current &&
           @strategy.graph_task_owner(graph, producer) is Some(parent) &&
           physical_equal(parent, keyed.owner) &&
           client_task_edge_input(graph, edge) is Some(_) else {
