@@ -207,7 +207,7 @@ Options may appear before or after positionals. An option value is never reinter
 `0` otherwise means the CLI command completed and produced or updated the requested Run state. A Run may therefore be `waiting_checkpoint`, `needs_reconciliation`, or `failed` with exit code `0`; automation should use `run --json` and `status <run> --json`.
 `1` means execution of the CLI operation itself failed. `2` means the command line is invalid. Diagnostics use stable `ACTQL_E_*` codes; human output includes the code and message, while `--json` exposes the structured Run state and its terminal outcome.
 
-For a parsed command rejected before any Run exists, JSON diagnostics are
+For a command rejected before any Run exists, JSON diagnostics are
 `{"code":"ACTQL_E_...","message":"..."}` objects on stderr, with empty stdout.
 They are presentation, without a fabricated Run, artifact kind, version or CID.
 The Native caller projects the original typed preparation diagnostic, retaining

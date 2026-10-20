@@ -42,9 +42,13 @@ fn parse_native_initial_arguments(
   // Explicit argv prevents the pinned default_argv from obtaining another
   // native argument array. Include argv0 in the retained original, not parse.
   let start = if arguments.is_empty() { 0 } else { 1 }
+  command_diagnostic_json.val = local_command_argument_diagnostic_json(
+    arguments,
+  )
   let matches = definition.parse(argv=arguments[start:]) catch {
     error => raise NativeCommandArgumentStop(error.to_string())
   }
+  command_diagnostic_json.val = local_command_json_selected(matches)
   let classes = if selected {
     let observed = command_preparation_result(command_preargument_classes())
     if observed.arguments != arguments.length() {

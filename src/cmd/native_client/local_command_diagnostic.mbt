@@ -43,6 +43,23 @@ fn local_command_json_selected(matches : @argparse.Matches) -> Bool {
 }
 
 ///|
+// Parse failure has no Matches. Select only error presentation from an exact
+// standalone flag before `--`. This command grammar has no hyphen-value
+// arguments; `=value` and positional text cannot supply this selector. The
+// pinned parser alone validates arguments; accepted Matches override this bit.
+fn local_command_argument_diagnostic_json(arguments : Array[String]) -> Bool {
+  for index in 1..<arguments.length() {
+    if arguments[index] == "--" {
+      return false
+    }
+    if arguments[index] == "--json" {
+      return true
+    }
+  }
+  false
+}
+
+///|
 fn local_check_diagnostic_kind(
   diagnostic : @checked.CheckDiagnostic,
 ) -> LocalCommandDiagnosticKind {
@@ -185,7 +202,11 @@ fn local_command_diagnostic_text(
       4096,
     ) catch {
       ClientStop(_) =>
-        "{\"code\":\"ACTQL_E_DIAGNOSTIC_UNAVAILABLE\",\"message\":\"The command diagnostic could not be encoded.\"}"
+        // Codes are closed caller constants. Keep the original code if an
+        // original message cannot be encoded.
+        "{\"code\":\"" +
+        code +
+        "\",\"message\":\"The command failed; its diagnostic message could not be encoded.\"}"
     }
   } else {
     let quoted = encode_request_json(Json::string(text), 4096) catch {

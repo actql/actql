@@ -1500,7 +1500,9 @@ fn main {
     NativeCommandArgumentStop(message) => {
       let bytes = @utf8.encode(
         local_command_diagnostic_text(
-          "ACTQL_E_ARGUMENT_INVALID", message, false,
+          "ACTQL_E_ARGUMENT_INVALID",
+          message,
+          command_diagnostic_json.val,
         ),
       )
       report_failure_ffi(bytes, bytes.length())

@@ -102,14 +102,29 @@ test "Diagnostic mode follows accepted Matches without reinterpreting option val
   let parsed = command().parse(argv=["run", "--", "--json"], env=Map([]))
   assert_false(local_command_json_selected(parsed))
   let rejected = try {
-    ignore(parse_native_initial_arguments(["original", "--unknown"], false))
+    ignore(
+      parse_native_initial_arguments(
+        ["original", "run", "--json", "--unknown"],
+        false,
+      ),
+    )
     false
   } catch {
     NativeCommandArgumentStop(_) => true
     _ => fail("the original parser error must retain the argument boundary")
   }
   assert_true(rejected)
+  assert_true(command_diagnostic_json.val)
+  assert_false(
+    local_command_argument_diagnostic_json(["original", "run", "--", "--json"]),
+  )
+  assert_false(
+    local_command_argument_diagnostic_json([
+      "original", "run", "--params=--json",
+    ]),
+  )
   assert_true(command_preparation_invocation.val is None)
+  local_command_diagnostic_reset()
 }
 
 ///|

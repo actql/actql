@@ -357,7 +357,7 @@ when sharing output.
 | `2` | The command line is invalid |
 
 Errors carry a stable `ACTQL_E_*` code in both the human output and the JSON.
-When a parsed command fails before a Run exists, `--json` writes one diagnostic
+When a command fails before a Run exists, `--json` writes one diagnostic
 object such as `{"code":"ACTQL_E_PARAMETER_MISSING","message":"A required declared parameter has no supplied value or default."}`
 to stderr and leaves stdout empty. Human diagnostics expose the same code and
 message. `ACTQL_E_PARAMETER_INVALID` reports an original supplied-value type or
