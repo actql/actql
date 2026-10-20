@@ -41753,10 +41753,11 @@
     {
       "module": "adapters/host-node/installed-host-policy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5571b28892ba1bb056f01dfc3243fb1fa6240d28abc5d35e818fdfa55acce425",
+      "sha256": "892d835fe3ee9a3c0206a43c406919de6c56c6814100379723dc6365eb1006bd",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
+        "localFilesLookupExecutionPolicy",
         "selectInstalledHostEnvironment",
         "snapshotHostCapacityPolicy",
         "snapshotHostLookupExecutionPolicy"
@@ -41766,6 +41767,20 @@
           "name": "fail/fail",
           "parameters": [
             "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "localFilesLookupExecutionPolicy",
+          "parameters": [
+            "sourceLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "localFilesLookupExecutionPolicy/selected/selected",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -41981,6 +41996,101 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "localFilesLookupExecutionPolicy",
+            "localFilesLookupExecutionPolicy/selected/selected"
+          ],
+          "exports": [
+            "localFilesLookupExecutionPolicy"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The selected ordinary Local factory supplies the existing finite"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-host-policy.mjs",
+                "anchor": "export function localFilesLookupExecutionPolicy(sourceLimits) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (runtime !== moon) throw clientOperationError('ForeignInstalledProjectSourcePreparation');"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "belong to the same runtime and remain current. This is a managed service"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An ordinary Project Local Source retains its exact connection declaration and"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const bundle = projectSourcePreparation.originalsForRuntime(moon);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertSourceManagedInstallationCurrent(sourceManaged, originals);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "refused policy must not become the omitted-default case. Generic, unselected"
+              },
+              {
+                "path": "adapters/host-node/local-files-lookup-policy.test.mjs",
+                "anchor": "test('explicit valid Host lookup policy wins and explicit refusal cannot become an omitted default',()=>{"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "and installation retire. Managed reference retirement is not a native ACK."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-host-policy.mjs",
+                "anchor": "const response = BigInt(files) * BigInt(pages) * request;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "uses one attempt per request and the declared file, page, byte and duration"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An explicit valid Host lookup policy takes precedence; an explicit invalid or"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "and Mock-only paths retain unresolved absence and Common's `MissingPolicy`"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-files-lookup-policy.test.mjs",
+                "anchor": "test('actual Host default selection retains the same Project Source receiver runtime and current original',()=>{"
+              },
+              {
+                "path": "adapters/host-node/local-files-lookup-policy.test.mjs",
+                "anchor": "test('selected lookup limits enter the same canonical Environment without changing generic absence',()=>{"
               }
             ]
           }

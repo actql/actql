@@ -763,6 +763,18 @@ Changing original connection bytes changes installation reuse identity; equal
 Source labels cannot replace the retained declaration. Explicit Mock setup is
 separate and never follows merely from installing a normal Local Source.
 
+The selected ordinary Local factory supplies the existing finite
+`lookup_execution` policy from those same installed Local limits before
+admitting the Host Environment. The retained Project Source preparation must
+belong to the same runtime and remain current. This is a managed service
+ceiling, not physical backing, Account/egress/Model authority or a cleanup ACK.
+An explicit valid Host lookup policy takes precedence; an explicit invalid or
+refused policy must not become the omitted-default case. Generic, unselected
+and Mock-only paths retain unresolved absence and Common's `MissingPolicy`
+refusal when no actual lookup policy was configured. The selected Local ceiling
+uses one attempt per request and the declared file, page, byte and duration
+limits; historical network-field names do not issue a network plan or retry.
+
 Partial initialization retains the same admission even when no Run view was
 returned. If Resource proves that neither the imported child nor its origin
 published a Ledger, cleanup reports a distinct unpublished-initialization

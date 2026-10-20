@@ -11,7 +11,7 @@ import {configureInferEvidence} from './infer-evaluation-evidence.mjs';
 // Host in process; the journal and publication Store own durable physical I/O.
 import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
 import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy,
-  selectInstalledHostEnvironment} from './installed-host-policy.mjs';
+  selectInstalledHostEnvironment, localFilesLookupExecutionPolicy} from './installed-host-policy.mjs';
 import {createHash, createPublicKey, randomBytes, randomUUID} from 'node:crypto';
 import {mkdir, readFile, stat} from 'node:fs/promises';
 import {homedir, userInfo} from 'node:os';
@@ -892,8 +892,10 @@ async function openInstalledHost(originalInstallation, preparation) {
   // The independent unprepared Host entry retains its existing file route.
   const environmentSource = preparation === undefined ? await readFile(join(packageRoot,
     'spec/local-check-environment.json'), 'utf8') : preparation.readEnvironmentSource();
+  const selectedLookupPolicy = hostLookupExecutionPolicy ??
+    preparation?.localFilesLookupExecutionPolicy?.(moon);
   const baseEnvironmentWire = selectInstalledHostEnvironment(moon, environmentSource.trimEnd(), hostCapacityPolicy,
-    hostLookupExecutionPolicy);
+    selectedLookupPolicy);
   // Both adapters restore published declarations without provider I/O. The
   // combined environment is admitted before either can dispatch work.
   let sourceProfile;
@@ -4954,6 +4956,13 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       // connection. Check the exact wrapper in its private original inventory.
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
       return sourceManaged;
+    },
+    localFilesLookupExecutionPolicy(runtime) {
+      if (runtime !== moon) throw clientOperationError('ForeignInstalledProjectSourcePreparation');
+      if (projectSourcePreparation === undefined || mockPreparation !== undefined) return undefined;
+      assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      const bundle = projectSourcePreparation.originalsForRuntime(moon);
+      return localFilesLookupExecutionPolicy(bundle.sources.map(source => source.limits));
     },
     installProjectSources(runtime, baseEnvironmentWire, authorizationFor) {
       if (runtime !== moon || projectSourcePreparation === undefined || mockPreparation !== undefined) {
