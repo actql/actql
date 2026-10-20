@@ -387,6 +387,10 @@ class InstalledLocalHost:
                 return self._original_sdk_read_response(run, projection,
                     body['resultName'], body['format'], body['attemptId'])
             elif operation == 'delivery-attempt':
+                if not self._has_live_original_run_reference(body['ref']):
+                    saved_read = OriginalSavedResultRead(self)
+                    self._saved_result_reads.append(saved_read)
+                    return saved_read.prepare_lookup(body['ref'], body['resultName'], body['attemptId'])
                 run, _ = self._select_original_run(body['ref'])
                 projection = self._original_run_projection(run)
                 return self._original_delivery_lookup_response(run, projection,

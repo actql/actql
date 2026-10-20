@@ -17,6 +17,7 @@ from ._local_sdk_delivery_storage import OriginalSDKDeliveryStore, SDKDeliverySt
 from ._local_sdk_payload_reader import OriginalSDKPayloadReader, SDKPayloadReaderCleanupPending
 from ._local_sdk_read_storage import OriginalSDKReadEvidenceStore, SDKReadEvidenceCleanupPending
 from ._local_sdk_response import OriginalLocalSDKResponseStream
+from ._local_response import OriginalLocalResponseStream
 from ._local_storage import ByteFence, CapacityReservation, StoredBytes
 from ._local_store_reconciliation import OriginalStoreReconciliation
 from ._values import wire_bytes
@@ -94,6 +95,47 @@ class OriginalSavedResultRead:
         self._preparing = True
         try:
             return self._prepare(reference, name, format, attempt_id)
+        finally:
+            self._preparing = False
+
+    def prepare_lookup(self, reference: object, name: str,
+                       attempt_id: str) -> httpx.Response:
+        """Look up the saved original attempt without grant/write/payload work.
+
+        The same Core source validates the current Account and stored chain.
+        This intentionally opens no File Reader, re-reserves no payload and
+        creates no first delivery; response loss retains the same output loans.
+        """
+        self._ensure_active()
+        if self._preparing or self._source is not None:
+            raise ValueError('Original saved delivery lookup cannot be prepared again')
+        self._preparing = True
+        try:
+            host, core = self._host, self._host._core
+            configuration = host._configuration
+            if configuration is None or not configuration.sdk:
+                raise ValueError('Original saved lookup configuration is unavailable')
+            source = host._retain_original_result_read(reference, name)
+            self._source = source
+            projection = OriginalCommitProjection.from_saved_read(core, source,
+                configuration.handle, cleanup=lambda: True)
+            self._projection = projection
+            clock = host._original_sdk_delivery_clock()
+            self._clock = clock
+            tick = _object(core._inputs[clock.ticket].payload, 256)
+            request = host._copy(wire_bytes({'result_name': name, 'format': 'jsonl',  # type: ignore[no-untyped-call]
+                'attempt_id': attempt_id, 'observed_at': tick['observed_at']}))
+            self._request = request
+            streams: list[OriginalLocalResponseStream] = []
+            self._current(lambda: projection.project_sdk_delivery_lookup(request,
+                source.handle, lambda raw: streams.append(OriginalLocalResponseStream(host, raw))))
+            if len(streams) != 1:
+                raise ValueError('Incomplete original saved delivery lookup')
+            stream = streams[0]
+            response = httpx.Response(200, headers={'content-type': 'application/json',
+                'content-encoding': 'identity'}, stream=stream)
+            stream._attached = True
+            return response
         finally:
             self._preparing = False
 
