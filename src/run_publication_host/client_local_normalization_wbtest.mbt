@@ -93,11 +93,11 @@ test "Local original sole-view resolution remains a completion and preserves sou
 
 ///|
 test "Local uninstalled operation and actual template completion cannot issue empty evidence" {
-  let take = local_normalization_document.replace(
+  let uncovered_sort = local_normalization_document.replace(
     old="\"select\":[\"next\"],",
-    new="\"take\":1},{\"select\":[\"next\"],",
+    new="\"sort\":[{\"field\":\"next\",\"dir\":\"asc\",\"nulls\":\"first\"}]},{\"select\":[\"next\"],",
   )
-  let owner = local_normalization_fixture(document=take)
+  let owner = local_normalization_fixture(document=uncovered_sort)
   assert_true(
     issue_prepared_client_local_normalization(owner)
     is Err(Inventory(ProfileNotInstalled)),
