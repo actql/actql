@@ -4,7 +4,11 @@
 fn submit_scope_current_capture(
   name : String,
   account : Bytes,
-) -> NativeLocalJournalCapture {
+) -> NativeLocalJournalCapture raise {
+  guard @authorization.admit_account_configuration_json(@utf8.decode(account))
+    is Ok(_) else {
+    fail("Scope fixture requires an admitted original Account before any I/O")
+  }
   let base = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let parent = @filesystem.open_private_root(base).unwrap()
   parent.create_directory(name).unwrap() |> ignore
@@ -95,7 +99,12 @@ test "Native submit scope identity stays exact without becoming Account permissi
 
 ///|
 test "Native submit scope DATA never overrides Deny or changed original custody" {
-  let denied : Bytes = b"{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"operator\",\"entries\":[{\"entry_id\":\"allow\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"cli\"]},\"resource\":{\"any_of\":[\"run\"]},\"operation\":{\"any_of\":[\"submit\"]},\"exclusions\":[]},{\"entry_id\":\"deny\",\"outcome\":\"deny\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"cli\"]},\"resource\":{\"any_of\":[\"run\"]},\"operation\":{\"any_of\":[\"submit\"]},\"exclusions\":[]}]}"
+  let conflicting : Bytes = b"{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"operator\",\"entries\":[{\"entry_id\":\"allow\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"cli\"]},\"resource\":{\"any_of\":[\"run\"]},\"operation\":{\"any_of\":[\"submit\"]},\"exclusions\":[]},{\"entry_id\":\"deny\",\"outcome\":\"deny\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"cli\"]},\"resource\":{\"any_of\":[\"run\"]},\"operation\":{\"any_of\":[\"submit\"]},\"exclusions\":[]}]}"
+  assert_true(
+    @authorization.admit_account_configuration_json(@utf8.decode(conflicting))
+    is Err(@authorization.ConflictingOutcomes(_)),
+  )
+  let denied : Bytes = b"{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"operator\",\"entries\":[{\"entry_id\":\"deny\",\"outcome\":\"deny\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"cli\"]},\"resource\":{\"any_of\":[\"run\"]},\"operation\":{\"any_of\":[\"submit\"]},\"exclusions\":[]}]}"
   let capture = submit_scope_current_capture("submit-scope-denied", denied)
   assert_eq(capture.open().issue_family(), 0)
   let host = capture.original_host().unwrap()
