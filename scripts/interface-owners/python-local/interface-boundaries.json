@@ -65,7 +65,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
-      "sha256": "c4172da04ea7fa634051b0fc45a0c567cc6947668661652297992098b2304359",
+      "sha256": "285a2272a110d9ce43d85fb5c355071af9764279e6efaba809d9eea1e7e6d9d1",
       "generator": {
         "path": "scripts/generate-local-wasm-abi.py",
         "anchor": "def render("
@@ -5694,6 +5694,14 @@
         },
         {
           "async": false,
+          "name": "LocalCore/close_client_check",
+          "parameters": [
+            "self",
+            "value"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/close_host_current",
           "parameters": [
             "self",
@@ -6288,6 +6296,15 @@
         },
         {
           "async": false,
+          "name": "LocalCore/produce_client_check",
+          "parameters": [
+            "self",
+            "value",
+            "current"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/produce_host_current",
           "parameters": [
             "self",
@@ -6685,6 +6702,15 @@
         },
         {
           "async": false,
+          "name": "LocalCore/read_client_check",
+          "parameters": [
+            "self",
+            "value",
+            "current"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/read_host_current",
           "parameters": [
             "self",
@@ -6926,6 +6952,18 @@
           "parameters": [
             "self",
             "source",
+            "cleanup"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/reserve_client_check",
+          "parameters": [
+            "self",
+            "environment",
+            "configuration",
+            "source",
+            "kind",
             "cleanup"
           ]
         },
@@ -7642,7 +7680,7 @@
           ]
         }
       ],
-      "sha256": "92c5bdfd2581347b407c3192b9a39080fcbd9623d1355fa0490132ec8a9218a9",
+      "sha256": "c83c99d6be86eea5db47785b65855a9d40ecf979a98324585d9f9764d2586460",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -12492,6 +12530,121 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "LocalCore/close_client_check",
+            "LocalCore/produce_client_check",
+            "LocalCore/read_client_check",
+            "LocalCore/reserve_client_check"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "class LocalCore:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "class LocalCore:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "class LocalCore:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "class LocalCore:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "class LocalCore:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "class LocalCore:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "class LocalCore:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "class LocalCore:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "class LocalCore:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_check_ports.py",
+                "anchor": "def test_public_local_check_uses_same_host_response_and_does_not_submit("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_check_ports.py",
+                "anchor": "def test_other_original_context_input_scope_or_attempt_never_binds_a_report("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_check_ports.py",
+                "anchor": "def test_failed_child_cleanup_keeps_original_input_until_separate_return("
               }
             ]
           }
@@ -46291,6 +46444,7 @@
         "LocalStorageError",
         "LocalTaskProgress",
         "OriginalCommitProjection",
+        "OriginalLocalCheck",
         "OriginalLocalInstallation",
         "OriginalLocalResponseStream",
         "OriginalLocalSDKResponseStream",
@@ -46326,6 +46480,7 @@
       ],
       "imports": [
         ".",
+        "._local_check",
         "._local_commit_projection",
         "._local_core",
         "._local_distribution",
@@ -46769,6 +46924,20 @@
         {
           "async": false,
           "name": "InstalledLocalHost/_open_original_payload_reader/acquire",
+          "parameters": [
+            "_"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_original_check_environment",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_original_check_environment/install",
           "parameters": [
             "_"
           ]
@@ -47430,7 +47599,7 @@
           ]
         }
       ],
-      "sha256": "2b6f9382fac977c24245b9ee23c9c96d0a82c3472d77b01fbbd070a9cf907725",
+      "sha256": "a69a4885ccfa7405a19ccf9de69ba9a899d329b5b5fec77e3440fb61d40d2786",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -47583,6 +47752,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ],
             "inputsOutputs": [
@@ -47609,6 +47782,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ],
             "identity": [
@@ -47639,6 +47816,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ],
             "ownership": [
@@ -47669,6 +47850,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ],
             "synchronization": [
@@ -47695,6 +47880,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ],
             "failure": [
@@ -47725,6 +47914,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ],
             "cancellation": [
@@ -47751,6 +47944,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ],
             "resources": [
@@ -47781,6 +47978,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ],
             "extension": [
@@ -47807,6 +48008,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ],
             "verification": [
@@ -47841,6 +48046,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ]
           }
@@ -48826,6 +49035,121 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "InstalledLocalHost/_original_check_environment",
+            "InstalledLocalHost/_original_check_environment/install"
+          ],
+          "exports": [
+            "OriginalLocalCheck"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "class InstalledLocalHost:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "class InstalledLocalHost:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "class InstalledLocalHost:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "class InstalledLocalHost:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "class InstalledLocalHost:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "class InstalledLocalHost:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "class InstalledLocalHost:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "class InstalledLocalHost:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "class InstalledLocalHost:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_check_ports.py",
+                "anchor": "def test_public_local_check_uses_same_host_response_and_does_not_submit("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_check_ports.py",
+                "anchor": "def test_other_original_context_input_scope_or_attempt_never_binds_a_report("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_check_ports.py",
+                "anchor": "def test_failed_child_cleanup_keeps_original_input_until_separate_return("
+              }
+            ]
+          }
         }
       ]
     },
@@ -49408,7 +49732,8 @@
           "parameters": [
             "self",
             "host",
-            "raw"
+            "raw",
+            "maximum"
           ]
         },
         {
@@ -49447,7 +49772,7 @@
           ]
         }
       ],
-      "sha256": "a0b792770534a7384b0d037222fa8c6e22ae61f9f9c00c9e9e33bb706374cfce",
+      "sha256": "943532d1868b0b33d4c0f7a5404556aa23a34a96b10b5277ce431db8817d25e4",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -49605,6 +49930,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Ordinary Host operation fuel"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ],
             "inputsOutputs": [
@@ -49619,6 +49948,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The serialized Host boundary installs fuel before new work only."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ],
             "identity": [
@@ -49637,6 +49970,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The prior single 100M lifetime allowance does not cover ordinary initialization"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ],
             "ownership": [
@@ -49655,6 +49992,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "and carrier. A later explicit close attempt remains cleanup-only and preserves"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ],
             "synchronization": [
@@ -49669,6 +50010,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "ABI call, callback and nested phase shares that operation's remaining fuel."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ],
             "failure": [
@@ -49687,6 +50032,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "An exhausted operation fails once and fences further normal Core work. It is"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ],
             "cancellation": [
@@ -49701,6 +50050,10 @@
               {
                 "path": "scripts/test_python_local_host_fuel.py",
                 "anchor": "def test_cancellation_does_not_ack_or_replenish_the_interrupted_scope("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ],
             "resources": [
@@ -49719,6 +50072,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "outer Host operation has a finite 32,000,000,000-instruction allowance"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ],
             "extension": [
@@ -49733,6 +50090,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "lifetime policy; its evidence does not establish ordinary operation acceptance."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ],
             "verification": [
@@ -49747,6 +50108,10 @@
               {
                 "path": "scripts/test_python_local_host_fuel.py",
                 "anchor": "def test_actual_exhaustion_fences_normal_work_and_allows_only_separate_cleanup("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
               }
             ]
           }
@@ -59054,7 +59419,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "668d28d70a7cbe0bb8272033c64c7ecf9e9ffaaf825b84a346393bb5ad3a7f1c",
+      "sha256": "285a2272a110d9ce43d85fb5c355071af9764279e6efaba809d9eea1e7e6d9d1",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -68319,6 +68684,237 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "Any",
+        "InstalledLocalHost",
+        "OriginalLocalCheck",
+        "TYPE_CHECKING",
+        "annotations",
+        "canonical_bytes",
+        "check_outcome",
+        "hashlib",
+        "hmac",
+        "json",
+        "secrets",
+        "wire_bytes"
+      ],
+      "imports": [
+        "._local_core",
+        "._local_installation",
+        "._local_product",
+        "._values",
+        "._wire_codec",
+        "__future__",
+        "hashlib",
+        "hmac",
+        "json",
+        "secrets",
+        "typing"
+      ],
+      "module": "packages/python-sdk/src/actql_sdk/_local_check.py",
+      "operations": [
+        {
+          "async": false,
+          "name": "OriginalLocalCheck",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalCheck/__init__",
+          "parameters": [
+            "self",
+            "host"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalCheck/_nominal",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalCheck/_project",
+          "parameters": [
+            "self",
+            "kind",
+            "packet"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalCheck/_project/observe",
+          "parameters": [
+            "current"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalCheck/_revision",
+          "parameters": [
+            "self",
+            "role",
+            "raw"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalCheck/close",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalLocalCheck/report",
+          "parameters": [
+            "self",
+            "body"
+          ]
+        }
+      ],
+      "sha256": "0675b6ab66ca65017a34aa5a7497ac02ec291f3f7b061dfa3eb763cbca0cbfee",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Python Local Host and Common Check Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "OriginalLocalCheck",
+            "OriginalLocalCheck/__init__",
+            "OriginalLocalCheck/_nominal",
+            "OriginalLocalCheck/_project",
+            "OriginalLocalCheck/_project/observe",
+            "OriginalLocalCheck/_revision",
+            "OriginalLocalCheck/close",
+            "OriginalLocalCheck/report"
+          ],
+          "exports": [
+            "Any",
+            "InstalledLocalHost",
+            "OriginalLocalCheck",
+            "TYPE_CHECKING",
+            "annotations",
+            "canonical_bytes",
+            "check_outcome",
+            "hashlib",
+            "hmac",
+            "json",
+            "secrets",
+            "wire_bytes"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_check.py",
+                "anchor": "class OriginalLocalCheck:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_check.py",
+                "anchor": "class OriginalLocalCheck:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_check.py",
+                "anchor": "class OriginalLocalCheck:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_check.py",
+                "anchor": "class OriginalLocalCheck:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_check.py",
+                "anchor": "class OriginalLocalCheck:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_check.py",
+                "anchor": "class OriginalLocalCheck:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_check.py",
+                "anchor": "class OriginalLocalCheck:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_check.py",
+                "anchor": "class OriginalLocalCheck:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Public Local Check reporting"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_check.py",
+                "anchor": "class OriginalLocalCheck:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_check_ports.py",
+                "anchor": "def test_public_local_check_uses_same_host_response_and_does_not_submit("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_check_ports.py",
+                "anchor": "def test_other_original_context_input_scope_or_attempt_never_binds_a_report("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_check_ports.py",
+                "anchor": "def test_failed_child_cleanup_keeps_original_input_until_separate_return("
               }
             ]
           }
