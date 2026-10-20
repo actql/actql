@@ -135,11 +135,18 @@ fn cast_expression_value(
   value : Value,
   budget : ControlBudget,
   decimal_failure_null? : Bool = false,
+  number_failure_null? : Bool = false,
 ) -> Result[Value, EvalIssue] {
   if decimal_failure_null &&
     !(@lower.expression_contract(expression).nullable &&
     @lower.expression_contract(expression).shape is @contract.Decimal(..)) {
     return Err({ kind: Scalar(InvalidOperand), expression, })
+  }
+  if number_failure_null {
+    match preflight_try_number_string(expression, value, budget) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
   }
   if value is Null {
     return Ok(Null)
@@ -182,6 +189,9 @@ fn cast_expression_value(
                   Err(_) => None
                 }
               Err({ issue: @source.NegativeZero, .. }) => Some(Number(0.0))
+              Err({ issue: @source.NumberOutOfRange | @source.NumberPrecisionLoss, .. }) => None
+              Err(issue) if number_failure_null =>
+                return Err({ kind: NumberConversion(issue.issue), expression, })
               _ => None
             }
           }
@@ -250,7 +260,54 @@ fn cast_expression_value(
     Some(v) => Ok(v)
     // Only an invalid/unrepresentable conversion becomes NULL. Every earlier
     // child, logical, control or cancellation failure remains an original Err.
-    None if decimal_failure_null => Ok(Null)
+    None if decimal_failure_null || number_failure_null => Ok(Null)
     None => Err({ kind: Scalar(InvalidOperand), expression, })
   }
+}
+
+///|
+/// Runtime extents come from this exact checked occurrence. Validate the whole
+/// original scalar sequence before grammar recognition, including inputs whose
+/// first character will be unparseable. No UTF-8 copy or Host conversion is used.
+fn preflight_try_number_string(
+  expression : @lower.Expression,
+  value : Value,
+  budget : ControlBudget,
+) -> Result[Unit, EvalIssue] {
+  guard @lower.expression_text_bound(expression) is Some(original) &&
+    @lower.expression_contract(expression).nullable &&
+    @lower.expression_contract(expression).shape is @contract.Number else {
+    return Err({ kind: Scalar(InvalidOperand), expression, })
+  }
+  let output = @expression_context.text_bound_output(original)
+  if !(@text_bounds.output_operation(output) is @text_bounds.TryNumber) {
+    return Err({ kind: Scalar(InvalidOperand), expression, })
+  }
+  if value is Null {
+    return Ok(())
+  }
+  guard value is Text(text) else {
+    return Err({ kind: Scalar(InvalidOperand), expression, })
+  }
+  let (max_points, max_bytes) = @text_bounds.input_extent(
+    @text_bounds.output_input(output),
+  )
+  let mut offset = 0
+  let mut points = 0L
+  let mut bytes = 0L
+  while offset < text.length() {
+    if !spend_control(budget, 1) {
+      return Err({ kind: ControlLimit, expression, })
+    }
+    guard text_function_scalar(text, offset) is Some((_, next, width, _)) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    if points >= max_points || width.to_int64() > max_bytes - bytes {
+      return Err({ kind: TextBounds(@text_bounds.InputCeiling), expression, })
+    }
+    points += 1L
+    bytes += width.to_int64()
+    offset = next
+  }
+  Ok(())
 }
