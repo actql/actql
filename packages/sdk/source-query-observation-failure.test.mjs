@@ -2,6 +2,7 @@ import {submissionEpoch, readySubmissionAttempt} from './submission-fixture.mjs'
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {inspect} from 'node:util';
+import {validRunState} from '@actql/client-wire';
 import * as sdk from './index.mjs';
 import {connectInProcess} from './host-port.mjs';
 
@@ -87,7 +88,12 @@ for (const language of ['sql', 'aql']) {
 }
 
 test('short query valid failed state retains input without claiming failed observation', async t => {
-  const failed = {...running, status: 'failed'};
+  // This authored Host reply represents its original revision1 observation;
+  // the SDK must neither infer a missing revision nor accept a malformed reply.
+  const failed = {...running, status: 'failed', revision: 1};
+  assert.equal(validRunState(failed), true);
+  const {revision, ...missingRevision} = failed;
+  assert.equal(validRunState(missingRevision), false);
   const f = await fixture(t, () => failed);
   let error;
   try {await f.client.sql('SELECT 1 AS id', undefined, {submissionRef: f.client.newSubmission({nonce: 'failed-query'})});}
