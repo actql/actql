@@ -123,6 +123,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   let originalMetadata;
   let originalStoreBootstrap;
   let originalPublicationCapacity;
+  let originalPublicationSelection;
+  let originalPublicationReceiver;
   if (originalPreparation !== undefined) {
     if (provider === undefined || acquiredInput !== undefined || keyedInput !== undefined ||
         restoredInput !== undefined || savedCapture !== undefined || savedSlots !== undefined ||
@@ -139,6 +141,17 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       throw new TypeError('InvalidInferOriginalPreparation');
     }
     originalRead = originalPreparation.read;
+    const publication = Object.getOwnPropertyDescriptor(originalPreparation, 'publicationCapacity');
+    if (publication !== undefined) {
+      if (!Object.hasOwn(publication, 'value') || typeof publication.value !== 'function') {
+        throw Object.assign(new Error('InferOriginalPublicationCapacityUnavailable'),
+          {code: 'InferOriginalPublicationCapacityUnavailable'});
+      }
+      // Keep the same installing callback/receiver across Model execution.
+      // Its current same-Run selection is DATA, not a reservation or grant.
+      originalPublicationSelection = publication.value;
+      originalPublicationReceiver = originalPreparation;
+    }
     // The original read owner retains the issued ticket if a later constructor
     // fails. No JS ownership map, claim reset or unowned-start fallback exists.
     if (composedInput !== undefined) {
@@ -403,6 +416,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       metadataNodeInstallation = undefined;
       metadataControl = undefined;
       metadataDefinition = undefined;
+      originalPublicationSelection = undefined;
+      originalPublicationReceiver = undefined;
       rawCaptureBinder = undefined;
       preparedRawCaptureBinders = undefined;
       runtimeObservedCallSet = undefined;
@@ -974,10 +989,25 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       if (originalConsumer === undefined) return;
       if (reclaimed || closing) throw new Error('InferOriginalPublicationCapacityUnavailable');
       if (originalPublicationCapacity !== undefined) return;
-      const selection = selectedInferOriginalPublicationCapacity(metadataInstallation,
-        metadataNodeInstallation);
+      const selection = originalPublicationSelection === undefined
+        ? selectedInferOriginalPublicationCapacity(metadataInstallation, metadataNodeInstallation)
+        : Reflect.apply(originalPublicationSelection, originalPublicationReceiver, []);
+      const names = selection !== null && typeof selection === 'object' && !Array.isArray(selection)
+        ? Reflect.ownKeys(selection) : [];
+      const retained = Object.getOwnPropertyDescriptor(selection ?? {}, 'retainedBytes');
+      const workspace = Object.getOwnPropertyDescriptor(selection ?? {}, 'workspaceBytes');
+      if (names.length !== 2 || !names.includes('retainedBytes') || !names.includes('workspaceBytes') ||
+          retained === undefined || workspace === undefined ||
+          !Object.hasOwn(retained, 'value') || !Object.hasOwn(workspace, 'value') ||
+          typeof retained.value !== 'bigint' || retained.value <= 0n || retained.value > 9223372036854775807n ||
+          typeof workspace.value !== 'bigint' || workspace.value < 0n || workspace.value > 9223372036854775807n) {
+        throw Object.assign(new Error('InferOriginalPublicationCapacityUnavailable'),
+          {code: 'InferOriginalPublicationCapacityUnavailable'});
+      }
+      // Common binds this borrow to the exact terminal Model/Scope and its
+      // original Run Ledger. Missing/refused selection never falls back.
       originalPublicationCapacity = checked(moon.clientProgramReserveOriginalInferPublicationCapacity(
-        active, selection.retainedBytes, selection.workspaceBytes));
+        active, retained.value, workspace.value));
     },
     publicationCapacityPending: () => originalPublicationCapacity !== undefined,
     releaseOriginalPublicationCapacity() {
