@@ -198,6 +198,29 @@ The 64 structural scratch entries and bounded control preflight are not a
 physical byte grant; logical retirement and GC are not cleanup ACKs. Original
 Value identity, wire schemas, clock domains and authority are unchanged.
 
+### Original UTF-8 prefix execution
+
+`UTF8_TRUNCATE` uses the same checked text-time occurrence and fragment
+evaluation-envelope construction as String `TRY_NUMBER`. Its lowerer retains
+the original input and byte-limit children; ordinary expression emission keeps
+the existing named body. A copied expression or detached profile resolution
+does not discharge the original envelope obligation.
+
+The eager binary frame retains both operand roots through a resumable scan of
+the complete original input. That scan checks the original codepoint and UTF-8
+ceilings and records the last complete scalar inside the exact byte limit.
+It runs even for a zero-byte result. The existing text continuation then sizes
+and builds only that prefix, reserving output bytes and UTF-16 workspace before
+allocation. Every scan/build step remains within the original frame's control
+budget; cancellation and demanded-child failures are never conversion failures.
+
+The truncation state adds an optional private counter record to the existing
+text state and reserves its structural workspace. The original input, checked
+envelope, both operand roots, counter record, builder and returned String can
+overlap. The absent optional field also has representation overhead in other
+text operations; neither that overhead nor escaped output is physical release
+evidence. This connection supplies no Host capacity or authority.
+
 ### Existing Decimal addition, subtraction and multiplication
 
 The checked binary expression's existing Decimal result contract supplies the

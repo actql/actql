@@ -659,6 +659,16 @@ or line-ending normalization is implicit. The STRING overload is connected;
 BYTES and explicit collation remain separate coverage gaps. The scalar function
 is independent of the SELECT star REPLACE clause described above.
 
+`UTF8_TRUNCATE(value, max_bytes)` in SQL and Pipe retains the existing Common
+named-body `utf8_truncate` expression and both original child expressions.
+Its non-negative safe-integer byte limit selects the greatest UTF-8 prefix
+ending at a complete Unicode scalar. The Common text-time profile, original
+checked input/output envelope and demanded runtime input preflight remain
+required; the Frontend does not encode, slice, normalize or evaluate the text.
+Dynamic limits retain their ordinary Number domain checks on demanded rows.
+Both children are demanded before NULL propagation, while an enclosing lazy
+conditional or coalesce keeps its existing row mask and first-failure order.
+
 For `ARRAY_AGG` and `STRING_AGG` with DISTINCT and aggregate-local ORDER BY,
 each ordering expression must denote the aggregate argument in the same input
 scope. This follows the selected [GoogleSQL aggregate-call rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/aggregate-function-calls).

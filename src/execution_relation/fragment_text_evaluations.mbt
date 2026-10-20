@@ -38,9 +38,9 @@ fn evaluation_position(
       }
     }
   }
-  guard @identity.object_field(node, "op")
-    is Some(@identity.String("try_number")) &&
-    @identity.object_field(source, "try_number") is Some(arguments) else {
+  guard @identity.object_field(node, "op") is Some(@identity.String(operation)) &&
+    (operation == "try_number" || operation == "utf8_truncate") &&
+    @identity.object_field(source, operation) is Some(arguments) else {
     return None
   }
   Some((node_pointer, arguments))
@@ -71,7 +71,7 @@ fn evaluation_child(
 }
 
 ///|
-fn emit_try_number_envelope(
+fn emit_text_evaluation_envelope(
   original : @expression_context.TextBoundResolution,
   step : String,
   pointer : String,
@@ -138,7 +138,14 @@ fn emit_try_number_envelope(
   @encode.key(out, "max_output_bytes")
   @encode.number_value(out, @text_bounds.output_bytes(bound).to_double())
   @encode.key(out, "operation")
-  @encode.string_value(out, "try_number")
+  @encode.string_value(
+    out,
+    match @text_bounds.output_operation(bound) {
+      TryNumber => "try_number"
+      Utf8Truncate(_) => "utf8_truncate"
+      _ => raise @encode.InvalidStructure
+    },
+  )
   @encode.key(out, "semantic_step_id")
   @encode.string_value(out, step)
   @encode.key(out, "verification")
@@ -184,7 +191,8 @@ fn prepare_fragment_evaluations(
         continue
       }
       let output = @expression_context.text_bound_output(original)
-      if !(@text_bounds.output_operation(output) is TryNumber) {
+      if !(@text_bounds.output_operation(output)
+        is (TryNumber | Utf8Truncate(_))) {
         return Err(GeneratedDecodeFailure)
       }
       let pointer = match
@@ -235,7 +243,7 @@ fn prepare_fragment_evaluations(
           arguments, bytes, nodes, max_depth,
         )
         let preimage = @encode.hashing_writer(bytes, nodes, max_depth)
-        emit_try_number_envelope(
+        emit_text_evaluation_envelope(
           original,
           root.step_id,
           pointer,
@@ -250,7 +258,7 @@ fn prepare_fragment_evaluations(
         let out = @encode.writer(bytes, nodes, max_depth)
         @encode.begin_object(out)
         @encode.key(out, "envelope")
-        emit_try_number_envelope(
+        emit_text_evaluation_envelope(
           original,
           root.step_id,
           pointer,
