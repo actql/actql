@@ -39,7 +39,7 @@ test "lookup component admission does not silently interpret fact extensions" {
         assert_eq(dependency.role, GoverningGrammar)
         assert_eq(
           dependency.cid,
-          "sha256:f4da89fcdbc07708d1b8c2bf08758b5efe404837d15244b306393853f0f26f47",
+          "sha256:b351198c3319e349f87c650694e8cc9b3a443598eac3097992d445eadaafee23",
         )
         for index in [-2147483648, -1, 1, 2147483647] {
           assert_true(catalog_body_dependency_at(dependencies, index) is None)
