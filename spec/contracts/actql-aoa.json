@@ -26,7 +26,7 @@
   "sga_identity_law_manifest_cid": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
   "graph_law_manifest_cid": "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34",
   "pipeline_registry_file": "spec/dependencies/aoa-pipeline-registry.json",
-  "pipeline_registry_cid": "sha256:26915f8a20a27b9e37c1e9760fe2526c460b63bf2f1957fa1af858b18051271c",
+  "pipeline_registry_cid": "sha256:38df5e7d680450fc90f7d6ec4617c384a013f8645916db2208462099100bf33a",
   "target_module_contract_cid": "sha256:ae21e53e9cd0727435f707f49efb2ffc9fa1665abda9adde0ff57312265e06e1",
   "local_family_execution_profile": {
     "version": "actql-local-family-execution/0.1",
@@ -299,7 +299,7 @@
       "output": "relation",
       "execution_contract": {
         "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
-        "cid": "sha256:87c15c51c1d1a1539750b4aa1eee0a5a0747332d1564a7b7de7b16d10ad84a4b"
+        "cid": "sha256:beeb158446c54c0f581cb865f99e0031acb1f87925077dcc2119838716e818b7"
       }
     },
     "REL.derive": {
@@ -1386,7 +1386,7 @@
         "expression_contract": {
           "file": "spec/contracts/actql-expressions.json",
           "pointer": "",
-          "cid": "sha256:6ccd3d3e87cf65610f96b81ce3a11844f1d12a6bee3166df66726a3c11e571f8"
+          "cid": "sha256:6ab2396dc413fa604854f6586ec957203ccf23392c52f254dfd7b3c0c6dcbe7f"
         },
         "fragment_schema": {
           "file": "spec/contracts/actql-expressions.json",

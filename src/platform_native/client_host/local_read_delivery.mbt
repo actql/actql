@@ -190,7 +190,17 @@ pub fn NativeLocalReadPolicyBinding::authorize_read_delivery(
   store : @publication_store.Store,
   delivery : @result_access.NativeResultDeliveryAuthorization,
 ) -> Result[Unit, NativeLocalReadBindingIssue] {
-  if delivery.stage != "read" && delivery.stage != "receipt" {
+  if delivery.stage == "table_output" {
+    guard self.selection.sink == Material &&
+      self.selection.purpose == "cli-table" &&
+      self.material_receiver is Some(receiver) &&
+      receiver.table_output_in_flight() else {
+      return Err(AuthorizationDenied)
+    }
+  }
+  if delivery.stage != "read" &&
+    delivery.stage != "receipt" &&
+    delivery.stage != "table_output" {
     return Err(SelectionMismatch)
   }
   match

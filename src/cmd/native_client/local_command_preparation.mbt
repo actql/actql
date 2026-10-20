@@ -89,6 +89,7 @@ priv struct LocalCommandPreparationOriginal {
   mut outer_library : @local_crypto.Library?
   mut inner_library : @local_crypto.Library?
   mut product : @local_host.NativeLocalProductConfigurationCapture?
+  mut initial_product_selected : Bool
   mut adoption : @local_host.NativeLocalAdoptionCapture?
   mut product_parent : @local_filesystem.Root?
   mut product_parent_failure : @local_filesystem.NativeRootOpenFailure?
@@ -190,6 +191,7 @@ fn prepare_local_command_preparation_original(
       result_binding: None,
       result_service: None,
       result_session: None,
+      result_material: None,
       result_sink: None,
       result_refusal: None,
       result_cleanup_issue: None,
@@ -212,6 +214,7 @@ fn prepare_local_command_preparation_original(
     outer_library: None,
     inner_library: None,
     product: None,
+    initial_product_selected: false,
     adoption: None,
     product_parent: None,
     product_parent_failure: None,

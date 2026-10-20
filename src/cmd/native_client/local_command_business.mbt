@@ -42,6 +42,7 @@ priv struct LocalCommandBusinessOriginal {
   mut result_binding : @local_host.NativeLocalReadPolicyBinding?
   mut result_service : @local_result.NativeResultAccessService?
   mut result_session : @local_result.NativeResultAccessSession?
+  mut result_material : @local_result.NativeResultMaterialReceiver?
   mut result_sink : @local_result.NativeResultSink?
   mut result_refusal : Ref[@local_host.NativeLocalReadBindingIssue?]?
   mut result_cleanup_issue : @local_result.NativeResultAccessIssue?

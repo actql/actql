@@ -7,6 +7,7 @@ priv struct LocalCommandResultOriginal {
   capture : @local_host.NativeLocalJournalCapture
   original : @local_host.NativeClientOriginalRunSelection
   binding : @local_host.NativeLocalReadPolicyBinding
+  policy : @local_host.NativeLocalRunPolicyBinding
   store : @local_store.Store
   scope : String
 }
@@ -34,6 +35,7 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
   runtime : LocalPackagedRuntime,
   sqlite : @local_sqlite.Library,
   child : @argparse.Matches,
+  publication? : LocalCommandBusinessPreparation? = None,
 ) -> LocalCommandResultOriginal raise ClientStop {
   guard self.journal is Some(actual_capture) &&
     physical_equal(actual_capture, capture) &&
@@ -157,15 +159,47 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
     capture.check_current_in_original_read(),
     "Store current",
   )
-  command_preparation_result(
-    operation.activate().map_err(issue => CommandStoreOperation(issue)),
-  )
   // Restore only the existing Store. Missing path/DB/custody cannot initialize
   // another namespace, schema, key or Run merely to obtain a public result.
-  let store = self.open_business_store(sqlite, managed, run, existing=true)
+  let store = match publication {
+    None => {
+      command_preparation_result(
+        operation.activate().map_err(issue => CommandStoreOperation(issue)),
+      )
+      self.open_business_store(sqlite, managed, run, existing=true)
+    }
+    Some(published) => {
+      // A quick query reads the Store that published this exact request. It
+      // neither opens a second DB nor retires the still-owned Values children.
+      if !physical_equal(published.original, self) ||
+        !physical_equal(published.capture, capture) ||
+        !published.current(host, settings, published.environment) {
+        stop("LocalReadOriginalCustodyUnavailable")
+      }
+      let request = @run_host.prepare_source_free_client_request_identity(
+        published.prepared,
+        published.scope,
+        @run_host.client_request_caller_id(original.request()),
+      ).unwrap_or_else(() => stop("LocalOriginalRunReferenceMismatch"))
+      if @run_host.client_request_identity_relation(request, original.request()) !=
+        @run_host.SameRequest {
+        stop("LocalOriginalRunReferenceMismatch")
+      }
+      let store = business.store.unwrap_or_else(() => {
+        stop("LocalReadOriginalCustodyUnavailable")
+      })
+      let bridge = operation
+        .sqlite_original()
+        .unwrap_or_else(() => stop("LocalReadOriginalCustodyUnavailable"))
+      if !store.matches_original_operation(bridge) {
+        stop("LocalReadOriginalCustodyUnavailable")
+      }
+      store
+    }
+  }
   local_result_host_value(
     capture.check_current_in_original_read(),
     "Store current",
   )
-  { owner: self, host, capture, original, binding, store, scope, }
+  { owner: self, host, capture, original, binding, policy, store, scope, }
 }

@@ -85,10 +85,11 @@ fn retry_holder_cleanup_custody(original : HolderCleanupCustody) -> Bool {
     match step {
       5 => custody.environment.journal.close()
       6 =>
-        // Missing is not a fabricated release ACK, including after an unknown
-        // commit. Keep the exact original holding/Store for reconciliation.
-        custody.environment.bundles.release(custody.environment.process_hold_id)
-        is Ok(true)
+        holder_runtime_process_hold_released(
+          custody.environment.bundles.release(
+            custody.environment.process_hold_id,
+          ),
+        )
       7 => custody.environment.bundles.close() is Ok(_)
       8 =>
         if custody.slot_close_unknown {
