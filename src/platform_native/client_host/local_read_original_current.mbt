@@ -87,27 +87,3 @@ pub fn NativeLocalJournalCapture::bind_result_material_read_policy_for_run_in_or
     )
   })
 }
-
-///|
-/// The independent adopted File selection is never a relabelled stdout
-/// selection. The returned binding must be retained before opening its actual
-/// destination, including a partially acquired Root or Writer.
-pub fn NativeLocalJournalCapture::bind_result_file_read_policy_for_run_in_original_read(
-  self : NativeLocalJournalCapture,
-  policy : NativeLocalRunPolicyBinding,
-  reference : NativeClientSubmissionReference,
-  request : @host.ClientRequestIdentity,
-  now : Double,
-  file : String,
-) -> Result[NativeLocalReadPolicyBinding, NativeLocalReadBindingIssue] {
-  read_binding_in_original_read(self, (host, _operations) => {
-    host.bind_result_read_policy_for_run_with_capture(
-      policy,
-      reference,
-      request,
-      now,
-      capture=Some(self),
-      file_configuration=Some(file),
-    )
-  })
-}

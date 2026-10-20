@@ -2,8 +2,6 @@
 fn local_read_issue(issue : @local_host.NativeLocalReadBindingIssue) -> String {
   match issue {
     MaterialUnavailable => "LocalResultMaterialUnavailable"
-    FileOutputUnavailable => "LocalResultFileOutputUnavailable"
-    FileOutput(_) => "LocalResultFileOutputFailed"
     Adoption(issue) => local_host_issue(issue)
     OriginalRead(primary, _) =>
       "LocalReadOriginalReturnPending" +

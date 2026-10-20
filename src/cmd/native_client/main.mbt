@@ -1054,7 +1054,6 @@ fn command() -> @argparse.Command {
 fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   normalize_native_query_arguments(matches)
   normalize_native_status_arguments(matches)
-  normalize_native_result_arguments(matches)
   match required(matches, "mode") {
     "local" => return execute_native_local(matches)
     "remote" =>

@@ -146,9 +146,7 @@ fn NativeLocalHostConnection::validate_read_evidence(
         "max_bytes", "max_uses", "principal_id", "public_index_entry_cid", "purpose",
         "read_original_cid", "result_artifact_cid", "result_definition_cid", "result_manifest_cid",
         "result_name", "run_definition_cid", "sink", "material_receiver_cid", "result_schema_cid",
-        "ordering_evidence_cid", "destination_path", "destination_name", "destination_staging_name",
-        "destination_parent_device", "destination_parent_inode", "destination_writer_device",
-        "destination_writer_inode",
+        "ordering_evidence_cid",
       ],
       16384,
     ) {
@@ -217,29 +215,11 @@ fn NativeLocalHostConnection::validate_read_evidence(
     }
     Some({ receiver_cid, result_schema_cid, ordering_evidence_cid, })
   } else {
-    if epoch_text(egress, "sink") !=
-      Some(if selection.sink == File { "file" } else { "stdout" }) ||
+    if epoch_text(egress, "sink") != Some("stdout") ||
       @decode.lookup(egress, "material_receiver_cid") is Some(_) ||
       @decode.lookup(egress, "result_schema_cid") is Some(_) ||
       @decode.lookup(egress, "ordering_evidence_cid") is Some(_) {
       return Err(CustodyLost)
-    }
-    None
-  }
-  let file_original = if selection.sink == File {
-    match read_local_file_destination_original(egress) {
-      Ok(value) => Some(value)
-      Err(issue) => return Err(issue)
-    }
-  } else {
-    for
-      name in [
-        "destination_path", "destination_name", "destination_staging_name", "destination_parent_device",
-        "destination_parent_inode", "destination_writer_device", "destination_writer_inode",
-      ] {
-      if @decode.lookup(egress, name) is Some(_) {
-        return Err(CustodyLost)
-      }
     }
     None
   }
@@ -310,8 +290,7 @@ fn NativeLocalHostConnection::validate_read_evidence(
             is Some(profile_file) else {
             return Err(CustodyLost)
           }
-          let run_read_file = if selection.sink == Material ||
-            selection.sink == File {
+          let run_read_file = if selection.sink == Material {
             // Duration/custody comes from the exact original Run admission;
             // the independent Material file never replaces its read CID.
             guard record.local_run_policy_originals is Some(wire) &&
@@ -385,10 +364,6 @@ fn NativeLocalHostConnection::validate_read_evidence(
     selection_cid: read_cid,
     material_receiver: None,
     material_original,
-    file_destination: None,
-    file_original,
-    file_store: None,
-    file_preparation: None,
     upgrade_packet: upgrade.map(value => value.packet),
     run_policy_original,
   }

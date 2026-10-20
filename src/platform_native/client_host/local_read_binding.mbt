@@ -10,8 +10,6 @@ pub(all) enum NativeLocalReadBindingIssue {
   PolicyExpired
   PolicyNotSelected
   MaterialUnavailable
-  FileOutputUnavailable
-  FileOutput(@filesystem.NativeFilesystemIssue)
   OriginalRead(NativeLocalReadBindingIssue?, NativeLocalAdoptionIssue)
   SubmittedResult(NativeClientSubmittedResultIssue)
 }
@@ -32,13 +30,6 @@ struct NativeLocalReadPolicyBinding {
   selection_cid : String
   mut material_receiver : @result_access.NativeResultMaterialReceiver?
   mut material_original : NativeLocalReadMaterialOriginal?
-  mut file_destination : NativeLocalReadFileDestination?
-  mut file_original : NativeLocalReadFileOriginal?
-  mut file_store : @publication_store.Store?
-  mut file_preparation : (
-    @host.ClientRequestIdentity,
-    @result_access.NativeResultAccessRequest,
-  )?
   upgrade_packet : Bytes?
   run_policy_original : (
     NativeClientSubmissionReference,
@@ -94,10 +85,6 @@ pub fn NativeLocalHostConnection::bind_result_read_policy(
     selection_cid: file.content_cid,
     material_receiver: None,
     material_original: None,
-    file_destination: None,
-    file_original: None,
-    file_store: None,
-    file_preparation: None,
     upgrade_packet: None,
     run_policy_original: None,
   })
@@ -129,19 +116,11 @@ fn NativeLocalHostConnection::bind_result_read_policy_for_run_with_capture(
   capture? : NativeLocalJournalCapture? = None,
   material? : @result_access.NativeResultMaterialReceiver? = None,
   material_file? : String? = None,
-  file_configuration? : String? = None,
 ) -> Result[NativeLocalReadPolicyBinding, NativeLocalReadBindingIssue] {
   if !physical_equal(self, policy.host) {
     return Err(SelectionMismatch)
   }
-  if material_file is Some(_) && file_configuration is Some(_) {
-    return Err(SelectionMismatch)
-  }
-  let independent_file = match material_file {
-    Some(_) => material_file
-    None => file_configuration
-  }
-  let file = match independent_file {
+  let file = match material_file {
     None => policy.read_file
     Some(name) => {
       if capture is None ||
@@ -174,7 +153,6 @@ fn NativeLocalHostConnection::bind_result_read_policy_for_run_with_capture(
   }
   let material_original = match (selection.sink, material) {
     (Stdout, None) => None
-    (File, None) if file_configuration is Some(_) && capture is Some(_) => None
     (Material, None) if material_file is Some(_) && capture is Some(_) => None
     (Material, Some(receiver)) => {
       if !receiver.covers_read_limits(selection.max_bytes, selection.max_uses) {
@@ -235,17 +213,13 @@ fn NativeLocalHostConnection::bind_result_read_policy_for_run_with_capture(
     connection: policy.connection,
     scope: policy.scope,
     expires_at,
-    selection_cid: if independent_file is Some(_) {
+    selection_cid: if material_file is Some(_) {
       file.content_cid
     } else {
       policy.read_selection_cid
     },
     material_receiver: material,
     material_original,
-    file_destination: None,
-    file_original: None,
-    file_store: None,
-    file_preparation: None,
     upgrade_packet: match policy.origin {
       Selected => None
       Upgraded(packet, _) => Some(packet)
@@ -357,17 +331,6 @@ fn NativeLocalReadPolicyBinding::require_request(
   original : @host.ClientRequestIdentity,
   facts : @result_access.NativeResultReadFacts,
 ) -> Result[Unit, NativeLocalReadBindingIssue] {
-  if self.selection.sink == File {
-    guard self.file_destination is Some(destination) &&
-      self.file_original is Some(original) else {
-      return Err(FileOutputUnavailable)
-    }
-    match destination.original_data() {
-      Ok(actual) if actual == original => ()
-      Ok(_) => return Err(FileOutputUnavailable)
-      Err(issue) => return Err(FileOutput(issue))
-    }
-  }
   if self.selection.sink == Material {
     guard self.material_receiver is Some(receiver) &&
       self.material_original is Some(original) &&
