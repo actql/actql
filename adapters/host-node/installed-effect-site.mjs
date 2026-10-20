@@ -136,6 +136,7 @@ function authorization(facts, stage, beforeDefer) {
     runId: facts.control.runDefinitionRunId(facts.retained?.runDefinition ??
       facts.runDefinition),
     runDefinitionCid: facts.ref.runDefinitionCid,
+    runDefinition: facts.retained?.runDefinition ?? facts.runDefinition,
     unitId: effectUnitId(facts),
     declaredResults,
     reviewWire: facts.control.effectComputationPreviewWire(stage.preview),
