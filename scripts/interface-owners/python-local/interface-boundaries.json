@@ -8915,7 +8915,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "allowance for initialization and bootstrap together, and for each subsequent"
+                "anchor": "outer Host operation has a finite 16,000,000,000-instruction allowance"
               }
             ],
             "extension": [
@@ -46703,7 +46703,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "allowance for initialization and bootstrap together, and for each subsequent"
+                "anchor": "outer Host operation has a finite 16,000,000,000-instruction allowance"
               }
             ],
             "extension": [
@@ -48175,7 +48175,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "allowance for initialization and bootstrap together, and for each subsequent"
+                "anchor": "outer Host operation has a finite 16,000,000,000-instruction allowance"
               }
             ],
             "extension": [
@@ -52047,7 +52047,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "allowance for initialization and bootstrap together, and for each subsequent"
+                "anchor": "outer Host operation has a finite 16,000,000,000-instruction allowance"
               }
             ],
             "extension": [
