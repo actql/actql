@@ -1435,6 +1435,17 @@ same context for its existing close path, independently of user, scope, domain,
 loan and Host acknowledgements. Serial exhaustion refuses allocation rather
 than wrapping or selecting another allocator.
 
+The File Owner distinguishes internal Store object identifiers from ordinary
+output basenames. Ordinary inspection, generation verification, Reader
+acquisition and Writer sealing preserve the exact basename, including Unicode
+and whitespace, without normalization or an internal object-name length cap.
+A basename must be nonempty, must not be `.` or `..`, and must contain neither
+slash nor NUL; the selected filesystem reports its own supported limits.
+These operations retain the original Root descriptor, exact physical generation,
+no-follow checks, exclusive publication and failed-acquisition cleanup carrier.
+They neither replace an existing destination nor widen private staging, Lock,
+Store object, directory or adoption-name operations.
+
 A retained Native filesystem Root can be checked against the caller's actual
 current original Read context without exporting that context or an address.
 The check rejects legacy Roots, retired descriptors and a different active
