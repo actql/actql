@@ -81,7 +81,14 @@ fn LocalOutputVerificationFile::read(
     self.root is Some(root) else {
     stop("OutputVerificationReadUnavailable")
   }
-  let bytes = Bytes::make(if capture { generation.size.to_int() } else { 0 }, 0)
+  let bytes : Array[Byte] = Array::make(
+    if capture {
+      generation.size.to_int()
+    } else {
+      0
+    },
+    0,
+  )
   let digest = @sha.hasher()
   let mut count = 0L
   // The original generation bounds both total bytes and calls, including one
@@ -120,7 +127,7 @@ fn LocalOutputVerificationFile::read(
   let hash = @sha.finish_hex(digest) catch {
     _ => stop("OutputVerificationDigestFailed")
   }
-  (bytes, count, hash)
+  (Bytes::from_array(bytes), count, hash)
 }
 
 ///|

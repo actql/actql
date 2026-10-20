@@ -813,8 +813,8 @@ fn command() -> @argparse.Command {
     subcommands=[
       @argparse.Command("verify", subcommand_required=true, subcommands=[
         @argparse.Command("output", flags=[@argparse.FlagArg("json")], positionals=[
-          @argparse.PositionArg("receipt", required=true),
-          @argparse.PositionArg("output", required=true),
+          @argparse.PositionArg("receipt"),
+          @argparse.PositionArg("output"),
         ]),
       ]),
       @argparse.Command(

@@ -19,9 +19,8 @@ fn output_verification_child(
       output_verification_fixture(receipt),
       output_verification_fixture(output),
       "--json",
-    ])
-    is Some(parsed) &&
-    parsed.subcommand is Some(("verify", child)) else {
+    ]).subcommand
+    is Some(("verify", child)) else {
     fail("verify output parse")
   }
   child
