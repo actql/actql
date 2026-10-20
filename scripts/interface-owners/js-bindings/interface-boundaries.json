@@ -37255,7 +37255,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "2ddff8d5eb02c630ce0b73bcdeeab3baf08b0c072aaffaa126e301f33b6c42e0",
+      "sha256": "de216f7b2d747889efd67db7084d81f8ca6750fcac61f0f3b3942acf7fe0b26c",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -37363,6 +37363,11 @@
           "parameters": [
             "root"
           ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:assertContentRunCurrent/init:assertContentRunCurrent",
+          "parameters": [],
           "async": false
         },
         {
@@ -44540,6 +44545,78 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.test.mjs",
                 "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:assertContentRunCurrent/init:assertContentRunCurrent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertContentRunCurrent() {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "ordinaryHostJournalInstallation(originals).assertCurrent();"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const earlyContentPlans = new WeakMap();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan});"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "throw clientOperationError('InstalledContentRunPreparationUnsupported');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertInitialControlHostPreparation(originals);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (retained?.physicalStartReserved === true) return;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               }
             ]
           }
