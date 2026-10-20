@@ -484,7 +484,9 @@ pub fn relocate_imported_child_cleanup_usage(
   if value.pending_report is Some(_) {
     return Err(value.pending_report_issue.unwrap_or(Unknown))
   }
-  if !value.attempted || !value.taken || !value.stop_attempted ||
+  if !value.attempted ||
+    !value.taken ||
+    !value.stop_attempted ||
     !value.origin.stopping {
     return Err(Unavailable)
   }
@@ -494,7 +496,8 @@ pub fn relocate_imported_child_cleanup_usage(
   guard value.ledger is Some(ledger) &&
     ledger.imported_child is Some(origin) &&
     physical_equal(origin, value.origin) &&
-    origin.ledger is Some(original) && physical_equal(original, ledger) else {
+    origin.ledger is Some(original) &&
+    physical_equal(original, ledger) else {
     return Err(ForeignOriginal)
   }
   match check_imported_child_ledger(ledger) {
@@ -530,5 +533,9 @@ pub fn relocate_imported_child_cleanup_usage(
 
 ///|
 fn cleanup_quantity_copy(value : QuantityAmounts) -> QuantityAmounts {
-  { tokens: value.tokens, cost_units: value.cost_units, duration_ms: value.duration_ms, }
+  {
+    tokens: value.tokens,
+    cost_units: value.cost_units,
+    duration_ms: value.duration_ms,
+  }
 }
