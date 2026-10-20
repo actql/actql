@@ -768,17 +768,22 @@ fn prepare_client_local_sequences_owned(
     // Whole serialization-prefix preparation retains the original acquisition
     // expression contexts even when the selected barrier has a later task
     // ordinal. Its execution range still excludes the completed capture.
-    let acquiring = acquiring || match (serialization_input, prepared) {
-      (Some((selected, _)), Pure(value)) if selected == task =>
-        match @publication_host.select_client_single_keyed_acquisition(value) {
-          Ok(Some(keyed)) => @publication_host.client_keyed_acquisition_reaches_serialization(
-            value, keyed, task,
-            @strategy.graph_task_selected_step(graph, task).unwrap_or(-1),
-          )
-          _ => false
-        }
-      _ => false
-    }
+    let acquiring = acquiring ||
+      (match (serialization_input, prepared) {
+        (Some((selected, _)), Pure(value)) if selected == task =>
+          match
+            @publication_host.select_client_single_keyed_acquisition(value) {
+            Ok(Some(keyed)) =>
+              @publication_host.client_keyed_acquisition_reaches_serialization(
+                value,
+                keyed,
+                task,
+                @strategy.graph_task_selected_step(graph, task).unwrap_or(-1),
+              )
+            _ => false
+          }
+        _ => false
+      })
     let sequence = match
       (match serialization_restore {
         Some((selected, producer, consumer)) if selected == task =>
