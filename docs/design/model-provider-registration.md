@@ -508,6 +508,18 @@ Scope before either Source creates a child. Both captures, the Local DAG and
 the no-I/O Mock component borrow this one Run Ledger. Local remains the task
 scheduler; the component does not invent an asynchronous Provider or egress
 notification merely to enter a physical-provider path.
+
+Terminal publication uses the same ordinary Host's Result admission. The
+original Model preparation retains its synchronous capacity-selection callback
+and receiver before execution; the callback checks its current Host, Run and
+installation and returns the selected publication bounds. These amounts are
+not an issuer. Before retaining output or capture, Common reserves the actual
+publication borrow on that terminal Model, call scope and original Run Ledger.
+The ordinary path does not require a legacy Node installation or manufacture
+one from matching bounds. Missing or refused selection has no fallback. The
+borrow remains until the existing publication children retire; pending release
+keeps parent cleanup pending. Dedicated legacy callers retain their original
+installation selection and the same Common reservation checks.
 The continuation recognizes this no-I/O preparation through the same live
 Core Mock installation and its retained Provider, not a Host flag or Provider
 name alone. External Providers retain their existing egress requirement;
