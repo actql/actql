@@ -62,9 +62,9 @@ receiver rechecks each copied row against those original field contracts and
 keeps the same Session/Store through receipt and cleanup. Material completion
 ends the payload reader; a separate current output decision and one actual
 stdout write/flush produce the table receipt without reopening the reader.
-The finite Native selection holds seven installation files plus config and
+The finite Native selection holds eight installation files plus config and
 environment, with Account separately retained by the same initialization Owner.
-The corresponding nine-file selection and ten-file Product intake retain their
+The corresponding ten-file selection and eleven-file Product intake retain their
 existing byte/node/depth limits; these counts issue no permission or resource
 credit. A partial write, lost flush acknowledgement or failed current check never
 repeats output. Older installations missing the selected Material original
@@ -74,6 +74,38 @@ This records the adopted trust and credential boundaries for the standard
 Native Local CLI. These are implementation requirements, not claims that Local
 execution or Provider approval has passed public acceptance. The existing
 Native Remote CLI, its wire contracts and distribution remain intact.
+
+## Original file Result delivery
+
+An explicit `result --output` or repeated `--deliver` selection uses an
+independent adopted File read original. It does not redirect a stdout or
+Material grant. The original Run, committed Manifest, physical Store and
+current Run/named-Result authority are checked before acquiring the destination.
+First initialization retains the File selection alongside the unchanged stdout
+and Material originals; existing installations lacking it remain unavailable.
+
+The caller retains the actual parent observation and exclusive staging Writer
+before fallible work. Read/egress preimages bind the destination path, parent
+identity and Writer identity. The sink acknowledges only actual append and
+seal operations; partial writes, uncertain close and failed current checks keep
+the same cleanup duties and never authorize another send. The final name is
+created exclusively, and existing files are never overwritten. Payload and
+receipt destinations are checked before acquisition against the original Host
+and managed Store namespaces; neither may create files inside those roots.
+
+A private stable attempt correlation binds the original request, Run, format
+and canonical destination. Lookup precedes Writer creation. A prior unresolved
+attempt refuses; a prior success is reused only after the same authenticated
+Journal evidence, Store receipt, current authority, parent/file identities and
+actual bounded byte count and hash match. This comparison does not reconstruct
+a Writer from saved inode DATA or issue another payload read.
+
+Per-delivery session and file children acknowledge before the next destination
+opens. Receipt export uses a separate bounded exclusive Writer after those
+children; a failed export cannot undo or resend outputs. A multi-delivery
+receipt file preserves the authored order of successful existing receipt
+objects without claiming an atomic aggregate outcome. Business success,
+physical cleanup and unresolved delivery remain separate observations.
 
 ## Ordinary product startup boundary
 
@@ -185,7 +217,7 @@ has a separate exclusive creation proof; ordinary open or physical absence is
 not that proof.
 
 The explicitly selected runtime configuration originals accompany account
-adoption. The bounded selection admits at most eight distinct single-component
+adoption. The bounded selection admits at most ten distinct single-component
 file names, each with at most 64 KiB of exact bytes. It excludes the separately
 bound account file. Its immutable manifest records raw-content digests, source
 file generations and the actual selected private managed-root identity. The
@@ -1434,6 +1466,17 @@ original physical page retirement succeeds. Failed retirement remains on the
 same context for its existing close path, independently of user, scope, domain,
 loan and Host acknowledgements. Serial exhaustion refuses allocation rather
 than wrapping or selecting another allocator.
+
+The File Owner distinguishes internal Store object identifiers from ordinary
+output basenames. Ordinary inspection, generation verification, Reader
+acquisition and Writer sealing preserve the exact basename, including Unicode
+and whitespace, without normalization or an internal object-name length cap.
+A basename must be nonempty, must not be `.` or `..`, and must contain neither
+slash nor NUL; the selected filesystem reports its own supported limits.
+These operations retain the original Root descriptor, exact physical generation,
+no-follow checks, exclusive publication and failed-acquisition cleanup carrier.
+They neither replace an existing destination nor widen private staging, Lock,
+Store object, directory or adoption-name operations.
 
 A retained Native filesystem Root can be checked against the caller's actual
 current original Read context without exporting that context or an address.

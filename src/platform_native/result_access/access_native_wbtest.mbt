@@ -544,6 +544,9 @@ test "standard native access delivers and reauthorizes after restart" {
     ..base_request,
     attempt_id: token + "-delivery-2",
   }).unwrap()
+  let original_request = { ..base_request, attempt_id: token + "-delivery-2", }
+  assert_true(second.matches_original(reopened, original_request))
+  assert_false(second.matches_original(store, original_request))
   assert_eq(consume_native_access(second), "{\"value\":7}\n")
   assert_true(
     open_native_result_access(restarted, {

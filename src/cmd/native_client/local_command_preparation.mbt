@@ -36,6 +36,7 @@ priv enum LocalCommandPreparationIssue {
   CommandBusinessPublication
   CommandBusinessStore(@local_store.NativePublicationStoreIssue)
   CommandBusinessResult(@local_result.NativeResultAccessIssue)
+  CommandBusinessFileOutput(@local_host.NativeLocalReadBindingIssue)
   CommandSqlite(@initial_arena.InstalledArenaSqliteIssue)
   CommandPair(@initial_arena.InstalledArenaLocalHostResourcesIssue)
   CommandRuntime(@local_host.NativeLocalPackagedRuntimeIssue)

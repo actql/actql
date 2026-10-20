@@ -280,7 +280,7 @@ test "packaged runtime joins the existing bounded selection without changing old
 }
 
 ///|
-test "finite packaged profile retains separate Material within seven installation and nine Host selections" {
+test "finite packaged profile retains File and runtime within eight installation and ten Host selections" {
   let runtime = runtime_test_admit(runtime_test_manifest()).unwrap()
   let originals = client_native_local_finite_product_originals(
     "/Users/operator/.actql-local",
@@ -290,7 +290,11 @@ test "finite packaged profile retains separate Material within seven installatio
     product_test_assets(),
     runtime,
   ).unwrap()
-  assert_eq(originals.length(), 10)
+  assert_eq(originals.length(), 11)
+  assert_eq(
+    product_test_original(originals, "file-read.json"),
+    finite_file_selection_fixture,
+  )
   assert_eq(
     product_test_original(originals, "profile.json"),
     run_profile_fixture,
@@ -313,6 +317,6 @@ test "finite packaged profile retains separate Material within seven installatio
       8192,
       64,
     ),
-    "[\"read.json\",\"run.json\",\"retention.json\",\"store.json\",\"runtime.json\",\"profile.json\",\"material-read.json\"]",
+    "[\"read.json\",\"run.json\",\"retention.json\",\"store.json\",\"runtime.json\",\"profile.json\",\"material-read.json\",\"file-read.json\"]",
   )
 }

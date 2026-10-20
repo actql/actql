@@ -2,6 +2,8 @@
 fn local_read_issue(issue : @local_host.NativeLocalReadBindingIssue) -> String {
   match issue {
     MaterialUnavailable => "LocalResultMaterialUnavailable"
+    FileOutputUnavailable => "LocalResultFileOutputUnavailable"
+    FileOutput(_) => "LocalResultFileOutputFailed"
     Adoption(issue) => local_host_issue(issue)
     OriginalRead(primary, _) =>
       "LocalReadOriginalReturnPending" +
@@ -240,6 +242,7 @@ fn local_admitted_result_stream(
   retained? : LocalCommandBusinessOriginal? = None,
   captured_selection? : @local_host.NativeClientOriginalRunSelection? = None,
   material? : @local_result.NativeResultMaterialReceiver? = None,
+  file_destination? : LocalResultFileSelection? = None,
 ) -> String raise ClientStop {
   if captured_selection is Some(_) && retained is None {
     stop("LocalReadOriginalCustodyUnavailable")
@@ -252,7 +255,7 @@ fn local_admitted_result_stream(
       (
         original.result_binding is None ||
         (
-          material is Some(_) &&
+          (material is Some(_) || file_destination is Some(_)) &&
           original.result_binding is Some(prior) &&
           physical_equal(prior, binding)
         )
@@ -269,6 +272,27 @@ fn local_admitted_result_stream(
   if retained is Some(original) {
     original.result_binding = Some(binding)
     original.result_refusal = Some(refusal)
+  }
+  if file_destination is Some(destination) {
+    guard retained is Some(_) &&
+      captured_selection is Some(_) &&
+      material is None else {
+      stop("LocalReadOriginalCustodyUnavailable")
+    }
+    let location = local_result_file_location(destination.path)
+    match
+      binding.open_file_output_parent(
+        selected.request,
+        store,
+        request,
+        local_utc_now(),
+        destination.path,
+        location.parent_path,
+        location.directory_name,
+      ) {
+      Ok(_) => ()
+      Err(issue) => stop(local_read_issue(issue))
+    }
   }
   let authority = @local_result.install_native_result_access_authority(
     queried => {
@@ -397,11 +421,37 @@ fn local_admitted_result_stream(
     }
   }
   if prior is Some(_) {
+    if file_destination is Some(_) && captured_selection is Some(original) {
+      return binding.completed_file_receipt_in_original_read(
+          original,
+          service,
+          request,
+          local_utc_now(),
+          @env.now().to_double(),
+        )
+        |> local_result_read_value
+    }
     stop(
       "LocalReadAttemptAlreadyStarted attempt-id=" +
       attempt_id +
       " lookup=delivery-attempt",
     )
+  }
+  if file_destination is Some(_) {
+    match binding.create_file_output_writer(local_utc_now()) {
+      Ok(_) => ()
+      Err(issue) => stop(local_read_issue(issue) + " attempt-id=" + attempt_id)
+    }
+    match
+      binding.authorize_read_request(
+        selected.request,
+        request,
+        local_utc_now(),
+        max_output_bytes=Some(max_output),
+      ) {
+      Ok(_) => ()
+      Err(issue) => stop(local_read_issue(issue) + " attempt-id=" + attempt_id)
+    }
   }
   let session = match captured_selection {
     Some(original) => {
@@ -494,7 +544,12 @@ fn local_admitted_result_stream(
     }
     return ""
   }
-  let sink = match native_local_stdout_sink(session, max_output) {
+  let sink_result = if file_destination is Some(_) {
+    binding.install_file_result_sink(session, max_output).map_err(_ => ())
+  } else {
+    native_local_stdout_sink(session, max_output).map_err(_ => ())
+  }
+  let sink = match sink_result {
     Ok(value) => value
     Err(_) => {
       if session.close() is Err(_) {
@@ -530,6 +585,16 @@ fn local_admitted_result_stream(
       stop(local_read_issue(issue) + " attempt-id=" + attempt_id)
     }
     stop(reason + " attempt-id=" + attempt_id + " lookup=delivery-attempt")
+  }
+  if file_destination is Some(_) && captured_selection is Some(original) {
+    return binding.completed_file_receipt_in_original_read(
+        original,
+        service,
+        request,
+        local_utc_now(),
+        @env.now().to_double(),
+      )
+      |> local_result_read_value
   }
   ""
 }

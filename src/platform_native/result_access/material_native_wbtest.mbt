@@ -79,6 +79,20 @@ test "Native material retains typed rows only from the original admitted session
     3,
   ).unwrap()
   let session = open_native_result_access(service, request).unwrap()
+  assert_true(session.matches_original(store, request))
+  for
+    foreign in [
+      { ..request, namespace_id: "foreign", },
+      { ..request, authority_scope_cid: native_access_cid("foreign"), },
+      { ..request, run_definition_cid: native_access_cid("foreign"), },
+      { ..request, principal_id: "foreign", },
+      { ..request, purpose: "foreign", },
+      { ..request, result_name: "foreign", },
+      { ..request, format: "jsonl", },
+      { ..request, attempt_id: "foreign", },
+    ] {
+    assert_false(session.matches_original(store, foreign))
+  }
   receiver.attach(session).unwrap()
   assert_true(receiver.attach(session) is Err(MaterialForeignSession))
   let mut complete = false
@@ -89,6 +103,7 @@ test "Native material retains typed rows only from the original admitted session
     }
   }
   assert_true(complete)
+  assert_false(session.matches_original(store, request))
   assert_eq(receiver.table(256).unwrap(), "value\n-----\n7\n")
   assert_true(stages.contains("receipt"))
   assert_true(session.next(1) is Err(InvalidProgress))

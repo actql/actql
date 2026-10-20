@@ -71,7 +71,16 @@ fn local_public_result(
   prepared? : LocalCommandResultOriginal? = None,
   material_table? : Bool = false,
 ) -> String raise ClientStop {
-  local_result_stdout_only(child)
+  let directory = @env.current_dir().unwrap_or_else(() => {
+    stop("ProjectConfigurationDirectoryUnavailable")
+  })
+  let delivery = local_result_delivery_selection(child, directory)
+  if delivery.files.is_empty() {
+    local_result_stdout_only(child)
+  }
+  if material_table && !delivery.files.is_empty() {
+    stop("ConflictingLocalResultDelivery")
+  }
   let format = local_result_format(child)
   let file = settings.read_file.unwrap_or_else(() => {
     stop("LocalReadPolicyOriginalNotSelected")
@@ -211,6 +220,14 @@ fn local_public_result(
       Ok(None) => stop("LocalResultPublicationUnavailable")
       Err(issue) => stop(local_saved_state_issue(@local_host.Journal(issue)))
     }
+    if !delivery.files.is_empty() {
+      guard prepared is Some(actual) else {
+        stop("LocalResultFileOriginalUnavailable")
+      }
+      return local_result_file_deliveries(
+        host, settings, crypto, child, actual, selected, names, delivery,
+      )
+    }
     let result_name = local_result_name(names, optional(child, "result"))
     let current = () => {
       local_delivery_lookup_allowed(
@@ -305,6 +322,7 @@ fn local_public_result(
 // This does not observe Run completion, publication or a delivery receipt.
 fn local_payload_already_streamed(matches : @argparse.Matches) -> Bool {
   match matches.subcommand {
+    Some(("result", child)) if child.flags.get("json").unwrap_or(false) => false
     Some(("read", _)) | Some(("result", _)) | Some(("sql", _)) =>
       matches.values.get("mode") == Some(["local"])
     Some(("aql", child)) =>
