@@ -72534,7 +72534,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-mock-account.mjs",
-      "sha256": "560e8638398cb7f850f6c657fac0d65ffa755df3a4cc1c2fefd24d087a59ea93",
+      "sha256": "88e61898e1d1cc0de300c9cd635f79de72331fb341289440620ccc3e4d17eff2",
       "exports": [
         "initializeOrdinaryMockAccount"
       ],
@@ -72789,6 +72789,10 @@
               {
                 "path": "adapters/host-node/ordinary-mock-account-profile-history.test.mjs",
                 "anchor": "test('saved predecessor Mock initialization reopens without profile migration or replacement keys'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-mock-account-profile-history.test.mjs",
+                "anchor": "test('missing adopted Reviewer leaves current Account available without recreating signing capability'"
               }
             ]
           }
@@ -72862,6 +72866,10 @@
               {
                 "path": "adapters/host-node/local-checkpoint-signing-custody.test.mjs",
                 "anchor": "test('same original signing claim and saved outcome survive actual Journal close and reopen'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-mock-account-profile-history.test.mjs",
+                "anchor": "test('signing currentness refuses a missing Reviewer after an originally available signer'"
               }
             ]
           }
