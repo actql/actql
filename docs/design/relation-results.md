@@ -128,6 +128,9 @@ an operation contained inside another task is not a completion of that Result.
 The Model provider, its input preparation, and its bounded suffix all retain
 the same checked prefix end. Later projections do not call the Model again.
 This connection neither changes Source custody nor grants publication or apply.
+Raw task-sequence preparation leaves that prefix unselected. The existing Local
+driver seals the checked prefix once when installing the same task owner;
+preparation must not preselect it and then ask the driver to select it again.
 
 The [named Result port preparer](result-ports.md) now binds each definition to
 its existing publication-order resolution and explicit producer projection.

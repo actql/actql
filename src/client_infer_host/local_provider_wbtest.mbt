@@ -209,6 +209,96 @@ fn exercise_original_local_infer_provider(retained_prefix : Bool) -> Unit raise 
       keyed_root_capacity(occurrence, prefix, Some(suffix), impossible) is None,
     )
   }
+  if retained_prefix {
+    let sequences = @input.prepare_client_local_sequences(
+      prepared,
+      infer_fixture_registry,
+      infer_fixture_values,
+      None,
+      None,
+    ).unwrap()
+    let run = @strategy.open_source_free_dag(
+      @publication_host.prepared_client_graph(prepared),
+      @resources.create_ledger({
+        planning_work: 100000,
+        attempts: 32,
+        holdings: 32,
+        transfer_bytes: 1000000L,
+        retained_bytes: 1000000000L,
+        execution_bytes: 1000000000L,
+      }).unwrap(),
+    ).unwrap()
+    let bundle : @connector.CapabilityBundle[Unit, Unit, Unit] = {
+      name: "local",
+      acquisition: None,
+      fixed_compute: Some((_, _) => ()),
+      effect: None,
+    }
+    let bundles = @connector.install_bundles([bundle], 1, 100).unwrap()
+    let registry = @connector.installed_bundle_registry(bundles)
+    let registration = @connector.capability_registration_at(registry, 0).unwrap()
+    let foreign_sequences = @input.prepare_client_local_sequences(
+      foreign_prepared,
+      infer_fixture_registry,
+      infer_fixture_values,
+      None,
+      None,
+    ).unwrap()
+    assert_true(
+      @local_driver.prepare_local_dispatch_module(
+        @host_driver.open_dispatch_driver(run),
+        registry,
+        registration,
+        foreign_sequences,
+        limits.input,
+        limits.measurement,
+        1000,
+        managed_providers=[family],
+      )
+      is Err(@local_driver.Configuration(@connector.ForeignPreparation)),
+    )
+    assert_true(
+      @local_driver.prepare_local_dispatch_module(
+        @host_driver.open_dispatch_driver(run),
+        registry,
+        registration,
+        [sequences[0]],
+        limits.input,
+        limits.measurement,
+        1000,
+        managed_providers=[family],
+      )
+      is Err(@local_driver.Configuration(@connector.ForeignPreparation)),
+    )
+    // Exercise the real installation consumer, which selects this original
+    // prefix exactly once. Raw sequence preparation is not that selection.
+    let configured = @local_driver.prepare_local_dispatch_module(
+      @host_driver.open_dispatch_driver(run),
+      registry,
+      registration,
+      sequences,
+      limits.input,
+      limits.measurement,
+      1000,
+      managed_capacity={
+        contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+        max_rows: 100,
+        max_value_bytes: 500000,
+        common_fragment: None,
+      },
+      managed_providers=[family],
+    )
+    match configured {
+      Ok(_) => ()
+      Err(@local_driver.Configuration(@connector.ForeignPreparation)) =>
+        abort("the original prefix is rejected during driver selection")
+      Err(_) => abort("another Local driver installation failure")
+    }
+    assert_eq(starts.val, 0)
+    assert_eq(calls.val, 0)
+    @strategy.stop_captured_dag(run)
+    @strategy.refresh_captured_retention(run) |> ignore
+  }
   let child = @local.start_managed_provider_with_inputs_and_execution(
     family,
     sequence,
@@ -268,7 +358,15 @@ fn exercise_original_local_infer_provider(retained_prefix : Bool) -> Unit raise 
       None,
     ).unwrap()
     assert_eq(sequences.length(), 2)
-    assert_eq(@relation.generated_sequence_step_count(sequences[0]), 4)
+    assert_eq(@relation.generated_sequence_step_count(sequences[0]), 5)
+    let physical_prefix = @relation.select_generated_sequence_prefix(
+      sequences[0],
+      3,
+    ).unwrap()
+    assert_eq(@relation.generated_sequence_step_count(physical_prefix), 4)
+    assert_true(
+      @relation.select_generated_sequence_prefix(physical_prefix, 3) is None,
+    )
     assert_eq(
       @relation.generated_sequence_step_index_at(sequences[1], 0),
       Some(4),

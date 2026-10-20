@@ -971,16 +971,6 @@ fn prepare_client_local_sequences_owned(
         return None
       }
       selected
-    } else if infer_prefix is None &&
-      acquisition_source is None &&
-      serialization_input is None &&
-      serialization_restore is None &&
-      @strategy.graph_task_prefix_end(graph, task) is Some(last) {
-      guard @execution.select_generated_sequence_range(sequence, 0, last)
-        is Some(selected) else {
-        return None
-      }
-      selected
     } else {
       sequence
     }
