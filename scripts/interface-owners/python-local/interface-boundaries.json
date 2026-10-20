@@ -5189,6 +5189,16 @@
         },
         {
           "async": false,
+          "name": "LocalCore/_publication_sdk_run_state_step",
+          "parameters": [
+            "self",
+            "value",
+            "current_configuration",
+            "operation"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/_publisher_begin",
           "parameters": [
             "self",
@@ -5793,6 +5803,15 @@
         },
         {
           "async": false,
+          "name": "LocalCore/confirm_publication_sdk_run_state",
+          "parameters": [
+            "self",
+            "value",
+            "current_configuration"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/confirm_sdk_publication_binding",
           "parameters": [
             "self",
@@ -6325,6 +6344,17 @@
             "current_configuration",
             "ordinal",
             "field"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/produce_publication_sdk_run_state",
+          "parameters": [
+            "self",
+            "value",
+            "original_run",
+            "source",
+            "current_configuration"
           ]
         },
         {
@@ -7156,6 +7186,15 @@
         },
         {
           "async": false,
+          "name": "LocalCore/validate_publication_sdk_run_state",
+          "parameters": [
+            "self",
+            "value",
+            "current_configuration"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/validate_sdk_publication_binding",
           "parameters": [
             "self",
@@ -7335,7 +7374,7 @@
           ]
         }
       ],
-      "sha256": "7ad154c8b182d62490d611f350647a999ffaf95bc7f44fdf35ecad18ba237eb6",
+      "sha256": "1ace401fc000aae26eda86b7d5281412056f42bcd91c4055e9dff62125290078",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -11738,6 +11777,133 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "\"\"\"Private physical Wasm bridge. Run decisions remain in MoonBit Core.\"\"\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "LocalCore/_publication_sdk_run_state_step",
+            "LocalCore/confirm_publication_sdk_run_state",
+            "LocalCore/produce_publication_sdk_run_state",
+            "LocalCore/validate_publication_sdk_run_state"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def produce_publication_sdk_run_state("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def produce_publication_sdk_run_state("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def produce_publication_sdk_run_state("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_run_state_update.mbt",
+                "anchor": "pub fn prepare_client_saved_run_state_update("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def produce_publication_sdk_run_state("
+              },
+              {
+                "path": "src/client_host_wasm/sdk_run_state.mbt",
+                "anchor": "pub fn produce_publication_sdk_run_state("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def produce_publication_sdk_run_state("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def produce_publication_sdk_run_state("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "        lost response permits same-output lookup, never another write or Run."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def produce_publication_sdk_run_state("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def produce_publication_sdk_run_state("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def produce_publication_sdk_run_state("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "class SDKRunStateStoreTests("
+              },
+              {
+                "path": "src/client_local_run/sdk_run_state_update_wbtest.mbt",
+                "anchor": "fn sdk_state_snapshot("
               }
             ]
           }
@@ -46083,6 +46249,30 @@
         },
         {
           "async": false,
+          "name": "InstalledLocalHost/_project_original_sdk_run_state",
+          "parameters": [
+            "self",
+            "run",
+            "projection",
+            "consume"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_project_original_sdk_run_state/inspect",
+          "parameters": [
+            "reader"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_project_original_sdk_run_state/inspect/validate",
+          "parameters": [
+            "_"
+          ]
+        },
+        {
+          "async": false,
           "name": "InstalledLocalHost/_read_original_saved_admission",
           "parameters": [
             "self",
@@ -46362,6 +46552,11 @@
         },
         {
           "async": false,
+          "name": "_RunStateCustody",
+          "parameters": []
+        },
+        {
+          "async": false,
           "name": "_default_directory",
           "parameters": []
         },
@@ -46385,7 +46580,7 @@
           ]
         }
       ],
-      "sha256": "791ba76ea3e43a997cab2235de745f2c38336bc1f64762cd23e4a077637d06f4",
+      "sha256": "11f9ee7fdb8125065050c6e99b44cdf0eb2b0150250b4783cacee724215733cf",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -47446,6 +47641,133 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "\"\"\"Installed Local assembly over the original Core/File/Store Owners."
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "InstalledLocalHost/_project_original_sdk_run_state",
+            "InstalledLocalHost/_project_original_sdk_run_state/inspect",
+            "InstalledLocalHost/_project_original_sdk_run_state/inspect/validate",
+            "_RunStateCustody"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _project_original_sdk_run_state("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _project_original_sdk_run_state("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _project_original_sdk_run_state("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_run_state_update.mbt",
+                "anchor": "pub fn prepare_client_saved_run_state_update("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _project_original_sdk_run_state("
+              },
+              {
+                "path": "src/client_host_wasm/sdk_run_state.mbt",
+                "anchor": "pub fn produce_publication_sdk_run_state("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _project_original_sdk_run_state("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _project_original_sdk_run_state("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "        lost response permits same-output lookup, never another write or Run."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _project_original_sdk_run_state("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _project_original_sdk_run_state("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _project_original_sdk_run_state("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "class SDKRunStateStoreTests("
+              },
+              {
+                "path": "src/client_local_run/sdk_run_state_update_wbtest.mbt",
+                "anchor": "fn sdk_state_snapshot("
               }
             ]
           }
@@ -57186,7 +57508,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "c4172da04ea7fa634051b0fc45a0c567cc6947668661652297992098b2304359",
+      "sha256": "131a81617db08610d4a293e233cee71cc6b041af50d9012e0f00928a15893de6",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
