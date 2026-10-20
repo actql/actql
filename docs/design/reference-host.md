@@ -703,6 +703,13 @@ ordinal equality, binds the selected barrier. Prefix preparation retains its
 original acquisition contexts and executes only the range after the completed
 Direct capture, using the same sealed keyed inputs without Source replay.
 
+The original response schema identifies one typed Content column. An absent
+MIME refinement permits the actual MIME validated by the existing capture
+owner; a present refinement must match it exactly. Initial capture and saved
+reference restoration use the same schema compatibility check. Restoration
+keeps the original reported MIME and complete reference evidence instead of
+issuing a replacement candidate from an expected type string.
+
 The Local Connector resolves keyed Content through the original captured
 listing path and exact Resource/version pair, then obtains a current original
 Account read decision. It does not reverse a Resource CID into a path, scan a
