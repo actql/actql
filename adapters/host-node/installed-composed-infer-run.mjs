@@ -179,7 +179,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       await sourceContinuation.captured(originals[index], source.captured, source.sourceEvidenceWire,
         input.captureStartedAt, input.captureCompletedAt);
     }
-  } else if (checkpoints !== undefined && prepareAcquisition !== undefined) {
+  } else if (!sourceFree && checkpoints !== undefined && prepareAcquisition !== undefined) {
     const occurrence = {stage: 0, input: 0, task: 0};
     const preparedSource = input?.preparedSource ?? await prepareAcquisition(preparedProgram);
     assertCurrent();
@@ -219,7 +219,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   } else if (historical !== undefined) throw new Error('ModelSourceClosureCustodyUnavailable');
   const {captured, sourceEvidenceWire, captureStartedAt, captureCompletedAt} = input ?? {};
   const captures = sourceFree ? [] : multiple ? input.sources.map(source => source.captured) : [captured];
-  const wires = multiple ? input.sources.map(source => source.sourceEvidenceWire) : [sourceEvidenceWire];
+  const wires = sourceFree ? [] : multiple ? input.sources.map(source => source.sourceEvidenceWire) : [sourceEvidenceWire];
   const sourceEvidence = sourceFree ? [] : multiple ? input.sourceEvidence : [input.sourceEvidence];
   for (const child of children) {
     const sources = child.restoredInput === undefined && !sourceFree ? checked(moon.clientProgramAdmitComposedInferSources(child.selection.occurrence,

@@ -30,6 +30,9 @@ function fixture({pendingRetirement=false,missingOriginal=false}={}) {
   const run=installNodeInferRun({moon,core:{publicationControl:control},registry:'registry',values:'values',
     fragment:'fragment',ordered:'ordered',selections:new Map([[prepared,selected]]),
     modelController:{discover:()=>[]},computeConfigurations:{},
+    checkpoints:{},
+    prepareAcquisition(){assert.fail('Checkpoint support must not prepare a phantom Source');},
+    sourceAccessFor(){assert.fail('No Source authorization is fabricated');},
     prepareOriginalMockRun(actual,actualPlan){
       assert.strictEqual(actual,prepared);assert.strictEqual(actualPlan,plan);calls.push('borrow-original');
       return missingOriginal?undefined:original;
