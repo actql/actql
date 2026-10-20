@@ -10,6 +10,7 @@
 #define SQLITE_THREADSAFE 1
 #include "sqlite3.c"
 #include "component.h"
+#include <limits.h>
 #include "api.h"
 #include "owned_capacity.h"
 #include <dlfcn.h>

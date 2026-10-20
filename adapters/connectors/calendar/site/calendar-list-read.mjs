@@ -168,9 +168,9 @@ export function createCalendarListReader(options) {
         receivedResponses: state.receivedResponses,
         receivedBodyBytes: state.receivedBodyBytes,
         observationCustody: state.receivedResponses === 0 ? 'not-observed' : 'retained',
-        // No caller-supplied mark-clean callback or array/GC-based ACK exists.
-        // Raw success/error aliases remain in their original custody. An
-        // eventual retirement connection must prove that same custody ends.
+        // This reader borrows its original credential binding. Only that
+        // binding's actual owner can close/acknowledge its native duties;
+        // retained JS observations do not require a GC/RSS cleanup receipt.
         cleanupConfirmed: false});
     },
   });

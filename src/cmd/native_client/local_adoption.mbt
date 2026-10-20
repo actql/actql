@@ -79,7 +79,7 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
   }
   let installation_files : Array[String] = []
   if @decode.lookup(fields, "installation_files") is Some(files) {
-    guard @decode.elements(files) is Ok(files) && files.length() <= 6 else {
+    guard @decode.elements(files) is Ok(files) && files.length() <= 8 else {
       stop("InvalidLocalInstallationSelection")
     }
     for file in files {
@@ -178,6 +178,7 @@ fn execute_native_local_adoption(
   packaged_runtime? : @local_host.NativeLocalPackagedRuntime? = None,
   initial_crypto? : InitialCryptoOriginal? = None,
   preparation? : LocalCommandPreparationOriginal? = None,
+  preparation_runtime? : LocalPackagedRuntime? = None,
 ) -> String raise ClientStop {
   let root = required(matches, "config-root")
   let name = required(matches, "config-file")
@@ -186,7 +187,10 @@ fn execute_native_local_adoption(
   // physical libraries. The adoption Owner rechecks all original generations.
   let selected_root = match preparation {
     Some(original) =>
-      command_preparation_result(original.select_configuration_root(root))
+      command_preparation_result(
+        original.select_configuration_root(root),
+        stage=Some("configuration-root"),
+      )
     None =>
       @local_filesystem.open_private_root(root).unwrap_or_else(() => {
         stop("LocalConfigurationRootUntrusted")
@@ -259,7 +263,11 @@ fn execute_native_local_adoption(
     root, settings,
   )
   if preparation is Some(original) {
-    if operation != "check" && operation != "explain" && operation != "adopt" {
+    if !local_command_preparation_operation_selected(
+        matches,
+        operation,
+        original.business is Some(_),
+      ) {
       stop("LocalCommandPreparationOperationUnavailable")
     }
     let additional : Array[(String, Bytes)] = []
@@ -272,8 +280,19 @@ fn execute_native_local_adoption(
       }
     }
     return original.execute_adopted_command(
-      operation, settings, root, name, configuration, environment_file, environment,
-      selected_files, additional, input_root, child,
+      operation,
+      settings,
+      root,
+      name,
+      configuration,
+      environment_file,
+      environment,
+      selected_files,
+      additional,
+      input_root,
+      child,
+      public_run=matches.subcommand is Some(("run", _)),
+      preparation_runtime~,
     )
   }
   let (sqlite_path, crypto_path) = match packaged_runtime {
@@ -443,6 +462,8 @@ fn execute_native_local_adoption(
       local_submission_lookup(host, settings, crypto, input_root, child)
     } else if operation == "lookup-request" {
       local_request_lookup(host, settings, crypto, child)
+    } else if operation == "approve" || operation == "reject" {
+      local_checkpoint_answer_by_id(host, settings, crypto, operation, child)
     } else if operation == "checkpoint-state" {
       local_checkpoint_metadata_lookup(
         host, settings, crypto, input_root, child,

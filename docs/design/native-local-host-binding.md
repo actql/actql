@@ -1,9 +1,151 @@
 # Native Local Host binding
 
+## Saved Run Plan inspection
+
+The first ordinary Run acceptance retains the original compiler Plan and
+logical-map view in its existing Run observation metadata, in the same Journal
+transaction as admission. A private first-capture ticket joins the actual
+checked preparation, compilation, Run definition and original admission
+evidence. The saved metadata reader cannot issue that ticket. The optional
+metadata preserves the prior encoding when absent and the existing per-record
+intake bounds; an overflow refuses rather than omitting required new evidence.
+
+`explain --run` selects the authenticated original Run through current RunRead
+and the same bounded Journal scan and physical operation route as status. It
+rechecks the compiled Plan, Program and logical-map identities and current
+authority before returning the exact saved view. It never reads a replacement
+Program or parameters, replans, initializes a missing installation or starts a
+Run. Legacy missing Plan evidence remains unavailable and cannot be backfilled
+by lookup or repeated admission.
+
+The returned existing RunPlanView contains the recorded compiler map. Its
+static observation and unmeasured quantities remain explicit. This metadata
+does not assert unrecorded runtime engine choices, measurements or execution
+history, and the human renderer distinguishes it from a new static EXPLAIN.
+
+## Ordinary literal query caller
+
+Trusted public `sql` and literal `aql` select the ordinary Local Host when no
+explicit Remote connection or legacy installation overrides that choice. A
+project selection retains its configured Store and declarations. Outside a
+project, the default Local installation is selected through the same bounded
+configuration and current-authorization owners.
+
+Operator-selected Program, declaration and parameter inputs split bounded
+absolute or input-directory-relative metadata into an original filesystem Root
+and an exact ordinary basename. The command's entered Read uses the existing
+bounded UTF-8 Reader and retains its same partial failure through cleanup.
+Managed installation/configuration names keep their separate entry. Reading a
+file does not supply a parameter contract or bypass Common admission.
+
+A genuinely absent default source-free installation may be initialized by
+this caller under the existing Product exclusion and initialization intent.
+The same adoption Session independently admits the Account, Store and required
+purpose-confined physical crypto material. An existing initialization intent,
+interrupted installation or missing adopted original never selects another
+initializer, regrant or rekey. This caller does not register a Reviewer,
+authorize an Effect or infer Mock consent from project metadata or query text.
+
+The complete business facility is selected before acquisition. The original
+submitted intent is read-only; its checked Program and current Run-submit
+authority are admitted before epoch issuance and durable Submission admission.
+The returned Run alone selects Result restoration, with independent current
+Result-read policy. A same-command read uses the Store that published the same
+request and keeps its Values, publication and delivery children until their
+actual acknowledgements. It does not open a second Store or rerun the query
+after an uncertain response.
+
+The source-free Local entry quotes the original prepared graph before physical
+acquisition. Its finite task inventory includes each input port and retains
+predecessor outputs beside dependent task work on the same Run Ledger. The
+executor follows the existing checked DAG, imports only its exact completed
+producer references, and finalizes each original task once. It neither flattens
+the submitted Program into a synthetic Values task nor turns a source-free
+selection into Source, INFER or Effect admission. The legacy single-task Effect
+entry keeps its separate admission and authority boundary. Named Result export
+selects its checked physical task, not an assumed task zero. Refusal after a
+completed predecessor retains all acquired task cleanup without restarting that
+predecessor or selecting a replacement Run.
+
+JSON, JSONL and CSV stdout retain their actual bytes-receipt route. A table
+requires its own admitted material receiver followed by a separately observed
+bounded table write and flush. A stdout encoding receipt is not material
+custody, and an unsupported table or file destination refuses before durable
+Submission admission.
+
+The selected initial table route retains a distinct Material selection original.
+The saved Run still joins its original read-policy CID and expiry; the table
+selection does not replace that original or reuse its stdout permission. Its
+read preimages bind the actual receiver, committed schema and ordering. The
+receiver rechecks each copied row against those original field contracts and
+keeps the same Session/Store through receipt and cleanup. Material completion
+ends the payload reader; a separate current output decision and one actual
+stdout write/flush produce the table receipt without reopening the reader.
+The finite Native selection holds eight installation files plus config and
+environment, with Account separately retained by the same initialization Owner.
+The corresponding ten-file selection and eleven-file Product intake retain their
+existing byte/node/depth limits; these counts issue no permission or resource
+credit. A partial write, lost flush acknowledgement or failed current check never
+repeats output. Older installations missing the selected Material original
+refuse before submission instead of acquiring it through a read operation.
+
 This records the adopted trust and credential boundaries for the standard
 Native Local CLI. These are implementation requirements, not claims that Local
 execution or Provider approval has passed public acceptance. The existing
 Native Remote CLI, its wire contracts and distribution remain intact.
+
+## Original file Result delivery
+
+An explicit `result --output` or repeated `--deliver` selection uses an
+independent adopted File read original. It does not redirect a stdout or
+Material grant. The original Run, committed Manifest, physical Store and
+current Run/named-Result authority are checked before acquiring the destination.
+Literal SQL/Pipe file presentation carries the bounded selected path into the
+same exact returned-Run Result request. It selects File authorization separately
+from the saved Program and Run; it does not redirect a stdout grant. Destination
+selection and missing initial File-original refusal precede Submission. A later
+delivery refusal retains the original Run correlation and never resubmits it.
+The separate Material/table stdout route is unchanged. Outside project metadata,
+exact public saved-Run `result` and `status` operands select the existing default
+Local installation, subject to explicit Remote/installation precedence. Their
+original restore-only path does not join the quick-query initialization rule;
+missing adoption/current/Run state remains unavailable.
+
+First initialization retains the File selection alongside the unchanged stdout
+and Material originals; existing installations lacking it remain unavailable.
+
+The caller retains the actual parent observation and exclusive staging Writer
+before fallible work. Read/egress preimages bind the destination path, parent
+identity and Writer identity. The sink acknowledges only actual append and
+seal operations; partial writes, uncertain close and failed current checks keep
+the same cleanup duties and never authorize another send. The final name is
+created exclusively, and existing files are never overwritten. Payload and
+receipt destinations are checked before acquisition against the original Host
+and managed Store namespaces; neither may create files inside those roots.
+
+A private stable attempt correlation binds the original request, Run, format
+and canonical destination. Lookup precedes Writer creation. A prior unresolved
+attempt refuses; a prior success is reused only after the same authenticated
+Journal evidence, Store receipt, current authority, parent/file identities and
+actual bounded byte count and hash match. This comparison does not reconstruct
+a Writer from saved inode DATA or issue another payload read.
+
+Per-delivery session and file children acknowledge before the next destination
+opens. Receipt export uses a separate bounded exclusive Writer after those
+children; a failed export cannot undo or resend outputs. A multi-delivery
+receipt file preserves the authored order of successful existing receipt
+objects without claiming an atomic aggregate outcome. Business success,
+physical cleanup and unresolved delivery remain separate observations.
+
+A public Program `run` submits once before forwarding any requested output to
+the same saved-Result/File path. Input representation and output encoding remain
+separate; `--output` selects JSONL while each `--deliver` item selects its format.
+The Run receipt is the existing commit view's original `run_receipt` contract,
+retained by the same accepted publication observation. Export rechecks independent
+current RunRead and excludes Host/Store namespaces. It does not issue another
+receipt, substitute a Result delivery receipt, certify aggregate output success,
+or make an uncommitted/Unknown Run committed. The original observation and every
+partial export child remain with existing command cleanup until their own ACKs.
 
 ## Ordinary product startup boundary
 
@@ -56,8 +198,10 @@ otherwise denied authority.
 Ordinary reconnection is retained-only. It cannot create a state child, stage
 an absent account copy or initialize a database, key or epoch. Only the explicit
 adoption operation may continue a matching unfinished initialization. The
-operator must first select a private configuration root; configured physical
-libraries are not loaded from an untrusted discovery root.
+trusted default query caller may perform the first initialization described
+above only when the installation is genuinely absent. It selects the ordinary
+private configuration root; an explicit configuration must likewise have a
+trusted private root before its physical libraries are loaded.
 
 ## Initialization and interrupted adoption
 
@@ -113,7 +257,7 @@ has a separate exclusive creation proof; ordinary open or physical absence is
 not that proof.
 
 The explicitly selected runtime configuration originals accompany account
-adoption. The bounded selection admits at most eight distinct single-component
+adoption. The bounded selection admits at most ten distinct single-component
 file names, each with at most 64 KiB of exact bytes. It excludes the separately
 bound account file. Its immutable manifest records raw-content digests, source
 file generations and the actual selected private managed-root identity. The
@@ -1336,6 +1480,15 @@ cannot revive it. The same pair retains the consuming view and never restores
 its spent available-read port. Scope leave does not retire managed aliases or
 acknowledge material, domain, Library or Host cleanup.
 
+Each Read context may retain one managed-page search hint in its original
+backed context storage. It is only a placement candidate: under the existing
+context/capacity locks, allocation rechecks the exact context, process, live
+extent and fitting free block. A miss preserves the complete remaining search
+and original page acquisition. Free may update only that page's original
+context hint; final retirement clears it before physical cleanup. Neither a
+cached index nor restoration of free space issues capacity, permits an alias,
+changes current scope or acknowledges retirement.
+
 Small managed Moon allocations may share pages inside that same original Read
 domain. The existing provider owns these pages; headers, alignment, splitting,
 fragmentation and serial metadata consume their original physical capacity.
@@ -1353,6 +1506,17 @@ original physical page retirement succeeds. Failed retirement remains on the
 same context for its existing close path, independently of user, scope, domain,
 loan and Host acknowledgements. Serial exhaustion refuses allocation rather
 than wrapping or selecting another allocator.
+
+The File Owner distinguishes internal Store object identifiers from ordinary
+output basenames. Ordinary inspection, generation verification, Reader
+acquisition and Writer sealing preserve the exact basename, including Unicode
+and whitespace, without normalization or an internal object-name length cap.
+A basename must be nonempty, must not be `.` or `..`, and must contain neither
+slash nor NUL; the selected filesystem reports its own supported limits.
+These operations retain the original Root descriptor, exact physical generation,
+no-follow checks, exclusive publication and failed-acquisition cleanup carrier.
+They neither replace an existing destination nor widen private staging, Lock,
+Store object, directory or adoption-name operations.
 
 A retained Native filesystem Root can be checked against the caller's actual
 current original Read context without exporting that context or an address.
@@ -1982,3 +2146,174 @@ cleanup frame. The Database finalizer must observe that actual context before
 it can retire its Library child. Dropping a reference, leaving a frame or
 closing a descriptor alone is not that acknowledgement; the Library, both
 contexts and the original backing still retain their separate close duties.
+
+An original-routed Store separately retains physical child close and its
+original scope-return duty. A failed final return cannot make a later public
+close terminal. The same handle retries that return; a failed normal return
+can reach only the existing same-original cleanup recovery, never normal
+resumption or replay of the failed operation. Primary and cleanup failures
+remain distinct. After physical Database, descriptor and result-storage ACKs
+and the original return are confirmed, its last managed alias may retire the
+empty Database DATA shell without calling the component from an outer frame.
+A retained closed alias still keeps the Library child busy. Residual storage,
+an unconfirmed physical close or a pending scope keeps that responsibility.
+
+Result acquisition also retains its exact owning child before a fallible Store
+return. The Store keeps that ResultDelivery, including its Reader, until the
+return succeeds and the caller receives the same child, or its cleanup-only
+path confirms child close and the associated return. A count cannot replace
+the child and retry cannot acquire a new Reader or delivery attempt. Parent
+Store close refuses while this retained child duty remains. The temporary
+Store-to-child custody edge is removed only after those acknowledgements; a
+failed call cannot silently drop it.
+
+Return-only reconciliation belongs to that same Store. It invokes only the
+original return and, if required, the existing same-original cleanup entry
+followed by its actual return. It runs no Store body, SQL, child close or parent
+close. A prior operation-only recovery does not clear the Store mirror; only
+this actual reconciliation does. No-pending is a separate observation, never
+an inferred physical ACK. The original failure remains sticky and normal
+dispatch stays unavailable. Retained children may then perform their own
+cleanup before Database, Root, Library and parent retirement.
+
+A failed constructor retains the same Database DATA alias independently of
+its failed-open field until both physical child close and original scope return
+are confirmed. Cleanup may clear a constructor field only while this original
+alias duty remains held. The generic Remote operation entrance preserves its
+existing open/restore policy; selecting an original route does not select the
+Local Journal's exclusive-WAL policy or supply a new physical scope.
+
+The Store's original-association observation joins its stored route to the
+same Database/Library and existing process/thread identity without entering a
+phase. This metadata can remain associated after physical Store close and
+cannot supply currentness, business permission or an additional close ACK.
+
+A failed SQL transition inside cleanup keeps its attempted SQL flight even
+when it never became ready. Only that failed original may reach the existing
+cleanup recovery while its Read cleanup flight is still active. The coordinator
+must reconcile the physical transition to the same cleanup Read before the
+SQL latch is cleared. A refused recovery retains both the flight and original
+failure; healthy duplicate entry still refuses and normal execution never
+resumes through this path.
+
+An in-process retained execution keeps its original delegated Ledger. Ordinary
+copied Moon values use the trusted runtime allocator even during an entered
+Read; the explicit `ACTQL_RUNTIME_MANAGED_VALUES` build selection must agree
+across generated Core, runtime and FFI objects. Their last Host reference can
+retire without claiming that process allocator caches have been returned.
+Native/File buffers, shared components and zero-copy aliases still use their
+actual original Read/domain and keep it busy until their real release. The
+separate scoped-managed diagnostic selection retains its original arena alias
+semantics; its objects cannot be mixed with ordinary-mode objects. Neither
+selection creates capacity, authority or a physical acknowledgement.
+
+Logical stop precedes
+physical retirement, and both remain distinct from the original usage report,
+parent loan, Host and descriptor acknowledgements. Entering another phase never
+creates a new Ledger or restores consumed capacity.
+
+The original Read user may already have returned while escaped aliases keep
+its context physically busy. Cleanup-only scope observation checks that same
+retained context and its actual entered frame, agreeing with the nominal
+active latch; it issues no normal currentness, Ledger borrow or retirement ACK.
+Normal scope observation retains its stronger current-user requirement. The
+Store operation's separate pending-scope observation reports only its original
+calling/flight/SQL lifecycle: a sticky failure alone is not a pending scope,
+and an invalid observation is never inactivity. Neither an idle scope nor a
+successful return acknowledges Database, Library, domain or parent cleanup.
+
+Selecting cleanup also irreversibly spends that original operation's normal
+route when the cleanup callback succeeds without an error. This selection is
+retained separately from the current flight and from primary/cleanup failures.
+Returning a cleanup flight cannot clear it: subsequent cleanup work selects
+the same cleanup-only coordinator entry, while normal entry refuses. A spent
+normal route alone is neither a pending physical scope nor a retirement ACK.
+
+A failed entry can retain a nominal active flight without having entered its
+physical Read frame. Its cleanup completion must confirm that exact original
+context has no active frame and that any recorded owned-scope unwind completed.
+It refuses while another scope is active and cannot replace an actual entered
+frame's original leave. This completion spends normal use and preserves the
+failure; it acknowledges no context, report, parent or descriptor retirement.
+
+The Ledger's immutable usage snapshots can themselves have been allocated in
+that child domain. After confirmed logical stop and outside every child
+allocation scope, cleanup may copy those scalar snapshots into the existing
+outer control lifetime. This preserves the same nominal Ledger, exact charges,
+quantity limits, serials and report state. An uncertain report or stop refuses
+this operation. It retires no physical allocation: an escaped old snapshot or
+output still keeps its original domain busy until its actual alias is released.
+The joined original Read applies this same relocation after stopping its claim
+and child Ledger, before its physical context close. Its workspace, read claim,
+inventory, report and parent-use acknowledgements still follow the actual
+physical retirement observation; relocation acknowledges none of them.
+
+The same retained Read can expose one constructor-thread cleanup snapshot under
+the existing provider locks. It observes users, active frames, live generic
+extents, live managed blocks and their requested-size range, and pending
+retirement extents. It reads only original allocator metadata: foreign payloads,
+released pages, managed payloads and addresses are not projected. Unknown,
+foreign-thread, inherited-process or retired contexts refuse without publishing
+a partial snapshot. The extra constructor-thread field belongs to the same
+context allocation; its actual size remains part of the original acquisition.
+
+The trusted caller covers the fixed snapshot and its copy in the existing outer
+initial control before calling, outside every Read/owned frame. Zero live counts
+remain observations, including when pending retirement or a retained context
+still prevents close. Observation never releases a user, enters a scope,
+acknowledges a parent, issues capacity or resumes normal use. Public runtime
+header sizes can likewise describe the selected implementation; Array wrapper
+and element lowering, complete simultaneous controls and actual backing remain
+separate requirements.
+
+The private process-import SQLite preparation may select Linux AArch64 GNU as a
+separate derived recipe. It retains the exact pinned SQLite, component and
+provider-header inputs; the Darwin recipe and Python provider-bundle checks
+remain distinct. The ELF shared image has a closed component export set and
+imports its physical ports from the original executable. It has no component
+TLS, automatic initializer or ambient library search path, and cannot resolve a
+second SQLite or allocator provider. Inspection and compilation establish none
+of the actual binding, initial-control, heap, current or cleanup facts: the
+selected Native caller must obtain those from its same original provider before
+using the Library. A component built for another source or target cannot supply
+that correspondence.
+
+### Python initial control continuation
+
+The selected Python initial carrier invokes the existing component's control
+initializer only after its same Native managed original is current. Its Runtime
+out-slot and error carrier precede that call and remain on the same original
+through partial initialization or reply loss. The call is one-shot; a failed
+observation cannot initialize again or replace the Runtime. Normal current
+checks require both original lifetimes on the original interpreter thread.
+
+Restoring the managed default does not close a Runtime, module, mapping or
+escaped allocation. The carrier retains those original references and their
+separate duties even after normal use refuses. This continuation issues no
+Host, parent, Ledger, Worker or VM and does not supply the separate loader,
+prelude, installation or business resource admissions.
+
+The Python-specific Host preparation adopts that same initialized component
+and retains the initial carrier before the first Native Host preparation call.
+The initial carrier retains the single Host attempt in return, including its
+partial reply after a lost response. Foreign components and unavailable Runtime
+currentness refuse before preparation. Closing or refusing that Host never
+reissues the startup original.
+
+Default restoration remains pending until both original Host references have
+received their existing close acknowledgement, including outstanding physical
+cleanup. Normal Host current and FD acquisition still require the original
+initial currentness; the same Host's existing cleanup remains reachable after
+normal use refuses. Its close acknowledgement does not retire the retained
+Runtime, module, mapping or interpreter lifetime. Declared Host limits still
+require their separate actual backing and do not come from initial-control
+service identity or successful Runtime initialization.
+
+The same Python-specific initial currentness also precedes original backing
+borrowing, backing-current observation and new physical scope entry. The Host
+holds its existing call exclusion during that observation. A refused current
+check cannot invoke the foreign backing operation or create a replacement
+loan. Leaving an already entered scope and returning the stopped original loan
+remain cleanup operations through their existing Native Owner; neither needs
+to revive normal initial currentness. Those acknowledgements remain distinct
+from Host close, default restoration and process-lived allocator retirement.

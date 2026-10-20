@@ -4,6 +4,8 @@ import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {
   checkContracts,
+  cliResultDeliveryReceiptFileSchema,
+  cliOutputVerificationSchema,
   correctedContracts,
   effectApplyReceiptSchema,
   effectReconciliationReceiptSchema,
@@ -707,5 +709,51 @@ test('ResourceRef targets change only the independently pinned Preview and revie
     assert.deepEqual(union.oneOf.at(-1), registry.schemas.resource_ref);
     union.oneOf.pop();
     assert.equal(machineCid(prior), priorCid, 'all non-target schema content is unchanged');
+  }
+});
+
+
+test('CLI receipt containers embed only the unchanged closed delivery object', () => {
+  const registry = read('spec/contracts/actql-protocol-schemas.json');
+  const before = structuredClone(registry);
+  const container = cliResultDeliveryReceiptFileSchema(registry);
+  const receipt = registry.artifact_schemas.result_delivery_receipt;
+  assert.deepEqual(container.oneOf, [receipt, {type: 'array', maxItems: 16, items: receipt}]);
+  assert.equal(receipt.additionalProperties, false);
+  assert.deepEqual(read('spec/contracts/actql-cli-result-delivery-receipts.schema.json'), container);
+  assert.deepEqual(registry, before);
+  assert.equal(Object.hasOwn(container, 'properties'), false);
+});
+
+test('CLI verification reports a bounded complete identity set for one explicit output', () => {
+  const report = cliOutputVerificationSchema();
+  assert.deepEqual(read('spec/contracts/actql-cli-output-verification.schema.json'), report);
+  assert.equal(report.properties.receipt_cids.uniqueItems, true);
+  assert.equal(report.properties.receipt_cids.maxItems, 16);
+  assert.equal(report.properties.verified.const, true);
+  assert.equal(report.additionalProperties, false);
+  assert.equal(Object.hasOwn(report.properties, 'result_name'), false);
+});
+
+
+test('independent CLI receipt vectors retain singleton bytes and every equal-byte identity', () => {
+  const vector = read('portability/corpus/cli-result-delivery-receipts.json');
+  const old = JSON.parse(vector.legacy_singleton_canonical);
+  assert.equal(canonicalText(old), vector.legacy_singleton_canonical);
+  assert.equal(old.result_delivery_receipt_cid,
+    'sha256:1b672f923a8f34e603d8246a3541922ccb1eedb4be8d1691f9a290d14fe1e2ea');
+  for (const complete of [old, ...vector.members]) {
+    const {result_delivery_receipt_cid: identity, ...body} = complete;
+    assert.equal(machineCid(body), identity);
+  }
+  const output = Buffer.from(vector.output_hex, 'hex');
+  assert.equal(createHash('sha256').update(output).digest('hex'), vector.output_sha256);
+  const matches = vector.members.filter(receipt => receipt.delivered_byte_count === output.length
+    && receipt.delivered_sha256 === vector.output_sha256);
+  assert.deepEqual([...new Set(matches.map(receipt => receipt.result_delivery_receipt_cid))],
+    vector.expected_matching_identities);
+  assert.equal(vector.expected_matching_identities.length, 2);
+  for (const [name, identity] of Object.entries(vector.schema_pins)) {
+    assert.equal(machineCid(read(`spec/contracts/${name}`)), identity);
   }
 });

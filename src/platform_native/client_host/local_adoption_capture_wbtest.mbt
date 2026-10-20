@@ -79,7 +79,7 @@ test "adoption capture snapshots bounded input before I/O and abandonment never 
   root.close().unwrap()
   let excessive = {
     ..input,
-    configuration_files: Array::make(9, "unused.json"),
+    configuration_files: Array::make(11, "unused.json"),
   }
   assert_true(
     prepare_native_local_existing_adoption_capture(

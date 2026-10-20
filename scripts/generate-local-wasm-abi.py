@@ -20,7 +20,7 @@ SCALAR = {'Int': 'i32', 'Int64': 'i64'}
 EXPORT = re.compile(r'#export_name\("([^"]+)"\)\s*pub fn (\w+)\((.*?)\)\s*->\s*(\w+)\s*\{', re.S)
 IMPORT = re.compile(r'\bfn (\w+)\(([^()]*)\)\s*->\s*(\w+)\s*=\s*"actql_host"\s*"([^"]+)"', re.S)
 FAMILIES = (
-    'buffer', 'program', 'run', 'submission', 'bootstrap', 'source_publication',
+    'buffer', 'program', 'check', 'run', 'submission', 'bootstrap', 'source_publication',
     'run_invocation', 'material', 'publication', 'publication_preflight',
     'publication_commit_export', 'payload_request', 'result_binding',
     'payload_chunk', 'payload_record', 'payload_reservation', 'payload_writing',

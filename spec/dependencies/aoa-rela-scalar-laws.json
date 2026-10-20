@@ -25,7 +25,14 @@
       "ceiling"
     ],
     "generic_json": "fixed-scale-string",
-    "value_identity": "domain-separated-version-precision-scale-coefficient"
+    "value_identity": "domain-separated-version-precision-scale-coefficient",
+    "division": {
+      "authoring": "SQL, Pipe and Common expression text decimal_divide(left,right,scale) emit the complete five-field body with precision38, the same static integer scale0..38 and division-only rounding exact. Retain both original children in order. Explicit five-argument policies preserve their meanings; no omitted fields are admitted by machine readers. The two-argument scale policy is not supplied by this rule.",
+      "value": "After both demanded children succeed and NULL propagation, compute the original exact coefficient ratio at the selected target scale. exact requires zero remainder and a fitting coefficient; inexactness, zero divisor and overflow fail with the existing arithmetic failure. The five explicit rounding policies keep their old behavior. No frontend evaluator, binary64 quotient, promotion or losslessness inference from a rounded value is permitted.",
+      "typing": "The left operand is Decimal and the divisor is Decimal or original safe-integer Number. Only an immediate literal NULL left receives the nullable declared Decimal target; only an immediate literal NULL divisor receives the resolved left Decimal contract, including contextualized literal NULL. This context proves no non-null input and never types an unknown field or Parameter or converts Number, Signed64 or String.",
+      "demand": "Both original children remain demanded exactly once in source order, including after a NULL child. Child error, control, cancellation, workspace, live-value and root retirement semantics remain unchanged; NULL does not suppress a demanded failure. Quantize never admits exact.",
+      "identity": "The operation, operand order, five required fields and old explicit-mode expression body bytes remain unchanged. exact is an added division policy at initial0.1, with genuinely changed containing contracts and pins; historical bodies retain their original identities. Authoring spans remain the original source."
+    }
   },
   "construction": {
     "version": "aoa-rela-closed-construction/0.1",
@@ -176,6 +183,12 @@
       "timezone_offsets": false,
       "invalid": "failure",
       "null": "null"
+    },
+    "try_number": {
+      "input": "Admitted finite logical Number or canonical decimal String; no Boolean, Decimal, Signed64, temporal, structured or unknown-domain promotion.",
+      "number": "Preserve the admitted Number value and canonical zero without formatting or parsing text. The result remains nullable Number. Ordinary scalar, Run, work, live-value, current and cancellation checks apply; no String parsing envelope or parsing workspace is issued for this branch.",
+      "string": "Retain the existing canonical decimal grammar, full input consumption and nullable Number result. Only a non-null unparsable String becomes NULL. String profile admission, selected Host envelope, bounds and parsing workspace remain mandatory.",
+      "demand": "Retain the authored try_number node and its original operand. Demand the child exactly once; child evaluation, control, cancellation, bounds, memory, engine and root-retirement failures propagate and never become NULL. NULL propagates after the original child succeeds."
     }
   },
   "predicate_scalar_boundary": {

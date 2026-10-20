@@ -13,6 +13,74 @@ from actql_sdk._local_storage import (
 
 
 class LocalInventoryTransactionTests(unittest.TestCase):
+    def test_selected_query_work_budget_is_separate_from_persisted_row_capacity(self) -> None:
+        with LocalByteStore(self.path.parent / 'selected.sqlite', max_records=2,
+                            max_record_bytes=128, max_payload_bytes=512,
+                            max_inspection_queries=5) as store:
+            key = store.namespaced_key('original', 'row')
+            self.assertEqual(store.compare_exchange('epoch', None, b'original'), 0)
+            self.assertEqual(store.compare_exchange(key, None, b'value'), 0)
+            fence = (ByteFence('epoch', 0, b'original'),)
+            seen: list[object] = []
+
+            def inspect(reader: _NamespaceReader) -> None:
+                for _ in range(3):
+                    reader.read('original', 'row', seen.append)
+                for _ in range(2):
+                    reader.scan_after('original', 'row', seen.append)
+
+            store.inspect_namespaces(fence, inspect=inspect, current=lambda: None)
+            self.assertEqual(seen, [('row', StoredBytes(0, b'value'))] * 3 + [None] * 2)
+            # A larger work budget supplies no additional durable row capacity.
+            with self.assertRaises(LocalStorageError):
+                store.compare_exchange('third-row', None, b'not-admitted')
+            self.assertIsNone(store.read('third-row'))
+
+    def test_selected_query_budget_exhaustion_stays_failed_before_cas(self) -> None:
+        with LocalByteStore(self.path.parent / 'bounded.sqlite', max_records=2,
+                            max_record_bytes=128, max_payload_bytes=512,
+                            max_inspection_queries=5) as store:
+            self.assertEqual(store.compare_exchange('epoch', None, b'original'), 0)
+            fence = (ByteFence('epoch', 0, b'original'),)
+            seen: list[object] = []
+
+            def inspect(reader: _NamespaceReader) -> None:
+                for _ in range(5):
+                    reader.read('empty', 'row', seen.append)
+                with self.assertRaisesRegex(LocalStorageError, 'inspection capacity exceeded'):
+                    reader.scan_after('empty', '', seen.append)
+                # Catching the exhausted callback cannot turn it into success.
+
+            with self.assertRaisesRegex(LocalStorageError, 'inspection capacity exceeded'):
+                store.compare_exchange_many_inspected((ByteWrite('epoch', 0, b'changed'),),
+                    fence, inspect=inspect, current=lambda: None)
+            self.assertEqual(seen, [None] * 5)
+            self.assertEqual(store.read('epoch'), StoredBytes(0, b'original'))
+
+    def test_selected_query_budget_does_not_expand_cumulative_copy_limit(self) -> None:
+        with LocalByteStore(self.path.parent / 'copy.sqlite', max_records=2,
+                            max_record_bytes=128, max_payload_bytes=128,
+                            max_inspection_queries=5) as store:
+            self.assertEqual(store.compare_exchange('epoch', None, b'e'), 0)
+            self.assertEqual(store.compare_exchange(
+                store.namespaced_key('original', 'row'), None, b'x' * 64), 0)
+
+            def inspect(reader: _NamespaceReader) -> None:
+                for _ in range(3):
+                    reader.read('original', 'row', lambda row: None)
+
+            with self.assertRaises(LocalStorageError):
+                store.inspect_namespaces((ByteFence('epoch', 0, b'e'),),
+                    inspect=inspect, current=lambda: None)
+
+    def test_invalid_selected_query_budget_refuses_before_file_creation(self) -> None:
+        for index, value in enumerate([True, 0, -1, 65537, 1.5]):
+            path = self.path.parent / f'invalid-{index}.sqlite'
+            with self.assertRaises(ValueError):
+                LocalByteStore(path, max_records=2, max_record_bytes=128,
+                               max_payload_bytes=512, max_inspection_queries=value)
+            self.assertFalse(path.exists())
+
     def setUp(self) -> None:
         self.directory = TemporaryDirectory(prefix='actql-python-inventory-')
         self.addCleanup(self.directory.cleanup)

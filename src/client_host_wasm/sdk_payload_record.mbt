@@ -10,16 +10,58 @@ fn sdk_payload_record_binding_current(
   binding_index : Int,
   current_configuration : Int,
 ) -> Int {
-  let code = validate_publication_commit_payload_binding(
-    value.nonce,
-    first.publication,
-    payload_record,
-    current_configuration,
-    result,
-    binding_index,
-  )
-  if code != 0 {
-    return code
+  if value.payload_records.get(payload_record) is Some(payload) {
+    if payload.source is SavedResult(parent, saved) {
+      guard saved_result_export_parent(value, first.publication)
+        is Some((actual, original)) &&
+        physical_equal(parent, actual) &&
+        physical_equal(saved, original) &&
+        first.sdk_payload_outcome is Some(Ok(encoding)) else {
+        return -32
+      }
+      let ordinals = match
+        encoding.stored_payload_ordinals(
+          context.owner,
+          context.view,
+          context.result_name,
+          8,
+          256,
+        ) {
+        Ok(value) => value
+        Err(_) => return -32
+      }
+      if ordinals != (result, binding_index) {
+        return -32
+      }
+      match saved_payload_binding(value, payload, current_configuration) {
+        Ok(binding) => {
+          let selected = match
+            context.owner.view_binding(context.view, binding_index) {
+            Ok(value) => value
+            Err(_) => return -32
+          }
+          if @publication.publication_contract_json(binding) !=
+            @publication.publication_contract_json(selected) {
+            return -32
+          }
+        }
+        Err(code) => return code
+      }
+    } else {
+      let code = validate_publication_commit_payload_binding(
+        value.nonce,
+        first.publication,
+        payload_record,
+        current_configuration,
+        result,
+        binding_index,
+      )
+      if code != 0 {
+        return code
+      }
+    }
+  } else {
+    return -2
   }
   let binding = match context.owner.view_binding(context.view, binding_index) {
     Ok(binding) => binding
@@ -134,8 +176,7 @@ pub fn publication_sdk_payload_ordinal(
   guard selected(nonce) is Some(value) &&
     value.commit_exports.get(first_handle) is Some(first) &&
     first.sdk_payload_outcome is Some(Ok(encoding)) &&
-    first.projection is Some(SDKReadDeliveryStorage(_, run)) &&
-    value.publications.get(first.publication) is Some(parent) else {
+    first.projection is Some(SDKReadDeliveryStorage(_, run)) else {
     return -2
   }
   if field != 0 && field != 1 {
@@ -156,15 +197,26 @@ pub fn publication_sdk_payload_ordinal(
     Err(code) => return code
     Ok(_) => ()
   }
-  let (result, binding) = match
-    encoding.original_payload_ordinals(
-      context.owner,
-      context.view,
-      parent.publications,
-      context.result_name,
-      8,
-    ) {
-    Ok(ordinals) => ordinals
+  let selected = match value.publications.get(first.publication) {
+    Some(parent) =>
+      encoding.original_payload_ordinals(
+        context.owner,
+        context.view,
+        parent.publications,
+        context.result_name,
+        8,
+      )
+    None =>
+      encoding.stored_payload_ordinals(
+        context.owner,
+        context.view,
+        context.result_name,
+        8,
+        256,
+      )
+  }
+  let (result, binding) = match selected {
+    Ok(value) => value
     Err(_) => return -32
   }
   first.pending = true

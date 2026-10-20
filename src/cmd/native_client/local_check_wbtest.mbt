@@ -98,6 +98,8 @@ test "Native check uses the actual portable verdict and runnable without a prepa
     check_cli_input("SELECT 1 AS id |> RESULT answer;"),
   )
   let invalid = context.project(check_cli_input("SELECT 1 / 'text' AS id"))
+  assert_false(local_check_invalid_exit(valid))
+  assert_true(local_check_invalid_exit(invalid))
   let valid_report = check_cli_report(valid)
   assert_eq(
     local_explain_field(valid_report, "verdict"),

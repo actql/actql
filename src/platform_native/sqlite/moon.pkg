@@ -13,6 +13,9 @@ options(
   "native-stub": [ "sqlite_stub.c" ],
   targets: {
     "sqlite_native.mbt": [ "native" ],
+    "store_operation_native.mbt": [ "native" ],
+    "store_operation_native_wbtest.mbt": [ "native" ],
+    "store_operation_unsupported.mbt": [ "not", "native" ],
     "lookup_snapshot_native.mbt": [ "native" ],
     "lookup_snapshot_unsupported.mbt": [ "not", "native" ],
     "lookup_snapshot_native_wbtest.mbt": [ "native" ],
@@ -23,6 +26,7 @@ options(
     "current_component_origin_unsupported_wbtest.mbt": [ "not", "native" ],
     "selected_library_custody_native_wbtest.mbt": [ "native" ],
     "journal_wal_native_wbtest.mbt": [ "native" ],
+    "local_store_wal_native_wbtest.mbt": [ "native" ],
     "selected_library_unsupported_wbtest.mbt": [ "not", "native" ],
     "readback_retirement_native_wbtest.mbt": [ "native" ],
     "bounded_read_native_wbtest.mbt": [ "native" ],

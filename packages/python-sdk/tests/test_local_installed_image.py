@@ -13,7 +13,7 @@ from unittest.mock import Mock, patch
 from actql_sdk._local_core import LocalCore, LocalCoreResources, LocalCoreInitializationError, LOCAL_CORE_ABI
 from actql_sdk._local_distribution import LocalInstallationError
 from actql_sdk._local_engine import (_InstalledImageInput, _checked_installed_image,
-    _configure_selected_engine, _verify_loaded_runtime)
+    _configure_selected_engine, _platform_runtime_library, _verify_loaded_runtime)
 from actql_sdk._local_image_recipe import _recipe_from_original
 from actql_sdk._local_product import InstalledLocalHost
 from actql_sdk._local_native_holding import (_NativeHoldingLease,
@@ -167,8 +167,8 @@ class InstalledImageTests(unittest.TestCase):
         components = case.inspect()
         library = case.directory / 'darwin-aarch64/_libwasmtime.dylib'
         library.parent.mkdir(); library.write_bytes(b'independent runtime library fixture')
-        with patch('actql_sdk._local_engine.metadata.version', return_value='38.0.0'), \
-                patch('actql_sdk._local_engine.resources.files', return_value=case.directory):
+        distribution = SimpleNamespace(version='38.0.0', locate_file=lambda _: case.directory)
+        with patch('actql_sdk._local_engine.metadata.distribution', return_value=distribution):
             original = _checked_installed_image(components)
             self.assertEqual(original.encoded, IMAGE)
             _verify_loaded_runtime(original, SimpleNamespace(filename=library, dll=SimpleNamespace(_name=str(library))))
@@ -177,6 +177,31 @@ class InstalledImageTests(unittest.TestCase):
             library.write_bytes(b'independent runtime library fixture')
             components.module.write_bytes(b'changed raw original')
             with self.assertRaises(LocalInstallationError): _checked_installed_image(components)
+
+    def test_platform_library_integrity_precedes_importing_its_package(self):
+        case = distribution_fixture.LocalDistributionTests(); case.setUp(); self.addCleanup(case.doCleanups)
+        components = case.inspect()
+        library = case.directory / 'darwin-aarch64/_libwasmtime.dylib'
+        library.parent.mkdir(); library.write_bytes(b'independent runtime library fixture')
+        distribution = SimpleNamespace(version='38.0.0', locate_file=Mock(return_value=case.directory))
+        from importlib import import_module
+        imports = []
+        def guarded_import(name, *args, **options):
+            if name == 'wasmtime' or name.startswith('wasmtime.'):
+                imports.append(name)
+                raise AssertionError('Runtime package imported before library integrity admission')
+            return import_module(name, *args, **options)
+        with patch('actql_sdk._local_engine.metadata.version', return_value='38.0.0'), \
+                patch('actql_sdk._local_engine.metadata.distribution', return_value=distribution), \
+                patch('importlib.import_module', side_effect=guarded_import):
+            self.assertEqual(_platform_runtime_library(components.image_recipe), library)
+            self.assertEqual(_checked_installed_image(components).runtime_library, library)
+            library.write_bytes(b'x' * components.image_recipe.runtime_library_bytes)
+            with self.assertRaises(LocalInstallationError):
+                _platform_runtime_library(components.image_recipe)
+            with self.assertRaises(LocalInstallationError):
+                _checked_installed_image(components)
+        self.assertEqual(imports, [])
 
     def test_foreign_loaded_library_rejects_before_configuration(self):
         with self.assertRaises(LocalInstallationError):

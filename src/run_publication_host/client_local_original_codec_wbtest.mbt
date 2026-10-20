@@ -112,7 +112,7 @@ test "shared selection codec preserves NULL managed root and the exact unsigned 
 }
 
 ///|
-test "shared selection codec preserves the eight selected files bound and original order" {
+test "shared selection codec preserves the ten selected files bound and original order" {
   let first : ClientLocalOriginalConfigurationFile = {
     content_cid: local_codec_intent,
     device: 1UL,
@@ -130,6 +130,14 @@ test "shared selection codec preserves the eight selected files bound and origin
   )
   assert_true(
     client_local_configuration_selection_body(Array::make(9, first), None)
+    is Ok(_),
+  )
+  assert_true(
+    client_local_configuration_selection_body(Array::make(10, first), None)
+    is Ok(_),
+  )
+  assert_true(
+    client_local_configuration_selection_body(Array::make(11, first), None)
     is Err(ConfigurationLimit),
   )
   assert_true(

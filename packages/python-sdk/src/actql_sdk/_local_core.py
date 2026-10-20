@@ -24,6 +24,9 @@ from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 from ._local_native_holding import _NativeHoldingLease
 
+_NORMAL_HOST_BOOTSTRAP_FUEL = 1_000_000_000
+_NORMAL_HOST_OPERATION_FUEL = 32_000_000_000
+_NORMAL_HOST_CLEANUP_FUEL = 100_000_000
 
 
 class LocalCoreError(RuntimeError):
@@ -45,7 +48,10 @@ class LocalCoreInitializationError(RuntimeError):
 
 @dataclass(frozen=True, slots=True)
 class LocalCoreResources:
-    """Trusted installed Host limits, independent of instruction fuel."""
+    """Managed Host allowances, independent of fuel and physical acquisition.
+
+    They are not an allocation, original native holding or hard RSS bound.
+    """
 
     planning_work: int
     attempts: int
@@ -197,6 +203,7 @@ from ._local_wasm_abi import (
     LOCAL_CORE_ABI,
     _BUFFER_SIGNATURES,
     _PROGRAM_SIGNATURES,
+    _CHECK_SIGNATURES,
     _RUN_SIGNATURES,
     _SUBMISSION_SIGNATURES,
     _BOOTSTRAP_SIGNATURES,
@@ -247,6 +254,8 @@ def _validate_core_module(wasmtime: Any, module: Any) -> None:
                 for name, value in _BUFFER_SIGNATURES.items()}
     expected.update({'actql_program_' + name: value
                      for name, value in _PROGRAM_SIGNATURES.items()})
+    expected.update({'actql_check_' + name: value
+                     for name, value in _CHECK_SIGNATURES.items()})
     expected.update({'actql_run_' + name: value
                      for name, value in _RUN_SIGNATURES.items()})
     expected.update({'actql_submission_' + name: value
@@ -331,8 +340,9 @@ class LocalCore:
     """Serialize calls into one instance and preserve its physical custody.
 
     This bridge does not implement Client routing, admission, recovery, or a
-    global memory guarantee. The installed Host must reserve the full Wasm
-    allowance and its other holdings in the existing shared capacity Owner.
+    global memory guarantee. The installed Host accounts for its Wasm and copy
+    allowances through the existing Owner, acquires real runtime resources and
+    keeps any explicitly supplied native holding until its actual cleanup ACK.
     """
 
     @classmethod
@@ -340,7 +350,8 @@ class LocalCore:
                               transfer_capacity: int, slots: int = 64,
                               _host_capacity_bytes: int = 0,
                               _physical_holding: _NativeHoldingLease | None = None,
-                              _child_control: _OriginalChildControlPipe | None = None) -> LocalCore:
+                              _child_control: _OriginalChildControlPipe | None = None,
+                              _ordinary_host: bool = False) -> LocalCore:
         if not _valid_core_limits(transfer_capacity, slots, 100_000_000, resources,
                                   _host_capacity_bytes):
             raise ValueError('Invalid installed Local Core artifact or capacity')
@@ -354,6 +365,8 @@ class LocalCore:
                  else _checked_installed_image_file(components))
         return cls(None, digest=components.module_sha256, transfer_capacity=transfer_capacity,
                    resources=resources, slots=slots, _compiled_image=image,
+                   fuel=_NORMAL_HOST_BOOTSTRAP_FUEL if _ordinary_host else 100_000_000,
+                   _ordinary_host=_ordinary_host,
                    _host_capacity_bytes=_host_capacity_bytes, _physical_holding=_physical_holding,
                    _child_control=_child_control)
 
@@ -362,7 +375,8 @@ class LocalCore:
                  _compiled_image: _InstalledImageInput | _InstalledImageFileInput | None = None,
                  _host_capacity_bytes: int = 0,
                  _physical_holding: _NativeHoldingLease | None = None,
-                 _child_control: _OriginalChildControlPipe | None = None) -> None:
+                 _child_control: _OriginalChildControlPipe | None = None,
+                 _ordinary_host: bool = False) -> None:
         from ._local_engine import _InstalledImageInput, _InstalledImageFileInput
         from ._local_native_image import _NativeImageHolding
         from ._local_image_recipe import _SelectedImageRecipe
@@ -384,9 +398,12 @@ class LocalCore:
         if not original_valid or not _valid_core_limits(transfer_capacity, slots, fuel, resources,
                                                        _host_capacity_bytes):
             raise ValueError('Invalid installed Local Core artifact or capacity')
+        if type(_ordinary_host) is not bool or (_ordinary_host and _compiled_image is None):
+            raise ValueError('Ordinary Host fuel requires the installed image')
         if _compiled_image is not None:
             _compiled_image.recipe.validate()
-            if fuel != 100_000_000:
+            expected_fuel = _NORMAL_HOST_BOOTSTRAP_FUEL if _ordinary_host else 100_000_000
+            if fuel != expected_fuel:
                 raise ValueError('Installed Local image requires the original instruction fuel')
         if _physical_holding is not None and (type(_physical_holding) is not _NativeHoldingLease
                                                or _compiled_image is None):
@@ -412,6 +429,9 @@ class LocalCore:
         self._retired = False
         self._closing = False
         self._invoking = False
+        self._ordinary_host = _ordinary_host
+        self._host_fuel_phase: str | None = 'initial' if _ordinary_host else None
+        self._host_initial_claimed = False
         self._engine: Any = None
         self._engine_configuration: Any = None
         self._pool_configuration: Any = None
@@ -544,6 +564,7 @@ class LocalCore:
                                                 resources.attempts, resources.holdings,
                                                 resources.transfer_bytes, resources.retained_bytes,
                                                 resources.execution_bytes, _host_capacity_bytes))
+                self._host_fuel_phase = None
         except BaseException as error:
             self._retired = True
             self._closing = True
@@ -626,6 +647,8 @@ class LocalCore:
             raise RuntimeError('Local Core is closed')
         if self._invoking:
             raise RuntimeError('Local Core callbacks cannot reenter the instance')
+        if getattr(self, '_ordinary_host', False) and self._host_fuel_phase is None:
+            raise RuntimeError('Local Core requires its admitted Host operation')
         self._invoking = True
         try:
             with self._native_scope():
@@ -644,6 +667,55 @@ class LocalCore:
         if type(result) is not int:
             raise RuntimeError('Invalid Local Core scalar response')
         return result
+
+    @contextmanager
+    def _host_operation(self, *, initial: bool = False) -> Iterator[None]:
+        """One outer operation; internal calls never replenish its fuel.
+
+        The initial factory continues the constructor's original allowance.
+        A failed operation fences normal work; only explicit original cleanup
+        may obtain its independent finite allowance afterwards.
+        """
+        if not getattr(self, '_ordinary_host', False):
+            yield
+            return
+        with self._lock:
+            if self._host_fuel_phase is not None or self._invoking:
+                raise RuntimeError('Original Host operation is already active')
+            if self._closed or self._retired or self._closing:
+                raise RuntimeError('Original Host normal work is fenced')
+            if initial:
+                if self._host_initial_claimed:
+                    raise RuntimeError('Original Host bootstrap was already attempted')
+                self._host_initial_claimed = True
+            else:
+                self._store.set_fuel(_NORMAL_HOST_OPERATION_FUEL)
+            self._host_fuel_phase = 'operation'
+        try:
+            yield
+        finally:
+            with self._lock:
+                self._host_fuel_phase = None
+
+    @contextmanager
+    def _host_cleanup(self) -> Iterator[None]:
+        """Same-original close only; joining never refreshes an active scope."""
+        if not getattr(self, '_ordinary_host', False) or self._closed or self._store is None:
+            yield
+            return
+        with self._lock:
+            if self._invoking:
+                raise RuntimeError('Original Host callback cannot start cleanup')
+            joined = self._host_fuel_phase is not None
+            if not joined:
+                self._store.set_fuel(_NORMAL_HOST_CLEANUP_FUEL)
+                self._host_fuel_phase = 'cleanup'
+        try:
+            yield
+        finally:
+            if not joined:
+                with self._lock:
+                    self._host_fuel_phase = None
 
     @staticmethod
     def _check(operation: str, code: int) -> None:
@@ -771,6 +843,10 @@ class LocalCore:
                 yield
                 if callbacks.failure is not None:
                     raise callbacks.failure
+            except Exception as error:
+                if callbacks.failure is not None and callbacks.failure is not error:
+                    raise callbacks.failure from error
+                raise
             finally:
                 callbacks.reader = None
 
@@ -1182,14 +1258,15 @@ class LocalCore:
         with self._lock:
             self._owned_input(source)
             if (self._closing or type(configuration) is not int or
-                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2, 3)):
+                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2, 3, 4, 5, 6)):
                 raise ValueError('Invalid Local Submission projection')
             ticket = self._next_ticket
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 1048576 if kind == 3 else 4096
-            family = 'submission_append' if kind == 3 else 'submission'
+            limit = 1048576 if kind in (3, 4, 5, 6) else 4096
+            family = ('submission_append' if kind == 3 else
+                      'submission_lookup' if kind in (4, 5, 6) else 'submission')
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, family)))
@@ -1201,6 +1278,54 @@ class LocalCore:
             value = _Output(self._identity, ticket, handle, limit, family)
             self._loans[ticket] = value
             return value
+
+    def reserve_client_check(self, environment: int, configuration: int, source: _Input,
+                             kind: int, *, cleanup: Callable[[], bool]) -> _Output:
+        """Retain same-Host reporting custody before the actual Common call."""
+        with self._lock:
+            self._owned_input(source)
+            if (self._closing or type(environment) is not int or not 0 < environment < 2**31
+                    or type(configuration) is not int or not 0 < configuration < 2**31
+                    or type(kind) is not int or kind not in (0, 1) or not callable(cleanup)):
+                raise ValueError('Invalid original Local Check reservation')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 1_048_576
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            allowance = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                         + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'check')))
+            handle = self._call('check', 'reserve', environment, configuration,
+                                source.handle, kind, ticket, allowance)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_client_check', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'check')
+            self._loans[ticket] = value
+            return value
+
+    def produce_client_check(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'check')
+            self._host_current_ready(current)
+            self._check('current_client_check', self._call(
+                'check', 'current', value.handle, current.handle))
+            self._check('produce_client_check', self._call('check', 'produce', value.handle))
+
+    def read_client_check(self, value: _Output, current: _Output) -> bytes:
+        with self._lock:
+            self._host_current_ready(current)
+            self._owned_output(value, 'check')
+            self._check('current_client_check', self._call(
+                'check', 'current', value.handle, current.handle))
+            raw = self._read_output(value, 'check', 'length')
+            self._check('current_client_check', self._call(
+                'check', 'current', value.handle, current.handle))
+            return raw
+
+    def close_client_check(self, value: _Output) -> bool:
+        return self._close_output(value, 'check', 'close')
 
     def reserve_bootstrap(self, source: _Input, *, cleanup: Callable[[], bool]) -> _Output:
         """Borrow original root/clock bytes for first-adoption metadata only.
@@ -1333,6 +1458,36 @@ class LocalCore:
 
     def close_submission_append(self, value: _Output) -> bool:
         return self._close_output(value, 'submission_append', 'close', abi_family='submission')
+
+    def produce_submission_lookup(self, value: _Output, current: _Output) -> None:
+        """Read only the original history in the same current Store snapshot."""
+        with self._lock:
+            self._owned_output(value, 'submission_lookup')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'produce', value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('produce_submission_lookup', code)
+            self.validate_submission_lookup(value, current)
+
+    def validate_submission_lookup(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'submission_lookup')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'validate_append', value.handle, current.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('validate_submission_lookup', code)
+
+    def read_submission_lookup(self, value: _Output, current: _Output) -> bytes:
+        with self._lock:
+            self.validate_submission_lookup(value, current)
+            raw = self._read_output(value, 'submission_lookup', 'length', abi_family='submission')
+            self.validate_submission_lookup(value, current)
+            return raw
+
+    def close_submission_lookup(self, value: _Output) -> bool:
+        return self._close_output(value, 'submission_lookup', 'close', abi_family='submission')
 
     def retire_submission_append_output(self, value: _Output) -> bool:
         """Retire transport while Core retains original input/Run relationships."""
@@ -1787,8 +1942,17 @@ class LocalCore:
     def reserve_publication_commit_export(self, publication: _Output, *,
                                           cleanup: Callable[[], bool]) -> _Output:
         """Read the original validated candidate; grants no Store permission."""
+        return self._reserve_publication_read_export(publication, 'publication', cleanup)
+
+    def reserve_saved_result_export(self, original: _Output, *,
+                                    cleanup: Callable[[], bool]) -> _Output:
+        """Borrow the nominal saved-read Owner; Core refuses other lookups."""
+        return self._reserve_publication_read_export(original, 'submission_lookup', cleanup)
+
+    def _reserve_publication_read_export(self, publication: _Output, family: str,
+                                         cleanup: Callable[[], bool]) -> _Output:
         with self._lock:
-            self._owned_output(publication, 'publication')
+            self._owned_output(publication, family)
             if self._closing:
                 raise RuntimeError('Local Core is closing')
             ticket = self._next_ticket
@@ -1940,6 +2104,44 @@ class LocalCore:
             self._check('produce_publication_observed_run_state', self._call(
                 'publication_commit_export', 'produce_run_state', value.handle,
                 observed_at.handle, current_configuration))
+
+    def produce_publication_sdk_run_state(self, value: _Output, original_run: int,
+                                           source: _Input,
+                                           current_configuration: int) -> None:
+        """Prepare original durable observation metadata, never a COMMIT ACK."""
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            self._owned_input(source)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (type(original_run) is not int or not 0 < original_run < 2**31
+                    or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid original SDK Run observation')
+            self._check('produce_publication_sdk_run_state', self._call(
+                'publication_commit_export', 'produce_sdk_run_state', value.handle,
+                original_run, source.handle, current_configuration))
+
+    def validate_publication_sdk_run_state(self, value: _Output,
+                                            current_configuration: int) -> None:
+        """Check the same prior row inside its actual physical CAS transaction."""
+        self._publication_sdk_run_state_step(value, current_configuration, 'validate_sdk_run_state')
+
+    def confirm_publication_sdk_run_state(self, value: _Output,
+                                           current_configuration: int) -> None:
+        """Reread the exact committed original before exposing candidate wire."""
+        self._publication_sdk_run_state_step(value, current_configuration, 'confirm_sdk_run_state')
+
+    def _publication_sdk_run_state_step(self, value: _Output, current_configuration: int,
+                                       operation: str) -> None:
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current SDK Run observation')
+            self._check(operation, self._call(
+                'publication_commit_export', operation, value.handle, current_configuration))
 
     def produce_publication_sdk_read_original(self, value: _Output, request: _Input,
                                               original_run: int,
@@ -2351,6 +2553,39 @@ class LocalCore:
                 'publication_commit_export', 'validate_payload_binding', publication.handle,
                 record.handle, current_configuration, result, binding_index))
 
+    def validate_saved_payload_binding(self, original: _Output, record: _Output,
+                                       current_configuration: int, result: int,
+                                       binding_index: int) -> None:
+        """Match the same saved-read Owner and original Sealed row; no grant."""
+        with self._lock:
+            self._owned_output(original, 'submission_lookup')
+            self._owned_output(record, 'payload_record')
+            if (type(current_configuration) is not int or not 0 < current_configuration < 2**31
+                    or any(type(value) is not int or not 0 <= value < 8
+                           for value in (result, binding_index))):
+                raise ValueError('Invalid original saved payload coordinates')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            self._check('validate_saved_payload_binding', self._call(
+                'publication_commit_export', 'validate_payload_binding', original.handle,
+                record.handle, current_configuration, result, binding_index))
+
+    def begin_saved_read_cleanup(self, original: _Output) -> None:
+        """Retire interrupted synchronous call latches, never physical duties.
+
+        The original serialized invocation must have returned or trapped. Normal
+        work remains fenced; this neither repeats it nor acknowledges any Store,
+        Reader, buffer loan, native child or parent. Their existing close ports
+        still decide whether the same original can retire.
+        """
+        with self._lock:
+            self._owned_output(original, 'submission_lookup')
+            if (not getattr(self, '_ordinary_host', False) or not self._closing
+                    or self._invoking or self._host_fuel_phase != 'cleanup'):
+                raise RuntimeError('Original saved read requires quiescent terminal cleanup')
+            self._check('begin_saved_read_cleanup', self._call(
+                'submission', 'begin_cleanup', original.handle))
+
     def read_publication_commit_material(self, value: _Output) -> bytes:
         """Read original raw bytes, without parsing or recreating a contract."""
         return self._read_output(value, 'publication_commit_export', 'length')
@@ -2473,8 +2708,17 @@ class LocalCore:
     def reserve_payload_record(self, request: _Output, *,
                                cleanup: Callable[[], bool]) -> _Output:
         """Retain the original Core Intent; does not reserve disk capacity."""
+        return self._reserve_original_payload_record(request, 'payload_request', cleanup)
+
+    def reserve_saved_payload_record(self, original: _Output, *,
+                                     cleanup: Callable[[], bool]) -> _Output:
+        """Restore only the selected original Sealed state; cannot begin a write."""
+        return self._reserve_original_payload_record(original, 'submission_lookup', cleanup)
+
+    def _reserve_original_payload_record(self, request: _Output, family: str,
+                                          cleanup: Callable[[], bool]) -> _Output:
         with self._lock:
-            self._owned_output(request, 'payload_request')
+            self._owned_output(request, family)
             if self._closing:
                 raise RuntimeError('Local Core is closing')
             ticket = self._next_ticket
@@ -3469,6 +3713,10 @@ class LocalCore:
             return True
 
     def close(self) -> bool:
+        with self._host_cleanup():
+            return self._close_core()
+
+    def _close_core(self) -> bool:
         """Keep the same instance on pending cleanup; do not cancel a Run."""
         with self._lock:
             if self._closed:

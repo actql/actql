@@ -3,6 +3,7 @@ supported_targets = "+js+wasm+native"
 import {
   "actql/actql/platform_native/publication_store" @store,
   "actql/actql/run_publication" @publication,
+  "moonbitlang/core/encoding/utf8",
 }
 
 import {
@@ -13,13 +14,16 @@ import {
   "actql/actql/publication_payload" @payload,
   "actql/actql/sha256" @sha,
   "actql/actql/source_value" @source,
-  "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
 } for "wbtest"
 
 options(
+  "native-stub": [ "material_stdout_stub.c" ],
   targets: {
+    "material_stdout_native.mbt": [ "native" ],
+    "material_stdout_unsupported.mbt": [ "js", "wasm" ],
     "access_native_wbtest.mbt": [ "native" ],
+    "material_native_wbtest.mbt": [ "native" ],
     "sink_native_wbtest.mbt": [ "native" ],
     "lookup_native_wbtest.mbt": [ "native" ],
   },

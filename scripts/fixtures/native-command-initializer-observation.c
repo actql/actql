@@ -1,15 +1,22 @@
-/* Observe the actual pinned allocator's initialization flag after the real
- * command constructor. This is a diagnostic, never an initial admission. */
+/* Runtime and application initializers may use ordinary libc before main. */
 #include <assert.h>
 #include "../../src/cmd/native_client/stdout_stub.c"
 
-extern bool _mi_preloading(void);
-int actql_test_entry_before_allocator;
+static bool application_initialized;
+__attribute__((constructor)) static void actql_test_application_initializer(void) {
+  assert(atomic_load(&actql_command_entry_state) == 0);
+  assert(!actql_command_early_input_attempted);
+  assert(fputs("", stdout) >= 0 && fflush(stdout) == 0);
+  application_initialized = true;
+}
 
-__attribute__((constructor)) static void actql_test_observe_initial_order(void) {
-  assert(atomic_load(&actql_command_entry_state) == 1);
-  assert(actql_command_early_input_attempted);
-  assert(actql_command_early_input_status == ACTQL_COMMAND_INPUT_OK);
-  assert(!actql_command_entry.initial_envelope_admitted);
-  actql_test_entry_before_allocator = _mi_preloading() ? 1 : 0;
+int main(void) {
+  assert(application_initialized);
+  assert(atomic_load(&actql_command_entry_state) == 0);
+  assert(actql_native_command_platform_current() == NULL);
+  assert(actql_native_client_measure_prearguments(256, 4096, 65536, 8192) == 0);
+  actql_native_client_capture_command_entry();
+  assert(actql_native_command_platform_current() == &actql_command_entry);
+  puts("normal main passed");
+  return 0;
 }

@@ -16,17 +16,17 @@
     "implicit_stringification": false,
     "implicit_cid_substitution": false
   },
-  "expression_contract_cid": "sha256:92b558028f8a5091a33b8b6d6e3fa32344b1b43cf9281e4c8c187886c9b6f292",
+  "expression_contract_cid": "sha256:6ab2396dc413fa604854f6586ec957203ccf23392c52f254dfd7b3c0c6dcbe7f",
   "pipeline_law_manifest": "aoa-pipeline-laws/0.1",
   "pipeline_law_manifest_cid": "sha256:587ab651a11c93172b597234f849d732319f61490fbb59d3d8841436e1e842dc",
-  "rela_scalar_law_manifest_cid": "sha256:9e68aac458d4df6226e938ccb6141bb3f0dedd9bfecd002a6ee42e55f7d66d28",
+  "rela_scalar_law_manifest_cid": "sha256:5848944a3c0fcc7e992ff14cffdd84adf4d3c977440c9cf54ab249acfa862fba",
   "rela_primitive_law_manifest_cid": "sha256:a4ab8487ef731512c3daefa5bed078703336dc52ca268ef4cb7127145f0f2ade",
   "veca_numeric_law_manifest_cid": "sha256:926c086c2ea57e49102ca5dfb724c851fa7fc148370a0bdf8363457fe5fcd004",
   "sga_structural_law_manifest_cid": "sha256:1426ea2ceaffc511c0540eba706a5ece132a3df5ee3948702edce7e833fc60df",
   "sga_identity_law_manifest_cid": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
   "graph_law_manifest_cid": "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34",
   "pipeline_registry_file": "spec/dependencies/aoa-pipeline-registry.json",
-  "pipeline_registry_cid": "sha256:5d3ccd8973edb45ba3f4fd9a0c38c57bfc0718e1ca79cdca578925e8f8e4d727",
+  "pipeline_registry_cid": "sha256:38df5e7d680450fc90f7d6ec4617c384a013f8645916db2208462099100bf33a",
   "target_module_contract_cid": "sha256:ae21e53e9cd0727435f707f49efb2ffc9fa1665abda9adde0ff57312265e06e1",
   "local_family_execution_profile": {
     "version": "actql-local-family-execution/0.1",
@@ -299,7 +299,7 @@
       "output": "relation",
       "execution_contract": {
         "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
-        "cid": "sha256:d1cbb2bfcb6c82bdd44da631a79777db09b7e0746bb064fa817afb58a953b115"
+        "cid": "sha256:beeb158446c54c0f581cb865f99e0031acb1f87925077dcc2119838716e818b7"
       }
     },
     "REL.derive": {
@@ -311,7 +311,7 @@
         "ordered_bindings": {
           "file": "spec/contracts/actql-aoa.json",
           "pointer": "/execution_contracts/REL.derive.ordered",
-          "cid": "sha256:ae34102cefda2c0ea44f7140d4657bf9ea0f2fb00e34ceedfe6d1af5998eafb9"
+          "cid": "sha256:9997cffed1724f14f3b7263bced2eff14f3a6a844e23c7fb4b12087fdeff39b8"
         }
       }
     },
@@ -1386,12 +1386,12 @@
         "expression_contract": {
           "file": "spec/contracts/actql-expressions.json",
           "pointer": "",
-          "cid": "sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35"
+          "cid": "sha256:6ab2396dc413fa604854f6586ec957203ccf23392c52f254dfd7b3c0c6dcbe7f"
         },
         "fragment_schema": {
           "file": "spec/contracts/actql-expressions.json",
           "pointer": "/schemas/fragment",
-          "cid": "sha256:46609f6f81679938a14f2b79e6f750d242b841684f9a00d911568efded652905"
+          "cid": "sha256:8c255485e4b13e8fb372a1db176d113810570e315c5e3e2bb3a03734ad98841e"
         }
       },
       "params_schema": {
@@ -1433,17 +1433,17 @@
         "expression_contract": {
           "file": "spec/contracts/actql-expressions.json",
           "pointer": "",
-          "cid": "sha256:92b558028f8a5091a33b8b6d6e3fa32344b1b43cf9281e4c8c187886c9b6f292"
+          "cid": "sha256:6ab2396dc413fa604854f6586ec957203ccf23392c52f254dfd7b3c0c6dcbe7f"
         },
         "expression_node": {
           "file": "spec/contracts/actql-expressions.json",
           "pointer": "/schemas/expression_node",
-          "cid": "sha256:2c8162832e673074c4278aa4ee2148de04862ee5f2d9fa502e2be6a780547f81"
+          "cid": "sha256:555287df8de017c03d3a8a252e6492e1dc84f9d099980f1115d30be8808d170f"
         },
         "source_expression": {
           "file": "spec/contracts/actql-expressions.json",
           "pointer": "/schemas/expression",
-          "cid": "sha256:5158d84b45438357fa0e9672445eb0c11420f787628e535a7235e0a25083b828"
+          "cid": "sha256:4a1a422c8a320d620ebb7f60eafd97f240e228145d5d8875b2a2d22dbb155400"
         },
         "derive_binding": {
           "file": "spec/contracts/actql-stage-contracts.json",

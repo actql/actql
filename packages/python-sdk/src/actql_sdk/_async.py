@@ -98,20 +98,24 @@ class AsyncClient:
         return type(token) is str and bool(token) and re.search(r'[\x00-\x20\x7f]', token) is None
 
     @classmethod
-    async def open(cls, *, signer=None):
-        """Open the selected installed Local product without Host/auth/path options.
+    async def open(cls, *, state_dir=None, signer=None):
+        """Open the installed Local product with an optional Store directory.
 
-        The original runtime/profile supplier must be complete. An unavailable
-        capacity original fails before module capture or physical VM creation;
-        this method does not substitute a private fixture or inferred allowance.
+        The installed runtime acquires its real Core and durable Store through
+        the existing factory. Managed limits do not supply a worker, permission
+        or a shared native holding. Partial cleanup retains the same Host.
         """
         selected_signer = None if signer is None else capture_signer(signer)
-        from ._local_product import InstalledLocalHost, LocalProductCleanupPending
-        from ._local_core import LocalCoreInitializationError
-        from ._local_distribution import LocalInstallationError
         from ._local_worker_funding import LocalWorkerFundingUnavailable
         try:
-            host = InstalledLocalHost.installed()
+            from ._local_product import InstalledLocalHost, LocalProductCleanupPending
+            from ._local_core import LocalCoreInitializationError
+            from ._local_distribution import LocalInstallationError
+        except Exception as failure:
+            raise ClientError('LocalInstallationUnavailable', original_error=failure) from None
+        try:
+            options = {} if state_dir is None else {'state_dir': state_dir}
+            host = InstalledLocalHost.installed(**options)
         except LocalProductCleanupPending as failure:
             client = cls._from_local_host(failure.cleanup_host)
             client._closed = True

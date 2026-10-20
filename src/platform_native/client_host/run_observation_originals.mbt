@@ -3,7 +3,16 @@
 // authorization, restored physical compilation or a new journal/identity domain.
 fn native_run_observation_originals_wire(
   original : @host.ClientRunObservationOriginals,
+  plan? : NativeClientRunPlanOriginal? = None,
 ) -> Result[String, NativeClientRunJournalIssue] {
+  let plan_wire = match plan {
+    None => None
+    Some(value) =>
+      match native_run_plan_original_wire(value) {
+        Ok(wire) => Some(wire)
+        Err(issue) => return Err(issue)
+      }
+  }
   try {
     let writer = @encode.writer(131072, 8, 1)
     @encode.begin_object(writer)
@@ -12,6 +21,10 @@ fn native_run_observation_originals_wire(
       writer,
       @publication.run_evidence_value_json(original.authorization()),
     )
+    if plan_wire is Some(wire) {
+      @encode.key(writer, "plan")
+      @encode.string_value(writer, wire)
+    }
     @encode.key(writer, "prepared")
     @encode.string_value(
       writer,
@@ -36,10 +49,10 @@ fn capture_native_run_observation_originals(
 }
 
 ///|
-fn read_native_run_observation_originals(
+fn native_run_observation_fields(
   wire : String,
-  definition : @publication.PublicationContract,
-) -> Result[@host.ClientRunObservationOriginals, NativeClientRunJournalIssue] {
+  names : Array[String],
+) -> Result[@decode.ObjectView, NativeClientRunJournalIssue] {
   let source = match
     @source.parse_json_bytes_preserving(@utf8.encode(wire), {
       max_input_bytes: 131072,
@@ -59,11 +72,35 @@ fn read_native_run_observation_originals(
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  guard @decode.closed_object(cursor, ["authorization", "prepared"])
-    is Ok(fields) &&
-    epoch_text(fields, "authorization") is Some(authorization) &&
+  @decode.closed_object(cursor, names).map_err(_ => CustodyLost)
+}
+
+///|
+fn read_native_run_observation_originals(
+  wire : String,
+  definition : @publication.PublicationContract,
+  program_cid? : String? = None,
+) -> Result[@host.ClientRunObservationOriginals, NativeClientRunJournalIssue] {
+  let fields = match
+    native_run_observation_fields(wire, ["authorization", "plan", "prepared"]) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard epoch_text(fields, "authorization") is Some(authorization) &&
     epoch_text(fields, "prepared") is Some(prepared) else {
     return Err(CustodyLost)
+  }
+  let plan = match @decode.lookup(fields, "plan") {
+    None => None
+    Some(_) => {
+      guard epoch_text(fields, "plan") is Some(wire) else {
+        return Err(CustodyLost)
+      }
+      match read_native_run_plan_original(wire, definition, program_cid) {
+        Ok(value) => Some(value)
+        Err(issue) => return Err(issue)
+      }
+    }
   }
   let original = match
     @host.restore_client_run_observation_originals(
@@ -72,7 +109,7 @@ fn read_native_run_observation_originals(
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  guard native_run_observation_originals_wire(original) is Ok(canonical) &&
+  guard native_run_observation_originals_wire(original, plan~) is Ok(canonical) &&
     canonical == wire else {
     return Err(CustodyLost)
   }

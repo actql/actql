@@ -1,6 +1,13 @@
 """Type-only standard/SDK factory consumers; no construction or dispatch here."""
 from actql import AsyncClient, Client, JSONValue
+from actql import open as open_local
 from actql_sdk import AsyncClient as SDKAsyncClient, Client as SDKClient
+from pathlib import Path
+
+
+def public_short_query() -> list[dict[str, JSONValue]]:
+    with open_local(state_dir=Path('.actql')) as client:
+        return client.sql('SELECT 1 AS id').all()
 
 
 async def standard_async() -> list[dict[str, JSONValue]]:

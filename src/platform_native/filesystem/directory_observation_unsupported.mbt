@@ -14,3 +14,10 @@ pub fn NativeDirectoryObservation::check_current(
 ) -> Result[Unit, NativeFilesystemIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn NativeDirectoryObservation::identity(
+  _self : NativeDirectoryObservation,
+) -> Result[NativeFileOwnership, NativeFilesystemIssue] {
+  Err(UnsupportedTarget)
+}

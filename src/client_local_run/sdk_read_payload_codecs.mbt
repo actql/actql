@@ -30,8 +30,8 @@ fn sdk_read_payload_original_matches(
 /// acknowledge a Store write or permit replay. The caller must retain the
 /// original first-installation custody and reserve its codec workspace before
 /// construction; current physical generation and byte disclosure remain separate.
-pub fn[E] prepare_local_sdk_read_payload_codecs(
-  preflight : LocalPublicationPreflight,
+pub fn[E] prepare_local_sdk_read_payload_codecs_for_source(
+  source : LocalSDKReadSource,
   account : @authorization.AdmittedAccountConfiguration,
   finite : @host.ClientLocalRunPolicyOriginal,
   selection : @publication.LocalSDKResultReadSelection,
@@ -62,8 +62,8 @@ pub fn[E] prepare_local_sdk_read_payload_codecs(
     return Err(InvalidLimits)
   }
   let saved = match
-    observe_local_sdk_read_delivery_from_store(
-      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+    observe_local_sdk_read_delivery_for_source(
+      source, account, finite, selection, host_adoption_cid, owner, view, result_name,
       format, attempt_id, max_results, read, current,
     ) {
     Ok(value) => value
@@ -114,8 +114,8 @@ pub fn[E] prepare_local_sdk_read_payload_codecs(
   // Byte availability and the original grant's expiry are current conditions,
   // unlike historical metadata lookup. The same existing issuer checks them.
   let grant = match
-    issue_local_sdk_read_grant_from_store(
-      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+    issue_local_sdk_read_grant_for_source(
+      source, account, finite, selection, host_adoption_cid, owner, view, result_name,
       format, attempt_id, observed_at, max_results, read, current,
     ) {
     Ok(value) => value
@@ -128,8 +128,8 @@ pub fn[E] prepare_local_sdk_read_payload_codecs(
   // Schema/current callbacks can change the attempt or its usage/head. Reuse
   // the same original observation before constructing even these codecs.
   let final_saved = match
-    observe_local_sdk_read_delivery_from_store(
-      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+    observe_local_sdk_read_delivery_for_source(
+      source, account, finite, selection, host_adoption_cid, owner, view, result_name,
       format, attempt_id, max_results, read, current,
     ) {
     Ok(value) => value
@@ -171,4 +171,49 @@ pub fn[E] prepare_local_sdk_read_payload_codecs(
     Err(issue) => return Err(Frames(issue))
   }
   Ok((frames, serializer))
+}
+
+///|
+/// Existing live-run entry preserves its original preflight/current checks.
+pub fn[E] prepare_local_sdk_read_payload_codecs(
+  preflight : LocalPublicationPreflight,
+  account : @authorization.AdmittedAccountConfiguration,
+  finite : @host.ClientLocalRunPolicyOriginal,
+  selection : @publication.LocalSDKResultReadSelection,
+  host_adoption_cid : String,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  first : LocalSDKReadDeliveryPreparation,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  observed_at : String,
+  max_results : Int,
+  max_row_bytes : Int,
+  input_chunk_bytes : Int,
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
+  current : () -> Result[Unit, E],
+) -> Result[
+  (@publication.DurableResultRowFrames, @publication.ResultDeliverySerializer),
+  LocalSDKReadPayloadCodecIssue[E],
+] {
+  prepare_local_sdk_read_payload_codecs_for_source(
+    live_sdk_read_source(preflight),
+    account,
+    finite,
+    selection,
+    host_adoption_cid,
+    owner,
+    view,
+    first,
+    result_name,
+    format,
+    attempt_id,
+    observed_at,
+    max_results,
+    max_row_bytes,
+    input_chunk_bytes,
+    read,
+    current,
+  )
 }

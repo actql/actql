@@ -11,6 +11,35 @@ pub fn validate_publication_commit_payload_binding(
   result : Int,
   binding_index : Int,
 ) -> Int {
+  if selected(nonce) is Some(value) &&
+    value.payload_records.get(payload_record) is Some(payload) &&
+    payload.source is SavedResult(parent, saved) {
+    guard saved_result_export_parent(value, publication)
+      is Some((actual, original)) &&
+      physical_equal(parent, actual) &&
+      physical_equal(saved, original) &&
+      saved.source is Some(source) &&
+      saved.owner is Some(owner) &&
+      saved.view is Some(view) &&
+      value.run_configurations.get(current_configuration) is Some(current) else {
+      return -2
+    }
+    match saved_payload_binding(value, payload, current_configuration) {
+      Ok(_) => ()
+      Err(code) => return code
+    }
+    match
+      @local_run.local_sdk_saved_result_coordinates(
+        source,
+        current.account,
+        owner,
+        view,
+        saved.result_name,
+      ) {
+      Ok(ordinals) if ordinals == (result, binding_index) => return 0
+      _ => return -32
+    }
+  }
   guard selected(nonce) is Some(value) &&
     value.publications.get(publication) is Some(parent) &&
     value.payload_records.get(payload_record) is Some(payload) &&

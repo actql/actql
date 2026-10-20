@@ -27,6 +27,18 @@ extern "C" fn observed_directory_current_ffi(
 ) -> Int = "actql_native_filesystem_observed_directory_current"
 
 ///|
+#borrow(stat)
+extern "C" fn observed_directory_device_ffi(
+  stat : NativeObservedDirectoryStat,
+) -> UInt64 = "actql_native_filesystem_observed_directory_device"
+
+///|
+#borrow(stat)
+extern "C" fn observed_directory_inode_ffi(
+  stat : NativeObservedDirectoryStat,
+) -> UInt64 = "actql_native_filesystem_observed_directory_inode"
+
+///|
 fn directory_observation_issue(
   root : Root,
   kind : Int,
@@ -63,4 +75,20 @@ pub fn NativeDirectoryObservation::check_current(
   } else {
     Err(directory_observation_issue(self.root, kind))
   }
+}
+
+///|
+/// Return captured namespace identity only after checking the same opened and
+/// named directory. These scalars provide no Host or output authorization.
+pub fn NativeDirectoryObservation::identity(
+  self : NativeDirectoryObservation,
+) -> Result[NativeFileOwnership, NativeFilesystemIssue] {
+  match self.check_current() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  Ok({
+    device: observed_directory_device_ffi(self.stat),
+    inode: observed_directory_inode_ffi(self.stat),
+  })
 }

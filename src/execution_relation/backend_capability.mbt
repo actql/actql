@@ -169,7 +169,8 @@ fn check_backend_capabilities(
             | EndsWith
             | Contains
             | DateTruncate
-            | DecimalDivide(_) => ()
+            | DecimalDivide(_)
+            | Utf8Truncate => ()
           }
           pending.push(right)
           pending.push(left)

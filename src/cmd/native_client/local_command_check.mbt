@@ -43,9 +43,17 @@ fn command_preparation_cleanup_kind(
     CommandHost(_) => "host"
     CommandDomain(_) => "domain"
     CommandRead(_) => "read"
+    CommandRetainedExecution(_) => "business-execution"
+    CommandStoreOperation(_) => "business-operation"
+    CommandBusinessChildren => "business-children"
+    CommandBusinessPublication => "business-publication"
+    CommandBusinessStore(_) => "business-store"
+    CommandBusinessResult(_) => "business-result"
+    CommandBusinessFileOutput(_) => "business-file-output"
     CommandPair(value) =>
       match value {
-        @initial_arena.Read(_) => "pair-read"
+        @initial_arena.Read(read) =>
+          "pair-read-" + command_preparation_read_cleanup_kind(read)
         @initial_arena.Sqlite(_) => "pair-sqlite"
         @initial_arena.Domain(_) => "pair-domain"
       }
@@ -64,13 +72,90 @@ fn command_preparation_cleanup_kind(
 }
 
 ///|
+// Preserve the original failed cleanup family without exposing messages,
+// payloads, paths or opaque receivers. Physical status is the original code,
+// not an inferred acknowledgement or a replacement cleanup operation.
+fn command_preparation_read_cleanup_kind(
+  issue : @initial_arena.InstalledArenaOriginalReadIssue,
+) -> String {
+  match issue {
+    Domain(@initial_bootstrap.Bootstrap(@initial_bootstrap.Physical(code))) =>
+      "domain-physical(" + code.to_string() + ")"
+    Domain(@initial_bootstrap.Bootstrap(_)) => "domain-bootstrap"
+    Domain(@initial_bootstrap.Accounting(_)) => "domain-accounting"
+    Child(_) => "child-ledger"
+    Read(@initial_resources.CleanupPending) => "read-ledger-pending"
+    Read(_) => "read-ledger"
+    Buffer(_) => "workspace"
+  }
+}
+
+///|
 fn[T] command_preparation_result(
   result : Result[T, LocalCommandPreparationIssue],
+  stage? : String? = None,
 ) -> T raise ClientStop {
   match result {
     Ok(value) => value
-    Err(_) => stop("LocalCommandPreparationUnavailable")
+    // read_command retains the original public ClientStop across its physical
+    // return. Preserve that application failure after the return completes;
+    // it must not become an unrelated preparation/supplier error.
+    Err(CommandApplication(message)) => stop(message)
+    Err(issue) => {
+      // Closed caller-owned labels and the existing error-family projection
+      // identify the failed boundary without exposing paths, keys or messages.
+      let message = match stage {
+        None => "LocalCommandPreparationUnavailable"
+        Some(name) =>
+          "LocalCommandPreparationUnavailable:" +
+          name +
+          ":" +
+          command_preparation_cleanup_kind(issue)
+      }
+      stop(message)
+    }
   }
+}
+
+///|
+// Selection only: the downstream original/current/Account admissions remain
+// mandatory. A private submission or an absent business original cannot select
+// the public Run's operational route.
+fn local_command_preparation_operation_selected(
+  matches : @argparse.Matches,
+  operation : String,
+  business_selected : Bool,
+) -> Bool raise ClientStop {
+  operation == "check" ||
+  operation == "explain" ||
+  operation == "adopt" ||
+  (
+    matches.subcommand is Some((selected, child)) &&
+    selected == operation &&
+    local_quick_query_requested(selected, child) &&
+    business_selected
+  ) ||
+  local_checkpoint_action_selected(matches, operation) ||
+  (
+    operation == "status" &&
+    matches.subcommand is Some(("status", child)) &&
+    (optional(child, "run") is Some(_) || optional(child, "run-id") is Some(_)) &&
+    optional(child, "ref-file") is None &&
+    optional(child, "submission-ref-file") is None
+  ) ||
+  (
+    operation == "result" &&
+    matches.subcommand is Some(("result", child)) &&
+    optional(child, "run") is Some(_) &&
+    business_selected &&
+    optional(child, "ref-file") is None &&
+    optional(child, "submission-ref-file") is None
+  ) ||
+  (
+    operation == local_run_original_operation() &&
+    matches.subcommand is Some(("run", _)) &&
+    business_selected
+  )
 }
 
 ///|
@@ -82,7 +167,11 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   matches : @argparse.Matches,
   operation : String,
 ) -> String raise ClientStop {
-  if operation != "check" && operation != "explain" && operation != "adopt" {
+  if !local_command_preparation_operation_selected(
+      matches,
+      operation,
+      self.business is Some(_),
+    ) {
     stop("LocalCommandPreparationOperationUnavailable")
   }
   if !(matches.sources.get("config-root") is Some(@argparse.Default)) {
@@ -93,9 +182,9 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   }
   // Project discovery was already inside this Read. Suspend only this scope
   // while the Runtime performs its own original-current brackets.
-  command_preparation_result(self.leave())
+  command_preparation_result(self.leave(), stage=Some("runtime-return"))
   let runtime = local_packaged_runtime_from_physical(physical)
-  command_preparation_result(self.enter())
+  command_preparation_result(self.enter(), stage=Some("runtime-reenter"))
   // Required HOME/path decoding and selection now allocate in the same
   // consuming Read; an explicit directory never obtains the HOME workspace.
   let location = local_product_original_location(optional(matches, "state-dir"))
@@ -104,9 +193,12 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   } else {
     location.parent_path + "/" + location.directory_name
   }
-  let originals = if operation == "adopt" {
+  let (_, selected_child) = matches.subcommand.unwrap()
+  let quick_query = local_quick_query_requested(operation, selected_child)
+  let originals = if operation == "adopt" || quick_query {
     let parent = command_preparation_result(
       self.select_product_parent(location.parent_path),
+      stage=Some("product-parent"),
     )
     let ownership = parent
       .bootstrap_parent_ownership()
@@ -142,7 +234,12 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   }
   command_preparation_result(
     self.stage_product(location.parent_path, location.directory_name, originals),
+    stage=Some("product-stage"),
   )
+  // Selection is remembered only after the original excluded Product capture
+  // staged these initial bodies. The Native Session still proves first-key
+  // eligibility independently; restored/missing adopted state cannot rekey.
+  self.initial_product_selected = originals is Some(_)
   let original_runtime = text_file(configuration_root, "runtime.json", 65536L)
   local_product_require_same_runtime_wire(
     original_runtime,
@@ -158,6 +255,7 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   }
   command_preparation_result(
     self.stage_product(location.parent_path, location.directory_name, None),
+    stage=Some("product-current"),
   )
   if optional(matches, "input-root") is None {
     matches.values["input-root"] = [
@@ -175,6 +273,7 @@ fn LocalCommandPreparationOriginal::execute_product_command(
     child,
     packaged_runtime=Some(physical),
     preparation=Some(self),
+    preparation_runtime=Some(runtime),
   )
 }
 
@@ -195,6 +294,8 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
   selected_additional : Array[(String, Bytes)],
   input_root : String,
   child : @argparse.Matches,
+  public_run? : Bool = false,
+  preparation_runtime? : LocalPackagedRuntime? = None,
 ) -> String raise ClientStop {
   let session = command_preparation_result(
     self.prepare_adoption(
@@ -207,8 +308,13 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
         configuration_files: selected_files,
         managed_root_path: Some(settings.managed_root),
       },
-      operation == "adopt",
+      operation == "adopt" ||
+      (
+        local_quick_query_requested(operation, child) &&
+        self.initial_product_selected
+      ),
     ),
+    stage=Some("adoption-open"),
   )
   let expected = [
     (name, @utf8.encode(configuration)),
@@ -223,10 +329,17 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
       stop("LocalConfigurationChanged")
     }
   }
-  // Only the actual explicit initializer may request its existing first-key
-  // branch. The Session independently decides eligibility and durable custody.
-  let initialize_signing = operation == "adopt" &&
-    child.flags.get("initialize-signing").unwrap_or(false)
+  // Trusted literal quick queries may initialize a genuinely absent default
+  // Host through the same original Session. This selects physical setup only,
+  // not Reviewer registration, Effect approval or missing-state repair.
+  let initialize_signing = (
+      operation == "adopt" &&
+      child.flags.get("initialize-signing").unwrap_or(false)
+    ) ||
+    (
+      local_quick_query_requested(operation, child) &&
+      self.initial_product_selected
+    )
   command_preparation_result(
     self.open_adopted_journal(initialize_signing, {
       initialize_signing,
@@ -234,6 +347,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
       max_records: settings.record_limit,
       max_snapshot_bytes: settings.snapshot_bytes,
     }),
+    stage=Some("journal-open"),
   )
   |> ignore
   let crypto = self.inner_library.unwrap()
@@ -250,8 +364,87 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             capture=Some(capture),
           )
         } else if operation == "explain" {
-          local_check_context(host, crypto, name, capture=Some(capture)).explain(
-            input_root, child,
+          if optional(child, "run") is Some(_) {
+            local_saved_run_explain(
+              host,
+              settings,
+              crypto,
+              child,
+              capture=Some(capture),
+            )
+          } else {
+            local_check_context(host, crypto, name, capture=Some(capture)).explain(
+              input_root, child,
+            )
+          }
+        } else if operation == "approve" || operation == "reject" {
+          local_checkpoint_answer_by_id(
+            host,
+            settings,
+            crypto,
+            operation,
+            child,
+            capture=Some(capture),
+          )
+        } else if operation == "status" {
+          local_saved_run_status_command(
+            host,
+            settings,
+            crypto,
+            input_root,
+            child,
+            capture=Some(capture),
+          )
+        } else if local_quick_query_requested(operation, child) {
+          let runtime = preparation_runtime.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          self.execute_original_quick_query(
+            host, capture, settings, name, runtime, input_root, operation, child,
+          )
+        } else if operation == "result" {
+          let runtime = preparation_runtime.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let physical = self.host.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let pair = self.pair.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let sqlite = physical
+            .borrow_local_host_sqlite(pair)
+            .unwrap_or_else(() => stop("LocalBusinessOriginalUnavailable"))
+          let selected = self.prepare_original_result(
+            host, capture, settings, name, runtime, sqlite, child,
+          )
+          local_public_result(
+            host,
+            settings,
+            crypto,
+            sqlite,
+            child,
+            prepared=Some(selected),
+          )
+        } else if public_run && operation == local_run_original_operation() {
+          let runtime = preparation_runtime.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let selection = self.prepare_business_submission(
+            host, capture, name, runtime, input_root, operation, child,
+          )
+          let physical = self.host.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let pair = self.pair.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          let sqlite = physical
+            .borrow_local_host_sqlite(pair)
+            .unwrap_or_else(() => stop("LocalBusinessOriginalUnavailable"))
+          self.execute_original_run_presentation(
+            host, capture, settings, crypto, sqlite, name, runtime, input_root, operation,
+            child, selection,
           )
         } else {
           let runtime = self.runtime.unwrap()

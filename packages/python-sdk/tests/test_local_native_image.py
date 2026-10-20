@@ -169,7 +169,7 @@ class NativeImageTests(unittest.TestCase):
         from image_fixture import PROVIDER
         (library.parent / 'libactql_native_control.dylib').write_bytes(PROVIDER)
         with patch('actql_sdk._local_engine.metadata.version', return_value=components.package_version), \
-                patch('actql_sdk._local_engine.resources.files', return_value=case.directory), \
+                patch('actql_sdk._local_engine.metadata.distribution', side_effect=AssertionError('Stock dependency discovery')), \
                 patch('actql_sdk._local_engine._load_selected_image', side_effect=AssertionError('Capture')):
             image = _checked_installed_image_file(components)
             self.assertEqual((image.path, image.length, image.sha256),

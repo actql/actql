@@ -119,10 +119,12 @@ class LocalByteStore:
 
     def __init__(self, path: Path, *, max_records: int,
                  max_record_bytes: int, max_payload_bytes: int,
+                 max_inspection_queries: int | None = None,
                  _new_file: tuple[LocalFileRoot, _PayloadFile] | None = None) -> None:
         self._prepare_physical_path(path, max_records=max_records,
                                     max_record_bytes=max_record_bytes,
-                                    max_payload_bytes=max_payload_bytes)
+                                    max_payload_bytes=max_payload_bytes,
+                                    max_inspection_queries=max_inspection_queries)
         path = self._physical_path
         if _new_file is not None:
             if (type(_new_file) is not tuple or len(_new_file) != 2
@@ -191,14 +193,18 @@ class LocalByteStore:
             raise
 
     def _prepare_physical_path(self, path: Path, *, max_records: int,
-                               max_record_bytes: int, max_payload_bytes: int) -> None:
+                               max_record_bytes: int, max_payload_bytes: int,
+                               max_inspection_queries: int | None = None) -> None:
         # Shared physical metadata only. No file, SQL connection, adoption or
         # fresh-file claim is acquired by this helper.
         if (type(max_records) is not int or not 1 <= max_records <= 1024
                 or type(max_record_bytes) is not int
                 or not 1 <= max_record_bytes <= 1_048_576
                 or type(max_payload_bytes) is not int
-                or not max_record_bytes <= max_payload_bytes <= 16_777_216):
+                or not max_record_bytes <= max_payload_bytes <= 16_777_216
+                or max_inspection_queries is not None and (
+                    type(max_inspection_queries) is not int
+                    or not 1 <= max_inspection_queries <= 65536)):
             raise ValueError('Invalid Local physical storage limits')
         self._lock = RLock()
         self._closed = False
@@ -209,6 +215,10 @@ class LocalByteStore:
         self._max_records = max_records
         self._max_record_bytes = max_record_bytes
         self._max_payload_bytes = max_payload_bytes
+        # Durable row capacity and repeated inspection work are independent.
+        # Unselected callers retain the original query ceiling exactly.
+        self._max_inspection_queries = (max_records if max_inspection_queries is None
+                                        else max_inspection_queries)
         # The path is installed trusted Host configuration, never Program input.
         path = path.absolute()
         parent = path.parent.lstat()
@@ -224,7 +234,8 @@ class LocalByteStore:
     @classmethod
     def initialize_owned_file(cls, path: Path, root: LocalFileRoot, original: _PayloadFile, *,
                               max_records: int, max_record_bytes: int,
-                              max_payload_bytes: int) -> 'LocalByteStore':
+                              max_payload_bytes: int,
+                              max_inspection_queries: int | None = None) -> 'LocalByteStore':
         """Open the same newly acquired file after the Host's durable marker.
 
         The original File Owner supplies the one-time physical claim, never a
@@ -238,7 +249,9 @@ class LocalByteStore:
             raise ValueError('Invalid original Local Store file root')
         with root._lock:
             return cls(path, max_records=max_records, max_record_bytes=max_record_bytes,
-                       max_payload_bytes=max_payload_bytes, _new_file=(root, original))
+                       max_payload_bytes=max_payload_bytes,
+                       max_inspection_queries=max_inspection_queries,
+                       _new_file=(root, original))
 
     @staticmethod
     def _file_generation(metadata: os.stat_result) -> tuple[int, int]:
@@ -934,7 +947,7 @@ class LocalByteStore:
                 lower = (self.namespaced_key(namespace, after)
                          if after or not scan else prefix)
                 upper = prefix[:-1] + ';'
-                if reads >= self._max_records:
+                if reads >= self._max_inspection_queries:
                     raise LocalStorageError('Local inventory inspection capacity exceeded')
                 reading = entered = True
                 fence()
@@ -1043,8 +1056,9 @@ class LocalByteStore:
         retained Core inputs are separately accounted by the Host. This method
         neither releases those resources nor acknowledges a publication.
 
-        Existing record/store limits bound the number and cumulative bytes of
-        reads, including repeats. Only one physical row is copied at a time.
+        The selected inspection-work limit bounds queries, including repeats;
+        the existing store byte limit bounds cumulative copies independently.
+        Only one physical row is copied at a time.
         A captured reader cannot be used later, concurrently or recursively.
         """
         if not callable(inspect) or not callable(current):
@@ -1078,7 +1092,7 @@ class LocalByteStore:
                     self._key(key)
                     if not callable(consume):
                         raise ValueError('Invalid Local publication observation consumer')
-                    if reads >= self._max_records:
+                    if reads >= self._max_inspection_queries:
                         raise LocalStorageError('Local publication inspection capacity exceeded')
                     reading = entered = True
                     fence()

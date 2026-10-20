@@ -435,6 +435,16 @@ fn NativeResultAccessSession::authorize_stage(
   if self.closed {
     return Err(InvalidProgress)
   }
+  self.authorize_current_stage(stage)
+}
+
+///|
+// Current authority/retention only. This does not open a reader, repeat an
+// attempt or alter the terminal Session; completed material uses it below.
+fn NativeResultAccessSession::authorize_current_stage(
+  self : NativeResultAccessSession,
+  stage : String,
+) -> Result[String, NativeResultAccessIssue] {
   let first = match observed_at(self.service) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -509,6 +519,19 @@ fn NativeResultAccessSession::authorize_stage(
     return Err(ResultUnavailable)
   }
   Ok(final_time)
+}
+
+///|
+/// Correlate an open acquired Session with its original Store and complete
+/// request. This observes identity only; it authorizes no output or receipt.
+pub fn NativeResultAccessSession::matches_original(
+  self : NativeResultAccessSession,
+  store : @store.Store,
+  request : NativeResultAccessRequest,
+) -> Bool {
+  !self.closed &&
+  physical_equal(self.service.store, store) &&
+  same_material_request(self.request, request)
 }
 
 ///|

@@ -33,10 +33,12 @@ priv struct HolderEffectHostSetupProfile {
 /// has no issuer, persistence, execution state or authority of its own.
 priv struct HolderEffectHostSetupScope {
   site : @site.ExecutionSite
-  profile : HolderEffectHostSetupProfile
+  profile : HolderEffectHostSetupProfile?
+  ordinary : HolderEffectHostOrdinaryLimits?
   // Origin/capacity preparation only; never a Store/read authorization.
   mut preparation_binding : (() -> Bool)?
-  // Production installs this only after entering the original read domain.
+  // Actual Site/Runtime current. An explicit mapped selection additionally
+  // requires the same entered Read domain.
   mut current_binding : (() -> Bool)?
   mut read_domain : HolderEffectHostReadDomain?
   mut read_parent : HolderEffectHostReadParent?
@@ -159,7 +161,8 @@ fn reserve_holder_effect_host_setup_scope(
   }
   let scope : HolderEffectHostSetupScope = {
     site,
-    profile: selected,
+    profile: Some(selected),
+    ordinary: None,
     preparation_binding: None,
     current_binding: None,
     read_domain: None,
@@ -182,6 +185,16 @@ fn reserve_holder_effect_host_setup_scope(
 fn holder_effect_host_read_scope_bound(
   scope : HolderEffectHostSetupScope,
 ) -> Bool {
+  if scope.ordinary is Some(_) {
+    return !scope.retiring &&
+      scope.pending is None &&
+      scope.depth > 0 &&
+      scope.profile is None &&
+      scope.operation is None &&
+      scope.caller_operation is None &&
+      scope.read_domain is None &&
+      scope.read_parent is None
+  }
   !scope.retiring &&
   scope.pending is None &&
   scope.depth > 0 &&
@@ -198,15 +211,18 @@ fn holder_effect_host_read_scope_bound(
 fn holder_effect_host_read_scope_prepared(
   scope : HolderEffectHostSetupScope,
 ) -> Bool {
+  let operation = scope.operation
   guard holder_effect_host_read_scope_bound(scope) &&
-    scope.operation is Some(operation) &&
     scope.preparation_binding is Some(prepared) &&
     prepared() else {
     return false
   }
   holder_effect_host_read_scope_bound(scope) &&
-  scope.operation is Some(actual_operation) &&
-  physical_equal(actual_operation, operation) &&
+  (match (operation, scope.operation) {
+    (Some(before), Some(after)) => physical_equal(before, after)
+    (None, None) => scope.ordinary is Some(_)
+    _ => false
+  }) &&
   scope.preparation_binding is Some(actual) &&
   physical_equal(actual, prepared)
 }
@@ -216,11 +232,11 @@ fn holder_effect_host_read_scope_current(
   scope : HolderEffectHostSetupScope,
 ) -> Bool {
   guard holder_effect_host_read_scope_bound(scope) &&
-    scope.current_binding is Some(current) &&
-    scope.operation is Some(operation) else {
+    scope.current_binding is Some(current) else {
     return false
   }
   let domain = scope.read_domain
+  let operation = scope.operation
   if !current() {
     // A stale/unknown runtime cannot be looked up again by leave/nested read.
     // Only original cleanup proceeds; this is not a physical close ACK.
@@ -230,16 +246,18 @@ fn holder_effect_host_read_scope_current(
   // Current callbacks may retire or replace an original handle reentrantly.
   // A missing domain after a real read was entered is never a model fallback.
   let valid = holder_effect_host_read_scope_bound(scope) &&
-    scope.operation is Some(actual_operation) &&
-    physical_equal(actual_operation, operation) &&
+    (match (operation, scope.operation) {
+      (Some(before), Some(after)) => physical_equal(before, after)
+      (None, None) => scope.ordinary is Some(_)
+      _ => false
+    }) &&
     scope.current_binding is Some(actual) &&
     physical_equal(actual, current) &&
     (match (domain, scope.read_domain) {
       (Some(before), Some(after)) =>
         physical_equal(before, after) &&
         holder_effect_host_read_domain_current(before)
-      // Arithmetic lifecycle fixtures install no physical read callback.
-      // Production only installs its guarded callback after domain entry.
+      // Ordinary platform mode and lifecycle fixtures have no mapped child.
       (None, None) => true
       _ => false
     })
@@ -261,6 +279,9 @@ fn with_holder_effect_host_site_metadata(
   scope : HolderEffectHostSetupScope,
   update : () -> Bool,
 ) -> Bool {
+  if scope.ordinary is Some(_) {
+    return update()
+  }
   guard scope.read_domain is Some(read) else {
     guard holder_effect_host_control_scope_clear_ffi() == 1 else {
       scope.retiring = true
@@ -335,6 +356,14 @@ fn enter_holder_effect_host_read_scope(
     scope.depth += 1
     return true
   }
+  if scope.ordinary is Some(_) {
+    scope.depth = 1
+    if !holder_effect_host_read_scope_current(scope) {
+      scope.depth = 0
+      return false
+    }
+    return true
+  }
   // The initial operation keeps its remainder and workspace through the
   // caller lifetime. Reuse that exact reservation, never acquire another one.
   guard scope.operation is None &&
@@ -375,7 +404,7 @@ fn leave_holder_effect_host_read_scope(
     !leave_holder_effect_host_read_domain(read) {
     return false
   }
-  if scope.depth == 0 && scope.pending is None {
+  if scope.depth == 0 && scope.pending is None && scope.ordinary is None {
     guard scope.operation is Some(operation) &&
       scope.caller_operation is Some(caller) &&
       physical_equal(operation, caller) else {
@@ -484,20 +513,33 @@ fn retain_holder_effect_host_snapshot(
   snapshot : Array[(String, String)],
   control_text_bytes? : Int64 = 0L,
 ) -> Bool {
+  if scope.ordinary is Some(_) {
+    // These are copied managed values. Detaching the installed payload ends
+    // the Host's references; GC completion is not a physical cleanup ACK.
+    return holder_effect_host_read_scope_current(scope) &&
+      scope.depth == 1 &&
+      scope.holding is None &&
+      root.length() <= 4096 &&
+      snapshot.length() == 11 &&
+      snapshot.all(entry => entry.0.length() <= 512 && entry.1.length() <= 512)
+  }
   guard holder_effect_host_read_scope_current(scope) &&
     scope.depth == 1 &&
     scope.holding is None &&
     scope.operation is Some(operation) &&
     holder_effect_host_snapshot_extent(
-      scope.profile,
+      scope.profile.unwrap(),
       root,
       snapshot,
       control_text_bytes~,
     )
     is Some(bytes) &&
-    holder_effect_host_extent_add(bytes, scope.profile.caller_retained_bytes)
+    holder_effect_host_extent_add(
+      bytes,
+      scope.profile.unwrap().caller_retained_bytes,
+    )
     is Some(partition) &&
-    partition <= scope.profile.setup_retained_bytes else {
+    partition <= scope.profile.unwrap().setup_retained_bytes else {
     return false
   }
   with_holder_effect_host_site_metadata(scope, () => {
@@ -517,6 +559,20 @@ fn quiesce_holder_effect_host_setup_scope(
   scope : HolderEffectHostSetupScope,
 ) -> Bool {
   scope.retiring = true
+  if scope.ordinary is Some(_) {
+    guard scope.depth >= 0 &&
+      scope.depth <= 1 &&
+      scope.operation is None &&
+      scope.caller_operation is None &&
+      scope.read_domain is None &&
+      scope.read_parent is None else {
+      return false
+    }
+    scope.depth = 0
+    scope.preparation_binding = None
+    scope.current_binding = None
+    return true
+  }
   guard scope.caller_operation is Some(caller) &&
     scope.depth >= 0 &&
     scope.depth <= 1 else {
@@ -680,6 +736,7 @@ fn detach_holder_effect_host_setup(resources : HolderOutputResources) -> Bool {
     )
     resources.effect_host_caller_operation = operation
     resources.effect_host_caller_current = current
+    resources.effect_host_caller_ordinary = original.ordinary is Some(_)
     resources.effect_host_holding.val = original.holding
     resources.effect_host_cleanup.val = original.cleanup
     original.holding = None

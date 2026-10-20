@@ -84,7 +84,7 @@ fn local_product_operation(operation : String) -> Bool {
     "new-submission", "lookup-submission", "lookup-request", "checkpoint-state",
     "lookup-preparation-grant", "lookup-preparation-raw", "lookup-cancellation",
     "cancel", "delivery-attempt", "read", "result", "start", "aql", "sql", "run",
-    "status",
+    "status", "approve", "reject",
   ].contains(operation)
 }
 

@@ -351,7 +351,8 @@ pub fn close_preparation(nonce : Int64, handle : Int) -> Int {
 pub fn close_environment(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.environments.get(handle) is Some(record) else { return -2 }
-  if value.preparations.values().any(prepared => prepared.environment == handle) {
+  if value.preparations.values().any(prepared => prepared.environment == handle) ||
+    value.client_checks.values().any(report => report.environment == handle) {
     return -9
   }
   let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))

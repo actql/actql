@@ -52,8 +52,8 @@ a complete Program with mock fixtures that runs without credentials. The
 ## Quick queries
 
 ```text
-actql sql <query> [--params <file>] [--format <table|json|jsonl|csv>] [--output <file>]
-actql aql <query> [--params <file>] [--format <table|json|jsonl|csv>] [--output <file>]
+actql sql <query> [--parameter-declarations-file <file>] [--params <file>] [--format <table|json|jsonl|csv>] [--output <file>] [--json]
+actql aql <query> [--parameter-declarations-file <file>] [--params <file>] [--format <table|json|jsonl|csv>] [--output <file>] [--json]
 ```
 
 ```text
@@ -70,6 +70,52 @@ id    name
 (`table` by default). They are the command-line form of the libraries' `sql()`
 and `aql()`: read-only, no Effects, no Checkpoints. A query with an Effect is
 refused; put it in a Program file and use `run`.
+
+For quick queries, `--json` selects structured command diagnostics on stderr.
+It does not change the Result row encoding chosen by `--format`, wrap successful
+rows in a command-response object, or turn a delivery failure into success.
+
+For `@name` parameters, `--parameter-declarations-file` supplies a JSON object
+of named value contracts; `--params` supplies a separate JSON object of values.
+Values do not infer types or nullability. For example, save these two files:
+
+```json
+{"id":{"type":"number","nullable":false}}
+```
+
+as `declarations.json`, and:
+
+```json
+{"id":7}
+```
+
+as `parameters.json`, then run:
+
+```sh
+actql sql 'SELECT @id AS id' --parameter-declarations-file declarations.json --params parameters.json --format jsonl
+```
+
+The result is `{"id":7}`. An undeclared parameter, a missing required value or
+a value outside its declared contract is refused. The same option works with
+literal Pipe queries through `aql`.
+
+Program, declaration and parameter file paths may be absolute or relative to
+the selected input directory (the working directory by default). Ordinary file
+names preserve spaces and Unicode; the same byte, JSON and value-contract
+limits apply.
+
+With an explicit `json`, `jsonl` or `csv` format, `--output` delivers that saved
+Result to an exclusively created file instead of stdout:
+
+```sh
+actql sql 'SELECT 1 AS id' --format jsonl --output rows.jsonl
+```
+
+Existing destinations are not overwritten. A delivery failure after submission
+reports the original Run ID; inspect that Run instead of repeating the query.
+Outside a project, `result <run-id>` and `status <run-id>` restore the existing
+default Local Host; they do not initialize an absent Host. Explicit Remote or
+installation selections retain their precedence.
 
 ## Configuration
 
@@ -146,7 +192,12 @@ actually used, from its record. See [Plans and pushdown](guides/plans-and-pushdo
 | `--json` | Print the Run state as data instead of the human summary |
 
 `run` publishes Results and reports the Run state; it does not stream rows.
-Read them with `result` or deliver them to files.
+Read them with `result` or deliver them to files. `run --output` writes the sole
+Result as JSONL; repeated `--deliver` entries select their own formats.
+`run --receipt` exports the original Run receipt, independently of per-delivery
+receipts. Existing destinations are not replaced. If export or delivery fails
+after admission, inspect the reported original Run instead of resubmitting the
+Program; files already delivered are not rolled back.
 
 All three commands accept `--connectors`, `--model-tasks` and `--lock` to
 override the configured files, and `--bindings <file>` for pre-bound inputs.
@@ -192,7 +243,23 @@ the write. If the outcome is still unknown, the Run stays in
 
 **`result`** reads a named Result of a finished Run — to stdout with
 `--format`, or to files with `--output` / `--deliver`. `--receipt` saves a
-delivery receipt for `verify output`.
+delivery receipt for `verify output`. One requested delivery writes the existing
+canonical receipt object unchanged. Multiple requested `--deliver` selections
+write an ordered JSON array of the successful per-delivery receipt objects;
+partial failure still uses an array with zero or one object. Each destination
+has its own outcome and receipt. Exporting the array does not certify aggregate
+success or roll back files, and retrying receipt export must not resend output.
+`run --receipt` remains a Run receipt.
+Native Local file delivery creates each destination exclusively. Repeating the
+same Run, Result, format and destination inspects the existing attempt first:
+a completed output must still match its original file identity and bytes;
+unresolved attempts are not resent. Existing unrelated files are not replaced.
+Receipt export also uses exclusive creation, so choose an absent receipt path.
+
+```sh
+actql result run_… --deliver answer=jsonl:answer.jsonl --deliver answer=csv:answer.csv --receipt deliveries.json
+actql verify output deliveries.json answer.jsonl --json
+```
 
 ```text
 $ actql result run_… --result updates --format jsonl
@@ -249,6 +316,10 @@ actql schema
 syntax and `schema` the JSON schema of the Program model. Agents use these
 instead of guessing.
 
+`schema` writes the registered Program JSON Schema as one JSON object followed
+by a newline. It does not inspect a database, select a project, initialize a
+Local Host or create a Run. It works in an empty directory without credentials.
+
 ## Integrity
 
 ```text
@@ -262,7 +333,16 @@ actql version
 **`lock`** writes `actql.lock.json`, pinning the versions of every Connector
 and model task the project uses; `verify lock` confirms the installed ones
 still match. **`verify output`** checks a delivered Result file against its
-receipt. **`doctor`** reports the installation, the configuration it found
+receipt. The receipt file accepts one closed Result delivery receipt object or
+an array of at most 16 such objects (64 KiB total). Every supplied object and
+self-CID must validate, including nonmatching members. The explicit output is
+read with a 512 MiB limit and must match both its byte count and SHA256. An empty
+array, zero matches, an invalid unrelated object or a modified CID fails.
+Equal bytes may match several legitimate receipts: `--json` reports all distinct
+matching `receipt_cids`, `matching_receipt_count`, `supplied_receipt_count`,
+`byte_count`, `sha256`, and `verified: true`. Other valid receipts make no claim
+about unprovided files. Verification is an integrity check and grants no
+read, delivery or Effect authority. **`doctor`** reports the installation, the configuration it found
 and what is wrong with either, without contacting anything; `doctor --connect`
 also tries each configured connection and provider.
 
@@ -290,6 +370,15 @@ when sharing output.
 | `2` | The command line is invalid |
 
 Errors carry a stable `ACTQL_E_*` code in both the human output and the JSON.
+When a command fails before a Run exists, `--json` writes one diagnostic
+object such as `{"code":"ACTQL_E_PARAMETER_MISSING","message":"A required declared parameter has no supplied value or default."}`
+to stderr and leaves stdout empty. Human diagnostics expose the same code and
+message. `ACTQL_E_PARAMETER_INVALID` reports an original supplied-value type or
+constraint rejection; neither code causes a second preparation or submission.
+Diagnostics omit parameter values and authored Program text. A separate cleanup
+failure remains a separate `ACTQL_E_CLEANUP_PENDING` diagnostic; it does not
+erase the primary failure or establish cleanup completion. A real Run retains
+its existing Run state, terminal outcome and delivery reports.
 Unknown commands, unknown options and extra arguments are errors; options may
 come before or after the Program path.
 

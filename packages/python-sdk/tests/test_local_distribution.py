@@ -4,6 +4,7 @@ import hashlib
 from importlib import metadata
 import importlib.util
 import json
+import os
 from pathlib import Path
 import struct
 import tempfile
@@ -15,6 +16,7 @@ from image_fixture import IMAGE, ORIGINAL, descriptor
 
 from actql_sdk._local_distribution import (
     inspect_local_components, installed_local_components, load_local_module, LocalInstallationError,
+    LocalComponentReadCleanupPending, _read_file,
 )
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -28,7 +30,7 @@ class LocalDistributionTests(unittest.TestCase):
         self.enterContext(patch('actql_sdk._local_distribution.sys.platform', 'darwin'))
         self.enterContext(patch('actql_sdk._local_distribution.platform.machine', return_value='arm64'))
         self.body = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0',
-                     'platform': 'darwin-arm64', 'core_abi': 74, 'wasmtime_version': '38.0.0',
+                     'platform': 'darwin-arm64', 'core_abi': 75, 'wasmtime_version': '38.0.0',
                      'duckdb_version': 'v1.4.3', 'notices': {}}
         for name, key in [('client_host_wasm.wasm', 'module'), ('libduckdb.dylib', 'duckdb')]:
             value = b'fixture component ' + name.encode()
@@ -50,6 +52,95 @@ class LocalDistributionTests(unittest.TestCase):
 
     def inspect(self):
         return inspect_local_components(self.directory, package_version='0.0.0.dev0')
+
+    def test_installed_reader_keeps_fd_custody_without_buffered_handoff(self):
+        path = self.directory / 'reader-original'
+        path.write_bytes(b'original input')
+        opened = []
+        real_open = os.open
+        def capture(*args, **kwargs):
+            descriptor = real_open(*args, **kwargs)
+            opened.append(descriptor)
+            return descriptor
+        try:
+            with patch('actql_sdk._local_distribution.os.open', side_effect=capture), \
+                 patch('actql_sdk._local_distribution.os.fdopen',
+                       side_effect=MemoryError('Buffered handoff failed')) as buffered:
+                self.assertEqual(_read_file(path, maximum=64), b'original input')
+            buffered.assert_not_called()
+            self.assertEqual(len(opened), 1)
+            with self.assertRaises(OSError): os.fstat(opened[0])
+        finally:
+            # The red probe also owns its actual descriptor; a failed assertion
+            # must not leave the fresh fixture's original open.
+            for descriptor in opened:
+                try: os.close(descriptor)
+                except OSError: pass
+
+    def test_input_construction_failure_closes_the_same_actual_fd(self):
+        path = self.directory / 'reader-original'
+        path.write_bytes(b'original input')
+        opened = []
+        real_open = os.open
+        def capture(*args, **kwargs):
+            descriptor = real_open(*args, **kwargs)
+            opened.append(descriptor)
+            return descriptor
+        failure = MemoryError('Checksum construction failed')
+        with patch('actql_sdk._local_distribution.os.open', side_effect=capture), \
+             patch('actql_sdk._local_distribution.hashlib.sha256', side_effect=failure):
+            with self.assertRaises(MemoryError) as caught: _read_file(path, maximum=64)
+        self.assertIs(caught.exception, failure)
+        self.assertEqual(len(opened), 1)
+        with self.assertRaises(OSError): os.fstat(opened[0])
+
+    def test_input_close_loss_keeps_original_and_never_closes_reused_number(self):
+        path = self.directory / 'reader-original'
+        path.write_bytes(b'original input')
+        real_close = os.close
+        closed = []
+        failure = OSError('Close acknowledgement lost')
+        def lose_reply(descriptor):
+            real_close(descriptor)
+            closed.append(descriptor)
+            raise failure
+        with patch('actql_sdk._local_distribution.os.close', side_effect=lose_reply) as close:
+            with self.assertRaises(LocalComponentReadCleanupPending) as caught:
+                _read_file(path, maximum=64)
+            original = caught.exception.cleanup_descriptor
+            self.assertIs(caught.exception.cleanup_error, failure)
+            self.assertIsNone(caught.exception.original_error)
+            self.assertTrue(original.close_attempted)
+            self.assertFalse(original.closed)
+            self.assertEqual(closed, [original.value])
+            replacement = os.open(path, os.O_RDONLY | os.O_CLOEXEC)
+            try:
+                self.assertEqual(replacement, original.value)
+                # Observation/cleanup must not issue another close, even if the
+                # OS has already reused the old original's descriptor number.
+                with self.assertRaises(RuntimeError): original.close()
+                self.assertEqual(close.call_count, 1)
+                self.assertEqual(os.fstat(replacement).st_ino, path.stat().st_ino)
+            finally:
+                real_close(replacement)
+
+    def test_input_primary_and_unconfirmed_close_retain_both_original_causes(self):
+        path = self.directory / 'reader-original'
+        path.write_bytes(b'original input')
+        primary = OSError('Original read failed')
+        cleanup = OSError('Original close failed')
+        with patch('actql_sdk._local_distribution.os.read', side_effect=primary), \
+             patch('actql_sdk._local_distribution.os.close', side_effect=cleanup) as close:
+            with self.assertRaises(LocalComponentReadCleanupPending) as caught:
+                _read_file(path, maximum=64)
+            original = caught.exception.cleanup_descriptor
+            self.assertIs(caught.exception.original_error, primary)
+            self.assertIs(caught.exception.cleanup_error, cleanup)
+            self.assertEqual(close.call_count, 1)
+            self.assertEqual(os.fstat(original.value).st_ino, path.stat().st_ino)
+        # This fixture's original close is known not to have executed. Dispose
+        # only the fixture outside the failed production carrier.
+        os.close(original.value)
 
     def test_exact_installed_component_paths_without_engine_import(self):
         with patch('actql_sdk._local_core.import_module', side_effect=AssertionError('Engine imported')):
@@ -87,7 +178,7 @@ class LocalDistributionTests(unittest.TestCase):
     def test_manifest_cohort_abi_and_closed_fields_reject(self):
         original = dict(self.body)
         for field, value in [('source_sha', 'a' * 39), ('package_version', 'other'),
-                             ('core_abi', 43), ('core_abi', 44), ('core_abi', 45), ('core_abi', 46), ('core_abi', 47), ('core_abi', 48), ('core_abi', 49), ('core_abi', 50), ('core_abi', 51), ('core_abi', 52), ('core_abi', 53), ('core_abi', 54), ('core_abi', 55), ('core_abi', 56), ('core_abi', 57), ('core_abi', 58), ('core_abi', 64), ('core_abi', 65), ('core_abi', 66), ('core_abi', 67), ('core_abi', 68), ('core_abi', 69), ('core_abi', 70), ('core_abi', 71), ('core_abi', 72), ('core_abi', 73), ('core_abi', True), ('platform', 'linux-x64'),
+                             ('core_abi', 43), ('core_abi', 44), ('core_abi', 45), ('core_abi', 46), ('core_abi', 47), ('core_abi', 48), ('core_abi', 49), ('core_abi', 50), ('core_abi', 51), ('core_abi', 52), ('core_abi', 53), ('core_abi', 54), ('core_abi', 55), ('core_abi', 56), ('core_abi', 57), ('core_abi', 58), ('core_abi', 64), ('core_abi', 65), ('core_abi', 66), ('core_abi', 67), ('core_abi', 68), ('core_abi', 69), ('core_abi', 70), ('core_abi', 71), ('core_abi', 72), ('core_abi', 73), ('core_abi', 74), ('core_abi', True), ('platform', 'linux-x64'),
                              ('wasmtime_version', '37.0.0'), ('duckdb_version', 'unknown'),
                              ('extra', 'ignored')]:
             with self.subTest(field=field, value=value):
@@ -180,7 +271,7 @@ class LocalDistributionTests(unittest.TestCase):
                 installed_local_components()
 
     def test_installed_resolver_uses_matching_cohort_and_optional_dependency(self):
-        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 74,
+        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 75,
                    'artifact_sha256': hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest(),
                    'host_capacity_sha256': 'c' * 64}
         (self.directory / '_local_release_binding.json').write_text(json.dumps(binding))
@@ -203,7 +294,7 @@ class LocalDistributionTests(unittest.TestCase):
     def test_runtime_manifest_cannot_rebind_same_version_sdk_and_missing_binding_has_no_fallback(self):
         versions = {'actql': '0.0.0.dev0', 'actql-sdk': '0.0.0.dev0',
                     'actql-local-runtime': '0.0.0.dev0', 'wasmtime': '38.0.0'}
-        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 74,
+        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 75,
                    'artifact_sha256': hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest(),
                    'host_capacity_sha256': 'c' * 64}
         path = self.directory / '_local_release_binding.json'
@@ -221,6 +312,35 @@ class LocalDistributionTests(unittest.TestCase):
             binding['artifact_sha256'] = hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest()
             path.write_text(json.dumps(binding))
             with self.assertRaisesRegex(LocalInstallationError, 'source do not match'):
+                installed_local_components()
+
+    def test_platform_binding_requires_same_recipe_without_a_fabricated_capacity(self):
+        original = json.loads(ORIGINAL)
+        original.update(runtime_allocation='platform', provider_library_sha256=None,
+                        provider_library_bytes=None)
+        encoded = json.dumps(original).encode()
+        (self.directory / 'engine-recipe.json').write_bytes(encoded)
+        self.body['engine_recipe'].update(bytes=len(encoded), sha256=hashlib.sha256(encoded).hexdigest())
+        self.body['compiled_image'].update(runtime_allocation='platform', provider_library_sha256=None)
+        self.write_manifest()
+        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 75,
+                   'artifact_sha256': hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest(),
+                   'runtime_allocation': 'platform'}
+        path = self.directory / '_local_release_binding.json'
+        path.write_text(json.dumps(binding))
+        versions = {'actql': '0.0.0.dev0', 'actql-sdk': '0.0.0.dev0',
+                    'actql-local-runtime': '0.0.0.dev0', 'wasmtime': '38.0.0'}
+        with patch('actql_sdk._local_distribution.metadata.version', side_effect=versions.__getitem__), \
+                patch('actql_sdk._local_distribution.resources.files', return_value=self.directory):
+            selected = installed_local_components()
+            self.assertEqual(selected.image_recipe.runtime_allocation, 'platform')
+            self.assertFalse((self.directory / '_local_host_capacity.json').exists())
+            for change in ({'runtime_allocation': 'native-owned'}, {'host_capacity_sha256': 'c' * 64}):
+                path.write_text(json.dumps(binding | change))
+                with self.assertRaises(LocalInstallationError): installed_local_components()
+            path.write_text(json.dumps({k: v for k, v in binding.items() if k != 'runtime_allocation'}
+                                      | {'host_capacity_sha256': 'c' * 64}))
+            with self.assertRaisesRegex(LocalInstallationError, 'allocation differ'):
                 installed_local_components()
 
     def test_recipe_and_sdk_versions_dependencies_are_one_cohort(self):

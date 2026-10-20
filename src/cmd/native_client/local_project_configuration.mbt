@@ -13,12 +13,14 @@ priv struct LocalProjectConfiguration {
 fn local_project_absolute_path(
   directory : String,
   selected : String,
+  ordinary_file? : Bool = false,
+  ordinary_directory? : Bool = false,
 ) -> String raise ClientStop {
   if (directory != "/" && !local_product_path(directory)) ||
-    directory.contains("\\") ||
+    (!ordinary_file && directory.contains("\\")) ||
     selected.is_empty() ||
     selected.length() > 4096 ||
-    selected.contains("\\") ||
+    (!ordinary_file && selected.contains("\\")) ||
     selected.contains("\u{0000}") {
     stop("InvalidProjectConfigurationPath")
   }
@@ -41,7 +43,8 @@ fn local_project_absolute_path(
     }
   }
   let absolute = "/" + parts.join("/")
-  if !local_product_path(absolute) {
+  if !(ordinary_file && ordinary_directory && absolute == "/") &&
+    !local_product_path(absolute) {
     stop("InvalidProjectConfigurationPath")
   }
   absolute
@@ -100,6 +103,27 @@ fn local_project_default_local_candidate(
     }
   }
   true
+}
+
+///|
+// Saved public operands select only an existing Local installation. The
+// original Run/Account/Store lookup remains authoritative; no ref file is
+// inferred and this selection never authorizes initialization or a new Run.
+fn local_project_saved_run_requested(
+  matches : @argparse.Matches,
+) -> Bool raise ClientStop {
+  guard matches.subcommand is Some((operation, child)) &&
+    optional(child, "ref-file") is None &&
+    optional(child, "submission-ref-file") is None else {
+    return false
+  }
+  if operation == "result" {
+    optional(child, "run") is Some(_)
+  } else if operation == "status" {
+    optional(child, "run") is Some(_) || optional(child, "run-id") is Some(_)
+  } else {
+    false
+  }
 }
 
 ///|
@@ -328,6 +352,16 @@ fn local_project_apply_selection(
       matches.values["mode"] = ["local"]
     }
     matches.values["state-dir"] = [project.state_directory]
+  } else if local_project_default_local_candidate(matches) &&
+    matches.subcommand is Some((operation, child)) &&
+    (
+      local_quick_query_requested(operation, child) ||
+      local_project_saved_run_requested(matches)
+    ) {
+    // Literal queries may initialize only under their existing first-use rule.
+    // Saved operands only restore that original Host. Explicit Remote and
+    // connection choices never enter this branch.
+    matches.values["mode"] = ["local"]
   }
 }
 

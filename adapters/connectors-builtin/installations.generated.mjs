@@ -4,6 +4,21 @@
 // version and loads only that connector's module and provider bundle.
 export const installedConnectors = Object.freeze([
   Object.freeze({
+    name: "calendar", registration: "calendar",
+    revision: "calendar/0.1",
+    implementationFiles: Object.freeze([
+      Object.freeze({path: "adapters/connectors/calendar/host/installed-calendar-source.mjs", href: new URL("../connectors/calendar/host/installed-calendar-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/calendar/site/calendar-list-read.mjs", href: new URL("../connectors/calendar/site/calendar-list-read.mjs", import.meta.url).href}),
+    ]),
+    providerBundle: "connectors/calendar/host_node",
+    responseHeaders: Object.freeze([]),
+    source: Object.freeze({
+      profileVersion: "actql-installed-calendar-source/0.1",
+      load: () => import("../connectors/calendar/host/installed-calendar-source.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledCalendarSourceProfile, identityParts: module.installedCalendarSourceIdentityParts, load: module.loadInstalledCalendarSource})),
+    }),
+  }),
+  Object.freeze({
     name: "gcs", registration: "gcs",
     revision: "gcs/0.1",
     implementationFiles: Object.freeze([
@@ -56,7 +71,9 @@ export const installedConnectors = Object.freeze([
     revision: "gmail/0.1",
     implementationFiles: Object.freeze([
       Object.freeze({path: "adapters/connectors/gmail/host/installed-gmail-source.mjs", href: new URL("../connectors/gmail/host/installed-gmail-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/gmail/host/thread-reader.mjs", href: new URL("../connectors/gmail/host/thread-reader.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gmail/site/gmail-label-list-read.mjs", href: new URL("../connectors/gmail/site/gmail-label-list-read.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/gmail/site/gmail-thread-read.mjs", href: new URL("../connectors/gmail/site/gmail-thread-read.mjs", import.meta.url).href}),
     ]),
     providerBundle: "connectors/gmail/host_node",
     responseHeaders: Object.freeze([]),

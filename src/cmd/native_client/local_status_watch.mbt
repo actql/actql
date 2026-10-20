@@ -241,12 +241,32 @@ fn local_saved_run_status_command(
   crypto : @local_crypto.Library,
   input_root : String,
   child : @argparse.Matches,
+  capture? : @local_host.NativeLocalJournalCapture? = None,
 ) -> String raise ClientStop {
   guard local_status_watch_options(child) is Some(options) else {
-    return local_saved_run_status(host, settings, crypto, input_root, child)
+    return local_saved_run_status(
+      host,
+      settings,
+      crypto,
+      input_root,
+      child,
+      capture~,
+    )
   }
   let scope = local_host_result(
-    host.authority_scope_cid(settings.principal, settings.connection, crypto),
+    match capture {
+      None =>
+        host.authority_scope_cid(
+          settings.principal,
+          settings.connection,
+          crypto,
+        )
+      Some(original) =>
+        original.authority_scope_cid_in_original_read(
+          settings.principal,
+          settings.connection,
+        )
+    },
   )
   if !local_status_watch_begin_ffi() {
     if !local_status_watch_end_ffi() {
@@ -263,10 +283,18 @@ fn local_saved_run_status_command(
         input_root,
         child,
         state_only=true,
+        capture~,
       )
     },
     current: () => {
-      local_run_operation_allowed(host, settings, crypto, scope, "read")
+      local_run_operation_allowed(
+        host,
+        settings,
+        crypto,
+        scope,
+        "read",
+        capture~,
+      )
     },
     now_ms: local_status_watch_now_ffi,
     pause_ms: local_status_watch_pause_ffi,

@@ -19,9 +19,9 @@ struct NativeLocalProductConfigurationSession {
 
 ///|
 fn product_original_names(originals : Array[(String, Bytes)]) -> Bool {
-  // Account plus the existing eight selected configuration originals. No
-  // increase to the installation selection or per-file intake bounds.
-  if originals.is_empty() || originals.length() > 9 {
+  // Account plus ten selected configuration originals, including the
+  // distinct Material, File and packaged runtime selections. Per-file and wire intake bounds stay fixed.
+  if originals.is_empty() || originals.length() > 11 {
     return false
   }
   for index, original in originals {
@@ -156,7 +156,7 @@ fn begin_native_local_product_configuration_original(
         Ok(Some(_)) => return Err(CustodyLost)
         Err(issue) => return Err(Filesystem(issue))
       }
-      for index in 0..<9 {
+      for index in 0..<11 {
         for suffix in [".claim", ".custody"] {
           match
             parent.inspect_generation(
@@ -531,7 +531,7 @@ fn restore_native_local_product_configuration_original(
     Err(_) => return Err(CustodyLost)
   }
   keys.sort()
-  if keys.is_empty() || keys.length() > 9 {
+  if keys.is_empty() || keys.length() > 11 {
     return Err(CustodyLost)
   }
   let root = match local_adoption_open_child(parent, directory_name, custody) {

@@ -392,13 +392,20 @@ require every field, and the complete four-argument source path is unchanged.
 `DECIMAL_DIVIDE(left, right, precision, scale, rounding)` preserves both
 original operands in source order. The left is Decimal; the right is Decimal
 or an original Number whose evaluated value is a safe integer. Precision,
-scale and rounding retain the same literal target roles as `QUANTIZE`.
-Lowering emits the existing closed `decimal_divide` body. Common computes the
-exact coefficient ratio and rounds once at the explicit target scale; zero
-divisors, unrepresentable results and invalid Number divisors fail. Immediate
+scale and rounding retain the same literal target roles as `QUANTIZE`, with
+`exact` admitted only for division. The original five named rounding modes retain
+their old explicit behavior. SQL/Pipe `DECIMAL_DIVIDE(left,right,scale)` MUST emit
+the complete body with precision38, original integer-literal scale in `0..38`
+and `rounding: exact`, including transparent parentheses. Parameter, field and
+computed scale expressions cannot choose the target. Common requires zero
+remainder in the original coefficient ratio and a fitting result coefficient;
+inexact quotients fail instead of selecting a hidden rounding policy. Structured
+bodies still require all five fields. No omitted-scale policy is supplied.
+Lowering retains both original child subtrees in source order. Zero divisors,
+unrepresentable results and invalid Number divisors fail. Immediate
 NULL uses the explicit Decimal target and original peer context, remains NULL,
-and never suppresses a demanded child error. No default target, frontend
-arithmetic, implicit domain promotion or intermediate binary64 product is used.
+and never suppresses a demanded child error. No frontend arithmetic, implicit
+domain promotion or intermediate binary64 product is used.
 
 `TO_STRING(value)`, `TO_BOOLEAN(value)` and `TO_TIMESTAMP(value)` each take
 exactly one operand and lower to the existing Common `cast` node with target
@@ -420,6 +427,20 @@ Common CAST typing determines which input domains are admitted. Ordinary
 case-insensitive and quoted function lookup applies; a foreign namespace does
 not select this conversion. This spelling does not add another machine node or
 change any previously admitted canonical expression body.
+
+`TRY_NUMBER(value)` takes exactly one original operand and lowers to the
+existing closed Common `{try_number: {value: operand}}` body. It does not
+parse, evaluate, duplicate or replace the operand in the frontend. The existing
+Common owner retains String parsing or admitted finite Number identity,
+nullable Number output, strict child demand and the rule that only a non-null
+unparsable String becomes NULL. Number identity does not format or parse text.
+Parameter binding, missing/foreign names,
+String profile admission, finite input/output envelope, Host policy and ordinary
+control/workspace limits remain with their existing owners; lowering a call
+supplies none of those facts. Ordinary case-insensitive and quoted lookup
+applies, with no foreign-namespace alias. Previously admitted authored expression
+bodies remain unchanged; the current normative Number identity is explicit in
+the existing Common expression and scalar laws.
 
 `CONTAINS(value, part)` selects ActQL's existing ordered binary `contains`
 String predicate. It performs exact substring matching without normalization,
@@ -637,6 +658,16 @@ original value unchanged. Any SQL NULL operand produces SQL NULL. No Unicode
 or line-ending normalization is implicit. The STRING overload is connected;
 BYTES and explicit collation remain separate coverage gaps. The scalar function
 is independent of the SELECT star REPLACE clause described above.
+
+`UTF8_TRUNCATE(value, max_bytes)` in SQL and Pipe retains the existing Common
+named-body `utf8_truncate` expression and both original child expressions.
+Its non-negative safe-integer byte limit selects the greatest UTF-8 prefix
+ending at a complete Unicode scalar. The Common text-time profile, original
+checked input/output envelope and demanded runtime input preflight remain
+required; the Frontend does not encode, slice, normalize or evaluate the text.
+Dynamic limits retain their ordinary Number domain checks on demanded rows.
+Both children are demanded before NULL propagation, while an enclosing lazy
+conditional or coalesce keeps its existing row mask and first-failure order.
 
 For `ARRAY_AGG` and `STRING_AGG` with DISTINCT and aggregate-local ORDER BY,
 each ordering expression must denote the aggregate argument in the same input

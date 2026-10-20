@@ -33,7 +33,23 @@ fn local_run_operation_allowed(
   crypto : @local_crypto.Library,
   scope : String,
   operation : String,
+  capture? : @local_host.NativeLocalJournalCapture? = None,
 ) -> Bool {
+  if capture is Some(original) {
+    return original.authority_scope_cid_in_original_read(
+        settings.principal,
+        settings.connection,
+      )
+      is Ok(current) &&
+      current == scope &&
+      original.authorize_in_original_read({
+        principal: settings.principal,
+        connection: settings.connection,
+        resource: "run",
+        operation,
+      })
+      is Ok(Allow(_))
+  }
   host.authority_scope_cid(settings.principal, settings.connection, crypto)
   is Ok(current) &&
   current == scope &&
@@ -47,6 +63,28 @@ fn local_run_operation_allowed(
 }
 
 ///|
+// Both literal queries and file-backed text retain the same bounded declaration
+// input. Values never infer declarations, defaults or nullability.
+fn local_aql_intent_input(
+  root : String,
+  text : String,
+  format : String,
+  child : @argparse.Matches,
+) -> Json raise ClientStop {
+  let input : Map[String, Json] = Map([
+    ("text", Json::string(text)),
+    ("format", Json::string(format)),
+  ])
+  if optional(child, "parameter-declarations-file") is Some(file) {
+    if format != "aql-text" && format != "sql" {
+      stop("external declarations require aql-text or sql")
+    }
+    input["parameterDeclarations"] = local_input_json_file(root, file, 65536L)
+  }
+  Json::object(input)
+}
+
+///|
 fn local_intent_wire(
   root : String,
   operation : String,
@@ -55,39 +93,32 @@ fn local_intent_wire(
   let stop_before = native_requested_stop_before(child)
   let query = local_quick_query_requested(operation, child)
   let input = if query {
-    Json::object(
-      Map([
-        ("text", Json::string(required(child, "query"))),
-        (
-          "format",
-          Json::string(if operation == "sql" { "sql" } else { "aql-text" }),
-        ),
-      ]),
+    local_aql_intent_input(
+      root,
+      required(child, "query"),
+      if operation == "sql" {
+        "sql"
+      } else {
+        "aql-text"
+      },
+      child,
     )
   } else if operation == "start" {
-    json_file(root, required(child, "program-file"), 65536L)
+    local_input_json_file(root, required(child, "program-file"), 65536L)
   } else {
     let format = required(child, "format")
     guard @frontend.select_format(format) is Ok(_) else {
       stop("UnsupportedLocalSourceFormat")
     }
-    let input : Map[String, Json] = Map([
-      (
-        "text",
-        Json::string(text_file(root, required(child, "program-file"), 65536L)),
-      ),
-      ("format", Json::string(format)),
-    ])
-    if optional(child, "parameter-declarations-file") is Some(file) {
-      if format != "aql-text" && format != "sql" {
-        stop("external declarations require aql-text or sql")
-      }
-      input["parameterDeclarations"] = json_file(root, file, 65536L)
-    }
-    Json::object(input)
+    local_aql_intent_input(
+      root,
+      local_input_text_file(root, required(child, "program-file"), 65536L),
+      format,
+      child,
+    )
   }
   let parameters = match optional(child, "parameters-file") {
-    Some(file) => json_file(root, file, 65536L)
+    Some(file) => local_input_json_file(root, file, 65536L)
     None => Json::null()
   }
   let fields : Map[String, Json] = Map([
@@ -148,20 +179,51 @@ fn local_submission_start(
   operation : String,
   child : @argparse.Matches,
   public_run? : Bool = false,
+  business? : LocalCommandBusinessPreparation? = None,
 ) -> String raise ClientStop {
-  let scope = local_host_result(
-    host.authority_scope_cid(settings.principal, settings.connection, crypto),
-  )
-  let current = () => local_submit_allowed(host, settings, crypto, scope)
+  let scope = match business {
+    None =>
+      local_host_result(
+        host.authority_scope_cid(
+          settings.principal,
+          settings.connection,
+          crypto,
+        ),
+      )
+    Some(original) => {
+      if !public_run || !original.current(host, settings, environment) {
+        stop("LocalBusinessOriginalUnavailable")
+      }
+      original.scope
+    }
+  }
+  let current = () => {
+    match business {
+      None => local_submit_allowed(host, settings, crypto, scope)
+      Some(original) => original.current(host, settings, environment)
+    }
+  }
   if !current() {
     stop("LocalSubmissionAuthorizationDenied")
   }
   let selection = local_select_run_submission(
-    host, settings, crypto, scope, input_root, child, public_run,
+    host,
+    settings,
+    crypto,
+    scope,
+    input_root,
+    child,
+    public_run,
+    business~,
   )
   let reference = selection.reference
   let attempt = selection.attempt
   let observe_original = () => {
+    if business is Some(_) {
+      // Saved-state recovery has its own original read admission. Do not
+      // enter an unscoped legacy lookup after a selected admission refusal.
+      stop("LocalOriginalRunStateUnavailable")
+    }
     let reply = if selection.fresh {
       local_submission_lookup_selected(host, settings, crypto, () => reference)
     } else {
@@ -172,27 +234,68 @@ fn local_submission_start(
     )
   }
   try {
-    let intent = @run_host.prepare_client_submitted_intent(
-      local_intent_wire(input_root, operation, child),
-      65536,
-      8192,
-      64,
-    ).unwrap_or_else(() => stop("LocalSubmittedInputNotAdmitted"))
-    let journal = local_host_result(host.run_journal())
-    let epoch = local_host_result(host.epoch_authority())
-    // The original intent is durable before preparation. Invalid preparation
-    // therefore remains an observable original submission, not an absent Run
-    // interpreted as permission to send again under a new identity.
-    let original = journal
-      .record_submitted_intent(
-        epoch,
-        reference,
-        intent,
-        scope,
-        current(),
-        @env.now().to_double(),
-      )
-      .unwrap_or_else(() => stop("LocalSubmissionAcceptanceUnavailable"))
+    let intent = match business {
+      Some(original) => original.intent
+      None =>
+        @run_host.prepare_client_submitted_intent(
+          local_intent_wire(input_root, operation, child),
+          65536,
+          8192,
+          64,
+        ).unwrap_or_else(() => stop("LocalSubmittedInputNotAdmitted"))
+    }
+    let (journal, epoch) = match business {
+      None =>
+        (
+          local_host_result(host.run_journal()),
+          local_host_result(host.epoch_authority()),
+        )
+      Some(original) =>
+        local_host_result(
+          original.capture.submission_originals_in_original_read(),
+        )
+    }
+    // Legacy preparation follows its durable intent as before. The selected
+    // business route reuses the exact preflight intent/preparation; neither
+    // an error nor an unresolved saved Run permits another identity or send.
+    let original = match business {
+      None =>
+        journal
+        .record_submitted_intent(
+          epoch,
+          reference,
+          intent,
+          scope,
+          current(),
+          @env.now().to_double(),
+        )
+        .unwrap_or_else(() => stop("LocalSubmissionAcceptanceUnavailable"))
+      Some(selected) => {
+        if !current() {
+          stop("LocalSubmissionAuthorizationDenied")
+        }
+        match
+          selected.capture.record_submitted_intent_in_original_read(
+            settings.principal,
+            settings.connection,
+            scope,
+            reference,
+            intent,
+            @env.now().to_double(),
+          ) {
+          Ok(value) => value
+          Err(
+            @local_host.Journal(TransactionUnknown)
+            | @local_host.Journal(Epoch(TransactionUnknown))
+            | @local_host.InstallationReadTransactionFailure(
+              _,
+              TransactionUnknown
+            )
+          ) => stop("LocalSubmissionAcceptanceUnknown")
+          Err(_) => stop("LocalSubmissionAcceptanceUnavailable")
+        }
+      }
+    }
     if !current() {
       stop("LocalSubmissionAuthorizationDenied")
     }
@@ -204,29 +307,22 @@ fn local_submission_start(
       stop("LocalRunInstallationRequired")
     })
     let run = local_run_installation(
-      @utf8.decode(local_host_result(host.selected_configuration(run_file))) catch {
+      @utf8.decode(
+        local_host_result(
+          match business {
+            None => host.selected_configuration(run_file)
+            Some(original) =>
+              original.capture.selected_configuration_in_original_read(run_file)
+          },
+        ),
+      ) catch {
         _ => stop("InvalidLocalRunInstallation")
       },
     )
-    let catalog = @checked.prepare_source_catalog(environment, {
-      max_work: @run_host.client_standard_program_preparation_limits().checking.compilation.work,
-      max_bytes: 65536,
-      max_nodes: 8192,
-      max_depth: 64,
-    }).unwrap_or_else(() => stop("LocalSourceCatalogNotAdmitted"))
-    let context = @frontend.bind_query_context(
-      [],
-      @checked.checking_environment_cid(environment),
-      source_catalog=Some(@checked.source_catalog_contracts(catalog)),
-      model_tasks=@checked.checking_environment_model_tasks(environment),
-    ).unwrap_or_else(() => stop("InvalidLocalQueryContext"))
-    let preparation = @local_host.prepare_native_client_submitted_program(
-      intent,
-      environment,
-      Some(context),
-      [],
-      @run_host.client_standard_effect_computation_limits(),
-    ).unwrap_or_else(() => stop("LocalPreparationNotReady"))
+    let preparation = match business {
+      None => local_prepare_submitted_run_program(intent, environment)
+      Some(original) => original.preparation
+    }
     guard @local_host.native_client_submitted_preparation(preparation)
       is Computation(prepared) else {
       match
@@ -267,8 +363,20 @@ fn local_submission_start(
     if source_free && run.source_free is None {
       stop("LocalValuesInstallationRequired")
     }
-    let run = match
-      host.packaged_runtime_assets_for_submission(reference, preparation, 1000) {
+    let runtime_selection = match business {
+      None =>
+        host.packaged_runtime_assets_for_submission(
+          reference, preparation, 1000,
+        )
+      Some(original) =>
+        local_business_policy_result(
+          original,
+          original.capture.runtime_submission_assets_in_original_read(
+            reference, preparation, 1000,
+          ),
+        )
+    }
+    let run = match runtime_selection {
       Ok(Accepted) => return observe_original()
       Ok(Pending(None)) => run
       Ok(Pending(Some(assets))) => {
@@ -296,23 +404,44 @@ fn local_submission_start(
       scope,
       @local_host.native_client_submission_request_id(reference),
     ).unwrap_or_else(() => stop("LocalRequestIdentityUnavailable"))
-    let policy_binding = local_run_policy_binding(host, settings, crypto)
+    let policy_binding = local_run_policy_binding(
+      host,
+      settings,
+      crypto,
+      business~,
+    )
     let (run, now) = match policy_binding {
       None => (run, local_utc_now())
-      Some(binding) =>
-        match
-          binding.prepare_submission_policy(
-            reference,
-            preparation,
-            request,
-            local_utc_now(),
-            @env.now().to_double(),
-          ) {
+      Some(binding) => {
+        let prepared_policy = match business {
+          None =>
+            binding.prepare_submission_policy(
+              reference,
+              preparation,
+              request,
+              local_utc_now(),
+              @env.now().to_double(),
+            )
+          Some(original) =>
+            local_business_policy_result(
+              original,
+              original.capture.prepare_run_policy_in_original_read(
+                binding,
+                reference,
+                preparation,
+                request,
+                local_utc_now(),
+                @env.now().to_double(),
+              ),
+            )
+        }
+        match prepared_policy {
           Ok(Accepted(_)) => return observe_original()
           Ok(Pending(policy, issued_at)) =>
             ({ ..run, retention: policy, }, issued_at)
           Err(_) => stop("LocalRunPolicyPreparationUnavailable")
         }
+      }
     }
     if !@publication.result_retention_intervals_valid(run.retention) ||
       !(@publication.result_retention_interval_state(run.retention, now)
@@ -340,7 +469,12 @@ fn local_submission_start(
       8192,
       64,
     ).unwrap_or_else(() => stop("LocalCompilationNotReady"))
-    let configuration_cid = local_host_result(host.configuration()).configuration_cid()
+    let configuration_cid = local_host_result(
+      match business {
+        None => host.configuration()
+        Some(original) => original.capture.configuration_in_original_read()
+      },
+    ).configuration_cid()
     let compiled = @run_host.issue_client_task_compiled_run(
       prepared, compilation, scope, configuration_cid, until,
     ).unwrap_or_else(() => stop("LocalCompiledRunNotReady"))
@@ -364,39 +498,105 @@ fn local_submission_start(
       now,
       until,
     ).unwrap_or_else(() => stop("LocalRunDefinitionNotReady"))
-    let accepted = match policy_binding {
+    let accepted : Result[
+      @local_host.NativeClientSubmittedIntentRecord,
+      @local_host.NativeClientRunJournalIssue,
+    ] = match policy_binding {
       None =>
-        journal.accept_submitted_run(
-          epoch,
-          reference,
-          preparation,
-          request,
-          compiled,
-          definition,
-          scope,
-          current(),
-          @env.now().to_double(),
-        )
+        match business {
+          None =>
+            journal.accept_submitted_run(
+              epoch,
+              reference,
+              preparation,
+              request,
+              compiled,
+              definition,
+              scope,
+              current(),
+              @env.now().to_double(),
+            )
+          Some(original) =>
+            match
+              original.capture.accept_submitted_run_in_original_read(
+                settings.principal,
+                settings.connection,
+                scope,
+                reference,
+                preparation,
+                request,
+                compiled,
+                definition,
+                @env.now().to_double(),
+              ) {
+              Ok(value) => Ok(value)
+              Err(@local_host.Journal(issue)) => Err(issue)
+              Err(issue) => {
+                original.original.retain_primary(CommandAdoption(issue))
+                match issue {
+                  @local_host.InstallationReadTransactionFailure(
+                    _,
+                    TransactionUnknown
+                  ) => Err(@local_host.TransactionUnknown)
+                  _ => stop("LocalRunAdmissionUnavailable")
+                }
+              }
+            }
+        }
       Some(binding) =>
-        binding.accept_issued_submitted_run_policy(
-          reference,
-          preparation,
-          request,
-          compiled,
-          definition,
-          run.retention,
-          now,
-          @env.now().to_double(),
-        )
+        match business {
+          None =>
+            binding.accept_issued_submitted_run_policy(
+              reference,
+              preparation,
+              request,
+              compiled,
+              definition,
+              run.retention,
+              now,
+              @env.now().to_double(),
+            )
+          Some(original) =>
+            local_business_policy_result(
+              original,
+              original.capture.accept_issued_policy_run_in_original_read(
+                binding,
+                reference,
+                preparation,
+                request,
+                compiled,
+                definition,
+                run.retention,
+                now,
+                @env.now().to_double(),
+              ),
+            )
+        }
     }
     match accepted {
       Ok(_) => ()
       // Another accepted observer wins the same request. Its immutable original
       // is the only result to return; this candidate never begins physical work.
       Err(ForeignRun | ChangedIntent) if policy_binding is Some(binding) => {
-        binding
-        .lookup_submitted_run_policy(reference, request, @env.now().to_double())
-        .unwrap_or_else(() => stop("LocalRunAdmissionUnavailable"))
+        let saved_policy = match business {
+          None =>
+            binding.lookup_submitted_run_policy(
+              reference,
+              request,
+              @env.now().to_double(),
+            )
+          Some(original) =>
+            local_business_policy_result(
+              original,
+              original.capture.lookup_run_policy_in_original_read(
+                binding,
+                reference,
+                request,
+                @env.now().to_double(),
+              ),
+            )
+        }
+        saved_policy.unwrap_or_else(() => stop("LocalRunAdmissionUnavailable"))
         |> ignore
         return observe_original()
       }
@@ -407,70 +607,83 @@ fn local_submission_start(
     }
     if source_free {
       local_retain_values_policy_originals(
-        host, settings, crypto, request, prepared, compiled, definition,
+        host,
+        settings,
+        crypto,
+        request,
+        prepared,
+        compiled,
+        definition,
+        business~,
       )
     }
     if settings.read_file is Some(file) {
       let read = local_read_installation_or_stop(
-        @utf8.decode(local_host_result(host.selected_configuration(file))) catch {
+        @utf8.decode(
+          local_host_result(
+            match business {
+              None => host.selected_configuration(file)
+              Some(original) =>
+                original.capture.selected_configuration_in_original_read(file)
+            },
+          ),
+        ) catch {
           _ => stop("InvalidLocalReadPolicyOriginal")
         },
       )
       if read.enabled() {
-        match
-          host.retain_publication_policy_originals(
-            crypto,
-            settings.principal,
-            settings.connection,
-            request,
-            prepared,
-            compiled,
-            definition,
-          ) {
-          Ok(_) => ()
-          Err(PublicationPolicy(@checked.MissingDependency)) =>
-            stop("LocalResultPolicyOriginalsMissing")
-          Err(PublicationPolicy(@checked.BudgetExceeded) | CapacityExceeded) =>
-            stop("LocalResultPolicyOriginalsLimit")
-          Err(AuthorizationDenied) => stop("LocalResultPolicyAuthorityDenied")
-          Err(Fenced) => stop("LocalResultPolicyOriginalsFenced")
-          Err(CustodyLost | PublicationPolicy(@checked.ForeignBody)) =>
-            stop("LocalResultPolicyOriginalsCustodyLost")
-          Err(_) => stop("LocalResultPolicyOriginalsUnavailable")
-        }
+        local_retain_values_policy_originals(
+          host,
+          settings,
+          crypto,
+          request,
+          prepared,
+          compiled,
+          definition,
+          business~,
+        )
       }
     }
-    let managed = local_host_result(host.managed_root_path()).unwrap_or_else(() => {
+    let managed_path = match business {
+      None => host.managed_root_path()
+      Some(original) => original.capture.managed_root_path_in_original_read()
+    }
+    let managed = local_host_result(managed_path).unwrap_or_else(() => {
       stop("LocalManagedRootRequired")
     })
-    let root = @local_filesystem.open_private_root(managed).unwrap_or_else(() => {
-      stop("LocalManagedRootUntrusted")
-    })
-    if root
-      .inspect_directory(run.store_name)
-      .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
-      is None {
-      root
-      .create_directory(run.store_name)
-      .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
-      |> ignore
+    let store = match business {
+      Some(original) => original.open_store(sqlite, managed, run)
+      None => {
+        let root = @local_filesystem.open_private_root(managed).unwrap_or_else(() => {
+          stop("LocalManagedRootUntrusted")
+        })
+        if root
+          .inspect_directory(run.store_name)
+          .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
+          is None {
+          root
+          .create_directory(run.store_name)
+          .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
+          |> ignore
+        }
+        root
+        .open_child(run.store_name)
+        .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
+        .private_ownership()
+        .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
+        |> ignore
+        @local_store.open_store(
+          sqlite,
+          managed + "/" + run.store_name,
+          run.store_authority_cid,
+          run.store_capacity_bytes,
+          run.store_objects,
+          run.store_record_bytes,
+        ).unwrap_or_else(() => stop("LocalResultStoreUnavailable"))
+      }
     }
-    root
-    .open_child(run.store_name)
-    .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
-    .private_ownership()
-    .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
-    |> ignore
-    let store = @local_store.open_store(
-      sqlite,
-      managed + "/" + run.store_name,
-      run.store_authority_cid,
-      run.store_capacity_bytes,
-      run.store_objects,
-      run.store_record_bytes,
-    ).unwrap_or_else(() => stop("LocalResultStoreUnavailable"))
     let reply = {
-      errdefer (if !(store.close() is Ok(true)) {
+      errdefer (if business is None && !(store.close() is Ok(true)) {
         stop("LocalResultStoreCleanupPending")
       })
       let binding = @local_host.install_native_client_cancellation_publication(
@@ -480,14 +693,34 @@ fn local_submission_start(
         8192,
         64,
       ).unwrap_or_else(() => stop("LocalPublicationBindingUnavailable"))
-      journal
-      .bind_installed_publication(request, binding, current)
-      .unwrap_or_else(() => stop("LocalPublicationBindingUnavailable"))
+      match business {
+        None =>
+          journal
+          .bind_installed_publication(request, binding, current)
+          .unwrap_or_else(() => stop("LocalPublicationBindingUnavailable"))
+        Some(original) =>
+          local_host_result(
+            original.capture.bind_installed_publication_in_original_read(
+              settings.principal,
+              settings.connection,
+              request,
+              binding,
+            ),
+          )
+      }
       if source_free {
-        local_execute_publish_values(
-          host, settings, run, prepared, compiled, definition, request, reference,
-          attempt, crypto, store, current,
-        )
+        match business {
+          Some(original) =>
+            local_execute_original_publish_values(
+              original, settings, run, compiled, definition, request, reference,
+              attempt, store,
+            )
+          None =>
+            local_execute_publish_values(
+              host, settings, run, prepared, compiled, definition, request, reference,
+              attempt, crypto, store, current,
+            )
+        }
       } else {
         let source = source.unwrap()
         guard host.authorize({
@@ -541,12 +774,16 @@ fn local_submission_start(
         result
       }
     }
-    if !(store.close() is Ok(true)) {
+    if business is None && !(store.close() is Ok(true)) {
       stop("LocalResultStoreCleanupPending")
     }
-    local_public_run_state_reply(
-      host, settings, crypto, reference, public_run, reply,
-    )
+    match business {
+      Some(_) => reply
+      None =>
+        local_public_run_state_reply(
+          host, settings, crypto, reference, public_run, reply,
+        )
+    }
   } catch {
     ClientStop(message) =>
       stop(local_run_submission_failure(selection, message))

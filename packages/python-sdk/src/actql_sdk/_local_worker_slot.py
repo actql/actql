@@ -16,6 +16,15 @@ from ._local_files import PhysicalFileIdentity
 from ._local_worker_funding import OriginalWorkerFunding, LocalWorkerFundingUnavailable
 
 
+def _bounded_original_path_text(value: object) -> str:
+    """Bound selected path bytes before constructing paths or invoking callbacks."""
+    if type(value) is not str or not 0 < len(value) <= 4096 or '\x00' in value:
+        raise ValueError('Invalid bounded original worker path text')
+    if not 0 < len(os.fsencode(value)) <= 4096:
+        raise ValueError('Invalid bounded original worker path bytes')
+    return value
+
+
 class LocalWorkerSlotPending(RuntimeError):
     """Keep the same original descriptors; never a close or process-stop ACK."""
 
@@ -62,15 +71,15 @@ class _OriginalDescriptor:
 class OriginalWorkerSlot:
     """Retain an original slot without unlinking, replacing or unlocking it."""
 
-    def __init__(self, funding: OriginalWorkerFunding | None, path: Path) -> None:
+    def __init__(self, funding: OriginalWorkerFunding | None, path: str) -> None:
         if type(funding) is not OriginalWorkerFunding:
             raise LocalWorkerFundingUnavailable('Original Local worker funding is unavailable')
-        if (not isinstance(path, Path) or not path.is_absolute()
-                or '\x00' in str(path) or not 0 < len(os.fsencode(path)) <= 4096):
+        selected_path = Path(_bounded_original_path_text(path))
+        if not selected_path.is_absolute():
             raise ValueError('Invalid installed original worker slot path')
         self._original = self
         self._funding = funding
-        self._path = path
+        self._path = selected_path
         self._descriptors: list[_OriginalDescriptor] = []
         self._slot: _OriginalDescriptor | None = None
         self._identity: PhysicalFileIdentity | None = None

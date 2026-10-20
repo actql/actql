@@ -3,12 +3,22 @@
  * bootstrap Owner, registry or public allocator. No heap/arena deletion occurs:
  * escaped managed allocations and process-lived registrations keep their same
  * initial responsibility after restoring the previous default. */
+#if defined(ACTQL_PYTHON_INITIAL_OPERATIONAL_ENTRY)
+#include "python_initial_platform.h"
+#else
 #include "command_platform.h"
+#endif
 #include <stdatomic.h>
 #include <stdint.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <sys/mman.h>
+
+#if defined(ACTQL_PYTHON_INITIAL_OPERATIONAL_ENTRY) && defined(__APPLE__) && defined(__aarch64__)
+/* Exact selected private MI ABI. A previously initialized object cannot be
+ * adopted as this Python entrance's fresh original, even with no arena yet. */
+extern bool _mi_process_is_initialized;
+#endif
 
 #if defined(__APPLE__) && defined(__aarch64__)
 #include <crt_externs.h>
@@ -106,7 +116,11 @@ enum {
 };
 
 struct actql_native_initial_managed_original {
+#if defined(ACTQL_PYTHON_INITIAL_OPERATIONAL_ENTRY)
+  actql_native_python_initial_platform_original *python_entry;
+#else
   actql_native_command_platform_original *entry;
+#endif
   pid_t process;
   pthread_t thread;
   size_t selection[4];
@@ -145,11 +159,23 @@ static bool actql_initial_managed_thread(
     pthread_equal(original->thread, pthread_self());
 }
 
+#if defined(ACTQL_PYTHON_INITIAL_OPERATIONAL_ENTRY)
+actql_native_initial_managed_original *actql_native_python_initial_managed_begin(
+    actql_native_python_initial_platform_original *entry) {
+#else
 actql_native_initial_managed_original *actql_native_initial_managed_begin(
     actql_native_command_platform_original *entry) {
+#endif
 #if defined(__APPLE__) && defined(__aarch64__)
   size_t selection[4] = {0};
-  if (!entry || !actql_native_command_platform_managed_selection(entry, selection) ||
+  if (!entry ||
+#if defined(ACTQL_PYTHON_INITIAL_OPERATIONAL_ENTRY)
+      !actql_native_python_initial_platform_managed_selection(entry, selection) ||
+      /* Observe MI state only on the original entry's confirmed thread. */
+      _mi_process_is_initialized ||
+#else
+      !actql_native_command_platform_managed_selection(entry, selection) ||
+#endif
       selection[0] < ACTQL_INITIAL_MI_SEGMENT_BYTES ||
       selection[0] % ACTQL_INITIAL_MI_SEGMENT_BYTES != 0 || !selection[1] ||
       !actql_initial_managed_geometry(selection) || selection[3] != 1 ||
@@ -159,7 +185,11 @@ actql_native_initial_managed_original *actql_native_initial_managed_begin(
   if (!atomic_compare_exchange_strong_explicit(&actql_initial_managed_state,
       &expected, 1, memory_order_acq_rel, memory_order_acquire)) return NULL;
   actql_native_initial_managed_original *original = &actql_initial_managed;
+#if defined(ACTQL_PYTHON_INITIAL_OPERATIONAL_ENTRY)
+  original->python_entry = entry;
+#else
   original->entry = entry;
+#endif
   original->process = getpid();
   original->thread = pthread_self();
   for (size_t index = 0; index < 4; ++index)
@@ -250,7 +280,12 @@ bool actql_native_initial_managed_current(
       !actql_initial_managed_thread(original) || original->closing) return false;
 #if defined(__APPLE__) && defined(__aarch64__)
   size_t selection[4] = {0}, bytes = 0;
-  if (!actql_native_command_platform_managed_selection(original->entry, selection) ||
+  if (
+#if defined(ACTQL_PYTHON_INITIAL_OPERATIONAL_ENTRY)
+      !actql_native_python_initial_platform_managed_selection(original->python_entry, selection) ||
+#else
+      !actql_native_command_platform_managed_selection(original->entry, selection) ||
+#endif
       !actql_initial_managed_environment_supported(*_NSGetEnviron()))
     return false;
   for (size_t index = 0; index < 4; ++index)
@@ -267,6 +302,12 @@ bool actql_native_initial_managed_current(
   return false;
 #endif
 }
+
+#if defined(ACTQL_PYTHON_INITIAL_OPERATIONAL_ENTRY)
+bool actql_native_python_initial_managed_current(void) {
+  return actql_native_initial_managed_current(&actql_initial_managed);
+}
+#endif
 
 int actql_native_initial_managed_issue(
     actql_native_initial_managed_original *original) {

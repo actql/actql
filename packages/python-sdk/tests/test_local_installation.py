@@ -77,6 +77,38 @@ class OriginalLocalInstallationTests(unittest.TestCase):
         self.addCleanup(value.close)
         return value
 
+    def test_consumed_bootstrap_transfer_is_closed_before_installation_returns(self):
+        with TemporaryDirectory(prefix='actql-install-') as directory:
+            core, calls = self.core()
+            value = self.create(core, Path(directory))
+            self.assertFalse(any(family in ('bootstrap', 'bootstrap_sdk')
+                                 for family, _ in value._outputs))
+            produced = next(args[0] for family, name, args in calls
+                            if (family, name) == ('bootstrap', 'produce'))
+            self.assertTrue(any((family, name, args) == ('bootstrap', 'close', (produced,))
+                                for family, name, args in calls))
+
+    def test_pending_bootstrap_retirement_keeps_same_output_without_rebootstrap(self):
+        with TemporaryDirectory(prefix='actql-install-') as directory:
+            core, calls = self.core()
+            original_call = core._call
+            pending = True
+            def call(family, name, *args):
+                if (family, name) == ('bootstrap', 'close') and pending:
+                    calls.append((family, name, args))
+                    return -9
+                return original_call(family, name, *args)
+            core._call = call
+            with self.assertRaises(LocalInstallationCleanupPending) as raised:
+                self.create(core, Path(directory))
+            value = raised.exception.cleanup_installation
+            bootstrap = next(output for family, output in value._outputs if family == 'bootstrap')
+            self.assertIs(core._loans[bootstrap.ticket], bootstrap)
+            pending = False
+            self.assertTrue(value.close())
+            self.assertEqual(sum((family, name) == ('bootstrap', 'produce')
+                                 for family, name, _ in calls), 1)
+
     def test_initial_originals_marker_store_and_reopen_never_bootstrap_again(self):
         with TemporaryDirectory(prefix='actql-install-') as directory:
             path = Path(directory)

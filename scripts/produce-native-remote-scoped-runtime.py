@@ -66,30 +66,16 @@ def under(path: Path, root: Path) -> bool:
     return path.is_absolute() and path.resolve().is_relative_to(root.resolve())
 
 
-LOCAL_INITIAL_ENTRY_ANCHOR = '-Wl,-u,_actql_native_client_capture_command_entry'
-
-
 def local_initial_entry_arguments(parts: list[str], moon_home: Path,
                                   emission: Path) -> list[str]:
-    """Retain the original CLI entry before the pinned allocator initializer.
-
-    An exact undefined anchor extracts stdout_stub.o from its original archive
-    at that position. No whole-archive loading or extra symbol export is used.
-    """
+    """Validate selected link members without imposing initializer order."""
     runtime = str(moon_home / 'lib/libmoonbitrun.o')
     directory = emission / 'native/release/build/cmd/native_client'
     archives = [p for p in parts if Path(p).parent == directory
                 and re.fullmatch(r'libnative_client-[0-9a-f]{16}\.a', Path(p).name)]
     if parts.count(runtime) != 1 or len(archives) != 1:
         raise ValueError('Exact original CLI archive and allocator object are required')
-    if LOCAL_INITIAL_ENTRY_ANCHOR in parts:
-        raise ValueError('Duplicate initial CLI entry anchor')
-    result = list(parts)
-    archive = archives[0]
-    result.remove(archive)
-    result.insert(result.index(runtime), archive)
-    result.append(LOCAL_INITIAL_ENTRY_ANCHOR)
-    return result
+    return list(parts)
 
 
 def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
@@ -176,14 +162,13 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                     if any(p.startswith(('-DACTQL_NATIVE_CLIENT_SOURCE_SHA', '-DACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY', '-DACTQL_NATIVE_COMMAND_INITIAL_OS_RECIPE')) for p in parts):
                         raise ValueError('Duplicate Local CLI source pin')
                     source_pins += 1
-                    parts.append('-DACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY=1')
-                    parts.append('-DACTQL_NATIVE_COMMAND_INITIAL_OS_RECIPE=1')
                     parts.append('-DACTQL_NATIVE_CLIENT_SOURCE_SHA="' + source_sha + '"')
             # Every generated Core, original FFI, and runtime source sees the
             # same derived header first. There is exactly one provider below.
             parts[0] = str(clang)
             parts[1:1] = ['-isysroot', str(sdk), '-mmacosx-version-min=11.0',
-                          '-I' + str(allocator), '-DACTQL_SCOPED_READ_ALLOCATOR']
+                          '-I' + str(allocator), '-DACTQL_SCOPED_READ_ALLOCATOR',
+                          *(['-DACTQL_RUNTIME_MANAGED_VALUES=1'] if entry == LOCAL_ENTRY else [])]
         elif ar_driver is not None and parts[0] == str(ar_driver):
             outside = [Path(p) for p in archive_files if not under(Path(p), emission)]
             if outside:

@@ -1,0 +1,347 @@
+///|
+// Installer-private facility selection for the accepted source-free Run scope.
+// This is neither all-input demand adequacy nor a physical issuer. Actual
+// backing/context/Ledger acquisition and Program quotation remain mandatory.
+priv struct LocalCommandBusinessProfile {
+  domain_bytes : Int64
+  payload_facility_bytes : Int64
+  limits : @initial_resources.LedgerLimits
+}
+
+///|
+// Caller retention only. The existing Host/domain/retained-execution Owners
+// keep every partial physical stage and their distinct acknowledgements.
+priv struct LocalCommandBusinessOriginal {
+  profile : LocalCommandBusinessProfile
+  mut domain : @initial_arena.InstalledArenaDomain?
+  mut execution : @initial_arena.InstalledArenaRetainedExecution?
+  mut operation : @local_host.NativeLocalStoreOperation?
+  mut values_work : @local_host.NativeClientValuesWork?
+  mut values_failure : @local_host.NativeClientValuesWorkFailure?
+  mut store : @local_store.Store?
+  mut store_failure : @local_store.NativePublicationStoreOpenFailure?
+  mut store_parent : @local_filesystem.Root?
+  mut store_parent_failure : @local_filesystem.NativeRootOpenFailure?
+  mut store_root : @local_filesystem.Root?
+  mut store_root_failure : @local_filesystem.NativeRootOpenFailure?
+  mut store_root_operation : @local_sqlite.NativeStoreOperationOriginal?
+  mut publication_publisher : @local_host.NativeLocalPublisherBinding?
+  mut publication_service : @local_publication.NativeRunPublicationService?
+  mut publication_results : Array[
+    @local_publication.NativeCapturedResultPublicationContext,
+  ]?
+  mut publication_pending : @local_publication.NativePreparedCapturedRunPublication?
+  mut publication_failure : @local_host.NativeClientValuesPublicationIssue?
+  mut publication_commit_failure : @local_publication.NativeRunPublicationIssue?
+  mut publication_cleanup_failure : @local_publication.NativeCapturedRunPublicationCancellationIssue?
+  mut publication_attempted : Bool
+  mut publication_result : @local_publication.NativeRunPublicationResult?
+  mut run_receipt_original : @local_host.NativeLocalObservedRunState?
+  mut publication_retired : Bool
+  // Retain the original payload path before poll/return/close can fail.
+  // These aliases do not acknowledge a Store, domain or delivery receipt.
+  mut result_binding : @local_host.NativeLocalReadPolicyBinding?
+  mut result_service : @local_result.NativeResultAccessService?
+  mut result_session : @local_result.NativeResultAccessSession?
+  mut result_material : @local_result.NativeResultMaterialReceiver?
+  mut result_sink : @local_result.NativeResultSink?
+  mut result_refusal : Ref[@local_host.NativeLocalReadBindingIssue?]?
+  mut result_cleanup_issue : @local_result.NativeResultAccessIssue?
+  mut active : Bool
+}
+
+///|
+// Declare the selected parent before its first physical acquisition. Complete
+// external/initial overlap remains mandatory alongside this backed facility.
+// The payload is a hard backed facility, not residual space or an estimate of
+// every Program. Same-source Program limits must fit it before issue_epoch.
+fn local_command_source_free_business_profile(
+  static_profile : LocalCommandPreparationProfile,
+) -> (LocalCommandPreparationProfile, LocalCommandBusinessProfile) raise ClientStop {
+  // The existing Local host admits at most 32 physical tasks. Declare their
+  // one-shot attempts, output holdings and bounded transfers before acquiring
+  // the facility; the exact Program quote below can still refuse this budget.
+  let task_capacity = 32
+  let limits : @initial_resources.LedgerLimits = {
+    planning_work: 100000,
+    attempts: task_capacity,
+    holdings: task_capacity,
+    transfer_bytes: task_capacity.to_int64() * 1000000L,
+    retained_bytes: 536870912L,
+    execution_bytes: 536870912L,
+  }
+  let payload = limits.retained_bytes + limits.execution_bytes
+  let mut bytes = payload
+  let mut converged = false
+  // The actual provider's extent table depends on the complete domain size.
+  // Iterate its checked, page-rounded layout, never add guessed spare space.
+  for _ in 0..<16 {
+    let necessary = @initial_bootstrap.execution_domain_necessary_bytes(
+      bytes, payload,
+    )
+    if necessary <= 0L {
+      stop("LocalBusinessLayoutUnavailable")
+    }
+    if necessary <= bytes {
+      converged = true
+      break
+    }
+    bytes = necessary
+  }
+  if !converged || bytes > 9223372036854775807L - static_profile.arena_bytes {
+    stop("LocalBusinessLayoutUnavailable")
+  }
+  let arena = static_profile.arena_bytes + bytes
+  let control = @initial_bootstrap.command_backing_control_necessary_bytes(
+    arena,
+  ).unwrap_or_else(() => stop("LocalBusinessLayoutUnavailable"))
+  if control <= 0L ||
+    control >
+    arena -
+    static_profile.read_domain_bytes -
+    static_profile.sqlite_domain_bytes -
+    bytes {
+    stop("LocalBusinessLayoutUnavailable")
+  }
+  let original = static_profile.host_limits
+  let profile : LocalCommandPreparationProfile = {
+    ..static_profile,
+    arena_bytes: arena,
+    control_bytes: control,
+    host_limits: {
+      ..original,
+      planning_work: original.planning_work + limits.planning_work,
+      // The original business provisioning attempt and declared task attempts
+      // occur once. Scope changes and child close do not refill them.
+      attempts: original.attempts + 1 + limits.attempts,
+      holdings: original.holdings + limits.holdings,
+      transfer_bytes: original.transfer_bytes + limits.transfer_bytes,
+      execution_bytes: arena,
+    },
+    native_storage: {
+      ..static_profile.native_storage,
+      shared_control_bytes: Some(control),
+    },
+  }
+  (profile, { domain_bytes: bytes, payload_facility_bytes: payload, limits, })
+}
+
+///|
+fn LocalCommandPreparationOriginal::prepare_business_domain(
+  self : LocalCommandPreparationOriginal,
+  host : @initial_arena.InstalledArenaHost,
+  scope : @initial_arena.InstalledArenaBackingBorrow,
+  descriptor : Int,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.business is Some(business) else { return Ok(()) }
+  if business.domain is Some(_) || self.closing || self.closed {
+    return Err(CommandUnavailable)
+  }
+  let acquired = host
+    .prepare_domain(
+      scope,
+      descriptor,
+      business.profile.domain_bytes,
+      business.profile.limits,
+    )
+    .map_err(issue => CommandDomain(issue))
+  match acquired {
+    Err(issue) => Err(issue)
+    Ok(PendingDomain(domain, issue)) => {
+      business.domain = Some(domain)
+      Err(CommandDomain(issue))
+    }
+    Ok(PreparedDomain(domain)) => {
+      business.domain = Some(domain)
+      host.transfer_domain(domain).map_err(issue => CommandDomain(issue))
+    }
+  }
+}
+
+///|
+fn LocalCommandPreparationOriginal::prepare_business_execution(
+  self : LocalCommandPreparationOriginal,
+  host : @initial_arena.InstalledArenaHost,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.business is Some(business) else { return Ok(()) }
+  guard business.domain is Some(domain) && business.execution is None else {
+    return Err(CommandUnavailable)
+  }
+  match
+    host.prepare_domain_read(
+      domain,
+      execution_ceiling=business.profile.payload_facility_bytes,
+    ) {
+    Err(issue) => return Err(CommandDomain(issue))
+    Ok(_) => ()
+  }
+  match host.prepare_domain_retained_execution(domain) {
+    Err(issue) => Err(CommandRetainedExecution(issue))
+    Ok(PendingRetainedExecution(execution, issue)) => {
+      business.execution = Some(execution)
+      Err(CommandRetainedExecution(issue))
+    }
+    Ok(ReadyRetainedExecution(execution)) => {
+      business.execution = Some(execution)
+      Ok(())
+    }
+  }
+}
+
+///|
+fn LocalCommandPreparationOriginal::close_business_execution(
+  self : LocalCommandPreparationOriginal,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.business is Some(business) else { return Ok(()) }
+  guard self.host is Some(host) else {
+    return if business.domain is None && business.execution is None {
+      Ok(())
+    } else {
+      Err(CommandUnavailable)
+    }
+  }
+  if business.execution is Some(execution) {
+    if business.active {
+      // The fixed Store coordinator may already have acknowledged this exact
+      // business leave before a later Read/SQL switch failed. Observe its
+      // actual original frame; a logical caller latch is not a second leave.
+      let observed = match
+        host.observe_domain_retained_execution_scope(execution) {
+        Ok(scope) => Ok(scope)
+        Err(_) =>
+          host.observe_domain_retained_execution_cleanup_scope(execution)
+      }
+      match observed {
+        Ok(@initial_bootstrap.BackedReadUnentered) => business.active = false
+        Ok(@initial_bootstrap.BackedReadEntered) | Err(_) =>
+          // A failed observation is not inactivity. Retain/retry only the
+          // original scope this invocation already attempted to enter.
+          match host.leave_domain_retained_execution(execution) {
+            Err(issue) =>
+              match
+                host.finish_domain_retained_execution_failed_entry_cleanup(
+                  execution,
+                ) {
+                Err(_) => return Err(CommandRetainedExecution(issue))
+                Ok(_) => business.active = false
+              }
+            Ok(_) => business.active = false
+          }
+      }
+    }
+    match host.close_domain_retained_execution(execution) {
+      Err(issue) => return Err(CommandRetainedExecution(issue))
+      Ok(_) => business.execution = None
+    }
+  }
+  if business.domain is Some(domain) {
+    match host.close_domain_after_owner_ack(domain) {
+      Err(issue) => return Err(CommandDomain(issue))
+      Ok(_) => business.domain = None
+    }
+  }
+  Ok(())
+}
+
+///|
+// Compare the exact existing checked Program/registry inventory before epoch
+// or Submission admission. Passing this comparison issues no actual resource
+// or Account authority; the same retained-execution current fence is separate.
+fn LocalCommandPreparationOriginal::require_business_program(
+  self : LocalCommandPreparationOriginal,
+  prepared : @run_host.PreparedClientProgram,
+  assets : @run_host.ClientLocalProductAssets,
+) -> Result[@initial_resources.LedgerLimits, LocalCommandPreparationIssue] {
+  if self.closing || self.closed || self.primary is Some(_) {
+    return Err(CommandUnavailable)
+  }
+  guard self.host is Some(host) &&
+    self.business is Some(business) &&
+    business.execution is Some(execution) else {
+    return Err(CommandUnavailable)
+  }
+  guard @local_values.source_free_local_ledger_limits(
+      prepared,
+      assets.registry,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    )
+    is Some(needed) else {
+    return Err(CommandUnavailable)
+  }
+  let supplied = business.profile.limits
+  if needed.planning_work > supplied.planning_work ||
+    needed.attempts > supplied.attempts ||
+    needed.holdings > supplied.holdings ||
+    needed.transfer_bytes > supplied.transfer_bytes ||
+    needed.retained_bytes > supplied.retained_bytes ||
+    needed.execution_bytes > supplied.execution_bytes {
+    return Err(CommandUnavailable)
+  }
+  host
+  .require_domain_retained_execution_current(execution)
+  .map_err(issue => CommandRetainedExecution(issue))
+  .map(_ => needed)
+}
+
+///|
+// Construct this outer-control receiver only after the original Journal and
+// Runtime exist, before any Store/Work call or business entry. Activation is
+// later, after the exact adopted Runtime binding and Program selection.
+fn LocalCommandPreparationOriginal::prepare_business_operation(
+  self : LocalCommandPreparationOriginal,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.business is Some(business) else { return Ok(()) }
+  guard self.host is Some(host) &&
+    self.pair is Some(pair) &&
+    self.journal is Some(capture) &&
+    self.runtime is Some(runtime) &&
+    business.execution is Some(execution) &&
+    business.operation is None &&
+    !self.phase_open &&
+    !self.journal_read_open &&
+    !self.closing &&
+    !self.closed else {
+    return Err(CommandUnavailable)
+  }
+  let library = match host.borrow_local_host_sqlite(pair) {
+    Ok(value) => value
+    Err(issue) => return Err(CommandPair(issue))
+  }
+  let operation = match
+    @local_host.prepare_native_local_store_operation(
+      capture, execution, runtime, library,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(CommandStoreOperation(issue))
+  }
+  business.operation = Some(operation)
+  Ok(())
+}
+
+///|
+// Metadata follows its actual child Store/DB and scope acknowledgements. A
+// false pending observation alone cannot close a Database or Library; their
+// existing original bridge refuses metadata retirement while they remain live.
+fn LocalCommandPreparationOriginal::close_business_operation(
+  self : LocalCommandPreparationOriginal,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.business is Some(business) else { return Ok(()) }
+  if business.operation is Some(operation) {
+    match operation.pending_scope() {
+      Err(issue) => return Err(CommandStoreOperation(issue))
+      Ok(true) =>
+        match operation.retry_scope_cleanup() {
+          Err(issue) => return Err(CommandStoreOperation(issue))
+          Ok(_) => ()
+        }
+      Ok(false) => ()
+    }
+    match operation.close_checked() {
+      Err(issue) => return Err(CommandStoreOperation(issue))
+      Ok(_) => business.operation = None
+    }
+  }
+  Ok(())
+}

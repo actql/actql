@@ -39,8 +39,8 @@ fn original_sdk_payload_codecs(
     required_text(clock_object, "observed_at") is Some(observed_at) else {
     return Err(-30)
   }
-  @local_run.prepare_local_sdk_payload_encoding_from_store(
-    context.preflight,
+  @local_run.prepare_local_sdk_payload_encoding_for_source(
+    context.source,
     context.current.account,
     context.finite,
     context.sdk.read,

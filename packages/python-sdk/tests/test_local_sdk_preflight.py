@@ -40,8 +40,7 @@ class SDKPreflightAssemblyTests(unittest.TestCase):
                         self.assertEqual(input_bytes(args[1]), b'{}')
                     elif family == 'publication_preflight':
                         physical = json.loads(input_bytes(args[1]))
-                        self.assertEqual(set(physical), {'now', 'attempt_id', 'fence_cid', 'external_idempotency_key'})
-                        self.assertIsNone(physical['external_idempotency_key'])
+                        self.assertEqual(set(physical), {'now', 'attempt_id', 'fence_cid'})
                         self.assertEqual(physical['now'], host._now())
                         self.assertEqual(len(physical['fence_cid']), 71)
                     else:

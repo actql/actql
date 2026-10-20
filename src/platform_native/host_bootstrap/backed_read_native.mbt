@@ -34,6 +34,12 @@ extern "C" fn leave_read_context_ffi(domain : PhysicalExtentDomain) -> Int = "ac
 
 ///|
 #borrow(domain)
+extern "C" fn finish_failed_read_entry_cleanup_ffi(
+  domain : PhysicalExtentDomain,
+) -> Int = "actql_bootstrap_finish_failed_read_entry_cleanup"
+
+///|
+#borrow(domain)
 extern "C" fn close_read_context_ffi(domain : PhysicalExtentDomain) -> Int = "actql_bootstrap_close_read_context"
 
 ///|
@@ -330,6 +336,31 @@ pub fn[T, C] NativeHostBootstrap::leave_backed_read_context(
 }
 
 ///|
+/// A failed caller entry retains its nominal flight until this SAME physical
+/// context confirms no Read frame remains. This is neither a normal entry nor
+/// context/user/parent retirement; those original ACKs remain separate.
+pub fn[T, C] NativeHostBootstrap::finish_backed_failed_read_entry_cleanup(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  match self.original_read_carrier(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !domain.read_attempted || domain.read_retired {
+    return Err(Bootstrap(Unavailable))
+  }
+  let status = finish_failed_read_entry_cleanup_ffi(domain.physical)
+  if status == 0 {
+    Ok(())
+  } else {
+    Err(Bootstrap(Physical(status)))
+  }
+}
+
+///|
 /// Child-first original cleanup. The C context waits for active calls, users
 /// and last aliases; only its actual retirement permits Common borrow return.
 /// If Common return then fails, do not repeat physical retirement or replace
@@ -399,5 +430,64 @@ pub fn[T, C] NativeHostBootstrap::require_backed_read_context_retired(
     Ok(())
   } else {
     Err(Bootstrap(ReadersPending))
+  }
+}
+
+///|
+#borrow(domain)
+extern "C" fn read_context_scope_ffi(domain : PhysicalExtentDomain) -> Int = "actql_bootstrap_read_context_scope"
+
+///|
+pub(all) enum NativeBackedReadScope {
+  BackedReadUnentered
+  BackedReadEntered
+} derive(Eq, Debug)
+
+///|
+/// Observe this exact current original, not a missing/foreign/failed result as
+/// inactivity. Unentered does not imply another Read/owned scope is clear.
+pub fn[T, C] NativeHostBootstrap::observe_backed_read_context_scope(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[NativeBackedReadScope, NativeBackedExecutionIssue] {
+  match self.require_backed_read_context_current(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match read_context_scope_ffi(domain.physical) {
+    0 => Ok(BackedReadUnentered)
+    1 => Ok(BackedReadEntered)
+    code => Err(Bootstrap(Physical(code)))
+  }
+}
+
+///|
+/// Cleanup-only observation of the same retained context after logical stop.
+/// No current/entry/borrow/report or physical-retirement ACK is issued here.
+#borrow(domain)
+extern "C" fn read_context_cleanup_scope_ffi(
+  domain : PhysicalExtentDomain,
+) -> Int = "actql_bootstrap_read_context_cleanup_scope"
+
+///|
+pub fn[T, C] NativeHostBootstrap::observe_backed_read_cleanup_scope(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[NativeBackedReadScope, NativeBackedExecutionIssue] {
+  match self.original_read_carrier(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !domain.read_attempted || domain.read_retired {
+    return Err(Bootstrap(Unavailable))
+  }
+  match read_context_cleanup_scope_ffi(domain.physical) {
+    0 => Ok(BackedReadUnentered)
+    1 => Ok(BackedReadEntered)
+    code => Err(Bootstrap(Physical(code)))
   }
 }

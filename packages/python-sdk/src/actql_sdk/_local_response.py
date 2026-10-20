@@ -25,8 +25,9 @@ class OriginalLocalResponseStream(httpx.AsyncByteStream):
     stopped before its original input can close. Failure keeps this exact stream
     and ticket; neither close nor a retry starts/cancels a Run or resends I/O.
     """
-    def __init__(self, host: InstalledLocalHost, raw: bytes) -> None:
-        if type(raw) is not bytes or not 0 < len(raw) <= 8192:
+    def __init__(self, host: InstalledLocalHost, raw: bytes, *, maximum: int = 8192) -> None:
+        if (type(maximum) is not int or maximum not in (8192, 1048576)
+                or type(raw) is not bytes or not 0 < len(raw) <= maximum):
             raise ValueError('Invalid bounded original Local response')
         self._original = self
         self._host = host
@@ -75,6 +76,10 @@ class OriginalLocalResponseStream(httpx.AsyncByteStream):
             self._reading = False
 
     def _close(self) -> bool:
+        with self._host._core._host_cleanup():
+            return self._close_original()
+
+    def _close_original(self) -> bool:
         """Release only after the original iterator is physically stopped."""
         self._nominal()
         self._closing = True

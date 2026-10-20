@@ -198,6 +198,29 @@ The 64 structural scratch entries and bounded control preflight are not a
 physical byte grant; logical retirement and GC are not cleanup ACKs. Original
 Value identity, wire schemas, clock domains and authority are unchanged.
 
+### Original UTF-8 prefix execution
+
+`UTF8_TRUNCATE` uses the same checked text-time occurrence and fragment
+evaluation-envelope construction as String `TRY_NUMBER`. Its lowerer retains
+the original input and byte-limit children; ordinary expression emission keeps
+the existing named body. A copied expression or detached profile resolution
+does not discharge the original envelope obligation.
+
+The eager binary frame retains both operand roots through a resumable scan of
+the complete original input. That scan checks the original codepoint and UTF-8
+ceilings and records the last complete scalar inside the exact byte limit.
+It runs even for a zero-byte result. The existing text continuation then sizes
+and builds only that prefix, reserving output bytes and UTF-16 workspace before
+allocation. Every scan/build step remains within the original frame's control
+budget; cancellation and demanded-child failures are never conversion failures.
+
+The truncation state adds an optional private counter record to the existing
+text state and reserves its structural workspace. The original input, checked
+envelope, both operand roots, counter record, builder and returned String can
+overlap. The absent optional field also has representation overhead in other
+text operations; neither that overhead nor escaped output is physical release
+evidence. This connection supplies no Host capacity or authority.
+
 ### Existing Decimal addition, subtraction and multiplication
 
 The checked binary expression's existing Decimal result contract supplies the
@@ -218,3 +241,38 @@ work; these are not physical byte admission. Both operands, temporary integer
 limbs and powers, formatter output, result and root aliases can overlap under
 the existing phase. Scratch release is distinct from logical-root retirement
 and physical cleanup acknowledgement.
+
+### Original String TRY_NUMBER occurrence
+
+The ordinary checked Program preparation binds its local Stage's opaque
+expression closure to the same prepared pipeline and original Parameter binding.
+An equal source document, contract, profile CID or separately checked binding
+cannot replace that original. Empty closures retain the previous preparation
+path. Lowering discharges only the String TRY_NUMBER envelope occurrence it can
+find at the same typed node and semantic step; unsupported envelope operations
+remain pending at their existing boundary.
+
+The lowered expression retains its original text bound and policy. Fragment
+construction projects every such occurrence from those same typed roots, with
+source and machine-node pointers, argument and input-evidence CIDs, semantic
+step and original demand path. It emits the existing closed envelope and its
+self-CID, sorted by UTF-16 source pointer. Admission regenerates the complete
+array; a matching digest or omitted envelope cannot supply another occurrence.
+The retained request includes that same complete policy, without issuing Host
+capacity or operation authority.
+
+The existing expression frame demands the original child once. A demanded
+String first receives a complete scalar/UTF-8 extent check against its retained
+input bound, including text that is invalid at its first character. It then
+uses the existing Number lexeme and finite Number reader. Only conversion-domain
+failure becomes NULL; child, control, input-bound, engine and root failures keep
+their original error paths. An undemanded lazy branch does no input preflight.
+The admitted Number identity branch remains an ordinary scalar operation and
+needs no String parsing envelope.
+
+The closure and selected pipeline/Parameter aliases, node-resolution map,
+policy/input/output bound chain, canonical root and argument trees, envelope
+writers/hash/cursors and emitted artifact overlap under the existing preparation
+and execution phases. String operands, parser workspace, result and root aliases
+remain subject to those owners' logical and physical limits. Dropping these
+references is neither a physical cleanup acknowledgment nor numerical funding.

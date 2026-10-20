@@ -20,12 +20,13 @@ class Client:
         self._closed = False
 
     @classmethod
-    def open(cls, *, signer=None):
+    def open(cls, *, state_dir=None, signer=None):
         """Use the same installed Local factory; never nest an application loop."""
         _outside_loop()
         runner = asyncio.Runner()
         try:
-            client = runner.run(AsyncClient.open(signer=signer))
+            options = {} if state_dir is None else {'state_dir': state_dir}
+            client = runner.run(AsyncClient.open(signer=signer, **options))
         except BaseException as failure:
             cleanup_client = getattr(failure, 'cleanup_client', None)
             if isinstance(failure, ClientError) and isinstance(cleanup_client, AsyncClient):

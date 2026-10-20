@@ -16,7 +16,10 @@ import secrets
 from pathlib import Path
 import stat
 import time
-from typing import Any, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, TypeVar
+
+if TYPE_CHECKING:
+    from ._local_initial_preparation import _OriginalPythonPreparation
 
 import httpx
 
@@ -38,6 +41,8 @@ from ._local_response import OriginalLocalResponseStream
 from ._local_sdk_response import OriginalLocalSDKResponseStream
 from ._local_sdk_payload_reader import OriginalSDKPayloadReader, SDKPayloadReaderCleanupPending
 from ._local_work import OriginalLocalWork
+from ._local_saved_read import OriginalSavedResultRead
+from ._local_check import OriginalLocalCheck
 from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalStorageError, StoredBytes
 from ._local_native_store import _OriginalNativeStoreSelection
 from ._values import content_cid, wire_bytes
@@ -45,6 +50,36 @@ from ._values import content_cid, wire_bytes
 _T = TypeVar('_T')
 _LOCAL_SELECTION = {'mode': 'local', 'owner': 'local', 'durability': 'durable',
                     'consentRefs': [], 'runners': []}
+_PUBLICATION_WORK_QUANTUM = 256
+
+
+def _ordinary_core_limits() -> LocalCoreResources:
+    """Managed work/copy allowances, not reserved heap or a hard RSS ceiling.
+
+    Config/Engine/Store and their linear memory are actually acquired by Core.
+    Python/runtime caches belong to the trusted platform. Native workers and
+    shared zero-copy holdings, when selected, retain their separate originals.
+    """
+    return LocalCoreResources(planning_work=1_000_000, attempts=4096,
+        holdings=4096, transfer_bytes=64 * 1024 * 1024,
+        retained_bytes=512 * 1024 * 1024,
+        # Existing Local Compute admits a 512 MiB execution envelope. Keep
+        # the Core/transfer/setup allowances concurrent on this same Root.
+        execution_bytes=(512 + 64) * 1024 * 1024)
+
+
+def _state_directory_option(value: str | os.PathLike[str] | None) -> Path | None:
+    """Capture the documented trusted PathLike once before acquisition."""
+    if value is None:
+        return None
+    text = os.fspath(value)
+    if not isinstance(text, str) or not text or '\x00' in text or len(text) > 4096:
+        raise ValueError('Invalid Python Local state directory')
+    # Preserve the filesystem spelling, including surrogateescaped Unix names.
+    # This is the ordinary selected stdlib codec, not a provenance issuer.
+    if len(os.fsencode(text)) > 4096:
+        raise ValueError('Python Local state directory exceeds its encoded limit')
+    return Path(text)
 
 
 @dataclass(eq=False)
@@ -85,6 +120,17 @@ class _OriginalRunReference:
     source: _Input
 
 
+@dataclass(eq=False)
+class _RunStateCustody:
+    # Same-Host pending input/output custody; counters always come from Store.
+    run: _Run
+    projection: OriginalCommitProjection
+    source: _Input
+    output: _Output | None = None
+    prepared: bool = False
+    write_attempted: bool = False
+
+
 class LocalProductCleanupPending(RuntimeError):
     def __init__(self, host: 'InstalledLocalHost') -> None:
         super().__init__('Installed Local Host cleanup is pending')
@@ -95,6 +141,11 @@ def _default_directory() -> Path:
     """Choose the private standard location, never a Program-supplied path."""
     # The installed resolver already rejects non-Darwin/arm64 profiles.
     directory = Path.home() / 'Library' / 'Application Support' / 'ActQL' / 'Python Local'
+    return _private_state_directory(directory)
+
+
+def _private_state_directory(directory: Path) -> Path:
+    """Prepare the caller's Store through the same owned-directory checks."""
     parent = directory.parent
     parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     parent_info = parent.lstat()
@@ -131,6 +182,8 @@ class InstalledLocalHost:
         self._configuration: _RunConfiguration | None = None
         self._run_loans: list[_Run] = []
         self._public_run_references: list[_OriginalRunReference] = []
+        self._run_state_custody: dict[int, _RunStateCustody] = {}
+        self._state_observing = False
         self._run_publications: list[tuple[_Run, _Output]] = []
         self._row_outputs: list[_Output] = []
         self._run_rows: list[tuple[_Run, _Output]] = []
@@ -167,6 +220,8 @@ class InstalledLocalHost:
         self._pending_publication_write: OriginalCommitProjection | None = None
         # Routing alias to the same retained publisher loan, never a new grant.
         self._pending_publication_publisher: _Output | None = None
+        self._saved_result_reads: list[OriginalSavedResultRead] = []
+        self._client_check = OriginalLocalCheck(self)
         self._payloads: list[_PayloadCustody] = []
         self._payload_write_attempts: set[int] = set()
         self._payload_capacity_attempts: set[int] = set()
@@ -199,28 +254,55 @@ class InstalledLocalHost:
             raise LocalProductCleanupPending(self) from failure
 
     @classmethod
-    def installed(cls, *, resources: LocalCoreResources | None = None) -> InstalledLocalHost:
+    def installed(cls, *, state_dir: str | os.PathLike[str] | None = None,
+                  resources: LocalCoreResources | None = None,
+                  _initial_preparation: _OriginalPythonPreparation | None = None) -> InstalledLocalHost:
         """Resolve the selected cohort with no endpoint/token/internal paths."""
-        components = installed_local_components()
-        if resources is None:
-            from ._local_capacity_original import _selected_capacity_original
+        if resources is None and _initial_preparation is not None:
             from ._local_worker_funding import LocalWorkerFundingUnavailable
-            _selected_capacity_original(components)
-            # Release-bound numbers are necessary metadata, not original
-            # physical acquisition or execution-delegation custody. Ordinary
-            # Local must use the installed worker supplier when it is adopted;
-            # never fall through to a stock in-process Engine from numbers.
-            raise LocalWorkerFundingUnavailable('Original installed Local worker funding is unavailable')
-        # This explicit-resource route is a private diagnostic. It is not the
-        # ordinary product factory, pre-spawn funding or installed acceptance.
+            from ._local_initial_preparation import _OriginalPythonPreparation, _capture_initial_preparation
+            initial = _initial_preparation
+            try:
+                if initial is None:
+                    initial = _capture_initial_preparation(state_dir)
+                else:
+                    if type(initial) is not _OriginalPythonPreparation:
+                        raise ValueError('Foreign original Python preparation')
+                initial.adopt_captured_state_dir(state_dir)
+            except LocalWorkerFundingUnavailable:
+                raise
+            except Exception as failure:
+                raise LocalWorkerFundingUnavailable(
+                    'Original Python initial preparation is unavailable',
+                    cleanup_preparation=initial) from failure
+            # This actual initial input service supplies neither the absent
+            # worker originals nor the larger discovery/import/loader envelope.
+            # Keep the same initial carrier; never treat it as reserved bytes.
+            raise LocalWorkerFundingUnavailable(
+                'Original installed Local worker funding is unavailable',
+                cleanup_preparation=initial)
+        if _initial_preparation is not None:
+            raise ValueError('Initial Python original cannot be transferred to diagnostic resources')
+        directory_option = _state_directory_option(state_dir)
+        if resources is None:
+            resources = _ordinary_core_limits()
+        components = installed_local_components()
+        # The selected installed Core acquires real Config/Engine/Store/VM
+        # resources. Limits do not stand in for those acquisitions, native
+        # worker originals or any operation's current permission.
         core = LocalCore._from_installed_image(components,
-            transfer_capacity=12 * 1024 * 1024, slots=64,
-            resources=resources)
+            # Original setup, Run and Result slots remain concurrent with
+            # each physical borrow. Keep their finite descriptor allowance
+            # separate from the unchanged transfer-byte allowance.
+            transfer_capacity=12 * 1024 * 1024, slots=128,
+            resources=resources, _ordinary_host=True)
         try:
-            directory = _default_directory()
-            now = lambda: time.time_ns() // 1_000_000
-            observed_at = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
-            return cls(core, directory, now=now, observed_at=observed_at, sdk_finite=True)
+            with core._host_operation(initial=True):
+                directory = (_default_directory() if directory_option is None
+                             else _private_state_directory(directory_option))
+                now = lambda: time.time_ns() // 1_000_000
+                observed_at = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+                return cls(core, directory, now=now, observed_at=observed_at, sdk_finite=True)
         except LocalProductCleanupPending:
             raise
         except BaseException:
@@ -235,13 +317,6 @@ class InstalledLocalHost:
             raise ValueError('Copied installed Local Host')
 
     async def open(self, operation: str, payload: bytes) -> httpx.Response:
-        """Use the existing SDK's closed operation wire without HTTP or a token.
-
-        Profile/admission and completed original Run observations use their
-        existing Owners. Other operations still need their own observations; no outcome
-        is fabricated from a physical write, exception, or unsupported request.
-        The public installed factory remains gated on Result/recovery assembly.
-        """
         self._active()
         if any(not work.stopped for work in self._physical_work):
             raise ValueError('Original Local physical invocation is still active')
@@ -249,12 +324,32 @@ class InstalledLocalHost:
         if (type(operation) is not str or not wire.valid_body(operation, body)  # type: ignore[no-untyped-call]
                 or body['connection'] != _LOCAL_SELECTION):
             raise ValueError('Invalid original Local Client operation')
+        with self._core._host_operation():
+            return await self._open_operation(operation, body)
+
+    async def _open_operation(self, operation: str, body: dict[str, Any]) -> httpx.Response:
+        """Use the existing SDK's closed operation wire without HTTP or a token.
+
+        Profile/admission and completed original Run observations use their
+        existing Owners. Other operations still need their own observations; no outcome
+        is fabricated from a physical write, exception, or unsupported request.
+        The public installed factory remains gated on Result/recovery assembly.
+        """
         work: OriginalLocalWork | None = None
         with self._core._lock:
             if operation == 'connect':
-                raw = wire_bytes(self.profile())  # type: ignore[no-untyped-call]
+                raw = wire_bytes(self._profile())  # type: ignore[no-untyped-call]
+            elif operation == 'check':
+                raw = self._client_check.report(body)
+            elif operation == 'lookup-submission':
+                raw = self._lookup_original_submission(body['submissionRef'])
+            elif operation == 'attach':
+                raw = self._attach_original_run(body['ref'])
             elif operation == 'submit-intent':
                 intent = {key: body[key] for key in ('kind', 'input', 'parameters')}
+                for key in ('stopBefore', 'readOnly'):
+                    if key in body:
+                        intent[key] = body[key]
                 identity = content_cid({'version': 'actql-submitted-intent/0.1',
                     'intent': intent}, data_keys=True)  # type: ignore[no-untyped-call]
                 if body['intentCid'] != identity:
@@ -277,24 +372,37 @@ class InstalledLocalHost:
                 raw = wire_bytes(value)  # type: ignore[no-untyped-call]
                 work = OriginalLocalWork(lambda: self._execute_original_admitted_run(run))
             elif operation in ('status', 'wait'):
-                if operation == 'wait' and (body['until'] is not None or body['since'] is not None):
+                if operation == 'wait' and (body['until'] not in (None, 'terminal')
+                        or body['since'] is not None):
                     raise ValueError('Original Local wait condition supplier is unavailable')
+                # Submission waits for its original physical work. Both forms
+                # reobserve the same completed publication; the SDK's existing
+                # wait validator still requires an actual stable Owner state.
                 run, _ = self._select_original_run(body['ref'])
                 projection = self._original_run_projection(run)
                 return self._original_run_response(run, projection)
             elif operation == 'read':
+                if not self._has_live_original_run_reference(body['ref']):
+                    saved_read = OriginalSavedResultRead(self)
+                    self._saved_result_reads.append(saved_read)
+                    return saved_read.prepare(body['ref'], body['resultName'], body['format'], body['attemptId'])
                 run, _ = self._select_original_run(body['ref'])
                 projection = self._original_run_projection(run)
                 return self._original_sdk_read_response(run, projection,
                     body['resultName'], body['format'], body['attemptId'])
             elif operation == 'delivery-attempt':
+                if not self._has_live_original_run_reference(body['ref']):
+                    saved_read = OriginalSavedResultRead(self)
+                    self._saved_result_reads.append(saved_read)
+                    return saved_read.prepare_lookup(body['ref'], body['resultName'], body['attemptId'])
                 run, _ = self._select_original_run(body['ref'])
                 projection = self._original_run_projection(run)
                 return self._original_delivery_lookup_response(run, projection,
                     body['resultName'], body['attemptId'])
             else:
                 raise ValueError('Original Local operation supplier is unavailable')
-            stream = OriginalLocalResponseStream(self, raw)
+            stream = OriginalLocalResponseStream(self, raw,
+                maximum=1048576 if operation == 'check' else 8192)
         if work is not None:
             # Keep the accounted response and original invocation even if the
             # awaiting coroutine disappears. Host close observes actual worker
@@ -329,6 +437,17 @@ class InstalledLocalHost:
             if held == raw:
                 raise ValueError('Ambiguous original Local Run reference')
         self._public_run_references.append(_OriginalRunReference(run, self._copy(raw)))
+
+    def _has_live_original_run_reference(self, reference: object) -> bool:
+        """Locate existing live custody only; exact equality is not authority."""
+        captured = wire_bytes(reference)  # type: ignore[no-untyped-call]
+        if len(captured) > 4096:
+            raise ValueError('Invalid original Local Run reference')
+        for original in self._public_run_references:
+            self._core._owned_input(original.source)
+            if self._core._inputs[original.source.ticket].payload == captured:
+                return True
+        return False
 
     def _select_original_run(self, reference: object) -> tuple[_Run, bytes]:
         """Route a reference, then reobserve its original actual saved admission.
@@ -385,7 +504,10 @@ class InstalledLocalHost:
                 self._core.validate_publication_run(projection._publication,
                     run.handle, configuration.handle))
             self._ensure_original_publication_observation(projection)
-            self._project_original_run_state(projection, consume)
+            if configuration.sdk:
+                self._project_original_sdk_run_state(run, projection, consume)
+            else:
+                self._project_original_run_state(projection, consume)
         except BaseException:
             # Unattached transport never reaches the Client. The original
             # buffer Owner decides cleanup; failure retains this same stream.
@@ -400,6 +522,101 @@ class InstalledLocalHost:
             'content-encoding': 'identity'}, stream=stream)
         stream._attached = True
         return response
+
+    def _project_original_sdk_run_state(self, run: _Run,
+                                         projection: OriginalCommitProjection,
+                                         consume: Callable[[bytes], object]) -> None:
+        """Persist and confirm original observation metadata before public wire.
+
+        The Core owns the actual submitted-row counter/key, state and physical
+        availability relation. This caller forwards one original CAS only; a
+        lost response permits same-output lookup, never another write or Run.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        store = installation._store
+        if store is None or configuration is None or not configuration.sdk:
+            raise ValueError('Original SDK state installation is unavailable')
+        if self._state_observing:
+            raise ValueError('Original SDK state observation is already active')
+        with self._core._lock, ExitStack() as active:
+            self._state_observing = True
+            active.callback(setattr, self, '_state_observing', False)
+            observation = self._original_sdk_read_observation(run, projection)
+            held = self._run_state_custody.get(run.handle)
+            if held is None:
+                now = self._now()
+                if type(now) is not int or not 0 <= now <= 253402300799999:
+                    raise ValueError('Invalid Local physical observation time')
+                seconds, milliseconds = divmod(now, 1000)
+                at = datetime.fromtimestamp(seconds, timezone.utc).replace(
+                    microsecond=milliseconds * 1000).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+                payloads = [{'record': fact._record.handle, 'result': fact._result,
+                             'binding': fact._binding_index} for fact in observation._facts]
+                source = self._copy(wire_bytes({'observed_at': at, 'payloads': payloads}))  # type: ignore[no-untyped-call]
+                held = _RunStateCustody(run, projection, source)
+                self._run_state_custody[run.handle] = held
+                created_output = self._reserve(lambda: self._core.reserve_publication_commit_export(
+                    projection._publication, cleanup=lambda: True))
+                held.output = created_output
+                with observation._serialized_facts():
+                    installation.binding.inspect(lambda _:
+                        self._core.produce_publication_sdk_run_state(
+                            created_output, run.handle, source, configuration.handle))
+                held.prepared = True
+            if held.run is not run or held.projection is not projection or not held.prepared:
+                raise LocalProductCleanupPending(self)
+            output = held.output
+            if output is None:
+                raise LocalProductCleanupPending(self)
+            self._core._owned_output(output, 'publication_commit_export')
+            candidate = _object(self._core.read_publication_commit_material(output), 1048576)
+            fields = {'kind', 'key', 'revision', 'body', 'state'}
+            if (set(candidate) != fields or any(type(candidate[key]) is not str for key in fields)
+                    or candidate['kind'] not in ('retained', 'replace')):
+                raise ValueError('Invalid original SDK state metadata projection')
+            revision = candidate['revision']
+            if (not revision.isascii() or not revision.isdecimal()
+                    or len(revision) > 19 or len(revision) > 1 and revision.startswith('0')
+                    or int(revision) > 2**63 - 1
+                    or candidate['kind'] == 'replace' and int(revision) == 2**63 - 1):
+                raise ValueError('Invalid original SDK state metadata generation')
+            with observation._serialized_facts():
+                if candidate['kind'] == 'replace' and not held.write_attempted:
+                    writes = (ByteWrite(store.namespaced_key('client_submitted_intents', candidate['key']),
+                                        int(revision), candidate['body'].encode('utf-8')),)
+                    with installation.binding.fenced() as fences:
+                        def inspect(reader: Any) -> None:
+                            def validate(_: _Output) -> None:
+                                observation._before_lookup()
+                                self._core.validate_publication_sdk_run_state(output, configuration.handle)
+                                observation._validate_facts()
+                            installation.binding.inspect_reader(reader, validate)
+                        held.write_attempted = True
+                        result = store.compare_exchange_many_inspected(
+                            writes, (*fences, *(row for row, _ in observation._originals)),
+                            inspect=inspect, current=installation.binding.current)
+                    if result is None:
+                        raise LocalStorageError('Original SDK state metadata conflict; lookup is required')
+                # Physical COMMIT and candidate fields are not confirmation.
+                # This same output rechecks the exact saved successor under a
+                # fresh original Store/current frame, including after reply loss.
+                raw = candidate['state'].encode('utf-8')
+                def confirm_and_consume(_: _Output) -> None:
+                    self._core.confirm_publication_sdk_run_state(output, configuration.handle)
+                    # The response's original Run guard and bounded transfer
+                    # still need this same entered physical journal snapshot.
+                    if consume(raw) is not None:
+                        raise ValueError('Invalid synchronous original SDK state consumer')
+                    observation._validate_facts()
+                installation.binding.inspect(confirm_and_consume)
+            if not self._core.close_publication_commit_export(output):
+                raise LocalProductCleanupPending(self)
+            held.output = None
+            if not self._core.close_input(held.source):
+                raise LocalProductCleanupPending(self)
+            self._inputs.remove(held.source)
+            del self._run_state_custody[run.handle]
 
     def _original_sdk_read_response(self, run: _Run,
                                     projection: OriginalCommitProjection,
@@ -537,6 +754,19 @@ class InstalledLocalHost:
         self._core.seal_input(loan)
         return loan
 
+    def _original_check_environment(self) -> _Environment:
+        installation = self._active()
+        if self._environment is None:
+            selected = next(value for value in installation.binding._selected
+                            if value.name == 'environment.json')
+            source = self._copy(installation.binding._source.original_bytes(selected))
+            def install(_: _Output) -> None:
+                self._environment = self._preparation.install_environment(source, profile='source-free')
+            installation.binding.inspect(install)
+        assert self._environment is not None
+        self._preparation._environment(self._environment)
+        return self._environment
+
     def _project_epoch(self, kind: int, raw: bytes) -> bytes:
         """Forward the physical key/clock body through the same current Owner."""
         installation = self._active()
@@ -562,6 +792,11 @@ class InstalledLocalHost:
             return captured[0]
 
     def profile(self) -> dict[str, Any]:
+        self._active()
+        with self._core._host_operation():
+            return self._profile()
+
+    def _profile(self) -> dict[str, Any]:
         """Read original Core scope and explicitly issue its authenticated epoch.
 
         No submitted input, Run, Source, Compute, Model or Effect is started.
@@ -656,9 +891,124 @@ class InstalledLocalHost:
                 raise LocalStorageError('Original Local submitted intent write conflicted; lookup is required')
             return output
 
+    def _lookup_original_submission(self, reference: object) -> bytes:
+        """Observe authenticated saved history without preparing or resending.
+
+        A missing original is unresolved history, never proof of nonexecution.
+        The Core's full inventories and retained Run validator remain inside
+        the same current physical snapshot before and after copying the view.
+        """
+        return self._read_original_reference(reference, kind=4)
+
+    def _attach_original_run(self, reference: object) -> bytes:
+        """Select one saved admission; never recreate an executable Run plan."""
+        return self._read_original_reference(reference, kind=5)
+
+    def _read_original_reference(self, reference: object, *, kind: int) -> bytes:
+        installation = self._active()
+        configuration = self._configuration
+        if (installation._epoch is None or installation._store is None
+                or configuration is None):
+            raise ValueError('Original Local submission suppliers are unavailable')
+        captured_reference = _object(wire_bytes(reference), 8192)  # type: ignore[no-untyped-call]
+        with self._core._lock:
+            if kind == 4:
+                installation._epoch.identity(captured_reference)
+                body = {'reference': wire_bytes(captured_reference).decode('utf-8')}  # type: ignore[no-untyped-call]
+            elif kind == 5 and wire.valid(captured_reference, 'run_ref'):  # type: ignore[no-untyped-call]
+                body = captured_reference
+            else:
+                raise ValueError('Invalid original Local reference selection')
+            source = self._copy(wire_bytes(body))  # type: ignore[no-untyped-call]
+            output = self._reserve(lambda: self._core.reserve_submission_projection(
+                configuration.handle, source, kind, cleanup=lambda: True))
+            self._projections.append(output)
+            self._append_sources[output.ticket] = source
+            captured: list[dict[str, Any]] = []
+            def observe(current: _Output) -> None:
+                self._core.produce_submission_lookup(output, current)
+                captured.append(_object(self._core.read_submission_lookup(output, current), 1048576))
+            installation.binding.inspect(observe)
+            original = captured[0]
+            observed_kind = original.get('kind')
+            fields = ({'kind'} if observed_kind == 'missing' else {'kind', 'intentCid'}
+                      if observed_kind == 'preparing' else {'kind', 'intentCid', 'admission'}
+                      if observed_kind == 'ready' else set())
+            if not fields or set(original) != fields:
+                raise ValueError('Invalid original Local submission lookup')
+            if kind == 5:
+                if original['kind'] != 'ready' or type(original.get('admission')) is not str:
+                    raise ValueError('Original Local Run is unavailable')
+                saved = _object(original['admission'].encode('utf-8'), 4096)
+                if (not wire.negotiated(saved, 'admission', _LOCAL_SELECTION)  # type: ignore[no-untyped-call]
+                        or saved['ref'] != captured_reference):
+                    raise ValueError('Foreign original Local Run admission')
+                admission: bytes = wire_bytes(saved)  # type: ignore[no-untyped-call]
+                if not self._close_projection(output):
+                    raise LocalProductCleanupPending(self)
+                return admission
+            if observed_kind == 'missing':
+                result: dict[str, Any] = {'kind': 'unresolvable',
+                    'submissionRef': captured_reference,
+                    'problem': {'code': 'submission_history_unresolvable'}}
+            else:
+                result = {'kind': observed_kind, 'submissionRef': captured_reference,
+                          'intentCid': original['intentCid']}
+                if observed_kind == 'ready':
+                    if type(original['admission']) is not str:
+                        raise ValueError('Invalid original saved Local admission')
+                    result['admission'] = _object(original['admission'].encode('utf-8'), 4096)
+            if not wire.submission_outcome(result, _LOCAL_SELECTION, captured_reference, lookup=True):  # type: ignore[no-untyped-call]
+                raise ValueError('Invalid original Local submission lookup response')
+            raw: bytes = wire_bytes(result)  # type: ignore[no-untyped-call]
+            if not self._close_projection(output):
+                raise LocalProductCleanupPending(self)
+            return raw
+
+    def _retain_original_result_read(self, reference: object, result_name: str) -> _Output:
+        """Retain Core's actual stored-chain reader, never an executable plan.
+
+        Its private wire carries metadata only. A later Result delivery must
+        still use this nominal Core output, recheck its original Store/current
+        fences and acquire the actual generation/grant/usage through their
+        existing Owners. No reconstruction from these strings is authorized.
+        Partial preparation, changed history or output close keeps the original
+        input/output reachable for same-handle cleanup.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        selected = _object(wire_bytes(reference), 8192)  # type: ignore[no-untyped-call]
+        if (configuration is None or not configuration.sdk
+                or installation._store is None or installation._epoch is None
+                or not wire.valid(selected, 'run_ref')  # type: ignore[no-untyped-call]
+                or not wire.bounded_text(result_name)):  # type: ignore[no-untyped-call]
+            raise ValueError('Invalid original saved Local Result selection')
+        with self._core._lock:
+            source = self._copy(wire_bytes({**selected, 'resultName': result_name}))  # type: ignore[no-untyped-call]
+            output = self._reserve(lambda: self._core.reserve_submission_projection(
+                configuration.handle, source, 6, cleanup=lambda: True))
+            self._projections.append(output)
+            self._append_sources[output.ticket] = source
+            packets: list[dict[str, Any]] = []
+            def inspect(current: _Output) -> None:
+                self._core.produce_submission_lookup(output, current)
+                packets.append(_object(self._core.read_submission_lookup(output, current), 1048576))
+            installation.binding.inspect(inspect)
+            packet = packets[0]
+            fields = {'kind', 'resultName', 'runDefinitionCid', 'index', 'manifest',
+                      'definition', 'artifact', 'retention', 'binding', 'resultOrdinal', 'bindingOrdinal'}
+            if (set(packet) != fields or any(type(packet[key]) is not str for key in fields)
+                    or packet['kind'] != 'result-originals' or packet['resultName'] != result_name
+                    or packet['runDefinitionCid'] != selected['runDefinitionCid']
+                    or any(packet[key] not in tuple(str(i) for i in range(8))
+                           for key in ('resultOrdinal', 'bindingOrdinal'))):
+                raise ValueError('Foreign original saved Local Result projection')
+            return output
+
     def _close_projection(self, output: _Output) -> bool:
         """Release only original transport loans after successful cleanup."""
         closed = (self._core.close_submission_append(output) if output.family == 'submission_append'
+                  else self._core.close_submission_lookup(output) if output.family == 'submission_lookup'
                   else self._core.close_submission_projection(output))
         if not closed:
             return False
@@ -760,13 +1110,14 @@ class InstalledLocalHost:
             self._run_rows.append((run, output))
             installation.binding.inspect(lambda _: self._core.produce_material(output))
             self._commit_original_run_rows(output)
-            admission = self._read_original_saved_admission(run)
             # The immutable row Owner/input remain in Core. These consumed
-            # buffers need not overlap the later dispatch/Compute/Result phase.
+            # transports need not overlap the fresh saved-admission lookup.
+            # Neither retirement is the Store or admission acknowledgement.
             if not self._core.retire_material_output(output):
                 raise LocalProductCleanupPending(self)
             if not self._core.retire_submission_append_output(observed):
                 raise LocalProductCleanupPending(self)
+            admission = self._read_original_saved_admission(run)
             self._pending_run_write = None
             return run, admission
 
@@ -1026,11 +1377,19 @@ class InstalledLocalHost:
             if self._pending_start_write is not None:
                 raise LocalStorageError('Original Local start requires lookup; new Compute is unavailable')
             self._bind_original_publication(run)
-            for kind in (7, 8):
+            # Material five asks the existing Owner to retain this Plan's
+            # checked normalization. Its transport is not a durable write or
+            # dispatch grant; the same Run keeps the original after close.
+            for kind in (5, 7, 8):
                 output = self._reserve(lambda: self._core.reserve_material(
                     run.handle, kind, cleanup=lambda: True))
                 self._step_outputs.append(output)
                 installation.binding.inspect(lambda _: self._core.produce_material(output))
+                if kind == 5:
+                    if not self._core.close_material(output):
+                        raise LocalProductCleanupPending(self)
+                    self._step_outputs.remove(output)
+                    continue
                 self._save_original_start_step(output)
                 if kind == 7:
                     if not self._core.close_material(output):
@@ -1082,7 +1441,6 @@ class InstalledLocalHost:
                 'now': self._now(),
                 'attempt_id': os.urandom(32).hex(),
                 'fence_cid': 'sha256:' + hashlib.sha256(os.urandom(32)).hexdigest(),
-                'external_idempotency_key': None,
             }))
             preflight = self._reserve(lambda: self._core.reserve_publication_preflight(
                 invocation, request, cleanup=lambda: True))
@@ -1234,7 +1592,8 @@ class InstalledLocalHost:
             while True:
                 captured: list[LocalResultProgress] = []
                 installation.binding.inspect(lambda _: captured.append(
-                    self._core.advance_publication(publication, configuration.handle, 16)))
+                    self._core.advance_publication(publication, configuration.handle,
+                                                   _PUBLICATION_WORK_QUANTUM)))
                 if captured[0].ready: break
             installation.binding.inspect(lambda _:
                 self._core.finish_publication(publication, configuration.handle))
@@ -1266,7 +1625,7 @@ class InstalledLocalHost:
             held = _PayloadCustody(publication, index,
                 'sha256:' + hashlib.sha256(store_body).hexdigest(),
                 'sha256:' + hashlib.sha256(secrets.token_bytes(32)).hexdigest(),
-                store._max_record_bytes)
+                0)
             self._payloads.append(held)
             # Bound simultaneous physical row, decoded text and outer JSON
             # encoding before making those copies. Core output/copy loans and
@@ -1276,13 +1635,33 @@ class InstalledLocalHost:
             source = self._copy(wire_bytes({  # type: ignore[no-untyped-call]
                 'store_authority_cid': held.store_authority,
                 'material_generation_cid': held.generation,
-                'max_payload_bytes': held.maximum,
+                'max_payload_bytes': store._max_record_bytes,
             }))
             request = self._reserve(lambda: self._core.reserve_payload_request(
                 publication, index, source, cleanup=lambda: True))
             held.request = request
             installation.binding.inspect(lambda _:
                 self._core.produce_payload_request(request, configuration.handle))
+            # The physical limit is an upper bound. Core's original request
+            # selects the exact completed payload amount; reserve that amount,
+            # never the enclosing Store limit or a Python row-size estimate.
+            selected_request = _object(self._core.read_payload_request(request), 32768)
+            fields = {'durable_codec_cid', 'logical_relation_cid',
+                      'material_generation_cid', 'max_bytes', 'ordering_evidence_cid',
+                      'publication_attempt_cid', 'result_definition_cid',
+                      'result_schema_cid', 'row_count', 'store_authority_cid', 'version'}
+            if (set(selected_request) != fields
+                    or any(type(selected_request[key]) is not str for key in fields)
+                    or selected_request['version'] != 'actql-publication-payload-request/0.1'
+                    or selected_request['store_authority_cid'] != held.store_authority
+                    or selected_request['material_generation_cid'] != held.generation):
+                raise ValueError('Foreign original Core payload request')
+            maximum = selected_request['max_bytes']
+            if (not maximum.isascii() or not maximum.isdecimal()
+                    or not 1 <= len(maximum) <= 10 or maximum.startswith('0')
+                    or not 0 < int(maximum) <= min(store._max_record_bytes, 2**31 - 1)):
+                raise ValueError('Invalid original Core payload amount')
+            held.maximum = int(maximum)
             record = self._reserve(lambda: self._core.reserve_payload_record(
                 request, cleanup=lambda: True))
             held.record = record
@@ -2028,7 +2407,8 @@ class InstalledLocalHost:
                     return projection
             progress = []
             installation.binding.inspect(lambda _:
-                progress.append(self._core.advance_publication_commit(publication, configuration.handle, 16)))
+                progress.append(self._core.advance_publication_commit(publication, configuration.handle,
+                                                                      _PUBLICATION_WORK_QUANTUM)))
             if not progress[0].ready:
                 return None
             installation.binding.inspect(lambda _:
@@ -2367,9 +2747,16 @@ class InstalledLocalHost:
                     raise LocalStorageError('Original publication write conflicted; lookup is required')
 
     def close(self) -> bool:
+        self._nominal()
+        if self._state_observing or any(not work.stopped for work in self._physical_work):
+            return False
+        with self._core._host_cleanup():
+            return self._close_originals()
+
+    def _close_originals(self) -> bool:
         """Stop this Host's resources only; never cancel/replay/delete a Run."""
         self._nominal()
-        if any(not work.stopped for work in self._physical_work):
+        if self._state_observing or any(not work.stopped for work in self._physical_work):
             return False
         with self._core._lock:
             self._closing = True
@@ -2378,6 +2765,21 @@ class InstalledLocalHost:
                     return False
             if self._uncertain_ticket is not None and not self._core._closed:
                 return False
+            if not self._client_check.close():
+                return False
+            for saved_read in tuple(reversed(self._saved_result_reads)):
+                if not saved_read.close():
+                    return False
+                self._saved_result_reads.remove(saved_read)
+            for key, state_custody in tuple(self._run_state_custody.items()):
+                if state_custody.output is not None:
+                    if not self._core.close_publication_commit_export(state_custody.output):
+                        return False
+                    state_custody.output = None
+                if not self._core.close_input(state_custody.source):
+                    return False
+                self._inputs.remove(state_custody.source)
+                del self._run_state_custody[key]
             for projection in tuple(reversed(self._commit_projections)):
                 if not projection.close():
                     return False

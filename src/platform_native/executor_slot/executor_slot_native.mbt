@@ -458,7 +458,8 @@ struct NativeHolderChannel {
 
 ///|
 /// Send one line when no prior frame is unread and the child is observed live.
-/// A partial frame is retained and resumed without interleaving a new frame.
+/// The selected frame survives busy/partial writes without interleaving a new
+/// frame, including backpressure before its first byte was written.
 /// False means no confirmed relay (busy/unavailable/invalid), never stop or
 /// cleanup evidence. Remote responsibility remains with its existing Owner.
 pub fn NativeHolderChannel::send(
@@ -483,6 +484,10 @@ pub fn NativeHolderChannel::send(
     encoded.length(),
     self.offset,
   )
+  if written == -2 {
+    self.pending_frame = Some((original, encoded))
+    return false
+  }
   if written < 0 {
     return false
   }

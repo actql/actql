@@ -11,9 +11,10 @@ import {labelListFixture,labelListReadLimits} from './gmail-label-list.fixture.m
 // Only a test declaration. It is not C's normal installation quantity or a
 // retirement receipt. Retain original handles/ledgers until this child exits;
 // original DB/keys and a pending-custody receipt stay in the fixture directory.
+import {threadReadLimits} from './gmail-thread-read.fixture.mjs';
 const pending=new Set();
 const repo=new URL('../../../../',import.meta.url);
-export async function installedGmailFixture(t,{account='allow'}={}){
+export async function installedGmailFixture(t,{account='allow',resource='labels',accountResource=resource}={}){
   const f=await labelListFixture(t,{accounted:false});
   const site={version:'actql-installed-gmail-site/0.1',apiOrigin:f.scope.resourceOrigin,
     credentialAuthorityId:'installed-gmail',credentialKeyId:'key',
@@ -24,9 +25,10 @@ export async function installedGmailFixture(t,{account='allow'}={}){
   await writeFile(siteProfilePath,JSON.stringify(site));
   const policy=canonicalJson({version:'actql-execution-account-config/0.1',account_id:'installed',entries:[{
     entry_id:'labels',outcome:account,principal:{all:true},connection:{any_of:['gmail:mailbox']},
-    resource:{any_of:['labels']},operation:{any_of:['read']},exclusions:[]}]});
+    resource:{any_of:[accountResource]},operation:{any_of:['read']},exclusions:[]}]});
   const profile={version:'actql-installed-gmail-source/0.1',connectorId:'mailbox',mailbox:f.options.mailbox,
-    siteProfilePath,accountConfigurationWire:policy,limits:{...labelListReadLimits,
+    ...(resource==='labels'?{}:{resource}),siteProfilePath,accountConfigurationWire:policy,
+    limits:{...(resource==='threads'?threadReadLimits:labelListReadLimits),
       maxDeclarationBytes:4096,maxDeclarationNodes:1000,maxSecretBytes:128,maxCaBytes:16384}};
   const capacity=common.clientProgramRowSourceProviderCapacity(262144n,262144n);
   assert.ok(capacity);
@@ -37,15 +39,15 @@ export async function installedGmailFixture(t,{account='allow'}={}){
     baseEnvironmentWire:await readFile(new URL('spec/local-check-environment.json',repo),'utf8'),
     resolveSecret:async()=>{f.state.resolutions++;await f.state.resolved?.();return f.state.secret;},readerCapacity:capacity};
   const load=async(overrides={})=>{const source=await loadInstalledGmailSource(profile,{...options,...overrides});sources.push(source);return source;};
-  const prepare=async(source,{format='sql',selection='id, name, type'}={})=>{
+  const prepare=async(source,{format='sql',selection=resource==='threads'?'id, labels, last_message_date, message_count, subject':'id, name, type'}={})=>{
     const env=JSON.parse(source.environmentWire);
     const check=common.clientProgramCheckEnvironment(source.environmentWire,env.evidence_bundle_cid,
       false,false,true,false,false,false,false);assert.ok(check);
     const view=env.schema_snapshots.find(v=>v.source_ref===source.sourceReadAccesses[0].sourceRef);assert.ok(view);
-    const publication=JSON.stringify({environmentCid:env.evidence_bundle_cid,aliases:[{name:'gmail.labels',
+    const publication=JSON.stringify({environmentCid:env.evidence_bundle_cid,aliases:[{name:`gmail.${resource}`,
       sourceRef:view.source_ref,sourceViewContractCid:view.source_view_contract_cid,
       schemaContractCid:view.carrier_schema_contract_cid}]});
-    const text=format==='sql'?`SELECT ${selection} FROM gmail.labels`:`FROM gmail.labels |> SELECT ${selection}`;
+    const text=format==='sql'?`SELECT ${selection} FROM gmail.${resource}`:`FROM gmail.${resource} |> SELECT ${selection}`;
     const outcome=common.clientProgramPrepareSourceWithParameters(text,format,check,publication,undefined,undefined);
     const preparedProgram=common.clientProgramPreparationReady(outcome);
     assert.ok(preparedProgram,common.clientProgramPreparationIssueCode(outcome));

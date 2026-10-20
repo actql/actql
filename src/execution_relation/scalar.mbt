@@ -56,6 +56,12 @@ pub fn unary(
   value : Value,
 ) -> Result[Value, ScalarIssue] {
   match op {
+    TryNumber =>
+      match value {
+        Null => Ok(Null)
+        Number(n) => finite(n)
+        Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
+      }
     // Constructed text is evaluated only by the bounded expression continuation.
     Upper
     | Lower
@@ -390,7 +396,7 @@ pub fn binary(
   right : Value,
 ) -> Result[Value, ScalarIssue] {
   match op {
-    DecimalDivide(_) => Err(InvalidOperand)
+    DecimalDivide(_) | Utf8Truncate => Err(InvalidOperand)
     DateTruncate =>
       if left is Null || right is Null {
         Ok(Null)
@@ -501,7 +507,8 @@ pub fn binary(
         | EndsWith
         | Contains
         | DateTruncate
-        | DecimalDivide(_) => Err(InvalidOperand)
+        | DecimalDivide(_)
+        | Utf8Truncate => Err(InvalidOperand)
       }
       // Only this already-evaluated arithmetic operation is safe. Child,
       // operand-domain, control, cancellation and custody failures keep their
@@ -587,7 +594,8 @@ fn binary_comparison_result(
     | EndsWith
     | Contains
     | DateTruncate
-    | DecimalDivide(_) => Err(InvalidOperand)
+    | DecimalDivide(_)
+    | Utf8Truncate => Err(InvalidOperand)
   }
 }
 

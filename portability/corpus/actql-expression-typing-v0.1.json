@@ -316,6 +316,18 @@
       "nullable": true,
       "precision": 38,
       "scale": 2
+    },
+    "decimal38_3": {
+      "type": "decimal",
+      "nullable": false,
+      "precision": 38,
+      "scale": 3
+    },
+    "decimal38_3?": {
+      "type": "decimal",
+      "nullable": true,
+      "precision": 38,
+      "scale": 3
     }
   },
   "positive": [
@@ -1814,6 +1826,26 @@
     {
       "source": "quantize(NULL,2)",
       "type": "decimal38_2?"
+    },
+    {
+      "source": "decimal_divide(NULL,n,8,2,'half_even')",
+      "type": "decimal8_2?"
+    },
+    {
+      "source": "decimal_divide(d,NULL,8,2,'half_even')",
+      "type": "decimal8_2?"
+    },
+    {
+      "source": "decimal_divide(d,n,3)",
+      "type": "decimal38_3"
+    },
+    {
+      "source": "decimal_divide(NULL,NULL,3)",
+      "type": "decimal38_3?"
+    },
+    {
+      "source": "try_number(n)",
+      "type": "number?"
     }
   ],
   "negative": [
@@ -1894,14 +1926,6 @@
       "issue": "TypeMismatch"
     },
     {
-      "source": "decimal_divide(NULL,n,8,2,'half_even')",
-      "issue": "NullTypeUnresolved"
-    },
-    {
-      "source": "decimal_divide(d,NULL,8,2,'half_even')",
-      "issue": "NullTypeUnresolved"
-    },
-    {
       "source": "decimal_divide(n,d,8,2,'half_up')",
       "issue": "TypeMismatch"
     },
@@ -1969,10 +1993,6 @@
     },
     {
       "source": "format_timestamp(s,'yyyy')",
-      "issue": "TypeMismatch"
-    },
-    {
-      "source": "try_number(n)",
       "issue": "TypeMismatch"
     },
     {
@@ -4124,6 +4144,22 @@
     {
       "source": "quantize($missing_quantize,2)",
       "issue": "UnknownParameter"
+    },
+    {
+      "source": "decimal_divide(unknown_division,n,3)",
+      "issue": "UnknownField"
+    },
+    {
+      "source": "decimal_divide(d,$missing_division,3)",
+      "issue": "UnknownParameter"
+    },
+    {
+      "source": "decimal_divide(n,d,3)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "decimal_divide(d,'8',3)",
+      "issue": "TypeMismatch"
     }
   ]
 }

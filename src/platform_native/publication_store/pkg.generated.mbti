@@ -14,9 +14,15 @@ import {
 }
 
 // Values
+pub fn open_existing_local_store_with_custody(@sqlite.Library, String, String, Int64, Int64, Int64, diagnostic_ceiling? : Int?) -> Result[Store, NativePublicationStoreOpenError]
+
 pub fn open_existing_store(@sqlite.Library, String, String, Int64, Int64, Int64) -> Result[Store, NativePublicationStoreIssue]
 
 pub fn open_existing_store_with_custody(@sqlite.Library, String, String, Int64, Int64, Int64, diagnostic_ceiling? : Int?) -> Result[Store, NativePublicationStoreOpenError]
+
+pub fn open_local_store_with_custody(@sqlite.Library, String, String, Int64, Int64, Int64, diagnostic_ceiling? : Int?) -> Result[Store, NativePublicationStoreOpenError]
+
+pub fn open_original_local_store_with_custody(@sqlite.Library, @sqlite.NativeStoreOperationOriginal, String, String, Int64, Int64, Int64, existing? : Bool, diagnostic_ceiling? : Int?) -> Result[Store, NativePublicationStoreOpenError]
 
 pub fn open_store(@sqlite.Library, String, String, Int64, Int64, Int64) -> Result[Store, NativePublicationStoreIssue]
 
@@ -166,6 +172,8 @@ pub(all) enum NativePublicationStoreIssue {
   ReaderBusy
   ExistingDeliveryAttempt
   DeliveryAttemptUnresolved
+  OperationRouting(NativePublicationStoreIssue?, @sqlite.NativeSqliteIssue)
+  OperationCleanup(NativePublicationStoreIssue?, NativePublicationStoreIssue)
 }
 
 pub(all) enum NativePublicationStoreOpenError {
@@ -246,6 +254,7 @@ pub fn Store::inspect_committed_publication(Self, String, String, String, Int, I
 pub fn Store::inspect_payload(Self, String) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue]
 pub fn Store::inspect_result_delivery(Self, String) -> Result[NativeResultDeliveryStatus, NativePublicationStoreIssue]
 pub fn Store::lookup_result_delivery(Self, @run_publication.DeliveryAttemptLookupScope) -> Result[NativeResultDeliveryLookup?, NativePublicationStoreIssue]
+pub fn Store::matches_original_operation(Self, @sqlite.NativeStoreOperationOriginal) -> Bool
 pub fn Store::observe_allocation(Self, (String) -> Unit) -> Unit
 pub fn Store::observe_publication_payload_facts(Self, Array[@run_publication.PublicationContract], Array[String], Int, Int, Int) -> Result[Unit, NativePublicationStoreIssue]
 pub fn Store::observe_trusted_clock(Self, String, String) -> Result[String, NativePublicationStoreIssue]
@@ -261,6 +270,7 @@ pub fn Store::prepare_local_preparation_raw_observation(Self, @remote_credential
 pub fn Store::read_publication_contract(Self, String, String) -> Result[@run_publication.PublicationContract, NativePublicationStoreIssue]
 pub fn Store::read_result_schema(Self, String) -> Result[String, NativePublicationStoreIssue]
 pub fn Store::reclaim_payload(Self, String) -> Result[Unit, NativePublicationStoreIssue]
+pub fn Store::reconcile_original_return(Self) -> Result[Bool, NativePublicationStoreIssue]
 pub fn Store::reconcile_payload(Self, @publication_payload.PublicationPayloadRequest) -> Result[NativePublicationPayloadInfo?, NativePublicationStoreIssue]
 pub fn Store::recover(Self) -> Result[NativePublicationRecovery, NativePublicationStoreIssue]
 pub fn Store::resolve_committed_result(Self, String, String, String, String, Int, Int, Int) -> Result[NativeCommittedResult?, NativePublicationStoreIssue]
@@ -271,6 +281,7 @@ pub fn Store::restore_effect_checkpoint_custody(Self, @checkpoint_runtime.Sealed
 pub fn Store::restore_effect_preview_custody(Self, @run_publication.EffectPreviewIdentity, String, String, String, @signature.Library, Bytes, Int, Int, Int) -> Result[EffectPreviewCustody, NativePublicationStoreIssue]
 pub fn Store::restore_effect_source_custody(Self, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest, String, Int64) -> Result[EffectSourceCustody, NativePublicationStoreIssue]
 pub fn Store::restore_local_preparation_raw_observation(Self, @remote_credential.LocalPreparationCredentialGrant, @remote_credential.LocalPreparationCredentialUse, @signature.Library, Bytes) -> Result[LocalPreparationRawCustody, NativePublicationStoreIssue]
+pub fn Store::retry_pending_result_delivery_cleanup(Self) -> Result[Bool, NativePublicationStoreIssue]
 
 // Type aliases
 

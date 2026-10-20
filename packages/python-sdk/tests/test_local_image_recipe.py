@@ -40,6 +40,43 @@ class LocalImageRecipeTests(unittest.TestCase):
             self.assertEqual(_load_selected_image(self.root, self.body, self.recipe), self.image)
         with self.assertRaises(FrozenInstanceError): self.recipe.source_sha = 'd' * 40
 
+    def test_platform_recipe_has_no_owned_provider_and_keeps_exact_image_binding(self):
+        from image_fixture import ORIGINAL
+        original = json.loads(ORIGINAL)
+        original.update(runtime_allocation='platform', provider_library_sha256=None,
+                        provider_library_bytes=None)
+        recipe = _recipe_from_original(json.dumps(original).encode(), source_sha='a' * 40,
+            package_version='0.0.0.dev0', module_sha256='b' * 64)
+        self.assertEqual(recipe.runtime_allocation, 'platform')
+        self.assertIsNone(recipe.provider_library_sha256)
+        with self.assertRaises(LocalInstallationError): recipe.owned_provider()
+        body = self.body | {'runtime_allocation': 'platform', 'provider_library_sha256': None,
+                            'runtime_library_sha256': recipe.runtime_library_sha256}
+        self.assertEqual(_load_selected_image(self.root, body, recipe), self.image)
+        for changed in (body | {'provider_library_sha256': 'd' * 64},
+                        body | {'runtime_allocation': 'native-owned'},
+                        body | {'runtime_library_sha256': 'f' * 64}):
+            with self.assertRaises(LocalInstallationError): _image_descriptor(changed, recipe)
+
+    def test_platform_selection_cannot_hide_owned_provider_or_unknown_allocation(self):
+        from image_fixture import ORIGINAL
+        body = json.loads(ORIGINAL)
+        for changes in ({'runtime_allocation': 'platform'},
+                        {'runtime_allocation': 'native-owned'},
+                        {'runtime_allocation': None}, {'runtime_allocation': 'system'},
+                        {'runtime_allocation': 'platform', 'provider_library_bytes': 0,
+                         'provider_library_sha256': None}):
+            with self.subTest(changes=changes), self.assertRaises(LocalInstallationError):
+                _recipe_from_original(json.dumps(body | changes).encode(), source_sha='a' * 40,
+                    package_version='0.0.0.dev0', module_sha256='b' * 64)
+
+    def test_platform_and_owned_image_descriptors_are_not_interchangeable(self):
+        platform = replace(self.recipe, runtime_allocation='platform',
+                           provider_library_sha256=None, provider_library_bytes=None)
+        with self.assertRaises(LocalInstallationError): _image_descriptor(self.body, platform)
+        body = self.body | {'runtime_allocation': 'platform', 'provider_library_sha256': None}
+        with self.assertRaises(LocalInstallationError): _image_descriptor(body, self.recipe)
+
     def test_native_provider_original_cannot_be_missing_or_replaced_by_numbers(self):
         from image_fixture import ORIGINAL
         body = json.loads(ORIGINAL)

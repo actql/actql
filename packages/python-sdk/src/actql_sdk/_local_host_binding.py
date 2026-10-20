@@ -134,6 +134,9 @@ class OriginalHostBinding:
                     wire, cleanup=lambda: True, stopped=lambda _: True))
                 assert self._input is not None
                 original_input = self._input
+                for start in range(0, len(wire), 16384):
+                    core.fill_input(original_input, start, min(16384, len(wire) - start))
+                core.seal_input(original_input)
                 self._current = self._reserve(lambda: core.reserve_host_current(
                     original_input, store=self._store, current=self._physical_current,
                     cleanup=lambda: not self._active))
@@ -163,13 +166,9 @@ class OriginalHostBinding:
         self._nominal()
         if self._closing:
             raise ValueError('Original Local Host supplier is closing')
-        self._source.current()
-        self._state.current()
-        for value in (self._account, *self._selected):
-            self._source.original_bytes(value)
-        for value in (self._staged_account, self._initialization,
-                      self._configuration, self._journal):
-            self._state.original_bytes(value)
+        self._source.require_current_originals((self._account, *self._selected))
+        self._state.require_current_originals((self._staged_account, self._initialization,
+                                              self._configuration, self._journal))
         for projection in self._expected:
             self._core._owned_output(projection, 'original')
         if self._active:

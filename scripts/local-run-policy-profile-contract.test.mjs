@@ -65,6 +65,7 @@ test('finite read mode is explicit and exclusive of the legacy absolute endpoint
   assert.equal(check({...read, max_bytes: 536870913}), false);
   assert.equal(check({...read, max_uses: 0}), false);
   assert.equal(check({...read, run_policy_profile_cid: null}), false);
+  for (const sink of ['stdout', 'material', 'file']) assert.equal(check({...read, sink}), true);
   assert.equal(check({...read, sink: 'network'}), false);
   assert.equal(check({...read, extra: true}), false);
   for (const role of ['run_file', 'retention_file', 'store_file']) {

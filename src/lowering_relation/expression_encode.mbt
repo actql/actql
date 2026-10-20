@@ -42,6 +42,7 @@ fn binary_name(op : BinaryOperator) -> String {
     Contains => "contains"
     DateTruncate => "date_trunc"
     DecimalDivide(_) => "decimal_divide"
+    Utf8Truncate => "utf8_truncate"
     StartsWith => "starts_with"
     EndsWith => "ends_with"
     Equal => "eq"
@@ -208,6 +209,14 @@ fn emit_frames(
             pending.push(EndObject)
             pending.push(Expr(arg))
           }
+          Unary(TryNumber, arg) => {
+            // Keep the original authored node and operand, including identity.
+            pending.push(Op("try_number"))
+            @encode.begin_object(output)
+            @encode.key(output, "value")
+            pending.push(EndObject)
+            pending.push(Expr(arg))
+          }
           Unary(TryDecimal, arg) => {
             // Preserve the existing distinct closed operation shape. P/S are
             // projected from the original checked result, not caller data.
@@ -257,7 +266,8 @@ fn emit_frames(
                   Round => "round"
                   Trunc => "trunc"
                   SafeNegate => "safe_negate"
-                  TryDecimal | Quantize(_) => raise @encode.InvalidStructure
+                  TryDecimal | Quantize(_) | TryNumber =>
+                    raise @encode.InvalidStructure
                   Not => "not"
                   IsNull => "is_null"
                   NotNull => "not_null"
@@ -276,9 +286,9 @@ fn emit_frames(
           }
           Binary(DecimalDivide(mode), left, right) => {
             guard expr.contract.shape is @contract.Decimal(precision~, scale~) &&
-              ["half_even", "half_up", "toward_zero", "floor", "ceiling"].contains(
-                mode,
-              ) else {
+              [
+                "half_even", "half_up", "toward_zero", "floor", "ceiling", "exact",
+              ].contains(mode) else {
               raise @encode.InvalidStructure
             }
             pending.push(Op("decimal_divide"))
@@ -287,6 +297,13 @@ fn emit_frames(
             pending.push(EndObject)
             pending.push(DecimalDivisionRight(right, mode, precision, scale))
             pending.push(Expr(left))
+          }
+          Binary(Utf8Truncate, value, max_bytes) => {
+            pending.push(Op("utf8_truncate"))
+            @encode.begin_object(output)
+            pending.push(
+              ObjectExpressions([("max_bytes", max_bytes), ("value", value)], 0),
+            )
           }
           Binary(op, left, right) => {
             pending.push(Op(binary_name(op)))

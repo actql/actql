@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
-import {checkRegistration} from './expression-fragment-registration.mjs';
+import {gunzipSync} from 'node:zlib';
+import {checkRegistration, registerExpressionFragment} from './expression-fragment-registration.mjs';
 const read = p => JSON.parse(readFileSync(p, 'utf8'));
 const aoa = read('spec/contracts/actql-aoa.json');
 const expressions = read('spec/contracts/actql-expressions.json');
@@ -16,8 +17,8 @@ const canonical = v => Array.isArray(v) ? `[${v.map(canonical)}]`
     : JSON.stringify(v);
 const cid = v => 'sha256:' + createHash('sha256').update(canonical(v)).digest('hex');
 const currentCid =
-  'sha256:b79f24b0c777c4b9d533ef01289587e666caa7a6ba00159f6b45f3e57265f04e';
-const contractCid = 'sha256:9f0694ddd7c76d720024297fce02652bb15f5dad8b278d3db9ff58936a976b87';
+  'sha256:38df5e7d680450fc90f7d6ec4617c384a013f8645916db2208462099100bf33a';
+const contractCid = 'sha256:beeb158446c54c0f581cb865f99e0031acb1f87925077dcc2119838716e818b7';
 
 function resolve(body, selected, owner = aoa, expr = expressions) {
   assert.equal(cid(body), selected, 'RegistryCidMismatch');
@@ -43,7 +44,7 @@ test('extensions preserve historical primitives except explicitly revised values
     'ACTQL.expression_fragment/0.1',
     'REL.analytic', 'REL.cross_join', 'REL.except_rows', 'REL.intersect_rows',
     'SGA.equal', 'SGA.mean_structural', 'SGA.subgraph',
-    'TEA.join.interval', 'TEA.time_series',
+    'TEA.join.interval', 'TEA.time_series', 'TEA.calendar.bucket', 'TEA.calendar.series',
   ];
   assert.deepEqual(Object.keys(registry).sort(),
     [...Object.keys(historical), ...addedOperations].sort());
@@ -54,6 +55,8 @@ test('extensions preserve historical primitives except explicitly revised values
   delete retained['REL.intersect_rows'];
   delete retained['REL.cross_join'];
   delete retained['REL.analytic'];
+  delete retained['TEA.calendar.bucket'];
+  delete retained['TEA.calendar.series'];
   for (const operation of [
     'SGA.subgraph',
     'SGA.equal',
@@ -118,4 +121,46 @@ test('contract, expression body and stale expression pin are independently check
   assert.throws(() => resolve(registry, currentCid, aoa, expr));
   const stale = structuredClone(aoa); stale.expression_contract_cid = cid(historical);
   assert.throws(() => resolve(registry, currentCid, stale));
+});
+
+// Complete accepted predecessor bodies are retained independently of the
+// writer. Only registered references change; the expression/schema law does not.
+const predecessorBytes = gunzipSync(readFileSync(
+  'scripts/fixtures/expression-fragment-registration/predecessor.json.gz'));
+const predecessor = JSON.parse(predecessorBytes);
+
+test('registered closure changes only the stale expression dependency and containing identities', () => {
+  assert.equal(predecessor.source, '6f6ebe8a6e4fc4d642614c4753ccf6e8587f3ebf');
+  const before = predecessor.bodies;
+  assert.equal(cid(before.aoa), 'sha256:aace4d39f4f3f214158027007d7bfd27ded49f29f0aac55ca022b48bb0ddc5f0');
+  assert.equal(cid(before.pipelineRegistry), 'sha256:26915f8a20a27b9e37c1e9760fe2526c460b63bf2f1957fa1af858b18051271c');
+  assert.equal(before.aoa.expression_contract_cid, cid(expressions));
+  assert.equal(before.aoa.execution_contracts[op].dependencies.expression_contract.cid,
+    'sha256:6ccd3d3e87cf65610f96b81ce3a11844f1d12a6bee3166df66726a3c11e571f8');
+  assert.throws(() => checkRegistration(before.aoa, expressions, before.pipelineRegistry));
+  const expected = structuredClone(before);
+  expected.aoa.execution_contracts[op].dependencies.expression_contract.cid = cid(expressions);
+  const selected = cid(expected.aoa.execution_contracts[op]);
+  expected.aoa.target_registry_requirements[op].execution_contract.cid = selected;
+  expected.pipelineRegistry[op].execution_contract.cid = selected;
+  expected.aoa.pipeline_registry_cid = cid(expected.pipelineRegistry);
+  assert.deepEqual(aoa, expected.aoa);
+  assert.deepEqual(registry, expected.pipelineRegistry);
+  assert.deepEqual(read('spec/contracts/actql-check-environment.json'), before.checkEnvironment);
+  assert.deepEqual(read('spec/manifests/actql-grammar-0.1.json'), before.grammarManifest);
+});
+
+test('containing expression writer uses the same closed registration updater', () => {
+  const changed = structuredClone(expressions);
+  changed.laws.try_number.number += ' Independent changed-law witness.';
+  const owner = structuredClone(aoa), selected = structuredClone(registry);
+  owner.expression_contract_cid = cid(changed);
+  assert.throws(() => checkRegistration(owner, changed, selected));
+  registerExpressionFragment(owner, changed, selected);
+  assert.equal(owner.execution_contracts[op].dependencies.expression_contract.cid, cid(changed));
+  assert.equal(selected[op].execution_contract.cid, cid(owner.execution_contracts[op]));
+  assert.equal(owner.pipeline_registry_cid, cid(selected));
+  const unchanged = structuredClone(owner);
+  registerExpressionFragment(owner, changed, selected);
+  assert.deepEqual(owner, unchanged);
 });
