@@ -2768,6 +2768,12 @@ adoption scope before exposing attach or lookup. Missing older observation
 originals remain unavailable; they are not backfilled from a newly compiled
 Program, current defaults or another Run.
 
+First acceptance supplies the same captured observation originals to both the
+submitted-row Owner and the same-transaction Run inventory/CAS candidate. Their
+complete initial row bodies must agree before any write. The optional original
+is checked against the Run definition; legacy candidates keep their existing
+bytes, and retained lookup does not backfill missing originals.
+
 A saved Result read validates the complete stored publication graph and the
 selected manifest occurrence through the existing publication Owner. Its nominal
 read source retains the exact finite policy and stored view. The shared SDK read

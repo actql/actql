@@ -93,6 +93,7 @@ pub fn[E] prepare_client_run_journal_append(
   confirm_cancellation : () -> Result[Unit, E],
   custody_lost : E,
   local_policy_original? : ClientLocalRunPolicyOriginal? = None,
+  run_observation_originals? : ClientRunObservationOriginals? = None,
 ) -> Result[ClientRunJournalAppendPlan, ClientRunJournalAppendIssue[E]] {
   match
     read_client_retained_run_journal(request, read, validate_run, custody_lost) {
@@ -167,6 +168,23 @@ pub fn[E] prepare_client_run_journal_append(
       Some(wire)
     }
   }
+  let observation = match run_observation_originals {
+    None => None
+    Some(original) => {
+      if @publication.validate_original_interactive_run_evidence(
+          definition,
+          original.prepared(),
+          original.authorization(),
+        )
+        is Err(_) {
+        return Err(InvalidOriginal)
+      }
+      match original.wire() {
+        Ok(wire) => Some(wire)
+        Err(_) => return Err(InvalidOriginal)
+      }
+    }
+  }
   let record : ClientRunJournalEncoding = {
     request,
     definition,
@@ -179,7 +197,11 @@ pub fn[E] prepare_client_run_journal_append(
     checkpoint: None,
   }
   let body = match
-    client_run_journal_row_body(record, local_run_policy_originals=policy) {
+    client_run_journal_row_body(
+      record,
+      local_run_policy_originals=policy,
+      run_observation_originals=observation,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Encoding(issue))
   }

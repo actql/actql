@@ -608,3 +608,94 @@ test "original submitted rows reject foreign authority reference and changed com
     is Err(AuthorizationMismatch),
   )
 }
+
+///|
+test "SDK issued CAS candidate keeps the same observation originals as submitted rows" {
+  let preparation = submitted_rows_preparation("SELECT 1 AS n")
+  let plan = submitted_rows_plan(preparation)
+  let policy = submitted_rows_finite_policy(plan)
+  let input = @input.local_submitted_preparation_input(preparation)
+  let reference = @host.admit_client_submission_reference_record(
+    submitted_rows_reference_wire,
+  ).unwrap()
+  let rows = prepare_local_sdk_submitted_run_rows(
+    plan,
+    preparation,
+    reference,
+    submitted_rows_before(preparation),
+    permit(input, account(Allow)),
+    account(Allow),
+    tuple(),
+    context_cid(),
+    1000.0,
+    policy,
+  ).unwrap()
+  let (_, _, _, submitted_run, _) = local_submitted_run_rows(
+    rows, plan, preparation,
+  ).unwrap()
+  let observation = @host.capture_client_run_observation_originals(
+    local_run_compiled(plan),
+    local_run_definition(plan),
+  ).unwrap()
+  let issued : @host.ClientJournalPhysicalRow = {
+    key: "issued",
+    revision: 23L,
+    body: b"0",
+  }
+  let append = fn(originals : @host.ClientRunObservationOriginals?) {
+    @host.prepare_client_run_journal_append(
+      local_run_request(plan),
+      local_run_definition(plan),
+      1024,
+      (table, cursor) => {
+        Ok(
+          if table == "client_run_custody" && cursor == "" {
+            Some(issued)
+          } else {
+            None
+          },
+        )
+      },
+      (table, key) => {
+        Ok(
+          if table == "client_run_custody" && key == "issued" {
+            Some(issued)
+          } else {
+            None
+          },
+        )
+      },
+      _ => Err("unexpected saved Run"),
+      () => Ok(()),
+      "custody",
+      local_policy_original=Some(policy),
+      run_observation_originals=originals,
+    )
+  }
+  guard append(Some(observation)) is Ok(Append(candidate)) else {
+    fail("no original SDK CAS candidate")
+  }
+  let (key, body, revision, count) = @host.client_run_journal_append_rows(
+    candidate,
+  )
+  assert_eq(key, @host.client_request_scope_cid(local_run_request(plan)))
+  assert_eq(body, submitted_run)
+  assert_eq(revision, 23L)
+  assert_eq(count, b"1")
+  guard append(None) is Ok(Append(legacy)) else { fail("no legacy candidate") }
+  let (_, old_body, _, _) = @host.client_run_journal_append_rows(legacy)
+  assert_true(old_body != submitted_run)
+  assert_eq(
+    @host.decode_client_run_journal_row_with_observation_originals(old_body).unwrap().2,
+    None,
+  )
+  let other = submitted_rows_plan(
+    submitted_rows_preparation("SELECT 2 AS n"),
+    run_id="foreign-observation",
+  )
+  let foreign = @host.capture_client_run_observation_originals(
+    local_run_compiled(other),
+    local_run_definition(other),
+  ).unwrap()
+  assert_true(append(Some(foreign)) is Err(InvalidOriginal))
+}
