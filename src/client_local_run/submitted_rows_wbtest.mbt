@@ -612,7 +612,11 @@ test "original submitted rows reject foreign authority reference and changed com
 ///|
 test "SDK issued CAS candidate keeps the same observation originals as submitted rows" {
   let preparation = submitted_rows_preparation("SELECT 1 AS n")
-  let plan = submitted_rows_plan(preparation)
+  let plan = submitted_rows_plan(
+    preparation,
+    created_at="2026-10-13T00:00:00.001Z",
+    valid_until="2026-10-14T00:00:00.001Z",
+  )
   let policy = submitted_rows_finite_policy(plan)
   let input = @input.local_submitted_preparation_input(preparation)
   let reference = @host.admit_client_submission_reference_record(
