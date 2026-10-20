@@ -121,6 +121,30 @@ test "stable original Values order retains null placement and ties without inven
   let original = local_group_original_document(document)
   ignore(local_sort_normalization(original))
   let task = @strategy.graph_task_owner(original.graph, 0).unwrap()
+  let pipeline = @checked.unit_pipeline(
+    @strategy.graph_program(original.graph),
+    0,
+  ).unwrap()
+  let sort = @pipeline.sort_order(pipeline, 1).unwrap()
+  guard @pipeline.sort_order_strategy(sort) is ExistingTotal(prior) else {
+    fail("original total order expected")
+  }
+  let order = @pipeline.sort_order_evidence(sort)
+  assert_eq(@pipeline.order_origin(order), @pipeline.Step(1))
+  assert_eq(@pipeline.order_dependency_count(order), 1)
+  assert_eq(
+    @pipeline.order_dependency_at(order, 0),
+    Some(@pipeline.sort_order_input(sort)),
+  )
+  assert_true(physical_equal(@pipeline.order_tie_break(order).unwrap(), prior))
+  assert_false(physical_equal(order, prior))
+  guard @pipeline.order_producer(order).unwrap().operation
+    is @pipeline.Unary(producer) &&
+    @pipeline.sort_order_consumer(sort).operation
+    is @pipeline.Unary(original_sort) else {
+    fail("original Sort producer expected")
+  }
+  assert_true(physical_equal(producer, original_sort))
   let sequence = @lower.prepare_sequence(task, run_materials_limits().sequence).unwrap()
   let completed = @execution.execute_generated_sequence(
     local_group_generated(sequence),

@@ -75,6 +75,8 @@ and null placement. An empty Sort is the existing identity operation. A nonempty
 Sort is completion-free only when the original eligible candidate key is already
 covered, or the checked strategy retains an admitted total input-order witness.
 It does not infer a key from values or treat physical enumeration as that witness.
+The latter strategy identifies the new Sort producer and retains the prior
+owned order only as a tie dependency, rather than copying the prior full order.
 
 Appending an actual missing identity term is semantic completion and still needs
 its proper normalization entry; it cannot receive this empty journal. Connecting

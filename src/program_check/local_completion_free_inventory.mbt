@@ -64,6 +64,13 @@ fn audit_local_completion_free_sort(
     @pipeline.sort_order_step(order) == step else {
     return Err(ProfileNotInstalled)
   }
+  let evidence = @pipeline.sort_order_evidence(order)
+  guard @pipeline.order_origin(evidence) == @pipeline.Step(step) &&
+    @pipeline.order_producer(evidence)
+    is Some({ operation: @pipeline.Unary(producer), .. }) &&
+    physical_equal(producer, operation) else {
+    return Err(ProfileNotInstalled)
+  }
   match @pipeline.sort_order_strategy(order) {
     CandidateKey(completion) => {
       if @pipeline.sort_completion_count(completion) != 0 {
@@ -78,8 +85,10 @@ fn audit_local_completion_free_sort(
       }
     }
     ExistingTotal(prior) => {
-      guard @pipeline.order_tie_break(@pipeline.sort_order_evidence(order))
-        is Some(original) &&
+      guard @pipeline.order_dependency_count(evidence) == 1 &&
+        @pipeline.order_dependency_at(evidence, 0) ==
+        Some(@pipeline.sort_order_input(order)) &&
+        @pipeline.order_tie_break(evidence) is Some(original) &&
         physical_equal(original, prior) else {
         return Err(ProfileNotInstalled)
       }
