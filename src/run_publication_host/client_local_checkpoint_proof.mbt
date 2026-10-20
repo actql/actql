@@ -12,7 +12,7 @@ pub(all) enum ClientLocalCheckpointProofIssue {
   Resolution(@checkpoint.ResolutionIssue)
   MissingRequest
   SubmissionReference
-  CheckpointBinding
+  CheckpointBinding(String)
   CheckpointUnit
   ForeignOriginal
 } derive(Eq, Debug)
@@ -67,7 +67,18 @@ pub fn client_local_checkpoint_effect_subject(
       { max_wire_bytes: 1048576, max_nodes: 65536, max_depth: 64, },
     ) {
     Ok(value) => value
-    Err(_) => return Err(CheckpointBinding)
+    Err(issue) =>
+      return Err(
+        CheckpointBinding(
+          match issue {
+            Run(_) => "run"
+            Checkpoint(_) => "wire"
+            ForeignSubject => "subject"
+            UnsupportedReview => "review"
+            OriginalLifetime => "lifetime"
+          },
+        ),
+      )
   }
   let unit = match
     client_effect_review_checkpoint_unit_definition_cid(

@@ -2961,7 +2961,7 @@ pub(all) enum ClientLocalCheckpointProofIssue {
   Resolution(@checkpoint_runtime.ResolutionIssue)
   MissingRequest
   SubmissionReference
-  CheckpointBinding
+  CheckpointBinding(String)
   CheckpointUnit
   ForeignOriginal
 } derive(Eq, @debug.Debug)

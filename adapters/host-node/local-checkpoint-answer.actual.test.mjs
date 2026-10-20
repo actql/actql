@@ -77,7 +77,7 @@ test('actual Local Mock answers its original Checkpoint after reopen and applies
   } catch (cause) {
     primary = cause; firstFailedStep = activeStep;
     t.diagnostic(JSON.stringify({firstFailedStep, code: cause.code, message: cause.message,
-      stack: cause.stack, cause: inspect(cause.cause, {depth: 4})}));
+      stack: cause.stack, cause: inspect(cause.cause, {depth: 4, showHidden: true, getters: true})}));
   } finally {
     try {await client?.close();}
     catch (cause) {
