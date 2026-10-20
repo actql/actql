@@ -100,11 +100,11 @@ fn keyed_captured_local_installed_limits(
       // The Content caller derived the whole prefix/workspace envelope from
       // the selected common provider before I/O. Recheck its original barrier;
       // a sampled row count or another task cannot substitute this inventory.
-      guard count == 1 &&
-        task == 0 &&
-        keyed_task == task &&
-        retained >= 0L &&
+      guard retained >= 0L &&
         execution >= 0L &&
+        @publication_host.client_keyed_acquisition_reaches_serialization(
+          prepared, keyed, task, step,
+        ) &&
         @publication_host.prepare_client_serialization(
           prepared,
           task,
