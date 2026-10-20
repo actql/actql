@@ -14139,7 +14139,7 @@
     {
       "module": "packages/sdk/source-query.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e04fea5c7c0d4accb5089183eb5b27bc912a711582ddc0d2daac2c1e6c278b81",
+      "sha256": "adfe7080cfa817bc1637d400bf381aefa542f38d43e6ba9e2ba34525c2357362",
       "exports": [
         "sourceQuery"
       ],

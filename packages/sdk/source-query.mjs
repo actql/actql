@@ -138,5 +138,7 @@ export function sourceQuery(startSource, ClientError, retainResult, retainFailur
       : collectAfterQuery(query, retainResult,
       () => captureReadOptions(options), (result, captured) => result.scalar(captured))},
   });
-  return Object.freeze(query);
+  // The SDK properties above are immutable, but the native Promise must stay
+  // extensible: Node attaches async-context state when hooks become active.
+  return query;
 }

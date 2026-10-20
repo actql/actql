@@ -1,6 +1,5 @@
 import {createHash} from 'node:crypto';
 import {dirname, resolve} from 'node:path';
-import {createRequire} from 'node:module';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {installedProjectOriginalsForRuntime} from '../../../host-node/installed-project-configuration.mjs';
@@ -11,7 +10,6 @@ import {retainInstalledHostInitializationFailure} from '../../../host-node/insta
 import {openLocalFileRoot} from '../site/root-filesystem.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
-const require = createRequire(import.meta.url);
 const canonical = value => canonicalJson(value, {dataKeys: true});
 const cid = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
 const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
@@ -161,7 +159,8 @@ function physicalReadChild({namespace,path,assertCurrent}) {
       if(attempted||stopping||closed)fail('LocalFilesSourcePreparationMismatch');
       attempted=true;opening=true;
       try{
-        const native=namespace??require(new URL('../../../../_build/native/directory-darwin-'+process.arch+'.node',import.meta.url));
+        if(namespace===undefined)fail('LocalFilesNativeFilesystemUnavailable');
+        const native=namespace;
         filesystem=openLocalFileRoot({native,path,assertCurrent(){
           if(stopping)fail('LocalFileReadClosing');assertCurrent();
         }});
