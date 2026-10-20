@@ -27,6 +27,34 @@ async function fixture(receiver, perform) {
   return {client, port};
 }
 
+test('closed selected Source queries reject locally without touching the retired Host receiver', async () => {
+  let hostCalls = 0, sends = 0;
+  const retired = () => {
+    hostCalls++;
+    throw Object.assign(new Error('ClientHostClosing'), {code: 'ClientHostClosing'});
+  };
+  const {client} = await fixture({beforeSourceSnapshot: retired,
+    beforeSourceQuery: retired, bindSourceSnapshot: retired,
+    bindSourceRequest: retired, finishSourceProducer: retired,
+    intentCid: retired, beforeResultRead: retired, assertResultReadCurrent: retired},
+  () => {sends++; assert.fail('ClosedClientMustNotSend');});
+  await client.close();
+  const notSent = error => {
+    assert.equal(error.code, 'SubmissionNotSent');
+    assert.equal(error.cause?.code, 'ClientClosed');
+    return true;
+  };
+  await assert.rejects(client.startSource('SELECT 1 AS n', {format: 'sql'}), notSent);
+  for (const format of ['sql', 'aql']) {
+    for (const collection of [undefined, 'all', 'one', 'scalar']) {
+      const query = client[format]('SELECT 1 AS n');
+      await assert.rejects(collection === undefined ? query : query[collection](), notSent);
+    }
+  }
+  assert.equal(hostCalls, 0);
+  assert.equal(sends, 0);
+});
+
 test('Source refusal precedes every original option access and sends nothing', async t => {
   let reads = 0, sends = 0;
   const original = Object.assign(new Error('Unavailable'), {code: 'NodeSourceManagedAdmissionUnavailable'});
