@@ -1391,6 +1391,18 @@ fn run_local_managed_unary_failure_case(kind : String) -> Unit raise {
       )
     _ => abort("unknown Local unary failure fixture")
   }
+  guard result is Err(@local_driver.Configuration(original_issue)) else {
+    fail("original managed computation failure missing")
+  }
+  guard @strategy.captured_dag_failure(run) is Some((2, Compute(recorded))) else {
+    fail("managed computation failure was not recorded on the same task")
+  }
+  assert_true(physical_equal(recorded, original_issue))
+  assert_true(@strategy.next_captured_task(run) is None)
+  assert_true(
+    (failed.execute)() is Err(@local_driver.Configuration(repeated)) &&
+    physical_equal(repeated, original_issue),
+  )
   assert_false(@strategy.captured_task_completed(run, 2))
   assert_true(@execution.managed_completed_output_available(values))
   (failed.settle)().unwrap()
@@ -1402,6 +1414,10 @@ fn run_local_managed_unary_failure_case(kind : String) -> Unit raise {
   (values_ops.close)()
   (values_ops.cleanup_refresh)() |> ignore
   @strategy.stop_captured_dag(run)
+  assert_true(
+    @strategy.captured_dag_failure(run) is Some((2, Compute(after_cleanup))) &&
+    physical_equal(after_cleanup, original_issue),
+  )
   for task in [0, 2, 3, 4] {
     @strategy.close_captured_task_output(run, task)
   }
@@ -1417,8 +1433,8 @@ fn run_local_managed_unary_failure_case(kind : String) -> Unit raise {
 test "Local managed demanded failures publish nothing and release their use" {
   for
     kind in [
-      "filter_failure", "derive_failure", "assert_where_failure", "assert_where_eval_failure",
-      "assert_unique_null_failure", "dedupe_tie_failure",
+      "dedupe_tie_failure", "filter_failure", "derive_failure", "assert_where_failure",
+      "assert_where_eval_failure", "assert_unique_null_failure",
     ] {
     run_local_managed_unary_failure_case(kind)
   }
