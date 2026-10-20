@@ -72534,7 +72534,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-mock-account.mjs",
-      "sha256": "88e61898e1d1cc0de300c9cd635f79de72331fb341289440620ccc3e4d17eff2",
+      "sha256": "4024d95b76862b3b983593163f2b9ea7775ba9befc9819803432d07698d7c756",
       "exports": [
         "initializeOrdinaryMockAccount"
       ],
