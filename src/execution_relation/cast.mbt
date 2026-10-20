@@ -189,7 +189,13 @@ fn cast_expression_value(
                   Err(_) => None
                 }
               Err({ issue: @source.NegativeZero, .. }) => Some(Number(0.0))
-              Err({ issue: @source.NumberOutOfRange | @source.NumberPrecisionLoss, .. }) => None
+              Err(
+                {
+                  issue: @source.NumberOutOfRange
+                  | @source.NumberPrecisionLoss,
+                  ..
+                }
+              ) => None
               Err(issue) if number_failure_null =>
                 return Err({ kind: NumberConversion(issue.issue), expression, })
               _ => None

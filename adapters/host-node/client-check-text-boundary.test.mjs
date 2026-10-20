@@ -45,10 +45,10 @@ const environment = moon.clientProgramCheckEnvironment(canonicalText(wire),
   wire.evidence_bundle_cid, false, false, true, true, false, false, false);
 
 async function publicCheck(t, entrance, {program = false, environmentWire = wire,
-  visibility, contextKey, principalId = 'reader', afterCheck, transformOwnerOutcome} = {}) {
-  const selected = environmentWire === wire ? environment
+  visibility, contextKey, principalId = 'reader', afterCheck, transformOwnerOutcome, textTime = false} = {}) {
+  const selected = environmentWire === wire && !textTime ? environment
     : moon.clientProgramCheckEnvironment(canonicalText(environmentWire),
-      environmentWire.evidence_bundle_cid, false, false, true, true, false, false, false);
+      environmentWire.evidence_bundle_cid, textTime, false, true, true, false, false, false);
   const counts = {exchanges: 0, authorization: 0, analysis: 0};
   const sourceRef = 'connector://crm/main/r#v';
   const aliases = visibility && visibility !== 'absent' ? [{name: 'records', sourceRef,
@@ -972,6 +972,34 @@ for (const entrance of ['local', 'http']) {
             parameters: {whole: '9007199254740993'}} : {}),
           ...(text.includes('@scale') ? {parameterDeclarations: {scale: {type: 'number'}}, parameters: {scale: 2}} : {})});
         assert.equal(checked.report.verdict, 'invalid', text);
+      }
+    }
+  });
+
+  test(`${entrance}: String TRY_NUMBER keeps the selected profile and original public text`, async t => {
+    const withProfile = structuredClone(wire);
+    delete withProfile.evidence_bundle_cid;
+    withProfile.host_policy_profile.text_time_evaluation = {
+      version: 'actql-text-time-host-policy/0.1', max_input_codepoints: 64,
+      max_input_utf8_bytes: 256, max_pattern_bytes: 1, max_output_bytes: 64,
+      max_replacements: 1,
+    };
+    withProfile.evidence_bundle_cid = 'sha256:' + (await import('node:crypto')).createHash('sha256')
+      .update(canonicalText(withProfile)).digest('hex');
+    const {client} = await publicCheck(t, entrance, {environmentWire: withProfile, textTime: true});
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        "SELECT TRY_NUMBER('12.5') AS n",
+        "SELECT '12.5' AS text |> SELECT TRY_NUMBER(text) AS n",
+        'SELECT TRY_NUMBER(@text) AS n',
+      ]) {
+        const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@text') ? {parameterDeclarations: {text: {type: 'string'}},
+            parameters: {text: '12.5'}} : {})});
+        assert.equal(outcome.report.verdict, 'verified', JSON.stringify(outcome.report));
+        assert.deepEqual(outcome.report.runnable, {verdict: 'yes', reasons: []});
+        assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+        assert.equal(getCheckInput(outcome, 'source').text, text);
       }
     }
   });

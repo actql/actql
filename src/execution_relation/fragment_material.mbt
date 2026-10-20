@@ -146,9 +146,14 @@ fn prepare_fragment_material(
     nodes -= root.nodes
     roots.push(root)
   }
-  let evaluations = match prepare_fragment_evaluations(
-    demands, roots, bytes, nodes, budget.max_body_depth,
-  ) {
+  let evaluations = match
+    prepare_fragment_evaluations(
+      demands,
+      roots,
+      bytes,
+      nodes,
+      budget.max_body_depth,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Artifact(issue))
   }

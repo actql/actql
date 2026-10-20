@@ -1394,7 +1394,9 @@ fn advance_expression_frame_impl(
             frame.current_root = None
             frame.state = Return(converted)
           }
-          Cast(expr, child) | TryDecimal(expr, child) | TryNumber(expr, child) => {
+          Cast(expr, child)
+          | TryDecimal(expr, child)
+          | TryNumber(expr, child) => {
             let decimal_failure_null = continuation is TryDecimal(_, _)
             let number_failure_null = continuation is TryNumber(_, _)
             release_slots(workspace, 1)

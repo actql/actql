@@ -197,13 +197,19 @@ pub fn bind_program_expression_closure(
       continue
     }
     let requirement = @context.validation_site_requirement(entry.site)
-    if @context.program_identity_producer_is_local(identity, stage, requirement.visit)
+    if @context.program_identity_producer_is_local(
+        identity,
+        stage,
+        requirement.visit,
+      )
       is Some(true) &&
       @context.program_identity_producer_at(identity, stage, requirement.visit)
       is Some(pipeline) &&
       physical_equal(bound.prepared.owner, pipeline) &&
       entry.resolution is @context.Envelope(original) {
-      let policy = @environment.text_time_policy(@context.text_bound_policy(original))
+      let policy = @environment.text_time_policy(
+        @context.text_bound_policy(original),
+      )
       if text_time_policy is Some(prior) && !physical_equal(prior, policy) {
         return Err({ kind: BindingOwnerMismatch, source, })
       }

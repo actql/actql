@@ -1359,10 +1359,14 @@ fn prepare_client_stage_owners(
     }
     let owner = match expressions {
       None => owner
+      Some(closure) if @context.expression_closure_count(closure) == 0 => owner
       Some(closure) =>
         match
           @lower.bind_program_expression_closure(
-            owner, closure, stage, limits.lowering.max_work,
+            owner,
+            closure,
+            stage,
+            limits.lowering.max_work,
           ) {
           Ok(value) => value
           Err(issue) => return Err(Binding(issue))

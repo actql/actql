@@ -874,7 +874,9 @@ fn lower_typed_expression_measured(
           let (operation, _) = @decode.field_at(node.source, 0).unwrap()
           let original = match original_context {
             Some((bound, step)) =>
-              original_expression_text_bound(bound, step, typed, obligation, budget)
+              original_expression_text_bound(
+                bound, step, typed, obligation, budget,
+              )
             None => None
           }
           if operation == "try_number" && original is Some(original) {
@@ -1343,7 +1345,9 @@ fn lower_membership_literal(
 ///|
 /// Read the original checked runtime bound retained at this exact occurrence.
 /// It is neither an operational Host admission nor a completed preflight.
-pub fn expression_text_bound(value : Expression) -> @context.TextBoundResolution? {
+pub fn expression_text_bound(
+  value : Expression,
+) -> @context.TextBoundResolution? {
   value.text_bound
 }
 
@@ -1370,7 +1374,11 @@ fn original_expression_text_bound(
       requirement.obligation.kind != obligation.kind {
       continue
     }
-    if @context.program_identity_producer_is_local(identity, stage, requirement.visit)
+    if @context.program_identity_producer_is_local(
+        identity,
+        stage,
+        requirement.visit,
+      )
       is Some(true) &&
       @context.program_identity_producer_at(identity, stage, requirement.visit)
       is Some(pipeline) &&
@@ -1390,8 +1398,13 @@ pub fn expression_text_bound_at(
   node_index : Int,
 ) -> @context.TextBoundResolution? {
   guard @typing.node_at(value.typed_owner, node_index) is Some(node) &&
-    @decode.tree_index(@syntax.tree(@typing.expression(value.typed_owner)), node.source)
-    is Some(index) else { return None }
+    @decode.tree_index(
+      @syntax.tree(@typing.expression(value.typed_owner)),
+      node.source,
+    )
+    is Some(index) else {
+    return None
+  }
   value.text_bounds.get(index)
 }
 

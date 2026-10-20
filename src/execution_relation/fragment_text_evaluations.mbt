@@ -17,21 +17,29 @@ fn evaluation_position(
   let mut node_pointer = "/roots/" + root_index.to_string() + "/node"
   let suffix = String::from_array(pointer.to_array()[prefix.length():])
   if !suffix.is_empty() {
-    if !suffix.has_prefix("/") { return None }
+    if !suffix.has_prefix("/") {
+      return None
+    }
     for encoded in suffix.split("/")[1:] {
       let encoded = encoded.to_owned()
       let key = encoded.replace(old="~1", new="/").replace(old="~0", new="~")
-      let is_expression = @identity.object_field(node, "op") is Some(@identity.String(_))
+      let is_expression = @identity.object_field(node, "op")
+        is Some(@identity.String(_))
       let selected = if is_expression { "body" } else { key }
       guard evaluation_child(source, key) is Some(next_source) &&
-        evaluation_child(node, selected) is Some(next_node) else { return None }
+        evaluation_child(node, selected) is Some(next_node) else {
+        return None
+      }
       source = next_source
       node = next_node
       node_pointer += "/" + (if is_expression { "body" } else { encoded })
-      if node_pointer.length() > max_bytes { return None }
+      if node_pointer.length() > max_bytes {
+        return None
+      }
     }
   }
-  guard @identity.object_field(node, "op") is Some(@identity.String("try_number")) &&
+  guard @identity.object_field(node, "op")
+    is Some(@identity.String("try_number")) &&
     @identity.object_field(source, "try_number") is Some(arguments) else {
     return None
   }
@@ -46,7 +54,9 @@ fn evaluation_child(
   match value {
     @identity.Array(items) => {
       let mut index = 0
-      if key.is_empty() { return None }
+      if key.is_empty() {
+        return None
+      }
       for unit in key {
         let digit = unit.to_int() - 48
         if digit < 0 || digit > 9 || index > (2147483647 - digit) / 10 {
@@ -91,7 +101,9 @@ fn emit_try_number_envelope(
     @encode.string_value(out, "true")
     @encode.end_object(out)
   }
-  guard tests is @identity.Array(conditions) else { raise @encode.InvalidStructure }
+  guard tests is @identity.Array(conditions) else {
+    raise @encode.InvalidStructure
+  }
   for i in 0..<@identity.array_count(conditions) {
     @identity.emit_value(@identity.array_at(conditions, i).unwrap(), out)
   }
@@ -107,9 +119,15 @@ fn emit_try_number_envelope(
   @encode.key(out, "input")
   @encode.begin_object(out)
   @encode.key(out, "evidence_cid")
-  @encode.string_value(out, @text_bounds.input_evidence_cid(
-    input, limits.max_body_bytes, limits.max_body_nodes, limits.max_body_depth,
-  ))
+  @encode.string_value(
+    out,
+    @text_bounds.input_evidence_cid(
+      input,
+      limits.max_body_bytes,
+      limits.max_body_nodes,
+      limits.max_body_depth,
+    ),
+  )
   @encode.key(out, "max_codepoints")
   @encode.number_value(out, points.to_double())
   @encode.key(out, "max_utf8_bytes")
@@ -124,9 +142,14 @@ fn emit_try_number_envelope(
   @encode.key(out, "semantic_step_id")
   @encode.string_value(out, step)
   @encode.key(out, "verification")
-  @encode.string_value(out, if @text_bounds.input_origin(input) is RuntimePreflight {
-    "unit_preflight"
-  } else { "plan" })
+  @encode.string_value(
+    out,
+    if @text_bounds.input_origin(input) is RuntimePreflight {
+      "unit_preflight"
+    } else {
+      "plan"
+    },
+  )
   @encode.key(out, "version")
   @encode.string_value(out, "actql-text-time-evaluation-envelope/0.1")
   @encode.end_object(out)
@@ -147,26 +170,37 @@ fn prepare_fragment_evaluations(
   let mut work = max_nodes
   for root_index in 0..<roots.length() {
     let root = @lower.root_at(index, root_index).unwrap()
-    if @lower.expression_text_bound_count(root.expression) == 0 { continue }
+    if @lower.expression_text_bound_count(root.expression) == 0 {
+      continue
+    }
     let count = @typing.node_count(root.typed_expression)
-    if count > work { return Err(OutputLimit) }
+    if count > work {
+      return Err(OutputLimit)
+    }
     work -= count
     for node_index in 0..<count {
       guard @lower.expression_text_bound_at(root.expression, node_index)
-        is Some(original) else { continue }
+        is Some(original) else {
+        continue
+      }
       let output = @expression_context.text_bound_output(original)
       if !(@text_bounds.output_operation(output) is TryNumber) {
         return Err(GeneratedDecodeFailure)
       }
-      let pointer = match @lower.demand_source_pointer(
-        demands, root_index, node_index, max_bytes=bytes,
-      ) {
+      let pointer = match
+        @lower.demand_source_pointer(
+          demands,
+          root_index,
+          node_index,
+          max_bytes=bytes,
+        ) {
         Ok(Some(pointer)) => pointer
         _ => return Err(OutputLimit)
       }
       guard evaluation_position(roots[root_index], root_index, pointer, bytes)
         is Some((node_pointer, arguments)) &&
-        @identity.object_field(roots[root_index].value, "demand_paths") is Some(paths) &&
+        @identity.object_field(roots[root_index].value, "demand_paths")
+        is Some(paths) &&
         @identity.object_field(paths, pointer) is Some(tests) else {
         return Err(GeneratedDecodeFailure)
       }
@@ -175,42 +209,68 @@ fn prepare_fragment_evaluations(
       )
       let mut filter_pointer = None
       if requirement.filter is Some(filter) {
-        if roots.length() > work { return Err(OutputLimit) }
+        if roots.length() > work {
+          return Err(OutputLimit)
+        }
         work -= roots.length()
         for earlier in 0..<root_index {
           if physical_equal(
-            @lower.root_at(index, earlier).unwrap().typed_expression,
-            filter.expression,
-          ) {
+              @lower.root_at(index, earlier).unwrap().typed_expression,
+              filter.expression,
+            ) {
             filter_pointer = Some("/roots/" + earlier.to_string() + "/source")
           }
         }
-        if filter_pointer is None { return Err(GeneratedDecodeFailure) }
+        if filter_pointer is None {
+          return Err(GeneratedDecodeFailure)
+        }
       }
       let limits : RegistryLimits = {
-        max_body_bytes: bytes, max_body_nodes: nodes, max_body_depth: max_depth,
+        max_body_bytes: bytes,
+        max_body_nodes: nodes,
+        max_body_depth: max_depth,
       }
       let artifact = try {
-        let arguments_cid = @identity.cid_value(arguments, bytes, nodes, max_depth)
+        let arguments_cid = @identity.cid_value(
+          arguments, bytes, nodes, max_depth,
+        )
         let preimage = @encode.hashing_writer(bytes, nodes, max_depth)
         emit_try_number_envelope(
-          original, root.step_id, pointer, arguments_cid, tests, filter_pointer,
-          None, limits, preimage,
+          original,
+          root.step_id,
+          pointer,
+          arguments_cid,
+          tests,
+          filter_pointer,
+          None,
+          limits,
+          preimage,
         )
         let cid = "sha256:" + @encode.finish_hash(preimage)
         let out = @encode.writer(bytes, nodes, max_depth)
         @encode.begin_object(out)
         @encode.key(out, "envelope")
         emit_try_number_envelope(
-          original, root.step_id, pointer, arguments_cid, tests, filter_pointer,
-          Some(cid), limits, out,
+          original,
+          root.step_id,
+          pointer,
+          arguments_cid,
+          tests,
+          filter_pointer,
+          Some(cid),
+          limits,
+          out,
         )
         @encode.key(out, "node_pointer")
         @encode.string_value(out, node_pointer)
         @encode.end_object(out)
-        match canonicalize_generated_artifact(
-          @encode.finish(out), bytes, nodes, max_depth,
-        ) {
+        match
+          canonicalize_generated_artifact(
+            @encode.finish(out),
+            bytes,
+            nodes,
+            max_depth,
+          ) {
           Ok(value) => value
           Err(issue) => return Err(issue)
         }
@@ -228,7 +288,9 @@ fn prepare_fragment_evaluations(
           return Err(OutputLimit)
         }
         work -= pointer.length() + prior.length()
-        if @canonical.compare_utf16(prior, pointer) <= 0 { break }
+        if @canonical.compare_utf16(prior, pointer) <= 0 {
+          break
+        }
         position -= 1
       }
       ordered.insert(position, (pointer, artifact))
