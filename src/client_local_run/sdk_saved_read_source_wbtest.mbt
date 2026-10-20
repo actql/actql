@@ -317,3 +317,49 @@ test "saved SDK source cannot replace or revive its nominal stored view" {
   (fixture.cleanup)()
   (other.cleanup)()
 }
+
+///|
+test "saved SDK source rejects a later valid finite Policy with another adoption" {
+  let fixture = sdk_read_fixture(bound_scope=true)
+  let source = sdk_saved_source(fixture).unwrap()
+  let plan = fixture.preflight.intent.plan
+  let at = @host.client_local_run_policy_original_issued_at(fixture.original)
+  let bootstrap = @host.client_local_product_sdk_bootstrap_originals(
+    "/private/local", at,
+  ).unwrap()
+  let foreign_adoption = "sha256:" + "d".repeat(64)
+  // This is genuinely admitted metadata for the same request/definition and
+  // retention, rather than an invalid JSON body or an altered policy deadline.
+  // It must not replace the exact original already retained in the Run row.
+  let foreign = @host.bind_client_local_run_policy_original(
+    bootstrap.profile,
+    @host.admit_client_submission_reference_record(fixture.reference_wire).unwrap(),
+    plan.request,
+    plan.definition,
+    @host.client_local_run_policy_original_retention(fixture.original),
+    at,
+    foreign_adoption,
+    @publication.local_sdk_result_read_selection_cid(fixture.selection),
+  ).unwrap()
+  let (_, _, _, name, format, _, _) = @publication.local_sdk_result_read_selection_parameters(
+    fixture.selection,
+  )
+  assert_true(
+    prepare_local_sdk_read_originals_for_source(
+      source,
+      fixture.account,
+      foreign,
+      fixture.selection,
+      foreign_adoption,
+      fixture.owner,
+      fixture.view,
+      name,
+      format,
+      "foreign-finite-original",
+      "2026-10-13T00:00:03.000Z",
+      16,
+    )
+    is Err(InvalidOriginal),
+  )
+  (fixture.cleanup)()
+}

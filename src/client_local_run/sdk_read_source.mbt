@@ -1,6 +1,7 @@
 ///|
 priv struct LocalSavedSDKReadSource {
   request : @host.ClientRequestIdentity
+  finite_original : Bytes
   definition : @publication.PublicationContract
   publication_request_cid : String
   policy : @publication.CapturedEffectDependencyBody
@@ -113,6 +114,7 @@ pub fn prepare_local_saved_sdk_read_source(
   let source : LocalSDKReadSource = {
     origin: Saved({
       request: run.request,
+      finite_original: @host.client_local_run_policy_original_body(finite),
       definition,
       publication_request_cid: projected.publication_request_cid,
       policy,
@@ -296,5 +298,22 @@ fn LocalSDKReadSource::validate_current(
         Err(Preflight(AuthorizationMismatch))
       }
     }
+  }
+}
+
+///|
+fn LocalSDKReadSource::validate_finite_original(
+  self : LocalSDKReadSource,
+  finite : @host.ClientLocalRunPolicyOriginal,
+) -> Result[Unit, LocalSDKReadOriginalsIssue] {
+  match self.origin {
+    Live(_) => Ok(())
+    Saved(value) =>
+      if @host.client_local_run_policy_original_body(finite) ==
+        value.finite_original {
+        Ok(())
+      } else {
+        Err(InvalidOriginal)
+      }
   }
 }

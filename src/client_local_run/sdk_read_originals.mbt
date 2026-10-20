@@ -58,6 +58,10 @@ fn validate_sdk_read_original_binding(
     source.principal_connection().1 != connection {
     return Err(InvalidSelection)
   }
+  match source.validate_finite_original(original) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   if @host.validate_client_local_run_policy_original_run(
       @host.client_local_run_policy_original_body(original),
       source.request(),
