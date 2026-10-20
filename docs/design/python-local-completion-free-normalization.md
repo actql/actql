@@ -36,6 +36,21 @@ issue that inventory. The additional retained binding alias and audit traversal
 remain part of the preparation lifetime and managed work, not physical cleanup
 or execution authority.
 
+An explicitly authored, checked `cast` is an execution operation, not a
+normalization completion. The audit traverses its original child normally and
+records its presence in the retained nominal inventory. It does not evaluate the
+conversion or infer a target from a result value. Separate closed catalogs cover
+explicit casts with no Parameters and with actually supplied Parameters. The two
+previous catalogs and journals remain byte-identical when no cast is present.
+
+Implicit NULL, template/default completion, implicit Source selection and
+unsupported operations remain refusals even beneath an explicit cast. A nullable
+cast of an authored literal NULL retains that literal and checked target; it is
+never an empty String or fabricated value. Execution failure, demand, bounds and
+backend support continue to belong to the existing checked execution owners;
+empty normalization evidence does not promise that an arbitrary conversion will
+execute successfully.
+
 Only the original Effect-free preparation can issue and retain the empty journal.
 The nominal inventory retains the original checked owner; the cached projection
 also retains the preparation owner. Copies and equal-input foreign preparations
