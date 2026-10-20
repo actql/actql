@@ -389,6 +389,64 @@ pub fn captured_content_generation_storage(
 }
 
 ///|
+/// Select recovery proofs from this admitted CapturedRun, not from caller
+/// labels or a Model scope. The installing Store must independently confirm
+/// this occurrence's original holding and private evidence before issuing the
+/// current reference. This operation neither reads bytes nor renews custody.
+pub fn readmit_captured_generated_content_observation(
+  captured : PublicationContract,
+  definition : PublicationContract,
+  template : RunEvidenceValue,
+  node_id : String,
+  barrier_cid : String,
+  store_authority_cid : String,
+  index : Int,
+  candidate : StoredGeneratedContentReference,
+  content : @admitted.CheckedValue,
+) -> Result[BoundContentGeneration, RunEvidenceValueIssue] {
+  let issue = RunEvidenceReferenceMismatch("content_generation.captured_recovery")
+  guard captured_content_generation_storage(
+      captured, definition, store_authority_cid, index,
+    )
+    is Some(_) &&
+    @json.object_field(captured.value, "effect_context") is Some(context) &&
+    @json.object_field(context, "content_generations")
+    is Some(@json.Array(records)) &&
+    @json.array_at(records, index) is Some(record) else {
+    return Err(issue)
+  }
+  let proofs = []
+  for (proof, name) in [
+    (2, "content_input_artifact"),
+    (0, "content_evidence"),
+    (1, "content_generation"),
+  ] {
+    guard content_capture_proof(record, proof) is Some((body, _)) else {
+      return Err(issue)
+    }
+    let wire = @json.stringify_value(body, 16384, 256, 16) catch {
+      _ => return Err(issue)
+    }
+    match admit_run_evidence_value(name, wire, 16384, 256, 16) {
+      Ok(value) => proofs.push(value)
+      Err(error) => return Err(error)
+    }
+  }
+  readmit_generated_content_observation(
+    template,
+    definition.identity,
+    node_id,
+    barrier_cid,
+    proofs[2].identity,
+    proofs[0],
+    proofs[1],
+    proofs[2],
+    candidate,
+    content,
+  )
+}
+
+///|
 pub fn bound_content_generation_derivation(
   generation : BoundContentGeneration,
 ) -> RunEvidenceValue? {

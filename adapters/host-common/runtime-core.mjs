@@ -3982,6 +3982,44 @@ function publicationControl(moon) {
           original = undefined;
         }});
     },
+    recoverEffectCommandContent({compiled, prepared, definition, captured, preview,
+      invocation, source, storeAuthorityCid, generationIndex, memberIndex, row,
+      inputName, candidate, issued, limits}) {
+      issuanceLimits(limits, 'Recovered Effect Content');
+      const run = compiledContent(compiled);
+      const admittedPreview = computationPreviewTokens.get(preview);
+      if (admittedPreview === undefined || typeof inputName !== 'string' ||
+          ![generationIndex, memberIndex, row, limits.maxFields, limits.maxWork]
+            .every(value => Number.isSafeInteger(value) && value >= 0)) {
+        throw new TypeError('Invalid recovered Effect Content input');
+      }
+      const original = {run, prepared, definition: token(definition), captured: token(captured),
+        preview: admittedPreview, memberIndex, row, inputName};
+      const view = checked(moon.clientProgramRecoverEffectCommandContent(run, prepared,
+        original.definition, original.captured, admittedPreview, token(invocation), source,
+        storeAuthorityCid, generationIndex, memberIndex, row, inputName, candidate, issued,
+        limits.maxFields, limits.maxWork, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      let retained = original;
+      const current = () => retained !== undefined &&
+        moon.clientProgramRecoveredEffectCommandContentMatches(view, original.run,
+          original.prepared, original.definition, original.captured, original.preview,
+          original.memberIndex, original.row, original.inputName) && retained === original;
+      return Object.freeze({binding: view, current,
+        matchesIssued(value) {
+          return retained !== undefined &&
+            moon.clientProgramRecoveredEffectCommandContentMatchesIssued(view, value) &&
+            retained === original;
+        },
+        wire() {
+          if (!current()) throw new TypeError('Recovered Effect Content unavailable');
+          return checked(moon.clientProgramRecoveredEffectCommandContentWire(view));
+        },
+        release() {
+          if (retained === undefined) return;
+          moon.clientProgramRecoveredEffectCommandContentRelease(view);
+          retained = undefined;
+        }});
+    },
     localEffectTableStorageMapping(artifact, limits) {
       issuanceLimits(limits, 'Table storage mapping');
       const owned = localEffectArtifactTokens.get(artifact);

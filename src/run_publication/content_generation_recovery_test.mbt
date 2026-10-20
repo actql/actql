@@ -88,6 +88,28 @@ test "saved Content generation needs original identity and current issued refere
     candidate,
     content,
   ).unwrap()
+  let from_capture = readmit_captured_generated_content_observation(
+    captured, chain.run, template, "content-1", ordering_test_cid("b"),
+    ordering_test_cid("1"), 0, candidate, content,
+  ).unwrap()
+  assert_eq(
+    bound_content_generation_reference(from_capture),
+    bound_content_generation_reference(original),
+  )
+  for (store, index, node, barrier) in [
+    (ordering_test_cid("f"), 0, "content-1", ordering_test_cid("b")),
+    (ordering_test_cid("1"), -1, "content-1", ordering_test_cid("b")),
+    (ordering_test_cid("1"), 1, "content-1", ordering_test_cid("b")),
+    (ordering_test_cid("1"), 0, "content-2", ordering_test_cid("b")),
+    (ordering_test_cid("1"), 0, "content-1", ordering_test_cid("c")),
+  ] {
+    assert_true(
+      readmit_captured_generated_content_observation(
+        captured, chain.run, template, node, barrier, store, index, candidate,
+        content,
+      ) is Err(_),
+    )
+  }
   assert_eq(
     run_evidence_value_json(bound_content_generation_value(restored).unwrap()),
     run_evidence_value_json(bound_content_generation_value(original).unwrap()),
@@ -175,6 +197,13 @@ test "saved Content generation needs original identity and current issued refere
   }
   live.val = false
   assert_true(bound_content_generation_value(restored) is None)
+  assert_true(bound_content_generation_value(from_capture) is None)
+  assert_true(
+    readmit_captured_generated_content_observation(
+      captured, chain.run, template, "content-1", ordering_test_cid("b"),
+      ordering_test_cid("1"), 0, candidate, content,
+    ) is Err(_),
+  )
   assert_true(
     readmit_generated_content_observation(
       template,
