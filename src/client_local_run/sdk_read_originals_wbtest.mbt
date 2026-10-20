@@ -1,6 +1,7 @@
 ///|
 priv struct SDKReadFixture {
   preflight : LocalPublicationPreflight
+  reference_wire : String
   account : @authorization.AdmittedAccountConfiguration
   original : @host.ClientLocalRunPolicyOriginal
   selection : @publication.LocalSDKResultReadSelection
@@ -14,7 +15,7 @@ priv struct SDKReadFixture {
 // Actual Common checked Source-free task/export/Receipt and full stored-chain
 // validation. Epoch/adoption and physical binding literals are metadata fixtures,
 // not authenticated Host custody, Store ACK, real Wasm or product admission.
-fn sdk_read_fixture() -> SDKReadFixture raise {
+fn sdk_read_fixture(bound_scope? : Bool = false) -> SDKReadFixture raise {
   let at = "2026-10-13T00:00:00.001Z"
   let bootstrap = @host.client_local_product_sdk_bootstrap_originals(
     "/private/local", at,
@@ -43,12 +44,27 @@ fn sdk_read_fixture() -> SDKReadFixture raise {
     @host.prepared_client_identity(@input.local_prepared_program(input)).program_definition_cid,
     context_cid(),
   ).unwrap()
-  let reference = @host.admit_client_submission_reference_record(
-    submitted_rows_reference_wire,
-  ).unwrap()
+  let authority = if bound_scope {
+    "sha256:" +
+    @sha.hex(
+      @host.client_local_authority_scope_body(
+        current,
+        "sha256:" + "a".repeat(64),
+        selected.principal,
+        selected.connection,
+      ).unwrap(),
+    )
+  } else {
+    "sha256:" + "b".repeat(64)
+  }
+  let reference_wire = submitted_rows_reference_wire.replace(
+    old="sha256:" + "b".repeat(64),
+    new=authority,
+  )
+  let reference = @host.admit_client_submission_reference_record(reference_wire).unwrap()
   let plan = prepare_source_free_local_publication_run(
     input,
-    "sha256:" + "b".repeat(64),
+    authority,
     @host.client_submission_reference_record_request_id(reference),
     permit,
     current,
@@ -371,6 +387,7 @@ fn sdk_read_fixture() -> SDKReadFixture raise {
   }
   {
     preflight,
+    reference_wire,
     account: current,
     original,
     selection: bootstrap.read,

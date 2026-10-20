@@ -50,7 +50,7 @@ pub(all) enum LocalSDKReadStoreIssue[E] {
 /// reader facts pinned around this call and before adopting its returned bytes.
 /// No Store insert, COMMIT ACK, usage claim or delivery is performed here.
 fn[E] sdk_read_store_observation(
-  preflight : LocalPublicationPreflight,
+  source : LocalSDKReadSource,
   account : @authorization.AdmittedAccountConfiguration,
   finite : @host.ClientLocalRunPolicyOriginal,
   selection : @publication.LocalSDKResultReadSelection,
@@ -73,8 +73,8 @@ fn[E] sdk_read_store_observation(
     Err(issue) => return Err(Observation(issue))
   }
   let original = match
-    prepare_local_sdk_read_originals(
-      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+    prepare_local_sdk_read_originals_for_source(
+      source, account, finite, selection, host_adoption_cid, owner, view, result_name,
       format, attempt_id, observed_at, max_results,
     ) {
     Ok(original) => original
@@ -98,11 +98,8 @@ fn[E] sdk_read_store_observation(
     Err(issue) => return Err(Observation(issue))
     Ok(_) => ()
   }
-  match
-    validate_local_preflight_result_read_current(
-      preflight, account, result_name,
-    ) {
-    Err(issue) => return Err(Preparation(Preflight(issue)))
+  match source.validate_current(account, result_name) {
+    Err(issue) => return Err(Preparation(issue))
     Ok(_) => ()
   }
   // The observation callback may invalidate the original nominal view. Never
@@ -122,8 +119,8 @@ fn[E] sdk_read_store_observation(
 }
 
 ///|
-pub fn[E] issue_local_sdk_read_grant_from_store(
-  preflight : LocalPublicationPreflight,
+pub fn[E] issue_local_sdk_read_grant_for_source(
+  source : LocalSDKReadSource,
   account : @authorization.AdmittedAccountConfiguration,
   finite : @host.ClientLocalRunPolicyOriginal,
   selection : @publication.LocalSDKResultReadSelection,
@@ -140,7 +137,7 @@ pub fn[E] issue_local_sdk_read_grant_from_store(
 ) -> Result[@publication.PublicationContract, LocalSDKReadStoreIssue[E]] {
   let (original, saved) = match
     sdk_read_store_observation(
-      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+      source, account, finite, selection, host_adoption_cid, owner, view, result_name,
       format, attempt_id, observed_at, max_results, read, current,
     ) {
     Ok(value) => value
@@ -177,11 +174,8 @@ pub fn[E] issue_local_sdk_read_grant_from_store(
   match current() {
     Err(issue) => Err(Observation(issue))
     Ok(_) =>
-      match
-        validate_local_preflight_result_read_current(
-          preflight, account, result_name,
-        ) {
-        Err(issue) => Err(Preparation(Preflight(issue)))
+      match source.validate_current(account, result_name) {
+        Err(issue) => Err(Preparation(issue))
         Ok(_) => {
           // The final current callback can also invalidate the nominal view.
           // Recheck its original stored chain before allowing the grant out.
@@ -215,8 +209,8 @@ pub(all) enum LocalSDKReadEvidenceDecision {
 /// The same Store lookup comes before any first-write proposal. The physical
 /// caller uses original same-TX/CAS/current/capacity fences; after an attempted
 /// COMMIT Unknown it only looks up the original key, never repeats the proposal.
-pub fn[E] prepare_local_sdk_read_evidence_from_store(
-  preflight : LocalPublicationPreflight,
+pub fn[E] prepare_local_sdk_read_evidence_for_source(
+  source : LocalSDKReadSource,
   account : @authorization.AdmittedAccountConfiguration,
   finite : @host.ClientLocalRunPolicyOriginal,
   selection : @publication.LocalSDKResultReadSelection,
@@ -233,7 +227,7 @@ pub fn[E] prepare_local_sdk_read_evidence_from_store(
 ) -> Result[LocalSDKReadEvidenceDecision, LocalSDKReadStoreIssue[E]] {
   let (original, saved) = match
     sdk_read_store_observation(
-      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+      source, account, finite, selection, host_adoption_cid, owner, view, result_name,
       format, attempt_id, observed_at, max_results, read, current,
     ) {
     Ok(value) => value
@@ -281,4 +275,76 @@ pub fn local_sdk_read_evidence_decision_wire(
     @encode.OutputLimit => Err(Codec(CapacityExceeded))
     _ => Err(Codec(Encoding))
   }
+}
+
+///|
+/// Existing live-run entrance retains its original preflight/current checks.
+pub fn[E] issue_local_sdk_read_grant_from_store(
+  preflight : LocalPublicationPreflight,
+  account : @authorization.AdmittedAccountConfiguration,
+  finite : @host.ClientLocalRunPolicyOriginal,
+  selection : @publication.LocalSDKResultReadSelection,
+  host_adoption_cid : String,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  observed_at : String,
+  max_results : Int,
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
+  current : () -> Result[Unit, E],
+) -> Result[@publication.PublicationContract, LocalSDKReadStoreIssue[E]] {
+  issue_local_sdk_read_grant_for_source(
+    live_sdk_read_source(preflight),
+    account,
+    finite,
+    selection,
+    host_adoption_cid,
+    owner,
+    view,
+    result_name,
+    format,
+    attempt_id,
+    observed_at,
+    max_results,
+    read,
+    current,
+  )
+}
+
+///|
+/// Existing live-run entrance retains its original preflight/current checks.
+pub fn[E] prepare_local_sdk_read_evidence_from_store(
+  preflight : LocalPublicationPreflight,
+  account : @authorization.AdmittedAccountConfiguration,
+  finite : @host.ClientLocalRunPolicyOriginal,
+  selection : @publication.LocalSDKResultReadSelection,
+  host_adoption_cid : String,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  observed_at : String,
+  max_results : Int,
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
+  current : () -> Result[Unit, E],
+) -> Result[LocalSDKReadEvidenceDecision, LocalSDKReadStoreIssue[E]] {
+  prepare_local_sdk_read_evidence_for_source(
+    live_sdk_read_source(preflight),
+    account,
+    finite,
+    selection,
+    host_adoption_cid,
+    owner,
+    view,
+    result_name,
+    format,
+    attempt_id,
+    observed_at,
+    max_results,
+    read,
+    current,
+  )
 }

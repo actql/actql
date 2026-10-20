@@ -6,6 +6,8 @@ priv struct StoredSavedResultRead {
   snapshot : @host.ClientSavedSubmissionSnapshot
   result_name : String
   fences : Array[(String, String, Int64, Bytes)]
+  mut source : @local_run.LocalSDKReadSource?
+  mut finite : @host.ClientLocalRunPolicyOriginal?
   mut owner : @publication.PublicationCommitPreparation?
   mut view : @publication.PublicationCommitReadView?
   mut observed : Bool
@@ -78,7 +80,8 @@ fn prepare_saved_result_read(
   let submitted = @host.client_saved_submission_record(snapshot)
   // Durable originals are admitted through their own Owner. Current SDK
   // selections must match them; a later equivalent CID cannot reissue them.
-  if @host.admit_client_local_run_policy_original(
+  let finite = match
+    @host.admit_client_local_run_policy_original(
       @utf8.encode(policy_wire),
       sdk.profile,
       submitted.reference,
@@ -86,9 +89,11 @@ fn prepare_saved_result_read(
       run.definition,
       sdk.adoption_cid,
       @publication.local_sdk_result_read_selection_cid(sdk.read),
-    )
-    is Err(_) ||
-    @host.restore_client_run_observation_originals_wire(
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(-32)
+  }
+  if @host.restore_client_run_observation_originals_wire(
       run.definition,
       observation_wire,
       131072,
@@ -98,10 +103,23 @@ fn prepare_saved_result_read(
     is Err(_) {
     return Err(-32)
   }
+  guard current.generation is Some((device, inode)) &&
+    @host.client_publication_store_binding_body(
+      configuration.run_namespace,
+      sdk.store_authority_cid,
+      device,
+      inode,
+    )
+    is Ok(publication_binding) &&
+    run.publication_binding == Some(publication_binding) else {
+    return Err(-32)
+  }
   let retained : StoredSavedResultRead = {
     snapshot,
     result_name,
     fences: [],
+    source: None,
+    finite: Some(finite),
     owner: None,
     view: None,
     observed: false,
@@ -192,6 +210,25 @@ fn prepare_saved_result_read(
   if !done {
     return Err(-34)
   }
+  guard configuration.source_free_result_policy is Some(source_policy) else {
+    return Err(-32)
+  }
+  let source = match
+    @local_run.prepare_local_saved_sdk_read_source(
+      snapshot,
+      finite,
+      source_policy,
+      configuration.account,
+      configuration.tuple.principal,
+      configuration.tuple.connection,
+      sdk.adoption_cid,
+      owner,
+      view,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(-32)
+  }
+  retained.source = Some(source)
   let materials = match
     owner.observed_result_read_materials(view, result_name, 16) {
     Ok(value) => value
