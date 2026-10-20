@@ -1,6 +1,7 @@
 import {createRequire} from 'node:module';
 import {prepareOrdinaryHostResult} from './ordinary-host-result.mjs';
-import {readHostResultPublicationPreparation, readHostResultPublicationRunRequirements}
+import {readHostResultPublicationPreparation, readHostResultPublicationRunRequirements,
+  readHostEffectResultPublicationRunRequirements}
   from './embedded-local.mjs';
 
 // Capture only the actual selected startup's fixed Result purpose. Neither
@@ -49,7 +50,8 @@ function close(state) {
 export async function prepareHostResultPublicationInstallation(originals) {
   if (!explicitStartup) {
     const original = prepareOrdinaryHostResult(originals,
-      readHostResultPublicationPreparation(originals), readHostResultPublicationRunRequirements);
+      readHostResultPublicationPreparation(originals), readHostResultPublicationRunRequirements,
+      readHostEffectResultPublicationRunRequirements);
     await original.initialize();
     return original;
   }

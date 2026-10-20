@@ -23,12 +23,14 @@ const unsupported = () => Object.assign(new Error('ClientProgramUnsupported'),
 export function installNodeClientEffectRun({moon,
   publicationControl: control = runtimeCore(moon).publicationControl,
   journal, authorizeRequest, authorizeRunStart, prepareExecution, execute,
+  prepareDefinition,
   inferPlanFor, resultPolicyOriginalFor, validateInstallation, updateTargetOriginals,
   now = () => new Date().toISOString()}) {
   if (typeof moon?.clientProgramEffectCompilationIssueCode !== 'function' ||
       typeof authorizeRequest !== 'function' ||
       (prepareExecution !== undefined &&
         typeof prepareExecution !== 'function') ||
+      (prepareDefinition !== undefined && typeof prepareDefinition !== 'function') ||
       (inferPlanFor !== undefined && typeof inferPlanFor !== 'function') ||
       (resultPolicyOriginalFor !== undefined &&
         typeof resultPolicyOriginalFor !== 'function') ||
@@ -203,6 +205,17 @@ export function installNodeClientEffectRun({moon,
           const modelCompiled = inferPlanFor?.(prepared) === undefined ? undefined :
             control.adoptCheckedClientEffectInferRun(allowed, runDefinition,
               resultPolicyOriginal, limits);
+          // The same Host may retain its actual resource/Scope originals
+          // before the Journal publishes this business Run. A failure remains
+          // with that original preparation; no second definition or admission
+          // is issued by this callback, and it grants no Effect approval.
+          const originalPreparation = prepareDefinition?.(Object.freeze({prepared,
+            compilation: compiled(), allowed, definition, identity, runDefinition,
+            modelCompiled, resultPolicyOriginal, queryTimePreparation}));
+          if (typeof originalPreparation?.then === 'function') {
+            void Promise.resolve(originalPreparation).catch(() => {});
+            throw new TypeError('AsyncClientEffectDefinitionPreparation');
+          }
           return {
             resultNames: moon.clientProgramEffectCompilationResultNames(
               compiled()),

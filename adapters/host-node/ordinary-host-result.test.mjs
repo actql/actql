@@ -7,7 +7,7 @@ import {prepareOrdinaryHostJournal} from './ordinary-host-journal.mjs';
 import {prepareOrdinaryHostResult} from './ordinary-host-result.mjs';
 import {observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
 
-async function fixture() {
+async function fixture(effectRequirements) {
   const root = await mkdtemp(join(tmpdir(), 'actql-ordinary-result-'));
   const originals = Object.freeze({host: {}, installation: {root}, generation: {},
     supplier() {}, moduleLifetime: import.meta});
@@ -23,7 +23,7 @@ async function fixture() {
   const view = prepareOrdinaryHostResult(originals, subject, (held, value) => {
     assert.strictEqual(held, originals); assert.strictEqual(value, prepared);
     return Object.freeze({resultCount: 1, maxRows: 100, maxContractBytes: 1000000});
-  });
+  }, effectRequirements);
   const options = {directory: join(root, 'publication'), storeAuthorityCid: subject.storeAuthorityCid,
     capacityBytes: 536870912, maxObjectBytes: 10000000, maxObjects: 10000,
     maxContractNodes: 10000, maxContractDepth: 64};
@@ -76,6 +76,41 @@ test('ordinary Model publication uses the same admitted Run and live Store, not 
     await f.journal.close();
     assert.throws(() => f.view.modelPublicationCapacity(f.prepared));
   } finally {
+    await f.view.close();
+    assert.equal((await f.journal.close()).pending, false);
+  }
+});
+
+test('ordinary Effect publication retains its own same-Host purpose without converting Pure admission', async () => {
+  let calls = 0;
+  const f = await fixture((originals, prepared) => {
+    assert.strictEqual(originals, f.originals); assert.strictEqual(prepared, f.prepared);
+    calls++;
+    return {resultCount: 1, maxRows: 100, maxContractBytes: 1000000};
+  });
+  try {
+    f.view.admitEffectRun(f.prepared);
+    await f.view.openStore(f.options, f.control);
+    assert.deepEqual(f.view.modelPublicationCapacity(f.prepared),
+      {retainedBytes: 1000000n, workspaceBytes: 1000000n});
+    f.view.admitEffectRun(f.prepared);
+    assert.equal(calls, 2);
+    assert.throws(() => f.view.admitRun(f.prepared), {message: 'HostResultPublicationChanged'});
+    assert.throws(() => f.view.admitEffectRun({}));
+  } finally {
+    await f.journal.close();
+    await f.view.close();
+    assert.equal((await f.journal.close()).pending, false);
+  }
+});
+
+test('ordinary Effect publication refuses an absent supplier and never borrows the Pure callback', async () => {
+  const f = await fixture();
+  try {
+    assert.throws(() => f.view.admitEffectRun(f.prepared), {message: 'HostEffectResultPublicationUnavailable'});
+    f.view.admitRun(f.prepared);
+  } finally {
+    await f.journal.close();
     await f.view.close();
     assert.equal((await f.journal.close()).pending, false);
   }

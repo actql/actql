@@ -6,7 +6,7 @@ import {preparePrivateEvidenceKeyInstallation} from './local-continuation-eviden
 // Ordinary resource acquisition in the existing Result/Store responsibility.
 // Same-Host identities and typed control remain, but a trusted in-process
 // constructor does not need a whole-runtime/preload provenance certificate.
-export function prepareOrdinaryHostResult(originals, subject, requirements) {
+export function prepareOrdinaryHostResult(originals, subject, requirements, effectRequirements) {
   const journal = ordinaryHostJournalInstallation(originals);
   let closing = false, closed = false, attempted = false, store, storeClose;
   let openFlight, keyFlight, closeFlight, cleanup, cleanupStatus, cleanupRetry, failure;
@@ -58,7 +58,7 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
       contentEvidenceStore = undefined;
       keyInstallation?.key.fill(0); keyInstallation = undefined;
       admittedRuns = new WeakMap();
-      subject = requirements = undefined; closed = true;
+      subject = requirements = effectRequirements = undefined; closed = true;
       return status();
     });
     closeFlight = flight;
@@ -101,6 +101,28 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
     });
     return keyFlight;
   }
+  function admitSelectedRun(prepared, value, kind) {
+    if (!Number.isSafeInteger(value.resultCount) || value.resultCount < 1 || value.resultCount > 10 ||
+        !Number.isSafeInteger(value.maxRows) || value.maxRows < 0 || value.maxRows > 10000 ||
+        !Number.isSafeInteger(value.maxContractBytes) || value.maxContractBytes < 1 ||
+        value.maxContractBytes > 2147483647) {
+      throw new TypeError('HostResultPublicationUnsupported');
+    }
+    current();
+    const prior = admittedRuns.get(prepared);
+    if (prior !== undefined) {
+      if (prior.kind !== kind || prior.resultCount !== value.resultCount || prior.maxRows !== value.maxRows ||
+          prior.maxContractBytes !== value.maxContractBytes) {
+        throw new TypeError('HostResultPublicationChanged');
+      }
+      return;
+    }
+    // Existing managed publication limits, not physical allocation or target
+    // File IO credit. Those actual platform children retain their own duties.
+    admittedRuns.set(prepared, Object.freeze({...value, kind, capacity: Object.freeze({
+      retainedBytes: BigInt(value.maxContractBytes), workspaceBytes: BigInt(value.maxContractBytes),
+    })}));
+  }
   const view = Object.freeze({assertCurrent: current, close,
     initialize() {
       if (this !== view) throw new TypeError('ForeignInstalledHostPublicationStore');
@@ -121,29 +143,12 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
     },
     admitRun(prepared) {
       current();
-      const value = requirements(originals, prepared);
-      if (!Number.isSafeInteger(value.resultCount) || value.resultCount < 1 || value.resultCount > 10 ||
-          !Number.isSafeInteger(value.maxRows) || value.maxRows < 0 || value.maxRows > 10000 ||
-          !Number.isSafeInteger(value.maxContractBytes) || value.maxContractBytes < 1 ||
-          value.maxContractBytes > 2147483647) {
-        throw new TypeError('HostResultPublicationUnsupported');
-      }
+      admitSelectedRun(prepared, requirements(originals, prepared), 'pure');
+    },
+    admitEffectRun(prepared) {
       current();
-      const prior = admittedRuns.get(prepared);
-      if (prior !== undefined) {
-        if (prior.resultCount !== value.resultCount || prior.maxRows !== value.maxRows ||
-            prior.maxContractBytes !== value.maxContractBytes) {
-          throw new TypeError('HostResultPublicationChanged');
-        }
-        return;
-      }
-      // Existing Contract/evidence document ceilings select finite managed
-      // publication allowances. They are not physical allocation coefficients,
-      // reserved RAM or permission; Core still reserves the actual same Model
-      // and Run, and ordinary Store/native cleanup retains its own duties.
-      admittedRuns.set(prepared, Object.freeze({...value, capacity: Object.freeze({
-        retainedBytes: BigInt(value.maxContractBytes), workspaceBytes: BigInt(value.maxContractBytes),
-      })}));
+      if (typeof effectRequirements !== 'function') throw new TypeError('HostEffectResultPublicationUnavailable');
+      admitSelectedRun(prepared, effectRequirements(originals, prepared), 'effect');
     },
     modelPublicationCapacity(prepared) {
       if (this !== view) throw new TypeError('ForeignInstalledHostPublicationStore');

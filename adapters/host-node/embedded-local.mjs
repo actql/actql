@@ -65,6 +65,9 @@ import {loadInstalledProjectMockAnswers} from './installed-project-mock-answers.
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 import {prepareInstalledProjectMock, installPreparedProjectMockSources, installedMockRequestRealization}
   from './installed-project-mock.mjs';
+import {installPreparedProjectMockEffects, observeInstalledMockEffectResources}
+  from './installed-mock-row-effect.mjs';
+import {installedRuntimeBundleCid} from './source-profile-json.mjs';
 import {initializeOrdinaryMockAccount} from './ordinary-mock-account.mjs';
 import {ordinaryHostJournalInstallation} from './ordinary-host-journal.mjs';
 import {prepareSourceManagedInstallation, assertSourceManagedInstallationCurrent,
@@ -225,6 +228,17 @@ export function readHostResultPublicationRunRequirements(originals, prepared) {
   assertSourceManagedHostPreparation(originals);
   originalSourceManagedHostRequest(originals, prepared);
   return Object.freeze({resultCount, maxRows, maxContractBytes: localContractLimits.maxWireBytes});
+}
+
+export function readHostEffectResultPublicationRunRequirements(originals, prepared) {
+  assertSourceManagedHostPreparation(originals);
+  originalSourceManagedHostRequest(originals, prepared);
+  const moon = originals.installation.projectRuntime;
+  const resultCount = moon.clientProgramEffectResultCount(prepared);
+  assertSourceManagedHostPreparation(originals);
+  originalSourceManagedHostRequest(originals, prepared);
+  return Object.freeze({resultCount, maxRows: localOutputLimits.maxRows,
+    maxContractBytes: localContractLimits.maxWireBytes});
 }
 
 // Same live ingress lineage only. Copies, CIDs and retained cold DATA cannot
@@ -583,6 +597,10 @@ async function openInstalledHost(originalInstallation, preparation) {
   let mockModels;
   let mockAccount;
   let store;
+  let mockEffectObservation;
+  let mockEffectObservationMethods;
+  const mockEffectRuns = new Map();
+  let mockEffectOriginals = new WeakMap();
   // Nominal association in this SAME Host, not a capacity pool or Run Owner.
   // A key is an actual Common-issued Scope; its value is retired only after
   // that Scope's original Common cleanup succeeds.
@@ -640,6 +658,12 @@ async function openInstalledHost(originalInstallation, preparation) {
     projectProfile = undefined;
     projectRuntime = undefined;
     project = undefined;
+    // Actual FileTarget children close through installedEffect before this
+    // final Host boundary. These remaining Run/limit links are copied managed
+    // references, not another physical ACK or a Source/Model capacity credit.
+    mockEffectRuns.clear();
+    mockEffectOriginals = new WeakMap();
+    mockEffectObservation = mockEffectObservationMethods = undefined;
   }
   function retireModelRuntime() {
     if (modelRuntimeView !== undefined) {
@@ -733,6 +757,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     : new Map();
   const inferSelections = new WeakMap();
   const earlyMockInferPlans = new WeakMap();
+  const earlyMockEffectPlans = new WeakMap();
   const earlyContentPlans = new WeakMap();
   const effectSubmissions = new WeakMap();
   const effectSelections = new WeakMap();
@@ -749,6 +774,82 @@ async function openInstalledHost(originalInstallation, preparation) {
   let installedEffect;
   let environmentWire, effectiveHostCapacityPolicyCid;
   let updateTargetOriginals;
+  function assertMockEffectRunOriginal(original) {
+    assertProjectRuntime();
+    preparation.assertResultPublicationCurrent();
+    const retained = mockEffectOriginals.get(original);
+    if (retained === undefined || retained.original !== original ||
+        mockEffectRuns.get(retained.prepared) !== retained) {
+      throw clientOperationError('ForeignInstalledMockEffectRun');
+    }
+    if (retained.failure !== undefined) throw retained.failure;
+    // A retired Source/Compute Scope does not retire this business Run's file
+    // requests. Its authorization/claims remain the existing Effect owners'.
+    return retained;
+  }
+  function retainMockEffectRunOriginal(facts) {
+    assertProjectRuntime();
+    if (mockEffectObservationMethods === undefined || facts.prepared === undefined ||
+        facts.compilation === undefined || facts.allowed === undefined ||
+        facts.definition === undefined || facts.identity === undefined) {
+      throw clientOperationError('InstalledMockEffectResourcesUnavailable');
+    }
+    let retained = mockEffectRuns.get(facts.prepared);
+    if (retained !== undefined) {
+      assertMockEffectRunOriginal(retained.original);
+      if (retained.compilation !== facts.compilation || retained.allowed !== facts.allowed ||
+          retained.definition !== facts.definition || retained.identity !== facts.identity) {
+        throw clientOperationError('ForeignInstalledMockEffectRun');
+      }
+      return retained.original;
+    }
+    if (mockEffectRuns.size === 4096) throw clientOperationError('InstalledMockEffectRunLimit');
+    retained = {prepared: facts.prepared, compilation: facts.compilation, allowed: facts.allowed,
+      definition: facts.definition, identity: facts.identity, original: Object.freeze({}),
+      checkedRun: undefined, limits: undefined, failure: undefined};
+    mockEffectRuns.set(facts.prepared, retained);
+    mockEffectOriginals.set(retained.original, retained);
+    try {
+      // Validate the same actual Common prepared/allowed/definition original.
+      // This creates no Run, Ledger, Allow, physical reservation or replacement.
+      retained.checkedRun = checked(moon.clientProgramBindCompiledEffectRun(
+        facts.prepared, facts.allowed, facts.definition));
+      retained.limits = Reflect.apply(mockEffectObservationMethods.limits,
+        mockEffectObservation, [retained.original]);
+      assertMockEffectRunOriginal(retained.original);
+      return retained.original;
+    } catch (cause) {retained.failure = cause; throw cause;}
+  }
+  const mockEffectResources = Object.freeze({
+    bindRunOriginal(facts) {
+      const recovered = facts.recovered;
+      if (recovered !== undefined) {
+        // Recovery supplies newly validated local handles for the saved Run,
+        // not an old process pointer or a fresh Source/Compute admission.
+        const retained = journal.lookupOwnedDefinition({namespaceId, authorityScopeCid,
+          requestId: moon.clientRequestCallerId(recovered.requestIdentity),
+          runDefinitionCid: recovered.runDefinition?.identity}, moon, control);
+        if (retained === undefined || retained.runDefinition.identity !== recovered.runDefinition?.identity) {
+          throw clientOperationError('ForeignInstalledMockEffectRun');
+        }
+        return retainMockEffectRunOriginal({...recovered, identity: recovered.requestIdentity});
+      }
+      const retained = mockEffectRuns.get(facts.prepared);
+      if (retained === undefined || retained.compilation !== facts.compilation ||
+          retained.definition !== facts.definition || retained.identity !== facts.identity ||
+          facts.allowed !== undefined && retained.allowed !== facts.allowed) {
+        throw clientOperationError('ForeignInstalledMockEffectRun');
+      }
+      assertMockEffectRunOriginal(retained.original);
+      return retained.original;
+    },
+    assertCurrent(original) {assertMockEffectRunOriginal(original);},
+    limits(original) {
+      const retained = assertMockEffectRunOriginal(original);
+      if (retained.limits === undefined) throw clientOperationError('InstalledMockEffectResourcesUnavailable');
+      return retained.limits;
+    },
+  });
   function selectedInstalledEffect({prepared, compilation, updateTargetSelections}) {
     const selections = updateTargetSelections ?? updateTargetOriginals?.selectionsOf(prepared);
     if (installedEffect?.effects === undefined) {
@@ -828,8 +929,26 @@ async function openInstalledHost(originalInstallation, preparation) {
         {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
           resolveSecret: resolveSourceSecret, connectorTable});
     }
-    installedEffect = await loadInstalledEffects(selectedEffectPaths, {root, principalId, moon,
+    if (installationSourcePreparation === undefined) {
+      installedEffect = await loadInstalledEffects(selectedEffectPaths, {root, principalId, moon,
         runtimeUrl, baseEnvironmentWire, resolveSecret: resolveEffectSecret, connectorTable});
+    } else {
+      if (selectedEffectPaths.length !== 0 || effectInstallation !== undefined) {
+        throw clientOperationError('InstalledMockEffectProfileConflict');
+      }
+      installedEffect = await preparation.installMockEffects(moon, baseEnvironmentWire,
+        () => createLocalAuthorizationGate({...authorization, principal: principalId}),
+        principalId, mockEffectResources);
+      // Retain the actual factory result before a fallible observation/current
+      // read, so the existing initialization carrier still owns its file child.
+      mockEffectObservation = observeInstalledMockEffectResources(installedEffect);
+      mockEffectObservationMethods = Object.freeze({limits: mockEffectObservation.limits,
+        statusFor: mockEffectObservation.statusFor, closeFor: mockEffectObservation.closeFor});
+      if (!Object.values(mockEffectObservationMethods).every(value => typeof value === 'function')) {
+        throw clientOperationError('InstalledMockEffectResourcesUnavailable');
+      }
+      assertProjectRuntime();
+    }
     if (installedEffect !== undefined) {
       if (authorization === undefined) {
         throw new TypeError('InstalledEffectAuthorizationRequired');
@@ -1719,12 +1838,13 @@ async function openInstalledHost(originalInstallation, preparation) {
         // component here; the same Host admits the early Run/Scope below,
         // before preparing either Source. There is no fake SDK preflight,
         // egress observation, quantity grant or replacement Model Ledger.
+        const effectful = prepareSubmit.kindOf(preparedProgram) === 'effectful';
         if (occurrence === undefined || restoredInfer !== undefined || originalInfer !== undefined ||
-            prepareSubmit.kindOf(preparedProgram) === 'effectful' ||
             moon.clientProgramSerializationOccurrences(preparedProgram).length !== 0) {
           throw clientOperationError('InstalledMockModelOriginalCompositionUnavailable');
         }
-        const segments = checked(moon.clientProgramPrepareComposedInferSegments(preparedProgram,
+        const segments = checked((effectful ? moon.clientProgramPrepareEffectInferSegments
+          : moon.clientProgramPrepareComposedInferSegments)(preparedProgram,
           occurrence, registry, values, fragment, ordered));
         const graph = checked(moon.clientProgramInstalledComposedInferPlanGraph(occurrence, execution));
         const observeAccount = () => observeInstalledAccount(moon, authorization);
@@ -1732,8 +1852,8 @@ async function openInstalledHost(originalInstallation, preparation) {
         const providerBinding = admitInstalledModelProviderBinding(moon, 'mock', {
           bindingOriginals: mockModels.providerBindingOriginalsForRuntime(moon)});
         const selection = Object.freeze({localMock: true, originalMockInstallation, step: selectedStep,
-          occurrence, graph, computePrefix: runtimeOptionalField(segments, 0),
-          computeSuffix: runtimeField(segments, 1),
+          occurrence, graph, computePrefix: effectful ? runtimeField(segments, 0) : runtimeOptionalField(segments, 0),
+          computeSuffix: effectful ? runtimeOptionalField(segments, 1) : runtimeField(segments, 1),
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
           account, observeAccount, providerBinding,
           currentProvider() {mockModels.originalsForRuntime(moon); return true;}});
@@ -1969,7 +2089,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         }
         resultNames.push(name);
       }
-      return {requested, resultNames, acquired, effectful: true};
+      return {requested, resultNames, acquired, acquisitionCount: count, effectful: true};
     }
     const acquisitionCount = moon.clientProgramAcquisitionCount(preparedProgram);
     const keyedAcquisition = typeof moon.clientProgramSelectSingleKeyedAcquisition === 'function'
@@ -2482,6 +2602,11 @@ async function openInstalledHost(originalInstallation, preparation) {
                     assertUpdateSelectionCurrent: assertOriginalUpdateSelectionCurrent,
                     assertContinuationCurrent: activeResume?.assertCurrent,
                     retainComputationOwner, infer: inferSelections.get(facts.prepared),
+                    ...(earlyMockEffectPlans.has(facts.prepared) ? {
+                      originalModelPlan: earlyMockEffectPlans.get(facts.prepared),
+                      originalPreparation: sourceProfile.modelPreparation(facts.prepared,
+                        earlyMockEffectPlans.get(facts.prepared)),
+                    } : {}),
                     computeConfigurations: {local: localSnapshotConfiguration},
                     withComputePauseHandler: (configurations, handlePause) => ({
                       ...configurations,
@@ -2523,6 +2648,24 @@ async function openInstalledHost(originalInstallation, preparation) {
   const effectRun = effectInstallation === undefined ? undefined :
     installNodeClientEffectRun({moon, publicationControl: control, journal,
       now, inferPlanFor: prepared => inferSelections.get(prepared)?.graph,
+      prepareDefinition: mockEffectObservation === undefined ? undefined : facts => {
+        preparation.admitEffectResultPublicationRun(facts.prepared);
+        const selection = inferSelections.get(facts.prepared);
+        if (selection !== undefined) {
+          if (!selection.localMock || facts.modelCompiled === undefined ||
+              typeof sourceProfile.prepareManagedEffectMockModelRun !== 'function') {
+            throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
+          }
+          sourceProfile.prepareManagedEffectMockModelRun(facts.prepared, facts.identity, control,
+            {compiled: facts.modelCompiled, runDefinition: facts.runDefinition}, selection,
+            () => preparation.modelPublicationCapacity(facts.prepared), facts.compilation);
+          earlyMockEffectPlans.set(facts.prepared,
+            Object.freeze({compiled: facts.modelCompiled, runDefinition: facts.runDefinition}));
+        } else {
+          sourceProfile.prepareManagedEffectRun(facts.prepared, facts.identity);
+        }
+        retainMockEffectRunOriginal(facts);
+      },
       updateTargetOriginals,
       validateInstallation(facts) {
         try { selectedInstalledEffect(facts); }
@@ -3071,7 +3214,17 @@ async function openInstalledHost(originalInstallation, preparation) {
     admitPreparedSubmission: preparation === undefined ? undefined : submission => {
       const {requested, acquisitionCount, effectful} = requestOf(submission);
       const selection = inferSelections.get(submission.preparedProgram);
-      if (effectful || selection !== undefined && !selection.localMock) {
+      if (effectful) {
+        if (mockEffectObservation === undefined || acquisitionCount !== 2 ||
+            selection !== undefined && !selection.localMock) {
+          throw clientOperationError('HostEffectRunPreparationUnavailable');
+        }
+        // The winning definition callback starts the original typed parent
+        // and Mock Scope, before capture and durable business Run acceptance.
+        preparation.admitEffectResultPublicationRun(submission.preparedProgram);
+        return;
+      }
+      if (selection !== undefined && !selection.localMock) {
         throw clientOperationError('HostResultPublicationPurposeUnavailable');
       }
       if (moon.clientProgramSerializationOccurrences(submission.preparedProgram).length !== 0) {
@@ -4410,6 +4563,12 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
       resultPublication.admitRun(prepared);
     },
+    admitEffectResultPublicationRun(prepared) {
+      if (resultPublication === undefined || typeof resultPublication.admitEffectRun !== 'function') {
+        throw clientOperationError('HostEffectResultPublicationUnavailable');
+      }
+      resultPublication.admitEffectRun(prepared);
+    },
     assertContentRunCurrent() {
       assertInitialControlHostPreparation(originals);
       // This is the existing ordinary factory's actual Journal/Store, not
@@ -4520,6 +4679,20 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return installPreparedProjectMockSources({moon, mockPreparation, sourceManaged,
         baseEnvironmentWire, authorizationFor,
         readAsset: path => readInitialControlInstallationAsset(control, originals, path)});
+    },
+    async installMockEffects(runtime, baseEnvironmentWire, authorizationFor, principalId, effectResources) {
+      if (runtime !== moon || mockPreparation === undefined) {
+        throw clientOperationError('ForeignInstalledMockPreparation');
+      }
+      assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      const bundle = mockPreparation.originalsForRuntime(moon);
+      return installPreparedProjectMockEffects({moon, mockPreparation, baseEnvironmentWire,
+        authorizationFor, principalId, effectResources,
+        runtimeBundleCid: await installedRuntimeBundleCid(runtimeUrl),
+        bindingCid: contentCid({connection: bundle.sources[0].catalogue.connection,
+          dataPath: bundle.dataPath, mapping: bundle.mappingWire}),
+        ledgerRoot: join(originalInstallation.root, 'state', 'effects', 'ledger'),
+        assertCurrent: () => assertSourceManagedInstallationCurrent(sourceManaged, originals)});
     },
     async initializeMockAccount(runtime, principal, operatorAuthorization, models) {
       if (runtime !== moon || mockPreparation === undefined || project === undefined) {

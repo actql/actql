@@ -19,7 +19,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   signal, now, retainComputationOwner, infer, store, principalId, faultInjection,
   observe, sourceContinuation, computeConfigurations = {}, withComputePauseHandler, modelController,
   submission, existingModel, modelClaim, parentResume, modelJournalPort, contentRun,
-  assertUpdateSelectionCurrent, assertContinuationCurrent}) {
+  assertUpdateSelectionCurrent, assertContinuationCurrent, originalPreparation, originalModelPlan}) {
   const count = moon?.clientProgramEffectAcquisitionCount?.(acquired.prepared);
   const sourceFree = count === 0;
   const multiple = count === 2;
@@ -37,7 +37,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   let inferOperation;
   let modelContinuation;
   let modelToken;
-  let modelPlan;
+  let modelPlan = originalModelPlan;
   let modelRecord = existingModel;
   let ledger;
   let contentFamily, contentPlan, contentRecovery, restoredModelInput;
@@ -87,6 +87,10 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       inferCloseAttempted = true;
       try {
         const child = inferCapture?.custody ?? inferOperation;
+        if (originalPreparation !== undefined && inferOperation?.publicationCapacityPending?.()) {
+          if (!await inferCapture.custody.retirePublication() ||
+              !inferOperation.releaseOriginalPublicationCapacity()) return false;
+        }
         const result = await (recover ? child.cleanup() : child.close());
         inferReleased = result !== false && child.cleanupPending() === false;
       } catch (error) { failure = error; }
@@ -145,6 +149,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
         await captures[0].close();
         captures.shift();
       }
+      if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;
       if (checkedHost !== undefined &&
           !moon.clientProgramRefreshAcquiredEffectCleanup(checkedHost)) {
         observeUsage('effect_computation_cleanup_pending');
@@ -163,6 +168,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   // Even preparation can fail. The dispatch owner receives custody before
   // the first asynchronous boundary or provider operation.
   retainComputationOwner(custody);
+  if (originalPreparation !== undefined) originalPreparation.retain();
   try {
     current();
     if (acquired.queryTimePreparation !== undefined) {
@@ -284,6 +290,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
         savedScope: modelController.savedScope(plan, acquired.prepared, infer, modelToken),
       });
       return openNodeComposedInferProvider({moon, selected: infer, sources: admittedSources,
+        originalPreparation,
         ...(contentFamily === undefined ? {} : {generatedInput: {
           generation: () => contentFamily.generation(),
           recovery: () => contentFamily.recovery(),
