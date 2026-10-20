@@ -4400,7 +4400,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       // initial/preload provenance or another purpose's resource credit.
       ordinaryHostJournalInstallation(originals).assertCurrent();
       if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
-      resultPublication.assertCurrent();
+      resultPublication.assertContentCurrent();
     },
     modelPublicationCapacity(prepared) {
       if (resultPublication === undefined || typeof resultPublication.modelPublicationCapacity !== 'function') {

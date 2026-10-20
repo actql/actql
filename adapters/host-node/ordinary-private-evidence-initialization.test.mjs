@@ -10,6 +10,7 @@ import {preparePrivateEvidenceKeyInstallation, PRIVATE_EVIDENCE_KEY_FILE}
   from './local-continuation-evidence.mjs';
 import {prepareOrdinaryHostJournal, ordinaryHostJournalInstallation} from './ordinary-host-journal.mjs';
 import {withOriginalFile} from './source-profile-json.mjs';
+import {prepareOrdinaryHostResult} from './ordinary-host-result.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 
@@ -109,6 +110,23 @@ test('ordinary existing no-key Store cannot infer first adoption from missing ke
     await assert.rejects(stat(reopened.directory), {code: 'ENOENT'});
     await reopened.adopt();
   } finally {await reopened.close();}
+});
+
+test('ordinary no-key Store stays open for Results but refuses Content before preparation', async () => {
+  const first = await fixture();
+  try {await first.adopt();} finally {await first.close();}
+  const reopened = await fixture(first.root, false);
+  const control = createPublicationContractControlFixture();
+  const view = prepareOrdinaryHostResult(reopened.originals,
+    {root: reopened.root, control, storeAuthorityCid: authority}, () => assert.fail('No business Run'));
+  try {
+    const store = await view.openStore({directory: join(reopened.root, 'publication'), storeAuthorityCid: authority,
+      capacityBytes: 1048576, maxObjectBytes: 65536, maxObjects: 32,
+      maxContractNodes: 1000, maxContractDepth: 64}, control);
+    view.assertCurrent(); assert.equal(store.status().closed, false);
+    assert.throws(() => view.assertContentCurrent(), {message: 'InstalledContentEvidenceUnavailable'});
+    await assert.rejects(stat(reopened.directory), {code: 'ENOENT'});
+  } finally {await reopened.journal.close(); await view.close(); await reopened.close();}
 });
 
 test('ordinary key first setup refuses another Owner or directory before key creation', async () => {

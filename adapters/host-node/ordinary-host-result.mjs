@@ -11,6 +11,7 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
   let closing = false, closed = false, attempted = false, store, storeClose;
   let openFlight, closeFlight, cleanup, cleanupStatus, cleanupRetry, failure;
   let keyInstallation;
+  let contentEvidenceStore;
   let keyOperationPending = false;
   const keyDuty = Object.freeze({status: () => Object.freeze({pending: keyOperationPending})});
   let keyDutyRetained = false;
@@ -53,6 +54,7 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
         if (!store.status().closed) return status();
       }
       store = storeClose = failure = cleanup = cleanupStatus = cleanupRetry = undefined;
+      contentEvidenceStore = undefined;
       keyInstallation?.key.fill(0); keyInstallation = undefined;
       admittedRuns = new WeakMap();
       subject = requirements = undefined; closed = true;
@@ -62,6 +64,13 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
     try {return await flight;} finally {if (closeFlight === flight) closeFlight = undefined;}
   }
   const view = Object.freeze({assertCurrent: current, close,
+    assertContentCurrent() {
+      if (this !== view) throw new TypeError('ForeignInstalledHostPublicationStore');
+      current();
+      if (store === undefined || store !== contentEvidenceStore || store.status().closed) {
+        throw new TypeError('InstalledContentEvidenceUnavailable');
+      }
+    },
     beforeOperation() {
       current();
       if (operations === 4096) throw new TypeError('HostResultOperationLimit');
@@ -137,6 +146,9 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
             keyOperationPending = true;
             await keyInstallation.adoptStore(store);
             keyOperationPending = false;
+          }
+          if (subject.privateEvidenceKey !== undefined || keyInstallation !== undefined) {
+            contentEvidenceStore = store;
           }
           keyInstallation?.key.fill(0);
           current(); return store;
