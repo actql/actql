@@ -12,6 +12,7 @@ export function installEffectContentFamily({moon, control, publications, bodies,
     throw new TypeError('InvalidInstalledContentFamily');
   }
   const definition = JSON.parse(plan.runDefinition.wire);
+  const sourceFree = moon.clientProgramEffectAcquisitionCount?.(prepared) === 0;
   // These are the existing installed Local execution ceilings, not sampled
   // Source sizes. Authored generation bounds further constrain the encoder.
   const output = Object.freeze({...outputLimits, maxRows: 100,
@@ -125,6 +126,7 @@ export function installEffectContentFamily({moon, control, publications, bodies,
       return ledger;
     },
     bindCapture(captured, observation) {
+      if (sourceFree) throw new TypeError('ForeignSourceFreeContentCapture');
       if (capturedProof !== undefined) throw new TypeError('Content capture already bound');
       capturedProof = publications.bindCheckedClientEffectSerializationCapture(
         plan.compiled, prepared, captured, observation);
@@ -132,7 +134,7 @@ export function installEffectContentFamily({moon, control, publications, bodies,
     async handlePause(boundary) {
       if (restored !== undefined) throw new TypeError('RestoredContentCannotGenerate');
       if (flight !== undefined || cancelled || !live() || active === undefined ||
-          capturedProof === undefined || boundary.status !== 'settling') {
+          (!sourceFree && capturedProof === undefined) || boundary.status !== 'settling') {
         throw new TypeError('InvalidContentPause');
       }
       const operation = (async () => {

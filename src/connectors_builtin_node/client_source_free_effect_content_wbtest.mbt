@@ -1,7 +1,8 @@
 ///|
-fn source_free_content_effect_fixture() -> @publication_host.PreparedClientEffectComputation {
-  let environment = store_public_bridge_fixture("collection")
-  let outcome = client_program_prepare_source_computation_with_parameters(
+fn source_free_content_effect_outcome(
+  environment : @program_check.CheckEnvironment,
+) -> ClientSourceComputationBridgeOutcome {
+  client_program_prepare_source_computation_with_parameters(
     "SELECT 1 AS id |> SERIALIZE FORMAT JSONL ORDER BY id OPTIONS (name = 'one.jsonl') |> EFFECT STORE storage.archive SET (path = 'copy.jsonl', content = content)",
     "sql",
     environment,
@@ -11,10 +12,115 @@ fn source_free_content_effect_fixture() -> @publication_host.PreparedClientEffec
     true,
     [],
   )
+}
+
+///|
+fn source_free_content_effect_fixture() -> @publication_host.PreparedClientEffectComputation raise {
+  // The metadata-only STORE publication has no admitted Host capacity. Reuse
+  // the existing independent finite preparation original, not a default grant.
+  let outcome = source_free_content_effect_outcome(
+    store_source_preparation_environment(),
+  )
   match outcome {
     SourceEffect(EffectPrepared(value)) => value
-    _ => abort("the actual source-free Content STORE is statically prepared")
+    SourceEffect(
+      EffectRejected(
+        Preparation(
+          Candidate(
+            Computation(
+              Source(
+                SourceView(
+                  @context.SourceViewContextIssue::Context(
+                    @context.LocalContextIssue::Policy(issue)
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    ) => fail("source-free Content capacity: " + @debug.to_string(issue))
+    SourceEffect(
+      EffectRejected(
+        Preparation(
+          Candidate(
+            Computation(
+              Source(
+                SourceView(
+                  @context.SourceViewContextIssue::Program(
+                    @context.SourceViewProgramIssue::Program(
+                      @effect_results.LocalProgramIssue::Pipeline(_, issue)
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    ) => fail("source-free Content pipeline: " + @debug.to_string(issue.kind))
+    SourceEffect(
+      EffectRejected(Preparation(Candidate(Computation(Source(issue)))))
+    ) => raise issue
+    SourceEffect(EffectRejected(Preparation(Candidate(Computation(issue))))) =>
+      raise issue
+    SourcePure(Rejected(SourcePreparation(Frontend(QuerySyntax(issue))))) =>
+      fail("source-free Content syntax: " + @debug.to_string(issue))
+    SourcePure(
+      Rejected(
+        SourcePreparation(
+          Frontend(QueryLowering(BindingPreparationSource(_, _)))
+        )
+      )
+    ) => fail("source-free Content binding preparation with source")
+    SourcePure(
+      Rejected(
+        SourcePreparation(Frontend(QueryLowering(BindingPreparation(_))))
+      )
+    ) => fail("source-free Content binding preparation")
+    SourcePure(value) =>
+      fail(
+        "source-free Content preparation: " +
+        client_program_preparation_issue_code(value).unwrap_or(
+          "unexpected-pure",
+        ),
+      )
+    SourceEffect(value) =>
+      fail(
+        "source-free Content Effect: " +
+        client_program_effect_preparation_issue_code(value).unwrap_or(
+          "unexpected-effect",
+        ),
+      )
   }
+}
+
+///|
+test "source-free Content Effect preparation still refuses a metadata-only capacity original" {
+  assert_true(
+    source_free_content_effect_outcome(
+      store_public_bridge_fixture("collection"),
+    )
+    is SourceEffect(
+      EffectRejected(
+        Preparation(
+          Candidate(
+            Computation(
+              Source(
+                SourceView(
+                  @context.SourceViewContextIssue::Context(
+                    @context.LocalContextIssue::Policy(
+                      @check_environment.CapacityIssue::MissingCapacity
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    ),
+  )
 }
 
 ///|
