@@ -75,3 +75,22 @@ replace the selected claim with a caller-supplied execution limit, reduce either
 input's row allowance, or postpone fanout checks until a downstream count. An
 additional execution ceiling can only tighten an existing ceiling. This is a
 physical enforcement attachment, not a rewrite of the authored operation or CID.
+
+## Local normalization correspondence
+
+The bounded completion-free catalogue can select an original equality Join from
+its checked pipeline without treating fixed Join laws as Source completions.
+The audit retains both ordered input occurrences, the same checked Join and
+three schemas, each indexed authored key and projection, and every pending
+runtime obligation. Parameter guards retain the original BoundValues member and
+same operation's scalar resolution, including its Default or Supplied origin.
+Every original Values root and unit is traversed under the same finite audit
+budget. Equal schemas, rows or copied preparations do not recreate this evidence.
+
+The catalogue identity changes only when that original Join is present. Earlier
+non-Join catalogues and journals retain their bytes and identities; actual Sort,
+Drop and Rename completions keep their existing owned journal entries. The audit
+never establishes unique keys, cardinality, row admission, an output bound or
+execution success. Those checks remain in the original preparation and execution
+owners, including Full Join identity requirements and atomic failure before any
+dependent output. Other binary operation coverage remains separate.

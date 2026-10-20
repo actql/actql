@@ -19,7 +19,7 @@ const expected = {
   }
 };
 const prefix = 'actql-effect-free-local-bounded-relation-completion-free-';
-const load = name => JSON.parse(readFileSync(new URL('../spec/contracts/' + prefix + name, import.meta.url), 'utf8'));
+const load = name => JSON.parse(readFileSync(new URL('../spec/contracts/' + prefix + (['catalog.json', 'catalog.schema.json', 'fixture.json'].includes(name) ? 'pre-join-' + name : name), import.meta.url), 'utf8'));
 const canonical = value => value === null || typeof value !== 'object' ? JSON.stringify(value)
   : Array.isArray(value) ? '[' + value.map(canonical).join(',') + ']'
   : '{' + Object.keys(value).sort().map(k => JSON.stringify(k) + ':' + canonical(value[k])).join(',') + '}';
@@ -57,5 +57,5 @@ test('the original issuer selects assertion capability without relabeling old ev
   const source = readFileSync(new URL('../src/run_publication_host/client_local_normalization.mbt', import.meta.url), 'utf8');
   for (const cid of [expected.assertion.catalog_cid, expected.previous.catalog_cid]) assert(source.includes('"' + cid + '"'));
   assert(source.includes('local_completion_free_inventory_uses_assertions(inventory)'));
-  assert(source.includes('local_sort_normalization_inventory_uses_assertions(value)'));
+  assert.match(source, /local_sort_normalization_inventory_uses_assertions\(\s*value,?\s*\)/);
 });

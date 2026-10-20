@@ -110,6 +110,16 @@ pub fn projection(v : CheckedJoin) -> Array[Projection]? {
 }
 
 ///|
+pub fn projection_count(v : CheckedJoin) -> Int? {
+  @shape.projection_count(v)
+}
+
+///|
+pub fn projection_at(v : CheckedJoin, index : Int) -> Projection? {
+  @shape.projection_at(v, index)
+}
+
+///|
 pub fn assertion(v : CheckedJoin) -> Cardinality? {
   @shape.assertion(v)
 }

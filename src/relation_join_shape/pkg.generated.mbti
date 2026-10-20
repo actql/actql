@@ -115,6 +115,10 @@ pub fn pending_validations(CheckedJoin) -> Array[Obligation]
 
 pub fn projection(CheckedJoin) -> Array[Projection]?
 
+pub fn projection_at(CheckedJoin, Int) -> Projection?
+
+pub fn projection_count(CheckedJoin) -> Int?
+
 pub fn source(CheckedJoin) -> @decode_core.Cursor
 
 pub fn source_preflight(Budget, @decode_core.Cursor) -> Unit raise Stop

@@ -176,6 +176,21 @@ pub fn projection(v : CheckedJoin) -> Array[Projection]? {
 }
 
 ///|
+/// O(1); None preserves the original absence of an authored projection.
+pub fn projection_count(v : CheckedJoin) -> Int? {
+  v.projection.map(p => p.length())
+}
+
+///|
+/// Retains the original projection occurrence without copying its array.
+pub fn projection_at(v : CheckedJoin, index : Int) -> Projection? {
+  match v.projection {
+    Some(fields) => fields.get(index)
+    None => None
+  }
+}
+
+///|
 pub fn assertion(v : CheckedJoin) -> Cardinality? {
   v.assertion
 }
