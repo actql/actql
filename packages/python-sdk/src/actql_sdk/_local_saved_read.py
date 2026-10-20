@@ -292,11 +292,15 @@ class OriginalSavedResultRead:
         if self._preparing:
             return False
         host, core = self._host, self._host._core
+        if self._source is not None and not self._source_closed and core._closing:
+            core.begin_saved_read_cleanup(self._source)
+        # These synchronous output loans belong to the projection. The Store
+        # holders deliberately refuse workspace close while any loan remains.
+        if self._projection is not None and not self._projection.close():
+            return False
         for holder in (self._delivery, self._evidence):
             if holder is not None and not holder.close():
                 return False
-        if self._projection is not None and not self._projection.close():
-            return False
         if self._fact is not None and not self._fact.close():
             return False
         if self._reader is not None:

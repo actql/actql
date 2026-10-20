@@ -5651,6 +5651,14 @@
         },
         {
           "async": false,
+          "name": "LocalCore/begin_saved_read_cleanup",
+          "parameters": [
+            "self",
+            "original"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/bind_host_current",
           "parameters": [
             "self",
@@ -7634,7 +7642,7 @@
           ]
         }
       ],
-      "sha256": "fe03e21e09b64312a13cc05fc83b84fbc2709b8b4b70197963a1fbb3a263c203",
+      "sha256": "92c5bdfd2581347b407c3192b9a39080fcbd9623d1355fa0490132ec8a9218a9",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -12259,6 +12267,122 @@
             "LocalCore/reserve_saved_result_export",
             "LocalCore/validate_saved_payload_binding",
             "LocalCore/validate_submission_lookup"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "class LocalCore:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "class LocalCore:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "class LocalCore:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "class LocalCore:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "class LocalCore:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "class LocalCore:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "class LocalCore:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "class LocalCore:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "class LocalCore:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
+                "anchor": "def test_real_saved_descriptor_keeps_original_metadata_loan_and_current_refusal("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_saved_delivery_lookup.py",
+                "anchor": "def test_failed_lookup_keeps_same_child_and_source_until_actual_return("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_payload_record.py",
+                "anchor": "def test_saved_parent_reservation_preserves_original_family_and_read_only_core_refusal("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Saved Run observations and Result reads"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "LocalCore/begin_saved_read_cleanup"
           ],
           "exports": [],
           "attributes": {
@@ -58930,7 +59054,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "131a81617db08610d4a293e233cee71cc6b041af50d9012e0f00928a15893de6",
+      "sha256": "668d28d70a7cbe0bb8272033c64c7ecf9e9ffaaf825b84a346393bb5ad3a7f1c",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -68033,7 +68157,7 @@
           ]
         }
       ],
-      "sha256": "8965418c15001b868e82b068189acf9dc2aaf7fddbb51f003a51270d43022e63",
+      "sha256": "f3b1d84d4c69e9029187806126749b0f0674896d30b500e1a09c5d7882b918f5",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Python Local Host, Core read, File and Store Owners",
@@ -68191,6 +68315,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_payload_record.py",
                 "anchor": "def test_saved_parent_reservation_preserves_original_family_and_read_only_core_refusal("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Saved Run observations and Result reads"
               }
             ]
           }

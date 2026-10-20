@@ -297,3 +297,32 @@ pub fn close_submission_projection(nonce : Int64, handle : Int) -> Int {
   }
   result
 }
+
+///|
+/// The trusted serialized Host calls this only after the original synchronous
+/// Wasm invocation has unwound, before terminal child-first cleanup. A trap
+/// cannot run the pending=false continuation. These flags exclude a live call;
+/// they are not physical stop, transaction, buffer, or parent acknowledgments.
+/// Spend normal entry first, then retire only this saved parent's call latches.
+#export_name("actql_submission_begin_cleanup")
+pub fn begin_submission_cleanup(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.submissions.get(handle) is Some(parent) &&
+    parent.kind == 6 else {
+    return -2
+  }
+  value.closing = true
+  for record in value.payload_records.values() {
+    if record.source is SavedResult(actual, _) && physical_equal(actual, parent) {
+      record.closing = true
+      record.pending = false
+    }
+  }
+  for record in value.commit_exports.values() {
+    if record.publication == handle {
+      record.closing = true
+      record.pending = false
+    }
+  }
+  0
+}

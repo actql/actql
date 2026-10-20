@@ -25,7 +25,7 @@ from ._local_storage import _NamespaceReader, LocalByteStore
 from ._local_native_holding import _NativeHoldingLease
 
 _NORMAL_HOST_BOOTSTRAP_FUEL = 1_000_000_000
-_NORMAL_HOST_OPERATION_FUEL = 16_000_000_000
+_NORMAL_HOST_OPERATION_FUEL = 32_000_000_000
 _NORMAL_HOST_CLEANUP_FUEL = 100_000_000
 
 
@@ -2518,6 +2518,22 @@ class LocalCore:
             self._check('validate_saved_payload_binding', self._call(
                 'publication_commit_export', 'validate_payload_binding', original.handle,
                 record.handle, current_configuration, result, binding_index))
+
+    def begin_saved_read_cleanup(self, original: _Output) -> None:
+        """Retire interrupted synchronous call latches, never physical duties.
+
+        The original serialized invocation must have returned or trapped. Normal
+        work remains fenced; this neither repeats it nor acknowledges any Store,
+        Reader, buffer loan, native child or parent. Their existing close ports
+        still decide whether the same original can retire.
+        """
+        with self._lock:
+            self._owned_output(original, 'submission_lookup')
+            if (not getattr(self, '_ordinary_host', False) or not self._closing
+                    or self._invoking or self._host_fuel_phase != 'cleanup'):
+                raise RuntimeError('Original saved read requires quiescent terminal cleanup')
+            self._check('begin_saved_read_cleanup', self._call(
+                'submission', 'begin_cleanup', original.handle))
 
     def read_publication_commit_material(self, value: _Output) -> bytes:
         """Read original raw bytes, without parsing or recreating a contract."""

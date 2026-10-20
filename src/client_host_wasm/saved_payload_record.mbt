@@ -34,7 +34,7 @@ fn observe_saved_payload_record(
   value : Instance,
   record : StoredPayloadRecord,
   configuration : Int,
-) -> Result[Unit, Int] {
+) -> Result[@publication.PublicationContract?, Int] {
   let (_, saved, current) = match
     saved_payload_record_context(value, record, configuration) {
     Ok(value) => value
@@ -45,19 +45,8 @@ fn observe_saved_payload_record(
     saved.view is Some(view) else {
     return Err(-32)
   }
+  let mut binding = None
   if record.record is Some(original) {
-    match
-      @local_run.validate_local_sdk_saved_payload_record(
-        source,
-        current.account,
-        owner,
-        view,
-        saved.result_name,
-        original,
-      ) {
-      Err(_) => return Err(-32)
-      Ok(_) => ()
-    }
     guard record.saved_row is Some((revision, body)) else { return Err(-32) }
     let key = @payload.publication_payload_material_identity(
       @payload.publication_payload_record_request(original),
@@ -83,11 +72,27 @@ fn observe_saved_payload_record(
       Err(code) => return Err(code)
       _ => return Err(-41)
     }
+    // Consume this invocation's original validator result once, after the
+    // physical row fences. It is not cached across calls or Store snapshots.
+    binding = Some(
+      match
+        @local_run.validate_local_sdk_saved_payload_record(
+          source,
+          current.account,
+          owner,
+          view,
+          saved.result_name,
+          original,
+        ) {
+        Err(_) => return Err(-32)
+        Ok(value) => value
+      },
+    )
   }
   if record.closing {
     Err(-5)
   } else {
-    Ok(())
+    Ok(binding)
   }
 }
 
@@ -194,7 +199,7 @@ fn load_saved_payload_record(
     // Read-only observation of an existing Sealed state, not a write/COMMIT ACK.
     record.confirmed = true
   }
-  observe_saved_payload_record(value, record, configuration)
+  observe_saved_payload_record(value, record, configuration).map(_ => ())
 }
 
 ///|
@@ -236,26 +241,20 @@ fn saved_payload_binding(
   record : StoredPayloadRecord,
   configuration : Int,
 ) -> Result[@publication.PublicationContract, Int] {
-  if !record.confirmed ||
-    !saved_payload_record_current(value, record, configuration) {
+  if !record.confirmed || record.pending || record.closing {
     return Err(-32)
   }
-  guard record.source is SavedResult(_, saved) &&
-    saved.source is Some(source) &&
-    saved.owner is Some(owner) &&
-    saved.view is Some(view) &&
-    record.record is Some(original) &&
-    value.run_configurations.get(configuration) is Some(current) else {
-    return Err(-2)
+  record.pending = true
+  let result = observe_saved_payload_record(value, record, configuration)
+  record.pending = false
+  if record.closing {
+    return Err(-5)
   }
-  @local_run.validate_local_sdk_saved_payload_record(
-    source,
-    current.account,
-    owner,
-    view,
-    saved.result_name,
-    original,
-  ).map_err(_ => -32)
+  match result {
+    Ok(Some(binding)) => Ok(binding)
+    Ok(None) => Err(-32)
+    Err(code) => Err(code)
+  }
 }
 
 ///|

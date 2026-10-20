@@ -15,6 +15,33 @@ import test_local_submission_lookup as host_fixture
 
 
 class SavedReadPortsTests(unittest.TestCase):
+    def test_partial_saved_projection_returns_before_dependent_store_workspace(self):
+        from types import SimpleNamespace
+        calls = []
+        pending = [object()]
+        ready = [False]
+        class Projection:
+            def close(self):
+                calls.append('projection')
+                if not ready[0]:
+                    return False
+                pending.clear()
+                return True
+        class Store:
+            def close(self):
+                calls.append('store')
+                return not pending
+        host = SimpleNamespace(_core=SimpleNamespace(_closing=False))
+        saved = OriginalSavedResultRead(host)
+        saved._projection, saved._delivery = Projection(), Store()
+        self.assertFalse(saved.close())
+        self.assertEqual(calls, ['projection'])
+        self.assertFalse(saved._closed)
+        ready[0] = True
+        self.assertTrue(saved.close())
+        self.assertEqual(calls, ['projection', 'projection', 'store'])
+        self.assertTrue(saved._closed)
+
     def test_saved_projection_cannot_issue_live_publication_or_publisher_calls(self):
         files = physical_fixture.ReaderFactsTests()
         with files.file(slots=4) as (_, root, _, final):

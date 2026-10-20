@@ -2716,7 +2716,7 @@ acknowledgments. Explicit diagnostic factory limits remain independent.
 
 The ordinary installed factory uses a finite 1,000,000,000-instruction fuel
 allowance for initialization and bootstrap together. Each subsequent admitted
-outer Host operation has a finite 16,000,000,000-instruction allowance so that
+outer Host operation has a finite 32,000,000,000-instruction allowance so that
 bounded preparation, saved-original validation and admission share one budget.
 Initialization does not receive a second budget
 when the same factory begins bootstrap. These are runtime execution ceilings,
@@ -2793,3 +2793,22 @@ Partial preparation and failed returns preserve the same carrier for child-first
 close, without reopening, re-reserving, replaying SQL or resending a submission.
 These saved read operations do not supply unfinished status, wait or recovery
 operations, and do not infer their success from an attached reference.
+
+Within one saved payload observation, the original validator's typed binding
+is consumed directly after the exact payload/allocation row fences. Reprojecting
+that binding does not re-run the identical validator within the same call.
+Nothing is cached across calls or snapshots: current authorization, original
+parent identity, complete saved graph and physical row checks still run for each
+observation. The finite operation ceiling bounds this work without promising
+that every admitted input fits or refreshing any exhausted operation.
+
+A trapped synchronous Wasm call can retain its in-call exclusion latch because
+the ordinary return continuation did not execute. After that exact call has
+unwound, the serialized Host may enter terminal saved-read cleanup with its
+independent finite cleanup allowance. The private entrance spends normal Core
+entry before retiring only the same saved parent's synchronous record/export
+latches. It does not clear attempted operations, unknown transactions, delivery
+state, physical stop/cleanup facts or buffer loans. Projection loans close before
+their Store workspaces; every Reader, descriptor, input and parent still follows
+its original child-first acknowledgment path. A live or reentrant invocation
+cannot enter this cleanup path, and normal work never resumes from it.
