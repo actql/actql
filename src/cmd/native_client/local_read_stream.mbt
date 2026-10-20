@@ -422,17 +422,14 @@ fn local_admitted_result_stream(
   }
   if prior is Some(_) {
     if file_destination is Some(_) && captured_selection is Some(original) {
-      return binding
-        .completed_file_receipt_in_original_read(
+      return binding.completed_file_receipt_in_original_read(
           original,
           service,
           request,
           local_utc_now(),
           @env.now().to_double(),
         )
-        .unwrap_or_else(issue => {
-          stop(local_read_issue(issue) + " attempt-id=" + attempt_id)
-        })
+        |> local_result_read_value
     }
     stop(
       "LocalReadAttemptAlreadyStarted attempt-id=" +
@@ -590,17 +587,14 @@ fn local_admitted_result_stream(
     stop(reason + " attempt-id=" + attempt_id + " lookup=delivery-attempt")
   }
   if file_destination is Some(_) && captured_selection is Some(original) {
-    return binding
-      .completed_file_receipt_in_original_read(
+    return binding.completed_file_receipt_in_original_read(
         original,
         service,
         request,
         local_utc_now(),
         @env.now().to_double(),
       )
-      .unwrap_or_else(issue => {
-        stop(local_read_issue(issue) + " attempt-id=" + attempt_id)
-      })
+      |> local_result_read_value
   }
   ""
 }

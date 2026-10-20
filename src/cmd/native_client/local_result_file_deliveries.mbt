@@ -1,4 +1,14 @@
 ///|
+fn[T] local_result_read_value(
+  value : Result[T, @local_host.NativeLocalReadBindingIssue],
+) -> T raise ClientStop {
+  match value {
+    Ok(value) => value
+    Err(issue) => stop(local_read_issue(issue))
+  }
+}
+
+///|
 // Private stable correlation, not a new identity domain or authority. The
 // existing attempt Owner compares the actual saved request and durable facts.
 fn local_result_file_attempt(
@@ -10,7 +20,7 @@ fn local_result_file_attempt(
 ) -> String raise ClientStop {
   let original_request = @run_host.client_request_identity_record_wire(
     selected.request,
-  ).unwrap_or_else(_ => stop("LocalOriginalRunReferenceMismatch"))
+  ).unwrap_or_else(() => stop("LocalOriginalRunReferenceMismatch"))
   let body = encode_request_json(
     Json::array([
       Json::string(original_request),
@@ -58,19 +68,16 @@ fn local_result_file_deliveries(
     let binding = if index == 0 {
       actual.binding
     } else {
-      actual.capture
-      .bind_result_file_read_policy_for_run_in_original_read(
+      actual.capture.bind_result_file_read_policy_for_run_in_original_read(
         actual.policy,
         actual.original.reference(),
         actual.original.request(),
         @env.now().to_double(),
         "file-read.json",
       )
-      .unwrap_or_else(issue => stop(local_read_issue(issue)))
+      |> local_result_read_value
     }
-    let parameters = binding
-      .disclosure_parameters()
-      .unwrap_or_else(issue => stop(local_read_issue(issue)))
+    let parameters = binding.disclosure_parameters() |> local_result_read_value
     let attempt_id = local_result_file_attempt(
       selected,
       settings.principal,
@@ -148,7 +155,7 @@ fn local_result_file_deliveries(
       Ok(wire) => {
         let receipt = @publication.admit_publication_contract(
           "result_delivery_receipt", wire, 65536, 8192, 64,
-        ).unwrap_or_else(_ => stop("LocalResultReceiptUnavailable"))
+        ).unwrap_or_else(() => stop("LocalResultReceiptUnavailable"))
         let receipt_json = local_delivery_contract_json(receipt)
         guard receipt_json is Object(receipt_fields) &&
           json_text(receipt_fields, "result_artifact_cid") is Some(result_cid) else {
@@ -186,7 +193,7 @@ fn local_result_file_deliveries(
     let wire = @run_host.client_result_delivery_receipt_file(
       receipts,
       delivery.files.length(),
-    ).unwrap_or_else(_ => stop("LocalResultReceiptUnavailable"))
+    ).unwrap_or_else(() => stop("LocalResultReceiptUnavailable"))
     local_write_result_receipt(path, wire, crypto)
   }
   command_result_delivery_failed.val = failed

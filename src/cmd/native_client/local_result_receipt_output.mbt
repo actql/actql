@@ -3,7 +3,6 @@
 // owns actual partial acquisitions; a receipt string is neither a Writer ACK
 // nor permission to resend an output whose attempt already exists.
 priv struct LocalResultReceiptOutput {
-  location : LocalProductLocation
   mut root : @local_filesystem.Root?
   mut root_failure : @local_filesystem.NativeRootOpenFailure?
   mut writer : @local_filesystem.Writer?
@@ -87,7 +86,6 @@ fn local_write_result_receipt(
   }
   let location = local_product_selected_location(Some(path), None)
   let original : LocalResultReceiptOutput = {
-    location,
     root: None,
     root_failure: None,
     writer: None,
@@ -107,10 +105,10 @@ fn local_write_result_receipt(
   original.root = Some(root)
   let observation = root
     .observe_directory()
-    .unwrap_or_else(_ => stop("ResultReceiptOpenFailed"))
+    .unwrap_or_else(() => stop("ResultReceiptOpenFailed"))
   let identity = observation
     .identity()
-    .unwrap_or_else(_ => stop("ResultReceiptOpenFailed"))
+    .unwrap_or_else(() => stop("ResultReceiptOpenFailed"))
   match root.inspect_generation(location.directory_name) {
     Ok(None) => ()
     Ok(Some(_)) => stop("ResultReceiptDestinationExists")
@@ -134,7 +132,7 @@ fn local_write_result_receipt(
   }
   let generation = writer
     .seal(location.directory_name)
-    .unwrap_or_else(_ => stop("ResultReceiptWriteUnknown"))
+    .unwrap_or_else(() => stop("ResultReceiptWriteUnknown"))
   if !root.verify_generation(location.directory_name, generation) ||
     !(observation.identity() is Ok(actual) && actual == identity) {
     stop("ResultReceiptWriteUnknown")
