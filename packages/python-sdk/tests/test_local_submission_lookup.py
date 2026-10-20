@@ -14,7 +14,7 @@ import test_local_submission_append as append_fixture
 
 
 class LocalSubmissionLookupTests(unittest.TestCase):
-    def fixture(self, directory, observed):
+    def fixture(self, directory, observed, *, run_reference=None):
         fixture = append_fixture.LocalSubmissionAppendTests()
         host, core, calls, _ = fixture.host(Path(directory))
         self.addCleanup(host.close)
@@ -30,19 +30,21 @@ class LocalSubmissionLookupTests(unittest.TestCase):
             return callbacks
 
         def call(family, name, *args):
-            if family == 'submission' and name == 'reserve' and args[2] == 4:
+            if family == 'submission' and name == 'reserve' and args[2] in (4, 5):
                 # Reserve output custody before entering its physical Read.
                 callbacks = core._journal_callbacks(host._installation.binding._current.ticket)
                 self.assertIsNone(callbacks.reader)
                 handle = 100 + args[3]
+                self.assertEqual(args[2], 4 if run_reference is None else 5)
                 sources[handle] = args[1]
                 return handle
             if family == 'submission' and name == 'produce' and args[0] in sources:
                 counters['produce'] += 1
                 current()
                 source = core._inputs[sources[args[0]] - 100].payload
-                self.assertEqual(json.loads(source), {'reference': json.dumps(reference,
-                    ensure_ascii=False, separators=(',', ':'))})
+                expected = ({'reference': json.dumps(reference, ensure_ascii=False, separators=(',', ':'))}
+                            if run_reference is None else run_reference)
+                self.assertEqual(json.loads(source), expected)
                 outputs[args[0]] = json.dumps(observed, separators=(',', ':')).encode()
                 return 0
             if family == 'submission' and name == 'validate_append' and args[0] in sources:
@@ -145,6 +147,58 @@ class LocalSubmissionLookupTests(unittest.TestCase):
             with patch.object(core, 'close_submission_lookup', wraps=original) as close:
                 self.assertTrue(host.close())
                 close.assert_called_once_with(output)
+
+    def test_public_attach_returns_exact_original_admission_without_executable_run(self):
+        reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
+                     'runDefinitionCid': 'sha256:' + 'd' * 64}
+        admission = {'ref': reference, 'durability': 'durable', 'revision': 7}
+        with TemporaryDirectory(prefix='actql-attach-') as directory:
+            host, _, calls, counts, _ = self.fixture(directory, {
+                'kind': 'ready', 'intentCid': 'sha256:' + 'e' * 64,
+                'admission': json.dumps(admission)}, run_reference=reference)
+            async def attach():
+                response = await host.open('attach', json.dumps({
+                    'connection': {'mode': 'local', 'owner': 'local', 'durability': 'durable',
+                        'consentRefs': [], 'runners': []}, 'ref': reference}).encode())
+                try:
+                    return json.loads(await response.aread())
+                finally:
+                    await response.aclose()
+            self.assertEqual(asyncio.run(attach()), admission)
+            self.assertEqual(counts['produce'], 1)
+            self.assertFalse(host._run_loans)
+            self.assertFalse(host._prepared_inputs)
+            self.assertFalse(host._public_run_references)
+            self.assertFalse(any(family in ('program', 'compute', 'publication')
+                                 for family, _, _ in calls))
+            self.assertTrue(host.close())
+
+    def test_attach_missing_original_is_unavailable_without_admission_or_repair(self):
+        reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
+                     'runDefinitionCid': 'sha256:' + 'd' * 64}
+        with TemporaryDirectory(prefix='actql-attach-') as directory:
+            host, core, _, _, _ = self.fixture(directory, {'kind': 'missing'},
+                                               run_reference=reference)
+            with self.assertRaisesRegex(ValueError, 'Run is unavailable'):
+                host._attach_original_run(reference)
+            self.assertFalse(host._run_loans)
+            output = host._projections[-1]
+            self.assertIs(core._loans[output.ticket], output)
+            self.assertTrue(host.close())
+
+    def test_attach_rejects_another_original_reference_without_changing_it(self):
+        requested = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
+                     'runDefinitionCid': 'sha256:' + 'd' * 64}
+        foreign = {**requested, 'runDefinitionCid': 'sha256:' + 'f' * 64}
+        with TemporaryDirectory(prefix='actql-attach-') as directory:
+            host, _, _, _, _ = self.fixture(directory, {
+                'kind': 'ready', 'intentCid': 'sha256:' + 'e' * 64,
+                'admission': json.dumps({'ref': foreign, 'durability': 'durable', 'revision': 7})},
+                run_reference=requested)
+            with self.assertRaisesRegex(ValueError, 'Foreign original Local Run admission'):
+                host._attach_original_run(requested)
+            self.assertFalse(host._run_loans)
+            self.assertTrue(host.close())
 
 
 if __name__ == '__main__':

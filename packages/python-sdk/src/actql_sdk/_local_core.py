@@ -1255,15 +1255,15 @@ class LocalCore:
         with self._lock:
             self._owned_input(source)
             if (self._closing or type(configuration) is not int or
-                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2, 3, 4)):
+                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2, 3, 4, 5)):
                 raise ValueError('Invalid Local Submission projection')
             ticket = self._next_ticket
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 1048576 if kind in (3, 4) else 4096
+            limit = 1048576 if kind in (3, 4, 5) else 4096
             family = ('submission_append' if kind == 3 else
-                      'submission_lookup' if kind == 4 else 'submission')
+                      'submission_lookup' if kind in (4, 5) else 'submission')
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, family)))

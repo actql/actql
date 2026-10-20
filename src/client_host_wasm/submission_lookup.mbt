@@ -50,11 +50,49 @@ fn observe_submission_lookup(
     Err(issue) => return Err(issue_code(issue))
   }
   guard input_cursor(value, borrow.slot) is Some(cursor) &&
-    @decode.closed_object(cursor, ["reference"]) is Ok(object) &&
-    required_text(object, "reference") is Some(wire) &&
-    @host.admit_client_submission_reference_record(wire) is Ok(reference) &&
     configuration.host_current is Some(current_handle) &&
     value.host_currents.get(current_handle) is Some(current) else {
+    return Err(-31)
+  }
+  let check = () => submission_lookup_current(value, record, configuration)
+  let scan = (table, cursor) => {
+    physical_journal_row(current.physical, check, 0, table, cursor)
+  }
+  let read = (table, key) => {
+    physical_journal_row(current.physical, check, 1, table, key)
+  }
+  let cancellation = () => {
+    @host.inspect_client_empty_cancellation_inventory(
+      1024, scan, read, -31, -42,
+    )
+  }
+  if record.kind == 5 {
+    guard @decode.closed_object(cursor, [
+        "namespaceId", "authorityScopeCid", "runDefinitionCid",
+      ])
+      is Ok(object) &&
+      required_text(object, "namespaceId") is Some(namespace) &&
+      required_text(object, "authorityScopeCid") is Some(scope) &&
+      required_text(object, "runDefinitionCid") is Some(definition) else {
+      return Err(-31)
+    }
+    if namespace != configuration.run_namespace ||
+      scope != configuration.authority_scope_cid {
+      return Err(-32)
+    }
+    let observed = @host.inspect_client_saved_run_reference(
+      namespace, scope, definition, 1024, scan, read, submission_append_run_inspection,
+      cancellation, -31,
+    )
+    return match check() {
+      Ok(_) => observed
+      Err(code) => Err(code)
+    }
+  }
+  guard record.kind == 4 &&
+    @decode.closed_object(cursor, ["reference"]) is Ok(object) &&
+    required_text(object, "reference") is Some(wire) &&
+    @host.admit_client_submission_reference_record(wire) is Ok(reference) else {
     return Err(-31)
   }
   if @host.client_submission_epoch_token_authority_scope_cid(
@@ -63,28 +101,8 @@ fn observe_submission_lookup(
     configuration.authority_scope_cid {
     return Err(-32)
   }
-  let check = () => submission_lookup_current(value, record, configuration)
   let observed = @host.inspect_client_saved_submission(
-    reference,
-    1024,
-    (table, cursor) => {
-      physical_journal_row(current.physical, check, 0, table, cursor)
-    },
-    (table, key) => physical_journal_row(current.physical, check, 1, table, key),
-    submission_append_run_inspection,
-    () => {
-      @host.inspect_client_empty_cancellation_inventory(
-        1024,
-        (table, cursor) => {
-          physical_journal_row(current.physical, check, 0, table, cursor)
-        },
-        (table, key) => {
-          physical_journal_row(current.physical, check, 1, table, key)
-        },
-        -31,
-        -42,
-      )
-    },
+    reference, 1024, scan, read, submission_append_run_inspection, cancellation,
     -31,
   )
   if observed is Ok(Some(snapshot)) &&
@@ -197,7 +215,7 @@ fn validate_submission_lookup(
 ) -> Int {
   guard selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) &&
-    record.kind == 4 &&
+    (record.kind == 4 || record.kind == 5) &&
     record.produced &&
     !record.output_closed &&
     value.run_configurations.get(record.configuration) is Some(configuration) &&

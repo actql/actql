@@ -1361,6 +1361,8 @@ pub fn[E] inspect_client_run_journal_inventory(Int, (String, String) -> Result[C
 
 pub fn inspect_client_run_materials_execution_family(String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientProgramPreparationLimits) -> Result[ClientRunExecutionFamily, ClientValuesRunMaterialsIssue]
 
+pub fn[E] inspect_client_saved_run_reference(String, String, String, Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], () -> Result[Unit, E], E) -> Result[ClientSavedSubmissionSnapshot?, E]
+
 pub fn[E] inspect_client_saved_submission(ClientSubmissionReferenceRecord, Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], () -> Result[Unit, E], E) -> Result[ClientSavedSubmissionSnapshot?, E]
 
 pub fn[E] inspect_client_submitted_journal_inventory(Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientSubmittedJournalEncoding, E], E) -> Result[(Int, Int64, Int64), E]
