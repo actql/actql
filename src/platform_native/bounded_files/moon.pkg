@@ -12,6 +12,7 @@ import {
 options(
   targets: {
     "root_open_custody_native_wbtest.mbt": [ "native" ],
+    "ordinary_input_native_wbtest.mbt": [ "native" ],
     "scoped_cleanup_native_wbtest.mbt": [ "native" ],
     "root_open_custody_unsupported_wbtest.mbt": [ "not", "native" ],
   },

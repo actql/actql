@@ -95,6 +95,11 @@ The result is `{"id":7}`. An undeclared parameter, a missing required value or
 a value outside its declared contract is refused. The same option works with
 literal Pipe queries through `aql`.
 
+Program, declaration and parameter file paths may be absolute or relative to
+the selected input directory (the working directory by default). Ordinary file
+names preserve spaces and Unicode; the same byte, JSON and value-contract
+limits apply.
+
 With an explicit `json`, `jsonl` or `csv` format, `--output` delivers that saved
 Result to an exclusively created file instead of stdout:
 

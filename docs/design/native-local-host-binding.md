@@ -31,6 +31,13 @@ project selection retains its configured Store and declarations. Outside a
 project, the default Local installation is selected through the same bounded
 configuration and current-authorization owners.
 
+Operator-selected Program, declaration and parameter inputs split bounded
+absolute or input-directory-relative metadata into an original filesystem Root
+and an exact ordinary basename. The command's entered Read uses the existing
+bounded UTF-8 Reader and retains its same partial failure through cleanup.
+Managed installation/configuration names keep their separate entry. Reading a
+file does not supply a parameter contract or bypass Common admission.
+
 A genuinely absent default source-free installation may be initialized by
 this caller under the existing Product exclusion and initialization intent.
 The same adoption Session independently admits the Account, Store and required
