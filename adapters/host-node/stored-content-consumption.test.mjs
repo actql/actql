@@ -2,7 +2,8 @@
 // Store/native byte delivery is covered by root-filesystem-native.test.mjs.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {consumeStoredContentOriginal,closeStoredContentReaders} from './generated-content-holding.mjs';
+import {consumeStoredContentOriginal,closeStoredContentReaders,
+  restoreStoredGeneratedContentOriginal} from './generated-content-holding.mjs';
 import {installEffectContentFamily} from './installed-content-family.mjs';
 
 const original=Object.freeze({storeAuthorityCid:'same Store',holding:{namespace:'content',
@@ -79,4 +80,68 @@ test('stored Content family keeps the original read pending when cleanup retires
   assert.match((await outcome).error?.message,/OriginalEffectContentUnavailable/);
   assert.equal(await f.owner.cleanup(),true);
   assert.equal(f.owner.cleanupPending(),false);
+});
+
+function recoveryFixture() {
+  const candidate={},issued={},capturedRun={},runDefinition={},readers=new Set(),events=[];
+  const proofs=['input','derivation','generation'].map(name=>Object.freeze({name}));
+  const holding=Object.freeze({holding_cid:'same holding',namespace:'content',manifest_cid:'reference',
+    objects:[{cid:'bytes',byte_count:3}]});
+  const description={storeCid:'same Store',identity:'reference',workspaceScopeCid:'same workspace',
+    effectiveDataPolicyCid:'same policy',contentCid:'bytes',sizeBytes:3,wire:'original wire'};
+  let live=true,missing,failed,retained;
+  const store={storeAuthorityCid:'same Store',status:()=>({closed:false}),
+    async confirmPrivateEvidence(proof){events.push(proof.name);if(failed!==undefined)throw failed;
+      return proof.name===missing?undefined:proof;},
+    async inspectPhysicalHolding(cid){assert.equal(cid,holding.holding_cid);events.push('holding');return holding;},
+    async commitPhysicalHolding(value,prepared){assert.strictEqual(value,holding);assert.deepEqual(prepared,[]);
+      events.push('commit same holding');}};
+  const publications={capturedContentGenerationCount(value){assert.strictEqual(value,capturedRun);return 1;},
+    capturedContentGenerationStorage(value,definition,authority,index){
+      assert.strictEqual(value,capturedRun);assert.strictEqual(definition,runDefinition);
+      assert.equal(authority,store.storeAuthorityCid);assert.equal(index,0);
+      return{holdingCid:holding.holding_cid,manifestCid:'reference',contentCid:'bytes',byteCount:3n,bindings:proofs};}};
+  const control={inspect(value){assert.strictEqual(value,candidate);return description;},
+    issuer(available,authorize){return{available,authorize};},
+    issue(value,issuer){assert.strictEqual(value,candidate);
+      assert.equal(issuer.available(undefined,'original wire'),true);
+      assert.equal(issuer.authorize('original wire'),true);events.push('issue');return issued;}};
+  const options={store,publications,control,capturedRun,runDefinition,index:0,candidate,
+    workspaceScopeCid:description.workspaceScopeCid,effectiveDataPolicyCid:description.effectiveDataPolicyCid,
+    available:()=>live,authorize:()=>live,assertCurrent(){if(!live)throw new Error('OriginalRunRetired');},
+    readers,limits:{},retainOriginal(value){events.push('retain');retained=value;}};
+  return{options,events,readers,issued,holding,description,retained:()=>retained,
+    missing(name){missing=name;},fail(error){failed=error;},retire(){live=false;}};
+}
+
+test('stored Content restore confirms captured proof inventory and retains the same issued physical original',async()=>{
+  const f=recoveryFixture();
+  assert.strictEqual(await restoreStoredGeneratedContentOriginal(f.options),f.issued);
+  assert.deepEqual(f.events,['input','derivation','generation','holding','commit same holding','issue','retain']);
+  assert.strictEqual(f.retained().holding,f.holding);assert.strictEqual(f.retained().issued,f.issued);
+  assert.equal(f.readers.size,0);
+});
+
+test('stored Content restore refuses wrong capture and missing proof without issuing another reference',async()=>{
+  const wrong=recoveryFixture();wrong.description.contentCid='foreign bytes';
+  await assert.rejects(restoreStoredGeneratedContentOriginal(wrong.options),{code:'StoredContentRecoveryBindingMismatch'});
+  assert.deepEqual(wrong.events,[]);assert.equal(wrong.retained(),undefined);
+  const missing=recoveryFixture();missing.missing('derivation');
+  await assert.rejects(restoreStoredGeneratedContentOriginal(missing.options),{code:'StoredContentRecoveryEvidenceUnavailable'});
+  assert.deepEqual(missing.events,['input','derivation']);assert.equal(missing.retained(),undefined);
+});
+
+test('stored Content restore keeps the same failed reader cleanup and post-issuance retirement',async()=>{
+  const failed=recoveryFixture();let pending=true,retries=0;
+  const cause=Object.assign(new Error('same evidence close failed'),{cleanupHandle:Object.freeze({
+    status:()=>({pending}),async retry(){retries++;return{pending};}})});
+  failed.fail(cause);
+  await assert.rejects(restoreStoredGeneratedContentOriginal(failed.options),value=>value===cause);
+  assert.equal(failed.readers.size,1);assert.equal(await closeStoredContentReaders(failed.readers),false);
+  pending=false;assert.equal(await closeStoredContentReaders(failed.readers),true);assert.equal(retries,1);
+  const retired=recoveryFixture(),retain=retired.options.retainOriginal;
+  retired.options.retainOriginal=value=>{retain(value);retired.retire();};
+  await assert.rejects(restoreStoredGeneratedContentOriginal(retired.options));
+  assert.strictEqual(retired.retained().issued,retired.issued);
+  assert.equal(retired.readers.size,0,'no physical FD is fabricated by reference retirement');
 });
