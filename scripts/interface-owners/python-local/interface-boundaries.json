@@ -46385,7 +46385,7 @@
           ]
         }
       ],
-      "sha256": "35454bdf6d5fe6212f470a4bac49b66d0cf19ba25f35c90abb2f21587eac3e6f",
+      "sha256": "8cd96dbb3d4a39471751b7a1378ba959272f76232e6761263936682501b417a4",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
