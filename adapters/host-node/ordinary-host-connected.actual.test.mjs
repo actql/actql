@@ -122,10 +122,10 @@ test('ordinary actual Mock Host consumes the original Quickstart two-Source JOIN
   } finally {try {await client?.close();} finally {process.chdir(cwd);}}
 });
 
-test('ordinary actual Mock Host runs original Quickstart INFER without applying its Effect', async () => {
+test('ordinary actual Mock Host runs original Quickstart INFER without applying its Effect', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-ordinary-mock-infer-'));
   const project = scaffoldProject(join(directory, 'project'), 'churn-risk-mock');
-  const cwd = process.cwd(); let client;
+  const cwd = process.cwd(); let client, primaryFailure;
   process.chdir(project.directory);
   try {
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
@@ -142,5 +142,22 @@ test('ordinary actual Mock Host runs original Quickstart INFER without applying 
     ]);
     const original = JSON.parse(await readFile('mock/data.json', 'utf8'));
     assert.deepEqual(original.salesforce.Account.rows.map(row => row.Churn_Risk__c), ['low', 'medium']);
-  } finally {try {await client?.close();} finally {process.chdir(cwd);}}
+  } catch (error) {
+    primaryFailure = error;
+    throw error;
+  } finally {
+    try {await client?.close();}
+    catch (cleanupFailure) {
+      if (primaryFailure !== undefined) {
+        // Both failures remain failures. Do not hide the first public
+        // operation behind its independently pending physical cleanup.
+        t.diagnostic(JSON.stringify({primaryCode: primaryFailure.code,
+          primaryMessage: primaryFailure.message, cleanupCode: cleanupFailure.code,
+          cleanupMessage: cleanupFailure.message}));
+        throw new AggregateError([primaryFailure, cleanupFailure],
+          'Original INFER failed and Host cleanup remains pending', {cause: primaryFailure});
+      }
+      throw cleanupFailure;
+    } finally {process.chdir(cwd);}
+  }
 });
