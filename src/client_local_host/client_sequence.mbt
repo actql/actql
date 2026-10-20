@@ -770,7 +770,7 @@ fn prepare_client_local_sequences_owned(
     // ordinal. Its execution range still excludes the completed capture.
     let acquiring = acquiring ||
       (match (serialization_input, prepared) {
-        (Some((selected, _)), Pure(value)) if selected == task =>
+        (Some((selected, barrier)), Pure(value)) if selected == task =>
           match
             @publication_host.select_client_single_keyed_acquisition(value) {
             Ok(Some(keyed)) =>
@@ -778,7 +778,7 @@ fn prepare_client_local_sequences_owned(
                 value,
                 keyed,
                 task,
-                @strategy.graph_task_selected_step(graph, task).unwrap_or(-1),
+                @lower.serialization_step(barrier),
               )
             _ => false
           }
