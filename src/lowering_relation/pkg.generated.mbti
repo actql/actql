@@ -1189,6 +1189,7 @@ pub(all) enum BinaryOperator {
   Contains
   DateTruncate
   DecimalDivide(String)
+  Utf8Truncate
 } derive(Eq, @debug.Debug)
 
 pub struct BindingIssue {

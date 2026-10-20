@@ -1004,6 +1004,40 @@ for (const entrance of ['local', 'http']) {
     }
   });
 
+  test(`${entrance}: UTF8_TRUNCATE retains original public text and checked byte-limit bindings`, async t => {
+    const withProfile = structuredClone(wire);
+    delete withProfile.evidence_bundle_cid;
+    withProfile.host_policy_profile.text_time_evaluation = {
+      version: 'actql-text-time-host-policy/0.1', max_input_codepoints: 64,
+      max_input_utf8_bytes: 64, max_pattern_bytes: 1, max_output_bytes: 64,
+      max_replacements: 1,
+    };
+    withProfile.evidence_bundle_cid = 'sha256:' + (await import('node:crypto')).createHash('sha256')
+      .update(canonicalText(withProfile)).digest('hex');
+    const {client} = await publicCheck(t, entrance, {environmentWire: withProfile, textTime: true});
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        "SELECT UTF8_TRUNCATE('é😀x', 6) AS prefix",
+        "SELECT 'é😀x' AS text |> SELECT UTF8_TRUNCATE(text, @bytes) AS prefix",
+        'SELECT UTF8_TRUNCATE(NULL, 0) AS prefix',
+        "SELECT UTF8_TRUNCATE('x', -1) AS prefix",
+      ]) {
+        const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@bytes') ? {parameterDeclarations: {bytes: {type: 'number'}},
+            parameters: {bytes: 6}} : {})});
+        assert.equal(outcome.report.verdict, 'verified', JSON.stringify(outcome.report));
+        assert.deepEqual(outcome.report.runnable, {verdict: 'yes', reasons: []});
+        assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+        assert.equal(getCheckInput(outcome, 'source').text, text);
+      }
+      for (const text of ["SELECT UTF8_TRUNCATE(1, 1) AS bad",
+        "SELECT UTF8_TRUNCATE('x', TRUE) AS bad", "SELECT UTF8_TRUNCATE('x') AS bad"]) {
+        const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format});
+        assert.equal(outcome.report.verdict, 'invalid', text);
+      }
+    }
+  });
+
   test(`${entrance}: TRY_NUMBER admits original Number identity without String profile promotion`, async t => {
     const {client} = await publicCheck(t, entrance);
     for (const format of ['sql', 'aql-text']) {

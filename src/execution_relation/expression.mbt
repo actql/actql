@@ -1479,7 +1479,8 @@ fn advance_expression_frame_impl(
               }
               continue
             }
-            if op == @lower.Contains ||
+            if op == @lower.Utf8Truncate ||
+              op == @lower.Contains ||
               op == @lower.Strpos ||
               op == @lower.TrimSet ||
               op == @lower.LTrimSet ||
@@ -1496,7 +1497,9 @@ fn advance_expression_frame_impl(
                   expr,
                   [left, value],
                   [left_root, frame.current_root],
-                  if op == @lower.TrimSet {
+                  if op == @lower.Utf8Truncate {
+                    TextUtf8Truncate
+                  } else if op == @lower.TrimSet {
                     TextTrim
                   } else if op == @lower.LTrimSet {
                     TextLTrim

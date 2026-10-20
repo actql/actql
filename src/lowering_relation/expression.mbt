@@ -122,6 +122,7 @@ pub(all) enum BinaryOperator {
   Contains
   DateTruncate
   DecimalDivide(String)
+  Utf8Truncate
 } derive(Eq, Debug)
 
 ///|
@@ -349,6 +350,7 @@ fn expression_tag(
     | "cast"
     | "try_decimal"
     | "try_number"
+    | "utf8_truncate"
     | "quantize"
     | "decimal_divide"
     | "if"
@@ -370,6 +372,13 @@ fn expression_children(
   max_nodes : Int,
 ) -> Array[@decode.Cursor] raise ExpressionStop {
   match tag {
+    "utf8_truncate" => {
+      let obj = @decode.open_object(body).unwrap()
+      [
+        @decode.lookup(obj, "value").unwrap(),
+        @decode.lookup(obj, "max_bytes").unwrap(),
+      ]
+    }
     "substring" => {
       let obj = @decode.open_object(body).unwrap()
       let children = [
@@ -879,7 +888,8 @@ fn lower_typed_expression_measured(
               )
             None => None
           }
-          if operation == "try_number" && original is Some(original) {
+          if (operation == "try_number" || operation == "utf8_truncate") &&
+            original is Some(original) {
             let index = @decode.tree_index(root, node.source).unwrap()
             text_bounds[index] = original
             true
@@ -1099,6 +1109,7 @@ fn lower_typed_expression_measured(
         "cast" => Cast(args[0])
         "try_decimal" => Unary(TryDecimal, args[0])
         "try_number" => Unary(TryNumber, args[0])
+        "utf8_truncate" => Binary(Utf8Truncate, args[0], args[1])
         "decimal_divide" => {
           let obj = @decode.open_object(body).unwrap()
           let mode = @decode.text(@decode.lookup(obj, "rounding").unwrap()).unwrap()
