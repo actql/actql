@@ -2461,7 +2461,13 @@ async function openInstalledHost(originalInstallation, preparation) {
         {retainedDefinitionWire})};
     const infer = inferSelections.get(preparedProgram);
     if (infer !== undefined) {
-      try {return Object.freeze({...inferTaskRunAdmission({...common, inferGraph: infer.graph}),
+      // The retained occurrence uses the composed compiler even for one Task.
+      // Keep its same component as the Run/Scope original; the bounded array
+      // selects the existing compiler, not a replacement graph or admission.
+      const compilationGraphs = infer.occurrence === undefined || Array.isArray(infer.graph)
+        ? infer.graph : [infer.graph];
+      try {return Object.freeze({...inferTaskRunAdmission({...common, inferGraph: compilationGraphs}),
+        inferGraph: infer.graph,
         ...(infer.serializationGraph === undefined ? {} : {serializationGraph: infer.serializationGraph})});}
       catch (cause) {
         diagnostic('infer_preparation_rejected', {boundary: 'task_compilation',

@@ -376,8 +376,12 @@ request identity, Definition and material evidence from that same Journal.
 The existing Common inverse reconstructs and checks the entire saved Run. The
 single-component codec retains both historical whole-INFER and composed
 compilation forms, including a source-free one-task Program. First issuance
-uses the actual compiler original, not a syntax-based preference. Recovery
-checks at most these two installed candidates against the complete original
+uses the actual compiler original, not a syntax-based preference.
+The ordinary Host selects the composed compiler for a retained occurrence even
+when it has one component, while retaining that same single graph as its
+Run/Scope and material original. Legacy components without that occurrence
+retain their existing compiler selection. Recovery checks at most these two
+installed candidates against the complete original
 admission and Run CID, refusing ambiguity; it does not select the first Model,
 refresh policy, or change predecessor materials bytes. The bounded candidate
 preparations and their temporary overlap belong to the same Host phase.
