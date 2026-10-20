@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "fe59006e283751694d1e27250ec50675ff15244cccbbc67c4b191313355784a7",
+      "sha256": "f6b6a4220f45e033163df2f108d72ae2f40b66a389ffffe5ffbf668beb34e8a0",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -1614,6 +1614,20 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:beginCheckedClientEffectMockModelManagedRun/init:beginCheckedClientEffectMockModelManagedRun",
+          "parameters": [
+            "admission",
+            "prepared",
+            "request",
+            "compiled",
+            "compilation",
+            "definition",
+            "graph",
+            "budget"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:beginCheckedClientInferOriginalReadScope/init:beginCheckedClientInferOriginalReadScope",
           "parameters": [
             "compiled",
@@ -2229,6 +2243,27 @@
             "compilation",
             "definition",
             "issued"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkedClientEffectMockModelRunRequirements/init:checkedClientEffectMockModelRunRequirements",
+          "parameters": [
+            "prepared",
+            "compiled",
+            "compilation",
+            "definition",
+            "occurrence",
+            "graph",
+            "declarations",
+            "query",
+            "evidence",
+            "transport",
+            "scratch",
+            "registry",
+            "values",
+            "fragment",
+            "ordered"
           ],
           "async": false
         },
@@ -8843,6 +8878,75 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.test.mjs",
                 "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:beginCheckedClientEffectMockModelManagedRun/init:beginCheckedClientEffectMockModelManagedRun",
+            "publicationControl/init:checkedClientEffectMockModelRunRequirements/init:checkedClientEffectMockModelRunRequirements"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Responsibility stays with the existing normal Host, Resource, Source, Model,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Inputs are the checked Effect preparation and compilation, allowed Run,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Identity is retained with the same Host, installation and Run."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Ownership of Source capture, Model work and file requests is separate."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Synchronization captures each private operation and its receiver before later"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Failure preserves the original constructor, Source, Model, FileHandle, write,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Cancellation prevents new work but does not make cleanup require current"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Resources include the retained preparation, compilation, definition, request,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Extension remains private to the installed Host and the existing typed"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
               }
             ]
           }

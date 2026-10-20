@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "f44a5bcceae97f13b602ffbc0fcd3d4bd4b9badcb54cd852d592929026815b6e",
+      "sha256": "d472ef175fe8ac924d359b27ab520e37a6b436de6987d83e93067bcc28752595",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -44,7 +44,9 @@
             "modelJournalPort",
             "contentRun",
             "assertUpdateSelectionCurrent",
-            "assertContinuationCurrent"
+            "assertContinuationCurrent",
+            "originalPreparation",
+            "originalModelPlan"
           ],
           "async": true
         },
@@ -4446,7 +4448,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "422121f113b9b8a6c63e38d32cb0f2cba44b7a54280c305a0d9336645ab64702",
+      "sha256": "339fda560e4b5d9076438b055d51094c631bdd9814a22040587bccb100e735db",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -4467,6 +4469,7 @@
         "prepareOriginalHostPublicationOwnership",
         "publishInstalledEffect",
         "publishInstalledSource",
+        "readHostEffectResultPublicationRunRequirements",
         "readHostJournalPreparation",
         "readHostResultPublicationPreparation",
         "readHostResultPublicationRunRequirements",
@@ -4474,6 +4477,7 @@
         "readInstalledMockPreparation",
         "readLocalMockModelRunRequirements",
         "readManagedComputeRunRequirements",
+        "readSourceManagedEffectRunRequirements",
         "readSourceManagedOriginalInput",
         "readSourceManagedRunRequirements",
         "snapshotInitialControlHostInput",
@@ -4539,6 +4543,13 @@
           "name": "connectEmbeddedLocal/initialControl/init:close/init:close",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:admitEffectResultPublicationRun/init:admitEffectResultPublicationRun",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
         },
         {
           "name": "connectEmbeddedLocal/preparation/init:admitResultPublicationRun/init:admitResultPublicationRun",
@@ -4634,6 +4645,22 @@
           "parameters": [
             "alias"
           ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:installMockEffects/init:installMockEffects",
+          "parameters": [
+            "runtime",
+            "baseEnvironmentWire",
+            "authorizationFor",
+            "principalId",
+            "effectResources"
+          ],
+          "async": true
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:installMockEffects/init:installMockEffects/init:installMockEffects",
+          "parameters": [],
           "async": false
         },
         {
@@ -4872,6 +4899,13 @@
           "name": "openInstalledHost/activate/activate/activate",
           "parameters": [
             "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/assertMockEffectRunOriginal",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -5192,14 +5226,26 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun/effectRun",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#2",
+          "parameters": [
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#3",
           "parameters": [
             "prepared"
           ],
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#3",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#4",
           "parameters": [
             "actual",
             "connection"
@@ -5207,7 +5253,7 @@
           "async": true
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#4",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#5",
           "parameters": [
             "actual",
             "connection",
@@ -5216,7 +5262,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#5",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#6",
           "parameters": [
             "prepared",
             "compilation",
@@ -6300,6 +6346,27 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/mockEffectResources/init:assertCurrent/init:assertCurrent",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/mockEffectResources/init:bindRunOriginal/init:bindRunOriginal",
+          "parameters": [
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/mockEffectResources/init:limits/init:limits",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/negotiate/negotiate",
           "parameters": [
             "value"
@@ -6327,15 +6394,13 @@
         },
         {
           "name": "openInstalledHost/openInstalledHost#2",
-          "parameters": [
-            "facts"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "openInstalledHost/openInstalledHost#3",
           "parameters": [
-            "facts"
+            "value"
           ],
           "async": false
         },
@@ -6349,13 +6414,27 @@
         {
           "name": "openInstalledHost/openInstalledHost#5",
           "parameters": [
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/openInstalledHost#6",
+          "parameters": [
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/openInstalledHost#7",
+          "parameters": [
             "event",
             "detail"
           ],
           "async": false
         },
         {
-          "name": "openInstalledHost/openInstalledHost#6",
+          "name": "openInstalledHost/openInstalledHost#8",
           "parameters": [
             "key",
             "bytes",
@@ -6365,7 +6444,7 @@
           "async": true
         },
         {
-          "name": "openInstalledHost/openInstalledHost#7",
+          "name": "openInstalledHost/openInstalledHost#9",
           "parameters": [
             "ref"
           ],
@@ -6402,6 +6481,13 @@
         {
           "name": "openInstalledHost/requireModelSdkEagerStartup",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/retainMockEffectRunOriginal",
+          "parameters": [
+            "facts"
+          ],
           "async": false
         },
         {
@@ -6565,6 +6651,14 @@
           "async": true
         },
         {
+          "name": "readHostEffectResultPublicationRunRequirements",
+          "parameters": [
+            "originals",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
           "name": "readHostJournalPreparation",
           "parameters": [
             "originals"
@@ -6665,6 +6759,14 @@
           "async": false
         },
         {
+          "name": "readSourceManagedEffectRunRequirements",
+          "parameters": [
+            "originals",
+            "checkedPrepared"
+          ],
+          "async": false
+        },
+        {
           "name": "readSourceManagedRunRequirements",
           "parameters": [
             "originals",
@@ -6673,28 +6775,37 @@
           "async": false
         },
         {
-          "name": "readSourceManagedRunRequirements/asset/asset",
+          "name": "readSourceManagedRunRequirementsOwned",
+          "parameters": [
+            "originals",
+            "checkedPrepared",
+            "effectful"
+          ],
+          "async": false
+        },
+        {
+          "name": "readSourceManagedRunRequirementsOwned/asset/asset",
           "parameters": [
             "path"
           ],
           "async": false
         },
         {
-          "name": "readSourceManagedRunRequirements/limits/limits",
+          "name": "readSourceManagedRunRequirementsOwned/limits/limits",
           "parameters": [
             "source"
           ],
           "async": false
         },
         {
-          "name": "readSourceManagedRunRequirements/readSourceManagedRunRequirements",
+          "name": "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "readSourceManagedRunRequirements/readSourceManagedRunRequirements#2",
+          "name": "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned#2",
           "parameters": [
             "value"
           ],
@@ -7968,10 +8079,6 @@
             "readHostJournalPreparation",
             "readInstalledMockPreparation",
             "readSourceManagedRunRequirements",
-            "readSourceManagedRunRequirements/asset/asset",
-            "readSourceManagedRunRequirements/limits/limits",
-            "readSourceManagedRunRequirements/readSourceManagedRunRequirements",
-            "readSourceManagedRunRequirements/readSourceManagedRunRequirements#2",
             "sourceManagedSubmittedIntentCid"
           ],
           "exports": [
@@ -8957,6 +9064,95 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:admitEffectResultPublicationRun/init:admitEffectResultPublicationRun",
+            "connectEmbeddedLocal/preparation/init:installMockEffects/init:installMockEffects",
+            "connectEmbeddedLocal/preparation/init:installMockEffects/init:installMockEffects/init:installMockEffects",
+            "openInstalledHost/assertMockEffectRunOriginal",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun/effectRun",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#6",
+            "openInstalledHost/mockEffectResources/init:assertCurrent/init:assertCurrent",
+            "openInstalledHost/mockEffectResources/init:bindRunOriginal/init:bindRunOriginal",
+            "openInstalledHost/mockEffectResources/init:limits/init:limits",
+            "openInstalledHost/openInstalledHost#8",
+            "openInstalledHost/openInstalledHost#9",
+            "openInstalledHost/retainMockEffectRunOriginal",
+            "readHostEffectResultPublicationRunRequirements",
+            "readSourceManagedEffectRunRequirements",
+            "readSourceManagedRunRequirementsOwned",
+            "readSourceManagedRunRequirementsOwned/asset/asset",
+            "readSourceManagedRunRequirementsOwned/limits/limits",
+            "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned",
+            "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned#2"
+          ],
+          "exports": [
+            "readHostEffectResultPublicationRunRequirements",
+            "readSourceManagedEffectRunRequirements"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Responsibility stays with the existing normal Host, Resource, Source, Model,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Inputs are the checked Effect preparation and compilation, allowed Run,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Identity is retained with the same Host, installation and Run."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Ownership of Source capture, Model work and file requests is separate."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Synchronization captures each private operation and its receiver before later"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Failure preserves the original constructor, Source, Model, FileHandle, write,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Cancellation prevents new work but does not make cleanup require current"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Resources include the retained preparation, compilation, definition, request,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Extension remains private to the installed Host and the existing typed"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -9017,6 +9213,7 @@
         "./installed-host-cleanup.mjs",
         "./installed-host-policy.mjs",
         "./installed-infer-run.mjs",
+        "./installed-mock-row-effect.mjs",
         "./installed-model-continuation.mjs",
         "./installed-model-originals.mjs",
         "./installed-model.mjs",
@@ -9041,6 +9238,7 @@
         "./result-access.mjs",
         "./source-alias-publication.mjs",
         "./source-managed-original-input.mjs",
+        "./source-profile-json.mjs",
         "./update-target-original-shape.mjs",
         "node:crypto",
         "node:fs/promises",
@@ -11142,8 +11340,8 @@
   ],
   "counts": {
     "modules": 16,
-    "operations": 704,
-    "exports": 88,
-    "explicitContractGroups": 32
+    "operations": 732,
+    "exports": 91,
+    "explicitContractGroups": 37
   }
 }

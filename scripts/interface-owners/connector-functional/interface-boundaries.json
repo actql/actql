@@ -4077,7 +4077,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "8f38397c0f9b89cf8db2433148f6c44c529da71f21bde6709ad03898864dbd56",
+      "sha256": "6cd0ef2a2ca994af335e3317b60b07707dfbbb593f51c367c831da594e741e2d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4104,6 +4104,20 @@
           "parameters": [
             "kind",
             "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureEffectResources",
+          "parameters": [
+            "receiver"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureEffectResources/captureEffectResources",
+          "parameters": [
+            "args"
           ],
           "async": false
         },
@@ -4299,7 +4313,8 @@
             "ledgerRoot",
             "installation",
             "continuationBinding",
-            "suppliedLimits"
+            "suppliedLimits",
+            "effectResources"
           ],
           "async": true
         },
@@ -4512,6 +4527,14 @@
           "name": "createRowEffectStage/basePreflight/basePreflight/basePreflight#4",
           "parameters": [
             "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/bindRunResources/bindRunResources",
+          "parameters": [
+            "facts",
+            "members"
           ],
           "async": false
         },
@@ -5485,6 +5508,13 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/resourceFields/resourceFields",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/retainMember/retainMember",
           "parameters": [
             "owner",
@@ -5544,6 +5574,13 @@
         {
           "name": "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/selectionFence/selectionFence/resourceOwners/resourceOwners",
+          "parameters": [
+            "member"
+          ],
           "async": false
         },
         {
@@ -5680,6 +5717,18 @@
           "parameters": [
             "installation"
           ],
+          "async": false
+        },
+        {
+          "name": "requireSynchronousEffectResource",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "requireSynchronousEffectResource/requireSynchronousEffectResource",
+          "parameters": [],
           "async": false
         },
         {
@@ -6907,6 +6956,80 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Verification: `installed-row-upsert-absence.integration.test.mjs` uses actual"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "captureEffectResources",
+            "captureEffectResources/captureEffectResources",
+            "createRowEffectStage/bindRunResources/bindRunResources",
+            "createRowEffectStage/resourceFields/resourceFields",
+            "createRowEffectStage/selectionFence/selectionFence/resourceOwners/resourceOwners",
+            "requireSynchronousEffectResource",
+            "requireSynchronousEffectResource/requireSynchronousEffectResource"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Responsibility stays with the existing normal Host, Resource, Source, Model,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Inputs are the checked Effect preparation and compilation, allowed Run,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Identity is retained with the same Host, installation and Run."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Ownership of Source capture, Model work and file requests is separate."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Synchronization captures each private operation and its receiver before later"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Failure preserves the original constructor, Source, Model, FileHandle, write,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Cancellation prevents new work but does not make cleanup require current"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Resources include the retained preparation, compilation, definition, request,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Extension remains private to the installed Host and the existing typed"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
               }
             ]
           }
