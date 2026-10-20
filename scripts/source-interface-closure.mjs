@@ -35,6 +35,20 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
       module: `_build/js/release/build/${file}`, sourcePackages: local.runtimePackages,
       build: 'scripts/build-local-node-assets.mjs', package: 'local-node'});
   }
+  // The existing Local native builder delivers these finite N-API images.
+  // Keep missing images as source-qualified build references, never parse a
+  // binary as JavaScript or pretend that source discovery executed its build.
+  // Both prefixes are the actual package-relative/source-checkout entrances.
+  if (includesLocal) for (const arch of ['arm64', 'x64']) {
+    for (const prefix of ['', 'packages/local-node/']) {
+      const module = `${prefix}_build/native/directory-darwin-${arch}.node`;
+      artifacts.set(resolve(root, module), {module, sourcePackages: [],
+        sourceFiles: ['adapters/host-node/native/directory-darwin.c',
+          'adapters/connectors/local/site/root-filesystem.inc'],
+        build: 'scripts/build-node-directory-native.mjs', package: 'local-node',
+        target: `darwin-${arch}/node-napi8`, qualification: 'native-build-input-reference-only'});
+    }
+  }
   for (const [name, pkg] of productionRuntimeModules) {
     const module = `_build/workers/modules/${name}.mjs`;
     artifacts.set(resolve(root, module), {module, sourcePackages: [pkg],
@@ -127,6 +141,7 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
           artifactReferences.add(path);
           return {path, external: true};
         }
+        assert(!path.endsWith('.node'), `Unregistered native source interface artifact: ${relative(root, path)}`);
         // The ordinary local-node builder copies these exact source paths.
         // Resolve the source projection without manufacturing the generated
         // package tree, then leave actual copied-byte checks to that builder.
@@ -150,6 +165,9 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
       const target = resolve(dirname(resolve(root, module)), specifier);
       assert(!relative(root, target).startsWith('..'), `Escaped runtime interface: ${module}`);
       if (artifacts.has(target)) artifactReferences.add(target);
+      else if (target.endsWith('.node')) {
+        assert.fail(`Unregistered native source interface artifact: ${relative(root, target)}`);
+      }
       else if (!sourceEntrances.includes(relative(root, target))) extraEntrances.add(relative(root, target));
       return specifier;
     };
@@ -227,11 +245,28 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
       if (targets?.length) runtimeBindings.push({module, sourceSha256: sha256, reference, targets});
       return targets;
     };
-    parsed.set(module, {module, sha256,
+    const syntax = {module, sha256,
       ...(/\.[cm]?tsx?$/u.test(module) ? typescriptInterface(bytes.toString('utf8'), module)
-        : javascriptInterface(bytes.toString('utf8'), {resolveRuntimeImport}))});
+        : javascriptInterface(bytes.toString('utf8'), {resolveRuntimeImport}))};
+    // createRequire's locally bound receiver is not an esbuild dependency.
+    // Admit its original literal native paths from the same parsed source,
+    // using the fixed build-input map above; never infer a dynamic image.
+    for (const specifier of syntax.imports) {
+      if (specifier.endsWith('.node') && /^\.\.?\//u.test(specifier)) admitTarget(specifier);
+    }
+    parsed.set(module, syntax);
   }
   } while (extraEntrances.size);
+  for (const path of artifactReferences) {
+    const artifact = artifacts.get(path);
+    if (!artifact.sourceFiles) continue;
+    for (const module of [...artifact.sourceFiles, artifact.build]) {
+      const input = realpathSync(resolve(root, module));
+      assert(!relative(root, input).startsWith('..'), `Escaped native build input: ${module}`);
+      assetMap.set(module, {module, sha256: createHash('sha256').update(readFileSync(input)).digest('hex'),
+        qualification: 'compiled-native-build-source'});
+    }
+  }
   const modules = [...parsed.values()], assets = [...assetMap.values()];
   const pythonAssets = [...new Set([...ownedAssets.filter(path => /\.pyi?$/u.test(path)), ...pythonEntrances])];
   modules.push(...pythonModuleInterfaces(root, pythonAssets));

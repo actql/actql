@@ -173,13 +173,22 @@ function localProjectFilesystem() {
   // Normal native delivery and Node's ABI checks, not a selected-preload image
   // recipe. Load failure stays a supported-backend gap; it never selects a
   // weaker pathname reader or another installation's resource original.
-  const suffix = `_build/native/directory-darwin-${process.arch}.node`;
-  const packaged = join(packageRoot, suffix);
-  const sourceCheckout = join(packageRoot, 'packages/local-node', suffix);
-  if (process.platform !== 'darwin' || !existsSync(packaged) && !existsSync(sourceCheckout)) {
-    throw clientOperationError('LocalFilesNativeUnavailable');
+  if (process.platform === 'darwin' && process.arch === 'arm64') {
+    if (existsSync(new URL('../../_build/native/directory-darwin-arm64.node', import.meta.url))) {
+      return require('../../_build/native/directory-darwin-arm64.node');
+    }
+    if (existsSync(new URL('../../packages/local-node/_build/native/directory-darwin-arm64.node', import.meta.url))) {
+      return require('../../packages/local-node/_build/native/directory-darwin-arm64.node');
+    }
+  } else if (process.platform === 'darwin' && process.arch === 'x64') {
+    if (existsSync(new URL('../../_build/native/directory-darwin-x64.node', import.meta.url))) {
+      return require('../../_build/native/directory-darwin-x64.node');
+    }
+    if (existsSync(new URL('../../packages/local-node/_build/native/directory-darwin-x64.node', import.meta.url))) {
+      return require('../../packages/local-node/_build/native/directory-darwin-x64.node');
+    }
   }
-  return require(existsSync(packaged) ? packaged : sourceCheckout);
+  throw clientOperationError('LocalFilesNativeUnavailable');
 }
 const runtimeUrl = new URL('../../_build/js/release/build/' +
   'connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
