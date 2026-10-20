@@ -147,6 +147,8 @@ pub fn complete_client_local_content_step(ClientLocalContentStep, @run_publicati
 
 pub fn configure_source_free_effect_local_retained_host(@run_publication_host.PreparedClientEffectRun, @physical_strategy.CapturedEffectRunDAG, String, String, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
+pub fn execute_source_free_local_tasks_guarded(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, () -> Bool) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
+
 pub fn execute_source_free_values(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
 pub fn execute_source_free_values_guarded(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, () -> Bool) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
@@ -286,6 +288,8 @@ pub fn select_client_duckdb_acquisition(@query_planning.QueryRequirement, String
 pub fn single_captured_local_ledger_limits(@run_publication_host.PreparedClientProgram, @host.NativeHostConfiguration, String, String, String?, String?) -> @physical_resources.LedgerLimits?
 
 pub fn single_source_free_local_ledger_limits(@run_publication_host.PreparedClientProgram, String, String, String?, String?) -> @physical_resources.LedgerLimits?
+
+pub fn source_free_local_ledger_limits(@run_publication_host.PreparedClientProgram, String, String, String?, String?) -> @physical_resources.LedgerLimits?
 
 pub fn start_client_acquired_infer_input(@run_publication_host.PreparedClientProgram, Int, Int, @execution_query.CapturedInputSource, String, String, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits, fragment_body? : String?, ordered_body? : String?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
 
@@ -524,6 +528,7 @@ pub struct LocalValuesExecution {
   operations : @driver.LocalManagedDispatchOperations[Int]
   completed : @execution_relation.ManagedCompletedOutput[Int]
   available : @ref.Ref[Bool]
+  tasks : ((Int) -> (@driver.LocalManagedDispatchOperations[Int], @execution_relation.ManagedCompletedOutput[Int])?, () -> Bool)?
 }
 pub fn LocalValuesExecution::close(Self) -> Bool
 pub fn LocalValuesExecution::completed_output(Self) -> @execution_relation.ManagedCompletedOutput[Int]

@@ -200,7 +200,7 @@ fn local_group_generated(
   let contexts : Array[@execution.FragmentRuntimeContext] = []
   for index in 0..<@lower.sequence_count(sequence) {
     match @lower.sequence_step(sequence, index).unwrap() {
-      ValuesStep(_) => ()
+      ValuesStep(_) | AppendStep(_) | SetStep(_) => ()
       RowStep(kernel) => {
         assert_true(
           @lower.kernel_group(kernel) is Some(_) ||

@@ -32,14 +32,14 @@ pub fn LocalValuesExecution::prepare_result_export(
     return Err(MissingOutput)
   }
   let graph = @strategy.captured_dag_graph(self.run)
-  guard @strategy.graph_result_task(graph, result_index) is Some(0) &&
+  guard @strategy.graph_result_task(graph, result_index) is Some(task) &&
     @strategy.graph_result_occurrence(graph, result_index) is Some(occurrence) &&
     @strategy.graph_result_name(graph, result_index) is Some(result_name) else {
     return Err(UnknownResult)
   }
   let (bridge, output) = match
-    self.prepare_publication_bridge(
-      row_limits, bridge_max_entries, bridge_max_name_bytes, limits,
+    self.prepare_publication_bridge_for_task(
+      task, row_limits, bridge_max_entries, bridge_max_name_bytes, limits,
     ) {
     Ok(value) => value
     Err(MissingOutput) => return Err(MissingOutput)
@@ -107,10 +107,50 @@ fn LocalValuesExecution::prepare_publication_bridge(
   (@execution.ManagedPublicationBridge[Int], @execution.CompletedOutput),
   LocalValuesPublicationBridgeIssue,
 ] {
-  guard self.material() is Some(material) else { return Err(MissingOutput) }
+  self.prepare_publication_bridge_for_task(
+    @strategy.graph_result_task(@strategy.captured_dag_graph(self.run), 0).unwrap_or(
+      0,
+    ),
+    row_limits,
+    bridge_max_entries,
+    bridge_max_name_bytes,
+    limits,
+  )
+}
+
+///|
+// Select the exact checked Named Result's original physical task. The retained
+// graph may have independent roots and intermediate tasks; task zero or the
+// last executed task is not a replacement result identity.
+fn LocalValuesExecution::prepare_publication_bridge_for_task(
+  self : LocalValuesExecution,
+  task : Int,
+  row_limits : @execution.RetainedRowDecodeLimits,
+  bridge_max_entries : Int,
+  bridge_max_name_bytes : Int,
+  limits : @publication_host.PublicationOutputExportLimits,
+) -> Result[
+  (@execution.ManagedPublicationBridge[Int], @execution.CompletedOutput),
+  LocalValuesPublicationBridgeIssue,
+] {
+  if !self.available.val {
+    return Err(MissingOutput)
+  }
+  let (operations, completed) = if self.tasks is Some((lookup, _)) {
+    guard lookup(task) is Some(output) else { return Err(MissingOutput) }
+    output
+  } else {
+    if task != 0 {
+      return Err(MissingOutput)
+    }
+    (self.operations, self.completed)
+  }
+  guard (operations.material)() is Some(material) else {
+    return Err(MissingOutput)
+  }
   let bridge = match
     @execution.prepare_managed_publication_bridge(
-      self.completed,
+      completed,
       material,
       limits.max_rows,
       limits.values,
@@ -120,14 +160,14 @@ fn LocalValuesExecution::prepare_publication_bridge(
     Ok(value) => value
     Err(issue) => return Err(Bridge(issue))
   }
-  let rows = match self.rows() {
-    Ok(value) => value
-    Err(_) => {
-      @execution.close_managed_publication_bridge(bridge)
-      return Err(MissingOutput)
+  for index in 0..<(operations.output_rows)() {
+    let row = match (operations.output_row)(index) {
+      Ok(value) => value
+      Err(_) => {
+        @execution.close_managed_publication_bridge(bridge)
+        return Err(MissingOutput)
+      }
     }
-  }
-  for row in rows {
     match
       @execution.append_managed_publication_bridge_wire(bridge, row, row_limits) {
       Ok(_) => ()
