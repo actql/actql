@@ -4,7 +4,7 @@
     {
       "module": "adapters/connectors/local/site/root-filesystem.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9fa3eddc8765338aa15d520358bfac1193466f05aff3a9e9240007b8ce851535",
+      "sha256": "33de750d358e5ffdf8cb04a4987cb9a621dba3a19450bae4a35beb2fd0761353",
       "exports": [
         "openLocalFileRoot"
       ],
@@ -376,6 +376,10 @@
               {
                 "path": "adapters/connectors/local/site/root-filesystem.inc",
                 "anchor": "fileRootRead"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "Buffer.allocUnsafeSlow(Number(metadata.size))"
               }
             ],
             "extension": [
@@ -388,6 +392,10 @@
               {
                 "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-content.test.mjs",
+                "anchor": "test('Local Content"
               }
             ]
           }
@@ -397,7 +405,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b86a5b92962591cb3b4b2e0a326c292e9c865ddfb310e6114350af716f454d41",
+      "sha256": "889b1f5194aa47d9d6f03f75405f462eeb2a7f2499c0523d98eb555c28968490",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -458,8 +466,32 @@
           "async": true
         },
         {
+          "name": "installPreparedProjectLocalFiles/adapter/init:closeKeyedSourceRead/init:closeKeyedSourceRead",
+          "parameters": [
+            "original"
+          ],
+          "async": true
+        },
+        {
           "name": "installPreparedProjectLocalFiles/adapter/init:issueReadGrant/init:issueReadGrant",
-          "parameters": [],
+          "parameters": [
+            "operation",
+            "decision",
+            "resource",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "maxUses"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:prepareKeyedSourceRead/init:prepareKeyedSourceRead",
+          "parameters": [
+            "checkedOwner",
+            "keyedAcquisition",
+            "request",
+            "declaration"
+          ],
           "async": false
         },
         {
@@ -485,6 +517,16 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/checkRead/checkRead#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/cleanup/cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/fileLimits/fileLimits",
           "parameters": [
             "name"
@@ -504,6 +546,18 @@
             "file"
           ],
           "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/init:readPages",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/limits/limits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         },
         {
           "name": "installPreparedProjectLocalFiles/captureClose",
@@ -532,6 +586,18 @@
           "async": true
         },
         {
+          "name": "installPreparedProjectLocalFiles/contentLedger",
+          "parameters": [
+            "prepared",
+            "request",
+            "recipe",
+            "direct",
+            "keyed",
+            "capacity"
+          ],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectLocalFiles/current/current",
           "parameters": [],
           "async": false
@@ -553,7 +619,7 @@
         {
           "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
           "parameters": [
-            "source"
+            "name"
           ],
           "async": false
         },
@@ -574,12 +640,19 @@
         {
           "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#3",
           "parameters": [
-            "ref"
+            "source"
           ],
           "async": false
         },
         {
           "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#4",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#5",
           "parameters": [
             "prepared",
             "request"
@@ -587,7 +660,7 @@
           "async": false
         },
         {
-          "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#5",
+          "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#6",
           "parameters": [
             "prepared",
             "request"
@@ -605,6 +678,50 @@
         {
           "name": "installPreparedProjectLocalFiles/issuer/issuer#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/keyedTransports/keyedTransports",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/prepareContentRun",
+          "parameters": [
+            "prepared",
+            "request",
+            "recipe"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/prepareContentRun/content/content",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/prepareContentRun/content/content/content",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/prepareContentRun/direct/direct",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/prepareContentRun/direct/direct/direct",
+          "parameters": [
+            "view"
+          ],
           "async": false
         },
         {
@@ -856,6 +973,8 @@
       ],
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/acquisition-outcome.mjs",
+        "../../../host-common/compiler-binding.generated.mjs",
         "../../../host-common/runtime-result.mjs",
         "../../../host-node/installed-check-environment.mjs",
         "../../../host-node/installed-host-cleanup.mjs",
@@ -864,6 +983,7 @@
         "../../../host-node/installed-row-source.mjs",
         "../site/root-filesystem.mjs",
         "node:crypto",
+        "node:fs/promises",
         "node:path"
       ],
       "compilerFields": [],
@@ -881,28 +1001,42 @@
             "installPreparedProjectLocalFiles",
             "installPreparedProjectLocalFiles/adapter/adapter",
             "installPreparedProjectLocalFiles/adapter/init:close/init:close",
+            "installPreparedProjectLocalFiles/adapter/init:closeKeyedSourceRead/init:closeKeyedSourceRead",
             "installPreparedProjectLocalFiles/adapter/init:issueReadGrant/init:issueReadGrant",
+            "installPreparedProjectLocalFiles/adapter/init:prepareKeyedSourceRead/init:prepareKeyedSourceRead",
             "installPreparedProjectLocalFiles/adapter/init:prepareSourceRead/init:prepareSourceRead",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/checkRead/checkRead",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/checkRead/checkRead#2",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/cleanup/cleanup",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/fileLimits/fileLimits",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/flush/flush",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/init:onFile/init:onFile",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/init:readPages",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/limits/limits",
             "installPreparedProjectLocalFiles/captureClose",
             "installPreparedProjectLocalFiles/close",
             "installPreparedProjectLocalFiles/close/close",
             "installPreparedProjectLocalFiles/closeRead",
+            "installPreparedProjectLocalFiles/contentLedger",
             "installPreparedProjectLocalFiles/current/current",
             "installPreparedProjectLocalFiles/init:ledgerCapacity/init:ledgerCapacity",
             "installPreparedProjectLocalFiles/init:prepare/init:prepare",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
-            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#2",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#3",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#4",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#5",
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#6",
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
             "installPreparedProjectLocalFiles/issuer/issuer",
             "installPreparedProjectLocalFiles/issuer/issuer#2",
+            "installPreparedProjectLocalFiles/keyedTransports/keyedTransports",
+            "installPreparedProjectLocalFiles/prepareContentRun",
+            "installPreparedProjectLocalFiles/prepareContentRun/content/content",
+            "installPreparedProjectLocalFiles/prepareContentRun/content/content/content",
+            "installPreparedProjectLocalFiles/prepareContentRun/direct/direct",
+            "installPreparedProjectLocalFiles/prepareContentRun/direct/direct/direct",
             "installPreparedProjectLocalFiles/prepareRun",
             "installPreparedProjectLocalFiles/queryAliases/queryAliases",
             "installPreparedProjectLocalFiles/queryAliases/queryAliases/view/view",
@@ -968,6 +1102,10 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files.mjs",
                 "anchor": "ForeignLocalFilesPreparation"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "LocalFilesContentResourceMismatch"
               }
             ],
             "ownership": [
@@ -978,6 +1116,10 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files.mjs",
                 "anchor": "retainChild"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "prepareManagedContentRun:prepareContentRun"
               }
             ],
             "synchronization": [
@@ -998,6 +1140,10 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files.mjs",
                 "anchor": "retainInstalledHostInitializationFailure"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "new AcquisitionOpenError(cause"
               }
             ],
             "cancellation": [
@@ -1018,6 +1164,10 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files.mjs",
                 "anchor": "ledgerCapacity"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "const keyedTransports="
               }
             ],
             "extension": [
@@ -1038,6 +1188,10 @@
               {
                 "path": "src/connectors_builtin_node/client_local_file_timestamp_wbtest.mbt",
                 "anchor": "test "
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-content.test.mjs",
+                "anchor": "test('Local Content"
               }
             ]
           }
