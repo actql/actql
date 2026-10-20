@@ -36,6 +36,27 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   const children = selected.components.map(selection => ({selection}));
   let execution, pendingSetup, issuance, publication, holding, sourceContinuation, restoredSource;
   let issuanceComplete = false, closeAttempted = false, released = false;
+  function retainCompleted(child) {
+    if (!child.capture.retainCompleted()) return false;
+    if (originalPreparation === undefined || issuanceComplete) return true;
+    if (children.length !== 1 || children[0] !== child) {
+      throw new Error('InstalledComposedInferOriginalObservationUnavailable');
+    }
+    const calls = child.capture.completedCallCount();
+    if (!Number.isSafeInteger(calls) || calls < 0 || calls > 128) {
+      throw new Error('InstalledComposedInferOriginalObservationUnavailable');
+    }
+    // Seal this Model's actual observation while its original input tokens
+    // still precede Local's legitimate completed-output ownership transfer.
+    // Store persistence and public Result publication still follow the DAG.
+    issuance ??= startCompleteInferObservation({moon, operations: [child.operation],
+      maxSlots: calls, maxWireBytes: 16384, maxWork: calls + 2});
+    for (let step = 0; step < calls + 2 && !issuanceComplete; step++) {
+      issuanceComplete = runtimeField(checked(moon.clientProgramAdvanceInferObservationIssuance(issuance, 1)), 0);
+    }
+    if (!issuanceComplete) throw new Error('InstalledComposedInferOriginalObservationUnavailable');
+    return true;
+  }
   async function cleanup() {
     if (released) return true;
     // Installation can fail before the asynchronous driver returns an owner.
@@ -210,7 +231,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
         child.operation = operation;
         child.capture = openNodeInferCaptureCustody({moon, control, operation, plan, store,
           storeAuthorityCid, sourceEvidence, faultInjection, durableCalls: true, captureOnly: true});
-      }, retainCompleted: () => child.capture.retainCompleted()});
+      }, retainCompleted: () => retainCompleted(child)});
   }
   const setup = multiple ? moon.clientProgramOpenMultiCapturedComposedInferHost(preparedProgram,
     captures.map(value => value.capture.source()), input.ledger, registry, values, fragment, ordered,
@@ -289,10 +310,13 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   }
   for (const child of children) await child.capture.persist();
   const calls = children.reduce((sum, child) => sum + child.capture.evaluationBundle().count, 0);
-  issuance = startCompleteInferObservation({moon, operations: children.map(child => child.operation),
-    ledger: originalPreparation !== undefined ? undefined :
-      checked(moon.clientProgramInferPublicationLedger(262144n + BigInt(calls * 128 + (children.length - 1) * 256), calls + 2)),
-    maxSlots: calls, maxWireBytes: 16384, maxWork: calls + 2});
+  if (originalPreparation === undefined) {
+    issuance = startCompleteInferObservation({moon, operations: children.map(child => child.operation),
+      ledger: checked(moon.clientProgramInferPublicationLedger(262144n + BigInt(calls * 128 + (children.length - 1) * 256), calls + 2)),
+      maxSlots: calls, maxWireBytes: 16384, maxWork: calls + 2});
+  } else if (issuance === undefined || !issuanceComplete) {
+    throw new Error('InstalledComposedInferOriginalObservationUnavailable');
+  }
   while (!issuanceComplete) {
     issuanceComplete = runtimeField(checked(moon.clientProgramAdvanceInferObservationIssuance(issuance, 1)), 0);
     if (!issuanceComplete) await yieldEventLoop();
