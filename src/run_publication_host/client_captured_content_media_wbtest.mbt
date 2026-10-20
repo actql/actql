@@ -5,7 +5,11 @@ fn captured_content_media_schema(
   let fields = media_types.mapi((index, media_type) => {
     (
       @schema.Unqualified("content_" + index.to_string()),
-      { nullable: false, shape: @contract.ContentRef(media_type~), },
+      @contract.content_reference_contract(
+        media_type,
+        nullable=false,
+        max_name_bytes=256,
+      ).unwrap(),
     )
   })
   @schema.from_fields(fields, max_fields=8, max_name_bytes=256).unwrap()
