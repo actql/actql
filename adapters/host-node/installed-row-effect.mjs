@@ -313,6 +313,31 @@ const parseExactJson = wire => {
 const optionalFunction = value => value === undefined ||
   typeof value === 'function';
 
+// The actual Host supplies this private service. Capturing its methods does
+// not issue a Run or turn limits into capacity; the retained owner validates
+// the original preparation/Run before each physical use.
+function captureEffectResources(receiver) {
+  if (receiver === undefined) return undefined;
+  const methods = {};
+  for (const name of ['bindRunOriginal', 'assertCurrent', 'limits']) {
+    const field = receiver === null || typeof receiver !== 'object'
+      ? undefined : Object.getOwnPropertyDescriptor(receiver, name);
+    if (field === undefined || !Object.hasOwn(field, 'value') ||
+        typeof field.value !== 'function') fail('InstalledEffectResourcesUnavailable');
+    const method = field.value;
+    methods[name] = (...args) => Reflect.apply(method, receiver, args);
+  }
+  return Object.freeze(methods);
+}
+
+function requireSynchronousEffectResource(value) {
+  if (typeof value?.then === 'function') {
+    void Promise.resolve(value).catch(() => {});
+    fail('InstalledEffectResourcesUnavailable');
+  }
+  return value;
+}
+
 function checkDriver(driver) {
   if (driver === null || typeof driver !== 'object' ||
       !Array.isArray(driver.kinds) || driver.kinds.length === 0 ||
@@ -414,7 +439,8 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   environmentWire, connectorId, connectorRegistration, connectorRevision,
   connection, site, authorization, runtimeBundleCid, bindingCid, driver,
   ledgerRoot, installation, continuationBinding = bindingCid,
-  limits: suppliedLimits}) {
+  limits: suppliedLimits, effectResources}) {
+  const resources = captureEffectResources(effectResources);
   const limits = Object.freeze({...defaultLimits, ...suppliedLimits});
   const owned = checkDriver(driver);
   const profile = profileOf(installation);
@@ -467,7 +493,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   return createRowEffectStage([Object.freeze({moon, limits, owned, profile,
     installed, installedCommands, environmentWire, connectorId,
     connectorRegistration, connectorRevision, connection, site, authorization,
-    runtimeBundleCid, bindingCid, ledgerRoot, continuationBinding})], environmentWire);
+    runtimeBundleCid, bindingCid, ledgerRoot, continuationBinding, resources})], environmentWire);
 }
 
 // Each physical occurrence retains its own admitted installation. Shared Run,
@@ -552,13 +578,45 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     memberInstallations.set(retained, owner);
     return retained;
   };
+  const runResources = new WeakMap();
+  const bindRunResources = (facts, members) => {
+    const originals = new Map();
+    for (const member of members) {
+      const owner = ownerOf(member);
+      if (owner.resources === undefined) continue;
+      if (!originals.has(owner)) {
+        const original = requireSynchronousEffectResource(owner.resources.bindRunOriginal(facts));
+        if (original === null || typeof original !== 'object') {
+          fail('InstalledEffectResourcesUnavailable');
+        }
+        originals.set(owner, original);
+      }
+      runResources.set(member, originals.get(owner));
+    }
+  };
+  const resourceFields = member => {
+    if (ownerOf(member).resources === undefined) return {};
+    const runOriginal = runResources.get(member);
+    if (runOriginal === undefined) fail('InstalledEffectResourcesUnavailable');
+    return {runOriginal};
+  };
   const selectionFence = (facts, members, stageIndex) => {
     const selections = validateOwnerSelections(owners, facts.updateTargetSelections, facts.prepared);
-    if (selections === undefined) return undefined;
+    const resourceOwners = [...new Map(members.flatMap(member => {
+      const owner = ownerOf(member);
+      return owner.resources === undefined ? [] : [[owner, resourceFields(member).runOriginal]];
+    })).entries()];
+    if (selections === undefined && resourceOwners.length === 0) return undefined;
     const liveAssertion = facts.assertUpdateSelectionCurrent;
-    if (typeof liveAssertion !== 'function') selectionChanged();
+    if (selections !== undefined && typeof liveAssertion !== 'function') selectionChanged();
     const updates = members.filter(member => member.kind === 'update' || member.kind === 'delete');
     const assertCurrent = () => {
+      for (const [owner, original] of resourceOwners) {
+        if (requireSynchronousEffectResource(owner.resources.assertCurrent(original)) !== undefined) {
+          fail('InstalledEffectResourcesUnavailable');
+        }
+      }
+      if (selections === undefined) return;
       validateOwnerSelections(owners, selections, facts.prepared);
       try {
         assertUpdateTargetSelectionMembersCurrent(selections, updates.map(member => {
@@ -686,7 +744,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   const requestsOf = (member, rows, current, contentOf) => Object.freeze(rows.map((row, index) => {
     const {owned} = ownerOf(member);
     return requestEntry(member, row, owned.prepareRequest({member, value: row.value,
-      selector: row.selector, current,
+      selector: row.selector, current, ...resourceFields(member),
       ...(contentOf === undefined ? {} : {content: commandContentRow(contentOf, index)})}));
   }));
 
@@ -828,7 +886,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const {owned} = ownerOf(member);
     assertCurrent?.();
     const observed = await owned.observeTargets({member, entries, current,
-      authorizationForRow: read.authorizationForRow, signal});
+      authorizationForRow: read.authorizationForRow, signal, ...resourceFields(member)});
     assertCurrent?.();
     if (!Array.isArray(observed) || observed.length !== entries.length) {
       fail('ForeignInstalledRowEffectObservation');
@@ -965,10 +1023,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         const description = owned.describe === undefined ? undefined :
           await owned.describe({member, runInvocationCid,
             dispatchRequestCid: dispatches[index], label: `apply-${index}`,
-            approval: reads[index]?.approval, signal});
+            approval: reads[index]?.approval, signal, ...resourceFields(member)});
         assertCurrent?.();
         await owned.recheckRequests?.({member, entries: entries[index],
-          current: description});
+          current: description, ...resourceFields(member)});
         assertCurrent?.();
         fresh.push(description);
       }
@@ -1037,7 +1095,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           claim, member, entry,
           previewRow: previewRows[memberIndex][sourceIndex]});
         await owned.recheckRequests?.({member, entries: [entry],
-          current: now[memberIndex]});
+          current: now[memberIndex], ...resourceFields(member)});
         assertCurrent?.();
         const grant = site.issueEffectGrant({
           operation: owned.writeOperation(member),
@@ -1053,7 +1111,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
               authorization: {...grant, useId:
                 `${dispatches[memberIndex]}-write-${subjectCid}-${rowIndex}`},
               credential: site.credential, callResource: site.callResource,
-              signal});
+              signal, ...resourceFields(member)});
           }});
         assertClaimedCurrent();
         if (!captured.claimed) {
@@ -1441,7 +1499,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       const description = owned.describe === undefined ? undefined :
         await owned.describe({member, runInvocationCid,
           dispatchRequestCid: dispatches[index], label: `preview-${index}`,
-          approval: reads[index]?.approval, signal});
+          approval: reads[index]?.approval, signal, ...resourceFields(member)});
       assertCurrent?.();
       currents.push(description);
       const contentOf = member.kind !== 'command' ? undefined : commandContentBorrower({
@@ -1462,6 +1520,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           if (requestChildren.length >= limits.maxRows) fail('InstalledRowEffectRowLimit');
           const context = {member, value: row.value, selector: row.selector,
             current: description, content: commandContentRow(contentOf, rowIndex), signal,
+            ...resourceFields(member),
             ...(guarded(member.kind) ? {rowIndex, assertCurrent,
               authorizationForRow: () => reads[index].authorizationForRow(rowIndex)} :
               {authorizationForRow: reads[index]?.authorizationForRow})};
@@ -1478,7 +1537,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         continue;
       }
       if (member.kind === 'command') {
-        await owned.recheckRequests({member, entries, current: description});
+        await owned.recheckRequests({member, entries, current: description, ...resourceFields(member)});
         assertCurrent?.();
         rowsOf.push(Object.freeze(entries.map(entry => Object.freeze({entry}))));
         observations.push(undefined);
@@ -1661,6 +1720,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         plan.contractLimits.maxDepth))};
     const unit = facts.unit ?? installedRowEffectUnit(moon, compilation);
     const members = membersOf(prepared, unit);
+    bindRunResources(facts, members);
     const assertCurrent = selectionFence(facts, members, unit.stageIndex);
     const runInvocationCid = plan.invocation.identity;
     const dispatches = members.map(member =>
@@ -1746,7 +1806,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   const recoveredEntries = ({members, body, durable, recorded,
     previewWire}) => {
     const rebuilt = singular?.owned.recoverRequests === undefined ? undefined :
-      singular.owned.recoverRequests({durable, recorded, previewWire, body});
+      singular.owned.recoverRequests({durable, recorded, previewWire, body,
+        ...resourceFields(members[0])});
     const requests = members.map((_, index) => rebuilt?.requests?.[index]);
     const usesRecovery = members.map(() => rebuilt !== undefined);
     const currents = members.map((_, index) => rebuilt?.currents?.[index]);
@@ -1755,8 +1816,9 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         if (owner.owned.recoverMemberRequests === undefined) continue;
         const memberIndexes = Object.freeze(members.flatMap((member, index) =>
           ownerOf(member) === owner ? [index] : []));
+        if (memberIndexes.length === 0) continue;
         const recovered = owner.owned.recoverMemberRequests({durable, recorded,
-          previewWire, body, memberIndexes});
+          previewWire, body, memberIndexes, ...resourceFields(members[memberIndexes[0]])});
         if (!Array.isArray(recovered?.requests) ||
             recovered.requests.length !== memberIndexes.length ||
             (recovered.currents !== undefined &&
@@ -1789,7 +1851,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         ? changes.map(change => {
           const prepared = owned.prepareRequest({member,
             value: change.after?.value, selector: undefined,
-            current: currents[index]});
+            current: currents[index], ...resourceFields(member)});
           return entryOf(member, prepared?.request, prepared?.requestCid);
         })
         : (requests[index] ?? []).map(request =>
@@ -1849,6 +1911,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const previewWire = control.effectComputationPreviewWire(preview);
     const body = JSON.parse(previewWire);
     const members = recoveredMembers(body, provider, selected);
+    bindRunResources(facts, members);
     const assertCurrent = selectionFence(facts, members, provider.stage_index);
     const runInvocationCid = body.invocation_cid;
     const dispatches = members.map(member =>
