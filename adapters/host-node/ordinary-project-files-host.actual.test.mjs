@@ -33,15 +33,18 @@ test('ordinary Project Local files use one actual managed Run and preserve indep
     active = name; const result = await operation();
     t.diagnostic(JSON.stringify({step: name, status: 'passed'})); return result;
   };
-  const listing = 'SELECT path, size_bytes, modified_at FROM LIST_FILES(local)';
+  const listing = 'SELECT path, size, modified_time, size_bytes, modified_at FROM LIST_FILES(local)';
   t.diagnostic(JSON.stringify({directory})); process.chdir(directory);
   try {
     first = await step('connect ordinary Project Local Source Host', () => connectEmbeddedLocal(options('first')));
     assert.deepEqual(await step('Source Host source-free SELECT', () => first.sql('SELECT 1 AS id').all()), [{id: 1}]);
     const rows = await step('actual Local LIST_FILES on the original managed Run', () => first.sql(listing).all());
     assert.deepEqual(rows.map(row => row.path).sort(), ['nested/two.txt', 'one.txt']);
-    assert.equal(rows.find(row => row.path === 'one.txt').size_bytes, Number(input.size));
-    assert.equal(typeof rows[0].modified_at, 'string');
+    const one = rows.find(row => row.path === 'one.txt');
+    assert.equal(String(one.size), String(input.size));
+    assert.equal(one.size_bytes, Number(input.size));
+    assert.equal(typeof one.modified_time, 'string');
+    assert.equal(one.modified_time, one.modified_at);
     // The retained exact connection acquisition participates in Host reuse.
     // Changing only original bytes must not silently return the old service.
     await writeFile(join(directory, 'connectors.json'), connections + '\n');
