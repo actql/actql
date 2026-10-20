@@ -66,6 +66,7 @@ fn local_result_file_deliveries(
     let destination = delivery.files[index]
     let result_name = selected_names[index]
     let mut attempt_id = ""
+    let mut result_cid = ""
     let outcome = try {
       let binding = if index == 0 {
         actual.binding
@@ -111,6 +112,26 @@ fn local_result_file_deliveries(
       if !current() {
         stop("LocalReadAuthorizationDenied")
       }
+      // Public request metadata is taken from this same committed Artifact,
+      // never a current declaration or a placeholder inferred from the path.
+      let committed = match
+        actual.store.resolve_committed_result(
+          selected.namespace_id,
+          actual.scope,
+          selected.run_definition_cid,
+          result_name,
+          65536,
+          8192,
+          64,
+        ) {
+        Ok(Some(value)) => value
+        Ok(None) => stop("LocalResultPublicationUnavailable")
+        Err(_) => stop("LocalResultPublicationObservationUnavailable")
+      }
+      if !current() {
+        stop("LocalReadAuthorizationDenied")
+      }
+      result_cid = committed.read.result_artifact_cid
       Ok(
         local_admitted_result_stream(
           host~,
@@ -154,7 +175,7 @@ fn local_result_file_deliveries(
         Json::object(
           Map::from_array([
             ("result", Json::string(result_name)),
-            ("result_cid", Json::string("")),
+            ("result_cid", Json::string(result_cid)),
             ("format", Json::string(destination.format)),
             ("path", Json::string(destination.path)),
           ]),
@@ -169,7 +190,7 @@ fn local_result_file_deliveries(
         ).unwrap_or_else(() => stop("LocalResultReceiptUnavailable"))
         let receipt_json = local_delivery_contract_json(receipt)
         guard receipt_json is Object(receipt_fields) &&
-          json_text(receipt_fields, "result_artifact_cid") is Some(result_cid) else {
+          json_text(receipt_fields, "result_artifact_cid") == Some(result_cid) else {
           stop("LocalResultReceiptUnavailable")
         }
         guard fields.get("request") is Some(Object(request_fields)) else {
