@@ -246,6 +246,18 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         if (model.closed || model.taken || model.readAttempted) fail('ForeignInstalledModelPreparation');
         model.taken = true;
       },
+      openSourceFreeHost(registry, values, fragment, ordered, providers) {
+        sameRun(prepared);
+        if (run.effectful || run.retired || model.closed || !model.taken || model.hostAttempted ||
+            moon.clientProgramAcquisitionCount(prepared) !== 0) {
+          fail('ForeignInstalledModelPreparation');
+        }
+        // The checked Source-free driver and Model component borrow this
+        // original Run Ledger. No captured Source or second parent is made.
+        model.hostAttempted = true;
+        return checked(moon.clientProgramOpenInstalledManagedSourceFreeComposedInferHost(
+          run.value, prepared, run.request, registry, values, fragment, ordered, providers));
+      },
       prepareRead() {
         // The Scope predates all Sources. Its descriptor/read snapshots the
         // same Ledger only when Local hands the actual prefix inputs to the

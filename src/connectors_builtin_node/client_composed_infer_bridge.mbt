@@ -192,6 +192,42 @@ pub fn client_program_open_captured_composed_infer_host(
 }
 
 ///|
+/// Source-free Mock components use the same admitted Run as their Local
+/// driver. Provider construction does not create a replacement Ledger.
+#export_name("clientProgramOpenInstalledManagedSourceFreeComposedInferHost")
+pub fn client_program_open_installed_managed_source_free_composed_infer_host(
+  value : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  registry : String,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  providers : Array[@local.ManagedProvider],
+) -> Result[
+  @builtin.ConfiguredComputeHost[@strategy.RunIssue]?,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.open_installed_managed_source_free_host(
+    value,
+    prepared,
+    request,
+    registry,
+    values,
+    fragment,
+    ordered,
+    true,
+    provider_factory=capacity => {
+      let families = installed_client_family_providers(capacity)
+      for provider in providers {
+        families.push(provider)
+      }
+      families
+    },
+  )
+}
+
+///|
 /// Both captured Sources and the Mock component borrow the already admitted
 /// Run. The Local driver remains the only scheduler; no scalar fallback or
 /// new resource parent is constructed by this provider connection.

@@ -2576,6 +2576,14 @@ async function openInstalledHost(originalInstallation, preparation) {
     registry, values, selections: inferSelections, namespaceId, authorityScopeCid,
     storeAuthorityCid, now, modelController, inferEvidence: evidenceConfiguration,
     checkpoints, prepareAcquisition, runContent,
+    prepareOriginalMockRun(prepared, plan) {
+      const early = earlyMockInferPlans.get(prepared);
+      if (early === undefined || early.plan !== plan ||
+          typeof sourceProfile?.modelPreparation !== 'function') {
+        throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
+      }
+      return sourceProfile.modelPreparation(prepared, plan);
+    },
     prepareKeyedRecovery: async ({preparedProgram, plan, submission}) => {
       // Reuse the declared pre-acquisition Run envelope; reopening input does
       // not list files, obtain keyed rows, fabricate Source completion or create
@@ -3519,7 +3527,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       preparation.admitResultPublicationRun(submission.preparedProgram);
       if (selection?.localMock) {
-        if (acquisitionCount !== 2 || typeof sourceProfile?.prepareManagedMockModelRun !== 'function') {
+        if (acquisitionCount !== 0 && acquisitionCount !== 2 ||
+            typeof sourceProfile?.prepareManagedMockModelRun !== 'function') {
           throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
         }
         let early = earlyMockInferPlans.get(submission.preparedProgram);

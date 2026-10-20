@@ -18,7 +18,7 @@ const slices=outer.body.body.flatMap(node=>{
 }).join('\n');
 assert.equal(slices.match(/(?:function |const )(?:sameRun|prepareManagedRun|prepareManagedMockModelRun|modelPreparation|retireModelRead)\b/gu).length,5);
 
-function fixture({afterFactoryFailure,readFailure,settleFailure,effectful=false}={}){
+function fixture({afterFactoryFailure,readFailure,settleFailure,effectful=false,acquisitionCount=2}={}){
   const calls=[],prepared={},request={},compiled={},compilation={},runDefinition={},graph={},occurrence={};
   const records=new Map(),original={},admission={},value={},scope={},read={};
   const sources=[],closedSources=new Set(),sourceReady=[true,true],sourceCloseCalls=[0,0];
@@ -34,7 +34,13 @@ function fixture({afterFactoryFailure,readFailure,settleFailure,effectful=false}
       readRetainedBytes:10n,readExecutionBytes:10n,modelRetainedBytes:10n,modelExecutionBytes:10n};
     return original;
   },assertCurrent:current};
-  const moon={clientProgramNodeLocalMockModelRunPrepare(o,p){
+  const setup={},providers=[{}];
+  const moon={clientProgramAcquisitionCount:p=>{assert.strictEqual(p,prepared);return acquisitionCount;},
+    clientProgramOpenInstalledManagedSourceFreeComposedInferHost(v,p,r,registry,values,fragment,ordered,actualProviders){
+      assert.strictEqual(v,value);assert.strictEqual(p,prepared);assert.strictEqual(r,request);
+      assert.deepEqual([registry,values,fragment,ordered],['registry','values','fragment','ordered']);
+      assert.strictEqual(actualProviders,providers);calls.push('open-source-free');return setup;
+    },clientProgramNodeLocalMockModelRunPrepare(o,p){
     assert.strictEqual(o,original);assert.strictEqual(p,prepared);calls.push('admission');return admission;
   },clientProgramInstalledManagedRunCheck(v,p,r){
     assert.strictEqual(v,value);assert.strictEqual(p,prepared);assert.strictEqual(r,request);calls.push('check');
@@ -81,7 +87,8 @@ function fixture({afterFactoryFailure,readFailure,settleFailure,effectful=false}
   sources.push(...[0,1].map(index=>({close:()=>api.closeSource(index)})));
   const plan={compiled,runDefinition},selection={graph,occurrence};
   return{...api,calls,records,prepared,request,plan,selection,compilation,control,original,admission,value,scope,
-    sourceReady,sourceCloseCalls,cleanup,originalModelCleaned:()=>cleanedModelReads.add(read),
+    sourceReady,sourceCloseCalls,cleanup,setup,providers,
+    loseCurrent(error){afterFactoryFailure=error;},originalModelCleaned:()=>cleanedModelReads.add(read),
     begin(){effectful?api.prepareManagedEffectMockModelRun(prepared,request,control,plan,selection,undefined,compilation)
       :api.prepareManagedMockModelRun(prepared,request,control,plan,selection);},
     attachSources(){
@@ -89,6 +96,38 @@ function fixture({afterFactoryFailure,readFailure,settleFailure,effectful=false}
         close(){sourceCloseCalls[index]++;return{pending:!sourceReady[index]};}}));
     }};
 }
+
+test('source-free Mock opens its Local driver on the same original Run and Scope exactly once',()=>{
+  const f=fixture({acquisitionCount:0});f.begin();
+  const preparation=f.modelPreparation(f.prepared,f.plan);
+  assert.throws(()=>preparation.openSourceFreeHost('registry','values','fragment','ordered',f.providers),
+    {code:'ForeignInstalledModelPreparation'});
+  preparation.retain();
+  assert.strictEqual(preparation.openSourceFreeHost('registry','values','fragment','ordered',f.providers),f.setup);
+  assert(f.calls.indexOf('scope')<f.calls.indexOf('open-source-free'));
+  assert.equal(f.calls.includes('read'),false);
+  assert.throws(()=>preparation.openSourceFreeHost('registry','values','fragment','ordered',f.providers),
+    {code:'ForeignInstalledModelPreparation'});
+  assert.equal(f.calls.filter(value=>value==='open-source-free').length,1);
+});
+
+test('source-free Mock driver entry does not replace a captured or Effect Run',()=>{
+  for(const options of [{acquisitionCount:2},{acquisitionCount:0,effectful:true}]){
+    const f=fixture(options);f.begin();const preparation=f.modelPreparation(f.prepared,f.plan);
+    preparation.retain();
+    assert.throws(()=>preparation.openSourceFreeHost('registry','values','fragment','ordered',f.providers),
+      {code:'ForeignInstalledModelPreparation'});
+    assert.equal(f.calls.includes('open-source-free'),false);
+  }
+});
+
+test('source-free Mock retains its original Scope when currentness refuses before Local open',()=>{
+  const f=fixture({acquisitionCount:0});f.begin();const preparation=f.modelPreparation(f.prepared,f.plan);
+  preparation.retain();const failure=new Error('OriginalHostChanged');f.loseCurrent(failure);
+  assert.throws(()=>preparation.openSourceFreeHost('registry','values','fragment','ordered',f.providers),error=>error===failure);
+  assert.strictEqual(f.records.get(f.prepared).model.scope,f.scope);
+  assert.equal(f.calls.includes('open-source-free'),false);
+});
 
 test('Mock installs its same original Run Scope before returning any Source preparation',()=>{
   const f=fixture();f.begin();

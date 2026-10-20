@@ -30,7 +30,10 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     throw new Error('InstalledComposedInferOriginalInventoryMissing');
   }
   const multiple = acquiredInfer?.sources?.length === 2;
-  if (records.length === 0 && acquiredInfer?.captured === undefined && !multiple) {
+  const sourceFree = originalPreparation !== undefined && acquiredInfer === undefined &&
+    selected.components.length === 1 && selected.components[0].localMock === true &&
+    moon.clientProgramAcquisitionCount(preparedProgram) === 0;
+  if (records.length === 0 && acquiredInfer?.captured === undefined && !multiple && !sourceFree) {
     throw new Error('InstalledComposedInferInputUnavailable');
   }
   const children = selected.components.map(selection => ({selection}));
@@ -214,12 +217,12 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
           {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})};
     }
   } else if (historical !== undefined) throw new Error('ModelSourceClosureCustodyUnavailable');
-  const {captured, sourceEvidenceWire, captureStartedAt, captureCompletedAt} = input;
-  const captures = multiple ? input.sources.map(source => source.captured) : [captured];
+  const {captured, sourceEvidenceWire, captureStartedAt, captureCompletedAt} = input ?? {};
+  const captures = sourceFree ? [] : multiple ? input.sources.map(source => source.captured) : [captured];
   const wires = multiple ? input.sources.map(source => source.sourceEvidenceWire) : [sourceEvidenceWire];
-  const sourceEvidence = multiple ? input.sourceEvidence : [input.sourceEvidence];
+  const sourceEvidence = sourceFree ? [] : multiple ? input.sourceEvidence : [input.sourceEvidence];
   for (const child of children) {
-    const sources = child.restoredInput === undefined ? checked(moon.clientProgramAdmitComposedInferSources(child.selection.occurrence,
+    const sources = child.restoredInput === undefined && !sourceFree ? checked(moon.clientProgramAdmitComposedInferSources(child.selection.occurrence,
       captures.map(value => value.capture.source()), captures.map(value => value.identity),
       captures.map(value => value.requirement),
       captures.map(value => moon.strategyRunEvidenceJson(value.logicalInput)), wires, authorityScopeCid,
@@ -233,7 +236,8 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
           storeAuthorityCid, sourceEvidence, faultInjection, durableCalls: true, captureOnly: true});
       }, retainCompleted: () => retainCompleted(child)});
   }
-  const setup = multiple ? moon.clientProgramOpenMultiCapturedComposedInferHost(preparedProgram,
+  const setup = sourceFree ? originalPreparation.openSourceFreeHost(registry, values, fragment, ordered,
+    children.map(child => child.component.provider)) : multiple ? moon.clientProgramOpenMultiCapturedComposedInferHost(preparedProgram,
     captures.map(value => value.capture.source()), input.ledger, registry, values, fragment, ordered,
     children.map(child => child.component.provider)) : moon.clientProgramOpenCapturedComposedInferHost(preparedProgram,
     captured.capture.source(), registry, values, fragment, ordered,
