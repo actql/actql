@@ -154,10 +154,10 @@ test "File read preimage binds every destination original and keeps stdout bytes
     exact.cid,
     "sha256:b6e307b06e1b9722d8e65425c08df2dc25e88dc33d552a132dfe74a70a9006e1",
   )
-  assert_eq(
+  assert_true(
     read_local_file_destination_original(
       local_read_egress_fields(exact.wire).unwrap(),
-    ).unwrap(),
+    ).unwrap() ==
     file,
   )
   for
