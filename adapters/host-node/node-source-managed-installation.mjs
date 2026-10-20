@@ -1,9 +1,11 @@
 import {createRequire} from 'node:module';
 import {types} from 'node:util';
-import {prepareOrdinarySourceManagedInstallation, assertOrdinarySourcePreparationCurrent}
+import {prepareOrdinarySourceManagedInstallation, prepareOrdinaryProjectSourceManagedInstallation,
+  assertOrdinarySourcePreparationCurrent}
   from './ordinary-source-managed.mjs';
 import {assertSourceManagedHostPreparation, prepareInstalledMockSourcePreparation,
-  readInstalledMockPreparation, originalSourceManagedHostRequest, sourceManagedSubmittedIntentCid,
+  readInstalledMockPreparation, readInstalledProjectSourcePreparation,
+  originalSourceManagedHostRequest, sourceManagedSubmittedIntentCid,
   managedComputeSubmittedIntentCid, readSourceManagedRunRequirements, readManagedComputeRunRequirements,
   readSourceManagedEffectRunRequirements,
   readLocalMockModelRunRequirements}
@@ -134,6 +136,20 @@ export function prepareManagedComputeInstallation(originals) {
     mockRequirements: readLocalMockModelRunRequirements,
   }, false);
   return prepareInstallation(originals, computeCallbacks);
+}
+
+// The ordinary Host already retained the existing Connector's nominal Project
+// preparation. Its real Root/readers are acquired by that same consumer, not
+// by the Mock document reader or an unrelated selected-preload callback table.
+export function prepareProjectSourceManagedInstallation(originals) {
+  if (explicitStartup) unavailable();
+  return prepareOrdinaryProjectSourceManagedInstallation(originals, {
+    validator: assertSourceManagedHostPreparation,
+    prepare: () => {readInstalledProjectSourcePreparation(originals);},
+    read: readInstalledProjectSourcePreparation, request: originalSourceManagedHostRequest,
+    intent: sourceManagedSubmittedIntentCid, requirements: readSourceManagedRunRequirements,
+    effectRequirements: readSourceManagedEffectRunRequirements,
+  });
 }
 
 async function prepareInstallation(originals, selectedCallbacks) {

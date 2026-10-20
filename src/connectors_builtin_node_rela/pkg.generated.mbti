@@ -1183,6 +1183,8 @@ pub fn client_program_local_effect_table_definition_json(@run_publication_host.C
 
 pub fn client_program_local_effect_table_storage_mapping(@run_publication_host.ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[@table.IcebergStorageMapping, @table.IcebergStorageMappingIssue]
 
+pub fn client_program_local_file_timestamp(Int64, Int) -> String?
+
 pub fn client_program_local_table_commit_response(String, Int, Int, Int, Int) -> Result[String, @effect_application.TableCommitIssue]
 
 pub fn client_program_local_table_storage_mapping_cid(@table.IcebergStorageMapping) -> String

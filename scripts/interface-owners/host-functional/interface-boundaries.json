@@ -54613,13 +54613,14 @@
     },
     {
       "module": "adapters/host-node/node-source-managed-installation.mjs",
-      "sha256": "7c53437a28aa36b42d8468a240228b59d08bc07f9921a887430e54717607ff8e",
+      "sha256": "6171159a5814a50f075970a970bb0787f23f6fb4241f42fdba51aebf309c5b61",
       "exports": [
         "assertManagedComputeInstallationCurrent",
         "assertManagedComputePreparationCurrent",
         "assertSourceManagedInstallationCurrent",
         "assertSourceManagedPreparationCurrent",
         "prepareManagedComputeInstallation",
+        "prepareProjectSourceManagedInstallation",
         "prepareSourceManagedInstallation"
       ],
       "operations": [
@@ -54826,6 +54827,18 @@
           "parameters": [
             "originals"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareProjectSourceManagedInstallation",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareProjectSourceManagedInstallation/prepareProjectSourceManagedInstallation",
+          "parameters": [],
           "async": false
         },
         {
@@ -55245,6 +55258,93 @@
               {
                 "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
                 "anchor": "source-free Compute original precedes SDK snapshot and cannot issue Source children"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareProjectSourceManagedInstallation",
+            "prepareProjectSourceManagedInstallation/prepareProjectSourceManagedInstallation"
+          ],
+          "exports": [
+            "prepareProjectSourceManagedInstallation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An ordinary Project Local Source retains its exact connection declaration and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function readInstalledProjectSourcePreparation(originals) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function readInstalledProjectSourcePreparation(originals) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "child.reader = actual;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "if (child.flight !== undefined) return Object.freeze({pending: true});"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "if (pending(observed)) return Object.freeze({pending: true});"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "child.closing = true;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An ordinary Project Local Source retains its exact connection declaration and"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "This projection remains managed demand, not a physical supplier or read grant."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "separate and never follows merely from installing a normal Local Source."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source retains a real reader before current refusal and closes with the captured original receiver'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('single Source dispatcher keeps the original managed parent and singleton capacity arrays'"
               }
             ]
           }
@@ -70745,9 +70845,10 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "bb43e8fe885360c3dc8209e999d7acba8c326c961f21c4a4e9270eb563dfdfa3",
+      "sha256": "7634def79fe037a99f4b48441aa05092915d1bc25a26cbc4a2b3de59dab5e7bc",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
+        "prepareOrdinaryProjectSourceManagedInstallation",
         "prepareOrdinarySourceManagedInstallation"
       ],
       "operations": [
@@ -70782,28 +70883,41 @@
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation",
+          "name": "prepareOrdinaryManagedInstallation",
           "parameters": [
             "originals",
             "callbacks",
-            "source"
+            "source",
+            "project"
           ],
           "async": true
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/closeChild",
+          "name": "prepareOrdinaryManagedInstallation/captureReader",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/closeChild",
           "parameters": [
             "child"
           ],
           "async": true
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/current/current",
+          "name": "prepareOrdinaryManagedInstallation/closeChild/work/work",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/current/current",
           "parameters": [],
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/prepareRun",
+          "name": "prepareOrdinaryManagedInstallation/prepareRun",
           "parameters": [
             "prepared",
             "purpose",
@@ -70813,38 +70927,38 @@
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/prepareRun/prepareRun",
+          "name": "prepareOrdinaryManagedInstallation/prepareRun/prepareRun",
           "parameters": [],
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/prepareRun/prepareRun/prepareRun",
+          "name": "prepareOrdinaryManagedInstallation/prepareRun/prepareRun/prepareRun",
           "parameters": [
             "child"
           ],
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/prepareRun/prepareRun#2",
+          "name": "prepareOrdinaryManagedInstallation/prepareRun/prepareRun#2",
           "parameters": [],
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/prepareRun/producer/producer",
+          "name": "prepareOrdinaryManagedInstallation/prepareRun/producer/producer",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/producerFor/producerFor",
+          "name": "prepareOrdinaryManagedInstallation/producerFor/producerFor",
           "parameters": [
             "receipt"
           ],
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/readBytes",
+          "name": "prepareOrdinaryManagedInstallation/readBytes",
           "parameters": [
             "run",
             "child"
@@ -70852,19 +70966,19 @@
           "async": true
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/readBytes/work/work",
+          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work",
           "parameters": [],
           "async": true
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/readBytes/work/work/bytes/bytes",
+          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes",
           "parameters": [
             "original"
           ],
           "async": true
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/readBytes/work/work/bytes/bytes/bytes",
+          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes/bytes",
           "parameters": [
             "value",
             "index"
@@ -70872,7 +70986,7 @@
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/readBytes/work/work/bytes/bytes/bytes#2",
+          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes/bytes#2",
           "parameters": [
             "value",
             "index"
@@ -70880,24 +70994,24 @@
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/runFor",
+          "name": "prepareOrdinaryManagedInstallation/runFor",
           "parameters": [
             "prepared"
           ],
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/status/status",
+          "name": "prepareOrdinaryManagedInstallation/status/status",
           "parameters": [],
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:beforeResultRead/init:beforeResultRead",
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeResultRead/init:beforeResultRead",
           "parameters": [],
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:beforeSourceQuery/init:beforeSourceQuery",
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceQuery/init:beforeSourceQuery",
           "parameters": [
             "format",
             "text",
@@ -70907,7 +71021,7 @@
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
           "parameters": [
             "kind",
             "input",
@@ -70916,7 +71030,7 @@
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
+          "name": "prepareOrdinaryManagedInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
           "parameters": [
             "receipt",
             "body",
@@ -70925,7 +71039,7 @@
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
+          "name": "prepareOrdinaryManagedInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
           "parameters": [
             "receipt",
             "body"
@@ -70933,17 +71047,17 @@
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:close/init:close",
+          "name": "prepareOrdinaryManagedInstallation/view/init:close/init:close",
           "parameters": [],
           "async": true
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:close/init:close/work/work",
+          "name": "prepareOrdinaryManagedInstallation/view/init:close/init:close/work/work",
           "parameters": [],
           "async": true
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
+          "name": "prepareOrdinaryManagedInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
           "parameters": [
             "receipt",
             "terminal"
@@ -70951,7 +71065,7 @@
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:intentCid/init:intentCid",
+          "name": "prepareOrdinaryManagedInstallation/view/init:intentCid/init:intentCid",
           "parameters": [
             "receipt",
             "body"
@@ -70959,7 +71073,7 @@
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:prepareEffectLocalMockModelRun/init:prepareEffectLocalMockModelRun",
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectLocalMockModelRun/init:prepareEffectLocalMockModelRun",
           "parameters": [
             "prepared",
             "model"
@@ -70967,14 +71081,14 @@
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:prepareEffectRun/init:prepareEffectRun",
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectRun/init:prepareEffectRun",
           "parameters": [
             "prepared"
           ],
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:prepareLocalMockModelRun/init:prepareLocalMockModelRun",
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareLocalMockModelRun/init:prepareLocalMockModelRun",
           "parameters": [
             "prepared",
             "model"
@@ -70982,49 +71096,74 @@
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:prepareRead/init:prepareRead",
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead",
           "parameters": [
             "prepared",
             "declaration",
-            "originalRun"
+            "originalRun",
+            "occurrence"
           ],
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:prepareRead/init:prepareRead/index/index",
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/declared/declared",
           "parameters": [
             "source"
           ],
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead",
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead",
           "parameters": [
             "child"
           ],
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#2",
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#2",
           "parameters": [],
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#3",
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#3",
           "parameters": [],
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#4",
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#4",
           "parameters": [],
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:prepareRun/init:prepareRun",
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:retainChild/init:retainChild",
+          "parameters": [
+            "actual"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRun/init:prepareRun",
           "parameters": [
             "prepared"
           ],
           "async": false
+        },
+        {
+          "name": "prepareOrdinaryProjectSourceManagedInstallation",
+          "parameters": [
+            "originals",
+            "callbacks"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinarySourceManagedInstallation",
+          "parameters": [
+            "originals",
+            "callbacks",
+            "source"
+          ],
+          "async": true
         }
       ],
       "imports": [
@@ -71046,32 +71185,32 @@
             "fileIdentity/fileIdentity",
             "pending/pending",
             "prepareOrdinarySourceManagedInstallation",
-            "prepareOrdinarySourceManagedInstallation/closeChild",
-            "prepareOrdinarySourceManagedInstallation/current/current",
-            "prepareOrdinarySourceManagedInstallation/producerFor/producerFor",
-            "prepareOrdinarySourceManagedInstallation/readBytes",
-            "prepareOrdinarySourceManagedInstallation/readBytes/work/work",
-            "prepareOrdinarySourceManagedInstallation/readBytes/work/work/bytes/bytes",
-            "prepareOrdinarySourceManagedInstallation/readBytes/work/work/bytes/bytes/bytes",
-            "prepareOrdinarySourceManagedInstallation/readBytes/work/work/bytes/bytes/bytes#2",
-            "prepareOrdinarySourceManagedInstallation/runFor",
-            "prepareOrdinarySourceManagedInstallation/status/status",
-            "prepareOrdinarySourceManagedInstallation/view/init:beforeResultRead/init:beforeResultRead",
-            "prepareOrdinarySourceManagedInstallation/view/init:beforeSourceQuery/init:beforeSourceQuery",
-            "prepareOrdinarySourceManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
-            "prepareOrdinarySourceManagedInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
-            "prepareOrdinarySourceManagedInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
-            "prepareOrdinarySourceManagedInstallation/view/init:close/init:close",
-            "prepareOrdinarySourceManagedInstallation/view/init:close/init:close/work/work",
-            "prepareOrdinarySourceManagedInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
-            "prepareOrdinarySourceManagedInstallation/view/init:intentCid/init:intentCid",
-            "prepareOrdinarySourceManagedInstallation/view/init:prepareRead/init:prepareRead",
-            "prepareOrdinarySourceManagedInstallation/view/init:prepareRead/init:prepareRead/index/index",
-            "prepareOrdinarySourceManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead",
-            "prepareOrdinarySourceManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#2",
-            "prepareOrdinarySourceManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#3",
-            "prepareOrdinarySourceManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#4",
-            "prepareOrdinarySourceManagedInstallation/view/init:prepareRun/init:prepareRun"
+            "prepareOrdinaryManagedInstallation/closeChild",
+            "prepareOrdinaryManagedInstallation/current/current",
+            "prepareOrdinaryManagedInstallation/producerFor/producerFor",
+            "prepareOrdinaryManagedInstallation/readBytes",
+            "prepareOrdinaryManagedInstallation/readBytes/work/work",
+            "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes",
+            "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes/bytes",
+            "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes/bytes#2",
+            "prepareOrdinaryManagedInstallation/runFor",
+            "prepareOrdinaryManagedInstallation/status/status",
+            "prepareOrdinaryManagedInstallation/view/init:beforeResultRead/init:beforeResultRead",
+            "prepareOrdinaryManagedInstallation/view/init:beforeSourceQuery/init:beforeSourceQuery",
+            "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+            "prepareOrdinaryManagedInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
+            "prepareOrdinaryManagedInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
+            "prepareOrdinaryManagedInstallation/view/init:close/init:close",
+            "prepareOrdinaryManagedInstallation/view/init:close/init:close/work/work",
+            "prepareOrdinaryManagedInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
+            "prepareOrdinaryManagedInstallation/view/init:intentCid/init:intentCid",
+            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead",
+            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/declared/declared",
+            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead",
+            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#2",
+            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#3",
+            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#4",
+            "prepareOrdinaryManagedInstallation/view/init:prepareRun/init:prepareRun"
           ],
           "exports": [
             "assertOrdinarySourcePreparationCurrent",
@@ -71142,12 +71281,12 @@
         },
         {
           "operations": [
-            "prepareOrdinarySourceManagedInstallation/prepareRun",
-            "prepareOrdinarySourceManagedInstallation/prepareRun/prepareRun",
-            "prepareOrdinarySourceManagedInstallation/prepareRun/prepareRun#2",
-            "prepareOrdinarySourceManagedInstallation/prepareRun/prepareRun/prepareRun",
-            "prepareOrdinarySourceManagedInstallation/prepareRun/producer/producer",
-            "prepareOrdinarySourceManagedInstallation/view/init:prepareLocalMockModelRun/init:prepareLocalMockModelRun"
+            "prepareOrdinaryManagedInstallation/prepareRun",
+            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun",
+            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun#2",
+            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun/prepareRun",
+            "prepareOrdinaryManagedInstallation/prepareRun/producer/producer",
+            "prepareOrdinaryManagedInstallation/view/init:prepareLocalMockModelRun/init:prepareLocalMockModelRun"
           ],
           "exports": [],
           "attributes": {
@@ -71235,8 +71374,8 @@
         },
         {
           "operations": [
-            "prepareOrdinarySourceManagedInstallation/view/init:prepareEffectLocalMockModelRun/init:prepareEffectLocalMockModelRun",
-            "prepareOrdinarySourceManagedInstallation/view/init:prepareEffectRun/init:prepareEffectRun"
+            "prepareOrdinaryManagedInstallation/view/init:prepareEffectLocalMockModelRun/init:prepareEffectLocalMockModelRun",
+            "prepareOrdinaryManagedInstallation/view/init:prepareEffectRun/init:prepareEffectRun"
           ],
           "exports": [],
           "attributes": {
@@ -71298,6 +71437,96 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation",
+            "prepareOrdinaryManagedInstallation/captureReader",
+            "prepareOrdinaryManagedInstallation/closeChild/work/work",
+            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:retainChild/init:retainChild",
+            "prepareOrdinaryProjectSourceManagedInstallation"
+          ],
+          "exports": [
+            "prepareOrdinaryProjectSourceManagedInstallation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An ordinary Project Local Source retains its exact connection declaration and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function readInstalledProjectSourcePreparation(originals) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function readInstalledProjectSourcePreparation(originals) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "child.reader = actual;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "if (child.flight !== undefined) return Object.freeze({pending: true});"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "if (pending(observed)) return Object.freeze({pending: true});"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "child.closing = true;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An ordinary Project Local Source retains its exact connection declaration and"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "This projection remains managed demand, not a physical supplier or read grant."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "separate and never follows merely from installing a normal Local Source."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source retains a real reader before current refusal and closes with the captured original receiver'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('single Source dispatcher keeps the original managed parent and singleton capacity arrays'"
               }
             ]
           }
@@ -73447,9 +73676,9 @@
   ],
   "counts": {
     "modules": 162,
-    "operations": 4115,
-    "exports": 1012,
-    "explicitContractGroups": 228
+    "operations": 4122,
+    "exports": 1014,
+    "explicitContractGroups": 230
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }

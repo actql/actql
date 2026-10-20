@@ -23,6 +23,17 @@ export function assertOrdinarySourcePreparationCurrent(view, originals, source) 
 }
 
 export async function prepareOrdinarySourceManagedInstallation(originals, callbacks, source) {
+  return prepareOrdinaryManagedInstallation(originals, callbacks, source, false);
+}
+
+// Same ordinary Source owner, but the installed Connector supplies its real
+// per-occurrence reader. It cannot borrow the Mock document read or its bytes.
+// The fixed Host calls this after retaining the actual Project preparation.
+export async function prepareOrdinaryProjectSourceManagedInstallation(originals, callbacks) {
+  return prepareOrdinaryManagedInstallation(originals, callbacks, true, true);
+}
+
+async function prepareOrdinaryManagedInstallation(originals, callbacks, source, project) {
   let closing = false, closed = false, bundle, flight, count = 0, checkingBundle = false;
   const receipts = new WeakMap(), producers = new Set(), runs = new Map();
   const current = () => {
@@ -43,18 +54,49 @@ export async function prepareOrdinarySourceManagedInstallation(originals, callba
     return producer;
   };
   const status = () => Object.freeze({pending: !closed});
+  function captureReader(child) {
+    if (!child.readerCloseSeen) {
+      const method = child.reader.close;
+      child.readerClose = method; child.readerCloseSeen = true;
+    }
+    if (typeof child.readerClose !== 'function') fail('InstalledSourceReaderCleanupUnavailable');
+    if (!child.readerStatusSeen) {
+      const method = child.reader.status;
+      child.readerStatus = method; child.readerStatusSeen = true;
+    }
+    if (typeof child.readerStatus !== 'function') fail('InstalledSourceReaderCleanupUnavailable');
+  }
   async function closeChild(child) {
     if (child.closed) return Object.freeze({pending: false});
     if (child.flight !== undefined) return Object.freeze({pending: true});
-    if (child.cleanup !== undefined) {
-      if (pending(Reflect.apply(child.cleanupStatus, child.cleanup, []))) {
-        await Reflect.apply(child.cleanupRetry, child.cleanup, []);
+    child.closing = true;
+    const work = Promise.resolve().then(async () => {
+      if (child.reader !== undefined) {
+        // Retention precedes these getters. Only a getter which never
+        // returned can be read again; a captured callback is never replaced.
+        captureReader(child);
+        if (!child.readerCloseAcknowledged) {
+          const observed = await Reflect.apply(child.readerClose, child.reader, []);
+          if (pending(observed)) return Object.freeze({pending: true});
+          child.readerCloseAcknowledged = true;
+        }
+        if (pending(Reflect.apply(child.readerStatus, child.reader, []))) {
+          return Object.freeze({pending: true});
+        }
+        child.reader = child.readerClose = child.readerStatus = undefined;
       }
-      if (pending(Reflect.apply(child.cleanupStatus, child.cleanup, []))) return Object.freeze({pending: true});
-      child.cleanup = child.cleanupStatus = child.cleanupRetry = undefined;
-    }
-    child.bytes = undefined; child.closed = true;
-    return Object.freeze({pending: false});
+      if (child.cleanup !== undefined) {
+        if (pending(Reflect.apply(child.cleanupStatus, child.cleanup, []))) {
+          await Reflect.apply(child.cleanupRetry, child.cleanup, []);
+        }
+        if (pending(Reflect.apply(child.cleanupStatus, child.cleanup, []))) return Object.freeze({pending: true});
+        child.cleanup = child.cleanupStatus = child.cleanupRetry = undefined;
+      }
+      child.bytes = undefined; child.closed = true;
+      return Object.freeze({pending: false});
+    });
+    child.flight = work;
+    try {return await work;} finally {if (child.flight === work) child.flight = undefined;}
   }
   function runFor(prepared) {
     current();
@@ -185,16 +227,32 @@ export async function prepareOrdinarySourceManagedInstallation(originals, callba
     prepareEffectLocalMockModelRun(prepared, model) {
       return prepareRun(prepared, 'local-mock-model', model, true);
     },
-    prepareRead(prepared, declaration, originalRun) {
+    prepareRead(prepared, declaration, originalRun, occurrence) {
       const run = runFor(prepared);
-      const index = bundle?.sources.findIndex(source => source.declaration === declaration);
-      if (index === undefined || index < 0 || run.original !== originalRun ||
+      const declared = bundle?.sources.findIndex(source => source.declaration === declaration);
+      const index = project ? occurrence?.task : declared;
+      if (declared === undefined || declared < 0 || run.original !== originalRun ||
+          project && (!Number.isSafeInteger(index) || index < 0 || index >= 32 ||
+            occurrence.stage !== index || occurrence.input !== 0) ||
           run.children.some(child => child.index === index)) fail('InstalledSourcePreparationMismatch');
       const child = {index, attempted: false, closed: false, bytes: undefined, flight: undefined,
-        cleanup: undefined, cleanupStatus: undefined, cleanupRetry: undefined};
+        closing: false, cleanup: undefined, cleanupStatus: undefined, cleanupRetry: undefined,
+        reader: undefined, readerClose: undefined, readerStatus: undefined,
+        readerCloseSeen: false, readerStatusSeen: false, readerCloseAcknowledged: false};
       run.children.push(child);
       return Object.freeze({originalSource: Object.freeze({}),
-        readOriginalBytes: () => readBytes(run, child), close: () => closeChild(child),
+        ...(project ? {retainChild(actual) {
+          if (child.closed || child.closing || actual === null ||
+              typeof actual !== 'object' && typeof actual !== 'function' ||
+              child.reader !== undefined && child.reader !== actual) fail('InstalledSourcePreparationMismatch');
+          // The installing Connector transfers its same acquired reader here,
+          // before a callback/current check can reject the physical result.
+          // This retains cleanup responsibility, never permission or capacity.
+          child.reader = actual;
+          captureReader(child);
+          runFor(prepared);
+        }} : {readOriginalBytes: () => readBytes(run, child)}),
+        close: () => closeChild(child),
         status: () => Object.freeze({pending: !child.closed || child.flight !== undefined})});
     },
     async close() {
@@ -203,12 +261,18 @@ export async function prepareOrdinarySourceManagedInstallation(originals, callba
       closing = true;
       const work = Promise.resolve().then(async () => {
         if (producers.size !== 0) return status();
+        let childPending = false, failure;
         for (const run of runs.values()) {
-          for (const child of run.children) if (pending(await closeChild(child))) return status();
+          for (const child of run.children) {
+            try {if (pending(await closeChild(child))) childPending = true;}
+            catch (cause) {childPending = true; failure ??= cause;}
+          }
           if (run.original === undefined) continue;
           const observed = resourceRuntime.ordinaryManagedRunStatus(run.original);
-          if (observed.admitted && !observed.stopped) return status();
+          if (observed.admitted && !observed.stopped) childPending = true;
         }
+        if (failure !== undefined) throw failure;
+        if (childPending) return status();
         bundle = undefined; runs.clear(); closed = true; return status();
       });
       flight = work;
@@ -221,7 +285,9 @@ export async function prepareOrdinarySourceManagedInstallation(originals, callba
     if (source) {
       await callbacks.prepare(originals, view);
       bundle = callbacks.read(originals);
-      if (!Array.isArray(bundle.sources) || bundle.sources.length !== 2) fail('InstalledMockCatalogueUnavailable');
+      if (!Array.isArray(bundle.sources) || (project
+        ? bundle.sources.length < 1 || bundle.sources.length > 128
+        : bundle.sources.length !== 2)) fail('InstalledSourcePreparationMismatch');
     }
     current(); return view;
   } catch (cause) {

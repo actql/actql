@@ -29500,7 +29500,7 @@
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "4f2a6e32e5e36a88a7e2e798071acbb2e55d25d23120d2fd1775005ea3d485d2",
+      "sha256": "7da5436d684683dc72b8169f51d3736ef189ccce5b0a08f5c75e4d62057c7105",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -37414,7 +37414,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "7a4fd1ae24ebe8c944e40968a67bbd81ec84117324e068c2697a1683a2736fdc",
+      "sha256": "9c431a35c72f5da2ce3ad044e1287d389974815b1c8b5256ea488244c3f31ba4",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -37443,6 +37443,7 @@
         "readHostResultPublicationRunRequirements",
         "readInitialControlHostInput",
         "readInstalledMockPreparation",
+        "readInstalledProjectSourcePreparation",
         "readLocalMockModelRunRequirements",
         "readManagedComputeRunRequirements",
         "readSourceManagedEffectRunRequirements",
@@ -37504,6 +37505,11 @@
         },
         {
           "name": "connectEmbeddedLocal/connectEmbeddedLocal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/connectEmbeddedLocal#2",
           "parameters": [],
           "async": false
         },
@@ -37666,6 +37672,15 @@
           "async": false
         },
         {
+          "name": "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources",
+          "parameters": [
+            "runtime",
+            "baseEnvironmentWire",
+            "authorizationFor"
+          ],
+          "async": false
+        },
+        {
           "name": "connectEmbeddedLocal/preparation/init:modelPublicationCapacity/init:modelPublicationCapacity",
           "parameters": [
             "prepared"
@@ -37806,7 +37821,8 @@
             "root",
             "installation",
             "project",
-            "moon"
+            "moon",
+            "projectSources"
           ],
           "async": true
         },
@@ -37830,6 +37846,11 @@
             "key",
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "localProjectFilesystem",
+          "parameters": [],
           "async": false
         },
         {
@@ -39398,21 +39419,26 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/openInstalledHost#10",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/openInstalledHost#2",
           "parameters": [],
           "async": false
         },
         {
           "name": "openInstalledHost/openInstalledHost#3",
-          "parameters": [
-            "value"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "openInstalledHost/openInstalledHost#4",
           "parameters": [
-            "facts"
+            "value"
           ],
           "async": false
         },
@@ -39433,13 +39459,20 @@
         {
           "name": "openInstalledHost/openInstalledHost#7",
           "parameters": [
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/openInstalledHost#8",
+          "parameters": [
             "event",
             "detail"
           ],
           "async": false
         },
         {
-          "name": "openInstalledHost/openInstalledHost#8",
+          "name": "openInstalledHost/openInstalledHost#9",
           "parameters": [
             "key",
             "bytes",
@@ -39447,13 +39480,6 @@
             "signal"
           ],
           "async": true
-        },
-        {
-          "name": "openInstalledHost/openInstalledHost#9",
-          "parameters": [
-            "ref"
-          ],
-          "async": false
         },
         {
           "name": "openInstalledHost/recoveredInstalledEffect",
@@ -39700,6 +39726,13 @@
           "async": false
         },
         {
+          "name": "readInstalledProjectSourcePreparation",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
           "name": "readLocalMockModelRunRequirements",
           "parameters": [
             "originals",
@@ -39803,9 +39836,16 @@
           "async": false
         },
         {
-          "name": "readSourceManagedRunRequirementsOwned/limits/limits",
+          "name": "readSourceManagedRunRequirementsOwned/matches/matches",
           "parameters": [
             "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "readSourceManagedRunRequirementsOwned/matches/matches/matches",
+          "parameters": [
+            "view"
           ],
           "async": false
         },
@@ -44947,7 +44987,6 @@
             "readSourceManagedEffectRunRequirements",
             "readSourceManagedRunRequirementsOwned",
             "readSourceManagedRunRequirementsOwned/asset/asset",
-            "readSourceManagedRunRequirementsOwned/limits/limits",
             "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned",
             "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned#2"
           ],
@@ -45193,12 +45232,105 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/connectEmbeddedLocal#2",
+            "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources",
+            "localProjectFilesystem",
+            "openInstalledHost/openInstalledHost#10",
+            "readInstalledProjectSourcePreparation",
+            "readSourceManagedRunRequirementsOwned/matches/matches",
+            "readSourceManagedRunRequirementsOwned/matches/matches/matches"
+          ],
+          "exports": [
+            "readInstalledProjectSourcePreparation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An ordinary Project Local Source retains its exact connection declaration and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function readInstalledProjectSourcePreparation(originals) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function readInstalledProjectSourcePreparation(originals) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "child.reader = actual;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "if (child.flight !== undefined) return Object.freeze({pending: true});"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "if (pending(observed)) return Object.freeze({pending: true});"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "child.closing = true;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An ordinary Project Local Source retains its exact connection declaration and"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "This projection remains managed demand, not a physical supplier or read grant."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "separate and never follows merely from installing a normal Local Source."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source retains a real reader before current refusal and closes with the captured original receiver'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('single Source dispatcher keeps the original managed parent and singleton capacity arrays'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
         "../../packages/client-wire/index.mjs",
         "../../packages/sdk/host-port.mjs",
         "../../packages/sdk/internal/private-source-preparation.mjs",
+        "../connectors/local/host/installed-project-files.mjs",
         "../host-common/authorization-gate.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/completed-run-publication.mjs",
@@ -45282,7 +45414,9 @@
         "./source-profile-json.mjs",
         "./update-target-original-shape.mjs",
         "node:crypto",
+        "node:fs",
         "node:fs/promises",
+        "node:module",
         "node:os",
         "node:path",
         "node:url"
@@ -124856,8 +124990,8 @@
   ],
   "counts": {
     "modules": 58,
-    "operations": 3580,
-    "exports": 567,
-    "explicitContractGroups": 788
+    "operations": 3586,
+    "exports": 568,
+    "explicitContractGroups": 789
   }
 }

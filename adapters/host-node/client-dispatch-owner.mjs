@@ -644,9 +644,21 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           throw new Error('InstalledSingleSourceCapacityUnavailable');
         }
         const capacity = installedSource.ledgerCapacity(held.preparedSource);
-        ledger = moon.clientProgramPrepareSingleCapturedLocalInstalledLedger(preparedProgram,
-          capacity.capacity, capacity.transferBytes, capacity.executionBytes,
-          registry, values, fragment, ordered);
+        if (capacity.managedRun !== undefined) {
+          if (typeof moon.clientProgramInstalledManagedRunPrepareLedger !== 'function') {
+            throw new Error('InstalledSingleSourceOriginalRunUnavailable');
+          }
+          // One Source uses the same operational parent as the checked
+          // capture prefix. Equal scalar capacity is not a replacement Run.
+          ledger = checked(moon.clientProgramInstalledManagedRunPrepareLedger(
+            capacity.managedRun, preparedProgram, requested,
+            [capacity.capacity], [capacity.transferBytes], [capacity.executionBytes],
+            registry, values, fragment, ordered));
+        } else {
+          ledger = moon.clientProgramPrepareSingleCapturedLocalInstalledLedger(preparedProgram,
+            capacity.capacity, capacity.transferBytes, capacity.executionBytes,
+            registry, values, fragment, ordered);
+        }
         if (ledger === undefined) throw new Error('InstalledSingleSourceLedgerUnavailable');
         entry.acquisitionLedger = ledger;
       }
