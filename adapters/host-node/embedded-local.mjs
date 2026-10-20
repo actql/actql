@@ -2663,7 +2663,8 @@ async function openInstalledHost(originalInstallation, preparation) {
   };
   const answerLocalCheckpoint = (summary, decision, signal) => {
     assertProjectRuntime();
-    if (mode !== 'local' || mockAccount === undefined) {
+    if (mode !== 'local' || mockAccount === undefined ||
+        mockAccount.reviewer === undefined || checkpoints === undefined) {
       throw clientOperationError('CheckpointSignerUnavailable');
     }
     preparation.assertResultPublicationCurrent();

@@ -37414,7 +37414,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "8d964e7943d8f56c2f3f525a1d035ac23d67875e0e03089399844efda5798f76",
+      "sha256": "90d312a56154d46f9632056c4b7116ec19f35cf781f66b39f9104cd1d5dbae69",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
