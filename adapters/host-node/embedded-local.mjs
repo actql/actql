@@ -718,6 +718,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     : new Map();
   const inferSelections = new WeakMap();
   const earlyMockInferPlans = new WeakMap();
+  const earlyContentPlans = new WeakMap();
   const effectSubmissions = new WeakMap();
   const effectSelections = new WeakMap();
   // A prepared Local Host borrows the selected startup's original fixed image;
@@ -2126,6 +2127,14 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       return earlyMock.plan;
     }
+    const earlyContent = earlyContentPlans.get(preparedProgram);
+    if (earlyContent !== undefined) {
+      if (earlyContent.requestId !== requestId || retainedDefinitionWire !== undefined &&
+          retainedDefinitionWire !== earlyContent.plan.runDefinition.wire) {
+        throw clientOperationError('ForeignInstalledContentRun');
+      }
+      return earlyContent.plan;
+    }
     const restored = prepareSubmit.originalInferRun(preparedProgram);
     if (restored !== undefined) {
       return restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity});
@@ -2231,6 +2240,9 @@ async function openInstalledHost(originalInstallation, preparation) {
     registry, values, fragment, ordered, namespaceId, authorityScopeCid,
     storeAuthorityCid, ownerPrincipal: principalId, now,
     authorize: actual => hostConnection({principalId: actual, connection: {mode, owner: mode}}),
+    preparedRunRequired: preparation !== undefined,
+    assertRunCurrent: preparation === undefined ? undefined
+      : preparation.assertContentRunCurrent.bind(preparation),
     faultInjection: authorization?.faultInjection});
   const runInfer = installNodeInferRun({moon, core: runtimeCore(moon), fragment, ordered,
     registry, values, selections: inferSelections, namespaceId, authorityScopeCid,
@@ -3043,9 +3055,28 @@ async function openInstalledHost(originalInstallation, preparation) {
     admitPreparedSubmission: preparation === undefined ? undefined : submission => {
       const {requested, acquisitionCount, effectful} = requestOf(submission);
       const selection = inferSelections.get(submission.preparedProgram);
-      if (effectful || selection !== undefined && !selection.localMock ||
-          moon.clientProgramSerializationOccurrences(submission.preparedProgram).length !== 0) {
+      if (effectful || selection !== undefined && !selection.localMock) {
         throw clientOperationError('HostResultPublicationPurposeUnavailable');
+      }
+      if (moon.clientProgramSerializationOccurrences(submission.preparedProgram).length !== 0) {
+        // Content has its own pre-admitted prefix and real Store writers. A
+        // Result service or Source/Model allowance cannot supply that work.
+        if (selection !== undefined || acquisitionCount !== 0) {
+          throw clientOperationError('InstalledContentRunPreparationUnsupported');
+        }
+        preparation.admitResultPublicationRun(submission.preparedProgram);
+        const retained = journal.resolveDefinition(requested, {namespaceId}, moon, control);
+        // A prior physical start is observed through its saved Run. Resource
+        // preparation cannot regenerate Content or replace an uncertain write.
+        if (retained?.physicalStartReserved === true) return;
+        let early = earlyContentPlans.get(submission.preparedProgram);
+        if (early === undefined) {
+          early = {requestId: submission.requestId,
+            plan: planFor(submission, retained?.runDefinition.wire, requested)};
+          earlyContentPlans.set(submission.preparedProgram, early);
+        }
+        runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan});
+        return;
       }
       preparation.admitResultPublicationRun(submission.preparedProgram);
       if (selection?.localMock) {
@@ -4362,6 +4393,14 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     admitResultPublicationRun(prepared) {
       if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
       resultPublication.admitRun(prepared);
+    },
+    assertContentRunCurrent() {
+      assertInitialControlHostPreparation(originals);
+      // This is the existing ordinary factory's actual Journal/Store, not
+      // initial/preload provenance or another purpose's resource credit.
+      ordinaryHostJournalInstallation(originals).assertCurrent();
+      if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
+      resultPublication.assertCurrent();
     },
     modelPublicationCapacity(prepared) {
       if (resultPublication === undefined || typeof resultPublication.modelPublicationCapacity !== 'function') {
