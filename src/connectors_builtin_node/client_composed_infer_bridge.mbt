@@ -626,9 +626,16 @@ pub fn client_program_composed_infer_local_provider(
   observe_issue : (@infer_host.Issue) -> Unit,
   retain_completed : (@infer_host.Execution) -> Bool,
   allow_cleanup : (@infer_host.Execution) -> Bool,
+  input_prefix : @execution.GeneratedSequence?,
 ) -> @local.ManagedProvider {
   client_infer_local_provider(
-    occurrence, open, observe_issue, retain_completed, allow_cleanup, false,
+    occurrence,
+    open,
+    observe_issue,
+    retain_completed,
+    allow_cleanup,
+    false,
+    input_prefix~,
   )
 }
 
@@ -654,6 +661,7 @@ fn client_infer_local_provider(
   retain_completed : (@infer_host.Execution) -> Bool,
   allow_cleanup : (@infer_host.Execution) -> Bool,
   boundary_only : Bool,
+  input_prefix? : @execution.GeneratedSequence? = None,
 ) -> @local.ManagedProvider {
   @infer_host.composed_local_provider(
     occurrence,
@@ -671,6 +679,7 @@ fn client_infer_local_provider(
     retain_completed~,
     allow_cleanup~,
     boundary_only~,
+    input_prefix~,
   )
 }
 

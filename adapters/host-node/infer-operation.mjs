@@ -1191,7 +1191,8 @@ export function openNodeComposedInferProvider({moon, selected, sources,
       }
     }, active => operation !== undefined &&
       activeOperations.get(operation) === active &&
-      operation.cleanupPending() === false);
+      operation.cleanupPending() === false,
+    ...(generatedInput === undefined ? [selected.computePrefix] : []));
   return Object.freeze({provider, operation: () => operation,
     failure: () => failure});
 }

@@ -22,6 +22,14 @@ struct ManagedProvider {
     @execution.SequenceExecutionLimits,
     @execution.NumericAggregateExecution?,
   ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue])?
+  // A trusted Model family can delegate its exact pre-boundary Relation
+  // segment to the same bounded Local owner. This is not an acceptance Bool.
+  infer_relation_prefix : (
+    @execution.GeneratedSequence,
+    Int,
+    @execution.SequenceExecutionLimits,
+    @execution.FixedInputGuardMeasureLimits,
+  )?
 }
 
 ///|
@@ -194,7 +202,7 @@ pub fn managed_provider_with_inputs(
     @execution.SequenceExecutionLimits,
   ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue],
 ) -> ManagedProvider {
-  { accepts, capacity, start, start_numeric: None, }
+  { accepts, capacity, start, start_numeric: None, infer_relation_prefix: None, }
 }
 
 ///|
@@ -220,6 +228,25 @@ pub fn managed_provider_with_numeric(
       start(sequence, inputs, rows, bytes, execution, None)
     },
     start_numeric: Some(start),
+    infer_relation_prefix: None,
+  }
+}
+
+///|
+/// Retain the bounded Local input recipe actually used by a trusted Model
+/// family. Eligibility still checks the accepted whole sequence, its exact
+/// Infer boundary and the original generated prefix under this recipe.
+/// This supplies neither Model authority nor a resource/cleanup admission.
+pub fn managed_provider_with_infer_relation_prefix(
+  provider : ManagedProvider,
+  prefix : @execution.GeneratedSequence,
+  boundary_step : Int,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+) -> ManagedProvider {
+  {
+    ..provider,
+    infer_relation_prefix: Some((prefix, boundary_step, execution, measurement)),
   }
 }
 

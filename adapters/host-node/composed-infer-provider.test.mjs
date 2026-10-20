@@ -34,8 +34,9 @@ test('composed Local start retains the original Model before Run and dispatch bi
   const ok = {$tag: 1, _0: undefined};
   const assertActive = value => assert.equal(value, active);
   const moon = {
-    clientProgramComposedInferLocalProvider(owner, open, issue, retain, cleanup) {
+    clientProgramComposedInferLocalProvider(owner, open, issue, retain, cleanup, inputPrefix) {
       assert.equal(owner, occurrence);
+      assert.equal(inputPrefix, prefix);
       start = open;
       project = issue;
       complete = retain;

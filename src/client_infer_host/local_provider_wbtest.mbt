@@ -110,6 +110,7 @@ fn exercise_original_local_infer_provider(retained_prefix : Bool) -> Unit raise 
       capture_owner.val = acquire_output(active)
       capture_owner.val is Some(_)
     },
+    input_prefix=Some(prefix),
   )
   assert_true(@local.managed_provider_accepts(family, sequence))
   assert_true(!@local.managed_provider_accepts(family, prefix))
@@ -237,6 +238,99 @@ fn exercise_original_local_infer_provider(retained_prefix : Bool) -> Unit raise 
     let bundles = @connector.install_bundles([bundle], 1, 100).unwrap()
     let registry = @connector.installed_bundle_registry(bundles)
     let registration = @connector.capability_registration_at(registry, 0).unwrap()
+    let module_for = fn(selected_family) {
+      @local.prepare_local_compute_module(
+        registry,
+        registration,
+        [sequence],
+        limits.input,
+        limits.measurement,
+        1000,
+        1,
+        managed_providers=[selected_family],
+      ).unwrap()
+    }
+    let original_module = module_for(family)
+    assert_eq(
+      @relation.generated_sequence_step_count(prefix),
+      @publication_host.client_infer_occurrence_coordinates(occurrence).2,
+    )
+    assert_true(
+      @local.local_module_bounded_values_obligation(original_module, 0, 0),
+    )
+    assert_true(
+      @local.local_module_bounded_relation_obligation(
+        original_module,
+        0,
+        1,
+        @local.Assertion,
+      ),
+    )
+    let unproven = @local.managed_provider_with_inputs(
+      actual => @local.managed_provider_accepts(family, actual),
+      actual => @local.managed_provider_capacity(family, actual),
+      (actual, inputs, rows, bytes, execution) => {
+        @local.start_managed_provider_with_inputs_and_execution(
+          family, actual, inputs, rows, bytes, execution,
+        )
+      },
+    )
+    assert_false(
+      @local.local_module_bounded_values_obligation(module_for(unproven), 0, 0),
+    )
+    assert_false(
+      @local.local_module_bounded_relation_obligation(
+        module_for(unproven),
+        0,
+        1,
+        @local.Assertion,
+      ),
+    )
+    let foreign_prefix = @input.prepare_client_composed_infer_prefix(
+      foreign_prepared, foreign_occurrence, infer_fixture_registry, infer_fixture_values,
+    ).unwrap()
+    let boundary = @publication_host.client_infer_occurrence_coordinates(
+        occurrence,
+      ).2
+    for
+      candidate in [
+        @local.managed_provider_with_infer_relation_prefix(
+          unproven,
+          foreign_prefix,
+          boundary,
+          limits.input,
+          limits.measurement,
+        ),
+        @local.managed_provider_with_infer_relation_prefix(
+          unproven,
+          prefix,
+          boundary + 1,
+          limits.input,
+          limits.measurement,
+        ),
+        @local.managed_provider_with_infer_relation_prefix(
+          unproven,
+          @relation.select_generated_sequence_step(sequence, 0).unwrap(),
+          boundary,
+          limits.input,
+          limits.measurement,
+        ),
+        @local.managed_provider_with_infer_relation_prefix(
+          unproven,
+          prefix,
+          boundary,
+          limits.input,
+          { ..limits.measurement, max_nodes: -1, },
+        ),
+      ] {
+      assert_false(
+        @local.local_module_bounded_values_obligation(
+          module_for(candidate),
+          0,
+          0,
+        ),
+      )
+    }
     let foreign_sequences = @input.prepare_client_local_sequences(
       foreign_prepared,
       infer_fixture_registry,
@@ -289,7 +383,40 @@ fn exercise_original_local_infer_provider(retained_prefix : Bool) -> Unit raise 
       managed_providers=[family],
     )
     match configured {
-      Ok(_) => ()
+      Ok(installed) => {
+        // The real Model family executes this original Values prefix through
+        // Local's bounded Relation owner before entering its Model boundary.
+        // Whole-family acceptance alone must not be its publication witness.
+        assert_eq(@local_driver.local_dispatch_rejection(installed, 0), None)
+        let imported = @input.client_local_import_limits(
+          {
+            contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+            max_rows: 100,
+            max_value_bytes: 10000,
+            common_fragment: None,
+          },
+          limits.input.rows.input_values,
+        )
+        @local_driver.configure_local_retained_inputs(
+          installed,
+          imported,
+          Some(0L),
+        ).unwrap()
+        @local_driver.configure_local_retained_output(
+          installed,
+          {
+            max_rows: imported.max_rows,
+            values: limits.input.rows.output_values,
+            wire: imported.wire,
+            max_batch_bytes: imported.max_batch_bytes,
+          },
+          Some(0L),
+        ).unwrap()
+        assert_true(
+          @local_driver.estimate_local_dispatch_offer(installed, 0, [], 1000)
+          is Ok(_),
+        )
+      }
       Err(@local_driver.Configuration(@connector.ForeignPreparation)) =>
         abort("the original prefix is rejected during driver selection")
       Err(_) => abort("another Local driver installation failure")

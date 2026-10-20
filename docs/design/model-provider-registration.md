@@ -385,6 +385,18 @@ installed candidates against the complete original
 admission and Run CID, refusing ambiguity; it does not select the first Model,
 refresh policy, or change predecessor materials bytes. The bounded candidate
 preparations and their temporary overlap belong to the same Host phase.
+
+The composed Local provider retains the actual generated input prefix and its
+input execution/measurement limits beside that same occurrence. Local's Values
+and Relation obligation checks require the same physical preparation, exact
+contiguous pre-INFER coordinates, and the existing bounded Local child and
+capacity for that segment. Acceptance of an arbitrary whole-Unit family is not
+this witness. A missing, foreign or incomplete prefix remains unsupported;
+selecting a prefix does not widen an already selected execution view. The
+Model component executes that retained prefix through the same bounded input
+owner, then retains its original Model and output cleanup duties. This private
+composition supplies neither permission nor another Run or resource admission.
+
 The original preparation, compiled admission and graph stay together in the same
 Host preparation membership. A private restored-membership index rejects a
 copied bundle; it does not create a second execution Owner or a resume permit.

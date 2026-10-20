@@ -214,21 +214,15 @@ pub fn local_module_bounded_values_obligation(
   slot : Int,
   step : Int,
 ) -> Bool {
-  guard installed.sequences.get(slot) is Some(sequence) &&
+  guard local_module_relation_obligation_segment(installed, slot, step)
+    is Some((sequence, execution, measurement, family)) &&
     local_sequence_contains_exact_step(sequence, step) &&
     @execution.select_generated_sequence_step(sequence, step) is Some(selected) &&
     @execution.generated_sequence_step_at(selected, 0)
     is Some(@lower.ValuesStep(_)) else {
     return false
   }
-  // Registered family providers take precedence over the built-in chain.
-  // Their acceptance alone does not prove bounded Values publication.
-  if installed.managed_providers.any(provider => {
-      managed_provider_accepts(provider, sequence)
-    }) {
-    return false
-  }
-  let child = values_provider(installed.execution, installed.measurement)
+  let child = values_provider(execution, measurement)
   if !managed_provider_accepts(child, selected) ||
     managed_provider_capacity(child, selected) is None {
     return false
@@ -237,13 +231,51 @@ pub fn local_module_bounded_values_obligation(
     return @execution.generated_sequence_step_index_at(sequence, 0) ==
       Some(step)
   }
-  let owner = selected_relation_provider(
-    installed.execution,
-    installed.measurement,
-    family=installed.managed_providers,
-  )
+  let owner = selected_relation_provider(execution, measurement, family~)
   managed_provider_accepts(owner, sequence) &&
   managed_provider_capacity(owner, sequence) is Some(_)
+}
+
+///|
+// Resolve only the selected execution owner's actual bounded Local segment.
+// A whole-family match without that original segment remains unsupported.
+fn local_module_relation_obligation_segment(
+  installed : LocalComputeModule,
+  slot : Int,
+  step : Int,
+) -> (
+  @execution.GeneratedSequence,
+  @execution.SequenceExecutionLimits,
+  @execution.FixedInputGuardMeasureLimits,
+  Array[ManagedProvider],
+)? {
+  guard installed.sequences.get(slot) is Some(sequence) else { return None }
+  for provider in installed.managed_providers {
+    if managed_provider_accepts(provider, sequence) {
+      guard provider.infer_relation_prefix
+        is Some((prefix, boundary, input_execution, input_measurement)) &&
+        boundary > 0 && step < boundary &&
+        physical_equal(
+          @execution.generated_sequence_owner(prefix),
+          @execution.generated_sequence_owner(sequence),
+        ) &&
+        @execution.select_generated_sequence_step(sequence, boundary)
+        is Some(model) &&
+        @execution.generated_sequence_step_at(model, 0)
+        is Some(@lower.InferBoundary(actual)) && actual == boundary &&
+        @execution.generated_sequence_step_count(prefix) == boundary else {
+        return None
+      }
+      for index in 0..<boundary {
+        if @execution.generated_sequence_step_index_at(prefix, index) !=
+          Some(index) {
+          return None
+        }
+      }
+      return Some((prefix, input_execution, input_measurement, []))
+    }
+  }
+  Some((sequence, installed.execution, installed.measurement, installed.managed_providers))
 }
 
 ///|
@@ -532,7 +564,8 @@ fn local_bounded_relation_check(
   required_step : Int,
   check : LocalBoundedRelationCheck,
 ) -> Bool {
-  guard installed.sequences.get(slot) is Some(sequence) else { return false }
+  guard local_module_relation_obligation_segment(installed, slot, required_step)
+    is Some((sequence, execution, measurement, family)) else { return false }
   let count = @execution.generated_sequence_step_count(sequence)
   let mut position = -1
   for index in 0..<count {
@@ -609,17 +642,12 @@ fn local_bounded_relation_check(
   if !matches {
     return false
   }
-  for provider in installed.managed_providers {
-    if managed_provider_accepts(provider, sequence) {
-      return false
-    }
-  }
   if count > 1 &&
     !managed_provider_accepts(
       selected_relation_provider(
-        installed.execution,
-        installed.measurement,
-        family=installed.managed_providers,
+        execution,
+        measurement,
+        family~,
       ),
       sequence,
     ) {
@@ -627,8 +655,8 @@ fn local_bounded_relation_check(
   }
   bounded_relation_step_provider(
     selected,
-    installed.execution,
-    installed.measurement,
+    execution,
+    measurement,
   )
   is Some(_)
 }
