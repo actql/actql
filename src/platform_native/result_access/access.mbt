@@ -435,6 +435,16 @@ fn NativeResultAccessSession::authorize_stage(
   if self.closed {
     return Err(InvalidProgress)
   }
+  self.authorize_current_stage(stage)
+}
+
+///|
+// Current authority/retention only. This does not open a reader, repeat an
+// attempt or alter the terminal Session; completed material uses it below.
+fn NativeResultAccessSession::authorize_current_stage(
+  self : NativeResultAccessSession,
+  stage : String,
+) -> Result[String, NativeResultAccessIssue] {
   let first = match observed_at(self.service) {
     Ok(value) => value
     Err(issue) => return Err(issue)

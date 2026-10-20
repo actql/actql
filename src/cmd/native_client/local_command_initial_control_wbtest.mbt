@@ -215,6 +215,42 @@ test "Selected command preparation frontend does not acquire before covered oper
 }
 
 ///|
+test "Selected command preparation reports the original failure boundary without payloads" {
+  let refused : Result[Unit, LocalCommandPreparationIssue] = Err(
+    CommandAdoption(@local_host.CustodyLost),
+  )
+  let staged = try {
+    ignore(command_preparation_result(refused, stage=Some("product-stage")))
+    "unexpected success"
+  } catch {
+    ClientStop(message) => message
+  }
+  assert_eq(staged, "LocalCommandPreparationUnavailable:product-stage:adoption")
+  let unavailable : Result[Unit, LocalCommandPreparationIssue] = Err(
+    CommandUnavailable,
+  )
+  let unstaged = try {
+    ignore(command_preparation_result(unavailable))
+    "unexpected success"
+  } catch {
+    ClientStop(message) => message
+  }
+  assert_eq(unstaged, "LocalCommandPreparationUnavailable")
+  let public_failure : Result[Unit, LocalCommandPreparationIssue] = Err(
+    CommandApplication("OriginalPublicFailure"),
+  )
+  let application = try {
+    ignore(
+      command_preparation_result(public_failure, stage=Some("product-stage")),
+    )
+    "unexpected success"
+  } catch {
+    ClientStop(message) => message
+  }
+  assert_eq(application, "OriginalPublicFailure")
+}
+
+///|
 test "Selected command preparation missing compiled layouts refuses before backing" {
   let failure = try {
     ignore(

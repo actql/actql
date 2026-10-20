@@ -145,7 +145,8 @@ fn NativeLocalHostConnection::validate_read_evidence(
         "domain", "effective_data_policy_cid", "expires_at", "format", "material_generation_cid",
         "max_bytes", "max_uses", "principal_id", "public_index_entry_cid", "purpose",
         "read_original_cid", "result_artifact_cid", "result_definition_cid", "result_manifest_cid",
-        "result_name", "run_definition_cid", "sink",
+        "result_name", "run_definition_cid", "sink", "material_receiver_cid", "result_schema_cid",
+        "ordering_evidence_cid",
       ],
       16384,
     ) {
@@ -200,10 +201,27 @@ fn NativeLocalHostConnection::validate_read_evidence(
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  // Existing saved stdout preimages cannot restore a material receiver or
-  // acquire its workspace merely because its configuration parses.
-  if selection.sink != Stdout {
-    return Err(CustodyLost)
+  // Archive integrity only: preserve the saved material identities without
+  // reconstructing a receiver or obtaining another read/holding permission.
+  let material_original = if selection.sink == Material {
+    guard epoch_text(egress, "sink") == Some("material") &&
+      epoch_text(egress, "material_receiver_cid") is Some(receiver_cid) &&
+      !receiver_cid.is_empty() &&
+      epoch_text(egress, "result_schema_cid") is Some(result_schema_cid) &&
+      !result_schema_cid.is_empty() &&
+      epoch_text(egress, "ordering_evidence_cid") is Some(ordering_evidence_cid) &&
+      !ordering_evidence_cid.is_empty() else {
+      return Err(CustodyLost)
+    }
+    Some({ receiver_cid, result_schema_cid, ordering_evidence_cid, })
+  } else {
+    if epoch_text(egress, "sink") != Some("stdout") ||
+      @decode.lookup(egress, "material_receiver_cid") is Some(_) ||
+      @decode.lookup(egress, "result_schema_cid") is Some(_) ||
+      @decode.lookup(egress, "ordering_evidence_cid") is Some(_) {
+      return Err(CustodyLost)
+    }
+    None
   }
   let selected_scope = match capture {
     None =>
@@ -272,12 +290,32 @@ fn NativeLocalHostConnection::validate_read_evidence(
             is Some(profile_file) else {
             return Err(CustodyLost)
           }
+          let run_read_file = if selection.sink == Material {
+            // Duration/custody comes from the exact original Run admission;
+            // the independent Material file never replaces its read CID.
+            guard record.local_run_policy_originals is Some(wire) &&
+              @host.client_local_original_record_fields(@utf8.encode(wire), [
+                "host_adoption_cid", "issued_at", "profile_wire", "read_selection_cid",
+                "request_wire", "retention_policy_wire", "run_definition_cid", "submission_reference_wire",
+                "version",
+              ])
+              is Ok(fields) &&
+              self.session.settings.files
+              .iter()
+              .find_first(candidate => candidate.content_cid == fields[3])
+              is Some(original_read) else {
+              return Err(CustodyLost)
+            }
+            original_read.name
+          } else {
+            file.name
+          }
           self.bind_run_policy_profile_with_capture(
             crypto,
             selection.principal,
             selection.connection,
             profile_file.name,
-            file.name,
+            run_read_file,
             roles.run_file,
             roles.retention_file,
             roles.store_file,
@@ -324,6 +362,8 @@ fn NativeLocalHostConnection::validate_read_evidence(
     scope,
     expires_at,
     selection_cid: read_cid,
+    material_receiver: None,
+    material_original,
     upgrade_packet: upgrade.map(value => value.packet),
     run_policy_original,
   }

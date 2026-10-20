@@ -28,6 +28,8 @@ struct NativeLocalReadPolicyBinding {
   scope : String
   expires_at : String
   selection_cid : String
+  mut material_receiver : @result_access.NativeResultMaterialReceiver?
+  mut material_original : NativeLocalReadMaterialOriginal?
   upgrade_packet : Bytes?
   run_policy_original : (
     NativeClientSubmissionReference,
@@ -81,6 +83,8 @@ pub fn NativeLocalHostConnection::bind_result_read_policy(
     scope,
     expires_at,
     selection_cid: file.content_cid,
+    material_receiver: None,
+    material_original: None,
     upgrade_packet: None,
     run_policy_original: None,
   })
@@ -110,11 +114,32 @@ fn NativeLocalHostConnection::bind_result_read_policy_for_run_with_capture(
   request : @host.ClientRequestIdentity,
   now : Double,
   capture? : NativeLocalJournalCapture? = None,
+  material? : @result_access.NativeResultMaterialReceiver? = None,
+  material_file? : String? = None,
 ) -> Result[NativeLocalReadPolicyBinding, NativeLocalReadBindingIssue] {
   if !physical_equal(self, policy.host) {
     return Err(SelectionMismatch)
   }
-  let file = policy.read_file
+  let file = match material_file {
+    None => policy.read_file
+    Some(name) => {
+      if capture is None ||
+        !(policy.origin is Selected) ||
+        name == policy.read_file.name {
+        return Err(SelectionMismatch)
+      }
+      guard self.session.settings.files
+        .iter()
+        .find_first(file => file.name == name)
+        is Some(file) &&
+        capture is Some(current) &&
+        current.selected_configuration_in_original_read(name) is Ok(body) &&
+        body == file.body else {
+        return Err(SelectionMismatch)
+      }
+      file
+    }
+  }
   let text = match policy.origin {
     Selected =>
       @utf8.decode(file.body) catch {
@@ -126,8 +151,21 @@ fn NativeLocalHostConnection::bind_result_read_policy_for_run_with_capture(
     Ok(value) => value
     Err(issue) => return Err(Selection(issue))
   }
-  if selection.sink != Stdout {
-    return Err(MaterialUnavailable)
+  let material_original = match (selection.sink, material) {
+    (Stdout, None) => None
+    (Material, None) if material_file is Some(_) && capture is Some(_) => None
+    (Material, Some(receiver)) => {
+      if !receiver.covers_read_limits(selection.max_bytes, selection.max_uses) {
+        return Err(MaterialUnavailable)
+      }
+      let identity = receiver.identity()
+      Some({
+        receiver_cid: identity.receiver_cid,
+        result_schema_cid: identity.result_schema_cid,
+        ordering_evidence_cid: identity.ordering_evidence_cid,
+      })
+    }
+    _ => return Err(MaterialUnavailable)
   }
   guard selection.expiry is AcceptedRunProfile(roles) &&
     roles.profile_cid ==
@@ -175,7 +213,13 @@ fn NativeLocalHostConnection::bind_result_read_policy_for_run_with_capture(
     connection: policy.connection,
     scope: policy.scope,
     expires_at,
-    selection_cid: policy.read_selection_cid,
+    selection_cid: if material_file is Some(_) {
+      file.content_cid
+    } else {
+      policy.read_selection_cid
+    },
+    material_receiver: material,
+    material_original,
     upgrade_packet: match policy.origin {
       Selected => None
       Upgraded(packet, _) => Some(packet)
@@ -287,9 +331,28 @@ fn NativeLocalReadPolicyBinding::require_request(
   original : @host.ClientRequestIdentity,
   facts : @result_access.NativeResultReadFacts,
 ) -> Result[Unit, NativeLocalReadBindingIssue] {
-  if self.selection.sink != Stdout {
-    return Err(MaterialUnavailable)
+  if self.selection.sink == Material {
+    guard self.material_receiver is Some(receiver) &&
+      self.material_original is Some(original) &&
+      receiver.matches_facts(facts) &&
+      receiver.identity().receiver_cid == original.receiver_cid &&
+      receiver.identity().result_schema_cid == original.result_schema_cid &&
+      receiver.identity().ordering_evidence_cid ==
+      original.ordering_evidence_cid else {
+      return Err(MaterialUnavailable)
+    }
   }
+  self.require_request_selection(original, facts)
+}
+
+///|
+// Shared current/Account/selection admission before material workspace and
+// again with its actual receiver before any payload read or delivery.
+fn NativeLocalReadPolicyBinding::require_request_selection(
+  self : NativeLocalReadPolicyBinding,
+  original : @host.ClientRequestIdentity,
+  facts : @result_access.NativeResultReadFacts,
+) -> Result[Unit, NativeLocalReadBindingIssue] {
   match self.require_current() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
