@@ -119,6 +119,12 @@ pub fn form(CheckedOperation) -> Form
 
 pub fn group(CheckedOperation) -> CheckedGroup?
 
+pub fn group_has_additional_prefix(CheckedGroup) -> Bool
+
+pub fn group_key_at(CheckedGroup, Int) -> KeyField?
+
+pub fn group_key_count(CheckedGroup) -> Int
+
 pub fn group_keys(CheckedGroup) -> Array[KeyField]
 
 pub fn input_schema(CheckedOperation) -> @relation_schema.Schema
