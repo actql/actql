@@ -23,8 +23,17 @@ fn submit_scope_current_capture(
   let session = begin_native_local_host_adoption(
     path, "host", path, "account.json", "operator", crypto,
   ).unwrap()
+  // Capture is existing-only. Initialize this fresh fixture through the actual
+  // Journal Owner, close it, then restore its original durable installation.
+  let seeded = session
+    .open_journal(local_journal_test_library(), crypto, 100.0, 8, 8388608L)
+    .unwrap()
+  seeded.close_owned_root_descriptors().unwrap()
+  let existing = begin_existing_native_local_host_adoption_with_custody(
+    path, "host", path, "account.json", "operator", crypto,
+  ).unwrap()
   prepare_native_local_journal_capture(
-    session,
+    existing,
     local_journal_test_library(),
     crypto,
     100.0,
