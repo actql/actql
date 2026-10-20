@@ -274,8 +274,10 @@ class OriginalSDKDeliveryStore:
         ticket = self._core._next_ticket
         self._uncertain_payload[request.ticket] = ticket
         try:
-            output = self._core.reserve_publication_commit_export(
-                self._observation._projection._publication, cleanup=self._workspace_cleanup)
+            projection = self._observation._projection
+            reserve = (self._core.reserve_saved_result_export if projection._saved
+                       else self._core.reserve_publication_commit_export)
+            output = reserve(projection._publication, cleanup=self._workspace_cleanup)
         except BaseException:
             if ticket not in self._core._inputs and ticket not in self._core._released:
                 del self._uncertain_payload[request.ticket]

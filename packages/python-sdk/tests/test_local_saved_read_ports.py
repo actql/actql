@@ -2,19 +2,59 @@
 import asyncio
 import copy
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import httpx
 
 from actql_sdk._local_commit_projection import OriginalCommitProjection
-from actql_sdk._local_core import LocalCoreError, _Output
+from actql_sdk._local_core import LocalCoreError, _Input, _Output
 from actql_sdk._local_reader_facts import OriginalReaderFacts
 from actql_sdk._local_saved_read import OriginalSavedResultRead
+from actql_sdk._local_sdk_delivery_storage import OriginalSDKDeliveryStore
+import test_local_commit_store_caller as export_fixture
 import test_local_reader_facts as physical_fixture
 import test_local_submission_lookup as host_fixture
 
 
 class SavedReadPortsTests(unittest.TestCase):
+    def test_payload_output_uses_its_live_or_saved_original_parent_until_child_ack(self):
+        for saved in (False, True):
+            with self.subTest(saved=saved):
+                core, parent, _, projection, calls, state, _, _, _ = (
+                    export_fixture.OriginalCommitStoreCallerTests.bridge(self))
+                if saved:
+                    parent = _Output(core._identity, parent.ticket, parent.handle,
+                                     parent.limit, 'submission_lookup')
+                    core._loans[parent.ticket] = parent
+                    projection = OriginalCommitProjection.from_saved_read(
+                        core, parent, 31, cleanup=lambda: state['cleanup'])
+                holder = OriginalSDKDeliveryStore.__new__(OriginalSDKDeliveryStore)
+                holder._core = core
+                holder._observation = SimpleNamespace(_projection=projection)
+                holder._workspace_cleanup = lambda: state['cleanup']
+                holder._payload_outputs, holder._uncertain_payload = {}, {}
+                request = _Input(core._identity, 99, 91, 0)
+                output = holder._reserve_payload_output(request)
+                self.assertIs(holder._payload_outputs[request.ticket], output)
+                self.assertIs(core._loans[output.ticket], output)
+                self.assertIs(core._loans[parent.ticket], parent)
+                self.assertFalse(holder._uncertain_payload)
+                reserves = [args for family, name, args in calls
+                            if family == 'publication_commit_export' and name == 'reserve']
+                self.assertEqual(len(reserves), 1)
+                self.assertEqual(reserves[0][0], parent.handle)
+                with self.assertRaisesRegex(RuntimeError, 'cleanup is pending'):
+                    holder._reserve_payload_output(request)
+                state['cleanup'] = False
+                self.assertFalse(holder._close_payload_output(request.ticket))
+                self.assertIs(holder._payload_outputs[request.ticket], output)
+                state['cleanup'] = True
+                self.assertTrue(holder._close_payload_output(request.ticket))
+                self.assertNotIn(output.ticket, core._loans)
+                self.assertIs(core._loans[parent.ticket], parent)
+                self.assertFalse(projection.pending_outputs)
+
     def test_partial_saved_projection_returns_before_dependent_store_workspace(self):
         from types import SimpleNamespace
         calls = []
