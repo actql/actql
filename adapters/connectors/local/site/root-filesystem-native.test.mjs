@@ -5,7 +5,9 @@ import {createRequire} from 'node:module';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
+import {createHash} from 'node:crypto';
 import {createOwnedScratch} from '../../../../scripts/owned-scratch.mjs';
+import {openLocalFileRoot} from './root-filesystem.mjs';
 
 const root=fileURLToPath(new URL('../../../../',import.meta.url));
 const require=createRequire(import.meta.url);
@@ -129,4 +131,69 @@ test('consumed close failure remains Unknown and does not retry a possibly recyc
   for(let index=0;index<3;index++)assert.deepEqual(operations.fileRootClose(original),{outcome:'unknown',errno:5});
   assert.equal(fault.attempts(),1);assert.equal(fault.physicallyClosed(),1);
   assert.throws(()=>operations.fileRootCurrent(original),{code:'LocalFileOriginalChanged'});
+});
+
+const limits=Object.freeze({maxEntries:16,maxDepth:4,maxPathBytes:256,maxFiles:8,
+  maxFileBytes:131072,maxReadBytes:524288});
+test('actual Local consumer lists original files and pins exact content version through its same Root',async()=>{
+  const path=directory('consumer');mkdirSync(join(path,'inbound'));
+  const bytes=Buffer.from('\uFEFForiginal e\u0301\n');writeFileSync(join(path,'inbound','one.txt'),bytes);
+  writeFileSync(join(path,'empty.txt'),'');
+  const outside=directory('consumer-outside');writeFileSync(join(outside,'secret'),'not in root');
+  symlinkSync(outside,join(path,'not-a-descendant'));
+  const filesystem=openLocalFileRoot({native,path,assertCurrent(){}});
+  const listing=filesystem.openReader({limits,assertCurrent(){}}),rows=[];
+  try {
+    await listing.list({contentVersion:true,onFile(row){rows.push(row);}});
+    assert.deepEqual(rows.map(row=>row.path).sort(),['empty.txt','inbound/one.txt']);
+    const original=rows.find(row=>row.path==='inbound/one.txt');
+    assert.equal(original.version,'sha256:'+createHash('sha256').update(bytes).digest('hex'));
+    assert.equal(original.metadata.size,BigInt(bytes.length));
+    assert.equal(listing.close().pending,false);
+    const content=filesystem.openReader({limits,assertCurrent(){}});
+    try {
+      const observed=await content.read(original.path,{contentVersion:true,expectedVersion:original.version});
+      assert.deepEqual(observed.bytes,bytes);assert.deepEqual(observed.metadata,original.metadata);
+      assert.equal(content.close().pending,false);
+      assert.deepEqual(observed.bytes,bytes,'copied returned data survives acknowledged physical Reader close');
+    } finally {assert.equal(content.close().pending,false);}
+  } finally {assert.equal(listing.close().pending,false);assert.equal(filesystem.close().pending,false);}
+});
+
+test('actual Local consumer keeps in-flight child pending and closes it after original callback settles',async()=>{
+  const path=directory('consumer-pending');writeFileSync(join(path,'one'),'one');
+  const filesystem=openLocalFileRoot({native,path,assertCurrent(){}});
+  const reader=filesystem.openReader({limits,assertCurrent(){}});
+  let enter,release;
+  const entered=new Promise(resolve=>{enter=resolve;}),barrier=new Promise(resolve=>{release=resolve;});
+  const flight=reader.list({async onFile(){enter();await barrier;}});
+  const outcome=flight.then(()=>({ok:true}),error=>({error}));
+  await entered;
+  assert.equal(filesystem.close().pending,true);
+  assert.equal(reader.status().pending,true);
+  release();
+  const stopped=await outcome;assert.equal(stopped.error?.code,'LocalFileRootClosing');
+  assert.equal(reader.close().pending,false);assert.equal(filesystem.close().pending,false);
+  assert.throws(()=>filesystem.openReader({limits,assertCurrent(){}}),{code:'LocalFileRootClosing'});
+});
+
+test('actual Local consumer refuses bounds and wrong versions without losing original cleanup',async()=>{
+  const path=directory('consumer-refusal');writeFileSync(join(path,'one'),'one');
+  const filesystem=openLocalFileRoot({native,path,assertCurrent(){}});
+  for(const bad of [{...limits,maxFiles:0},Object.create(limits),{...limits,extra:1}])
+    assert.throws(()=>filesystem.openReader({limits:bad,assertCurrent(){}}),{code:'InvalidLocalFileReadLimits'});
+  const bounded=filesystem.openReader({limits:{...limits,maxFileBytes:2},assertCurrent(){}});
+  await assert.rejects(bounded.read('one'),{code:'LocalFileBytesLimit'});
+  assert.equal(bounded.close().pending,false);
+  const stale=filesystem.openReader({limits,assertCurrent(){}});
+  await assert.rejects(stale.read('one',{contentVersion:true,expectedVersion:'sha256:'+'0'.repeat(64)}),{code:'LocalFileVersionConflict'});
+  assert.equal(stale.close().pending,false);assert.equal(filesystem.close().pending,false);
+  const attempts=fault.attempts(),physicallyClosed=fault.physicallyClosed();let checks=0,carrier;
+  assert.throws(()=>openLocalFileRoot({native:fault.operations,path,assertCurrent(){
+    if(++checks===2)throw Object.assign(new Error('current changed'),{code:'TestCurrentChanged'});
+  }}),error=>{carrier=error;return error.code==='LocalFileRootCleanupPending';});
+  assert.equal(carrier.cause.code,'TestCurrentChanged');
+  assert.equal(carrier.cleanupHandle.status().pending,true);
+  for(let index=0;index<3;index++)assert.equal(carrier.cleanupHandle.retry().pending,true);
+  assert.equal(fault.attempts(),attempts+1);assert.equal(fault.physicallyClosed(),physicallyClosed+1);
 });

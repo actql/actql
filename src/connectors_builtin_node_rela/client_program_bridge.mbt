@@ -8495,6 +8495,17 @@ pub fn client_program_row_source_restore_relation_declaration(
 }
 
 ///|
+/// Exact physical filesystem epoch parts enter the existing Value Owner.
+/// This projects metadata only, without a Host Date conversion or clock grant.
+#export_name("clientProgramLocalFileTimestamp")
+pub fn client_program_local_file_timestamp(
+  seconds : Int64,
+  nanoseconds : Int,
+) -> String? {
+  @admitted.epoch_parts_timestamp(seconds, nanoseconds)
+}
+
+///|
 /// The published parts of a declaration as one JSON text: Catalog CID,
 /// Catalog, contracts, views, view bodies, manifest entry and its CID, and
 /// the Check Environment evidence members.
