@@ -1100,11 +1100,19 @@ class InstalledLocalHost:
             if self._pending_start_write is not None:
                 raise LocalStorageError('Original Local start requires lookup; new Compute is unavailable')
             self._bind_original_publication(run)
-            for kind in (7, 8):
+            # Material five asks the existing Owner to retain this Plan's
+            # checked normalization. Its transport is not a durable write or
+            # dispatch grant; the same Run keeps the original after close.
+            for kind in (5, 7, 8):
                 output = self._reserve(lambda: self._core.reserve_material(
                     run.handle, kind, cleanup=lambda: True))
                 self._step_outputs.append(output)
                 installation.binding.inspect(lambda _: self._core.produce_material(output))
+                if kind == 5:
+                    if not self._core.close_material(output):
+                        raise LocalProductCleanupPending(self)
+                    self._step_outputs.remove(output)
+                    continue
                 self._save_original_start_step(output)
                 if kind == 7:
                     if not self._core.close_material(output):
