@@ -15,6 +15,23 @@ priv struct LocalOutputVerificationFile {
 let output_verification_files : Ref[Array[LocalOutputVerificationFile]] = Ref([])
 
 ///|
+fn local_output_verification_path(
+  directory : String,
+  value : String,
+) -> String raise ClientStop {
+  if value.is_empty() || value.has_suffix("/") {
+    stop("InvalidOutputVerificationPath")
+  }
+  let absolute = local_project_absolute_path(directory, value) catch {
+    ClientStop(_) => stop("InvalidOutputVerificationPath")
+  }
+  if local_product_selected_location(Some(absolute), None).directory_name.length() > 128 {
+    stop("InvalidOutputVerificationPath")
+  }
+  absolute
+}
+
+///|
 fn local_output_verification_file(
   path : String,
 ) -> LocalOutputVerificationFile raise ClientStop {
@@ -193,11 +210,11 @@ fn local_verify_output_command(
   let directory = @env.current_dir().unwrap_or_else(() => {
     stop("OutputVerificationDirectoryUnavailable")
   })
-  let receipt_path = local_result_output_path(
+  let receipt_path = local_output_verification_path(
     directory,
     required(child, "receipt"),
   )
-  let output_path = local_result_output_path(
+  let output_path = local_output_verification_path(
     directory,
     required(child, "output"),
   )
