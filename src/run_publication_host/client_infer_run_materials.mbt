@@ -61,7 +61,10 @@ pub fn issue_client_infer_run_materials(
   // selection. Custom graphs must not emit bundles their inverse would reject.
   let installed = match
     infer_run_materials_installed_graph(
-      compiled.owner, graph.execution, limits, compilation.infer is None,
+      compiled.owner,
+      graph.execution,
+      limits,
+      compilation.infer is None,
     ) {
     Ok(value) => value
     Err(_) => return Err(Binding(UnsupportedProgram))
@@ -185,21 +188,36 @@ fn infer_run_materials_compilation(
 ) -> Result[ClientTaskCompilation, ClientTaskRunMaterialsIssue] {
   let graph = match
     infer_run_materials_installed_graph(
-      input.prepared, execution, limits, composed,
+      input.prepared,
+      execution,
+      limits,
+      composed,
     ) {
     Ok(value) => value
     Err(_) => return Err(Input(MaterialsEvidence("infer_execution_contract")))
   }
   let result = if composed {
     issue_prepared_client_multi_infer_compilation(
-      input.prepared, [graph], manifests, limits.sequence, limits.max_sequence_steps,
-      limits.max_sequence_work, limits.max_evidence_bytes, limits.max_evidence_nodes,
+      input.prepared,
+      [graph],
+      manifests,
+      limits.sequence,
+      limits.max_sequence_steps,
+      limits.max_sequence_work,
+      limits.max_evidence_bytes,
+      limits.max_evidence_nodes,
       limits.max_evidence_depth,
     )
   } else {
     issue_prepared_client_infer_compilation(
-      input.prepared, graph, manifests, limits.max_sequence_steps, limits.max_sequence_work,
-      limits.max_evidence_bytes, limits.max_evidence_nodes, limits.max_evidence_depth,
+      input.prepared,
+      graph,
+      manifests,
+      limits.max_sequence_steps,
+      limits.max_sequence_work,
+      limits.max_evidence_bytes,
+      limits.max_evidence_nodes,
+      limits.max_evidence_depth,
     )
   }
   result.map_err(issue => Compilation(issue))
