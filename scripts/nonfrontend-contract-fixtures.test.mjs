@@ -55,7 +55,7 @@ test('resident physical Source environments advertise their exact normative two-
 
 test('current Catalog dependency fixtures pin the normative environment grammar', () => {
   const expected = cid(json('spec/contracts/actql-check-environment.json'));
-  assert.equal(expected, 'sha256:f4da89fcdbc07708d1b8c2bf08758b5efe404837d15244b306393853f0f26f47');
+  assert.equal(expected, 'sha256:b351198c3319e349f87c650694e8cc9b3a443598eac3097992d445eadaafee23');
   for (const name of ['catalog_body_dependencies_test', 'lookup_body_dependencies_test']) {
     hasPin('src/check_environment/' + name + '.mbt', expected);
   }
@@ -68,7 +68,7 @@ test('current Catalog dependency fixtures pin the normative environment grammar'
 
 test('current expression fixture resolves only the normative root', () => {
   const expected = cid(json('spec/contracts/actql-expressions.json'));
-  assert.equal(expected, 'sha256:6ccd3d3e87cf65610f96b81ce3a11844f1d12a6bee3166df66726a3c11e571f8');
+  assert.equal(expected, 'sha256:6ab2396dc413fa604854f6586ec957203ccf23392c52f254dfd7b3c0c6dcbe7f');
   hasPin('src/check_environment/expression_dependencies_test.mbt', expected);
   assert.notEqual(expected, 'sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289');
 });
@@ -158,4 +158,30 @@ for (const [path, prefix] of [
   assert.deepEqual(values, contract.execution_contracts['REL.values']);
   assert.equal(cid(values), contract.target_registry_requirements['REL.values'].execution_contract.cid);
   assert.equal(registry['ACTQL.expression_fragment/0.1'].execution_contract.cid, cid(body));
+});
+
+
+test('current complete-fragment callers rebind only their declared normative dependencies', () => {
+  const fixture = json('portability/corpus/expression-fragment-identities.json');
+  const expression = cid(json('spec/contracts/actql-expressions.json'));
+  const ordered = cid(json('spec/contracts/actql-aoa.json').execution_contracts['REL.derive.ordered']);
+  for (const item of fixture.cases) {
+    // Keep the complete independently authored historical preimage immutable.
+    assert.equal(canonical(item.body), item.canonical);
+    assert.equal(cid(item.body), item.cid);
+    assert.equal(Buffer.byteLength(item.canonical), item.bytes);
+    const current = structuredClone(item.body);
+    let caller;
+    if (item.id === 'ordered_node') {
+      current.params.row_kernel_contract_cid = ordered;
+      caller = 'src/execution_relation/fragment_ordered_wbtest.mbt';
+    } else {
+      assert.equal(item.id, 'complete_fragment');
+      current.expression_contract_cid = expression;
+      caller = 'src/execution_relation/fragment_candidate_wbtest.mbt';
+    }
+    assert.equal(Buffer.byteLength(canonical(current)), item.bytes);
+    hasPin(caller, cid(current));
+    assert.notEqual(cid(current), item.cid);
+  }
 });
