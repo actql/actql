@@ -15,6 +15,47 @@ from actql_sdk._values import wire_bytes
 from fixtures import check_report
 import test_local_product_operation_port as operation_fixture
 from actql_sdk import AsyncClient
+from actql_sdk import _local_wasm_abi as scalar_abi
+from actql_sdk._local_core import _validate_core_module
+
+
+class LocalCheckModuleAdmissionTests(unittest.TestCase):
+    def test_generated_check_exports_are_required_without_allowing_other_exports(self):
+        class Signature:
+            def __init__(self, parameters, result):
+                self.params = parameters.split()
+                self.results = result.split()
+
+        class Memory:
+            is_64 = is_shared = False
+            limits = SimpleNamespace(min=1, max=256)
+
+        runtime = SimpleNamespace(FuncType=Signature, MemoryType=Memory)
+        exports = {'memory': Memory(), 'actql_host_abi_version': Signature('', 'i32')}
+        for name, declarations in vars(scalar_abi).items():
+            if name.endswith('_SIGNATURES') and name != '_IMPORT_SIGNATURES':
+                family = name.removeprefix('_').removesuffix('_SIGNATURES').lower()
+                exports.update({'actql_' + family + '_' + symbol: Signature(*signature)
+                                for symbol, signature in declarations.items()})
+        imports = [SimpleNamespace(module='actql_host', name=name, type=Signature(*signature))
+                   for name, signature in scalar_abi._IMPORT_SIGNATURES.items()]
+
+        def module(values):
+            return SimpleNamespace(imports=imports,
+                exports=[SimpleNamespace(name=name, type=value) for name, value in values.items()])
+
+        _validate_core_module(runtime, module(exports))
+        for name in scalar_abi._CHECK_SIGNATURES:
+            symbol = 'actql_check_' + name
+            missing = {key: value for key, value in exports.items() if key != symbol}
+            with self.subTest(symbol=symbol, mutation='missing'):
+                with self.assertRaisesRegex(ValueError, 'Unrecognized Local Core exports'):
+                    _validate_core_module(runtime, module(missing))
+            with self.subTest(symbol=symbol, mutation='signature'):
+                with self.assertRaisesRegex(ValueError, 'Unrecognized Local Core exports'):
+                    _validate_core_module(runtime, module({**exports, symbol: Signature('', 'i32')}))
+        with self.assertRaisesRegex(ValueError, 'Unrecognized Local Core exports'):
+            _validate_core_module(runtime, module({**exports, 'foreign_export': Signature('', 'i32')}))
 
 
 class CheckPortFixture(OriginalLocalCheck):

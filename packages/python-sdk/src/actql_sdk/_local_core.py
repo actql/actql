@@ -203,6 +203,7 @@ from ._local_wasm_abi import (
     LOCAL_CORE_ABI,
     _BUFFER_SIGNATURES,
     _PROGRAM_SIGNATURES,
+    _CHECK_SIGNATURES,
     _RUN_SIGNATURES,
     _SUBMISSION_SIGNATURES,
     _BOOTSTRAP_SIGNATURES,
@@ -253,6 +254,8 @@ def _validate_core_module(wasmtime: Any, module: Any) -> None:
                 for name, value in _BUFFER_SIGNATURES.items()}
     expected.update({'actql_program_' + name: value
                      for name, value in _PROGRAM_SIGNATURES.items()})
+    expected.update({'actql_check_' + name: value
+                     for name, value in _CHECK_SIGNATURES.items()})
     expected.update({'actql_run_' + name: value
                      for name, value in _RUN_SIGNATURES.items()})
     expected.update({'actql_submission_' + name: value
