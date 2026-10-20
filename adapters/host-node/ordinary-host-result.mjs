@@ -10,6 +10,7 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
   let closing = false, closed = false, attempted = false, store, storeClose;
   let openFlight, closeFlight, cleanup, cleanupStatus, cleanupRetry, failure;
   let operations = 0;
+  let admittedRuns = new WeakMap();
   const current = () => {
     if (closing || closed) throw Object.assign(new Error('HostResultPublicationUnavailable'),
       {code: 'HostResultPublicationUnavailable'});
@@ -46,13 +47,14 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
         if (!store.status().closed) return status();
       }
       store = storeClose = failure = cleanup = cleanupStatus = cleanupRetry = undefined;
+      admittedRuns = new WeakMap();
       subject = requirements = undefined; closed = true;
       return status();
     });
     closeFlight = flight;
     try {return await flight;} finally {if (closeFlight === flight) closeFlight = undefined;}
   }
-  return Object.freeze({assertCurrent: current, close,
+  const view = Object.freeze({assertCurrent: current, close,
     beforeOperation() {
       current();
       if (operations === 4096) throw new TypeError('HostResultOperationLimit');
@@ -62,10 +64,36 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
       current();
       const value = requirements(originals, prepared);
       if (!Number.isSafeInteger(value.resultCount) || value.resultCount < 1 || value.resultCount > 10 ||
-          !Number.isSafeInteger(value.maxRows) || value.maxRows < 0 || value.maxRows > 10000) {
+          !Number.isSafeInteger(value.maxRows) || value.maxRows < 0 || value.maxRows > 10000 ||
+          !Number.isSafeInteger(value.maxContractBytes) || value.maxContractBytes < 1 ||
+          value.maxContractBytes > 2147483647) {
         throw new TypeError('HostResultPublicationUnsupported');
       }
       current();
+      const prior = admittedRuns.get(prepared);
+      if (prior !== undefined) {
+        if (prior.resultCount !== value.resultCount || prior.maxRows !== value.maxRows ||
+            prior.maxContractBytes !== value.maxContractBytes) {
+          throw new TypeError('HostResultPublicationChanged');
+        }
+        return;
+      }
+      // Existing Contract/evidence document ceilings select finite managed
+      // publication allowances. They are not physical allocation coefficients,
+      // reserved RAM or permission; Core still reserves the actual same Model
+      // and Run, and ordinary Store/native cleanup retains its own duties.
+      admittedRuns.set(prepared, Object.freeze({...value, capacity: Object.freeze({
+        retainedBytes: BigInt(value.maxContractBytes), workspaceBytes: BigInt(value.maxContractBytes),
+      })}));
+    },
+    modelPublicationCapacity(prepared) {
+      if (this !== view) throw new TypeError('ForeignInstalledHostPublicationStore');
+      current();
+      const admitted = admittedRuns.get(prepared);
+      if (admitted === undefined || store === undefined || store.status().closed) {
+        throw new TypeError('HostResultPublicationRunUnavailable');
+      }
+      return admitted.capacity;
     },
     openStore(options, control) {
       current();
@@ -96,4 +124,5 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
       openFlight = flight; return flight;
     },
   });
+  return view;
 }

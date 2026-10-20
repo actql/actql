@@ -188,7 +188,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       sameRun(prepared);
     } catch (error) { record.failure = error; throw error; }
   }
-  function prepareManagedMockModelRun(prepared, request, control, plan, selection) {
+  function prepareManagedMockModelRun(prepared, request, control, plan, selection, publicationCapacity) {
     let record = records.get(prepared);
     if (record !== undefined) {
       if (record.model?.compiled !== plan.compiled || record.model?.runDefinition !== plan.runDefinition ||
@@ -197,14 +197,20 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       return;
     }
     prepareManagedRun(prepared, request, {control, compiled: plan.compiled,
-      runDefinition: plan.runDefinition, graph: selection.graph, occurrence: selection.occurrence});
+      runDefinition: plan.runDefinition, graph: selection.graph, occurrence: selection.occurrence,
+      publicationCapacity});
   }
   function modelPreparation(prepared, plan) {
     const run = sameRun(prepared), model = run.model;
     if (model === undefined || model.compiled !== plan.compiled || model.runDefinition !== plan.runDefinition ||
         model.scope === undefined) fail('ForeignInstalledModelPreparation');
+    const publicationCapacity = () => {
+      sameRun(prepared);
+      if (model.closed || typeof model.publicationCapacity !== 'function') fail('HostResultPublicationUnavailable');
+      return model.publicationCapacity();
+    };
     return Object.freeze({control: model.control, compiled: model.compiled,
-      runDefinition: model.runDefinition, scope: model.scope,
+      runDefinition: model.runDefinition, scope: model.scope, publicationCapacity,
       readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
       modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes,
       retain() {
@@ -225,7 +231,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           model.read = model.control.prepareCheckedClientInferOriginalRead(model.compiled,
             model.runDefinition, model.graph, model.scope, model.budget);
           return Object.freeze({control: model.control, compiled: model.compiled,
-            runDefinition: model.runDefinition, scope: model.scope, read: model.read,
+            runDefinition: model.runDefinition, scope: model.scope, read: model.read, publicationCapacity,
             readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
             modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes});
         } catch (error) {model.readFailure = error; throw error;}
@@ -307,6 +313,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         const model = record.model;
         model.closed = true;
         model.control = model.compiled = model.runDefinition = model.graph = undefined;
+        model.publicationCapacity = undefined;
         model.occurrence = model.scope = model.budget = model.readFailure = undefined;
       }
       record.prepared = record.request = record.original = record.admission = record.value = undefined;

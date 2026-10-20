@@ -22,7 +22,7 @@ async function fixture() {
   const prepared = Object.freeze({});
   const view = prepareOrdinaryHostResult(originals, subject, (held, value) => {
     assert.strictEqual(held, originals); assert.strictEqual(value, prepared);
-    return Object.freeze({resultCount: 1, maxRows: 100});
+    return Object.freeze({resultCount: 1, maxRows: 100, maxContractBytes: 1000000});
   });
   const options = {directory: join(root, 'publication'), storeAuthorityCid: subject.storeAuthorityCid,
     capacityBytes: 536870912, maxObjectBytes: 10000000, maxObjects: 10000,
@@ -53,4 +53,30 @@ test('ordinary Result refuses another control or key authority before Store work
   assert.throws(() => f.view.admitRun({}));
   assert.equal((await f.view.close()).pending, false);
   assert.equal((await f.journal.close()).pending, false);
+});
+
+test('ordinary Model publication uses the same admitted Run and live Store, not copied limits', async () => {
+  const f = await fixture();
+  try {
+    assert.throws(() => f.view.modelPublicationCapacity(f.prepared),
+      {message: 'HostResultPublicationRunUnavailable'});
+    f.view.admitRun(f.prepared);
+    assert.throws(() => f.view.modelPublicationCapacity(f.prepared),
+      {message: 'HostResultPublicationRunUnavailable'});
+    await f.view.openStore(f.options, f.control);
+    const selected = f.view.modelPublicationCapacity(f.prepared);
+    assert.deepEqual(selected, {retainedBytes: 1000000n, workspaceBytes: 1000000n});
+    assert.equal(Object.isFrozen(selected), true);
+    f.view.admitRun(f.prepared);
+    assert.strictEqual(f.view.modelPublicationCapacity(f.prepared), selected);
+    assert.throws(() => f.view.modelPublicationCapacity({...f.prepared}),
+      {message: 'HostResultPublicationRunUnavailable'});
+    assert.throws(() => Reflect.apply(f.view.modelPublicationCapacity, {}, [f.prepared]),
+      {message: 'ForeignInstalledHostPublicationStore'});
+    await f.journal.close();
+    assert.throws(() => f.view.modelPublicationCapacity(f.prepared));
+  } finally {
+    await f.view.close();
+    assert.equal((await f.journal.close()).pending, false);
+  }
 });

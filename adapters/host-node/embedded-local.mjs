@@ -224,7 +224,7 @@ export function readHostResultPublicationRunRequirements(originals, prepared) {
   const maxRows = moon.clientProgramValuesMaxRows(prepared);
   assertSourceManagedHostPreparation(originals);
   originalSourceManagedHostRequest(originals, prepared);
-  return Object.freeze({resultCount, maxRows});
+  return Object.freeze({resultCount, maxRows, maxContractBytes: localContractLimits.maxWireBytes});
 }
 
 // Same live ingress lineage only. Copies, CIDs and retained cold DATA cannot
@@ -2662,11 +2662,13 @@ async function openInstalledHost(originalInstallation, preparation) {
       return {ref: retainedStart.ref, durability: retainedStart.durability,
         revision: retainedStart.revision};
     }
+    preparation?.admitResultPublicationRun(submission.preparedProgram);
     if (selectedModel?.localMock) {
       const early = earlyMockInferPlans.get(submission.preparedProgram);
       if (early === undefined) throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
       sourceProfile.prepareManagedMockModelRun(submission.preparedProgram, requested,
-        control, early.plan, selectedModel);
+        control, early.plan, selectedModel,
+        () => preparation.modelPublicationCapacity(submission.preparedProgram));
     } else if (acquisitionCount === 2 && typeof sourceProfile?.prepareManagedRun === 'function') {
       // The actual same Host's early admission is only being claimed here,
       // not issued after compilation or reconstructed from graph limits.
@@ -2676,7 +2678,6 @@ async function openInstalledHost(originalInstallation, preparation) {
       !inferSelections.has(submission.preparedProgram) &&
       moon.clientProgramSerializationOccurrences(submission.preparedProgram).length === 0
       ? preparation.prepareManagedComputeRun(moon, submission.preparedProgram, requested) : undefined;
-    preparation?.admitResultPublicationRun(submission.preparedProgram);
     const preparedSources = acquisitionCount === 2
       ? await prepareAcquisitions(submission.preparedProgram) : undefined;
     const keyedPrepared = keyedAcquisition === undefined ? undefined :
@@ -3046,6 +3047,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           moon.clientProgramSerializationOccurrences(submission.preparedProgram).length !== 0) {
         throw clientOperationError('HostResultPublicationPurposeUnavailable');
       }
+      preparation.admitResultPublicationRun(submission.preparedProgram);
       if (selection?.localMock) {
         if (acquisitionCount !== 2 || typeof sourceProfile?.prepareManagedMockModelRun !== 'function') {
           throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
@@ -3056,13 +3058,13 @@ async function openInstalledHost(originalInstallation, preparation) {
           earlyMockInferPlans.set(submission.preparedProgram, early);
         }
         sourceProfile.prepareManagedMockModelRun(submission.preparedProgram, requested,
-          control, early.plan, selection);
+          control, early.plan, selection,
+          () => preparation.modelPublicationCapacity(submission.preparedProgram));
       } else if (acquisitionCount === 2 && typeof sourceProfile?.prepareManagedRun === 'function') {
         sourceProfile.prepareManagedRun(submission.preparedProgram, requested);
       } else if (acquisitionCount === 0) {
         preparation.prepareManagedComputeRun(moon, submission.preparedProgram, requested);
       } else throw clientOperationError('NodeManagedRunAdmissionUnavailable');
-      preparation.admitResultPublicationRun(submission.preparedProgram);
     }});
   const checkpointOperations = checkpoints === undefined ? {} : {
     checkpoints: value => checkpoints.listCheckpoints({principalId: value.principalId,
@@ -4360,6 +4362,12 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     admitResultPublicationRun(prepared) {
       if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
       resultPublication.admitRun(prepared);
+    },
+    modelPublicationCapacity(prepared) {
+      if (resultPublication === undefined || typeof resultPublication.modelPublicationCapacity !== 'function') {
+        throw clientOperationError('HostResultPublicationUnavailable');
+      }
+      return resultPublication.modelPublicationCapacity(prepared);
     },
     bindSourceRequest(parent, derived) {
       if (mockPreparation !== undefined) {
