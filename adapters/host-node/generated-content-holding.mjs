@@ -59,6 +59,72 @@ export async function issueStoredCapturedContent(options) {
   return issueStoredContent(options, 'CapturedContent');
 }
 
+// Restore physical custody selected by the existing authenticated captured-Run
+// owner. The enclosing Command owner must still bind this candidate and issued
+// value to its original saved input; these Store checks issue no input or grant.
+export async function restoreStoredGeneratedContentOriginal({store, publications, control,
+  capturedRun, runDefinition, index, candidate, workspaceScopeCid, effectiveDataPolicyCid,
+  available, authorize, assertCurrent, limits, readers, retainOriginal, signal}) {
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  if (!Number.isSafeInteger(index) || index < 0 || !(readers instanceof Set) ||
+      typeof assertCurrent !== 'function' || typeof available !== 'function' ||
+      typeof authorize !== 'function' || typeof retainOriginal !== 'function') {
+    fail('InvalidStoredContentRecovery');
+  }
+  const value = control.inspect(candidate);
+  const fence = () => {
+    const result = assertCurrent();
+    if (result !== undefined) {
+      if (result instanceof Promise) void result.catch(() => {});
+      fail('InvalidStoredContentCurrentFence');
+    }
+  };
+  const current = () => {
+    signal?.throwIfAborted();
+    fence();
+    const live = !store.status().closed && available() === true && authorize(value.identity) === true;
+    fence(); // An authority callback may begin this same parent's retirement.
+    if (!live || store.status().closed) {
+      fail('StoredContentRecoveryUnavailable');
+    }
+    signal?.throwIfAborted();
+  };
+  current();
+  if (index >= publications.capturedContentGenerationCount(capturedRun)) {
+    fail('StoredContentRecoveryBindingMismatch');
+  }
+  const binding = publications.capturedContentGenerationStorage(capturedRun,
+    runDefinition, store.storeAuthorityCid, index);
+  if (value.storeCid !== store.storeAuthorityCid || value.workspaceScopeCid !== workspaceScopeCid ||
+      value.effectiveDataPolicyCid !== effectiveDataPolicyCid ||
+      value.identity !== binding.manifestCid || value.contentCid !== binding.contentCid ||
+      BigInt(value.sizeBytes) !== binding.byteCount || binding.bindings.length !== 3) {
+    fail('StoredContentRecoveryBindingMismatch');
+  }
+  const read = {pending: true, cleanup: undefined};
+  readers.add(read); // Same parent custody before any evidence/holding reader.
+  try {
+    for (const proof of binding.bindings) {
+      current();
+      if (await store.confirmPrivateEvidence(proof) === undefined) {
+        fail('StoredContentRecoveryEvidenceUnavailable');
+      }
+      current();
+    }
+    const issued = await issueStoredGeneratedContent({store, control, candidate,
+      holdingCid: binding.holdingCid, workspaceScopeCid, effectiveDataPolicyCid,
+      available, authorize, limits, retainOriginal});
+    current();
+    return issued;
+  } catch (cause) {
+    if (cause?.cleanupHandle !== undefined) read.cleanup = cause.cleanupHandle;
+    throw cause;
+  } finally {
+    read.pending = false;
+    if (read.cleanup === undefined) readers.delete(read);
+  }
+}
+
 // Borrow bytes only after the enclosing Run owner has selected its original
 // issued Content. The reader collection belongs to that same owner; this is
 // neither a CID lookup capability nor another holding/cleanup owner.
