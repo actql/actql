@@ -23,7 +23,7 @@ const unsupported = () => Object.assign(new Error('ClientProgramUnsupported'),
 export function installNodeClientEffectRun({moon,
   publicationControl: control = runtimeCore(moon).publicationControl,
   journal, authorizeRequest, authorizeRunStart, prepareExecution, execute,
-  prepareDefinition,
+  prepareDefinition, assertRequestedStopAvailable,
   inferPlanFor, resultPolicyOriginalFor, validateInstallation, updateTargetOriginals,
   now = () => new Date().toISOString()}) {
   if (typeof moon?.clientProgramEffectCompilationIssueCode !== 'function' ||
@@ -31,6 +31,8 @@ export function installNodeClientEffectRun({moon,
       (prepareExecution !== undefined &&
         typeof prepareExecution !== 'function') ||
       (prepareDefinition !== undefined && typeof prepareDefinition !== 'function') ||
+      (assertRequestedStopAvailable !== undefined &&
+        typeof assertRequestedStopAvailable !== 'function') ||
       (inferPlanFor !== undefined && typeof inferPlanFor !== 'function') ||
       (resultPolicyOriginalFor !== undefined &&
         typeof resultPolicyOriginalFor !== 'function') ||
@@ -166,6 +168,10 @@ export function installNodeClientEffectRun({moon,
       const accepted = await journal.admitOrLookupDefinition(identity, {
         namespaceId, lookupExpiresAt, submission,
         issueDefinition() {
+          // Only the Journal's new-Run branch needs this optional capability.
+          // Saved original Runs keep their lookup/recovery identity when a
+          // signer is absent; no new preparation or publication starts here.
+          if (requestedStop) assertRequestedStopAvailable?.();
           // This callback runs only after the same Journal lookup selected a
           // new invocation. A policy's old creation time is not a fresh query
           // sample. Keep the one preparation before dependent compilation;

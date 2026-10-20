@@ -2855,6 +2855,12 @@ async function openInstalledHost(originalInstallation, preparation) {
   };
   const effectRun = effectInstallation === undefined ? undefined :
     installNodeClientEffectRun({moon, publicationControl: control, journal,
+      assertRequestedStopAvailable() {
+        if (checkpoints === undefined) {
+          throw clientOperationError('ClientProgramUnsupported',
+            clientOperationError('RequestedEffectStopUnavailable'));
+        }
+      },
       now, inferPlanFor: prepared => inferSelections.get(prepared)?.graph,
       prepareDefinition: mockEffectObservation === undefined ? undefined : facts => {
         preparation.admitEffectResultPublicationRun(facts.prepared);
@@ -3280,6 +3286,9 @@ async function openInstalledHost(originalInstallation, preparation) {
   // example after a cancel) stays with its owners and is observed again by
   // the sweep. Nothing is inferred from how the dispatch returned.
   const settleHeldRun = async (accepted, runId) => {
+    // Account-only acceptance has no held Checkpoint Run to settle. The
+    // original request Journal still owns its actual Run and physical stop.
+    if (checkpoints === undefined) return;
     let status;
     try {
       status = (await observeRun({ref: accepted.ref, principalId})).status;

@@ -24,6 +24,13 @@ and operations requiring an approval, claim or requested-stop Checkpoint stay
 unavailable without their real signing and durable continuation support. This
 does not create an Account grant or replace Store integrity keys with Reviewer
 keys; existing saved Preview, Run and Unknown recovery remains unchanged.
+For a newly selected Run, an original submitted request for a commit stop
+requires the actual Host's Checkpoint capability before new Run preparation or
+publication. Missing support returns the existing typed preparation refusal;
+it does not start Source/Compute work merely to discover the missing signer.
+The Journal's existing-Run lookup does not issue a replacement Run or invoke
+that new-Run capability check. An Account-only Host has no held Checkpoint
+settlement service; the original Run Journal retains its physical-stop duties.
 
 The [OSS authorization behavior draft](oss-host-authorization.md) details Local
 configuration, immediate/deferred adapters, CLI resolution and crash recovery.

@@ -32,15 +32,14 @@ test('Account-only actual Host refuses a requested Effect stop without writing o
     const source = originalSource.slice(0, originalSource.indexOf('|> INFER')) +
       '|> RESULT updates |> EFFECT UPDATE salesforce.Account ' +
       "ID id SET (Churn_Risk__c = 'high', Risk_Reason__c = notes);";
-    const checked = await client.check(source, {kind: 'text', scope: 'bound_input', format: 'aql'});
-    t.diagnostic(JSON.stringify({check: checked}));
-    assert.equal(checked.report.verdict, 'verified');
-    const execution = await client.startSource(source, {format: 'aql', stopBefore: 'commit'});
-    const state = await execution.wait();
-    t.diagnostic(JSON.stringify({state, diagnostics}));
-    assert.notEqual(state.status, 'succeeded');
-    assert(diagnostics.some(value => value.code === 'RequestedEffectStopUnavailable'),
-      'the existing Effect owner must identify the absent requested-stop capability');
+    await assert.rejects(client.startSource(source, {format: 'aql', stopBefore: 'commit'}),
+      error => error.code === 'SubmissionPreparationFailed' &&
+        error.outcome.kind === 'preparation_failed' &&
+        error.outcome.problem.code === 'ClientProgramUnsupported');
+    assert(!diagnostics.some(value => value.event === 'acquisition_started' ||
+      value.event === 'effect_computation_completed' || value.event === 'effect_start_failed' ||
+      value.event === 'effect_settlement_failed'),
+    'known absent signing must refuse before new Run work, not create an Unknown or settlement failure');
     assert.deepEqual(await readFile(path), before);
     const after = await stat(path, {bigint: true});
     assert.deepEqual([after.dev, after.ino, after.mtimeNs],
