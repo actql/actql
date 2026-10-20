@@ -44643,7 +44643,7 @@
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b55747fa9a33570a52fade73235ff07ae4e056b98be0560ab476acf425bf3308",
+      "sha256": "e9cb2e7f3bd058bee417585a8e89a05da96dea3d24a6143030768e34680ffa14",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -44757,6 +44757,11 @@
             "phase"
           ],
           "async": true
+        },
+        {
+          "name": "openNodeInferCaptureCustody/init:completedCallCount/init:completedCallCount",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openNodeInferCaptureCustody/init:configureModelJournal/init:configureModelJournal",
@@ -45226,6 +45231,78 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openNodeInferCaptureCustody/init:completedCallCount/init:completedCallCount"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "completedCallCount() {return capture !== undefined && !publicationCleaned && !reclaimed ? count : undefined;},"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "capture = operation.acquireCapture();"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "captureOutput ??= operation.acquireOutput();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "if (capture !== undefined) return true;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "throw new Error('InstalledInferCaptureInventoryUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "const cleanupPublicationOwned = async () => {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "operation.reserveOriginalPublicationCapacity?.();"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// This immutable original is available only after the existing Store"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-capture-custody-retirement.test.mjs",
+                "anchor": "test('completed capture count does not imply persistence and retires with its own custody'"
               }
             ]
           }
@@ -50484,7 +50561,7 @@
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "3f89834866bd09d8a65b0c057d5f5302c56b4399f5806da0445ff14167af5778",
+      "sha256": "156b62f028c7d9bdbe6995ce08593f99c25fde1737e00d45f773a61ff155c577",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -50631,6 +50708,13 @@
           "name": "runInstalledComposedInfers/originals/originals",
           "parameters": [
             "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/retainCompleted",
+          "parameters": [
+            "child"
           ],
           "async": false
         },
@@ -51094,6 +51178,90 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.test.mjs",
                 "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "runInstalledComposedInfers/retainCompleted"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "function retainCompleted(child) {"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "issuance ??= startCompleteInferObservation({moon, operations: [child.operation],"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "if (children.length !== 1 || children[0] !== child) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "if (!child.capture.retainCompleted()) return false;"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "if (!checked(moon.clientProgramCleanupInferObservationIssuance(issuance))) return false;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "for (let step = 0; step < calls + 2 && !issuanceComplete; step++) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "if (!issuanceComplete) throw new Error('InstalledComposedInferOriginalObservationUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "if (moon.clientProgramCancelInferObservationIssuance(issuance)) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_infer_host/observation_issuance.mbt",
+                "anchor": "pub fn start_original_observation_issuance("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "} else if (issuance === undefined || !issuanceComplete) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/composed-infer-observation-frontier.test.mjs",
+                "anchor": "test('original Model observation seals at completion before the Local output ownership handoff'"
+              },
+              {
+                "path": "adapters/host-node/composed-infer-observation-frontier.test.mjs",
+                "anchor": "test('original Model observation failed advance retains the same partial issuer for cleanup'"
               }
             ]
           }

@@ -42978,7 +42978,7 @@
     },
     {
       "module": "adapters/host-node/installed-project-mock.mjs",
-      "sha256": "78c060b3062fde5634ff7f0845a01de3618e3625a39afede3a12e725ee3920f5",
+      "sha256": "53aa7f2cf91ea4f98599f20dfcacda881c88a6b2bf6a768cb89214cc23e30bb2",
       "exports": [
         "installPreparedProjectMockSources",
         "installedMockRequestRealization",

@@ -1254,7 +1254,7 @@
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b55747fa9a33570a52fade73235ff07ae4e056b98be0560ab476acf425bf3308",
+      "sha256": "e9cb2e7f3bd058bee417585a8e89a05da96dea3d24a6143030768e34680ffa14",
       "role": "physical-io",
       "owner": "Existing Model execution authority and Node Store/publication custody; F functional contract with A generated representation projection",
       "exports": [
@@ -1368,6 +1368,11 @@
             "phase"
           ],
           "async": true
+        },
+        {
+          "name": "openNodeInferCaptureCustody/init:completedCallCount/init:completedCallCount",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openNodeInferCaptureCustody/init:configureModelJournal/init:configureModelJournal",
@@ -1969,6 +1974,78 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openNodeInferCaptureCustody/init:completedCallCount/init:completedCallCount"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "completedCallCount() {return capture !== undefined && !publicationCleaned && !reclaimed ? count : undefined;},"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "capture = operation.acquireCapture();"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "captureOutput ??= operation.acquireOutput();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "if (capture !== undefined) return true;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "throw new Error('InstalledInferCaptureInventoryUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "const cleanupPublicationOwned = async () => {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "operation.reserveOriginalPublicationCapacity?.();"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// This immutable original is available only after the existing Store"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-capture-custody-retirement.test.mjs",
+                "anchor": "test('completed capture count does not imply persistence and retires with its own custody'"
               }
             ]
           }
