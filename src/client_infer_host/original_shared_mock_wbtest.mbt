@@ -75,6 +75,75 @@ test "shared original Mock keeps the same larger Run Ledger and typed result wit
 }
 
 ///|
+test "shared original Mock retains its wire ceiling without physical transfer uncertainty" {
+  let calls = Ref(0)
+  let sibling : Ref[@resources.CapacityReservation?] = Ref(None)
+  let (active, installation, profile, read, ledger, _, _) = original_mock_fixture(
+    calls,
+    shared_parent=Some(shared_mock_test_parent()),
+    shared_sibling=Some(sibling),
+  )
+  let work = match fixture_finish(active, initial_work=active.work) {
+    Settling(_, work~) => work
+    _ => abort("the original Mock must retain its original settlement")
+  }
+  assert_eq(calls.val, 1)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).uncertain_transfer_bytes, 0L)
+  // The original request/response ceiling remains reserved until cleanup;
+  // knowing this implementation performs no I/O is not early retirement.
+  assert_eq(@resources.ledger_usage(ledger).reserved_transfer_bytes, 66536L)
+  assert_true(
+    @model.acknowledge_model_call_settlement(call_settlement(active).unwrap()),
+  )
+  assert_true(fixture_finish(active, initial_work=work) is Complete(_, ..))
+  shared_mock_test_finish(
+    active,
+    installation,
+    profile,
+    read,
+    ledger,
+    sibling.val.unwrap(),
+  )
+  assert_eq(@resources.ledger_usage(ledger).uncertain_transfer_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_transfer_bytes, 0L)
+}
+
+///|
+test "shared original Mock preserves Unknown entry without inventing physical transfer" {
+  let calls = Ref(0)
+  let sibling : Ref[@resources.CapacityReservation?] = Ref(None)
+  let (active, installation, profile, read, ledger, _, _) = original_mock_fixture(
+    calls,
+    entry_unknown=true,
+    shared_parent=Some(shared_mock_test_parent()),
+    shared_sibling=Some(sibling),
+  )
+  assert_true(
+    fixture_finish(active, initial_work=active.work)
+    is Failed(Model(@model.UnknownCalls), ..),
+  )
+  assert_true(@model.model_execution_unknown_calls(active.model.unwrap()))
+  assert_true(capture(active) is None)
+  assert_eq(calls.val, 0)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).uncertain_transfer_bytes, 0L)
+  assert_true(advance(active, 1) is Err(InvalidAdvance))
+  shared_mock_test_finish(
+    active,
+    installation,
+    profile,
+    read,
+    ledger,
+    sibling.val.unwrap(),
+  )
+  assert_eq(calls.val, 0)
+  assert_eq(@resources.ledger_usage(ledger).uncertain_transfer_bytes, 0L)
+}
+
+///|
 test "shared original Mock preserves Model attempts wire and retention caps despite larger Run capacity" {
   let base = standard_limits().model.ledger
   for

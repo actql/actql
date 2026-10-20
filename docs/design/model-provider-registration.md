@@ -489,6 +489,15 @@ Authenticated saved and Unknown attempts remain spent within this purpose.
 Their original Journal mask must exclude a fresh send reservation before saved
 call admission; reconciliation can add read custody, never erase that history.
 
+Fresh nominal `OriginalMock` invocation retains its request/response wire ceiling
+but does not mark that envelope as uncertain physical transfer: its selected
+implementation only reads admitted typed answers and has no transport entry.
+This distinction never follows from a Provider name or a caller callback. It
+does not change quantity accounting, durable Entry/Unknown state or the physical
+and arbitrary-fixture paths, and it cannot clear existing or restored uncertain
+transfer history. Cleanup still settles the same original reservation after its
+actual child duties have completed.
+
 Publication retains its own exact borrowed byte amounts and spent planning
 steps. A refused reservation or settlement retains its original custody; a
 successful release cannot acknowledge another borrow or sibling. The existing
