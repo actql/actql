@@ -687,6 +687,8 @@ pub fn client_keyed_acquisition_matches_program(ClientKeyedAcquisition, Prepared
 
 pub fn client_keyed_acquisition_owner(ClientKeyedAcquisition) -> @lowering_relation.BoundPrepared
 
+pub fn client_keyed_acquisition_reaches_serialization(PreparedClientProgram, ClientKeyedAcquisition, Int, Int, max_work? : Int) -> Bool
+
 pub fn client_keyed_acquisition_source_evidence_facts(ClientKeyedAcquisition) -> @query_planning.QuerySourceEvidenceFacts?
 
 pub fn client_keyed_direct_acquisition_coordinates(ClientKeyedAcquisition) -> (Int, Int, Int)?
