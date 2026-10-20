@@ -4448,7 +4448,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "4a467eb2c6b987b97052a41070d789cea93889b8285f3221f2aae17be17c21ed",
+      "sha256": "a900a78a931d14565c1546023e33c9b4f0b7184c8e452146ae4db5f5822f73d3",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -4710,6 +4710,20 @@
             "runtime",
             "baseEnvironmentWire",
             "authorizationFor"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:localFilesLookupExecutionPolicy/init:localFilesLookupExecutionPolicy",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:localFilesLookupExecutionPolicy/init:localFilesLookupExecutionPolicy/init:localFilesLookupExecutionPolicy",
+          "parameters": [
+            "source"
           ],
           "async": false
         },
@@ -9785,6 +9799,99 @@
               {
                 "path": "adapters/host-node/installed-content-preparation.test.mjs",
                 "anchor": "test('ordinary keyed Content borrows its admitted original Run without a standalone Ledger'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:localFilesLookupExecutionPolicy/init:localFilesLookupExecutionPolicy",
+            "connectEmbeddedLocal/preparation/init:localFilesLookupExecutionPolicy/init:localFilesLookupExecutionPolicy/init:localFilesLookupExecutionPolicy"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The selected ordinary Local factory supplies the existing finite"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-host-policy.mjs",
+                "anchor": "export function localFilesLookupExecutionPolicy(sourceLimits) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (runtime !== moon) throw clientOperationError('ForeignInstalledProjectSourcePreparation');"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "belong to the same runtime and remain current. This is a managed service"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An ordinary Project Local Source retains its exact connection declaration and"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const bundle = projectSourcePreparation.originalsForRuntime(moon);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertSourceManagedInstallationCurrent(sourceManaged, originals);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "refused policy must not become the omitted-default case. Generic, unselected"
+              },
+              {
+                "path": "adapters/host-node/local-files-lookup-policy.test.mjs",
+                "anchor": "test('explicit valid Host lookup policy wins and explicit refusal cannot become an omitted default',()=>{"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "and installation retire. Managed reference retirement is not a native ACK."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-host-policy.mjs",
+                "anchor": "const response = BigInt(files) * BigInt(pages) * request;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "uses one attempt per request and the declared file, page, byte and duration"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An explicit valid Host lookup policy takes precedence; an explicit invalid or"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "and Mock-only paths retain unresolved absence and Common's `MissingPolicy`"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-files-lookup-policy.test.mjs",
+                "anchor": "test('actual Host default selection retains the same Project Source receiver runtime and current original',()=>{"
+              },
+              {
+                "path": "adapters/host-node/local-files-lookup-policy.test.mjs",
+                "anchor": "test('selected lookup limits enter the same canonical Environment without changing generic absence',()=>{"
               }
             ]
           }
