@@ -24130,25 +24130,24 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
-          "async": false,
           "name": "LocalHostBindingCleanupPending",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalHostBindingCleanupPending/__init__",
           "parameters": [
             "self",
             "binding"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/__init__",
           "parameters": [
             "self",
@@ -24165,99 +24164,100 @@
             "epoch",
             "principal",
             "connection"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/_nominal",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/_physical_current",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/_reserve",
           "parameters": [
             "self",
             "acquire"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/_settings_inventory",
           "parameters": [
             "self",
             "reader"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/_settings_inventory/receive",
           "parameters": [
             "row"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/close",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/current",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/fenced",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/inspect",
           "parameters": [
             "self",
             "consume"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/inspect_reader",
           "parameters": [
             "self",
             "reader",
             "consume"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_body",
           "parameters": [
             "raw"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_body/pairs",
           "parameters": [
             "items"
-          ]
+          ],
+          "async": false
         }
       ],
-      "sha256": "9498c6b78abc1d3bf2fcb08afcd53be08f304ad71f2daf0b8295fe53434b3021",
+      "sha256": "17e2bfe2211728635242858e9230c72d44b79648ca5ab115ef54b28b5558356f",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -24799,12 +24799,11 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
-          "async": false,
           "name": "LocalHostFiles",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalHostFiles/__init__",
           "parameters": [
             "self",
@@ -24813,66 +24812,83 @@
             "max_files",
             "max_bytes",
             "observe_roots"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalHostFiles/_nominal",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
+          "name": "LocalHostFiles/_require_original",
+          "parameters": [
+            "self",
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "LocalHostFiles/close",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalHostFiles/current",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalHostFiles/original_bytes",
           "parameters": [
             "self",
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalHostFiles/read_original",
           "parameters": [
             "self",
             "name",
             "max_bytes"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
+          "name": "LocalHostFiles/require_current_originals",
+          "parameters": [
+            "self",
+            "values"
+          ],
+          "async": false
+        },
+        {
           "name": "LocalHostFilesCleanupPending",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalHostFilesCleanupPending/__init__",
           "parameters": [
             "self",
             "cleanup_files"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_HostFile",
-          "parameters": []
+          "parameters": [],
+          "async": false
         }
       ],
-      "sha256": "dba3f229886187ddd59e84bc96e1f596fff8aff12b38f032ed44b92534c0583f",
+      "sha256": "cd40bdee850d160ed73f8f048a2727be39be13cb816b4b8d645e22761b304f2b",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -24881,10 +24897,12 @@
             "LocalHostFiles",
             "LocalHostFiles/__init__",
             "LocalHostFiles/_nominal",
+            "LocalHostFiles/_require_original",
             "LocalHostFiles/close",
             "LocalHostFiles/current",
             "LocalHostFiles/original_bytes",
-            "LocalHostFiles/read_original"
+            "LocalHostFiles/read_original",
+            "LocalHostFiles/require_current_originals"
           ],
           "exports": [
             "LocalHostFiles"

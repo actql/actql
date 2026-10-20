@@ -5,6 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import RLock
 import unittest
+from unittest.mock import patch
 
 from actql_sdk._local_core import LocalCore, LocalCoreError, _Output, _PhysicalInput
 from actql_sdk._local_files import LocalFileRoot, LocalFileError
@@ -147,6 +148,22 @@ class OriginalHostBindingTests(unittest.TestCase):
         self.assertTrue(all(family in ('buffer', 'workspace', 'current') for family, _, _ in calls))
         self.assertFalse(store._connection.in_transaction)
         self.assertEqual(len(frames), 1)
+
+    def test_each_current_callback_observes_every_original_file_once_without_caching(self):
+        path, _, _, _, source, state, _, _, _, _, binding = self.fixture()
+        with patch.object(source._root, 'observe_original',
+                          wraps=source._root.observe_original) as source_observe, \
+                patch.object(state._root, 'observe_original',
+                             wraps=state._root.observe_original) as state_observe:
+            binding._physical_current()
+            self.assertEqual((source_observe.call_count, state_observe.call_count), (2, 4))
+            binding._physical_current()
+            self.assertEqual((source_observe.call_count, state_observe.call_count), (4, 8))
+            # A second operation must observe the original again. Identical
+            # prior bytes/currentness cannot mask a changed physical file.
+            (path / 'source' / 'account.json').write_bytes(b'changed')
+            with self.assertRaises(LocalFileError):
+                binding._physical_current()
 
     def test_missing_changed_or_extra_settings_refuse_before_core_binding(self):
         for mutation in ('missing', 'changed', 'extra'):
