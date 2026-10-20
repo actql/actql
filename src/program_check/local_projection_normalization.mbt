@@ -40,17 +40,21 @@ fn local_projection_normalization_entry(
   let canonical = @encode.writer(1024, 32, 8) catch { _ => return None }
   try {
     if key == "rename" {
-      let names = @decode.object_field_names(source).unwrap()
-      names.sort_by(@canonical.compare_utf16)
+      let input = @relation.input_schema(operation)
+      let object = @decode.open_object(source).unwrap()
       @encode.begin_object(authored)
-      for name in names {
+      // The checked complete input already owns canonical name order. Visit
+      // it under the audit budget instead of sorting another authored array.
+      for index in 0..<@schema.field_count(input) {
         if remaining <= 0 {
           return None
         }
         remaining -= 1
-        let value = @decode.text(
-          @decode.lookup(@decode.open_object(source).unwrap(), name).unwrap(),
-        ).unwrap()
+        let name = @schema.reference_name(
+          @schema.field_at(input, index).unwrap().name,
+        )
+        guard @decode.lookup(object, name) is Some(original) else { continue }
+        let value = @decode.text(original).unwrap()
         remaining = match local_sort_text_work(name, remaining) {
           Some(left) => left
           None => return None
@@ -65,12 +69,12 @@ fn local_projection_normalization_entry(
       @encode.end_object(authored)
     } else {
       @encode.begin_array(authored)
-      for item in @decode.elements(source).unwrap() {
+      for index in 0..<@decode.array_length(source).unwrap() {
         if remaining <= 0 {
           return None
         }
         remaining -= 1
-        let name = @decode.text(item).unwrap()
+        let name = @decode.text(@decode.element_at(source, index).unwrap()).unwrap()
         remaining = match local_sort_text_work(name, remaining) {
           Some(left) => left
           None => return None

@@ -98,7 +98,7 @@ test "Group normalization retains original argument completion and unsupported r
   assert_true(implicit_else.local_normalization is None)
   let unsupported_relation = local_group_original_document(
     (
-      #|{"version":"actql/0.1","id":"local.unsupported-drop","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"other":{"type":"number","nullable":false}},"rows":[{"id":1,"other":2}]},"as":"input"},{"drop":["other"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"local.unsupported-dedupe","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"other":{"type":"number","nullable":false}},"rows":[{"id":1,"other":2}]},"as":"input"},{"dedupe_rows":{"by":["id"],"order_by":[{"field":"id","dir":"asc","nulls":"last"}]},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
   )
   assert_true(
