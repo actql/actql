@@ -13,13 +13,16 @@ fn output_verification_child(
   receipt : String,
   output : String,
 ) -> @argparse.Matches raise {
-  guard command().parse(argv=[
-      "verify",
-      "output",
-      output_verification_fixture(receipt),
-      output_verification_fixture(output),
-      "--json",
-    ]).subcommand
+  guard command().parse(
+      argv=[
+        "verify",
+        "output",
+        output_verification_fixture(receipt),
+        output_verification_fixture(output),
+        "--json",
+      ],
+      env=Map([]),
+    ).subcommand
     is Some(("verify", child)) else {
     fail("verify output parse")
   }
@@ -85,6 +88,7 @@ test "public output verification rejects an invalid unrelated receipt before out
     "unexpected acceptance"
   } catch {
     ClientStop(issue) => issue
+    other => raise other
   }
   assert_eq(issue, "InvalidResultDeliveryReceiptContainer")
   assert_eq(output_verification_files.val.length(), 1)
@@ -105,6 +109,7 @@ test "public output verification rejects tampered output and empty collection wi
       "unexpected acceptance"
     } catch {
       ClientStop(issue) => issue
+      other => raise other
     }
     assert_eq(issue, "ResultDeliveryReceiptOutputMismatch")
     assert_eq(output_verification_files.val.length(), opened)
