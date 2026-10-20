@@ -630,18 +630,22 @@ fn advance_model(
     return @bounded.Stopped(reason, 1, 1)
   }
   // ModelResponse contains typed content and token observations, not exact
-  // transport bytes. Retain the dispatched envelope as uncertain usage before
-  // entering physical I/O: invalid metadata, rejected content or cancellation
-  // must not make that request unused when cleanup settles its reservation.
+  // transport bytes. Physical and arbitrary fixture invocations retain their
+  // dispatched envelope as uncertain usage. The nominal OriginalMock branch
+  // only selects an admitted local answer and cannot invoke transport; keep
+  // its wire ceiling reserved without inventing a physical transfer history.
+  // This does not clear any earlier or restored uncertain usage.
   if state.progress.entry is None {
-    match
-      @resources.mark_transfer_uncertain(
-        state.ledger,
-        reservation,
-        state.limits.max_request_bytes + state.limits.max_response_bytes,
-      ) {
-      Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
-      Ok(_) => ()
+    if !(provider.invocation is OriginalMock(_)) {
+      match
+        @resources.mark_transfer_uncertain(
+          state.ledger,
+          reservation,
+          state.limits.max_request_bytes + state.limits.max_response_bytes,
+        ) {
+        Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
+        Ok(_) => ()
+      }
     }
     if state.quantity_capacity is Some(_) {
       match @resources.mark_quantities_uncertain(state.ledger, reservation) {
