@@ -61,7 +61,7 @@ fn local_result_file_deliveries(
   })
   let receipts : Array[String] = []
   let reports : Array[Json] = []
-  let mut failed = false
+  let mut failure : String? = None
   for index in 0..<delivery.files.length() {
     let destination = delivery.files[index]
     let result_name = selected_names[index]
@@ -172,7 +172,7 @@ fn local_result_file_deliveries(
       Err(issue) => {
         // A caller error cannot turn an unconfirmed physical operation into a
         // failed-with-no-exposure assertion. Keep the unresolved presentation.
-        failed = true
+        failure = Some(issue)
         fields["status"] = Json::string("pending")
         fields["error"] = Json::object(
           Map::from_array([
@@ -183,20 +183,36 @@ fn local_result_file_deliveries(
       }
     }
     reports.push(Json::object(fields))
-    if failed {
+    if failure is Some(_) {
       break
     }
   }
-  if delivery.receipt is Some(path) {
+  if delivery.receipt is Some(path) &&
+    (delivery.files.length() > 1 || !receipts.is_empty()) {
     // Requested cardinality determines the container even after partial
     // failure. Export never retries or resends any completed payload.
-    let wire = @run_host.client_result_delivery_receipt_file(
-      receipts,
-      delivery.files.length(),
-    ).unwrap_or_else(() => stop("LocalResultReceiptUnavailable"))
-    local_write_result_receipt(path, wire, crypto)
+    let exported = try {
+      let wire = @run_host.client_result_delivery_receipt_file(
+        receipts,
+        delivery.files.length(),
+      ).unwrap_or_else(() => stop("LocalResultReceiptUnavailable"))
+      local_write_result_receipt(path, wire, crypto)
+      Ok(())
+    } catch {
+      ClientStop(issue) => Err(issue)
+    }
+    if exported is Err(issue) {
+      // Preserve an earlier delivery refusal as the primary command failure.
+      // Payloads already delivered stay delivered even when export fails.
+      stop(
+        match failure {
+          None => issue
+          Some(primary) => primary + "; receipt-export=" + issue
+        },
+      )
+    }
   }
-  command_result_delivery_failed.val = failed
+  command_result_delivery_failed.val = failure is Some(_)
   if delivery.json {
     let saved = local_result_host_value(
       actual.capture.lookup_submitted_run_state_by_id_in_original_read(
@@ -217,7 +233,13 @@ fn local_result_file_deliveries(
           ("run", state),
           (
             "delivery_status",
-            Json::string(if failed { "pending" } else { "delivered" }),
+            Json::string(
+              if failure is Some(_) {
+                "pending"
+              } else {
+                "delivered"
+              },
+            ),
           ),
           ("deliveries", Json::array(reports)),
         ]),
@@ -225,8 +247,8 @@ fn local_result_file_deliveries(
       1048576,
     )
   }
-  if failed {
-    stop("LocalResultDeliveryUnconfirmed")
+  if failure is Some(issue) {
+    stop(issue)
   }
   ""
 }
