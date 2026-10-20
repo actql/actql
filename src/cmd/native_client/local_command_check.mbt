@@ -363,9 +363,19 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             capture=Some(capture),
           )
         } else if operation == "explain" {
-          local_check_context(host, crypto, name, capture=Some(capture)).explain(
-            input_root, child,
-          )
+          if optional(child, "run") is Some(_) {
+            local_saved_run_explain(
+              host,
+              settings,
+              crypto,
+              child,
+              capture=Some(capture),
+            )
+          } else {
+            local_check_context(host, crypto, name, capture=Some(capture)).explain(
+              input_root, child,
+            )
+          }
         } else if operation == "approve" || operation == "reject" {
           local_checkpoint_answer_by_id(
             host,

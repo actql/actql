@@ -144,6 +144,10 @@ fn prepare_native_command_invocation(
         local_quick_query_requested(operation, child)
       ) ||
       matches.subcommand is Some(("status", _)) ||
+      (
+        matches.subcommand is Some(("explain", child)) &&
+        optional(child, "run") is Some(_)
+      ) ||
       matches.subcommand is Some(("result", _))
     ) &&
     matches.sources.get("config-file") is Some(@argparse.Argv) {

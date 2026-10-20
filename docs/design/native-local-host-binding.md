@@ -1,5 +1,28 @@
 # Native Local Host binding
 
+## Saved Run Plan inspection
+
+The first ordinary Run acceptance retains the original compiler Plan and
+logical-map view in its existing Run observation metadata, in the same Journal
+transaction as admission. A private first-capture ticket joins the actual
+checked preparation, compilation, Run definition and original admission
+evidence. The saved metadata reader cannot issue that ticket. The optional
+metadata preserves the prior encoding when absent and the existing per-record
+intake bounds; an overflow refuses rather than omitting required new evidence.
+
+`explain --run` selects the authenticated original Run through current RunRead
+and the same bounded Journal scan and physical operation route as status. It
+rechecks the compiled Plan, Program and logical-map identities and current
+authority before returning the exact saved view. It never reads a replacement
+Program or parameters, replans, initializes a missing installation or starts a
+Run. Legacy missing Plan evidence remains unavailable and cannot be backfilled
+by lookup or repeated admission.
+
+The returned existing RunPlanView contains the recorded compiler map. Its
+static observation and unmeasured quantities remain explicit. This metadata
+does not assert unrecorded runtime engine choices, measurements or execution
+history, and the human renderer distinguishes it from a new static EXPLAIN.
+
 ## Ordinary literal query caller
 
 Trusted public `sql` and literal `aql` select the ordinary Local Host when no
