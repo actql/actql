@@ -173,7 +173,23 @@ fn submitted_rows_material_wire(
     Ok(value) => value
     Err(_) => return Err(-32)
   }
-  let rows = match
+  let rows_result = if current.sdk is Some(_) {
+    guard value.runs[material.run].finite_policy is Some(finite) else {
+      return Err(-32)
+    }
+    @local_run.prepare_local_sdk_submitted_run_rows(
+      plan,
+      original,
+      reference,
+      @utf8.encode(preparing),
+      permit,
+      current.account,
+      current.tuple,
+      current.context_cid,
+      now,
+      finite,
+    )
+  } else {
     @local_run.prepare_local_submitted_run_rows(
       plan,
       original,
@@ -185,7 +201,9 @@ fn submitted_rows_material_wire(
       current.context_cid,
       now,
       local_policy_original=value.runs[material.run].finite_policy,
-    ) {
+    )
+  }
+  let rows = match rows_result {
     Ok(value) => value
     Err(@local_run.AuthorizationMismatch) => return Err(-32)
     Err(_) => return Err(-31)

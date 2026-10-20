@@ -49,8 +49,18 @@ independent clean installation of the three normal wheels at source
 platform. That finite execution is separate from factory doubles and compiler
 checks; it is not a completed or published Local release.
 
-Fresh-process saved-Run lookup/attach/reread/recovery, Mock, repeated-Host pressure,
-other platform combinations and responsiveness remain incomplete or unverified.
+A separate normal-wheel installation at source
+`fd878cec04aa6c95ffcc5481cb8fa5efbf7720ab` passed a fresh
+`client.sql("SELECT 23 AS id").all()`, explicit close, and a new-process reopen
+of the same installation. The new Client attached the original Run and read
+`result("answer").all()` as `[{"id": 23}]`, then closed explicitly. The saved
+read submitted no new Program or Run and performed no compilation. This finite
+case covers a source-free, Effect-free and checkpoint-free Result; its slow
+saved read does not establish acceptable responsiveness.
+
+Cold status/wait, general recovery, public Local `check()`, the documented
+top-level `connect(...)` entry, Mock, repeated-Host pressure and other platform
+combinations remain incomplete or unverified.
 The optional owned-Native preparation path retains its separate physical
 supplier requirements; its `LocalExecutionFundingUnavailable` refusal does not
 describe ordinary platform startup. Private resource fixtures are never a fallback
@@ -108,7 +118,7 @@ the process rather than producing a success JSON.
 Run `--mode sdk-only` in a separate SDK-only venv to reject any installed Local
 distribution. These fixtures are acceptance commands, not evidence that this
 candidate has passed them. The finite ordinary query/close execution does not
-establish the complete sync/async initial/resume scenarios, saved-original
+establish the complete sync/async initial/resume scenarios, general saved-original
 recovery, normal numerical funding or full platform coverage. Those remain
 separate product gates; public-call spies and receipt-file tests only prepare
 them.

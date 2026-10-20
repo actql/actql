@@ -56,6 +56,14 @@ fn sdk_run_append_candidate(
   let read = (table, key) => {
     sdk_run_journal_port(value, configuration, 1, table, key)
   }
+  let observation = match
+    @host.capture_client_run_observation_originals(
+      @local_run.local_run_compiled(plan),
+      @local_run.local_run_definition(plan),
+    ) {
+    Ok(original) => original
+    Err(_) => return Err(-31)
+  }
   match
     @host.prepare_client_run_journal_append(
       @local_run.local_run_request(plan),
@@ -71,6 +79,7 @@ fn sdk_run_append_candidate(
       },
       -31,
       local_policy_original=Some(original),
+      run_observation_originals=Some(observation),
     ) {
     Ok(Append(candidate)) => Ok(candidate)
     // A saved Run cannot be backfilled into a preparing Submission or replaced

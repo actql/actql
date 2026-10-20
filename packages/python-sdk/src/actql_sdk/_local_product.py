@@ -41,6 +41,7 @@ from ._local_response import OriginalLocalResponseStream
 from ._local_sdk_response import OriginalLocalSDKResponseStream
 from ._local_sdk_payload_reader import OriginalSDKPayloadReader, SDKPayloadReaderCleanupPending
 from ._local_work import OriginalLocalWork
+from ._local_saved_read import OriginalSavedResultRead
 from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalStorageError, StoredBytes
 from ._local_native_store import _OriginalNativeStoreSelection
 from ._values import content_cid, wire_bytes
@@ -218,6 +219,7 @@ class InstalledLocalHost:
         self._pending_publication_write: OriginalCommitProjection | None = None
         # Routing alias to the same retained publisher loan, never a new grant.
         self._pending_publication_publisher: _Output | None = None
+        self._saved_result_reads: list[OriginalSavedResultRead] = []
         self._payloads: list[_PayloadCustody] = []
         self._payload_write_attempts: set[int] = set()
         self._payload_capacity_attempts: set[int] = set()
@@ -335,6 +337,10 @@ class InstalledLocalHost:
         with self._core._lock:
             if operation == 'connect':
                 raw = wire_bytes(self._profile())  # type: ignore[no-untyped-call]
+            elif operation == 'lookup-submission':
+                raw = self._lookup_original_submission(body['submissionRef'])
+            elif operation == 'attach':
+                raw = self._attach_original_run(body['ref'])
             elif operation == 'submit-intent':
                 intent = {key: body[key] for key in ('kind', 'input', 'parameters')}
                 for key in ('stopBefore', 'readOnly'):
@@ -372,11 +378,19 @@ class InstalledLocalHost:
                 projection = self._original_run_projection(run)
                 return self._original_run_response(run, projection)
             elif operation == 'read':
+                if not self._has_live_original_run_reference(body['ref']):
+                    saved_read = OriginalSavedResultRead(self)
+                    self._saved_result_reads.append(saved_read)
+                    return saved_read.prepare(body['ref'], body['resultName'], body['format'], body['attemptId'])
                 run, _ = self._select_original_run(body['ref'])
                 projection = self._original_run_projection(run)
                 return self._original_sdk_read_response(run, projection,
                     body['resultName'], body['format'], body['attemptId'])
             elif operation == 'delivery-attempt':
+                if not self._has_live_original_run_reference(body['ref']):
+                    saved_read = OriginalSavedResultRead(self)
+                    self._saved_result_reads.append(saved_read)
+                    return saved_read.prepare_lookup(body['ref'], body['resultName'], body['attemptId'])
                 run, _ = self._select_original_run(body['ref'])
                 projection = self._original_run_projection(run)
                 return self._original_delivery_lookup_response(run, projection,
@@ -418,6 +432,17 @@ class InstalledLocalHost:
             if held == raw:
                 raise ValueError('Ambiguous original Local Run reference')
         self._public_run_references.append(_OriginalRunReference(run, self._copy(raw)))
+
+    def _has_live_original_run_reference(self, reference: object) -> bool:
+        """Locate existing live custody only; exact equality is not authority."""
+        captured = wire_bytes(reference)  # type: ignore[no-untyped-call]
+        if len(captured) > 4096:
+            raise ValueError('Invalid original Local Run reference')
+        for original in self._public_run_references:
+            self._core._owned_input(original.source)
+            if self._core._inputs[original.source.ticket].payload == captured:
+                return True
+        return False
 
     def _select_original_run(self, reference: object) -> tuple[_Run, bytes]:
         """Route a reference, then reobserve its original actual saved admission.
@@ -848,9 +873,124 @@ class InstalledLocalHost:
                 raise LocalStorageError('Original Local submitted intent write conflicted; lookup is required')
             return output
 
+    def _lookup_original_submission(self, reference: object) -> bytes:
+        """Observe authenticated saved history without preparing or resending.
+
+        A missing original is unresolved history, never proof of nonexecution.
+        The Core's full inventories and retained Run validator remain inside
+        the same current physical snapshot before and after copying the view.
+        """
+        return self._read_original_reference(reference, kind=4)
+
+    def _attach_original_run(self, reference: object) -> bytes:
+        """Select one saved admission; never recreate an executable Run plan."""
+        return self._read_original_reference(reference, kind=5)
+
+    def _read_original_reference(self, reference: object, *, kind: int) -> bytes:
+        installation = self._active()
+        configuration = self._configuration
+        if (installation._epoch is None or installation._store is None
+                or configuration is None):
+            raise ValueError('Original Local submission suppliers are unavailable')
+        captured_reference = _object(wire_bytes(reference), 8192)  # type: ignore[no-untyped-call]
+        with self._core._lock:
+            if kind == 4:
+                installation._epoch.identity(captured_reference)
+                body = {'reference': wire_bytes(captured_reference).decode('utf-8')}  # type: ignore[no-untyped-call]
+            elif kind == 5 and wire.valid(captured_reference, 'run_ref'):  # type: ignore[no-untyped-call]
+                body = captured_reference
+            else:
+                raise ValueError('Invalid original Local reference selection')
+            source = self._copy(wire_bytes(body))  # type: ignore[no-untyped-call]
+            output = self._reserve(lambda: self._core.reserve_submission_projection(
+                configuration.handle, source, kind, cleanup=lambda: True))
+            self._projections.append(output)
+            self._append_sources[output.ticket] = source
+            captured: list[dict[str, Any]] = []
+            def observe(current: _Output) -> None:
+                self._core.produce_submission_lookup(output, current)
+                captured.append(_object(self._core.read_submission_lookup(output, current), 1048576))
+            installation.binding.inspect(observe)
+            original = captured[0]
+            observed_kind = original.get('kind')
+            fields = ({'kind'} if observed_kind == 'missing' else {'kind', 'intentCid'}
+                      if observed_kind == 'preparing' else {'kind', 'intentCid', 'admission'}
+                      if observed_kind == 'ready' else set())
+            if not fields or set(original) != fields:
+                raise ValueError('Invalid original Local submission lookup')
+            if kind == 5:
+                if original['kind'] != 'ready' or type(original.get('admission')) is not str:
+                    raise ValueError('Original Local Run is unavailable')
+                saved = _object(original['admission'].encode('utf-8'), 4096)
+                if (not wire.negotiated(saved, 'admission', _LOCAL_SELECTION)  # type: ignore[no-untyped-call]
+                        or saved['ref'] != captured_reference):
+                    raise ValueError('Foreign original Local Run admission')
+                admission: bytes = wire_bytes(saved)  # type: ignore[no-untyped-call]
+                if not self._close_projection(output):
+                    raise LocalProductCleanupPending(self)
+                return admission
+            if observed_kind == 'missing':
+                result: dict[str, Any] = {'kind': 'unresolvable',
+                    'submissionRef': captured_reference,
+                    'problem': {'code': 'submission_history_unresolvable'}}
+            else:
+                result = {'kind': observed_kind, 'submissionRef': captured_reference,
+                          'intentCid': original['intentCid']}
+                if observed_kind == 'ready':
+                    if type(original['admission']) is not str:
+                        raise ValueError('Invalid original saved Local admission')
+                    result['admission'] = _object(original['admission'].encode('utf-8'), 4096)
+            if not wire.submission_outcome(result, _LOCAL_SELECTION, captured_reference, lookup=True):  # type: ignore[no-untyped-call]
+                raise ValueError('Invalid original Local submission lookup response')
+            raw: bytes = wire_bytes(result)  # type: ignore[no-untyped-call]
+            if not self._close_projection(output):
+                raise LocalProductCleanupPending(self)
+            return raw
+
+    def _retain_original_result_read(self, reference: object, result_name: str) -> _Output:
+        """Retain Core's actual stored-chain reader, never an executable plan.
+
+        Its private wire carries metadata only. A later Result delivery must
+        still use this nominal Core output, recheck its original Store/current
+        fences and acquire the actual generation/grant/usage through their
+        existing Owners. No reconstruction from these strings is authorized.
+        Partial preparation, changed history or output close keeps the original
+        input/output reachable for same-handle cleanup.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        selected = _object(wire_bytes(reference), 8192)  # type: ignore[no-untyped-call]
+        if (configuration is None or not configuration.sdk
+                or installation._store is None or installation._epoch is None
+                or not wire.valid(selected, 'run_ref')  # type: ignore[no-untyped-call]
+                or not wire.bounded_text(result_name)):  # type: ignore[no-untyped-call]
+            raise ValueError('Invalid original saved Local Result selection')
+        with self._core._lock:
+            source = self._copy(wire_bytes({**selected, 'resultName': result_name}))  # type: ignore[no-untyped-call]
+            output = self._reserve(lambda: self._core.reserve_submission_projection(
+                configuration.handle, source, 6, cleanup=lambda: True))
+            self._projections.append(output)
+            self._append_sources[output.ticket] = source
+            packets: list[dict[str, Any]] = []
+            def inspect(current: _Output) -> None:
+                self._core.produce_submission_lookup(output, current)
+                packets.append(_object(self._core.read_submission_lookup(output, current), 1048576))
+            installation.binding.inspect(inspect)
+            packet = packets[0]
+            fields = {'kind', 'resultName', 'runDefinitionCid', 'index', 'manifest',
+                      'definition', 'artifact', 'retention', 'binding', 'resultOrdinal', 'bindingOrdinal'}
+            if (set(packet) != fields or any(type(packet[key]) is not str for key in fields)
+                    or packet['kind'] != 'result-originals' or packet['resultName'] != result_name
+                    or packet['runDefinitionCid'] != selected['runDefinitionCid']
+                    or any(packet[key] not in tuple(str(i) for i in range(8))
+                           for key in ('resultOrdinal', 'bindingOrdinal'))):
+                raise ValueError('Foreign original saved Local Result projection')
+            return output
+
     def _close_projection(self, output: _Output) -> bool:
         """Release only original transport loans after successful cleanup."""
         closed = (self._core.close_submission_append(output) if output.family == 'submission_append'
+                  else self._core.close_submission_lookup(output) if output.family == 'submission_lookup'
                   else self._core.close_submission_projection(output))
         if not closed:
             return False
@@ -2607,6 +2747,10 @@ class InstalledLocalHost:
                     return False
             if self._uncertain_ticket is not None and not self._core._closed:
                 return False
+            for saved_read in tuple(reversed(self._saved_result_reads)):
+                if not saved_read.close():
+                    return False
+                self._saved_result_reads.remove(saved_read)
             for key, state_custody in tuple(self._run_state_custody.items()):
                 if state_custody.output is not None:
                     if not self._core.close_publication_commit_export(state_custody.output):

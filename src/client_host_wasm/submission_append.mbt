@@ -30,8 +30,8 @@ fn submission_append_current(
 fn submission_append_run_inspection(
   row : @host.ClientJournalPhysicalRow,
 ) -> Result[@host.ClientRunJournalInspection, Int] {
-  let (record, local_policy) = match
-    @host.decode_client_run_journal_row_with_local_policy(row.body) {
+  let (record, local_policy, observation_originals) = match
+    @host.decode_client_run_journal_row_with_observation_originals(row.body) {
     Ok(value) => value
     Err(_) => return Err(-31)
   }
@@ -46,6 +46,17 @@ fn submission_append_run_inspection(
   }
   if record.checkpoint is Some(_) || record.effect_material_originals is Some(_) {
     return Err(-42)
+  }
+  if observation_originals is Some(wire) &&
+    @host.restore_client_run_observation_originals_wire(
+      record.definition,
+      wire,
+      131072,
+      8192,
+      64,
+    )
+    is Err(_) {
+    return Err(-31)
   }
   if record.publication_policy_originals is Some(wire) &&
     @host.read_client_run_policy_originals(wire) is Err(_) {
@@ -255,6 +266,10 @@ pub fn validate_submission_append(
   handle : Int,
   current : Int,
 ) -> Int {
+  if selected(nonce).bind(value => value.submissions.get(handle))
+    is Some({ kind: 4 | 5 | 6, .. }) {
+    return validate_submission_lookup(nonce, handle, current)
+  }
   guard selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) &&
     record.kind == 3 &&

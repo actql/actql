@@ -1,12 +1,14 @@
 ///|
 priv struct SDKReadFixture {
   preflight : LocalPublicationPreflight
+  reference_wire : String
   account : @authorization.AdmittedAccountConfiguration
   original : @host.ClientLocalRunPolicyOriginal
   selection : @publication.LocalSDKResultReadSelection
   owner : @publication.PublicationCommitPreparation
   view : @publication.PublicationCommitReadView
   result : LocalResultPublication
+  payload : @payload.PublicationPayloadRecord?
   cleanup : () -> Unit raise
 }
 
@@ -14,7 +16,10 @@ priv struct SDKReadFixture {
 // Actual Common checked Source-free task/export/Receipt and full stored-chain
 // validation. Epoch/adoption and physical binding literals are metadata fixtures,
 // not authenticated Host custody, Store ACK, real Wasm or product admission.
-fn sdk_read_fixture() -> SDKReadFixture raise {
+fn sdk_read_fixture(
+  bound_scope? : Bool = false,
+  sealed_payload? : Bool = false,
+) -> SDKReadFixture raise {
   let at = "2026-10-13T00:00:00.001Z"
   let bootstrap = @host.client_local_product_sdk_bootstrap_originals(
     "/private/local", at,
@@ -43,12 +48,27 @@ fn sdk_read_fixture() -> SDKReadFixture raise {
     @host.prepared_client_identity(@input.local_prepared_program(input)).program_definition_cid,
     context_cid(),
   ).unwrap()
-  let reference = @host.admit_client_submission_reference_record(
-    submitted_rows_reference_wire,
-  ).unwrap()
+  let authority = if bound_scope {
+    "sha256:" +
+    @sha.hex(
+      @host.client_local_authority_scope_body(
+        current,
+        "sha256:" + "a".repeat(64),
+        selected.principal,
+        selected.connection,
+      ).unwrap(),
+    )
+  } else {
+    "sha256:" + "b".repeat(64)
+  }
+  let reference_wire = submitted_rows_reference_wire.replace(
+    old="sha256:" + "b".repeat(64),
+    new=authority,
+  )
+  let reference = @host.admit_client_submission_reference_record(reference_wire).unwrap()
   let plan = prepare_source_free_local_publication_run(
     input,
-    "sha256:" + "b".repeat(64),
+    authority,
     @host.client_submission_reference_record_request_id(reference),
     permit,
     current,
@@ -291,25 +311,74 @@ fn sdk_read_fixture() -> SDKReadFixture raise {
   )
   let schema = exported.result_schema_wire().unwrap()
   let schema_cid = exported.result_schema_cid().unwrap()
-  let binding = @publication.issue_durable_result_binding(
-    plan.definition,
-    contracts[0],
-    invocation.invocation,
-    contracts[1],
-    contracts[3],
-    retention,
-    "sha256:" + "1".repeat(64),
-    ["n"],
-    schema,
-    "sha256:" + "2".repeat(64),
-    "sha256:" + "4".repeat(64),
-    1,
-    9,
-    "8cd664de3db2ebc3a68f6507c3d786addcdaffc9393fea9ce94364129ba27a98",
-    1048576,
-    100000,
-    64,
-  ).unwrap()
+  let payload = if sealed_payload {
+    let request = prepare_local_preflight_payload_request(
+      preflight,
+      0,
+      result,
+      current,
+      "sha256:" + "4".repeat(64),
+      "sha256:" + "2".repeat(64),
+      9L,
+    ).unwrap()
+    let record = @payload.prepare_publication_payload_record(request)
+    @payload.commit_publication_payload_transition(
+      @payload.prepare_publication_payload_reserved(record).unwrap(),
+      true,
+    ).unwrap()
+    |> ignore
+    @payload.commit_publication_payload_transition(
+      @payload.prepare_publication_payload_writing(record).unwrap(),
+      true,
+    ).unwrap()
+    |> ignore
+    @payload.commit_publication_payload_transition(
+      @payload.prepare_publication_payload_owned(record, {
+        device: 7UL,
+        inode: 9UL,
+      }).unwrap(),
+      true,
+    ).unwrap()
+    |> ignore
+    @payload.commit_publication_payload_transition(
+      @payload.prepare_publication_payload_sealed(
+        record,
+        { device: 7UL, inode: 9UL, size: 9L, },
+        "sha256:8cd664de3db2ebc3a68f6507c3d786addcdaffc9393fea9ce94364129ba27a98",
+      ).unwrap(),
+      true,
+    ).unwrap()
+    |> ignore
+    Some(record)
+  } else {
+    None
+  }
+  let binding = match payload {
+    Some(record) =>
+      issue_local_preflight_sealed_result_binding(
+        preflight, 0, result, record, current, 1048576, 100000, 64,
+      ).unwrap()
+    None =>
+      @publication.issue_durable_result_binding(
+        plan.definition,
+        contracts[0],
+        invocation.invocation,
+        contracts[1],
+        contracts[3],
+        retention,
+        "sha256:" + "1".repeat(64),
+        ["n"],
+        schema,
+        "sha256:" + "2".repeat(64),
+        "sha256:" + "4".repeat(64),
+        1,
+        9,
+        "8cd664de3db2ebc3a68f6507c3d786addcdaffc9393fea9ce94364129ba27a98",
+        1048576,
+        100000,
+        64,
+      ).unwrap()
+  }
   @publication.validate_result_schema_wire(schema_cid, schema, 65536, 4096, 64).unwrap()
   let (index, owner) = prepare_local_preflight_commit_candidate(
     preflight,
@@ -371,12 +440,14 @@ fn sdk_read_fixture() -> SDKReadFixture raise {
   }
   {
     preflight,
+    reference_wire,
     account: current,
     original,
     selection: bootstrap.read,
     owner,
     view,
     result,
+    payload,
     cleanup,
   }
 }

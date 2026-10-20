@@ -25,7 +25,7 @@ from ._local_storage import _NamespaceReader, LocalByteStore
 from ._local_native_holding import _NativeHoldingLease
 
 _NORMAL_HOST_BOOTSTRAP_FUEL = 1_000_000_000
-_NORMAL_HOST_OPERATION_FUEL = 16_000_000_000
+_NORMAL_HOST_OPERATION_FUEL = 32_000_000_000
 _NORMAL_HOST_CLEANUP_FUEL = 100_000_000
 
 
@@ -1255,14 +1255,15 @@ class LocalCore:
         with self._lock:
             self._owned_input(source)
             if (self._closing or type(configuration) is not int or
-                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2, 3)):
+                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2, 3, 4, 5, 6)):
                 raise ValueError('Invalid Local Submission projection')
             ticket = self._next_ticket
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 1048576 if kind == 3 else 4096
-            family = 'submission_append' if kind == 3 else 'submission'
+            limit = 1048576 if kind in (3, 4, 5, 6) else 4096
+            family = ('submission_append' if kind == 3 else
+                      'submission_lookup' if kind in (4, 5, 6) else 'submission')
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, family)))
@@ -1406,6 +1407,36 @@ class LocalCore:
 
     def close_submission_append(self, value: _Output) -> bool:
         return self._close_output(value, 'submission_append', 'close', abi_family='submission')
+
+    def produce_submission_lookup(self, value: _Output, current: _Output) -> None:
+        """Read only the original history in the same current Store snapshot."""
+        with self._lock:
+            self._owned_output(value, 'submission_lookup')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'produce', value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('produce_submission_lookup', code)
+            self.validate_submission_lookup(value, current)
+
+    def validate_submission_lookup(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'submission_lookup')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'validate_append', value.handle, current.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('validate_submission_lookup', code)
+
+    def read_submission_lookup(self, value: _Output, current: _Output) -> bytes:
+        with self._lock:
+            self.validate_submission_lookup(value, current)
+            raw = self._read_output(value, 'submission_lookup', 'length', abi_family='submission')
+            self.validate_submission_lookup(value, current)
+            return raw
+
+    def close_submission_lookup(self, value: _Output) -> bool:
+        return self._close_output(value, 'submission_lookup', 'close', abi_family='submission')
 
     def retire_submission_append_output(self, value: _Output) -> bool:
         """Retire transport while Core retains original input/Run relationships."""
@@ -1860,8 +1891,17 @@ class LocalCore:
     def reserve_publication_commit_export(self, publication: _Output, *,
                                           cleanup: Callable[[], bool]) -> _Output:
         """Read the original validated candidate; grants no Store permission."""
+        return self._reserve_publication_read_export(publication, 'publication', cleanup)
+
+    def reserve_saved_result_export(self, original: _Output, *,
+                                    cleanup: Callable[[], bool]) -> _Output:
+        """Borrow the nominal saved-read Owner; Core refuses other lookups."""
+        return self._reserve_publication_read_export(original, 'submission_lookup', cleanup)
+
+    def _reserve_publication_read_export(self, publication: _Output, family: str,
+                                         cleanup: Callable[[], bool]) -> _Output:
         with self._lock:
-            self._owned_output(publication, 'publication')
+            self._owned_output(publication, family)
             if self._closing:
                 raise RuntimeError('Local Core is closing')
             ticket = self._next_ticket
@@ -2462,6 +2502,39 @@ class LocalCore:
                 'publication_commit_export', 'validate_payload_binding', publication.handle,
                 record.handle, current_configuration, result, binding_index))
 
+    def validate_saved_payload_binding(self, original: _Output, record: _Output,
+                                       current_configuration: int, result: int,
+                                       binding_index: int) -> None:
+        """Match the same saved-read Owner and original Sealed row; no grant."""
+        with self._lock:
+            self._owned_output(original, 'submission_lookup')
+            self._owned_output(record, 'payload_record')
+            if (type(current_configuration) is not int or not 0 < current_configuration < 2**31
+                    or any(type(value) is not int or not 0 <= value < 8
+                           for value in (result, binding_index))):
+                raise ValueError('Invalid original saved payload coordinates')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            self._check('validate_saved_payload_binding', self._call(
+                'publication_commit_export', 'validate_payload_binding', original.handle,
+                record.handle, current_configuration, result, binding_index))
+
+    def begin_saved_read_cleanup(self, original: _Output) -> None:
+        """Retire interrupted synchronous call latches, never physical duties.
+
+        The original serialized invocation must have returned or trapped. Normal
+        work remains fenced; this neither repeats it nor acknowledges any Store,
+        Reader, buffer loan, native child or parent. Their existing close ports
+        still decide whether the same original can retire.
+        """
+        with self._lock:
+            self._owned_output(original, 'submission_lookup')
+            if (not getattr(self, '_ordinary_host', False) or not self._closing
+                    or self._invoking or self._host_fuel_phase != 'cleanup'):
+                raise RuntimeError('Original saved read requires quiescent terminal cleanup')
+            self._check('begin_saved_read_cleanup', self._call(
+                'submission', 'begin_cleanup', original.handle))
+
     def read_publication_commit_material(self, value: _Output) -> bytes:
         """Read original raw bytes, without parsing or recreating a contract."""
         return self._read_output(value, 'publication_commit_export', 'length')
@@ -2584,8 +2657,17 @@ class LocalCore:
     def reserve_payload_record(self, request: _Output, *,
                                cleanup: Callable[[], bool]) -> _Output:
         """Retain the original Core Intent; does not reserve disk capacity."""
+        return self._reserve_original_payload_record(request, 'payload_request', cleanup)
+
+    def reserve_saved_payload_record(self, original: _Output, *,
+                                     cleanup: Callable[[], bool]) -> _Output:
+        """Restore only the selected original Sealed state; cannot begin a write."""
+        return self._reserve_original_payload_record(original, 'submission_lookup', cleanup)
+
+    def _reserve_original_payload_record(self, request: _Output, family: str,
+                                          cleanup: Callable[[], bool]) -> _Output:
         with self._lock:
-            self._owned_output(request, 'payload_request')
+            self._owned_output(request, family)
             if self._closing:
                 raise RuntimeError('Local Core is closing')
             ticket = self._next_ticket

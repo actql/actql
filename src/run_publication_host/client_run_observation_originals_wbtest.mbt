@@ -1,4 +1,53 @@
 ///|
+test "saved observation envelope retains original evidence strings only" {
+  let (_, compiled, definition) = local_values_invocation_fixture(false)
+  let original = capture_client_run_observation_originals(compiled, definition).unwrap()
+  let wire = original.wire().unwrap()
+  assert_true(wire.has_prefix("{\"authorization\":"))
+  let decoded = @json.parse(wire) catch {
+    _ => abort("invalid observation fixture")
+  }
+  guard decoded is Object(fields) else {
+    fail("expected original observation envelope")
+    return
+  }
+  assert_eq(fields.length(), 2)
+  assert_eq(
+    fields.get("authorization"),
+    Some(
+      Json::string(
+        @publication.run_evidence_value_json(original.authorization()),
+      ),
+    ),
+  )
+  assert_eq(
+    fields.get("prepared"),
+    Some(
+      Json::string(@publication.run_evidence_value_json(original.prepared())),
+    ),
+  )
+}
+
+///|
+test "saved observation envelope refuses changed or noncanonical metadata" {
+  let (_, compiled, definition) = local_values_invocation_fixture(false)
+  let original = capture_client_run_observation_originals(compiled, definition).unwrap()
+  let wire = original.wire().unwrap()
+  let restored = restore_client_run_observation_originals_wire(
+    definition, wire, 131072, 8192, 64,
+  ).unwrap()
+  assert_eq(restored.wire().unwrap(), wire)
+  for changed in [wire + " ", "{\"prepared\":null}", "{}"] {
+    assert_true(
+      restore_client_run_observation_originals_wire(
+        definition, changed, 131072, 8192, 64,
+      )
+      is Err(_),
+    )
+  }
+}
+
+///|
 test "Run observation originals retain exact compiler bytes for both effect-free families" {
   for tasks in [false, true] {
     let (_, compiled, definition) = local_values_invocation_fixture(tasks)

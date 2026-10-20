@@ -784,6 +784,8 @@ pub fn read_model_capture_bundle(String, String, Int, Int, Int) -> Result[ModelC
 
 pub fn read_model_original_resource_document(String, Int, Int, Int) -> Result[ModelOriginalResourceDocument, PublicationContractIssue]
 
+pub fn[E] read_stored_effect_free_publication(String, String, String, (String, String) -> Result[Bytes?, E], () -> Result[Unit, E], Int, Int, Int, Int, Int, Int) -> Result[PublicationCommitPreparation?, StoredPublicationReadIssue[E]]
+
 pub fn readmit_generated_content_observation(RunEvidenceValue, String, String, String, String, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, StoredGeneratedContentReference, @value_admission.CheckedValue) -> Result[BoundContentGeneration, RunEvidenceValueIssue]
 
 pub fn record_result_access_grant(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
@@ -2221,6 +2223,14 @@ pub(all) enum SourceInputObservationIssue {
 } derive(Eq, @debug.Debug)
 
 type StoredGeneratedContentReference
+
+pub(all) enum StoredPublicationReadIssue[E] {
+  Read(E)
+  Missing(String)
+  Contract(PublicationContractIssue)
+  References
+  Bounds
+}
 
 // Type aliases
 

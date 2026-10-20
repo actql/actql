@@ -35,7 +35,7 @@ fn sdk_read_preimage(
 /// The same original current/selection/Run/adoption binding checks for both
 /// read preparation and metadata lookup. Availability is a separate byte gate.
 fn validate_sdk_read_original_binding(
-  preflight : LocalPublicationPreflight,
+  source : LocalSDKReadSource,
   account : @authorization.AdmittedAccountConfiguration,
   original : @host.ClientLocalRunPolicyOriginal,
   selection : @publication.LocalSDKResultReadSelection,
@@ -44,28 +44,28 @@ fn validate_sdk_read_original_binding(
   format : String,
   attempt_id : String,
 ) -> Result[Unit, LocalSDKReadOriginalsIssue] {
-  match
-    validate_local_preflight_result_read_current(
-      preflight, account, result_name,
-    ) {
+  match source.validate_current(account, result_name) {
     Ok(_) => ()
-    Err(issue) => return Err(Preflight(issue))
+    Err(issue) => return Err(issue)
   }
   let (principal, connection, _, name, selected_format, _, _) = @publication.local_sdk_result_read_selection_parameters(
     selection,
   )
-  let plan = preflight.intent.plan
   if result_name != name ||
     format != selected_format ||
     attempt_id.is_empty() ||
-    plan.tuple.principal != principal ||
-    plan.tuple.connection != connection {
+    source.principal_connection().0 != principal ||
+    source.principal_connection().1 != connection {
     return Err(InvalidSelection)
+  }
+  match source.validate_finite_original(original) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   if @host.validate_client_local_run_policy_original_run(
       @host.client_local_run_policy_original_body(original),
-      plan.request,
-      plan.definition,
+      source.request(),
+      source.definition(),
     )
     is Err(_) {
     return Err(InvalidOriginal)
@@ -84,12 +84,12 @@ fn validate_sdk_read_original_binding(
 
 ///|
 /// Select original read evidence through the existing current Account,
-/// checked preflight, saved finite packet and complete stored-chain Owners.
+/// checked source, saved finite packet and complete stored-chain Owners.
 /// No grant, attempt, write, renewal or authority registry is created here.
 /// The physical caller still fences actual original custody/current before
 /// and after this operation and before adopting/persisting its output.
-pub fn prepare_local_sdk_read_originals(
-  preflight : LocalPublicationPreflight,
+pub fn prepare_local_sdk_read_originals_for_source(
+  source : LocalSDKReadSource,
   account : @authorization.AdmittedAccountConfiguration,
   original : @host.ClientLocalRunPolicyOriginal,
   selection : @publication.LocalSDKResultReadSelection,
@@ -104,7 +104,7 @@ pub fn prepare_local_sdk_read_originals(
 ) -> Result[LocalSDKReadOriginals, LocalSDKReadOriginalsIssue] {
   match
     validate_sdk_read_original_binding(
-      preflight, account, original, selection, host_adoption_cid, result_name, format,
+      source, account, original, selection, host_adoption_cid, result_name, format,
       attempt_id,
     ) {
     Err(issue) => return Err(issue)
@@ -113,11 +113,14 @@ pub fn prepare_local_sdk_read_originals(
   let (principal, connection, purpose, _, _, max_bytes, max_uses) = @publication.local_sdk_result_read_selection_parameters(
     selection,
   )
-  let plan = preflight.intent.plan
   let (adoption, read_cid) = match
     @host.client_local_run_policy_original_read_dependencies(original) {
     Ok(pair) => pair
     Err(_) => return Err(InvalidOriginal)
+  }
+  match source.validate_view(owner, view) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let materials = match
     owner.observed_result_read_materials(view, result_name, max_results) {
@@ -129,19 +132,17 @@ pub fn prepare_local_sdk_read_originals(
     Err(issue) => return Err(Projection(issue))
   }
   if index.run_definition_cid !=
-    @publication.publication_contract_identity(plan.definition) ||
+    @publication.publication_contract_identity(source.definition()) ||
     index.authority_scope_cid !=
-    @host.client_request_authority_scope_cid(plan.request) ||
-    index.publication_request_cid !=
-    @publication.publication_contract_identity(preflight.intent.request) ||
+    @host.client_request_authority_scope_cid(source.request()) ||
+    index.publication_request_cid != source.publication_request_cid() ||
     @publication.publication_contract_identity(materials.retention) !=
     @publication.publication_contract_identity(
       @host.client_local_run_policy_original_retention(original),
     ) {
     return Err(InvalidOriginal)
   }
-  guard @host.client_compiled_run_source_free_result_policy_body(plan.compiled)
-    is Some(policy) &&
+  guard source.source_policy() is Some(policy) &&
     @publication.captured_effect_dependency_body_cid(policy) ==
     materials.read.effective_data_policy_cid &&
     @publication.local_sdk_result_read_selection_data_policy_cid(selection) ==
@@ -182,7 +183,7 @@ pub fn prepare_local_sdk_read_originals(
       ("format", Text(format)),
       (
         "original_request_scope_cid",
-        Text(@host.client_request_scope_cid(plan.request)),
+        Text(@host.client_request_scope_cid(source.request())),
       ),
       ("principal_id", Text(principal)),
       ("purpose", Text(purpose)),
@@ -242,13 +243,16 @@ pub fn prepare_local_sdk_read_originals(
     Err(issue) => return Err(issue)
   }
   // Recheck the independent current decisions after all fallible projection.
-  match
-    validate_local_preflight_result_read_current(
-      preflight, account, result_name,
-    ) {
-    Err(issue) => Err(Preflight(issue))
+  match source.validate_current(account, result_name) {
+    Err(issue) => Err(issue)
     Ok(_) =>
-      Ok({ request: plan.request, materials, authorization, ceiling, egress, })
+      Ok({
+        request: source.request(),
+        materials,
+        authorization,
+        ceiling,
+        egress,
+      })
   }
 }
 
@@ -265,4 +269,36 @@ pub fn local_sdk_read_original(
     2 => Ok(original.egress)
     _ => Err(InvalidOriginal)
   }
+}
+
+///|
+/// Existing live-run entrance retains its original preflight/current checks.
+pub fn prepare_local_sdk_read_originals(
+  preflight : LocalPublicationPreflight,
+  account : @authorization.AdmittedAccountConfiguration,
+  original : @host.ClientLocalRunPolicyOriginal,
+  selection : @publication.LocalSDKResultReadSelection,
+  host_adoption_cid : String,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  observed_at : String,
+  max_results : Int,
+) -> Result[LocalSDKReadOriginals, LocalSDKReadOriginalsIssue] {
+  prepare_local_sdk_read_originals_for_source(
+    live_sdk_read_source(preflight),
+    account,
+    original,
+    selection,
+    host_adoption_cid,
+    owner,
+    view,
+    result_name,
+    format,
+    attempt_id,
+    observed_at,
+    max_results,
+  )
 }

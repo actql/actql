@@ -2687,6 +2687,14 @@ zero-capacity provider. Source/module/ABI, target, Engine settings, exact native
 library and compiled-image hashes remain bound together. A mismatching image
 is refused; it does not trigger JIT compilation or another runtime at load.
 
+The selected platform pool has one function table with a finite 1768-element
+ceiling, matching the packaged Core's declared minimum and maximum. This is
+module-to-engine correspondence, not an ActQL language limit or additional
+managed capacity. The compiler and artifact producer bind the exact recipe,
+module and Engine identities before use. A changed table setting requires a
+matching newly compiled image; an installed Host never resizes or substitutes
+the selected pool to admit a different module.
+
 The existing maintainer compiler may prepare that ordinary image using actual
 platform Config/pool/Engine/Module handles. It closes those handles and does
 not create a Wasm instance, business permission or worker funding. Packaging
@@ -2708,7 +2716,7 @@ acknowledgments. Explicit diagnostic factory limits remain independent.
 
 The ordinary installed factory uses a finite 1,000,000,000-instruction fuel
 allowance for initialization and bootstrap together. Each subsequent admitted
-outer Host operation has a finite 16,000,000,000-instruction allowance so that
+outer Host operation has a finite 32,000,000,000-instruction allowance so that
 bounded preparation, saved-original validation and admission share one budget.
 Initialization does not receive a second budget
 when the same factory begins bootstrap. These are runtime execution ceilings,
@@ -2749,3 +2757,58 @@ closed through their original Core loans before later Run transfers begin.
 This returns only their transfer allowance. Saved files, metadata originals,
 the Store, current fences and actual physical owners remain retained. A refused
 close keeps the same partial installation and cannot trigger another bootstrap.
+
+### Saved Run observations and Result reads
+
+A durable Client reference identifies saved originals, rather than a process-local
+Run object. The original installation binding reads the complete submitted-row
+inventory in one current Store snapshot. Core validates the saved observation
+originals, Run and submission identities, current authorization, and original
+adoption scope before exposing attach or lookup. Missing older observation
+originals remain unavailable; they are not backfilled from a newly compiled
+Program, current defaults or another Run.
+
+First acceptance supplies the same captured observation originals to both the
+submitted-row Owner and the same-transaction Run inventory/CAS candidate. Their
+complete initial row bodies must agree before any write. The optional original
+is checked against the Run definition; legacy candidates keep their existing
+bytes, and retained lookup does not backfill missing originals.
+
+A saved Result read validates the complete stored publication graph and the
+selected manifest occurrence through the existing publication Owner. Its nominal
+read source retains the exact finite policy and stored view. The shared SDK read
+Owner still issues the read grant and observes delivery evidence under current
+authorization; publication metadata alone is neither permission nor a physical
+acknowledgment. Live publication preparation and writes cannot use this saved
+source. Delivery-attempt lookup only observes the original attempt in the same
+snapshot and creates no grant, payload Reader or first delivery.
+
+The Host registers its operation carrier before acquiring children. It restores
+the saved allocation directory and opens the committed generation in the
+installation's Result Root with no-follow, identity, size and digest checks. It
+neither creates a Writer nor finalizes an object again. Copied contract values
+have ordinary runtime lifetimes; live descriptor loans, transfer outputs and
+actual Store transactions retain their explicit original cleanup duties.
+Partial preparation and failed returns preserve the same carrier for child-first
+close, without reopening, re-reserving, replaying SQL or resending a submission.
+These saved read operations do not supply unfinished status, wait or recovery
+operations, and do not infer their success from an attached reference.
+
+Within one saved payload observation, the original validator's typed binding
+is consumed directly after the exact payload/allocation row fences. Reprojecting
+that binding does not re-run the identical validator within the same call.
+Nothing is cached across calls or snapshots: current authorization, original
+parent identity, complete saved graph and physical row checks still run for each
+observation. The finite operation ceiling bounds this work without promising
+that every admitted input fits or refreshing any exhausted operation.
+
+A trapped synchronous Wasm call can retain its in-call exclusion latch because
+the ordinary return continuation did not execute. After that exact call has
+unwound, the serialized Host may enter terminal saved-read cleanup with its
+independent finite cleanup allowance. The private entrance spends normal Core
+entry before retiring only the same saved parent's synchronous record/export
+latches. It does not clear attempted operations, unknown transactions, delivery
+state, physical stop/cleanup facts or buffer loans. Projection loans close before
+their Store workspaces; every Reader, descriptor, input and parent still follows
+its original child-first acknowledgment path. A live or reentrant invocation
+cannot enter this cleanup path, and normal work never resumes from it.

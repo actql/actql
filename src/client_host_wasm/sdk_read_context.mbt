@@ -2,7 +2,7 @@
 /// Ephemeral projection of the original Run/commit/current Owners. This is
 /// neither a registry nor permission; every consumer must recheck the callback.
 priv struct OriginalSDKReadContext {
-  preflight : @local_run.LocalPublicationPreflight
+  source : @local_run.LocalSDKReadSource
   finite : @host.ClientLocalRunPolicyOriginal
   sdk : StoredSDKRunConfiguration
   current : StoredRunConfiguration
@@ -20,6 +20,9 @@ fn original_sdk_read_context(
   run : Int,
   current_configuration : Int,
 ) -> Result[OriginalSDKReadContext, Int] {
+  if value.publications.get(record.publication) is None {
+    return saved_sdk_read_context(value, record, run, current_configuration)
+  }
   guard value.publications.get(record.publication) is Some(parent) &&
     value.runs.get(run) is Some(original_run) &&
     original_run.finite_policy is Some(finite) &&
@@ -132,7 +135,7 @@ fn original_sdk_read_context(
     Err(code) => Err(code)
     Ok(_) =>
       Ok({
-        preflight,
+        source: @local_run.local_sdk_read_source(preflight),
         finite,
         sdk,
         current,

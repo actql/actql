@@ -185,3 +185,62 @@ pub fn[E] inspect_client_saved_submission(
   }
   read_client_saved_submission(reference, read, validate_run, custody_lost)
 }
+
+///|
+/// Select an existing public Run reference only through complete original
+/// Run/Submission inventories. Equality locates retained metadata, never
+/// authorizes it. The physical Host must authenticate its current scope and
+/// retain the same Store snapshot around the whole call and response transfer.
+/// Missing and ambiguous histories cannot issue a Run, grant or resend.
+pub fn[E] inspect_client_saved_run_reference(
+  namespace_id : String,
+  authority_scope_cid : String,
+  definition_cid : String,
+  max_records : Int,
+  scan : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  validate_run : (ClientJournalPhysicalRow) -> Result[
+    ClientRunJournalInspection,
+    E,
+  ],
+  confirm_cancellation : () -> Result[Unit, E],
+  custody_lost : E,
+) -> Result[ClientSavedSubmissionSnapshot?, E] {
+  match
+    inspect_client_run_journal_inventory(
+      max_records, scan, read, validate_run, confirm_cancellation, custody_lost,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let mut selected : ClientSavedSubmissionSnapshot? = None
+  let inspected = inspect_client_submitted_journal_inventory(
+    max_records,
+    scan,
+    read,
+    row => {
+      let snapshot = match
+        read_client_saved_submission_row(row, read, validate_run, custody_lost) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      if snapshot.inspection is Some(run) &&
+        client_request_authority_scope_cid(run.request) == authority_scope_cid &&
+        @publication.publication_contract_identity(run.definition) ==
+        definition_cid &&
+        @publication.run_definition_namespace(run.definition) ==
+        Some(namespace_id) {
+        if selected is Some(_) {
+          return Err(custody_lost)
+        }
+        selected = Some(snapshot)
+      }
+      Ok(snapshot.record)
+    },
+    custody_lost,
+  )
+  match inspected {
+    Ok(_) => Ok(selected)
+    Err(issue) => Err(issue)
+  }
+}

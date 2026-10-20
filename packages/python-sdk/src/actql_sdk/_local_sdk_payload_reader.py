@@ -1,7 +1,8 @@
 """Bounded original descriptor transport; Core owns read and sink meaning."""
 from ._local_core import _Input, _Output
 from ._local_files import (
-    LocalReaderAcquisitionError, PhysicalFileChunk, _FileReader,
+    LocalReaderAcquisitionError, LocalOriginalAcquisitionError, PhysicalFileChunk,
+    _FileReader, _OriginalFileReader,
 )
 from ._local_reader_facts import OriginalReaderFacts
 from ._local_sdk_delivery_storage import OriginalSDKDeliveryStore
@@ -45,7 +46,7 @@ class OriginalSDKPayloadReader:
             self._original = self
             self._storage, self._request, self._fact = storage, request, fact
             self._core, self._root = core, fact._root
-            self._reader: _FileReader | None = None
+            self._reader: _FileReader | _OriginalFileReader | None = None
             self._chunk: PhysicalFileChunk | None = None
             self._input: _Input | None = None
             self._uncertain_input: int | None = None
@@ -58,10 +59,13 @@ class OriginalSDKPayloadReader:
                 storage.bind_original_payload(request, clock, fact)
                 storage.prepare_original_input(request, clock)
                 with self._root._lock:
-                    self._root.observe_completed_reader(fact._reader)
+                    expected = fact._observe_reader()
                     try:
-                        self._reader = self._root.open_reader(fact._reader.finalization)
-                    except LocalReaderAcquisitionError as error:
+                        if isinstance(fact._reader, _OriginalFileReader):
+                            self._reader = self._root.open_saved_payload(fact._reader.name, expected)
+                        else:
+                            self._reader = self._root.open_reader(fact._reader.finalization)
+                    except (LocalReaderAcquisitionError, LocalOriginalAcquisitionError) as error:
                         self._reader = error.original_reader
                         raise
                 storage.prepare_original_input(request, clock)
@@ -93,7 +97,9 @@ class OriginalSDKPayloadReader:
                 self._storage.prepare_original_input(self._request, clock)
                 self._reading = True
                 try:
-                    self._chunk = self._root.read_reader(self._reader)
+                    self._chunk = (self._root.read_original(self._reader)
+                                   if isinstance(self._reader, _OriginalFileReader)
+                                   else self._root.read_reader(self._reader))
                 finally:
                     self._reading = False
                 chunk = self._chunk
@@ -114,7 +120,10 @@ class OriginalSDKPayloadReader:
                     self._request, self._input, clock, eof=chunk.eof)
                 payload = self._storage.read_original_chunk(
                     self._request, self._input, clock, self._output, eof=chunk.eof)
-                self._root._validate_reader(self._reader)
+                if isinstance(self._reader, _OriginalFileReader):
+                    self._root._validate_original(self._reader)
+                else:
+                    self._root._validate_reader(self._reader)
                 if self._closing:
                     raise RuntimeError('Original SDK payload reader is closing')
                 return self._output, payload
@@ -143,12 +152,18 @@ class OriginalSDKPayloadReader:
                 if not self._core.close_input(self._input):
                     raise SDKPayloadReaderCleanupPending(self)
                 self._input = None
-                self._root.release_reader_chunk(self._reader, self._chunk)
+                if isinstance(self._reader, _OriginalFileReader):
+                    self._root.release_original_chunk(self._reader, self._chunk)
+                else:
+                    self._root.release_reader_chunk(self._reader, self._chunk)
                 self._chunk = None
                 self._output = None
                 self._confirmed = None
                 if self._reader.eof:
-                    self._root.observe_completed_reader(self._reader)
+                    if isinstance(self._reader, _OriginalFileReader):
+                        self._root.observe_original(self._reader)
+                    else:
+                        self._root.observe_completed_reader(self._reader)
                 return count
             finally:
                 self._active = False
@@ -176,7 +191,10 @@ class OriginalSDKPayloadReader:
                     return False
                 self._input = None
             if self._reader is not None:
-                if not self._root.close_reader(self._reader):
+                closed = (self._root.close_original(self._reader)
+                          if isinstance(self._reader, _OriginalFileReader)
+                          else self._root.close_reader(self._reader))
+                if not closed:
                     return False
                 self._reader = None
             self._chunk = None
