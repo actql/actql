@@ -81,14 +81,21 @@ test('Explicit null, empty and partial Checkpoint options retain the existing re
   }
 });
 
-test('An explicit Checkpoint observer does not silently become Account-only configuration', async () => {
-  for (const observe of [null, {}, () => {}, undefined]) {
-    await assert.rejects(async () => {
-      let installed;
-      try {
-        installed = await installHostRunAcceptance(options({
-          accountConfiguration: configuration(), observe}));
-      } finally { installed?.runAcceptance.close(); }
-    }, {code: 'InvalidCheckpointReviewers'});
+test('Account-only configuration preserves the shared diagnostic observer type rule', async () => {
+  for (const observe of [null, {}]) {
+    await assert.rejects(installHostRunAcceptance(options({
+      accountConfiguration: configuration(), observe})),
+    {code: 'InvalidRemoteHostAuthorization'});
+  }
+});
+
+test('A valid or omitted shared diagnostic observer does not select Checkpoint signing', async () => {
+  for (const observe of [() => {}, undefined]) {
+    const installed = await installHostRunAcceptance(options({
+      accountConfiguration: configuration(), observe}));
+    try {
+      assert.equal(installed.checkpoints, undefined);
+      assert.deepEqual(await installed.runAcceptance.acceptRun(request), {kind: 'dispatch'});
+    } finally { installed.runAcceptance.close(); }
   }
 });

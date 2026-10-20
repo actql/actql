@@ -205,13 +205,19 @@ export async function installHostRunAcceptance(options) {
   const checkpointFields = ['reviewers', 'hostKey', 'reviewReaders',
     'answeringAuthorities', 'effectRequiredClaims', 'checkpointTtlMs',
     'leaseMs', 'maxReviewBytes', 'resumeAfterAnswer', 'faultInjection',
-    'sweepPage', 'decide', 'observe'];
+    'sweepPage', 'decide'];
   if (authorization === undefined) return Object.freeze({});
   if (authorization === null || typeof authorization !== 'object' ||
       Array.isArray(authorization) ||
       checkpointFields.some(name => name in authorization)) {
     const checkpoints = await installRemoteCheckpoints(options);
     return Object.freeze({checkpoints, runAcceptance: checkpoints});
+  }
+  // Diagnostics are shared with ordinary Host dispatch. A valid observer is
+  // not selection of a signer, but its existing type rule still applies.
+  if (authorization.observe !== undefined &&
+      typeof authorization.observe !== 'function') {
+    fail('InvalidRemoteHostAuthorization');
   }
   const {accountConfig, accountConfiguration, decisionTimeoutMs = 30_000,
     maxInFlightDecisions = 16, maxRetainedDecisions = 1024} = authorization;
