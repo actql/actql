@@ -91,7 +91,7 @@ test "CLI receipt admission rejects malformed unrelated members and tampered sel
       "null",
       "[]",
       "{\"version\":\"actql-run-receipt/0.1\"}",
-      delivery_container_csv.replace("\"csv\"", "\"changed\""),
+      delivery_container_csv.replace(old="\"csv\"", new="\"changed\""),
     ] {
     assert_true(
       admit_client_result_delivery_receipts(
@@ -101,10 +101,10 @@ test "CLI receipt admission rejects malformed unrelated members and tampered sel
     )
   }
   let duplicate = delivery_container_first.replace(
-    "{", "{\"result_name\":\"answer\",",
+    old="{", new="{\"result_name\":\"answer\",",
   )
   assert_true(admit_client_result_delivery_receipts(duplicate) is Err(_))
-  let extra = delivery_container_first.replace("{", "{\"extra\":true,")
+  let extra = delivery_container_first.replace(old="{", new="{\"extra\":true,")
   assert_true(admit_client_result_delivery_receipts(extra) is Err(_))
 }
 
