@@ -153,7 +153,7 @@ test "public op metadata rejection selects diagnostics without reinterpreting le
   assert_eq(fields.length(), 2)
   assert_true(
     local_command_failure_text(original, false).has_prefix(
-      "ACTQL_E_COMMAND_FAILED:",
+      "actql-native-client: ACTQL_E_COMMAND_FAILED:",
     ),
   )
   local_command_diagnostic_reset()
