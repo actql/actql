@@ -1928,6 +1928,8 @@ pub fn client_program_local_effect_table_definition_json(@run_publication_host.C
 
 pub fn client_program_local_effect_table_storage_mapping(@run_publication_host.ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[@table.IcebergStorageMapping, @table.IcebergStorageMappingIssue]
 
+pub fn client_program_local_file_timestamp(Int64, Int) -> String?
+
 pub fn client_program_local_mock_account_configuration(String, String, String, Array[(String, String)], Array[String], (String, String)?, (String, String)?, String?) -> Result[String, @execution_authorization.LocalMockProfileIssue]
 
 pub fn client_program_local_mock_account_profile() -> (String, String, String, String)
