@@ -11812,7 +11812,7 @@
     {
       "module": "packages/sdk/internal/submission-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fa3789d22f460a8ce8530aeeeb9b736319c424e3309c7e57ef3314ddb8e9d623",
+      "sha256": "c46d75c7f47e1fe26c10056b01f185160ea886b90438445e6f1476b9bb516b7f",
       "exports": [
         "RequestHeld",
         "createSubmissionOperations",
@@ -11835,18 +11835,6 @@
             "transport",
             "execution",
             "lifecycle"
-          ],
-          "async": false
-        },
-        {
-          "name": "createSubmissionOperations/assertQueryResultReadCurrent/assertQueryResultReadCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createSubmissionOperations/beforeQueryResultRead/beforeQueryResultRead",
-          "parameters": [
-            "args"
           ],
           "async": false
         },
@@ -12391,9 +12379,7 @@
             "createSubmissionOperations/withSourceProducer/withSourceProducer/finish/finish",
             "createSubmissionOperations/withSourceProducer/withSourceProducer/finish/finish/retry/retry",
             "createSubmissionOperations/withSourceProducer/withSourceProducer/pending/pending",
-            "createSubmissionOperations/withSourceProducer/withSourceProducer/pending/pending#2",
-            "createSubmissionOperations/assertQueryResultReadCurrent/assertQueryResultReadCurrent",
-            "createSubmissionOperations/beforeQueryResultRead/beforeQueryResultRead"
+            "createSubmissionOperations/withSourceProducer/withSourceProducer/pending/pending#2"
           ],
           "exports": [
             "RequestHeld",
@@ -12788,7 +12774,7 @@
     {
       "module": "packages/sdk/internal/transport.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "40389a0ca6bba58fdaeb4b3be3402db6e5e92ae756df9f32b95b090504d53cd2",
+      "sha256": "e4d0419d7468e2ca90fa3e6027f0eb1658aa40b5e5976e46fff19623f3d1d1bf",
       "exports": [
         "createTransport",
         "loadLoopbackTransport"
@@ -12839,6 +12825,18 @@
           "async": true
         },
         {
+          "name": "createTransport/sourcePreparation/init:assertResultReadCurrent/init:assertResultReadCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createTransport/sourcePreparation/init:beforeResultRead/init:beforeResultRead",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "loadLoopbackTransport/loadLoopbackTransport",
           "parameters": [],
           "async": false
@@ -12868,6 +12866,8 @@
             "createTransport/createTransport#2",
             "createTransport/exchange/exchange",
             "createTransport/responseValue/responseValue",
+            "createTransport/sourcePreparation/init:assertResultReadCurrent/init:assertResultReadCurrent",
+            "createTransport/sourcePreparation/init:beforeResultRead/init:beforeResultRead",
             "loadLoopbackTransport/loadLoopbackTransport"
           ],
           "exports": [

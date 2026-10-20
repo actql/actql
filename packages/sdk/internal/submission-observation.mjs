@@ -357,16 +357,6 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
     : (format, text, parameters, options, capture) => withSourceProducer('aql', text, options,
       producer => capture((originalText, sourceOptions) => submitSource(originalText, sourceOptions, producer)),
       () => sourcePreparation.beforeSourceQuery(format, text, parameters, options));
-  const beforeQueryResultRead = sourcePreparation === undefined ? undefined
-    : (...args) => {
-      if (isClosed()) fail('ClientClosed');
-      return sourcePreparation.beforeResultRead(...args);
-    };
-  const assertQueryResultReadCurrent = sourcePreparation === undefined ? undefined
-    : () => {
-      if (isClosed()) fail('ClientClosed');
-      return sourcePreparation.assertResultReadCurrent();
-    };
   const retainQueryResult = (execution, result) => {
     const input = submissionInputs.get(execution);
     if (input && result !== undefined) submissionInputs.set(result, input);
@@ -387,10 +377,12 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
     startSource, newSubmission,
     sql: (text, parameters, options) => sourceQuery(startSource, ClientError,
       retainQueryResult, retainQueryFailure, 'sql', text, parameters, options,
-      beforeQueryResultRead, assertQueryResultReadCurrent, captureQueryAdmission),
+      sourcePreparation?.beforeResultRead, sourcePreparation?.assertResultReadCurrent,
+      captureQueryAdmission),
     aql: (text, parameters, options) => sourceQuery(startSource, ClientError,
       retainQueryResult, retainQueryFailure, 'aql-text', text, parameters, options,
-      beforeQueryResultRead, assertQueryResultReadCurrent, captureQueryAdmission),
+      sourcePreparation?.beforeResultRead, sourcePreparation?.assertResultReadCurrent,
+      captureQueryAdmission),
     lookupSubmission: async (submissionRef, {signal} = {}) => {
       let owned;
       try {owned = freezeInput(snapshotClientRequest(submissionRef));}
