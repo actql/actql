@@ -104,6 +104,9 @@ actql sql 'SELECT 1 AS id' --format jsonl --output rows.jsonl
 
 Existing destinations are not overwritten. A delivery failure after submission
 reports the original Run ID; inspect that Run instead of repeating the query.
+Outside a project, `result <run-id>` and `status <run-id>` restore the existing
+default Local Host; they do not initialize an absent Host. Explicit Remote or
+installation selections retain their precedence.
 
 ## Configuration
 
