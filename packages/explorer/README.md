@@ -110,7 +110,7 @@ If HTTP server close refuses, retry retains that same listener after both the
 close callback and original SDK calls settle. A pending callback keeps the same
 close attempt; a successful close remains acknowledged.
 
-Only admitted built assets are served: at most 32 assets and 2 MiB in total.
+Only admitted built assets are served: at most 32 assets and 4 MiB in total.
 The launcher reads its own package-relative frozen inventory, checks every
 length and SHA-256, refuses symlinks/duplicate/traversing paths, and then lets
 the Gateway copy the finite Map at admission. No workspace path is served.
