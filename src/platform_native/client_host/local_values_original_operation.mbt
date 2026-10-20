@@ -129,10 +129,14 @@ fn[T] NativeLocalValuesOriginalAccess::in_original_read(
       )
       is Ok(true)
     }
-    let result = if direct_current() {
-      call(operations, direct_current)
-    } else {
-      Err(AuthorizationDenied)
+    // Every closed caller below invokes this actual current port before its
+    // first Journal read or write. Start/claim retain their later checks after
+    // durable boundaries. Do not add an entry check immediately before that
+    // same observation, or retain an Allow between calls or SQL operations.
+    let result = match call(operations, direct_current) {
+      Err(Journal(AuthorizationDenied) | Start(AuthorizationDenied)) =>
+        Err(AuthorizationDenied)
+      result => result
     }
     output.val = Some(result)
     // Preserve the existing combined Read/COMMIT-Unknown return rule, rather
