@@ -25,7 +25,7 @@ from ._local_storage import _NamespaceReader, LocalByteStore
 from ._local_native_holding import _NativeHoldingLease
 
 _NORMAL_HOST_BOOTSTRAP_FUEL = 1_000_000_000
-_NORMAL_HOST_OPERATION_FUEL = 4_000_000_000
+_NORMAL_HOST_OPERATION_FUEL = 16_000_000_000
 _NORMAL_HOST_CLEANUP_FUEL = 100_000_000
 
 

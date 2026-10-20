@@ -2639,7 +2639,7 @@ same-image physical verifier remain distinct and unchanged in meaning.
 
 The ordinary installed factory uses a finite 1,000,000,000-instruction fuel
 allowance for initialization and bootstrap together. Each subsequent admitted
-outer Host operation has a finite 4,000,000,000-instruction allowance so that
+outer Host operation has a finite 16,000,000,000-instruction allowance so that
 bounded preparation, saved-original validation and admission share one budget.
 Initialization does not receive a second budget
 when the same factory begins bootstrap. These are runtime execution ceilings,
