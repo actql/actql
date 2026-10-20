@@ -55,6 +55,18 @@ request and keeps its Values, publication and delivery children until their
 actual acknowledgements. It does not open a second Store or rerun the query
 after an uncertain response.
 
+The source-free Local entry quotes the original prepared graph before physical
+acquisition. Its finite task inventory includes each input port and retains
+predecessor outputs beside dependent task work on the same Run Ledger. The
+executor follows the existing checked DAG, imports only its exact completed
+producer references, and finalizes each original task once. It neither flattens
+the submitted Program into a synthetic Values task nor turns a source-free
+selection into Source, INFER or Effect admission. The legacy single-task Effect
+entry keeps its separate admission and authority boundary. Named Result export
+selects its checked physical task, not an assumed task zero. Refusal after a
+completed predecessor retains all acquired task cleanup without restarting that
+predecessor or selecting a replacement Run.
+
 JSON, JSONL and CSV stdout retain their actual bytes-receipt route. A table
 requires its own admitted material receiver followed by a separately observed
 bounded table write and flush. A stdout encoding receipt is not material
