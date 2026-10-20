@@ -1,6 +1,7 @@
 import {join} from 'node:path';
 import {ordinaryHostJournalInstallation} from './ordinary-host-journal.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import {preparePrivateEvidenceKeyInstallation} from './local-continuation-evidence.mjs';
 
 // Ordinary resource acquisition in the existing Result/Store responsibility.
 // Same-Host identities and typed control remain, but a trusted in-process
@@ -9,6 +10,10 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
   const journal = ordinaryHostJournalInstallation(originals);
   let closing = false, closed = false, attempted = false, store, storeClose;
   let openFlight, closeFlight, cleanup, cleanupStatus, cleanupRetry, failure;
+  let keyInstallation;
+  let keyOperationPending = false;
+  const keyDuty = Object.freeze({status: () => Object.freeze({pending: keyOperationPending})});
+  let keyDutyRetained = false;
   let operations = 0;
   let admittedRuns = new WeakMap();
   const current = () => {
@@ -39,6 +44,7 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
         if (!ack(Reflect.apply(cleanupStatus, cleanup, []))) await Reflect.apply(cleanupRetry, cleanup, []);
         if (!ack(Reflect.apply(cleanupStatus, cleanup, []))) return status();
         cleanup = cleanupStatus = cleanupRetry = failure = undefined;
+        keyOperationPending = false;
       }
       if (store !== undefined) {
         storeClose ??= store.close;
@@ -47,6 +53,7 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
         if (!store.status().closed) return status();
       }
       store = storeClose = failure = cleanup = cleanupStatus = cleanupRetry = undefined;
+      keyInstallation?.key.fill(0); keyInstallation = undefined;
       admittedRuns = new WeakMap();
       subject = requirements = undefined; closed = true;
       return status();
@@ -108,12 +115,33 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
       const flight = Promise.resolve().then(async () => {
         try {
           current();
-          store = await openLocalPublicationStore(options, control, undefined, undefined,
+          if (subject.privateEvidenceKey === undefined) {
+            if (!keyDutyRetained) {
+              journal.retainPrivateEvidenceInitialization(keyDuty); keyDutyRetained = true;
+            }
+            keyOperationPending = true;
+            keyInstallation = await preparePrivateEvidenceKeyInstallation(join(subject.root, 'checkpoints'), {
+              storeDirectory: options.directory, storeAuthorityCid: subject.storeAuthorityCid,
+              preparedOwnership: originalOwnership,
+              assertCurrent: () => {current(); journal.assertInitializationCurrent();},
+            });
+            keyOperationPending = false;
+          }
+          current();
+          store = await openLocalPublicationStore({...options,
+            privateEvidenceKey: subject.privateEvidenceKey ?? keyInstallation?.key}, control, undefined, undefined,
             originalOwnership, current);
           storeClose = store.close;
           if (typeof storeClose !== 'function') throw new TypeError('HostResultPublicationCleanupPending');
+          if (keyInstallation !== undefined) {
+            keyOperationPending = true;
+            await keyInstallation.adoptStore(store);
+            keyOperationPending = false;
+          }
+          keyInstallation?.key.fill(0);
           current(); return store;
         } catch (cause) {
+          if (cause?.cleanupHandle === undefined && cause?.cleanupPending !== true) keyOperationPending = false;
           failure = cause;
           const error = Object.assign(new Error('HostResultPublicationCleanupPending', {cause}),
             {code: 'HostResultPublicationCleanupPending', cleanupPending: true});

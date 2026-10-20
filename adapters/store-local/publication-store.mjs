@@ -892,6 +892,17 @@ export function assertOriginalPreparedLocalPublicationStoreOwnership(original, d
     fail('PublicationStoreOwnershipLost');
   }
 }
+// Only this actual prepared Owner can select first private-key setup. An
+// absent key/path or caller flag cannot make an existing Store never-adopted.
+export async function assertOriginalPreparedLocalPublicationStoreFirstInitialization(original, directory) {
+  assertOriginalPreparedLocalPublicationStoreOwnership(original, directory);
+  const entry = originalPreparedStoreOwnership(original);
+  await entry.ownership.assertCurrent();
+  assertOriginalPreparedLocalPublicationStoreOwnership(original, directory);
+  if (!entry.fresh || entry.phase !== 'prepared') {
+    fail('PublicationStoreFirstInitializationUnavailable');
+  }
+}
 export async function prepareLocalPublicationStoreOwnership(directory, bounds, dependency, directoryInspection) {
   if (typeof directory !== 'string' || directory.length === 0) fail('InvalidPublicationStoreConfiguration');
   // Capture before any acquisition/callback. The actual Root supplies its

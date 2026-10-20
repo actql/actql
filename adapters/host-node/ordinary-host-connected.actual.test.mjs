@@ -100,6 +100,42 @@ test('ordinary actual Host serializes bounded CSV on its original Run and closes
   if (primary !== undefined) throw primary;
 });
 
+test('ordinary actual Content reopens its saved Run and adopted key without generating again', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-ordinary-content-reopen-'));
+  const cwd = process.cwd(), root = join(directory, 'host');
+  let client, primary, savedKey;
+  process.chdir(directory);
+  try {
+    const options = {mode: 'local', owner: 'local', installation: {directory: root}};
+    client = await connectEmbeddedLocal(options);
+    const execution = await client.startSource("SELECT 2 AS id\n" +
+      "|> SERIALIZE FORMAT CSV PRESERVE ORDER OPTIONS (name = 'saved.csv', " +
+      "header = TRUE, null_marker = r'\\N', max_rows = 3, max_bytes = 128)\n|> RESULT file;", {format: 'aql'});
+    const before = await execution.wait(); assert.equal(before.status, 'succeeded');
+    const rows = await execution.result('file').all(), ref = structuredClone(execution.ref);
+    const keyPath = join(root, 'checkpoints', 'private-evidence.key');
+    savedKey = await readFile(keyPath);
+    const intent = await readFile(join(root, 'checkpoints', 'private-evidence-initialization.json'));
+    const adopted = await readFile(join(root, 'checkpoints', 'private-evidence-adopted.json'));
+    await client.close(); client = undefined;
+    client = await connectEmbeddedLocal(options);
+    const same = await client.attach(ref), after = await same.status();
+    assert.equal(after.status, 'succeeded'); assert.equal(after.run_id, before.run_id);
+    assert.deepEqual(await same.result('file').all(), rows);
+    assert.deepEqual(await readFile(keyPath), savedKey);
+    assert.deepEqual(await readFile(join(root, 'checkpoints', 'private-evidence-initialization.json')), intent);
+    assert.deepEqual(await readFile(join(root, 'checkpoints', 'private-evidence-adopted.json')), adopted);
+  } catch (error) {primary = error;}
+  finally {
+    savedKey?.fill(0);
+    try {await client?.close();}
+    catch (error) {primary = primary === undefined ? error
+      : new AggregateError([primary, error], 'Saved Content read and cleanup failed');}
+    finally {process.chdir(cwd);}
+  }
+  if (primary !== undefined) throw primary;
+});
+
 test('actual Common Mock profile creates real distinct purpose keys and respects current Deny on reopen', async () => {
   const f = await accountFixture();
   try {
