@@ -139,10 +139,10 @@ const distinct = {
 test('original DISTINCT extends only the existing bounded catalogue and keeps real Sort entries', () => {
   assert.equal(cid(distinct.catalog_preimage), distinct.catalog_cid);
   assert.equal(cid(distinct.journal_preimage), distinct.journal_cid);
-  assert.deepEqual(load(prefix + 'fixture.json'), distinct);
+  assert.deepEqual(load(prefix + 'pre-default-fixture.json'), distinct);
   const body = JSON.parse(distinct.catalog_preimage);
-  assert.deepEqual(load(prefix + 'catalog.json'), body);
-  const schema = load(prefix + 'catalog.schema.json');
+  assert.deepEqual(load(prefix + 'pre-default-catalog.json'), body);
+  const schema = load(prefix + 'pre-default-catalog.schema.json');
   assert.equal(schema.additionalProperties, false);
   assert.deepEqual(schema.properties.applicability, {const: body.applicability});
   assert.deepEqual(schema.properties.rules, {const: body.rules});

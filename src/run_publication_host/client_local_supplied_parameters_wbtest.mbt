@@ -109,11 +109,7 @@ test "Local normalization distinguishes actual supplied origin from equal defaul
     local_parameter_values_identity(defaulted),
   )
   assert_true(issue_prepared_client_local_normalization(supplied) is Ok(_))
-  assert_true(
-    issue_prepared_client_local_normalization(defaulted)
-    is Err(Inventory(ProfileNotInstalled)),
-  )
-  assert_true(defaulted.local_normalization is None)
+  ignore(local_default_parameter_normalization(defaulted))
 }
 
 ///|

@@ -108,10 +108,7 @@ test "Take keeps actual default origin separate from equal supplied values" {
     local_parameter_values_identity(defaulted),
   )
   let issued = local_take_normalization(supplied)
-  assert_true(
-    issue_prepared_client_local_normalization(defaulted)
-    is Err(Inventory(ProfileNotInstalled)),
-  )
+  ignore(local_default_parameter_normalization(defaulted))
   assert_true(
     prepared_client_local_normalization_evidence(defaulted, issued)
     is Err(ForeignPreparation),

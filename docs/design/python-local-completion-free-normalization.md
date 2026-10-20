@@ -6,10 +6,10 @@ schema and independently authored canonical preimages accompany the catalog.
 The Resident Effect catalog, CID and applicability remain unchanged.
 
 The original common checked Program performs a separate bounded audit of the
-selected Source owners and typed operation/expression owners. The installed
+selected Source owners and typed operation/expression owners. The initial
 slice covers one explicit Source or Values root, at most three stages, Filter,
 Select and Derive, including ordinary typed add, subtract and multiply. It does
-not install default or Invocation Binding completion, template
+not install Invocation Binding completion, template
 completion, implicit NULL, sole-view selection, other operations or additional
 roots. Those paths remain explicitly refused for this publication profile;
 ordinary checker success does not imply an empty completion inventory. Exhausted
@@ -31,7 +31,7 @@ by this closed set. This is an implementation boundary, not a language ban.
 The original traversal selects this identity only after encountering a listed
 extension node and completing the entire audit. Programs using only the preceding
 node sets keep their four original catalog and journal bytes. A new scalar does
-not hide a default, template, implicit NULL or implicit Source selection below
+not hide a template, implicit NULL or implicit Source selection below
 it. Lazy execution does not exempt an unselected child from the preparation
 inventory. Original binding origins, declaration and stage joins, single-root
 and work limits remain unchanged. The inventory adds one retained Boolean; no
@@ -60,7 +60,9 @@ reads the original checked Take; it does not turn an author default into a
 supplied value or parse a logical value a second time.
 
 For a Parameter role, the audit requires the same declaration and admitted
-Supplied binding retained by the original preparation, and the existing closed
+binding retained by the original preparation (Supplied in the preceding
+revision, or the original declared Default in the default-aware revision),
+and the existing closed
 SafeInteger resolution for the exact pipeline and step. Equal names, values or
 CIDs from another pipeline are insufficient. Count and offset retain their
 separate minimum conditions. Every role, binding search and resolution visit
@@ -124,8 +126,8 @@ by manufacturing an explicit literal before the audit.
 
 Explicitly supplied Parameters use a second closed catalog under the same Local
 profile, `actql-effect-free-local-supplied-parameters-completion-free-catalog.json`.
-The audit retains the original complete `BoundValues` owner and requires every
-binding's actual origin to be `Supplied`, together with the same declaration
+That preceding audit retains the original complete `BoundValues` owner and requires
+every binding's actual origin to be `Supplied`, together with the same declaration
 owner and original stage identities. It admits the existing typed `$param` node;
 it does not insert a value or complete a declaration. Equal effective-value CIDs
 cannot distinguish a default from a supplied value and therefore cannot select
@@ -148,7 +150,7 @@ conversion or infer a target from a result value. Separate closed catalogs cover
 explicit casts with no Parameters and with actually supplied Parameters. The two
 previous catalogs and journals remain byte-identical when no cast is present.
 
-Implicit NULL, template/default completion, implicit Source selection and
+Implicit NULL, template completion, implicit Source selection and
 uninstalled relation operations remain refusals even beneath an explicit cast. A nullable
 cast of an authored literal NULL retains that literal and checked target; it is
 never an empty String or fabricated value. Execution failure, demand, bounds and
@@ -178,3 +180,22 @@ observation, invocation, derivation, ordering and artifact issuance remain with
 the existing portable publication Owners. Snapshot traversal uses their bounded
 preparation and retains the original consumer pin; cancellation and cleanup do
 not transfer responsibility to a new Owner.
+
+Declared Parameter defaults are invocation binding, rather than Source
+normalization. The bounded-relation catalogue also covers actual `Default`
+origins retained by the original `BoundValues`. For each selected default the
+audit projects its original declaration and checks the exact name, parameter
+type and checked default value, while preserving the shared binding owner across
+all stages. Equal supplied values retain the same values CID but do not replace
+that provenance. A supplied override, including explicit nullable NULL, does not
+select the default. The existing operation-scalar requirements still govern
+Take count and offset independently of the Parameter's domain.
+
+The default-aware catalogue has a new identity and retains the full preceding
+catalogue. Programs with no selected defaults keep their previous catalogue and
+journal bytes. Selecting a default adds no Source rule or journal entry. Actual
+Sort completions still carry their original nonempty journal; neither a default
+nor a matching values CID permits empty evidence in its place. The audit retains
+original binding aliases and charges default correspondence checks to its
+existing work bound. It does not re-resolve saved Run materials or supply
+execution, Account or cleanup authority.

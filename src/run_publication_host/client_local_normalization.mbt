@@ -32,6 +32,9 @@ pub fn client_local_completion_free_catalog_cid() -> String {
 fn local_completion_free_catalog_cid(
   inventory : @checked.LocalCompletionFreeInventory,
 ) -> String {
+  if @checked.local_completion_free_inventory_parameters_defaulted(inventory) {
+    return local_default_parameter_catalog_cid()
+  }
   if @checked.local_completion_free_inventory_uses_distinct(inventory) {
     return "sha256:4cbc2466af84dc925b7e79c91c0a7a19a2a16873bb6e7975e8f6855a954831d8"
   }
@@ -66,13 +69,20 @@ fn local_completion_free_catalog_cid(
 }
 
 ///|
+fn local_default_parameter_catalog_cid() -> String {
+  "sha256:096c228635c4a08bbe7080f3447a9ca35b439fdb5113a17b0cca2b7735a55d2d"
+}
+
+///|
 fn local_normalization_catalog_cid(
   inventory : ClientLocalNormalizationInventory,
 ) -> String {
   match inventory {
     CompletionFree(value) => local_completion_free_catalog_cid(value)
     SortCompletion(value) =>
-      if @checked.local_sort_normalization_inventory_uses_distinct(value) {
+      if @checked.local_sort_normalization_inventory_parameters_defaulted(value) {
+        local_default_parameter_catalog_cid()
+      } else if @checked.local_sort_normalization_inventory_uses_distinct(value) {
         "sha256:4cbc2466af84dc925b7e79c91c0a7a19a2a16873bb6e7975e8f6855a954831d8"
       } else {
         "sha256:43da977432e59fa094193c21ef4a11ba10de94f54400ef2576d6293b12500a57"
