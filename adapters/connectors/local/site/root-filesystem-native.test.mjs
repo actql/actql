@@ -9,6 +9,10 @@ import {createHash} from 'node:crypto';
 import {createOwnedScratch} from '../../../../scripts/owned-scratch.mjs';
 import {openLocalFileRoot} from './root-filesystem.mjs';
 import {prepareLocalFileWrite} from './root-file-writer.mjs';
+import {prepareLocalStoredContentWrite} from './root-stored-content-writer.mjs';
+import {openLocalPublicationStore} from '../../../store-local/publication-store.mjs';
+import {createPublicationContractControlFixture} from '../../../host-common/publication-contract-control.fixture.mjs';
+import {consumeStoredContentOriginal, closeStoredContentReaders} from '../../../host-node/generated-content-holding.mjs';
 
 const root=fileURLToPath(new URL('../../../../',import.meta.url));
 const require=createRequire(import.meta.url);
@@ -38,6 +42,96 @@ test.before(async()=>{
 });
 test.after(()=>{scratch?.passed();});
 const directory=name=>{const path=join(scratch.path,name);mkdirSync(path);return path;};
+
+// Actual Store/FD/native writer, with an explicit Run/Content selection fixture.
+// These cases do not issue a Common Reference, Account decision or Effect claim.
+async function storedWriteFixture(t, name, bytes, {beforeChunk, afterRead} = {}) {
+  const path = directory(name);
+  const digest = value => 'sha256:' + createHash('sha256').update(value).digest('hex');
+  const store = await openLocalPublicationStore({directory: join(path,'store'),
+    storeAuthorityCid: digest(name), capacityBytes: 1048576, maxObjectBytes: 262144,
+    maxObjects: 8, maxContractNodes: 256, maxContractDepth: 32},
+  createPublicationContractControlFixture());
+  const writer = store.createPreparedObjectWriter(bytes.length);
+  await writer.append(bytes);
+  const physical = await writer.seal(digest(bytes));
+  const holding = {version:'actql-local-physical-holding/0.1',namespace:'content',
+    holding_cid:digest(name+' holding'),manifest_cid:digest(name+' reference'),
+    objects:[{cid:physical.cid,byte_count:bytes.length}]};
+  await store.commitPhysicalHolding(holding,[physical.prepared]);
+  const original = Object.freeze({holding,storeAuthorityCid:store.storeAuthorityCid});
+  const binding = Object.freeze({}), readers = new Set();
+  let live = true, child, chunks = 0;
+  const content = Object.freeze({binding,current:()=>live});
+  const select = value => live && value===binding ? original : undefined;
+  const contentOwner = Object.freeze({storageForContent:select,
+    storageCurrentForContent:(value,key)=>value===original && select(key)===original,
+    async consumeContent(key,accept) {
+      assert.strictEqual(select(key),original);
+      const result = await consumeStoredContentOriginal({store,original,readers,accept:async chunk=>{
+        await beforeChunk?.({chunk,index:chunks++,path});
+        await accept(chunk);
+      },assertCurrent(){assert.strictEqual(select(key),original);}});
+      await afterRead?.({path});
+      return result;
+    }});
+  t.after(async()=>{
+    if(child!==undefined)assert.equal((await child.close()).pending,false);
+    assert.equal(await closeStoredContentReaders(readers),true);
+    await store.close();
+  });
+  return {path,store,readers,content,contentOwner,
+    retire(){live=false;},
+    prepare(options={}) {
+      child=prepareLocalStoredContentWrite({native,rootPath:path,path:'result',
+        temporaryName:'.stage',maxBytes:bytes.length,contentOwner,content,
+        assertCurrent(){},...options});
+      return child;
+    }};
+}
+
+test('actual Local stored Content writes original Store pieces before publishing only the verified whole',async t=>{
+  const bytes=Buffer.alloc(131073,0x61);bytes[65536]=0;bytes[131072]=0xff;
+  let pieces=0;
+  const f=await storedWriteFixture(t,'stored-content-original',bytes,{
+    beforeChunk({chunk,path}) {
+      pieces++;assert(chunk.length<=65536);assert.equal(existsSync(join(path,'result')),false);
+    },afterRead({path}) {assert.equal(existsSync(join(path,'result')),false);}});
+  const child=f.prepare();
+  assert.equal(existsSync(join(f.path,'.stage')),false,'factory acquires no target FD');
+  assert.deepEqual(await child.execute(),{path:'result',bytes:bytes.length});
+  assert.equal(pieces,3);assert.deepEqual(readFileSync(join(f.path,'result')),bytes);
+  assert.equal(f.readers.size,0);assert.equal((await child.close()).pending,false);
+});
+
+test('actual Local stored Content refuses retired or foreign original before file acquisition',async t=>{
+  const f=await storedWriteFixture(t,'stored-content-foreign',Buffer.from('private bytes'));
+  const child=f.prepare({content:{...f.content,binding:{...f.content.binding}}});
+  await assert.rejects(child.execute(),{code:'OriginalEffectContentUnavailable'});
+  assert.equal(existsSync(join(f.path,'.stage')),false);
+  assert.equal(existsSync(join(f.path,'result')),false);
+  assert.equal((await child.close()).pending,false);
+  assert.throws(()=>child.execute(),{code:'LocalFileWriteAlreadyAttempted'});
+});
+
+test('actual Local stored Content close stays pending during original read and never publishes its prefix',async t=>{
+  let enter,release;
+  const entered=new Promise(resolve=>{enter=resolve;}),barrier=new Promise(resolve=>{release=resolve;});
+  const f=await storedWriteFixture(t,'stored-content-stopping',Buffer.alloc(131073,0x62),{
+    async beforeChunk(){enter();await barrier;}});
+  const child=f.prepare(),flight=child.execute();
+  const outcome=flight.then(()=>({ok:true}),error=>({error}));
+  await entered;
+  assert.equal((await child.close()).pending,true);
+  assert.equal(await closeStoredContentReaders(f.readers),false);
+  assert.equal(f.readers.size,1);
+  release();
+  assert.equal((await outcome).error?.code,'LocalFileWriteClosing');
+  assert.equal(f.readers.size,0);
+  assert.equal(existsSync(join(f.path,'result')),false);
+  assert.equal((await child.close()).pending,false);
+  assert.equal(existsSync(join(f.path,'.stage')),false);
+});
 
 test('actual Local write child defers acquisition, streams exact bytes and closes every original FD',()=>{
   const path=directory('writer-child');mkdirSync(join(path,'nested'));let checks=0;

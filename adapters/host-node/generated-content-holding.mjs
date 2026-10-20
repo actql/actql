@@ -59,6 +59,49 @@ export async function issueStoredCapturedContent(options) {
   return issueStoredContent(options, 'CapturedContent');
 }
 
+// Borrow bytes only after the enclosing Run owner has selected its original
+// issued Content. The reader collection belongs to that same owner; this is
+// neither a CID lookup capability nor another holding/cleanup owner.
+export async function consumeStoredContentOriginal({store, original, readers,
+  assertCurrent, accept}) {
+  if (typeof accept !== 'function' || typeof assertCurrent !== 'function' ||
+      original?.storeAuthorityCid !== store.storeAuthorityCid ||
+      original.holding?.namespace !== 'content' || original.holding.objects.length !== 1) {
+    throw new TypeError('InvalidStoredContentConsumer');
+  }
+  const read = {pending: true, cleanup: undefined};
+  readers.add(read); // Retain before authority callbacks or acquiring the FD.
+  try {
+    assertCurrent();
+    const result = await store.consumePhysicalHolding(original.holding.holding_cid, 0,
+      async bytes => {
+        assertCurrent();
+        await accept(bytes);
+        assertCurrent();
+      });
+    // consumePhysicalHolding confirms the full hash, version and original FD
+    // close before returning. A delivered prefix is not publication evidence.
+    assertCurrent();
+    return result;
+  } catch (cause) {
+    if (cause?.cleanupHandle !== undefined) read.cleanup = cause.cleanupHandle;
+    throw cause;
+  } finally {
+    read.pending = false;
+    if (read.cleanup === undefined) readers.delete(read);
+  }
+}
+
+export async function closeStoredContentReaders(readers) {
+  for (const read of readers) {
+    if (read.pending) return false;
+    if (read.cleanup.status().pending) await read.cleanup.retry();
+    if (read.cleanup.status().pending) return false;
+    readers.delete(read);
+  }
+  return true;
+}
+
 async function issueStoredContent({store, control, candidate,
   holdingCid, workspaceScopeCid, effectiveDataPolicyCid, available,
   authorize, limits, retainOriginal}, prefix) {
