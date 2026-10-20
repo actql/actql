@@ -66,6 +66,65 @@ fn original_initialization_body(object : @decode.ObjectView) -> Bytes? {
 }
 
 ///|
+// The existing observation codec owns these DATA checks; physical custody
+// remains with the original Host. The producer retains its one-shot call.
+fn original_configuration_selection_body(object : @decode.ObjectView) -> Bytes? {
+  guard @decode.required(object, "files") is Ok(files_cursor) &&
+    @decode.elements(files_cursor) is Ok(array) &&
+    array.length() <= 8 else {
+    return None
+  }
+  let files : Array[@host.ClientLocalOriginalConfigurationFile] = []
+  for index in 0..<array.length() {
+    guard @decode.closed_object(array[index], [
+        "body", "name", "device", "inode", "size",
+      ])
+      is Ok(file) &&
+      required_text(file, "body") is Some(body) &&
+      required_text(file, "name") is Some(name) &&
+      original_metadata_uint(file, "device") is Some(device) &&
+      original_metadata_uint(file, "inode") is Some(inode) &&
+      original_metadata_size(file, "size") is Some(size) else {
+      return None
+    }
+    let bytes = @utf8.encode(body)
+    if bytes.length() > 65536 ||
+      bytes.length().to_int64() != size ||
+      (index > 0 && files[index - 1].name.lexical_compare(name) >= 0) {
+      return None
+    }
+    files.push({
+      content_cid: "sha256:" + @sha.hex(bytes),
+      device,
+      inode,
+      name,
+      size,
+    })
+  }
+  guard @decode.lookup(object, "managed_root") is Some(root_cursor) else {
+    return None
+  }
+  let managed : @host.ClientLocalOriginalManagedRoot? = if @decode.is_null(
+      root_cursor,
+    ) {
+    None
+  } else {
+    guard @decode.closed_object(root_cursor, ["device", "inode", "path"])
+      is Ok(root) &&
+      original_metadata_uint(root, "device") is Some(device) &&
+      original_metadata_uint(root, "inode") is Some(inode) &&
+      required_text(root, "path") is Some(path) else {
+      return None
+    }
+    Some({ device, inode, path, })
+  }
+  match @host.client_local_configuration_selection_body(files, managed) {
+    Ok(body) => Some(body)
+    Err(_) => None
+  }
+}
+
+///|
 #export_name("actql_original_reserve")
 pub fn reserve_original_metadata(
   nonce : Int64,
@@ -188,61 +247,7 @@ pub fn produce_original_metadata(nonce : Int64, handle : Int) -> Int {
         Err(_) => return -31
       }
     }
-    4 => {
-      guard @decode.required(object, "files") is Ok(files_cursor) &&
-        @decode.elements(files_cursor) is Ok(array) &&
-        array.length() <= 8 else {
-        return -31
-      }
-      let files : Array[@host.ClientLocalOriginalConfigurationFile] = []
-      for index in 0..<array.length() {
-        guard @decode.closed_object(array[index], [
-            "body", "name", "device", "inode", "size",
-          ])
-          is Ok(file) &&
-          required_text(file, "body") is Some(body) &&
-          required_text(file, "name") is Some(name) &&
-          original_metadata_uint(file, "device") is Some(device) &&
-          original_metadata_uint(file, "inode") is Some(inode) &&
-          original_metadata_size(file, "size") is Some(size) else {
-          return -31
-        }
-        let bytes = @utf8.encode(body)
-        if bytes.length() > 65536 ||
-          bytes.length().to_int64() != size ||
-          (index > 0 && files[index - 1].name >= name) {
-          return -31
-        }
-        files.push({
-          content_cid: "sha256:" + @sha.hex(bytes),
-          device,
-          inode,
-          name,
-          size,
-        })
-      }
-      guard @decode.required(object, "managed_root") is Ok(root_cursor) else {
-        return -31
-      }
-      let managed : @host.ClientLocalOriginalManagedRoot? = if @decode.is_null(
-          root_cursor,
-        ) {
-        None
-      } else {
-        guard @decode.closed_object(root_cursor, ["device", "inode", "path"])
-          is Ok(root) &&
-          original_metadata_uint(root, "device") is Some(device) &&
-          original_metadata_uint(root, "inode") is Some(inode) &&
-          required_text(root, "path") is Some(path) else {
-          return -31
-        }
-        Some({ device, inode, path, })
-      }
-      match @host.client_local_configuration_selection_body(files, managed) {
-        Ok(body) => body
-        Err(_) => return -31
-      }
-    }
+    4 => original_configuration_selection_body(object).unwrap_or_else(() => b"")
     _ => return -3
   }
   if body.is_empty() {
