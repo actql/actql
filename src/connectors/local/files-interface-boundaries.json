@@ -1,0 +1,1048 @@
+{
+  "qualification": "existing Local Source and physical Root responsibilities; references only, not permission, capacity or runtime acceptance",
+  "declarations": [
+    {
+      "module": "adapters/connectors/local/site/root-filesystem.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "9fa3eddc8765338aa15d520358bfac1193466f05aff3a9e9240007b8ce851535",
+      "exports": [
+        "openLocalFileRoot"
+      ],
+      "operations": [
+        {
+          "name": "currentResult/currentResult",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "currentResult/currentResult/currentResult",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "equalMetadata/equalMetadata",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "equalMetadata/equalMetadata/equalMetadata",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot",
+          "parameters": [
+            "native",
+            "path",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/callbacks/callbacks",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/cleanup/cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/closeNative/closeNative",
+          "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/closeRoot",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader",
+          "parameters": [
+            "limits",
+            "checkRead",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/acquire",
+          "parameters": [
+            "name",
+            "parent",
+            "component",
+            "maximum"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/bounds/bounds",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/close/close",
+          "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/content",
+          "parameters": [
+            "slot",
+            "metadata",
+            "collect"
+          ],
+          "async": true
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/execute",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/execute/execute",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/execute/execute#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/finishSlot",
+          "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/init:openReader",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/reader/init:list/init:list",
+          "parameters": [
+            "contentVersion",
+            "onFile"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/reader/init:list/init:list/init:list",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/reader/init:list/init:list/init:list/visit",
+          "parameters": [
+            "parent",
+            "component",
+            "prefix",
+            "depth"
+          ],
+          "async": true
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/reader/init:read/init:read",
+          "parameters": [
+            "path",
+            "expectedVersion",
+            "contentVersion"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/reader/init:read/init:read/init:read",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/reader/init:read/init:read/init:read#2",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/reader/reader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readMetadata",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readMetadata/readMetadata",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "readMetadata/readMetadata#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "version/version",
+          "parameters": [
+            "metadata"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:crypto",
+        "node:path",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing Local file Root and read lifetime; original descriptor-relative children, not Source permission or a new cleanup owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "currentResult/currentResult",
+            "currentResult/currentResult/currentResult",
+            "equalMetadata/equalMetadata",
+            "equalMetadata/equalMetadata/equalMetadata",
+            "fail/fail",
+            "openLocalFileRoot",
+            "openLocalFileRoot/call/call",
+            "openLocalFileRoot/callbacks/callbacks",
+            "openLocalFileRoot/cleanup/cleanup",
+            "openLocalFileRoot/closeNative/closeNative",
+            "openLocalFileRoot/closeRoot",
+            "openLocalFileRoot/current/current",
+            "openLocalFileRoot/init:openReader/init:openReader",
+            "openLocalFileRoot/init:openReader/init:openReader/acquire",
+            "openLocalFileRoot/init:openReader/init:openReader/bounds/bounds",
+            "openLocalFileRoot/init:openReader/init:openReader/check/check",
+            "openLocalFileRoot/init:openReader/init:openReader/close",
+            "openLocalFileRoot/init:openReader/init:openReader/close/close",
+            "openLocalFileRoot/init:openReader/init:openReader/content",
+            "openLocalFileRoot/init:openReader/init:openReader/execute",
+            "openLocalFileRoot/init:openReader/init:openReader/execute/execute",
+            "openLocalFileRoot/init:openReader/init:openReader/execute/execute#2",
+            "openLocalFileRoot/init:openReader/init:openReader/finishSlot",
+            "openLocalFileRoot/init:openReader/init:openReader/init:openReader",
+            "openLocalFileRoot/init:openReader/init:openReader/reader/init:list/init:list",
+            "openLocalFileRoot/init:openReader/init:openReader/reader/init:list/init:list/init:list",
+            "openLocalFileRoot/init:openReader/init:openReader/reader/init:list/init:list/init:list/visit",
+            "openLocalFileRoot/init:openReader/init:openReader/reader/init:read/init:read",
+            "openLocalFileRoot/init:openReader/init:openReader/reader/init:read/init:read/init:read",
+            "openLocalFileRoot/init:openReader/init:openReader/reader/init:read/init:read/init:read#2",
+            "openLocalFileRoot/init:openReader/init:openReader/reader/reader",
+            "positive/positive",
+            "readMetadata",
+            "readMetadata/readMetadata",
+            "readMetadata/readMetadata#2",
+            "version/version"
+          ],
+          "exports": [
+            "openLocalFileRoot"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/connectors/local-files.md",
+                "anchor": "Paths are resolved under"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "export function openLocalFileRoot"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "readMetadata"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "fileRootCurrent"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "slot.outcome"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "fileRootClose"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "flight"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "LocalFileCloseUnconfirmed"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "stopping = true"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "maxReadBytes"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "fileRootRead"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/build-node-directory-native.mjs",
+                "anchor": "localFilesPath"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/local/host/installed-project-files.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "b86a5b92962591cb3b4b2e0a326c292e9c865ddfb310e6114350af716f454d41",
+      "exports": [
+        "LOCAL_FILES_DEFAULT_LIMITS",
+        "installPreparedProjectLocalFiles",
+        "prepareInstalledProjectLocalFiles"
+      ],
+      "operations": [
+        {
+          "name": "acknowledged/acknowledged",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "canonical/canonical",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles",
+          "parameters": [
+            "moon",
+            "preparation",
+            "sourceManaged",
+            "baseEnvironmentWire",
+            "authorizationFor",
+            "nativeFilesystem"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/adapter",
+          "parameters": [
+            "resource",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:issueReadGrant/init:issueReadGrant",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:prepareSourceRead/init:prepareSourceRead",
+          "parameters": [
+            "checkedOwner",
+            "effectful",
+            "declaration",
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/checkRead/checkRead",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/fileLimits/fileLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/flush/flush",
+          "parameters": [
+            "final"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/init:onFile/init:onFile",
+          "parameters": [
+            "file"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/captureClose",
+          "parameters": [
+            "read"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/close/close",
+          "parameters": [
+            "read"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/closeRead",
+          "parameters": [
+            "read"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/init:ledgerCapacity/init:ledgerCapacity",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/init:prepare/init:prepare",
+          "parameters": [
+            "facts"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#2",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#3",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#4",
+          "parameters": [
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#5",
+          "parameters": [
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/issuer/issuer",
+          "parameters": [
+            "kind",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/issuer/issuer#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/prepareRun",
+          "parameters": [
+            "prepared",
+            "request",
+            "effectful"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/queryAliases/queryAliases",
+          "parameters": [
+            "alias"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/queryAliases/queryAliases/view/view",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/resourceFor/resourceFor",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/sameRun/sameRun",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "mime/mime",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownLimits",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownLimits/ownLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownLimits/ownLimits#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownLimits/ownLimits#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownLimits/value/value",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "physicalReadChild",
+          "parameters": [
+            "namespace",
+            "path",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "physicalReadChild/child/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "physicalReadChild/child/init:start/init:start",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "physicalReadChild/child/init:start/init:start/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "physicalReadChild/child/init:status/init:status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectLocalFiles",
+          "parameters": [
+            "moon",
+            "project",
+            "assertCurrent",
+            "limits",
+            "openFile"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstalledProjectLocalFiles/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectLocalFiles/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectLocalFiles/init:originalsForRuntime/init:originalsForRuntime",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectLocalFiles/init:retire/init:retire",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectLocalFiles/ports/ports",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectLocalFiles/prepareInstalledProjectLocalFiles",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectLocalFiles/same/same",
+          "parameters": [
+            "runtime",
+            "receiver"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreDeclaration",
+          "parameters": [
+            "call",
+            "connection",
+            "rootPath",
+            "versionMode",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreDeclaration/request/request",
+          "parameters": [
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreDeclaration/restore/restore",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "restoreDeclaration/restoreDeclaration",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreDeclaration/restoreDeclaration#2",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreDeclaration/string/string",
+          "parameters": [
+            "nullable"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreDeclaration/timestamp/timestamp",
+          "parameters": [
+            "nullable"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreDeclaration/view/view",
+          "parameters": [
+            "name",
+            "schema",
+            "fields",
+            "acquisition"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value",
+            "maximum"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-check-environment.mjs",
+        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-project-configuration.mjs",
+        "../../../host-node/installed-project-connections.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../site/root-filesystem.mjs",
+        "node:crypto",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "connector-semantics",
+      "owner": "Existing Local Project declaration and generic RowSource installation; same managed Run, original Source read and physical Root child",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "acknowledged/acknowledged",
+            "canonical/canonical",
+            "cid/cid",
+            "fail/fail",
+            "installPreparedProjectLocalFiles",
+            "installPreparedProjectLocalFiles/adapter/adapter",
+            "installPreparedProjectLocalFiles/adapter/init:close/init:close",
+            "installPreparedProjectLocalFiles/adapter/init:issueReadGrant/init:issueReadGrant",
+            "installPreparedProjectLocalFiles/adapter/init:prepareSourceRead/init:prepareSourceRead",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/checkRead/checkRead",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/fileLimits/fileLimits",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/flush/flush",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/init:onFile/init:onFile",
+            "installPreparedProjectLocalFiles/captureClose",
+            "installPreparedProjectLocalFiles/close",
+            "installPreparedProjectLocalFiles/close/close",
+            "installPreparedProjectLocalFiles/closeRead",
+            "installPreparedProjectLocalFiles/current/current",
+            "installPreparedProjectLocalFiles/init:ledgerCapacity/init:ledgerCapacity",
+            "installPreparedProjectLocalFiles/init:prepare/init:prepare",
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#2",
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#3",
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#4",
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#5",
+            "installPreparedProjectLocalFiles/issuer/issuer",
+            "installPreparedProjectLocalFiles/issuer/issuer#2",
+            "installPreparedProjectLocalFiles/prepareRun",
+            "installPreparedProjectLocalFiles/queryAliases/queryAliases",
+            "installPreparedProjectLocalFiles/queryAliases/queryAliases/view/view",
+            "installPreparedProjectLocalFiles/resourceFor/resourceFor",
+            "installPreparedProjectLocalFiles/sameRun/sameRun",
+            "mime/mime",
+            "ownLimits",
+            "ownLimits/ownLimits",
+            "ownLimits/ownLimits#2",
+            "ownLimits/ownLimits#3",
+            "ownLimits/value/value",
+            "physicalReadChild",
+            "physicalReadChild/child/init:close/init:close",
+            "physicalReadChild/child/init:start/init:start",
+            "physicalReadChild/child/init:start/init:start/init:assertCurrent/init:assertCurrent",
+            "physicalReadChild/child/init:status/init:status",
+            "positive/positive",
+            "prepareInstalledProjectLocalFiles",
+            "prepareInstalledProjectLocalFiles/call/call",
+            "prepareInstalledProjectLocalFiles/current/current",
+            "prepareInstalledProjectLocalFiles/init:originalsForRuntime/init:originalsForRuntime",
+            "prepareInstalledProjectLocalFiles/init:retire/init:retire",
+            "prepareInstalledProjectLocalFiles/ports/ports",
+            "prepareInstalledProjectLocalFiles/prepareInstalledProjectLocalFiles",
+            "prepareInstalledProjectLocalFiles/same/same",
+            "restoreDeclaration",
+            "restoreDeclaration/request/request",
+            "restoreDeclaration/restore/restore",
+            "restoreDeclaration/restoreDeclaration",
+            "restoreDeclaration/restoreDeclaration#2",
+            "restoreDeclaration/string/string",
+            "restoreDeclaration/timestamp/timestamp",
+            "restoreDeclaration/view/view",
+            "text/text"
+          ],
+          "exports": [
+            "LOCAL_FILES_DEFAULT_LIMITS",
+            "installPreparedProjectLocalFiles",
+            "prepareInstalledProjectLocalFiles"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/connectors/local-files.md",
+                "anchor": "## Sources"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "prepareInstalledProjectLocalFiles"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "installPreparedProjectLocalFiles"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "originalEntryWire"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "ForeignLocalFilesPreparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "physicalReadChild"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "retainChild"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "sameRun"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "consumePage"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "LocalFilesContentReadUnavailable"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "retainInstalledHostInitializationFailure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "stopping=true"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "LOCAL_FILES_DEFAULT_LIMITS"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "ledgerCapacity"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "restoreDeclaration"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "createInstalledRowSource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_file_timestamp_wbtest.mbt",
+                "anchor": "test "
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
