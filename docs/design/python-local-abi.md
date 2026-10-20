@@ -2696,6 +2696,14 @@ unused Host-capacity declaration or claim installed execution from compilation.
 The original arena-backed recipe, private provider-link checks and strong
 same-image physical verifier remain distinct and unchanged in meaning.
 
+The ordinary factory supplies 128 transfer descriptors, counting both live
+slots and concurrent borrowers. Setup, saved Run observations and the original
+Result reader can coexist in that finite allowance; the transfer pool remains
+12 MiB. This is a managed descriptor limit, not a byte reservation or an
+all-history fit guarantee. Exhaustion refuses without replacing the pool or
+discarding a borrower. Retirement still requires the original stop and cleanup
+acknowledgments. Explicit diagnostic factory limits remain independent.
+
 ### Ordinary Host operation fuel
 
 The ordinary installed factory uses a finite 1,000,000,000-instruction fuel

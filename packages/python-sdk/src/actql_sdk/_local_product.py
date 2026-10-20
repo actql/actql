@@ -287,7 +287,10 @@ class InstalledLocalHost:
         # resources. Limits do not stand in for those acquisitions, native
         # worker originals or any operation's current permission.
         core = LocalCore._from_installed_image(components,
-            transfer_capacity=12 * 1024 * 1024, slots=64,
+            # Original setup, Run and Result slots remain concurrent with
+            # each physical borrow. Keep their finite descriptor allowance
+            # separate from the unchanged transfer-byte allowance.
+            transfer_capacity=12 * 1024 * 1024, slots=128,
             resources=resources, _ordinary_host=True)
         try:
             with core._host_operation(initial=True):
