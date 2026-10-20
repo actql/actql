@@ -66,3 +66,61 @@ pub fn LocalSDKPayloadEncoding::original_payload_ordinals(
     _ => Err(MissingOriginal)
   }
 }
+
+///|
+/// Routing within the original stored inventory. These are actual view
+/// coordinates, not an invented live Result/plan or permission to open bytes.
+pub fn LocalSDKPayloadEncoding::stored_payload_ordinals(
+  self : LocalSDKPayloadEncoding,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  result_name : String,
+  max_results : Int,
+  max_contracts : Int,
+) -> Result[(Int, Int), LocalSDKPayloadSelectionIssue] {
+  if max_results <= 0 || max_contracts <= 0 || max_contracts > 256 {
+    return Err(InvalidLimit)
+  }
+  let selected = match
+    owner.observed_result_read_materials(view, result_name, max_results) {
+    Ok(value) => value
+    Err(issue) => return Err(Stored(issue))
+  }
+  if @publication.publication_contract_identity(selected.index) !=
+    @publication.publication_contract_identity(self.materials.index) ||
+    selected.read.durable_result_binding_cid !=
+    self.materials.read.durable_result_binding_cid ||
+    selected.read.result_artifact_cid != self.materials.read.result_artifact_cid {
+    return Err(ChangedOriginal)
+  }
+  let count = match owner.view_count(view) {
+    Ok(count) if count <= max_contracts => count
+    _ => return Err(InvalidLimit)
+  }
+  let mut artifact = None
+  for i = 0; i < count; i = i + 1 {
+    match owner.view_contract(view, i) {
+      Ok(original) if @publication.publication_contract_identity(original) ==
+        selected.read.result_artifact_cid &&
+        @publication.publication_contract_json(original) ==
+        @publication.publication_contract_json(selected.artifact) => {
+        artifact = Some(i)
+        break
+      }
+      Ok(_) => ()
+      Err(_) => return Err(MissingOriginal)
+    }
+  }
+  for i = 0; i < max_results; i = i + 1 {
+    match owner.view_binding(view, i) {
+      Ok(binding) if @publication.publication_contract_identity(binding) ==
+        selected.read.durable_result_binding_cid => {
+        guard artifact is Some(ordinal) else { return Err(MissingOriginal) }
+        return Ok((ordinal, i))
+      }
+      Ok(_) => ()
+      Err(_) => break
+    }
+  }
+  Err(MissingOriginal)
+}

@@ -93,6 +93,25 @@ pub fn produce_payload_binding(
   if child.invoked {
     return -33
   }
+  if parent.source is SavedResult(_, _) {
+    child.invoked = true
+    let binding = match
+      saved_payload_binding(value, parent, current_configuration) {
+      Ok(value) => value
+      Err(code) => return code
+    }
+    let code = status(
+      @buffers.supply_buffer_output(
+        value.pool,
+        child.slot,
+        @utf8.encode(@publication.publication_contract_json(binding)),
+      ),
+    )
+    if code == 0 {
+      child.produced = true
+    }
+    return code
+  }
   guard value.payload_requests.get(parent.request) is Some(request) &&
     value.publications.get(request.publication) is Some(publication) &&
     value.publication_preflights.get(publication.preflight)

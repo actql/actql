@@ -420,6 +420,34 @@ test "saved SDK source reaches existing payload codecs and terminal observation"
     read,
     () => Ok(()),
   ).unwrap()
+  let (ordinal, binding) = encoding
+    .stored_payload_ordinals(fixture.owner, fixture.view, "answer", 16, 256)
+    .unwrap()
+  let selected = fixture.owner
+    .observed_result_read_materials(fixture.view, "answer", 16)
+    .unwrap()
+  assert_eq(
+    @publication.publication_contract_json(
+      fixture.owner.view_contract(fixture.view, ordinal).unwrap(),
+    ),
+    @publication.publication_contract_json(selected.artifact),
+  )
+  assert_eq(
+    @publication.publication_contract_identity(
+      fixture.owner.view_binding(fixture.view, binding).unwrap(),
+    ),
+    selected.read.durable_result_binding_cid,
+  )
+  assert_true(
+    encoding.stored_payload_ordinals(
+      fixture.owner,
+      fixture.view,
+      "foreign",
+      16,
+      256,
+    )
+    is Err(_),
+  )
   assert_eq(encoding.feed(b"[{\"n\":1}]", true), Ok(b"{\"n\":1}\n"))
   assert_eq(encoding.confirm_chunk(), Ok(8L))
   let terminal = encoding

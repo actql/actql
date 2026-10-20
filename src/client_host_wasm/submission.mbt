@@ -243,7 +243,8 @@ pub fn retire_submission_output(nonce : Int64, handle : Int) -> Int {
     record.append_plan is Some(_) else {
     return -2
   }
-  if value.commit_exports.values().any(child => child.publication == handle) {
+  if value.commit_exports.values().any(child => child.publication == handle) ||
+    value.payload_records.values().any(child => child.request == handle) {
     return -9
   }
   if record.output_closed {
@@ -265,7 +266,8 @@ pub fn close_submission_projection(nonce : Int64, handle : Int) -> Int {
     value.submissions.get(handle) is Some(record) else {
     return -2
   }
-  if value.commit_exports.values().any(child => child.publication == handle) {
+  if value.commit_exports.values().any(child => child.publication == handle) ||
+    value.payload_records.values().any(child => child.request == handle) {
     return -9
   }
   if value.runs.values().any(run => run.sdk_submission == Some(handle)) {

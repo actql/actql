@@ -1,8 +1,18 @@
 ///|
+priv enum StoredPayloadRecordSource {
+  LiveRequest
+  SavedResult(StoredSubmissionProjection, StoredSavedResultRead)
+}
+
+///|
 /// One original Core Intent and its physical write responsibility. The existing
 /// payload Owner owns the record; this bridge adds no Run or recovery state.
 priv struct StoredPayloadRecord {
   request : Int
+  source : StoredPayloadRecordSource
+  mut saved_row : (Int64, Bytes)?
+  mut restore_invoked : Bool
+  mut pending : Bool
   slot : @buffers.BufferSlot
   mut record : @payload.PublicationPayloadRecord?
   mut produced : Bool
@@ -19,13 +29,20 @@ pub fn reserve_payload_record(
   physical_ticket : Int,
   physical_copy_bytes : Int64,
 ) -> Int {
-  guard selected(nonce) is Some(value) &&
-    value.payload_requests.get(request)
-    is Some(
-      { produced: true, request: Some(_), closing: false, publication, .. }
-    ) &&
-    value.publications.get(publication) is Some({ closing: false, .. }) else {
-    return -2
+  guard selected(nonce) is Some(value) else { return -2 }
+  let source = match value.payload_requests.get(request) {
+    Some({ produced: true, request: Some(_), closing: false, publication, .. }) => {
+      guard value.publications.get(publication) is Some({ closing: false, .. }) else {
+        return -2
+      }
+      LiveRequest
+    }
+    _ => {
+      guard saved_result_export_parent(value, request) is Some((parent, saved)) else {
+        return -2
+      }
+      SavedResult(parent, saved)
+    }
   }
   if value.closing || value.runtime_closing {
     return -5
@@ -53,6 +70,10 @@ pub fn reserve_payload_record(
   let handle = value.next_handle
   value.payload_records[handle] = {
     request,
+    source,
+    saved_row: None,
+    restore_invoked: false,
+    pending: false,
     slot,
     record: None,
     produced: false,
@@ -72,6 +93,9 @@ fn payload_record_current(
   current_configuration : Int,
   pending_confirmation? : Bool = false,
 ) -> Bool {
+  if record.source is SavedResult(_, _) {
+    return saved_payload_record_current(value, record, current_configuration)
+  }
   match value.payload_requests.get(record.request) {
     Some(request) =>
       payload_replay_current(
@@ -92,8 +116,13 @@ pub fn produce_payload_record(
   current_configuration : Int,
 ) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.payload_records.get(handle) is Some(record) &&
-    value.payload_requests.get(record.request)
+    value.payload_records.get(handle) is Some(record) else {
+    return -2
+  }
+  if record.source is SavedResult(_, _) {
+    return produce_saved_payload_record(value, record, current_configuration)
+  }
+  guard value.payload_requests.get(record.request)
     is Some({ closing: false, request: Some(request), .. }) else {
     return -2
   }
@@ -154,6 +183,11 @@ pub fn begin_payload_record(
   handle : Int,
   current_configuration : Int,
 ) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.payload_records.get(handle) is Some(original) &&
+    original.source is LiveRequest else {
+    return -2
+  }
   let result = validate_payload_record(nonce, handle, current_configuration)
   if result != 0 {
     return result
@@ -250,6 +284,9 @@ pub fn close_payload_record(nonce : Int64, handle : Int) -> Int {
     return -2
   }
   record.closing = true
+  if record.pending {
+    return -9
+  }
   if value.payload_reservations.values().any(child => child.parent == handle) ||
     value.payload_writings.values().any(child => child.parent == handle) ||
     value.payload_allocations.values().any(child => child.parent == handle) ||

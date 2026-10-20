@@ -222,6 +222,8 @@ pub fn restore_local_run_materials(String, String) -> Result[@run_publication_ho
 
 pub fn restore_local_run_normalization_evidence(LocalRunPlan, LocalRunNormalization, String, String) -> Result[@run_publication.RunEvidenceValue, LocalRunNormalizationIssue]
 
+pub fn restore_local_sdk_saved_payload_record(LocalSDKReadSource, @execution_authorization.AdmittedAccountConfiguration, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, String, Bytes) -> Result[(@publication_payload.PublicationPayloadRecord, @run_publication.PublicationContract), LocalSDKReadOriginalsIssue]
+
 pub fn restore_source_free_local_run(@client_local_preparation.LocalPreparedInput, String, String, @run_publication_host.ClientRequestIdentity, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String) -> Result[LocalRunPlan, LocalRunIssue]
 
 pub fn restore_source_free_local_run_from_materials(@client_local_preparation.LocalPreparedInput, @run_publication_host.ClientTaskRunMaterials, String, @run_publication_host.ClientRequestIdentity, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String) -> Result[LocalRunPlan, LocalRunIssue]
@@ -261,6 +263,8 @@ pub fn[E] validate_local_sdk_payload_encoding_current(LocalPublicationPreflight,
 pub fn[E] validate_local_sdk_payload_encoding_source_current(LocalSDKReadSource, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, LocalSDKReadDeliveryPreparation, String, String, String, String, Int, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[Unit, LocalSDKReadPayloadCodecIssue[E]]
 
 pub fn validate_local_sdk_read_source_current(LocalSDKReadSource, @execution_authorization.AdmittedAccountConfiguration, String) -> Result[Unit, LocalSDKReadOriginalsIssue]
+
+pub fn validate_local_sdk_saved_payload_record(LocalSDKReadSource, @execution_authorization.AdmittedAccountConfiguration, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, String, @publication_payload.PublicationPayloadRecord) -> Result[@run_publication.PublicationContract, LocalSDKReadOriginalsIssue]
 
 // Errors
 
@@ -501,6 +505,7 @@ pub fn LocalSDKPayloadEncoding::original_payload_ordinals(Self, @run_publication
 pub fn LocalSDKPayloadEncoding::prepare_input(Self) -> Result[Unit, LocalSDKPayloadEncodingIssue]
 pub fn[E] LocalSDKPayloadEncoding::prepare_terminal_for_source(Self, LocalSDKReadSource, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, String, String, String, String, Int, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[LocalSDKDeliveryTerminal, LocalSDKDeliveryTerminalIssue[E]]
 pub fn[E] LocalSDKPayloadEncoding::prepare_terminal_from_store(Self, LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, String, String, String, String, Int, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[LocalSDKDeliveryTerminal, LocalSDKDeliveryTerminalIssue[E]]
+pub fn LocalSDKPayloadEncoding::stored_payload_ordinals(Self, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, String, Int, Int) -> Result[(Int, Int), LocalSDKPayloadSelectionIssue]
 
 pub(all) enum LocalSDKPayloadEncodingIssue {
   Frames(@run_publication.DurableResultRowFrameIssue)

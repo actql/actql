@@ -2624,8 +2624,17 @@ class LocalCore:
     def reserve_payload_record(self, request: _Output, *,
                                cleanup: Callable[[], bool]) -> _Output:
         """Retain the original Core Intent; does not reserve disk capacity."""
+        return self._reserve_original_payload_record(request, 'payload_request', cleanup)
+
+    def reserve_saved_payload_record(self, original: _Output, *,
+                                     cleanup: Callable[[], bool]) -> _Output:
+        """Restore only the selected original Sealed state; cannot begin a write."""
+        return self._reserve_original_payload_record(original, 'submission_lookup', cleanup)
+
+    def _reserve_original_payload_record(self, request: _Output, family: str,
+                                          cleanup: Callable[[], bool]) -> _Output:
         with self._lock:
-            self._owned_output(request, 'payload_request')
+            self._owned_output(request, family)
             if self._closing:
                 raise RuntimeError('Local Core is closing')
             ticket = self._next_ticket
