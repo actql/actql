@@ -90,6 +90,7 @@ test('composed Local start retains the original Model before Run and dispatch bi
     retainCompleted(operation) { assert.equal(operation, retained); events.push('capture'); }});
   assert.equal(opened.provider, port);
   assert.deepEqual(events, []);
+  selected.computePrefix = {};
   assert.equal(start(inputs), active);
   assert.deepEqual(events, ['start', 'retain', 'quantity', 'suffix', 'preflight', 'egress', 'run', 'dispatch']);
   assert.equal(opened.operation(), retained);

@@ -1123,6 +1123,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   let readAttempted = false;
   let operation;
   let failure;
+  const computePrefix = selected.computePrefix;
   const selectProvider = generatedInput === undefined
     ? moon.clientProgramComposedInferLocalProvider : moon.clientProgramGeneratedInferLocalProvider;
   const provider = selectProvider(
@@ -1155,7 +1156,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
         }
         operation = openNodeInferOperation({moon, graph: selected.graph,
           composedInput: generatedInput !== undefined ? undefined : {occurrence: selected.occurrence,
-            prefix: selected.computePrefix, inputs, sources},
+            prefix: computePrefix, inputs, sources},
           serializedInput: generatedInput === undefined ? undefined : {
             control, compiled: plan.compiled, definition: plan.runDefinition,
             generation: generatedInput.generation(), inputs,
@@ -1192,7 +1193,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
     }, active => operation !== undefined &&
       activeOperations.get(operation) === active &&
       operation.cleanupPending() === false,
-    ...(generatedInput === undefined ? [selected.computePrefix] : []));
+    ...(generatedInput === undefined ? [computePrefix] : []));
   return Object.freeze({provider, operation: () => operation,
     failure: () => failure});
 }
