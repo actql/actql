@@ -811,6 +811,12 @@ fn command() -> @argparse.Command {
       ),
     ],
     subcommands=[
+      @argparse.Command("verify", subcommand_required=true, subcommands=[
+        @argparse.Command("output", flags=[@argparse.FlagArg("json")], positionals=[
+          @argparse.PositionArg("receipt"),
+          @argparse.PositionArg("output"),
+        ]),
+      ]),
       @argparse.Command(
         "check",
         flags=[@argparse.FlagArg("json")],
@@ -1048,6 +1054,7 @@ fn command() -> @argparse.Command {
 fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   normalize_native_query_arguments(matches)
   normalize_native_status_arguments(matches)
+  normalize_native_result_arguments(matches)
   match required(matches, "mode") {
     "local" => return execute_native_local(matches)
     "remote" =>
@@ -1392,6 +1399,13 @@ fn execute_and_write_native_reply(
   pending_reply : Ref[String?],
 ) -> Unit raise ClientStop {
   command_check_invalid_exit.val = false
+  command_result_delivery_failed.val = false
+  // Integrity verification reads explicit files and does not acquire a Host,
+  // resolve a project, create an installation or grant payload access.
+  if matches.subcommand is Some(("verify", child)) {
+    pending_reply.val = Some(local_verify_output_command(child))
+    return
+  }
   // The same carrier is registered before the first project/runtime/Store IO.
   // Help/version and parse errors have already terminated without acquisition.
   prepare_native_command_invocation(matches)
@@ -1473,6 +1487,12 @@ fn main {
   }
   // stdout/flush, Library, component, context/domain/map, Host and FD retirement
   // are separate facts. An output or process exit never substitutes for ACK.
+  if local_finish_output_verification() is Err(_) {
+    fail_command("OutputVerificationCleanupPending")
+  }
+  if local_finish_result_receipt() is Err(_) {
+    fail_command("ResultReceiptCleanupPending")
+  }
   let command_cleanup = local_finish_command_preparation()
   let command_closed = command_cleanup is Ok(_)
   let crypto_closed = if command_closed {
@@ -1514,7 +1534,7 @@ fn main {
   command_initial_control_keep_alive(control)
   // The invalid report has already been written/flushed, and all original
   // child cleanup has acknowledged. Run-state outcomes never set this flag.
-  if command_check_invalid_exit.val {
+  if command_check_invalid_exit.val || command_result_delivery_failed.val {
     exit_failure_ffi()
   }
 }

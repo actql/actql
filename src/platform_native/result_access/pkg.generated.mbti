@@ -53,6 +53,7 @@ pub fn NativeResultAccessSession::attempt_cid(Self) -> String
 pub fn NativeResultAccessSession::close(Self) -> Result[Unit, NativeResultAccessIssue]
 pub fn NativeResultAccessSession::confirm_chunk(Self) -> Result[Int64, NativeResultAccessIssue]
 pub fn NativeResultAccessSession::confirm_sink_finished(Self) -> Result[@publication_store.NativeResultDeliverySuccess, NativeResultAccessIssue]
+pub fn NativeResultAccessSession::matches_original(Self, @publication_store.Store, NativeResultAccessRequest) -> Bool
 pub fn NativeResultAccessSession::next(Self, Int) -> Result[@publication_store.NativePublicationDeliveryChunk, NativeResultAccessIssue]
 pub fn NativeResultAccessSession::terminate(Self, Int?, Bool, String, Int?, String?) -> Result[@publication_store.NativeResultDeliveryFailure, NativeResultAccessIssue]
 

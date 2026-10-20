@@ -380,3 +380,34 @@ test "aggregate shared budgets reject at exact work and node boundaries" {
     assert_true(check_row(Group, body, input(), None, l) is Err(_))
   }
 }
+
+///|
+test "original Group prefix metadata distinguishes equal effective keys" {
+  let body = cursor(
+    "{\"by\":[\"id\"],\"aggregates\":{\"n\":{\"fn\":\"count\"}}}",
+  )
+  let plain = check_row(Group, body, input(), None, limits()).unwrap()
+  let prefix = [@schema.Unqualified("id")]
+  let prefixed = @relation_typing.check_group_with_prefix(
+    body,
+    @schema.from_object(input()).unwrap(),
+    prefix,
+    None,
+    limits(),
+  ).unwrap()
+  prefix.clear()
+  let a = @relation_typing.group(plain).unwrap()
+  let b = @relation_typing.group(prefixed).unwrap()
+  assert_false(@relation_typing.group_has_additional_prefix(a))
+  assert_true(@relation_typing.group_has_additional_prefix(b))
+  assert_eq(@relation_typing.group_key_count(a), 1)
+  assert_eq(@relation_typing.group_key_count(b), 1)
+  assert_eq(
+    @relation_typing.group_key_at(a, 0).unwrap().field,
+    @relation_typing.group_key_at(b, 0).unwrap().field,
+  )
+  assert_true(@relation_typing.group_key_at(a, -1) is None)
+  assert_true(@relation_typing.group_key_at(a, 1) is None)
+  @relation_typing.group_keys(a).clear()
+  assert_eq(@relation_typing.group_key_count(a), 1)
+}

@@ -37,6 +37,55 @@ inventory. Original binding origins, declaration and stage joins, single-root
 and work limits remain unchanged. The inventory adds one retained Boolean; no
 caller Boolean or successful type check can issue normalization custody.
 
+The Group extension selects one further closed catalog for the existing count,
+count-if and extrema reductions, including combinations with the checked scalar,
+explicit-cast and actually supplied Parameter alternatives. It traverses every
+original aggregate argument and filter, and charges each authored key and
+aggregate against the same audit limit. COUNT retains its existing finite Number
+result; this extension introduces no numeric conversion or reduction evaluator.
+
+The original Group checker separately retains whether additional prefix keys
+were supplied. Equal effective key sets cannot prove that those keys were authored.
+Only the original ordinary Group with authored keys is installed here. Numeric
+policy, ordered and collection reductions and WindowGroup keep their existing
+completion, resource and execution obligations; their remaining connection is a
+product implementation gap rather than a language restriction. The five earlier
+catalogs and journals retain their exact bodies and identities for preparations
+without Group. This catalog issues no Source, Account or execution authority.
+
+The bounded-relation extension adds the existing Take operation to that closed
+set, with count at least one, offset at least zero and the original SafeInteger
+maximum. Omitted offset keeps the existing operation-law value zero. The audit
+reads the original checked Take; it does not turn an author default into a
+supplied value or parse a logical value a second time.
+
+For a Parameter role, the audit requires the same declaration and admitted
+Supplied binding retained by the original preparation, and the existing closed
+SafeInteger resolution for the exact pipeline and step. Equal names, values or
+CIDs from another pipeline are insufficient. Count and offset retain their
+separate minimum conditions. Every role, binding search and resolution visit
+consumes the same audit budget. Existing operation-order, bounds, execution and
+physical currentness obligations still apply. One catalog covers Take with the
+preceding checked scalar, cast, supplied Parameter and selected Group forms;
+preparations without Take retain all six preceding catalog/journal identities.
+
+The same bounded-relation catalogue has an order-aware revision. Its audit uses
+the original checked pipeline, step and `SortOrder`, retaining authored direction
+and null placement. An empty Sort is the existing identity operation. A nonempty
+Sort is completion-free only when the original eligible candidate key is already
+covered, or the checked strategy retains an admitted total input-order witness.
+It does not infer a key from values or treat physical enumeration as that witness.
+The latter strategy identifies the new Sort producer and retains the prior
+owned order only as a tie dependency, rather than copying the prior full order.
+
+Appending an actual missing identity term is semantic completion and still needs
+its proper normalization entry; it cannot receive this empty journal. Connecting
+that record remains implementation work, not a language restriction on Sort.
+Every term, resolution and covered key component consumes the existing audit
+budget. The complete pre-order catalogue, schema and fixture are retained, and
+preparations without Sort keep all seven preceding catalogue/journal identities.
+No new Host profile, wire version, permission or sorting evaluator is introduced.
+
 SQL/Pipe CASE without ELSE keeps that field absent in the Common form. The
 original parsed source distinguishes its synthetic END-anchored NULL from an
 authored ELSE NULL. Preserving this distinction lets the existing Common

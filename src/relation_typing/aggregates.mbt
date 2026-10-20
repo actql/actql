@@ -53,6 +53,7 @@ struct CheckedGroup {
   keys : Array[KeyField]
   aggregates : Array[CheckedAggregate]
   validation_aggregates : Map[Int, Int]
+  additional_prefix : Bool
 }
 
 ///|
@@ -76,6 +77,23 @@ pub fn group(value : CheckedOperation) -> CheckedGroup? {
 ///|
 pub fn group_keys(value : CheckedGroup) -> Array[KeyField] {
   value.keys.copy()
+}
+
+///|
+/// Original checker metadata; no caller flag can establish authored key origin.
+pub fn group_has_additional_prefix(value : CheckedGroup) -> Bool {
+  value.additional_prefix
+}
+
+///|
+pub fn group_key_count(value : CheckedGroup) -> Int {
+  value.keys.length()
+}
+
+///|
+/// Read an original key without copying the complete retained key collection.
+pub fn group_key_at(value : CheckedGroup, index : Int) -> KeyField? {
+  value.keys.get(index)
 }
 
 ///|
@@ -561,7 +579,15 @@ fn check_group(
     fields.push((@schema.Unqualified(name), checked.result))
     aggregates.push(checked)
   }
-  ({ keys, aggregates, validation_aggregates, }, fields)
+  (
+    {
+      keys,
+      aggregates,
+      validation_aggregates,
+      additional_prefix: !prefix.is_empty(),
+    },
+    fields,
+  )
 }
 
 ///|

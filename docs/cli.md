@@ -95,6 +95,19 @@ The result is `{"id":7}`. An undeclared parameter, a missing required value or
 a value outside its declared contract is refused. The same option works with
 literal Pipe queries through `aql`.
 
+With an explicit `json`, `jsonl` or `csv` format, `--output` delivers that saved
+Result to an exclusively created file instead of stdout:
+
+```sh
+actql sql 'SELECT 1 AS id' --format jsonl --output rows.jsonl
+```
+
+Existing destinations are not overwritten. A delivery failure after submission
+reports the original Run ID; inspect that Run instead of repeating the query.
+Outside a project, `result <run-id>` and `status <run-id>` restore the existing
+default Local Host; they do not initialize an absent Host. Explicit Remote or
+installation selections retain their precedence.
+
 ## Configuration
 
 The CLI looks for `actql.config.json` in the current directory and its
@@ -216,7 +229,23 @@ the write. If the outcome is still unknown, the Run stays in
 
 **`result`** reads a named Result of a finished Run — to stdout with
 `--format`, or to files with `--output` / `--deliver`. `--receipt` saves a
-delivery receipt for `verify output`.
+delivery receipt for `verify output`. One requested delivery writes the existing
+canonical receipt object unchanged. Multiple requested `--deliver` selections
+write an ordered JSON array of the successful per-delivery receipt objects;
+partial failure still uses an array with zero or one object. Each destination
+has its own outcome and receipt. Exporting the array does not certify aggregate
+success or roll back files, and retrying receipt export must not resend output.
+`run --receipt` remains a Run receipt.
+Native Local file delivery creates each destination exclusively. Repeating the
+same Run, Result, format and destination inspects the existing attempt first:
+a completed output must still match its original file identity and bytes;
+unresolved attempts are not resent. Existing unrelated files are not replaced.
+Receipt export also uses exclusive creation, so choose an absent receipt path.
+
+```sh
+actql result run_… --deliver answer=jsonl:answer.jsonl --deliver answer=csv:answer.csv --receipt deliveries.json
+actql verify output deliveries.json answer.jsonl --json
+```
 
 ```text
 $ actql result run_… --result updates --format jsonl
@@ -286,7 +315,16 @@ actql version
 **`lock`** writes `actql.lock.json`, pinning the versions of every Connector
 and model task the project uses; `verify lock` confirms the installed ones
 still match. **`verify output`** checks a delivered Result file against its
-receipt. **`doctor`** reports the installation, the configuration it found
+receipt. The receipt file accepts one closed Result delivery receipt object or
+an array of at most 16 such objects (64 KiB total). Every supplied object and
+self-CID must validate, including nonmatching members. The explicit output is
+read with a 512 MiB limit and must match both its byte count and SHA256. An empty
+array, zero matches, an invalid unrelated object or a modified CID fails.
+Equal bytes may match several legitimate receipts: `--json` reports all distinct
+matching `receipt_cids`, `matching_receipt_count`, `supplied_receipt_count`,
+`byte_count`, `sha256`, and `verified: true`. Other valid receipts make no claim
+about unprovided files. Verification is an integrity check and grants no
+read, delivery or Effect authority. **`doctor`** reports the installation, the configuration it found
 and what is wrong with either, without contacting anything; `doctor --connect`
 also tries each configured connection and provider.
 

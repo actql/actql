@@ -103,6 +103,27 @@ fn local_project_default_local_candidate(
 }
 
 ///|
+// Saved public operands select only an existing Local installation. The
+// original Run/Account/Store lookup remains authoritative; no ref file is
+// inferred and this selection never authorizes initialization or a new Run.
+fn local_project_saved_run_requested(
+  matches : @argparse.Matches,
+) -> Bool raise ClientStop {
+  guard matches.subcommand is Some((operation, child)) &&
+    optional(child, "ref-file") is None &&
+    optional(child, "submission-ref-file") is None else {
+    return false
+  }
+  if operation == "result" {
+    optional(child, "run") is Some(_)
+  } else if operation == "status" {
+    optional(child, "run") is Some(_) || optional(child, "run-id") is Some(_)
+  } else {
+    false
+  }
+}
+
+///|
 fn local_project_discovery_selected(
   matches : @argparse.Matches,
 ) -> Bool raise ClientStop {
@@ -330,9 +351,13 @@ fn local_project_apply_selection(
     matches.values["state-dir"] = [project.state_directory]
   } else if local_project_default_local_candidate(matches) &&
     matches.subcommand is Some((operation, child)) &&
-    local_quick_query_requested(operation, child) {
-    // A literal public query selects the ordinary Local Host even outside a
-    // project. Explicit Remote/connection choices never enter this branch.
+    (
+      local_quick_query_requested(operation, child) ||
+      local_project_saved_run_requested(matches)
+    ) {
+    // Literal queries may initialize only under their existing first-use rule.
+    // Saved operands only restore that original Host. Explicit Remote and
+    // connection choices never enter this branch.
     matches.values["mode"] = ["local"]
   }
 }

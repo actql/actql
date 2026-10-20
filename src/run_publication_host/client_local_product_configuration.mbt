@@ -520,7 +520,7 @@ fn product_assemble_originals(
           settings["run_policy_profile_file"] = Json::string("profile.json")
           settings["installation_files"] = product_texts([
             "read.json", "run.json", "retention.json", "store.json", "profile.json",
-            "material-read.json",
+            "material-read.json", "file-read.json",
           ])
         } else {
           guard native.get("result_read") is Some(Object(read)) else {
@@ -571,6 +571,22 @@ fn product_assemble_originals(
         "material-read.json",
         @utf8.encode(product_require(product_wire(material))),
       ),
+    )
+    // Independent first-initialization File selection. Neither a later CLI
+    // destination nor a restored stdout original manufactures this policy.
+    // The original stdout and Material bodies remain byte-identical.
+    let file = @json.parse(material_text) catch {
+      _ => return Err(ConfigurationLimit)
+    }
+    guard file is Object(root) &&
+      root.get("native") is Some(Object(native)) &&
+      native.get("result_read") is Some(Object(read)) else {
+      return Err(ConfigurationLimit)
+    }
+    read["sink"] = Json::string("file")
+    read["purpose"] = Json::string("cli-file")
+    originals.push(
+      ("file-read.json", @utf8.encode(product_require(product_wire(file)))),
     )
   }
   Ok(originals)

@@ -591,3 +591,43 @@ test "declaration facts cannot be transplanted across selected file roles" {
     },
   )
 }
+
+///|
+test "saved public Run operands choose the existing default Local route without a project" {
+  for
+    arguments in [
+      ["result", "original-run"],
+      ["status", "original-run"],
+      ["status", "--run-id", "original-run"],
+    ] {
+    let matches = command().parse(argv=arguments[:], env=Map([]))
+    normalize_native_status_arguments(matches)
+    assert_true(local_project_default_local_candidate(matches))
+    assert_true(local_project_saved_run_requested(matches))
+    let original_config = optional(matches, "config-file")
+    local_project_apply_selection(matches, None)
+    assert_eq(required(matches, "mode"), "local")
+    assert_eq(optional(matches, "state-dir"), None)
+    assert_eq(optional(matches, "config-file"), original_config)
+    assert_true(command_preparation_invocation.val is None)
+    assert_true(initial_crypto_invocation.val is None)
+  }
+}
+
+///|
+test "saved default selection never replaces explicit Remote or reference-file routing" {
+  for
+    arguments in [
+      ["--mode", "remote", "result", "original-run"],
+      ["--endpoint", "https://example.invalid", "status", "original-run"],
+      ["result", "--ref-file", "original.json"],
+      ["status", "--submission-ref-file", "original.json"],
+    ] {
+    let matches = command().parse(argv=arguments[:], env=Map([]))
+    normalize_native_status_arguments(matches)
+    local_project_apply_selection(matches, None)
+    assert_eq(required(matches, "mode"), "remote")
+    assert_eq(optional(matches, "state-dir"), None)
+    assert_true(command_preparation_invocation.val is None)
+  }
+}

@@ -1,6 +1,6 @@
 ///|
 priv enum LocalCompletionFreeAudit {
-  Complete(Int, @parameters.BoundValues?, Bool, Bool)
+  Complete(Int, @parameters.BoundValues?, Bool, Bool, Bool, Bool, Bool)
   ProfileNotInstalled
   CompletionObserved
 }
@@ -14,6 +14,225 @@ struct LocalCompletionFreeInventory {
   supplied_parameters : @parameters.BoundValues?
   explicit_cast : Bool
   checked_expressions : Bool
+  groups : Bool
+  takes : Bool
+  sorts : Bool
+}
+
+///|
+priv enum LocalSortAuditIssue {
+  ProfileNotInstalled
+  CompletionObserved
+}
+
+///|
+// A resolved order is not permission to manufacture a completion-free journal.
+// Only original identity sorts, covered candidate keys, and retained total-order
+// witnesses require no appended source terms. Real key completion stays explicit.
+fn audit_local_completion_free_sort(
+  operation : @relation.CheckedOperation,
+  pipeline : @pipeline.CheckedPipeline,
+  step : Int,
+  available : Int,
+) -> Result[Int, LocalSortAuditIssue] {
+  if available <= 0 || @relation.operation(operation) != @relation.Sort {
+    return Err(ProfileNotInstalled)
+  }
+  guard @pipeline.step_at(pipeline, step)
+    is Some({ operation: @pipeline.Unary(original), .. }) &&
+    physical_equal(original, operation) else {
+    return Err(ProfileNotInstalled)
+  }
+  let mut remaining = available - 1
+  let terms = @relation.sort_term_count(operation)
+  for index in 0..<terms {
+    if remaining <= 0 || @relation.sort_term_at(operation, index) is None {
+      return Err(ProfileNotInstalled)
+    }
+    remaining -= 1
+  }
+  // The checked empty operation preserves its input and creates no new order.
+  if terms == 0 {
+    return Ok(remaining)
+  }
+  if remaining <= 0 {
+    return Err(ProfileNotInstalled)
+  }
+  remaining -= 1
+  guard @pipeline.sort_order(pipeline, step) is Some(order) &&
+    physical_equal(@pipeline.sort_order_pipeline(order), pipeline) &&
+    @pipeline.sort_order_step(order) == step else {
+    return Err(ProfileNotInstalled)
+  }
+  let evidence = @pipeline.sort_order_evidence(order)
+  guard @pipeline.order_origin(evidence) == @pipeline.Step(step) &&
+    @pipeline.order_producer(evidence)
+    is Some({ operation: @pipeline.Unary(producer), .. }) &&
+    physical_equal(producer, operation) else {
+    return Err(ProfileNotInstalled)
+  }
+  match @pipeline.sort_order_strategy(order) {
+    CandidateKey(completion) => {
+      if @pipeline.sort_completion_count(completion) != 0 {
+        return Err(CompletionObserved)
+      }
+      let key = @pipeline.sort_completion_key(completion)
+      for index in 0..<@evidence.key_field_count(key) {
+        if remaining <= 0 || @evidence.key_field_at(key, index) is None {
+          return Err(ProfileNotInstalled)
+        }
+        remaining -= 1
+      }
+    }
+    ExistingTotal(prior) => {
+      guard @pipeline.order_dependency_count(evidence) == 1 &&
+        @pipeline.order_dependency_at(evidence, 0) ==
+        Some(@pipeline.sort_order_input(order)) &&
+        @pipeline.order_tie_break(evidence) is Some(original) &&
+        physical_equal(original, prior) else {
+        return Err(ProfileNotInstalled)
+      }
+    }
+  }
+  Ok(remaining)
+}
+
+///|
+// Inspect the original checked Take and its already closed operation-scalar
+// resolutions. This does not interpret a Number/String or rebind Parameters.
+fn audit_local_completion_free_take(
+  operation : @relation.CheckedOperation,
+  pipeline : @pipeline.CheckedPipeline,
+  step : Int,
+  values : @parameters.BoundValues?,
+  closure : @context.ProgramOperationClosure,
+  available : Int,
+) -> Int? {
+  guard @relation.row_operation(operation) is Some(Take(count~, offset~)) else {
+    return None
+  }
+  let mut remaining = available
+  for (role, minimum) in [(count, 1L), (offset, 0L)] {
+    if remaining <= 0 {
+      return None
+    }
+    remaining -= 1
+    match role {
+      Literal(n) => if n < minimum || n > 9007199254740991L { return None }
+      Parameter(name) => {
+        guard values is Some(values) &&
+          @relation.parameters(operation) is Some(declarations) &&
+          physical_equal(declarations, @parameters.bound_declarations(values)) else {
+          return None
+        }
+        let mut selected : @parameters.BoundParameter? = None
+        for index in 0..<@parameters.bound_value_count(values) {
+          if remaining <= 0 {
+            return None
+          }
+          remaining -= 1
+          let original = @parameters.bound_value_at(values, index).unwrap()
+          if original.name == name {
+            selected = Some(original)
+            break
+          }
+        }
+        guard selected is Some(original) &&
+          original.origin is @parameters.Supplied else {
+          return None
+        }
+        let mut found = false
+        for index in 0..<@context.operation_closure_count(closure) {
+          if remaining <= 0 {
+            return None
+          }
+          remaining -= 1
+          guard @context.operation_closure_at(closure, index)
+            is Some(StaticResolution(Scalar(resolved))) &&
+            physical_equal(resolved.site.pipeline, pipeline) &&
+            resolved.site.step == step &&
+            physical_equal(resolved.parameter, original) else {
+            continue
+          }
+          guard @pipeline.operation_scalar_demand(resolved.site.requirement)
+            is Some(SafeInteger(wanted, minimum=required)) &&
+            wanted == name &&
+            required == minimum &&
+            resolved.value is Integer(n) &&
+            n >= minimum &&
+            n <= 9007199254740991L else {
+            continue
+          }
+          found = true
+          break
+        }
+        if !found {
+          return None
+        }
+      }
+    }
+  }
+  Some(remaining)
+}
+
+///|
+// Audit the existing count and extrema reduction family. Ordered, collection and
+// numeric-policy reductions keep their separate completion/resource owners.
+// Returning a remaining budget never grants execution or validates an input row.
+fn audit_local_completion_free_group(
+  operation : @relation.CheckedOperation,
+  available : Int,
+) -> Int? {
+  guard @relation.group(operation) is Some(group) else { return None }
+  if @relation.group_has_additional_prefix(group) {
+    return None
+  }
+  let mut remaining = available
+  for index in 0..<@relation.group_key_count(group) {
+    if remaining <= 0 {
+      return None
+    }
+    remaining -= 1
+    let key = @relation.group_key_at(group, index).unwrap()
+    // The original ordinary Group owner retains each authored key cursor.
+    if !(@decode.view(key.source) is @decode.TextValue(_)) {
+      return None
+    }
+  }
+  for index in 0..<@relation.aggregate_count(group) {
+    if remaining <= 0 {
+      return None
+    }
+    remaining -= 1
+    let call = @relation.aggregate_at(group, index).unwrap()
+    match @relation.aggregate_function(call) {
+      Count | CountIf | Min | Max => ()
+      _ => return None
+    }
+    if @relation.aggregate_order_count(call) != 0 ||
+      @relation.aggregate_item_limit(call) is Some(_) ||
+      @relation.aggregate_byte_limit(call) is Some(_) ||
+      @relation.aggregate_fraction(call) is Some(_) ||
+      @relation.aggregate_delimiter(call) is Some(_) {
+      return None
+    }
+    match @relation.aggregate_argument(call) {
+      Rows => ()
+      Field(key) =>
+        if !(@decode.view(key.source) is @decode.TextValue(_)) {
+          return None
+        }
+      Expression(binding) =>
+        if binding < 0 || binding >= @relation.binding_count(operation) {
+          return None
+        }
+    }
+    if @relation.aggregate_filter(call) is Some(binding) &&
+      (binding < 0 || binding >= @relation.binding_count(operation)) {
+      return None
+    }
+  }
+  Some(remaining)
 }
 
 ///|
@@ -122,6 +341,7 @@ fn audit_local_completion_free_units(
   program : @syntax.Program,
   identity : @context.ProgramSourceIdentity,
   units : Array[BuiltUnit],
+  requirements : @context.StageRequirementClosure,
 ) -> LocalCompletionFreeAudit {
   if units.length() < 1 || units.length() > 3 {
     return ProfileNotInstalled
@@ -181,6 +401,9 @@ fn audit_local_completion_free_units(
   }
   let mut explicit_cast = false
   let mut checked_expressions = false
+  let mut groups = false
+  let mut takes = false
+  let mut sorts = false
   let sources : Array[(Int, Int)] = []
   let mut roots = 0
   for unit in units {
@@ -222,6 +445,40 @@ fn audit_local_completion_free_units(
         @pipeline.Unary(operation) => {
           match @relation.operation(operation) {
             Filter | Select | Derive => ()
+            Sort => {
+              match
+                audit_local_completion_free_sort(
+                  operation, pipeline, index, remaining,
+                ) {
+                Ok(left) => remaining = left
+                Err(CompletionObserved) => return CompletionObserved
+                Err(ProfileNotInstalled) => return ProfileNotInstalled
+              }
+              sorts = true
+            }
+            Take => {
+              guard audit_local_completion_free_take(
+                  operation,
+                  pipeline,
+                  index,
+                  supplied_parameters,
+                  @context.stage_requirement_operations(requirements),
+                  remaining,
+                )
+                is Some(left) else {
+                return ProfileNotInstalled
+              }
+              remaining = left
+              takes = true
+            }
+            Group => {
+              guard audit_local_completion_free_group(operation, remaining)
+                is Some(left) else {
+                return ProfileNotInstalled
+              }
+              remaining = left
+              groups = true
+            }
             _ => return ProfileNotInstalled
           }
           for binding in 0..<@relation.binding_count(operation) {
@@ -284,6 +541,9 @@ fn audit_local_completion_free_units(
     supplied_parameters,
     explicit_cast,
     checked_expressions,
+    groups,
+    takes,
+    sorts,
   )
 }
 
@@ -295,13 +555,24 @@ pub fn local_program_completion_free_inventory(
     return Err(ProfileNotInstalled)
   }
   match owner.local_completion_free_audit {
-    Complete(work, supplied_parameters, explicit_cast, checked_expressions) =>
+    Complete(
+      work,
+      supplied_parameters,
+      explicit_cast,
+      checked_expressions,
+      groups,
+      takes,
+      sorts
+    ) =>
       Ok({
         owner,
         audited_work: work,
         supplied_parameters,
         explicit_cast,
         checked_expressions,
+        groups,
+        takes,
+        sorts,
       })
     ProfileNotInstalled => Err(ProfileNotInstalled)
     CompletionObserved => Err(CompletionObserved)
@@ -345,4 +616,28 @@ pub fn local_completion_free_inventory_uses_checked_expressions(
   inventory : LocalCompletionFreeInventory,
 ) -> Bool {
   inventory.checked_expressions
+}
+
+///|
+/// Original audited Group metadata, not a caller-selected profile or permission.
+pub fn local_completion_free_inventory_uses_groups(
+  inventory : LocalCompletionFreeInventory,
+) -> Bool {
+  inventory.groups
+}
+
+///|
+/// Metadata from original checked Take roles, never a caller-supplied profile.
+pub fn local_completion_free_inventory_uses_take(
+  inventory : LocalCompletionFreeInventory,
+) -> Bool {
+  inventory.takes
+}
+
+///|
+/// Original order evidence, without an invented tie-break or a completion ACK.
+pub fn local_completion_free_inventory_uses_sort(
+  inventory : LocalCompletionFreeInventory,
+) -> Bool {
+  inventory.sorts
 }

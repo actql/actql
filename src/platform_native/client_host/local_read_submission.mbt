@@ -12,6 +12,37 @@ pub fn NativeLocalReadPolicyBinding::resolve_submitted_result_in_original_read(
   observed_at : String,
   now : Double,
 ) -> Result[NativeClientSubmittedRunAdmission, NativeLocalReadBindingIssue] {
+  self.resolve_submitted_result_binding_original(
+    selected, service, request, observed_at, now, false,
+  )
+}
+
+///|
+// Lookup has its independent current Run/named-Result authority. A File
+// destination must not create a Writer or a new attempt just to inspect prior
+// history; payload resolution below still requires the actual retained sink.
+fn NativeLocalReadPolicyBinding::require_lookup_request(
+  self : NativeLocalReadPolicyBinding,
+  original : @host.ClientRequestIdentity,
+  facts : @result_access.NativeResultReadFacts,
+) -> Result[Unit, NativeLocalReadBindingIssue] {
+  if self.selection.sink == File {
+    self.require_request_selection(original, facts)
+  } else {
+    self.require_request(original, facts)
+  }
+}
+
+///|
+fn NativeLocalReadPolicyBinding::resolve_submitted_result_binding_original(
+  self : NativeLocalReadPolicyBinding,
+  selected : NativeClientOriginalRunSelection,
+  service : @result_access.NativeResultAccessService,
+  request : @result_access.NativeResultAccessRequest,
+  observed_at : String,
+  now : Double,
+  lookup_only : Bool,
+) -> Result[NativeClientSubmittedRunAdmission, NativeLocalReadBindingIssue] {
   guard self.capture is Some(capture) else {
     return Err(Adoption(OriginalResourceScopePending))
   }
@@ -31,11 +62,18 @@ pub fn NativeLocalReadPolicyBinding::resolve_submitted_result_in_original_read(
       material_generation_cid: "",
       observed_at,
     }
-    match self.require_request(selected.request, facts) {
+    let authorize = () => {
+      if lookup_only {
+        self.require_lookup_request(selected.request, facts)
+      } else {
+        self.require_request(selected.request, facts)
+      }
+    }
+    match authorize() {
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
-    let current = () => self.require_request(selected.request, facts) is Ok(_)
+    let current = () => authorize() is Ok(_)
     let admission = match
       host.journal.resolve_submitted_result_binding(
         host.epoch,
@@ -58,7 +96,7 @@ pub fn NativeLocalReadPolicyBinding::resolve_submitted_result_in_original_read(
       admission.run_definition_cid != request.run_definition_cid {
       return Err(SelectionMismatch)
     }
-    match self.require_request(selected.request, facts) {
+    match authorize() {
       Err(issue) => Err(issue)
       Ok(_) => Ok(admission)
     }
@@ -82,8 +120,8 @@ pub fn NativeLocalReadPolicyBinding::lookup_submitted_result_delivery_in_origina
   NativeLocalReadBindingIssue,
 ] {
   match
-    self.resolve_submitted_result_in_original_read(
-      selected, service, request, observed_at, now,
+    self.resolve_submitted_result_binding_original(
+      selected, service, request, observed_at, now, true,
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -104,7 +142,7 @@ pub fn NativeLocalReadPolicyBinding::lookup_submitted_result_delivery_in_origina
       material_generation_cid: "",
       observed_at,
     }
-    match self.require_request(selected.request, facts) {
+    match self.require_lookup_request(selected.request, facts) {
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
@@ -121,7 +159,7 @@ pub fn NativeLocalReadPolicyBinding::lookup_submitted_result_delivery_in_origina
       Ok(value) => value
       Err(issue) => return Err(SubmittedResult(ResultAccess(issue)))
     }
-    match self.require_request(selected.request, facts) {
+    match self.require_lookup_request(selected.request, facts) {
       Err(issue) => Err(issue)
       Ok(_) => Ok(observed)
     }

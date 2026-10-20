@@ -519,6 +519,14 @@ pub fn Writer::seal(
   if !valid_object_name(final_name) {
     return Err(InvalidName)
   }
+  self.seal_named_file(final_name)
+}
+
+///|
+fn Writer::seal_named_file(
+  self : Writer,
+  final_name : String,
+) -> Result[NativeFileGeneration, NativeFilesystemIssue] {
   let encoded = @utf8.encode(final_name)
   match writer_seal_ffi(self, encoded, encoded.length()) {
     0 =>
@@ -608,6 +616,15 @@ pub fn Root::verify_generation(
   if !valid_object_name(name) {
     return false
   }
+  self.verify_named_file_generation(name, generation)
+}
+
+///|
+fn Root::verify_named_file_generation(
+  self : Root,
+  name : String,
+  generation : NativeFileGeneration,
+) -> Bool {
   let encoded = @utf8.encode(name)
   verify_generation_ffi(
     self,
@@ -629,6 +646,14 @@ pub fn Root::inspect_generation(
   if !valid_object_name(name) {
     return Err(InvalidName)
   }
+  self.inspect_named_file_generation(name)
+}
+
+///|
+fn Root::inspect_named_file_generation(
+  self : Root,
+  name : String,
+) -> Result[NativeFileGeneration?, NativeFilesystemIssue] {
   if !root_read_available_ffi(self) {
     return Err(Read("Current read scope was refused"))
   }
@@ -712,6 +737,15 @@ pub fn Root::open_reader_with_custody(
   if !valid_object_name(name) {
     return Err(reader_open_failure(InvalidName))
   }
+  self.open_named_file_reader_with_custody(name, generation)
+}
+
+///|
+fn Root::open_named_file_reader_with_custody(
+  self : Root,
+  name : String,
+  generation : NativeFileGeneration,
+) -> Result[Reader, NativeReaderOpenFailure] {
   if generation.size < 0L {
     return Err(reader_open_failure(GenerationMismatch))
   }

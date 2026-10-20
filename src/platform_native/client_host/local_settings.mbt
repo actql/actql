@@ -33,7 +33,7 @@ fn select_native_local_configuration(
   custody? : NativeLocalAdoptionOpenFailure? = None,
   root_opening? : NativeLocalAdoptionRootOpening = LegacyPrivateRoots,
 ) -> Result[NativeLocalConfigurationSelection, NativeLocalAdoptionIssue] {
-  if names.length() > 9 {
+  if names.length() > 10 {
     return Err(ConfigurationLimit)
   }
   let names = names.copy()

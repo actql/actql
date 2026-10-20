@@ -26,6 +26,15 @@ pub fn client_local_completion_free_catalog_cid() -> String {
 fn local_normalization_catalog_cid(
   inventory : @checked.LocalCompletionFreeInventory,
 ) -> String {
+  if @checked.local_completion_free_inventory_uses_sort(inventory) {
+    return "sha256:aa08e331a77f389359583e74ce6d7c801ad76a21d13520e55571f71a237ff24e"
+  }
+  if @checked.local_completion_free_inventory_uses_take(inventory) {
+    return "sha256:2e87dfc12f59f5755bc3a41b61fc0a9b5b5cc0c0f7861128924c852c13ce7d03"
+  }
+  if @checked.local_completion_free_inventory_uses_groups(inventory) {
+    return "sha256:b63098d9379e482326c612be898d13d86c0c849d6c77afb7f2574b33cb2a78d5"
+  }
   if @checked.local_completion_free_inventory_uses_checked_expressions(
       inventory,
     ) {

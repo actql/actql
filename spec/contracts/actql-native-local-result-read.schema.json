@@ -77,7 +77,11 @@
               "maxLength": 256
             },
             "sink": {
-              "const": "stdout"
+              "enum": [
+                "file",
+                "material",
+                "stdout"
+              ]
             },
             "data_policy_cids": {
               "type": "array",

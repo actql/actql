@@ -522,6 +522,19 @@ fn NativeResultAccessSession::authorize_current_stage(
 }
 
 ///|
+/// Correlate an open acquired Session with its original Store and complete
+/// request. This observes identity only; it authorizes no output or receipt.
+pub fn NativeResultAccessSession::matches_original(
+  self : NativeResultAccessSession,
+  store : @store.Store,
+  request : NativeResultAccessRequest,
+) -> Bool {
+  !self.closed &&
+  physical_equal(self.service.store, store) &&
+  same_material_request(self.request, request)
+}
+
+///|
 pub fn NativeResultAccessSession::attempt_cid(
   self : NativeResultAccessSession,
 ) -> String {
