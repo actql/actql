@@ -268,7 +268,7 @@ details silently decided by whichever Host is written first.
 
 The shared Common profile `actql-local-mock`, version `0.1`, has canonical
 body CID
-`sha256:fe8f88f3465a18456678bf9bf32943dcc4e4a8654b6d449f0c6af174fffd7e3a`.
+`sha256:5d1edcd4312874f4621a96fa5d6a73b4015952cab8db0f6950a1622dcf0ab36f`.
 The original body and finite materializer belong to
 `execution_authorization/local_mock_profile.mbt`. They produce the existing
 Account configuration; they do not create an installation, key, Reviewer or
@@ -287,7 +287,12 @@ Preview/Checkpoint and explicit authorized signed decision. No live Provider,
 Credential, external egress or unselected target is enabled by this profile.
 
 Local control uses the same principal and original control connection, with
-finite `run` read/resolve entries. Signing is limited to the actual original
+finite `run` cancel/publish/read/resolve/submit entries. The existing Local
+default Result has a distinct exact `result/answer` read entry. Its original
+prepared publication or authenticated committed Manifest and same-Run/current
+checks remain mandatory; the Account entry cannot issue a Result. Other Named
+Results remain outside this finite profile, not wildcard-authorized by a name
+or Program CID. Signing is limited to the actual original
 purpose-confined key resource. Omitting an unavailable signer creates no sign
 entry and does not itself revoke otherwise permitted reads or inference.
 Current Reviewer/key/actor checks, exact signed preimages and durable claims
@@ -302,6 +307,12 @@ Restart reconstructs validated durable installation handles, not process-local
 pointer continuity. Current admitted operator Deny/restriction remains effective;
 missing adopted configuration, Store or keys is not fresh setup or permission to
 re-materialize grants. Saved Runs retain their original inputs/answers/Preview.
+The exact predecessor policy body and CID
+`sha256:fe8f88f3465a18456678bf9bf32943dcc4e4a8654b6d449f0c6af174fffd7e3a`
+remain recognized for their original saved intent/adoption. New initialization
+uses the current profile; reopening a predecessor preserves its configuration,
+receipt and keys without adding the newer control/Result entries. Recognition
+is historical DATA validation, not migration, current authorization or custody.
 
 ## Relationship to current pinned contracts
 

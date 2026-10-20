@@ -72,11 +72,15 @@ pub fn evaluate_account(AdmittedAccountConfiguration, AccessTuple) -> AccountOut
 
 pub fn evaluate_account_state(AccountConfigurationState, AccessTuple) -> AccountOutcome
 
+pub fn is_known_local_mock_profile(BootstrapProfile) -> Bool
+
 pub fn local_mock_account_configuration(LocalMockAccountSubjects) -> Result[String, LocalMockProfileIssue]
 
 pub fn local_mock_profile_body() -> String
 
 pub fn local_mock_profile_identity() -> BootstrapProfile
+
+pub fn local_mock_profile_predecessor_body() -> String
 
 pub fn prepare_decision_request(DelegatedMatch, configuration_cid~ : String, boundary~ : DecisionBoundary, subject_cid~ : String, context_cid~ : String, answering_authorities~ : Array[String], required_claims? : Array[String]) -> Result[DecisionRequest, RequestIssue]
 

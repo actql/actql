@@ -11,13 +11,27 @@ pub const LOCAL_MOCK_PROFILE_VERSION : String = "0.1"
 /// remain Host originals; these policy bytes cannot authenticate any of them.
 pub fn local_mock_profile_body() -> String {
   (
+    #|{"control":{"operations":["cancel","publish","read","resolve","submit"],"resource":"run"},"effect":{"operations":["effect"],"outcome":"delegate"},"infer":{"connection":"mock","operations":["infer","model_raw_capture"]},"profile_id":"actql-local-mock","profile_version":"0.1","read":{"operations":["read"]},"request":{"operations":["write"],"resource":"original-host-mock-realization"},"result":{"operations":["read"],"resource":"result/answer"},"scope":"selected-mock-project-installation","sign":{"operations":["sign"],"resource":"original-local-purpose-key"}}
+  )
+}
+
+///|
+/// Exact predecessor policy bytes remain evidence for already adopted
+/// installations. Recognizing them never upgrades their saved configuration.
+pub fn local_mock_profile_predecessor_body() -> String {
+  (
     #|{"control":{"operations":["read","resolve"],"resource":"run"},"effect":{"operations":["effect"],"outcome":"delegate"},"infer":{"connection":"mock","operations":["infer","model_raw_capture"]},"profile_id":"actql-local-mock","profile_version":"0.1","read":{"operations":["read"]},"request":{"operations":["write"],"resource":"original-host-mock-realization"},"scope":"selected-mock-project-installation","sign":{"operations":["sign"],"resource":"original-local-purpose-key"}}
   )
 }
 
 ///|
 pub fn local_mock_profile_identity() -> BootstrapProfile {
-  let body = @json.parse(local_mock_profile_body()) catch {
+  local_mock_profile_body_identity(local_mock_profile_body())
+}
+
+///|
+fn local_mock_profile_body_identity(wire : String) -> BootstrapProfile {
+  let body = @json.parse(wire) catch {
     _ => abort("invalid local Mock profile original")
   }
   {
@@ -25,6 +39,16 @@ pub fn local_mock_profile_identity() -> BootstrapProfile {
     profile_version: LOCAL_MOCK_PROFILE_VERSION,
     profile_cid: document_cid(body).unwrap(),
   }
+}
+
+///|
+/// Closed historical identity check only. The actual Host must still retain
+/// its saved intent/configuration, same installation and current authority.
+/// This does not issue adoption, a Run, a Result or replacement permissions.
+pub fn is_known_local_mock_profile(profile : BootstrapProfile) -> Bool {
+  profile == local_mock_profile_identity() ||
+  profile ==
+  local_mock_profile_body_identity(local_mock_profile_predecessor_body())
 }
 
 ///|
@@ -93,7 +117,18 @@ pub fn local_mock_account_configuration(
       subjects,
       subjects.control_connection,
       "run",
-      ["read", "resolve"],
+      ["cancel", "publish", "read", "resolve", "submit"],
+      Allow,
+    ),
+    // The existing standard Local product owns the default answer Result.
+    // Its preflight/committed-manifest and current same-Run checks still
+    // precede each read. Other Named Results are not this finite scope.
+    local_mock_entry(
+      "local-result-read",
+      subjects,
+      subjects.control_connection,
+      "result/answer",
+      ["read"],
       Allow,
     ),
   ]

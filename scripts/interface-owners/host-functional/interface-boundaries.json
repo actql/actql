@@ -72534,7 +72534,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-mock-account.mjs",
-      "sha256": "2e610adb4537335349db3adf29ecd9282737a2a89ebb9e29fd91ffdfa6d04215",
+      "sha256": "88e61898e1d1cc0de300c9cd635f79de72331fb341289440620ccc3e4d17eff2",
       "exports": [
         "initializeOrdinaryMockAccount"
       ],
@@ -72642,6 +72642,13 @@
           "async": false
         },
         {
+          "name": "initialize/initialize#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "initialize/parse",
           "parameters": [
             "wire"
@@ -72708,6 +72715,7 @@
             "initialize/init:adoptStore/init:adoptStore",
             "initialize/init:adoptStore/init:adoptStore/init:adoptStore",
             "initialize/initialize",
+            "initialize/initialize#2",
             "initialize/parse",
             "initialize/readOptional",
             "initialize/syncDirectory",
@@ -72777,6 +72785,14 @@
               {
                 "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
                 "anchor": "test('ordinary"
+              },
+              {
+                "path": "adapters/host-node/ordinary-mock-account-profile-history.test.mjs",
+                "anchor": "test('saved predecessor Mock initialization reopens without profile migration or replacement keys'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-mock-account-profile-history.test.mjs",
+                "anchor": "test('missing adopted Reviewer leaves current Account available without recreating signing capability'"
               }
             ]
           }
@@ -72850,6 +72866,10 @@
               {
                 "path": "adapters/host-node/local-checkpoint-signing-custody.test.mjs",
                 "anchor": "test('same original signing claim and saved outcome survive actual Journal close and reopen'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-mock-account-profile-history.test.mjs",
+                "anchor": "test('signing currentness refuses a missing Reviewer after an originally available signer'"
               }
             ]
           }
