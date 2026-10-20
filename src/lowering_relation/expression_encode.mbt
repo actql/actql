@@ -42,6 +42,7 @@ fn binary_name(op : BinaryOperator) -> String {
     Contains => "contains"
     DateTruncate => "date_trunc"
     DecimalDivide(_) => "decimal_divide"
+    Utf8Truncate => "utf8_truncate"
     StartsWith => "starts_with"
     EndsWith => "ends_with"
     Equal => "eq"
@@ -296,6 +297,13 @@ fn emit_frames(
             pending.push(EndObject)
             pending.push(DecimalDivisionRight(right, mode, precision, scale))
             pending.push(Expr(left))
+          }
+          Binary(Utf8Truncate, value, max_bytes) => {
+            pending.push(Op("utf8_truncate"))
+            @encode.begin_object(output)
+            pending.push(
+              ObjectExpressions([("max_bytes", max_bytes), ("value", value)], 0),
+            )
           }
           Binary(op, left, right) => {
             pending.push(Op(binary_name(op)))
