@@ -39,6 +39,7 @@ pub(all) enum NativeDirectoryMemberKind {
 
 type NativeDirectoryObservation
 pub fn NativeDirectoryObservation::check_current(Self) -> Result[Unit, NativeFilesystemIssue]
+pub fn NativeDirectoryObservation::identity(Self) -> Result[NativeFileOwnership, NativeFilesystemIssue]
 
 pub(all) struct NativeFileChunk {
   bytes : Bytes

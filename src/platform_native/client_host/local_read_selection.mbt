@@ -21,6 +21,7 @@ struct NativeLocalReadSelection {
 pub(all) enum NativeLocalReadSink {
   Stdout
   Material
+  File
 } derive(Eq, Debug)
 
 ///|
@@ -204,6 +205,7 @@ pub fn admit_native_local_read_selection(
     let sink = match read_policy_text(fields, "sink", 16) {
       "stdout" => Stdout
       "material" => Material
+      "file" => File
       _ => return Err(UnsupportedSink)
     }
     let formats = read_policy_list(fields, "formats", 3, 8)

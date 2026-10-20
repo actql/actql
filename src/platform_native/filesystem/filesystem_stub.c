@@ -978,6 +978,18 @@ int32_t actql_native_filesystem_observed_directory_current(
   return actql_directory_observation_current(root, original);
 }
 
+uint64_t actql_native_filesystem_observed_directory_device(
+  actql_native_observed_directory_stat *value
+) {
+  return value->device;
+}
+
+uint64_t actql_native_filesystem_observed_directory_inode(
+  actql_native_observed_directory_stat *value
+) {
+  return value->inode;
+}
+
 void actql_native_filesystem_test_namespace_close_failure(
   actql_native_filesystem_root *root, int32_t count
 ) {
