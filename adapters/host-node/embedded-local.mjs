@@ -45,7 +45,7 @@ import {BOUND_SOURCE_INVENTORY, BOUND_SOURCE_SUBMISSION,
   ordinarySourceDescriptors} from './ordinary-source-binding.mjs';
 import {capturedDuckDBConfiguration} from './captured-duckdb-source.mjs';
 import {recoverAdmittedEffectRun} from './effect-run-recovery.mjs';
-import {retireCompletedEffectfulCapture} from
+import {retireCompletedEffectfulCapture, suspendCompletedEffectfulComputation} from
   '../host-common/completed-run-publication.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
@@ -598,6 +598,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   let mockModels;
   let mockAccount;
   let localCheckpointAnswer, localSigningMetadata;
+  const localSigningRecoveries = new Set();
   let store;
   let mockEffectObservation;
   let mockEffectObservationMethods;
@@ -748,6 +749,13 @@ async function openInstalledHost(originalInstallation, preparation) {
   }
   if (modelRuntimeView !== undefined) assertModelRuntime();
   const control = runtimeCore(moon).publicationControl;
+  async function releaseLocalSigningRecovery(recovered) {
+    // Recovery acquired real prepared-schema owners. Signing only borrows the
+    // authenticated metadata, so relinquish those temporary owners without
+    // retiring the original durable capture or requiring current authority.
+    await suspendCompletedEffectfulComputation({store, control, ...recovered.computation});
+    localSigningRecoveries.delete(recovered);
+  }
   const installedResultDataPolicy = resultDataPolicy === undefined ? undefined :
     control.admitSourceFreeResultPolicy(resultDataPolicy, localContractLimits);
   const evidenceConfiguration = configureInferEvidence(inferEvidence);
@@ -2517,25 +2525,38 @@ async function openInstalledHost(originalInstallation, preparation) {
             throw clientOperationError('LocalSigningOriginalConflict');
           }
           const recovered = await recoverEffectCapture(ref, signal);
-          if (recovered.materials === undefined || recovered.originalSubmittedIntent === undefined ||
-              control.effectComputationPreviewSemanticCid(recovered.computation.preview) !== view.requiredArtifact.cid) {
-            throw clientOperationError('LocalSigningOriginalConflict');
-          }
-          const current = () => {
-            assertProjectRuntime(); preparation.assertResultPublicationCurrent();
-            recovered.originalSubmittedIntent.assertCurrent();
-            recovered.assertUpdateSelectionCurrent?.();
-            const next = journal.lookupRunDefinition(ref, moon, control);
-            if (next === undefined || next.cancellationRequested || next.revision !== retained.revision ||
-                next.runDefinition.wire !== retained.runDefinition.wire) {
+          localSigningRecoveries.add(recovered);
+          let originalFailure, failed = false;
+          try {
+            if (recovered.materials === undefined || recovered.originalSubmittedIntent === undefined ||
+                control.effectComputationPreviewSemanticCid(recovered.computation.preview) !== view.requiredArtifact.cid) {
               throw clientOperationError('LocalSigningOriginalConflict');
             }
-          };
-          current();
-          return Object.freeze({materials: recovered.materials,
-            requestIdentity: recovered.requestIdentity,
-            referenceWire: recovered.originalSubmittedIntent.referenceWire,
-            invocation: recovered.computation.invocation, assertCurrent: current});
+            const current = () => {
+              assertProjectRuntime(); preparation.assertResultPublicationCurrent();
+              recovered.originalSubmittedIntent.assertCurrent();
+              recovered.assertUpdateSelectionCurrent?.();
+              const next = journal.lookupRunDefinition(ref, moon, control);
+              if (next === undefined || next.cancellationRequested || next.revision !== retained.revision ||
+                  next.runDefinition.wire !== retained.runDefinition.wire) {
+                throw clientOperationError('LocalSigningOriginalConflict');
+              }
+            };
+            current();
+            return Object.freeze({materials: recovered.materials,
+              requestIdentity: recovered.requestIdentity,
+              referenceWire: recovered.originalSubmittedIntent.referenceWire,
+              invocation: recovered.computation.invocation, assertCurrent: current});
+          } catch (cause) {originalFailure = cause; failed = true; throw cause;}
+          finally {
+            try {await releaseLocalSigningRecovery(recovered);}
+            catch (cleanup) {
+              if (failed) throw Object.assign(new AggregateError([originalFailure, cleanup],
+                'Original signing capture and cleanup failed', {cause: originalFailure}),
+              {code: 'LocalSigningCaptureCleanupPending', cleanupPending: true});
+              throw cleanup;
+            }
+          }
         }});
     }
     return localCheckpointAnswer(summary, decision, signal);
@@ -4250,6 +4271,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             if (Reflect.apply(status,cleanup,[])?.pending !== false) throw cause;
           }
         }
+        for (const recovered of localSigningRecoveries) await releaseLocalSigningRecovery(recovered);
       },
       closePublicationStore() {
         // No Store exists before activation. An acquired or partially opened
