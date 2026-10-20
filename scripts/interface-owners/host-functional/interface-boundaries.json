@@ -43793,7 +43793,7 @@
     },
     {
       "module": "adapters/host-node/installed-project-mock.mjs",
-      "sha256": "c8ad2ac514d19a30de9b81822aabc646bbf93d68e2aa12b6db380131f0dc644b",
+      "sha256": "ba0fa201c8c61dc73da954a5a36f7972baf1870c49485131927bc7c666533652",
       "exports": [
         "installPreparedProjectMockSources",
         "installedMockRequestRealization",
@@ -43931,6 +43931,17 @@
           "parameters": [
             "prepared",
             "plan"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:openSourceFreeHost/init:openSourceFreeHost",
+          "parameters": [
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "providers"
           ],
           "async": false
         },
@@ -44631,6 +44642,114 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.test.mjs",
                 "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installPreparedProjectMockSources/modelPreparation/init:openSourceFreeHost/init:openSourceFreeHost"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "For a checked source-free Program, the same connection has no Source children"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareOriginalMockRun(prepared, plan) {"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "openSourceFreeHost(registry, values, fragment, ordered, providers) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_composed_infer_bridge.mbt",
+                "anchor": "pub fn client_program_open_installed_managed_source_free_composed_infer_host("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareOriginalMockRun(prepared, plan) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "if (originalPreparation !== undefined) originalPreparation.retain();"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "model.hostAttempted = true;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-free-mock-run-custody.test.mjs",
+                "anchor": "test('source-free Mock cannot manufacture a Scope when its original Host preparation is absent'"
+              },
+              {
+                "path": "adapters/host-node/source-free-mock-run-custody.test.mjs",
+                "anchor": "test('source-free Mock keeps the same driver and Scope until their separate retirement completes'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_composed_infer_bridge.mbt",
+                "anchor": "pub fn client_program_open_installed_managed_source_free_composed_infer_host("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "For a checked source-free Program, the same connection has no Source children"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "openSourceFreeHost(registry, values, fragment, ordered, providers) {"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (run.effectful || run.retired || model.closed || !model.taken || model.hostAttempted ||"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/source-free-mock-run-custody.test.mjs",
+                "anchor": "test('source-free Mock forwards its early original Scope and same-Run driver without captured Sources'"
+              },
+              {
+                "path": "adapters/host-node/source-free-mock-run-custody.test.mjs",
+                "anchor": "test('source-free Mock keeps the same driver and Scope until their separate retirement completes'"
+              },
+              {
+                "path": "adapters/host-node/source-free-mock-run-custody.test.mjs",
+                "anchor": "test('source-free Mock cannot manufacture a Scope when its original Host preparation is absent'"
               }
             ]
           }
