@@ -26,6 +26,11 @@ pub fn client_local_completion_free_catalog_cid() -> String {
 fn local_normalization_catalog_cid(
   inventory : @checked.LocalCompletionFreeInventory,
 ) -> String {
+  if @checked.local_completion_free_inventory_uses_checked_expressions(
+      inventory,
+    ) {
+    return "sha256:e51161c71f8cb1565fd562ce325a78d2cec3b5c55a5aca54e70953fd6d92db74"
+  }
   let supplied = @checked.local_completion_free_inventory_parameters_supplied(
     inventory,
   )
