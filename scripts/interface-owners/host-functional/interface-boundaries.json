@@ -72534,7 +72534,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-mock-account.mjs",
-      "sha256": "4024d95b76862b3b983593163f2b9ea7775ba9befc9819803432d07698d7c756",
+      "sha256": "ffbdb5e13ead71f959635260d330c998234cf5de7743ca7fd0e1dca541e565c5",
       "exports": [
         "initializeOrdinaryMockAccount"
       ],
@@ -72793,6 +72793,10 @@
               {
                 "path": "adapters/host-node/ordinary-mock-account-profile-history.test.mjs",
                 "anchor": "test('missing adopted Reviewer leaves current Account available without recreating signing capability'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-mock-account-profile-history.test.mjs",
+                "anchor": "test('missing saved public verification is not invented to replace an absent Reviewer'"
               }
             ]
           }
