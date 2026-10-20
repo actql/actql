@@ -104,15 +104,20 @@ fn quick_query_declared_preparation(
 test "literal queries retain bounded typed declarations through original normalization" {
   let root = @env.current_dir().unwrap() + "/scripts/fixtures/native-local-cli"
   for operation in ["sql", "aql"] {
+    let (declarations_file, values_file) = if operation == "sql" {
+      ("parameter-declarations.json", "parameter-values.json")
+    } else {
+      ("parameter-int64-declarations.json", "parameter-int64-values.json")
+    }
     let selected = quick_query_arguments([
-      operation, "SELECT @id AS id", "--parameter-declarations-file", "parameter-declarations.json",
-      "--params", "parameter-values.json",
+      operation, "SELECT @id AS id", "--parameter-declarations-file", declarations_file,
+      "--params", values_file,
     ])
     normalize_native_query_arguments(selected)
     let (_, child) = selected.subcommand.unwrap()
     assert_eq(
       optional(child, "parameter-declarations-file"),
-      Some("parameter-declarations.json"),
+      Some(declarations_file),
     )
     let wire = local_intent_wire(root, operation, child)
     let prepared = quick_query_declared_preparation(wire).unwrap()
@@ -149,9 +154,9 @@ test "literal queries retain bounded typed declarations through original normali
           "aql-text"
         },
         "--parameter-declarations-file",
-        "parameter-declarations.json",
+        declarations_file,
         "--params",
-        "parameter-values.json",
+        values_file,
       ],
       env=Map([]),
     )
