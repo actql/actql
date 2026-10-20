@@ -216,7 +216,9 @@ fn issue_acquired_client_serialization_plan_graph(
   }
   if !client_serialization_single_capture_shape(owner, task) ||
     prepared_client_acquisition_count(owner) != 1 ||
-    !client_serialization_source_inventory_supported(owner, task, step) ||
+    !client_serialization_source_inventory_supported(
+      owner, task, step, max_preparation_work,
+    ) ||
     (@strategy.graph_program_has_effects(owner.graph) && !effect_component) {
     return Err(UnsupportedGraph)
   }
@@ -293,16 +295,76 @@ fn client_serialization_source_inventory_supported(
   owner : PreparedClientProgram,
   task : Int,
   step : Int,
+  max_work : Int,
 ) -> Bool {
   if client_single_direct_observation_covers_sources(owner) {
     return true
   }
-  guard select_client_single_keyed_acquisition(owner) is Ok(Some(keyed)) &&
-    client_keyed_acquisition_coordinates(keyed) is Some((_, keyed_task, join)) &&
-    keyed_task == task &&
+  guard select_client_single_keyed_acquisition(owner) is Ok(Some(keyed)) else {
+    return false
+  }
+  client_keyed_acquisition_reaches_serialization(
+    owner, keyed, task, step, max_work~,
+  )
+}
+
+///|
+/// Read correspondence in the original checked graph. A split JOIN and its
+/// downstream Serialize need not share a physical task ordinal. Follow their
+/// actual single-input producer edges under the same nominal lowered owner;
+/// equal coordinates, contracts or source bytes do not supply this relation.
+/// This query issues no Source observation, permission, capacity or completion.
+pub fn client_keyed_acquisition_reaches_serialization(
+  prepared : PreparedClientProgram,
+  keyed : ClientKeyedAcquisition,
+  task : Int,
+  step : Int,
+  max_work? : Int = 1000000,
+) -> Bool {
+  let graph = prepared.graph
+  guard max_work > 0 &&
+    keyed.program is KeyedPure(original) &&
+    physical_equal(original, prepared) &&
+    client_keyed_acquisition_coordinates(keyed)
+    is Some((stage, keyed_task, join)) &&
     join < step &&
+    @strategy.graph_stage_operation_task(graph, stage, step) == Some(task) &&
+    @strategy.graph_task_owner(graph, task) is Some(owner) &&
+    physical_equal(owner, keyed.owner) &&
     client_keyed_direct_acquisition_coordinates(keyed) is Some(_) else {
     return false
+  }
+  let mut current = task
+  let mut remaining = max_work
+  while current != keyed_task {
+    if current <= keyed_task || remaining <= 0 ||
+      @strategy.graph_task_input_count(graph, current) != Some(1) {
+      return false
+    }
+    let mut predecessor = None
+    for index in 0..<@strategy.graph_data_count(graph) {
+      if remaining <= 0 {
+        return false
+      }
+      remaining -= 1
+      guard @strategy.graph_data_at(graph, index) is Some(edge) else {
+        return false
+      }
+      if @strategy.data_edge_consumer(edge) == current {
+        let producer = @strategy.data_edge_producer(edge)
+        guard predecessor is None &&
+          @strategy.data_edge_input(edge) == 0 &&
+          producer >= keyed_task && producer < current &&
+          @strategy.graph_task_owner(graph, producer) is Some(parent) &&
+          physical_equal(parent, keyed.owner) &&
+          client_task_edge_input(graph, edge) is Some(_) else {
+          return false
+        }
+        predecessor = Some(producer)
+      }
+    }
+    guard predecessor is Some(producer) else { return false }
+    current = producer
   }
   true
 }
