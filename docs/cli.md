@@ -224,6 +224,11 @@ has its own outcome and receipt. Exporting the array does not certify aggregate
 success or roll back files, and retrying receipt export must not resend output.
 `run --receipt` remains a Run receipt.
 
+```sh
+actql result run_… --deliver answer=jsonl:answer.jsonl --deliver answer=csv:answer.csv --receipt deliveries.json
+actql verify output deliveries.json answer.jsonl --json
+```
+
 ```text
 $ actql result run_… --result updates --format jsonl
 {"id":"001Acme","notes":"Evaluating a competitor; usage down since June.","active_users":4,"trend":"down","risk":{"outcome":"ok","value":{"level":"high","reason":"falling usage and a competitor evaluation"}}}

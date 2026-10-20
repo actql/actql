@@ -86,7 +86,7 @@ fn LocalOutputVerificationFile::read(
   let mut count = 0L
   // The original generation bounds both total bytes and calls, including one
   // EOF observation. Empty non-EOF chunks cannot turn this into an open loop.
-  let maximum_calls = generation.size / 16384L + 2L
+  let maximum_calls = generation.size + 1L
   let mut complete = false
   for _ in 0..<maximum_calls.to_int() {
     let chunk = match reader.next(16384) {
