@@ -54,11 +54,12 @@ class PublicRunObservationTests(unittest.IsolatedAsyncioTestCase):
                 return core._cleanup(ticket)
             return previous(family, name, *args)
         core._call = call
-        def project(candidate, consume):
+        def project(original_run, candidate, consume):
+            self.assertIs(original_run, run)
             self.assertIs(candidate, projection)
             calls.append(('opaque_fixture', 'state', ()))
             consume(supplied['wire'])
-        selected = patch.object(host, '_project_original_run_state', side_effect=project)
+        selected = patch.object(host, '_project_original_sdk_run_state', side_effect=project)
         selected.start()
         self.addCleanup(selected.stop)
         # This public-wire fixture supplies opaque Core state only. The real

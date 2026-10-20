@@ -32,6 +32,32 @@ before their exact borrow is returned. Failed stop or cleanup retains the same
 handle and allocation for retry. The pool's reservation is settled only after all
 allocations are released. Closing a pool blocks further admission immediately.
 
+## Durable SDK Run observations
+
+Fresh Local acceptance issues the existing observation counter/key marker in the
+same submitted ready row as its original Run admission. The accepted Run/control
+revision remains separate. Historical marker absence remains unavailable; it is
+never interpreted as a new zero counter during lookup or restoration.
+
+The Wasm SDK observation port uses the original complete stored publication,
+current Run-read authority and current Sealed payload/reader bindings. The
+retention Owner independently selects availability. These observations create no
+Result-read grant or delivery attempt. The lower publication observation port
+continues to report unknown availability when those independent facts are absent.
+
+The existing RunState observation Owner derives the semantic key and bounded
+revision from the same retained submitted row. A changed fact proposes one
+metadata CAS; a clock-only reobservation reuses the exact saved original. The
+physical Host validates the prior row inside the fenced transaction and rereads
+the exact committed successor before exposing public wire. A lost response keeps
+the same input/output for lookup and cleanup; it never repeats that write or
+dispatches the Run. Parent close remains BUSY during an active state callback.
+
+Private scalar ABI 75 adds the SDK observation preparation, prior-row validation
+and saved-row confirmation entrances. Their generated declarations and compiled
+module must agree. The Client wire and journal formats retain their existing 0.1
+contracts, including legacy absent bytes in the generic row encoder.
+
 ## Instance-private Wasm facade
 
 The physical adapter installs one fresh positive instance nonce. It supplies

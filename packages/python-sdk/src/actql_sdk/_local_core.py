@@ -2010,6 +2010,44 @@ class LocalCore:
                 'publication_commit_export', 'produce_run_state', value.handle,
                 observed_at.handle, current_configuration))
 
+    def produce_publication_sdk_run_state(self, value: _Output, original_run: int,
+                                           source: _Input,
+                                           current_configuration: int) -> None:
+        """Prepare original durable observation metadata, never a COMMIT ACK."""
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            self._owned_input(source)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (type(original_run) is not int or not 0 < original_run < 2**31
+                    or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid original SDK Run observation')
+            self._check('produce_publication_sdk_run_state', self._call(
+                'publication_commit_export', 'produce_sdk_run_state', value.handle,
+                original_run, source.handle, current_configuration))
+
+    def validate_publication_sdk_run_state(self, value: _Output,
+                                            current_configuration: int) -> None:
+        """Check the same prior row inside its actual physical CAS transaction."""
+        self._publication_sdk_run_state_step(value, current_configuration, 'validate_sdk_run_state')
+
+    def confirm_publication_sdk_run_state(self, value: _Output,
+                                           current_configuration: int) -> None:
+        """Reread the exact committed original before exposing candidate wire."""
+        self._publication_sdk_run_state_step(value, current_configuration, 'confirm_sdk_run_state')
+
+    def _publication_sdk_run_state_step(self, value: _Output, current_configuration: int,
+                                       operation: str) -> None:
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current SDK Run observation')
+            self._check(operation, self._call(
+                'publication_commit_export', operation, value.handle, current_configuration))
+
     def produce_publication_sdk_read_original(self, value: _Output, request: _Input,
                                               original_run: int,
                                               current_configuration: int,
