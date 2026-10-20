@@ -44,7 +44,8 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
       const module = `${prefix}_build/native/directory-darwin-${arch}.node`;
       artifacts.set(resolve(root, module), {module, sourcePackages: [],
         sourceFiles: ['adapters/host-node/native/directory-darwin.c',
-          'adapters/connectors/local/site/root-filesystem.inc'],
+          'adapters/connectors/local/site/root-filesystem.inc',
+          'adapters/connectors/local/site/root-file-writer.inc'],
         build: 'scripts/build-node-directory-native.mjs', package: 'local-node',
         target: `darwin-${arch}/node-napi8`, qualification: 'native-build-input-reference-only'});
     }

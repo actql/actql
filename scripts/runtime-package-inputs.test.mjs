@@ -119,7 +119,8 @@ test('ordinary Local source binds its finite native delivery images to the actua
     assert.equal(artifact.build, 'scripts/build-node-directory-native.mjs');
     assert.deepEqual(artifact.sourcePackages, []);
     assert.deepEqual(artifact.sourceFiles, ['adapters/host-node/native/directory-darwin.c',
-      'adapters/connectors/local/site/root-filesystem.inc']);
+      'adapters/connectors/local/site/root-filesystem.inc',
+      'adapters/connectors/local/site/root-file-writer.inc']);
     assert.equal(artifact.qualification, 'native-build-input-reference-only');
     assert.equal(artifact.sha256, undefined, 'Source coverage is not native artifact acceptance');
   }

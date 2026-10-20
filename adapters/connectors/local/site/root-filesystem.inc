@@ -1,6 +1,8 @@
 /* Local Connector I/O under an original directory descriptor. These handles
  * carry acquired descriptor custody, not Account, Run or read permission. */
 #include <dirent.h>
+#include <stdio.h>
+#include <sys/file.h>
 
 #define LOCAL_NAME_BYTES 1024
 #define LOCAL_ROOT_BYTES 4096
@@ -15,12 +17,16 @@ typedef struct local_fs_original {
   struct local_fs_original *parent;
   napi_ref retained, parent_reference;
   int descriptor, failure, close_error;
-  bool consumed, closed, stopping, directory;
+  bool consumed, closed, stopping, directory, writable, published, unlinked;
+  bool write_active, write_lock;
+  struct local_fs_original *write_root;
   uint32_t children, depth;
   uint64_t entries, max_entries;
+  uint64_t written, max_write_bytes;
   DIR *stream;
   struct stat identity;
   char name[LOCAL_ROOT_BYTES + 1];
+  char destination[LOCAL_NAME_BYTES + 1];
 } local_fs_original;
 
 static bool local_fs_text(napi_env env, napi_value value, char *output,
@@ -80,7 +86,7 @@ static void local_fs_finalize(napi_env env, void *data, void *hint) {
   if (original->descriptor >= 0 || original->stream || original->parent_reference) return;
   free(original);
 }
-static napi_value local_fs_create(napi_env env, local_fs_owner *owner,
+static napi_value local_fs_allocate(napi_env env, local_fs_owner *owner,
     local_fs_original *parent, napi_value parent_value, const char *name,
     bool directory, uint64_t entries) {
   local_fs_original *original = calloc(1, sizeof(*original)); napi_value object;
@@ -106,6 +112,17 @@ static napi_value local_fs_create(napi_env env, local_fs_owner *owner,
   if (parent) {
     parent->children++;
     if (!local_fs_current(parent)) {original->failure = ESTALE; return object;}
+  }
+  return object;
+}
+static napi_value local_fs_create(napi_env env, local_fs_owner *owner,
+    local_fs_original *parent, napi_value parent_value, const char *name,
+    bool directory, uint64_t entries) {
+  napi_value object = local_fs_allocate(env, owner, parent, parent_value, name, directory, entries);
+  if (!object) return NULL;
+  local_fs_original *original = local_fs_argument(env, object, owner);
+  if (!original || original->failure) return object;
+  if (parent) {
     struct stat named;
     if (fstatat(parent->descriptor, name[0] ? name : ".", &named, AT_SYMLINK_NOFOLLOW) != 0) {
       original->failure = errno; return object;
@@ -255,11 +272,42 @@ static napi_value local_fs_close(napi_env env, napi_callback_info info) {
   if (!original) return unavailable(env, "ForeignLocalFileRoot");
   original->stopping = true;
   if (!original->consumed && !original->children) {
+    if (original->writable && !original->published && original->descriptor >= 0) {
+      struct stat descriptor, named, parent;
+      /* Abort removes only this acquired temporary inode. A substituted name
+       * or uncertain unlink is retained, never mistaken for cleanup ACK. */
+      if (original->parent->descriptor < 0 ||
+          fstat(original->parent->descriptor, &parent) != 0 ||
+          !local_fs_same(&original->parent->identity, &parent)) {
+        original->failure = errno ? errno : ESTALE;
+        goto observed;
+      }
+      if (!original->unlinked) {
+        if (fstat(original->descriptor, &descriptor) != 0 ||
+            fstatat(original->parent->descriptor, original->name, &named, AT_SYMLINK_NOFOLLOW) != 0 ||
+            !local_fs_same(&descriptor, &named) ||
+            unlinkat(original->parent->descriptor, original->name, 0) != 0) {
+          original->failure = errno ? errno : ESTALE; goto observed;
+        }
+        original->unlinked = true;
+      }
+      if (fsync(original->parent->descriptor) != 0) {
+        original->failure = errno; goto observed;
+      }
+    }
     original->consumed = true;
     int descriptor = original->descriptor; original->descriptor = -1;
     DIR *stream = original->stream; original->stream = NULL;
     if (descriptor < 0 || (stream ? closedir(stream) : close(descriptor)) == 0) original->closed = true;
     else original->close_error = errno;
+    if (original->closed && original->write_lock) {
+      if (flock(original->write_root->descriptor, LOCK_UN) != 0) {
+        original->closed = false; original->close_error = errno;
+      } else {
+        original->write_root->write_active = false;
+        original->write_lock = false; original->write_root = NULL;
+      }
+    }
     if (original->closed) {
       if (original->parent_reference) {
         original->parent->children--;
@@ -271,6 +319,7 @@ static napi_value local_fs_close(napi_env env, napi_callback_info info) {
       }
     }
   }
+observed:;
   const char *state = original->closed ? "closed" : original->consumed ? "unknown" : "pending";
   if (napi_create_object(env, &result) != napi_ok ||
       napi_create_string_utf8(env, state, NAPI_AUTO_LENGTH, &outcome) != napi_ok ||
@@ -280,14 +329,17 @@ static napi_value local_fs_close(napi_env env, napi_callback_info info) {
       napi_object_freeze(env, result) != napi_ok) return NULL;
   return result;
 }
+#include "root-file-writer.inc"
 static bool initialize_local_files(napi_env env, napi_value exports) {
   local_fs_owner *owner = calloc(1, sizeof(*owner));
   if (!owner) {unavailable(env, "LocalFileAllocationFailed"); return false;}
   owner->tag.lower = (uint64_t)(uintptr_t)owner; owner->tag.upper = UINT64_C(0x414354514c46494c);
   const char *names[] = {"openFileRoot", "openFileDirectory", "openRootFile", "fileRootCurrent",
-    "fileRootStat", "fileRootNext", "fileRootRead", "fileRootClose", "fileRootEntryKind"};
+    "fileRootStat", "fileRootNext", "fileRootRead", "fileRootClose", "fileRootEntryKind",
+    "openRootFileWriter", "fileRootWrite", "fileRootPublish"};
   napi_callback callbacks[] = {local_fs_open_root, local_fs_open_directory, local_fs_open_file,
-    local_fs_check, local_fs_stat, local_fs_next, local_fs_read, local_fs_close, local_fs_entry_kind};
+    local_fs_check, local_fs_stat, local_fs_next, local_fs_read, local_fs_close, local_fs_entry_kind,
+    local_fs_open_writer, local_fs_write, local_fs_publish};
   for (size_t index = 0; index < sizeof(callbacks) / sizeof(callbacks[0]); index++) {
     napi_value function;
     if (napi_create_function(env, names[index], NAPI_AUTO_LENGTH, callbacks[index], owner, &function) != napi_ok ||

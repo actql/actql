@@ -10,6 +10,7 @@ import {fileURLToPath} from 'node:url';
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const sourcePath = 'adapters/host-node/native/directory-darwin.c';
 const localFilesPath = 'adapters/connectors/local/site/root-filesystem.inc';
+const localWriterPath = 'adapters/connectors/local/site/root-file-writer.inc';
 export const directoryNativeDescriptor = '_build/native/directory-original.json';
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const fail = code => { throw new Error(code); };
@@ -94,6 +95,7 @@ export function buildNodeDirectoryNative({root = repository,
       let path;
       if (canonical === realpathSync(join(root, sourcePath))) path = sourcePath;
       else if (canonical === realpathSync(join(root, localFilesPath))) path = localFilesPath;
+      else if (canonical === realpathSync(join(root, localWriterPath))) path = localWriterPath;
       else for (const [base, prefix] of [[headers, 'node'], [sdk, 'sdk'], [resources, 'compiler']]) {
         if (inside(base, canonical)) { path = `${prefix}/${relative(base, canonical).split(sep).join('/')}`; break; }
       }
