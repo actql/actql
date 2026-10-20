@@ -182,8 +182,10 @@ fn load_saved_payload_record(
       Ok(value) => value
       Err(_) => return Err(-32)
     }
-    if @payload.publication_payload_allocation_ownership(allocation) !=
-      @payload.publication_payload_record_ownership(original) {
+    // The allocation owns its directory, while the Sealed record owns the
+    // finalized payload file. Each original is checked separately by the
+    // physical reader; directory and file inodes must not be conflated.
+    if @payload.publication_payload_allocation_ownership(allocation) is None {
       return Err(-32)
     }
     record.saved_allocation = Some(
