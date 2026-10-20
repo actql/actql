@@ -89,7 +89,9 @@ before fallible work. Read/egress preimages bind the destination path, parent
 identity and Writer identity. The sink acknowledges only actual append and
 seal operations; partial writes, uncertain close and failed current checks keep
 the same cleanup duties and never authorize another send. The final name is
-created exclusively, and existing files are never overwritten.
+created exclusively, and existing files are never overwritten. Payload and
+receipt destinations are checked before acquisition against the original Host
+and managed Store namespaces; neither may create files inside those roots.
 
 A private stable attempt correlation binds the original request, Run, format
 and canonical destination. Lookup precedes Writer creation. A prior unresolved

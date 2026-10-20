@@ -34,7 +34,7 @@ fn local_result_file_attempt(
     ]),
     8192,
   )
-  "file-" + @sha.hex(@sha.digest(@utf8.encode(body)))
+  "file-" + @sha.hex(@utf8.encode(body))
 }
 
 ///|
@@ -59,6 +59,21 @@ fn local_result_file_deliveries(
   let selected_names = delivery.files.map(destination => {
     local_result_name(names, destination.result_name)
   })
+  // Reject protected metadata destinations before any output can be exposed.
+  // This is a current original-namespace check, not a pathname-derived grant.
+  let paths = delivery.files.map(value => value.path)
+  if delivery.receipt is Some(path) {
+    paths.push(path)
+  }
+  for path in paths {
+    let location = local_result_file_location(path)
+    actual.binding.require_external_file_output_location(
+      path,
+      location.parent_path,
+      location.directory_name,
+    )
+    |> local_result_read_value
+  }
   let receipts : Array[String] = []
   let reports : Array[Json] = []
   let mut failure : String? = None

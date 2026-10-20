@@ -5,6 +5,37 @@ fn local_read_file_inside(path : String, directory : String) -> Bool {
 }
 
 ///|
+/// Validate presentation paths against this actual original Host and managed
+/// Store namespace. This creates no output, read grant or physical ACK. Receipt
+/// metadata uses the same boundary rather than writing into its own authority.
+pub fn NativeLocalReadPolicyBinding::require_external_file_output_location(
+  self : NativeLocalReadPolicyBinding,
+  path : String,
+  parent : String,
+  name : String,
+) -> Result[Unit, NativeLocalReadBindingIssue] {
+  if self.selection.sink != File ||
+    !local_read_file_location(path, parent, name) ||
+    local_read_file_inside(path, self.host.session.state_path) {
+    return Err(SelectionMismatch)
+  }
+  match self.require_current() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let managed = match self.capture {
+    Some(capture) => capture.managed_root_path_in_original_read()
+    None => return Err(SelectionMismatch)
+  }
+  match managed {
+    Err(issue) => Err(Adoption(issue))
+    Ok(Some(directory)) if local_read_file_inside(path, directory) =>
+      Err(SelectionMismatch)
+    Ok(_) => Ok(())
+  }
+}
+
+///|
 /// Acquire and retain only the original parent first. No output is created
 /// before the caller has checked this exact attempt's durable history. This
 /// receiver is available only under an independently adopted File selection.
@@ -18,26 +49,16 @@ pub fn NativeLocalReadPolicyBinding::open_file_output_parent(
   parent : String,
   name : String,
 ) -> Result[Unit, NativeLocalReadBindingIssue] {
-  if self.selection.sink != File ||
-    self.capture is None ||
-    self.file_destination is Some(_) ||
-    !local_read_file_location(path, parent, name) ||
-    local_read_file_inside(path, self.host.session.state_path) {
+  if self.file_destination is Some(_) {
     return Err(SelectionMismatch)
+  }
+  match self.require_external_file_output_location(path, parent, name) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   match self.prepare_destination_facts(original, store, request, observed_at) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
-  }
-  let managed = match self.capture {
-    Some(capture) => capture.managed_root_path_in_original_read()
-    None => return Err(SelectionMismatch)
-  }
-  match managed {
-    Err(issue) => return Err(Adoption(issue))
-    Ok(Some(directory)) if local_read_file_inside(path, directory) =>
-      return Err(SelectionMismatch)
-    Ok(_) => ()
   }
   let nonce = match self.crypto.random_bytes(32) {
     Ok(value) => value
