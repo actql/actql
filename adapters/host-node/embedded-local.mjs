@@ -250,13 +250,23 @@ export function readInstalledMockPreparation(originals) {
 // the packet snapshot. This exact checked original supplies only the existing
 // Core inventory for its bounds check, never a replacement issuer or Ledger.
 export function readSourceManagedRunRequirements(originals, checkedPrepared) {
+  return readSourceManagedRunRequirementsOwned(originals, checkedPrepared, false);
+}
+
+export function readSourceManagedEffectRunRequirements(originals, checkedPrepared) {
+  return readSourceManagedRunRequirementsOwned(originals, checkedPrepared, true);
+}
+
+function readSourceManagedRunRequirementsOwned(originals, checkedPrepared, effectful) {
   assertSourceManagedHostPreparation(originals);
   originalSourceManagedHostRequest(originals, checkedPrepared);
   const {initialControl, projectRuntime: moon} = originals.installation;
   const retained = profiles.mockPreparation(originals.host, originals.installation,
     originals.generation);
+  const requirements = effectful ? moon.clientProgramInstalledEffectManagedRunRequirements
+    : moon.clientProgramInstalledManagedRunRequirements;
   if (retained.runtime !== moon || initialControl === undefined ||
-      typeof moon.clientProgramInstalledManagedRunRequirements !== 'function') {
+      typeof requirements !== 'function') {
     throw clientOperationError('NodeManagedRunAdmissionUnavailable');
   }
   const mock = retained.view.originalsForRuntime(moon);
@@ -266,7 +276,7 @@ export function readSourceManagedRunRequirements(originals, checkedPrepared) {
   // once. Its original raw bytes remain charged alongside decoded/captured
   // rows; this is not a byte total sampled from the successful template.
   const documentBytes = 1048576n;
-  const limits = checked(moon.clientProgramInstalledManagedRunRequirements(
+  const limits = checked(Reflect.apply(requirements, moon, [
     checkedPrepared, mock.sources.map(source => source.declaration),
     asset('spec/contracts/actql-query-acquisition.json'),
     asset('spec/contracts/actql-query-process-evidence.json'),
@@ -274,7 +284,7 @@ export function readSourceManagedRunRequirements(originals, checkedPrepared) {
     asset('spec/dependencies/aoa-pipeline-registry.json'),
     JSON.stringify(aoa.execution_contracts['REL.values']),
     JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])]));
   if (!Array.isArray(limits) || limits.length !== 6 ||
       limits.some(value => typeof value !== 'bigint' || value < 0n) ||
       limits.slice(0, 3).some(value => value > 2147483647n)) {
@@ -330,11 +340,16 @@ export function readLocalMockModelRunRequirements(originals, prepared, model) {
   const {initialControl, projectRuntime: moon} = originals.installation;
   const asset = path => readInitialControlInstallationAsset(initialControl, originals, path);
   const aoa = JSON.parse(asset('spec/contracts/actql-aoa.json'));
-  const declarations = moon.clientProgramAcquisitionCount(prepared) === 0 ? []
+  const declarations = (model.compilation === undefined ? moon.clientProgramAcquisitionCount(prepared)
+    : moon.clientProgramEffectAcquisitionCount(prepared)) === 0 ? []
     : readInstalledMockPreparation(originals).sources.map(source => source.declaration);
   const documentBytes = declarations.map(() => 1048576n);
-  const limits = runtimeCore(moon).publicationControl.checkedClientMockModelRunRequirements(
-    prepared, model.compiled, model.runDefinition, model.occurrence, model.graph,
+  const control = runtimeCore(moon).publicationControl;
+  const limits = (model.compilation === undefined
+    ? control.checkedClientMockModelRunRequirements
+    : control.checkedClientEffectMockModelRunRequirements)(
+    prepared, model.compiled, ...(model.compilation === undefined ? [] : [model.compilation]),
+    model.runDefinition, model.occurrence, model.graph,
     declarations, asset('spec/contracts/actql-query-acquisition.json'),
     asset('spec/contracts/actql-query-process-evidence.json'), documentBytes, documentBytes,
     asset('spec/dependencies/aoa-pipeline-registry.json'),

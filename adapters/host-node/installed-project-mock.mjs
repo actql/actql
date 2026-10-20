@@ -152,36 +152,48 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     current();
     const record = records.get(prepared);
     if (record === undefined || record.value === undefined) fail('NodeManagedRunAdmissionUnavailable');
-    checked(moon.clientProgramInstalledManagedRunCheck(record.value, prepared, record.request));
+    checked((record.effectful ? moon.clientProgramInstalledEffectManagedRunCheck
+      : moon.clientProgramInstalledManagedRunCheck)(record.value, prepared, record.request));
     return record;
   };
-  function prepareManagedRun(prepared, request, model) {
+  function prepareManagedRun(prepared, request, model, effectful = false) {
     current();
     let record = records.get(prepared);
     if (record !== undefined) {
       if (record.failure !== undefined) throw record.failure;
-      if (record.model !== model) fail('ForeignInstalledModelPreparation');
+      if (record.model !== model || record.effectful !== effectful) fail('ForeignInstalledModelPreparation');
       sameRun(prepared);
-      checked(moon.clientProgramInstalledManagedRunCheck(record.value, prepared, request));
+      checked((effectful ? moon.clientProgramInstalledEffectManagedRunCheck
+        : moon.clientProgramInstalledManagedRunCheck)(record.value, prepared, request));
       return;
     }
     // Retain every acquired original before the next fallible operation. A
     // failed start is sticky; another caller cannot replace the original Run.
     record = {prepared, request, original: undefined, admission: undefined,
-      value: undefined, reads: [undefined, undefined], model, failure: undefined};
+      value: undefined, reads: [undefined, undefined], model, effectful, failure: undefined};
     if (records.size === 4096) fail('InstalledMockRunLimit');
     records.set(prepared, record);
     try {
-      record.original = model === undefined ? sourceManaged.prepareRun(prepared)
-        : sourceManaged.prepareLocalMockModelRun(prepared, model);
+      record.original = model === undefined
+        ? (effectful ? sourceManaged.prepareEffectRun(prepared) : sourceManaged.prepareRun(prepared))
+        : (effectful ? sourceManaged.prepareEffectLocalMockModelRun(prepared, model)
+          : sourceManaged.prepareLocalMockModelRun(prepared, model));
       sourceManaged.assertCurrent();
-      record.admission = checked((model === undefined ? moon.clientProgramNodeManagedRunPrepare
-        : moon.clientProgramNodeLocalMockModelRunPrepare)(record.original, prepared));
+      const prepare = effectful
+        ? (model === undefined ? moon.clientProgramNodeEffectManagedRunPrepare
+          : moon.clientProgramNodeEffectLocalMockModelRunPrepare)
+        : (model === undefined ? moon.clientProgramNodeManagedRunPrepare
+          : moon.clientProgramNodeLocalMockModelRunPrepare);
+      record.admission = checked(prepare(record.original, prepared));
       if (model === undefined) {
-        record.value = checked(moon.clientProgramInstalledManagedRunBegin(record.admission, prepared, request));
+        record.value = checked((effectful ? moon.clientProgramInstalledEffectManagedRunBegin
+          : moon.clientProgramInstalledManagedRunBegin)(record.admission, prepared, request));
       } else {
-        const begun = model.control.beginCheckedClientMockModelManagedRun(record.admission,
-          prepared, request, model.compiled, model.runDefinition, model.graph, model.budget);
+        const begun = effectful
+          ? model.control.beginCheckedClientEffectMockModelManagedRun(record.admission,
+            prepared, request, model.compiled, model.compilation, model.runDefinition, model.graph, model.budget)
+          : model.control.beginCheckedClientMockModelManagedRun(record.admission,
+            prepared, request, model.compiled, model.runDefinition, model.graph, model.budget);
         record.value = runtimeField(begun, 0);
         model.scope = runtimeField(begun, 1);
       }
@@ -199,6 +211,23 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     prepareManagedRun(prepared, request, {control, compiled: plan.compiled,
       runDefinition: plan.runDefinition, graph: selection.graph, occurrence: selection.occurrence,
       publicationCapacity});
+  }
+  function prepareManagedEffectRun(prepared, request) {
+    prepareManagedRun(prepared, request, undefined, true);
+  }
+  function prepareManagedEffectMockModelRun(prepared, request, control, plan, selection,
+    publicationCapacity, compilation) {
+    let record = records.get(prepared);
+    if (record !== undefined) {
+      if (!record.effectful || record.model?.compiled !== plan.compiled ||
+          record.model?.compilation !== compilation || record.model?.runDefinition !== plan.runDefinition ||
+          record.model?.graph !== selection.graph) fail('ForeignInstalledModelPreparation');
+      prepareManagedRun(prepared, request, record.model, true);
+      return;
+    }
+    prepareManagedRun(prepared, request, {control, compiled: plan.compiled, compilation,
+      runDefinition: plan.runDefinition, graph: selection.graph, occurrence: selection.occurrence,
+      publicationCapacity}, true);
   }
   function modelPreparation(prepared, plan) {
     const run = sameRun(prepared), model = run.model;
@@ -269,7 +298,8 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
   function retireRunRecord(record) {
     if (record.retired) return;
     if (record.value !== undefined) checked(moon.clientProgramInstalledManagedRunRetire(record.value));
-    else if (record.admission !== undefined) checked(moon.clientProgramNodeManagedRunCleanup(record.admission));
+    else if (record.admission !== undefined) checked((record.effectful ? moon.clientProgramNodeEffectManagedRunCleanup
+      : moon.clientProgramNodeManagedRunCleanup)(record.admission));
     record.retired = true;
   }
   async function closeSource(index) {
@@ -315,7 +345,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       if (record.model !== undefined) {
         const model = record.model;
         model.closed = true;
-        model.control = model.compiled = model.runDefinition = model.graph = undefined;
+        model.control = model.compiled = model.compilation = model.runDefinition = model.graph = undefined;
         model.publicationCapacity = undefined;
         model.occurrence = model.scope = model.budget = model.readFailure = undefined;
       }
@@ -349,7 +379,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         originalPageLimits: {maxNodes: 4096, maxDepth: 32},
         prepareSourceRead({checkedOwner, effectful, declaration: selected, occurrence}) {
           const run = sameRun(checkedOwner);
-          if (effectful || selected !== declaration || occurrence.stage !== index ||
+          if (effectful !== run.effectful || selected !== declaration || occurrence.stage !== index ||
               occurrence.input !== 0 || run.reads[index] !== undefined) fail('InstalledSourcePreparationMismatch');
           const raw = sourceManaged.prepareRead(checkedOwner, declaration, run.original);
           const read = {raw, close: undefined, bytes: undefined, value: undefined, closed: false};
@@ -397,7 +427,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       sources.push(Object.freeze({...adapter, queryAliases,
         async prepare(facts) {
           const prepared = await adapter.prepare(facts);
-          const run = sameRun(facts.preparedProgram);
+          const run = sameRun(facts.preparedEffect ?? facts.preparedProgram);
           preparedReads.set(prepared, run);
           return prepared;
         },
@@ -416,7 +446,8 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       connectorBindings: Object.freeze(sources.flatMap(source => source.connectorBindings)),
       queryAliases: Object.freeze(sources.flatMap(source => source.queryAliases)),
       admitsSource: ref => sources.some(source => source.admitsSource(ref)),
-      prepareManagedRun, prepareManagedMockModelRun, modelPreparation, close});
+      prepareManagedRun, prepareManagedMockModelRun, prepareManagedEffectRun,
+      prepareManagedEffectMockModelRun, modelPreparation, close});
   } catch (error) {
     throw await retainInstalledHostInitializationFailure(error,
       {sourceProfile: {close}});

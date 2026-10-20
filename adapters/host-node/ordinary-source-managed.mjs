@@ -63,23 +63,26 @@ export async function prepareOrdinarySourceManagedInstallation(originals, callba
     resourceRuntime.assertOrdinaryManagedRunCurrent(run.original, prepared);
     return run;
   }
-  function prepareRun(prepared, purpose, model) {
+  function prepareRun(prepared, purpose, model, effectful = false) {
     current();
     const old = runs.get(prepared);
     if (old !== undefined) {
-      if (old.purpose !== purpose || old.model !== model) fail('ForeignInstalledModelPreparation');
+      if (old.purpose !== purpose || old.model !== model || old.effectful !== effectful) {
+        fail('ForeignInstalledModelPreparation');
+      }
       return runFor(prepared).original;
     }
     const request = callbacks.request(originals, prepared);
     const producer = [...producers].find(value => value.request === request && !value.finished);
     if (producer === undefined || runs.size === 4096) fail('ForeignInstalledSourceProducer');
-    const run = {prepared, request, producer, purpose, model, original: undefined,
+    const run = {prepared, request, producer, purpose, model, effectful, original: undefined,
       children: [], fileIdentity: undefined};
     runs.set(prepared, run);
     // A failed quote remains attached to this one preparation. It cannot be
     // retried under a different purpose or replaced by another original.
     const required = purpose === 'local-mock-model'
       ? callbacks.mockRequirements(originals, prepared, model)
+      : effectful ? callbacks.effectRequirements(originals, prepared)
       : callbacks.requirements(originals, prepared);
     run.original = resourceRuntime.retainOrdinaryManagedRun(prepared, required,
       () => {current(); if (run.producer.request !== request) fail('ForeignInstalledSourceProducer');},
@@ -173,8 +176,14 @@ export async function prepareOrdinarySourceManagedInstallation(originals, callba
     prepareRun(prepared) {
       return prepareRun(prepared, 'source-compute', undefined);
     },
+    prepareEffectRun(prepared) {
+      return prepareRun(prepared, 'source-compute', undefined, true);
+    },
     prepareLocalMockModelRun(prepared, model) {
       return prepareRun(prepared, 'local-mock-model', model);
+    },
+    prepareEffectLocalMockModelRun(prepared, model) {
+      return prepareRun(prepared, 'local-mock-model', model, true);
     },
     prepareRead(prepared, declaration, originalRun) {
       const run = runFor(prepared);
