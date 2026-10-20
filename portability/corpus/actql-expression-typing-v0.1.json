@@ -1842,6 +1842,10 @@
     {
       "source": "decimal_divide(NULL,NULL,3)",
       "type": "decimal38_3?"
+    },
+    {
+      "source": "try_number(n)",
+      "type": "number?"
     }
   ],
   "negative": [
@@ -1989,10 +1993,6 @@
     },
     {
       "source": "format_timestamp(s,'yyyy')",
-      "issue": "TypeMismatch"
-    },
-    {
-      "source": "try_number(n)",
       "issue": "TypeMismatch"
     },
     {

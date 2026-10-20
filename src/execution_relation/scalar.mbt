@@ -56,6 +56,12 @@ pub fn unary(
   value : Value,
 ) -> Result[Value, ScalarIssue] {
   match op {
+    TryNumber =>
+      match value {
+        Null => Ok(Null)
+        Number(n) => finite(n)
+        Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
+      }
     // Constructed text is evaluated only by the bounded expression continuation.
     Upper
     | Lower

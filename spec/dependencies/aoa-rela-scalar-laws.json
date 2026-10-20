@@ -183,6 +183,12 @@
       "timezone_offsets": false,
       "invalid": "failure",
       "null": "null"
+    },
+    "try_number": {
+      "input": "Admitted finite logical Number or canonical decimal String; no Boolean, Decimal, Signed64, temporal, structured or unknown-domain promotion.",
+      "number": "Preserve the admitted Number value and canonical zero without formatting or parsing text. The result remains nullable Number. Ordinary scalar, Run, work, live-value, current and cancellation checks apply; no String parsing envelope or parsing workspace is issued for this branch.",
+      "string": "Retain the existing canonical decimal grammar, full input consumption and nullable Number result. Only a non-null unparsable String becomes NULL. String profile admission, selected Host envelope, bounds and parsing workspace remain mandatory.",
+      "demand": "Retain the authored try_number node and its original operand. Demand the child exactly once; child evaluation, control, cancellation, bounds, memory, engine and root-retirement failures propagate and never become NULL. NULL propagates after the original child succeeds."
     }
   },
   "predicate_scalar_boundary": {

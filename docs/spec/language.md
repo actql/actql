@@ -3952,9 +3952,15 @@ Missing time components MUST resolve to ActQL-defined zero values, not host defa
 absent `HH`/`mm` means `00:00`, absent `ss` means `00`, and absent `SSS`
 means `000`. Parsing uses the proleptic Gregorian calendar, UTC, and the
 closed year range `0000..9999`.
-`format_timestamp` is locale-independent. `try_number` uses the same canonical
-number grammar as `to_number`, but returns null instead of failing for a
-non-null unparsable string.
+`format_timestamp` is locale-independent. For String input, `try_number` uses
+the same canonical number grammar as `to_number`, but returns null instead of
+failing for a non-null unparsable string. For an admitted finite logical Number,
+`try_number` preserves that Number value and canonical zero without a text
+conversion. The result remains nullable Number. No Boolean, Decimal, Signed64,
+temporal, structured or unknown-domain promotion is added. The original child
+is demanded exactly once; child errors, cancellation, bounds, workspace and
+engine failures propagate rather than becoming null. The authored operation
+and original operand remain in the canonical expression.
 
 <!-- requirement-block: text-time.timestamp-pattern-modes -->
 Timestamp patterns MUST be nonempty sequences of the admitted components;
@@ -4126,9 +4132,14 @@ maximum capture index (zero with no references) describe these parts, not the
 source spelling or a deduplicated set of captures.
 
 The operation/input matrix is closed: `split_part`,
-`utf8_truncate`, `try_number`, `parse_timestamp`, `regex_match`,
+`utf8_truncate`, `parse_timestamp`, `regex_match`,
 `regex_extract`, `regex_replace`, `nfkc`, `case_fold`, and `try_timestamp`
-consume strings; `format_timestamp` consumes a timestamp. `parse_timestamp`
+consume strings; `format_timestamp` consumes a timestamp. `try_number` consumes
+a String or an admitted finite Number. Only its String branch uses the String
+parsing profile, Host envelope and parsing workspace; Number identity remains
+subject to ordinary scalar/Run work, live-value, current and cancellation checks.
+The text/time extent and envelope requirements do not manufacture text input
+or a parsing envelope for this Number branch. `parse_timestamp`
 preserves input nullability. `try_number` and `try_timestamp` have nullable
 output because input parse failure produces null.
 
@@ -11401,7 +11412,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:f3421709e1d40204867b273b51d275cf8b73c9bba25a59990906cbd6656c3b12
+../../spec/contracts/actql-aoa.json# sha256:aace4d39f4f3f214158027007d7bfd27ded49f29f0aac55ca022b48bb0ddc5f0
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11410,11 +11421,11 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:6ccd3d3e87cf65610f96b81ce3a11844f1d12a6bee3166df66726a3c11e571f8
+../../spec/contracts/actql-expressions.json# sha256:6ab2396dc413fa604854f6586ec957203ccf23392c52f254dfd7b3c0c6dcbe7f
 ../../spec/contracts/actql-expressions.json#/schemas/expression sha256:4a1a422c8a320d620ebb7f60eafd97f240e228145d5d8875b2a2d22dbb155400
 ../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:555287df8de017c03d3a8a252e6492e1dc84f9d099980f1115d30be8808d170f
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:3777174ee3175bb8e16e823e5ee69470c975233999c6f0df02c64f535d341bae
+../../spec/contracts/actql-expressions.json#/laws sha256:530e3f66a52b5f57e6a5786c7e6e2c1bddcd2df9adbf6482492919f1292a2bb6
 ../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:8c255485e4b13e8fb372a1db176d113810570e315c5e3e2bb3a03734ad98841e
 ../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:7e7a92a1c40643757d65ba8703cbfc8fcc164a60370330181351b1b441393052
 ```

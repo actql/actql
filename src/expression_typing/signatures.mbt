@@ -256,6 +256,14 @@ fn infer(
   let tag = node.tag
   spend(t.budget, source)
   let values = node.children.map(id => nodes[id].inferred)
+  // A logical Number already passed finite Number admission. This identity
+  // keeps the authored operation, but has no String parser or text envelope.
+  if tag == "try_number" {
+    let (base, _) = head(t, values[0], source)
+    if t.entries[base].kind is Leaf(c) && c.shape is @contract.Number {
+      return primitive(t, @contract.NumberType, true, source)
+    }
+  }
   if text_time(tag) {
     if tag == "regex_extract" || tag == "regex_replace" {
       regex_static_argument(tag, nodes[node.children[2]])
