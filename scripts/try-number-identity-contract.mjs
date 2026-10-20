@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
+import {registerExpressionFragment, checkRegistration} from './expression-fragment-registration.mjs';
 
 export const tryNumberIdentityLaw = {
   input: 'Admitted finite logical Number or canonical decimal String; no Boolean, Decimal, Signed64, temporal, structured or unknown-domain promotion.',
@@ -27,11 +28,16 @@ export function verifyTryNumberIdentityContracts(write = false) {
     const aoaPath = 'spec/contracts/actql-aoa.json', aoa = read(aoaPath);
     aoa.expression_contract_cid = machineCid(expression);
     aoa.rela_scalar_law_manifest_cid = machineCid(scalar);
+    const registryPath = aoa.pipeline_registry_file, registry = read(registryPath);
+    registerExpressionFragment(aoa, expression, registry);
+    writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n');
     writeFileSync(aoaPath, JSON.stringify(aoa, null, 2) + '\n');
   }
   assert.deepEqual(expression.laws.try_number, tryNumberIdentityLaw);
   assert.deepEqual(scalar.conversion_truth_table.try_number, tryNumberIdentityLaw);
   for (const name of ['pure_profile_admission', 'profile_binding']) assert.ok(expression.laws[name].endsWith(profileSuffix));
+  const aoa = read('spec/contracts/actql-aoa.json');
+  checkRegistration(aoa, expression, read(aoa.pipeline_registry_file));
   return {expression: machineCid(expression), scalar: machineCid(scalar)};
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

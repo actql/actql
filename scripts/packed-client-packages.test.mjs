@@ -16,6 +16,59 @@ const tarball = name => `actql-${name}-0.0.0-development.tgz`;
 const git = (repository, ...args) => execFileSync('git', args,
   {cwd: repository, encoding: 'utf8'});
 
+test('installed Explorer oracle accepts the complete read-only browser capabilities', async t => {
+  const {parse} = await import('acorn');
+  const {cp, copyFile} = await import('node:fs/promises');
+  const {pathToFileURL} = await import('node:url');
+  const root = await mkdtemp(join(tmpdir(), 'actql-explorer-capability-oracle-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const packages = join(root, 'node_modules/@actql');
+  await mkdir(packages, {recursive: true});
+  await cp(new URL('../packages/client-wire/', import.meta.url),
+    join(packages, 'client-wire'), {recursive: true});
+  const ui = join(packages, 'explorer-ui');
+  await mkdir(ui);
+  for (const name of ['package.json', 'read-model.mjs', 'checkpoint-review.mjs',
+    'cancellation.mjs', 'presentation-limits.mjs']) {
+    await copyFile(new URL(`../packages/explorer-ui/${name}`, import.meta.url), join(ui, name));
+  }
+  const browser = join(root, 'browser-source.mjs');
+  await copyFile(new URL('../packages/explorer/browser-source.mjs', import.meta.url), browser);
+  const {createExplorerBrowserSource} = await import(pathToFileURL(browser));
+  // These are the explicit read-only public Client capabilities. This unit
+  // exercises wire admission and the installed fixture's exact assertion,
+  // without opening a Host, creating a Run or claiming package acceptance.
+  const declared = {plan: true, run: true, resultMetadata: true,
+    resultPayload: false, control: false, sample: false, cancellation: false,
+    checkpointList: true, checkpointReview: true};
+  const source = createExplorerBrowserSource({origin: 'http://127.0.0.1:12345',
+    now: () => 0, async fetch() {
+      return Response.json({csrf: 'a'.repeat(43), scopeEpoch: 0,
+        expiresAt: 300000, capabilities: declared});
+    }});
+  t.after(() => source.close());
+  const capabilities = await source.connect('operator-supplied-bootstrap');
+  const fixture = await readFile(new URL('./fixtures/explorer-installed-readonly.mjs',
+    import.meta.url), 'utf8');
+  const assertions = [];
+  const visit = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' &&
+        node.callee.object.name === 'assert' && node.callee.property.name === 'deepEqual' &&
+        node.arguments[0]?.type === 'Identifier' && node.arguments[0].name === 'capabilities') {
+      assertions.push(node);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value !== null && typeof value === 'object') visit(value);
+    }
+  };
+  visit(parse(fixture, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(assertions.length, 1, 'Exercise the actual nonzero installed capability oracle');
+  const originalAssertion = fixture.slice(assertions[0].start, assertions[0].end);
+  Function('assert', 'capabilities', originalAssertion)(assert, capabilities);
+});
+
 test('acquired-source consumers read the native adapter pin explicitly', async t => {
   const repository = await mkdtemp(join(tmpdir(), 'actql-duckdb-pin-'));
   t.after(() => rm(repository, {recursive: true, force: true}));

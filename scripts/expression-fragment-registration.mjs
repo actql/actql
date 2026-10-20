@@ -56,17 +56,24 @@ export function checkRegistration(aoa, expressions, registry) {
   return body;
 }
 
+// One mutation path for the CLI and containing contract writers. A root
+// expression-law update must retain this exact registered dependency closure.
+export function registerExpressionFragment(aoa, expressions, registry) {
+  const body = executionContract(expressions), ref = {pointer, cid: machineCid(body)};
+  aoa.execution_contracts[operation] = body;
+  aoa.expression_contract_cid = machineCid(expressions);
+  aoa.target_registry_requirements[operation] = {
+    inputs: ['relation'], output: 'relation', execution_contract: ref,
+  };
+  registry[operation] = {inputs: ['relation'], output: 'relation', execution_contract: {file: path, ...ref}};
+  aoa.pipeline_registry_cid = machineCid(registry);
+  return checkRegistration(aoa, expressions, registry);
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const aoa = read(path), expressions = read(expressionPath), registry = read(registryPath);
   if (process.argv.includes('--write')) {
-    const body = executionContract(expressions), ref = {pointer, cid: machineCid(body)};
-    aoa.execution_contracts[operation] = body;
-    aoa.expression_contract_cid = machineCid(expressions);
-    aoa.target_registry_requirements[operation] = {
-      inputs: ['relation'], output: 'relation', execution_contract: ref,
-    };
-    registry[operation] = {inputs: ['relation'], output: 'relation', execution_contract: {file: path, ...ref}};
-    aoa.pipeline_registry_cid = machineCid(registry);
+    registerExpressionFragment(aoa, expressions, registry);
     writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n');
     writeFileSync(path, JSON.stringify(aoa, null, 2) + '\n');
   }
