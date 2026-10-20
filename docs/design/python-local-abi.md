@@ -2749,3 +2749,33 @@ closed through their original Core loans before later Run transfers begin.
 This returns only their transfer allowance. Saved files, metadata originals,
 the Store, current fences and actual physical owners remain retained. A refused
 close keeps the same partial installation and cannot trigger another bootstrap.
+
+### Saved Run observations and Result reads
+
+A durable Client reference identifies saved originals, rather than a process-local
+Run object. The original installation binding reads the complete submitted-row
+inventory in one current Store snapshot. Core validates the saved observation
+originals, Run and submission identities, current authorization, and original
+adoption scope before exposing attach or lookup. Missing older observation
+originals remain unavailable; they are not backfilled from a newly compiled
+Program, current defaults or another Run.
+
+A saved Result read validates the complete stored publication graph and the
+selected manifest occurrence through the existing publication Owner. Its nominal
+read source retains the exact finite policy and stored view. The shared SDK read
+Owner still issues the read grant and observes delivery evidence under current
+authorization; publication metadata alone is neither permission nor a physical
+acknowledgment. Live publication preparation and writes cannot use this saved
+source. Delivery-attempt lookup only observes the original attempt in the same
+snapshot and creates no grant, payload Reader or first delivery.
+
+The Host registers its operation carrier before acquiring children. It restores
+the saved allocation directory and opens the committed generation in the
+installation's Result Root with no-follow, identity, size and digest checks. It
+neither creates a Writer nor finalizes an object again. Copied contract values
+have ordinary runtime lifetimes; live descriptor loans, transfer outputs and
+actual Store transactions retain their explicit original cleanup duties.
+Partial preparation and failed returns preserve the same carrier for child-first
+close, without reopening, re-reserving, replaying SQL or resending a submission.
+These saved read operations do not supply unfinished status, wait or recovery
+operations, and do not infer their success from an attached reference.
