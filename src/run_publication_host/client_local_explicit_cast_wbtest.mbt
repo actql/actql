@@ -136,17 +136,17 @@ test "explicit CAST with original supplied Parameters uses its own exact alterna
 }
 
 ///|
-test "explicit CAST does not install conditional or unsupported operations" {
+test "explicit CAST does not waive actual completion or uninstalled relation operations" {
   let implicit_else = local_explicit_cast_original(
     text="SELECT CAST(CASE WHEN TRUE THEN 'yes' END AS STRING) AS value",
   )
   assert_true(
     issue_prepared_client_local_normalization(implicit_else)
-    is Err(Inventory(ProfileNotInstalled)),
+    is Err(Inventory(CompletionObserved)),
   )
   assert_true(implicit_else.local_normalization is None)
   let unsupported = local_explicit_cast_original(
-    text="SELECT CAST(ABS(-1) AS NUMBER) AS value",
+    text="SELECT CAST(ABS(-1) AS NUMBER) AS value LIMIT 1",
   )
   assert_true(
     issue_prepared_client_local_normalization(unsupported)

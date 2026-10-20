@@ -873,6 +873,7 @@ fn command() -> @argparse.Command {
         options=[
           @argparse.OptionArg("params", conflicts_with=["parameters-file"]),
           @argparse.OptionArg("parameters-file", conflicts_with=["params"]),
+          @argparse.OptionArg("parameter-declarations-file"),
           @argparse.OptionArg("format"),
           @argparse.OptionArg("output"),
         ],

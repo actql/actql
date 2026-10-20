@@ -1,6 +1,6 @@
 ///|
 priv enum LocalCompletionFreeAudit {
-  Complete(Int, @parameters.BoundValues?, Bool)
+  Complete(Int, @parameters.BoundValues?, Bool, Bool)
   ProfileNotInstalled
   CompletionObserved
 }
@@ -13,6 +13,106 @@ struct LocalCompletionFreeInventory {
   audited_work : Int
   supplied_parameters : @parameters.BoundValues?
   explicit_cast : Bool
+  checked_expressions : Bool
+}
+
+///|
+// Closed context-free operations already lowered and executed by the existing
+// checked expression owners. This is not permission inferred from checker
+// success: new tags and Run-bound time still require a separate connection.
+fn local_completion_free_checked_expression(tag : String) -> Bool {
+  match tag {
+    "abs"
+    | "acos"
+    | "acosh"
+    | "array"
+    | "asin"
+    | "asinh"
+    | "atan"
+    | "atan2"
+    | "atanh"
+    | "between"
+    | "byte_length"
+    | "case"
+    | "cbrt"
+    | "chr"
+    | "coalesce"
+    | "concat"
+    | "concat_strict"
+    | "contains"
+    | "cos"
+    | "cosh"
+    | "date_add"
+    | "date_diff"
+    | "date_trunc"
+    | "decimal_divide"
+    | "divide"
+    | "empty_array"
+    | "ends_with"
+    | "exp"
+    | "floor"
+    | "greatest"
+    | "if"
+    | "in"
+    | "instr"
+    | "is_distinct_from"
+    | "is_false"
+    | "is_null"
+    | "is_true"
+    | "is_unknown"
+    | "least"
+    | "left"
+    | "len"
+    | "ln"
+    | "log"
+    | "log10"
+    | "lower"
+    | "lpad"
+    | "ltrim"
+    | "modulo"
+    | "negate"
+    | "not_in"
+    | "not_null"
+    | "nullif"
+    | "object"
+    | "pow"
+    | "property"
+    | "quantize"
+    | "repeat"
+    | "replace"
+    | "reverse"
+    | "right"
+    | "round"
+    | "rpad"
+    | "rtrim"
+    | "safe_add"
+    | "safe_divide"
+    | "safe_multiply"
+    | "safe_negate"
+    | "safe_subtract"
+    | "sign"
+    | "sin"
+    | "sinh"
+    | "split"
+    | "sqrt"
+    | "starts_with"
+    | "strpos"
+    | "subscript"
+    | "substring"
+    | "tan"
+    | "tanh"
+    | "timestamp_add"
+    | "timestamp_sub"
+    | "translate"
+    | "trim"
+    | "trunc"
+    | "try_decimal"
+    | "try_number"
+    | "unicode"
+    | "upper"
+    | "utf8_truncate" => true
+    _ => false
+  }
 }
 
 ///|
@@ -80,6 +180,7 @@ fn audit_local_completion_free_units(
     Some(values)
   }
   let mut explicit_cast = false
+  let mut checked_expressions = false
   let sources : Array[(Int, Int)] = []
   let mut roots = 0
   for unit in units {
@@ -142,6 +243,7 @@ fn audit_local_completion_free_units(
                   if supplied_parameters is None {
                     return ProfileNotInstalled
                   }
+                MembershipList(_) => checked_expressions = true
                 Expression(tag, _) =>
                   match tag {
                     "field"
@@ -159,9 +261,13 @@ fn audit_local_completion_free_units(
                     | "and"
                     | "or"
                     | "not" => ()
-                    _ => return ProfileNotInstalled
+                    _ =>
+                      if local_completion_free_checked_expression(tag) {
+                        checked_expressions = true
+                      } else {
+                        return ProfileNotInstalled
+                      }
                   }
-                _ => return ProfileNotInstalled
               }
             }
           }
@@ -173,7 +279,12 @@ fn audit_local_completion_free_units(
   if roots != 1 {
     return ProfileNotInstalled
   }
-  Complete(10000 - remaining, supplied_parameters, explicit_cast)
+  Complete(
+    10000 - remaining,
+    supplied_parameters,
+    explicit_cast,
+    checked_expressions,
+  )
 }
 
 ///|
@@ -184,8 +295,14 @@ pub fn local_program_completion_free_inventory(
     return Err(ProfileNotInstalled)
   }
   match owner.local_completion_free_audit {
-    Complete(work, supplied_parameters, explicit_cast) =>
-      Ok({ owner, audited_work: work, supplied_parameters, explicit_cast, })
+    Complete(work, supplied_parameters, explicit_cast, checked_expressions) =>
+      Ok({
+        owner,
+        audited_work: work,
+        supplied_parameters,
+        explicit_cast,
+        checked_expressions,
+      })
     ProfileNotInstalled => Err(ProfileNotInstalled)
     CompletionObserved => Err(CompletionObserved)
   }
@@ -220,4 +337,12 @@ pub fn local_completion_free_inventory_uses_explicit_cast(
   inventory : LocalCompletionFreeInventory,
 ) -> Bool {
   inventory.explicit_cast
+}
+
+///|
+/// Output metadata from the full original audit, never caller-supplied consent.
+pub fn local_completion_free_inventory_uses_checked_expressions(
+  inventory : LocalCompletionFreeInventory,
+) -> Bool {
+  inventory.checked_expressions
 }

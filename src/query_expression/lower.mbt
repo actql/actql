@@ -1107,13 +1107,15 @@ fn append_resolved(
               ]),
             )
           }
-          lowering.form(
-            "case",
-            lowering.object([
-              ("when", lowering.add(Array(values))),
-              ("else", nodes[otherwise]),
-            ]),
-          )
+          let fields = [("when", lowering.add(Array(values)))]
+          let original_else = @query.expression_node(ast, otherwise).unwrap()
+          // The parser anchors an omitted ELSE's synthetic NULL to END.
+          // Preserve that omission for the existing Common completion owner;
+          // an explicitly authored NULL has its own earlier source span.
+          if !(original_else.kind is Null && original_else.end == node.end) {
+            fields.push(("else", nodes[otherwise]))
+          }
+          lowering.form("case", lowering.object(fields))
         }
         Cast(child, target) =>
           match target {

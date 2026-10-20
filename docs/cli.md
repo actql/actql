@@ -52,8 +52,8 @@ a complete Program with mock fixtures that runs without credentials. The
 ## Quick queries
 
 ```text
-actql sql <query> [--params <file>] [--format <table|json|jsonl|csv>] [--output <file>]
-actql aql <query> [--params <file>] [--format <table|json|jsonl|csv>] [--output <file>]
+actql sql <query> [--parameter-declarations-file <file>] [--params <file>] [--format <table|json|jsonl|csv>] [--output <file>]
+actql aql <query> [--parameter-declarations-file <file>] [--params <file>] [--format <table|json|jsonl|csv>] [--output <file>]
 ```
 
 ```text
@@ -70,6 +70,30 @@ id    name
 (`table` by default). They are the command-line form of the libraries' `sql()`
 and `aql()`: read-only, no Effects, no Checkpoints. A query with an Effect is
 refused; put it in a Program file and use `run`.
+
+For `@name` parameters, `--parameter-declarations-file` supplies a JSON object
+of named value contracts; `--params` supplies a separate JSON object of values.
+Values do not infer types or nullability. For example, save these two files:
+
+```json
+{"id":{"type":"number","nullable":false}}
+```
+
+as `declarations.json`, and:
+
+```json
+{"id":7}
+```
+
+as `parameters.json`, then run:
+
+```sh
+actql sql 'SELECT @id AS id' --parameter-declarations-file declarations.json --params parameters.json --format jsonl
+```
+
+The result is `{"id":7}`. An undeclared parameter, a missing required value or
+a value outside its declared contract is refused. The same option works with
+literal Pipe queries through `aql`.
 
 ## Configuration
 

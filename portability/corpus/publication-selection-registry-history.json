@@ -3,7 +3,7 @@
   "source_commit": "fde035cf745d4885f8c2b9bcf2a583961ca0a956",
   "source_path": "spec/contracts/actql-protocol-schemas.json",
   "source_blob": "bd43e186d9cd0fe3a655155f886650ca840cb4b1",
-  "current_source_commit": "9fb3fd7dbaf3de68bb1e341725b28a75476d38c2",
+  "current_source_commit": "68984332ab66af4d918511d6cbc70fdd64d9a60b",
   "artifact_registry_cid": "sha256:91eae8fde531981454099a7cd60fafd59818c38af947791d3c20566adb4ff8f4",
   "changes": [
     {
@@ -15,7 +15,7 @@
         "reason_schema_cid",
         "const"
       ],
-      "current": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e",
+      "current": "sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5",
       "historical": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742"
     },
     {
@@ -318,7 +318,10 @@
                 "items": {
                   "properties": {
                     "code": {
-                      "const": "parameter_value_required"
+                      "enum": [
+                        "parameter_value_required",
+                        "parameter_consumer_condition"
+                      ]
                     }
                   }
                 }
@@ -502,7 +505,7 @@
         "contract_schema_cid",
         "const"
       ],
-      "current": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c",
+      "current": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1",
       "historical": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
     },
     {
@@ -525,7 +528,7 @@
         "contract_schema_cid",
         "const"
       ],
-      "current": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c",
+      "current": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1",
       "historical": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
     },
     {
@@ -945,7 +948,10 @@
                 "items": {
                   "properties": {
                     "code": {
-                      "const": "parameter_value_required"
+                      "enum": [
+                        "parameter_value_required",
+                        "parameter_consumer_condition"
+                      ]
                     }
                   }
                 }
@@ -1129,7 +1135,7 @@
         "contract_schema_cid",
         "const"
       ],
-      "current": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c",
+      "current": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1",
       "historical": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
     },
     {
@@ -1152,7 +1158,7 @@
         "contract_schema_cid",
         "const"
       ],
-      "current": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c",
+      "current": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1",
       "historical": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
     },
     {
@@ -1281,7 +1287,7 @@
         "reason_schema_cid",
         "const"
       ],
-      "current": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e",
+      "current": "sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5",
       "historical": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742"
     },
     {
@@ -1293,7 +1299,7 @@
         "reason_schema_cid",
         "const"
       ],
-      "current": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e",
+      "current": "sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5",
       "historical": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742"
     },
     {
@@ -1309,7 +1315,7 @@
         "contract_schema_cid",
         "const"
       ],
-      "current": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c",
+      "current": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1",
       "historical": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
     },
     {
@@ -4236,6 +4242,3392 @@
       ],
       "current": "revision",
       "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "reasons",
+        "items",
+        "allOf",
+        26,
+        "if",
+        "properties",
+        "code",
+        "not",
+        "enum",
+        19
+      ],
+      "current": "parameter_consumer_condition",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "reasons",
+        "items",
+        "allOf",
+        27,
+        "if"
+      ],
+      "current": {
+        "properties": {
+          "code": {
+            "const": "parameter_consumer_condition"
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "reasons",
+        "items",
+        "allOf",
+        27,
+        "not"
+      ],
+      "current": null,
+      "historical": {
+        "properties": {
+          "code": {
+            "enum": [
+              "parameter_value_required",
+              "host_capacity_policy_required",
+              "numeric_reduction_profile_required"
+            ]
+          }
+        }
+      },
+      "current_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "reasons",
+        "items",
+        "allOf",
+        27,
+        "then"
+      ],
+      "current": {
+        "required": [
+          "facts"
+        ],
+        "properties": {
+          "facts": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "argument",
+              "constraint",
+              "expected_type",
+              "maximum",
+              "minimum",
+              "operation",
+              "parameter",
+              "stage"
+            ],
+            "properties": {
+              "argument": {
+                "enum": [
+                  "count",
+                  "offset"
+                ]
+              },
+              "constraint": {
+                "const": "safe_integer"
+              },
+              "expected_type": {
+                "enum": [
+                  "number",
+                  "int64"
+                ]
+              },
+              "maximum": {
+                "const": 9007199254740991
+              },
+              "minimum": {
+                "enum": [
+                  0,
+                  1
+                ]
+              },
+              "operation": {
+                "const": "take"
+              },
+              "parameter": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "stage": {
+                "const": "binding"
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "argument": {
+                      "const": "count"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "minimum": {
+                      "const": 1
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "argument": {
+                      "const": "offset"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "minimum": {
+                      "const": 0
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "location": {
+            "properties": {
+              "kind": {
+                "const": "structured"
+              },
+              "document_id": {
+                "enum": [
+                  "parameter_declarations",
+                  "program"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "reasons",
+        "items",
+        "allOf",
+        29
+      ],
+      "current": {
+        "not": {
+          "properties": {
+            "code": {
+              "enum": [
+                "parameter_value_required",
+                "parameter_consumer_condition",
+                "host_capacity_policy_required",
+                "numeric_reduction_profile_required"
+              ]
+            }
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "reasons",
+        "items",
+        "allOf",
+        28
+      ],
+      "current": {
+        "if": {
+          "properties": {
+            "code": {
+              "not": {
+                "const": "parameter_consumer_condition"
+              }
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "facts": {
+              "not": {
+                "required": [
+                  "argument"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "reasons",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        1,
+        "properties",
+        "actual_type",
+        "enum",
+        13
+      ],
+      "current": "int64",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "reasons",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        1,
+        "properties",
+        "expected_type",
+        "enum",
+        13
+      ],
+      "current": "int64",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "reasons",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        2,
+        "properties",
+        "expected_type",
+        "enum",
+        13
+      ],
+      "current": "int64",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "reasons",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        14
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "argument",
+          "constraint",
+          "expected_type",
+          "maximum",
+          "minimum",
+          "operation",
+          "parameter",
+          "stage"
+        ],
+        "properties": {
+          "argument": {
+            "enum": [
+              "count",
+              "offset"
+            ]
+          },
+          "constraint": {
+            "const": "safe_integer"
+          },
+          "expected_type": {
+            "enum": [
+              "number",
+              "int64"
+            ]
+          },
+          "maximum": {
+            "const": 9007199254740991
+          },
+          "minimum": {
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "operation": {
+            "const": "take"
+          },
+          "parameter": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "stage": {
+            "const": "binding"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "argument": {
+                  "const": "count"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "minimum": {
+                  "const": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "argument": {
+                  "const": "offset"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "minimum": {
+                  "const": 0
+                }
+              }
+            }
+          }
+        ]
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "requirements",
+        "items",
+        "allOf",
+        26,
+        "if",
+        "properties",
+        "code",
+        "not",
+        "enum",
+        19
+      ],
+      "current": "parameter_consumer_condition",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "requirements",
+        "items",
+        "allOf",
+        28
+      ],
+      "current": {
+        "if": {
+          "properties": {
+            "code": {
+              "not": {
+                "const": "parameter_consumer_condition"
+              }
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "facts": {
+              "not": {
+                "required": [
+                  "argument"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "requirements",
+        "items",
+        "allOf",
+        27
+      ],
+      "current": {
+        "if": {
+          "properties": {
+            "code": {
+              "const": "parameter_consumer_condition"
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "facts"
+          ],
+          "properties": {
+            "facts": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "argument",
+                "constraint",
+                "expected_type",
+                "maximum",
+                "minimum",
+                "operation",
+                "parameter",
+                "stage"
+              ],
+              "properties": {
+                "argument": {
+                  "enum": [
+                    "count",
+                    "offset"
+                  ]
+                },
+                "constraint": {
+                  "const": "safe_integer"
+                },
+                "expected_type": {
+                  "enum": [
+                    "number",
+                    "int64"
+                  ]
+                },
+                "maximum": {
+                  "const": 9007199254740991
+                },
+                "minimum": {
+                  "enum": [
+                    0,
+                    1
+                  ]
+                },
+                "operation": {
+                  "const": "take"
+                },
+                "parameter": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "stage": {
+                  "const": "binding"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "argument": {
+                        "const": "count"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "minimum": {
+                        "const": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "argument": {
+                        "const": "offset"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "minimum": {
+                        "const": 0
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "location": {
+              "properties": {
+                "kind": {
+                  "const": "structured"
+                },
+                "document_id": {
+                  "enum": [
+                    "parameter_declarations",
+                    "program"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "requirements",
+        "items",
+        "properties",
+        "code",
+        "enum",
+        1
+      ],
+      "current": "parameter_consumer_condition",
+      "historical": "host_capacity_policy_required"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "requirements",
+        "items",
+        "properties",
+        "code",
+        "enum",
+        2
+      ],
+      "current": "host_capacity_policy_required",
+      "historical": "numeric_reduction_profile_required"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "requirements",
+        "items",
+        "properties",
+        "code",
+        "enum",
+        3
+      ],
+      "current": "numeric_reduction_profile_required",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "requirements",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        1,
+        "properties",
+        "actual_type",
+        "enum",
+        13
+      ],
+      "current": "int64",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "requirements",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        1,
+        "properties",
+        "expected_type",
+        "enum",
+        13
+      ],
+      "current": "int64",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "requirements",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        2,
+        "properties",
+        "expected_type",
+        "enum",
+        13
+      ],
+      "current": "int64",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        0,
+        "properties",
+        "report",
+        "properties",
+        "requirements",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        14
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "argument",
+          "constraint",
+          "expected_type",
+          "maximum",
+          "minimum",
+          "operation",
+          "parameter",
+          "stage"
+        ],
+        "properties": {
+          "argument": {
+            "enum": [
+              "count",
+              "offset"
+            ]
+          },
+          "constraint": {
+            "const": "safe_integer"
+          },
+          "expected_type": {
+            "enum": [
+              "number",
+              "int64"
+            ]
+          },
+          "maximum": {
+            "const": 9007199254740991
+          },
+          "minimum": {
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "operation": {
+            "const": "take"
+          },
+          "parameter": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "stage": {
+            "const": "binding"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "argument": {
+                  "const": "count"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "minimum": {
+                  "const": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "argument": {
+                  "const": "offset"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "minimum": {
+                  "const": 0
+                }
+              }
+            }
+          }
+        ]
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "reasons",
+        "items",
+        "allOf",
+        26,
+        "if",
+        "properties",
+        "code",
+        "not",
+        "enum",
+        19
+      ],
+      "current": "parameter_consumer_condition",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "reasons",
+        "items",
+        "allOf",
+        27,
+        "if"
+      ],
+      "current": {
+        "properties": {
+          "code": {
+            "const": "parameter_consumer_condition"
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "reasons",
+        "items",
+        "allOf",
+        27,
+        "not"
+      ],
+      "current": null,
+      "historical": {
+        "properties": {
+          "code": {
+            "enum": [
+              "parameter_value_required",
+              "host_capacity_policy_required",
+              "numeric_reduction_profile_required"
+            ]
+          }
+        }
+      },
+      "current_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "reasons",
+        "items",
+        "allOf",
+        27,
+        "then"
+      ],
+      "current": {
+        "required": [
+          "facts"
+        ],
+        "properties": {
+          "facts": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "argument",
+              "constraint",
+              "expected_type",
+              "maximum",
+              "minimum",
+              "operation",
+              "parameter",
+              "stage"
+            ],
+            "properties": {
+              "argument": {
+                "enum": [
+                  "count",
+                  "offset"
+                ]
+              },
+              "constraint": {
+                "const": "safe_integer"
+              },
+              "expected_type": {
+                "enum": [
+                  "number",
+                  "int64"
+                ]
+              },
+              "maximum": {
+                "const": 9007199254740991
+              },
+              "minimum": {
+                "enum": [
+                  0,
+                  1
+                ]
+              },
+              "operation": {
+                "const": "take"
+              },
+              "parameter": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "stage": {
+                "const": "binding"
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "argument": {
+                      "const": "count"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "minimum": {
+                      "const": 1
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "argument": {
+                      "const": "offset"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "minimum": {
+                      "const": 0
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "location": {
+            "properties": {
+              "kind": {
+                "const": "structured"
+              },
+              "document_id": {
+                "enum": [
+                  "parameter_declarations",
+                  "program"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "reasons",
+        "items",
+        "allOf",
+        29
+      ],
+      "current": {
+        "not": {
+          "properties": {
+            "code": {
+              "enum": [
+                "parameter_value_required",
+                "parameter_consumer_condition",
+                "host_capacity_policy_required",
+                "numeric_reduction_profile_required"
+              ]
+            }
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "reasons",
+        "items",
+        "allOf",
+        28
+      ],
+      "current": {
+        "if": {
+          "properties": {
+            "code": {
+              "not": {
+                "const": "parameter_consumer_condition"
+              }
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "facts": {
+              "not": {
+                "required": [
+                  "argument"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "reasons",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        1,
+        "properties",
+        "actual_type",
+        "enum",
+        13
+      ],
+      "current": "int64",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "reasons",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        1,
+        "properties",
+        "expected_type",
+        "enum",
+        13
+      ],
+      "current": "int64",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "reasons",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        2,
+        "properties",
+        "expected_type",
+        "enum",
+        13
+      ],
+      "current": "int64",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "reasons",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        14
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "argument",
+          "constraint",
+          "expected_type",
+          "maximum",
+          "minimum",
+          "operation",
+          "parameter",
+          "stage"
+        ],
+        "properties": {
+          "argument": {
+            "enum": [
+              "count",
+              "offset"
+            ]
+          },
+          "constraint": {
+            "const": "safe_integer"
+          },
+          "expected_type": {
+            "enum": [
+              "number",
+              "int64"
+            ]
+          },
+          "maximum": {
+            "const": 9007199254740991
+          },
+          "minimum": {
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "operation": {
+            "const": "take"
+          },
+          "parameter": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "stage": {
+            "const": "binding"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "argument": {
+                  "const": "count"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "minimum": {
+                  "const": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "argument": {
+                  "const": "offset"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "minimum": {
+                  "const": 0
+                }
+              }
+            }
+          }
+        ]
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "requirements",
+        "items",
+        "allOf",
+        26,
+        "if",
+        "properties",
+        "code",
+        "not",
+        "enum",
+        19
+      ],
+      "current": "parameter_consumer_condition",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "requirements",
+        "items",
+        "allOf",
+        28
+      ],
+      "current": {
+        "if": {
+          "properties": {
+            "code": {
+              "not": {
+                "const": "parameter_consumer_condition"
+              }
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "facts": {
+              "not": {
+                "required": [
+                  "argument"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "requirements",
+        "items",
+        "allOf",
+        27
+      ],
+      "current": {
+        "if": {
+          "properties": {
+            "code": {
+              "const": "parameter_consumer_condition"
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "facts"
+          ],
+          "properties": {
+            "facts": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "argument",
+                "constraint",
+                "expected_type",
+                "maximum",
+                "minimum",
+                "operation",
+                "parameter",
+                "stage"
+              ],
+              "properties": {
+                "argument": {
+                  "enum": [
+                    "count",
+                    "offset"
+                  ]
+                },
+                "constraint": {
+                  "const": "safe_integer"
+                },
+                "expected_type": {
+                  "enum": [
+                    "number",
+                    "int64"
+                  ]
+                },
+                "maximum": {
+                  "const": 9007199254740991
+                },
+                "minimum": {
+                  "enum": [
+                    0,
+                    1
+                  ]
+                },
+                "operation": {
+                  "const": "take"
+                },
+                "parameter": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "stage": {
+                  "const": "binding"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "argument": {
+                        "const": "count"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "minimum": {
+                        "const": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "argument": {
+                        "const": "offset"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "minimum": {
+                        "const": 0
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "location": {
+              "properties": {
+                "kind": {
+                  "const": "structured"
+                },
+                "document_id": {
+                  "enum": [
+                    "parameter_declarations",
+                    "program"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "requirements",
+        "items",
+        "properties",
+        "code",
+        "enum",
+        1
+      ],
+      "current": "parameter_consumer_condition",
+      "historical": "host_capacity_policy_required"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "requirements",
+        "items",
+        "properties",
+        "code",
+        "enum",
+        2
+      ],
+      "current": "host_capacity_policy_required",
+      "historical": "numeric_reduction_profile_required"
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "requirements",
+        "items",
+        "properties",
+        "code",
+        "enum",
+        3
+      ],
+      "current": "numeric_reduction_profile_required",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "requirements",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        1,
+        "properties",
+        "actual_type",
+        "enum",
+        13
+      ],
+      "current": "int64",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "requirements",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        1,
+        "properties",
+        "expected_type",
+        "enum",
+        13
+      ],
+      "current": "int64",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "requirements",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        2,
+        "properties",
+        "expected_type",
+        "enum",
+        13
+      ],
+      "current": "int64",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_outcome",
+        "oneOf",
+        1,
+        "properties",
+        "partial_report",
+        "properties",
+        "requirements",
+        "items",
+        "properties",
+        "facts",
+        "oneOf",
+        14
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "argument",
+          "constraint",
+          "expected_type",
+          "maximum",
+          "minimum",
+          "operation",
+          "parameter",
+          "stage"
+        ],
+        "properties": {
+          "argument": {
+            "enum": [
+              "count",
+              "offset"
+            ]
+          },
+          "constraint": {
+            "const": "safe_integer"
+          },
+          "expected_type": {
+            "enum": [
+              "number",
+              "int64"
+            ]
+          },
+          "maximum": {
+            "const": 9007199254740991
+          },
+          "minimum": {
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "operation": {
+            "const": "take"
+          },
+          "parameter": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "stage": {
+            "const": "binding"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "argument": {
+                  "const": "count"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "minimum": {
+                  "const": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "argument": {
+                  "const": "offset"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "minimum": {
+                  "const": 0
+                }
+              }
+            }
+          }
+        ]
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_reason",
+        "allOf",
+        26,
+        "if",
+        "properties",
+        "code",
+        "not",
+        "enum",
+        19
+      ],
+      "current": "parameter_consumer_condition",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_reason",
+        "allOf",
+        28
+      ],
+      "current": {
+        "if": {
+          "properties": {
+            "code": {
+              "not": {
+                "const": "parameter_consumer_condition"
+              }
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "facts": {
+              "not": {
+                "required": [
+                  "argument"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_reason",
+        "allOf",
+        27
+      ],
+      "current": {
+        "if": {
+          "properties": {
+            "code": {
+              "const": "parameter_consumer_condition"
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "facts"
+          ],
+          "properties": {
+            "facts": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "argument",
+                "constraint",
+                "expected_type",
+                "maximum",
+                "minimum",
+                "operation",
+                "parameter",
+                "stage"
+              ],
+              "properties": {
+                "argument": {
+                  "enum": [
+                    "count",
+                    "offset"
+                  ]
+                },
+                "constraint": {
+                  "const": "safe_integer"
+                },
+                "expected_type": {
+                  "enum": [
+                    "number",
+                    "int64"
+                  ]
+                },
+                "maximum": {
+                  "const": 9007199254740991
+                },
+                "minimum": {
+                  "enum": [
+                    0,
+                    1
+                  ]
+                },
+                "operation": {
+                  "const": "take"
+                },
+                "parameter": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "stage": {
+                  "const": "binding"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "argument": {
+                        "const": "count"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "minimum": {
+                        "const": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "argument": {
+                        "const": "offset"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "minimum": {
+                        "const": 0
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "location": {
+              "properties": {
+                "kind": {
+                  "const": "structured"
+                },
+                "document_id": {
+                  "enum": [
+                    "parameter_declarations",
+                    "program"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_reason",
+        "properties",
+        "facts",
+        "oneOf",
+        1,
+        "properties",
+        "actual_type",
+        "enum",
+        13
+      ],
+      "current": "int64",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_reason",
+        "properties",
+        "facts",
+        "oneOf",
+        1,
+        "properties",
+        "expected_type",
+        "enum",
+        13
+      ],
+      "current": "int64",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_reason",
+        "properties",
+        "facts",
+        "oneOf",
+        2,
+        "properties",
+        "expected_type",
+        "enum",
+        13
+      ],
+      "current": "int64",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "check_reason",
+        "properties",
+        "facts",
+        "oneOf",
+        14
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "argument",
+          "constraint",
+          "expected_type",
+          "maximum",
+          "minimum",
+          "operation",
+          "parameter",
+          "stage"
+        ],
+        "properties": {
+          "argument": {
+            "enum": [
+              "count",
+              "offset"
+            ]
+          },
+          "constraint": {
+            "const": "safe_integer"
+          },
+          "expected_type": {
+            "enum": [
+              "number",
+              "int64"
+            ]
+          },
+          "maximum": {
+            "const": 9007199254740991
+          },
+          "minimum": {
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "operation": {
+            "const": "take"
+          },
+          "parameter": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "stage": {
+            "const": "binding"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "argument": {
+                  "const": "count"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "minimum": {
+                  "const": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "argument": {
+                  "const": "offset"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "minimum": {
+                  "const": 0
+                }
+              }
+            }
+          }
+        ]
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "parameter_type",
+        "oneOf",
+        8
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "int64"
+          },
+          "nullable": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "predicate",
+        "oneOf",
+        82,
+        "properties",
+        "decimal_divide",
+        "properties",
+        "rounding",
+        "enum",
+        5
+      ],
+      "current": "exact",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "predicate",
+        "oneOf",
+        124
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "timestamp_sub"
+        ],
+        "properties": {
+          "timestamp_sub": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": false,
+            "prefixItems": [
+              {
+                "$ref": "#/$defs/value_expression"
+              },
+              {
+                "$ref": "#/$defs/value_expression"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "literal"
+                ],
+                "properties": {
+                  "literal": {
+                    "enum": [
+                      "ns",
+                      "us",
+                      "ms",
+                      "s",
+                      "m",
+                      "h",
+                      "d"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "predicate",
+        "oneOf",
+        123
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "timestamp_add"
+        ],
+        "properties": {
+          "timestamp_add": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": false,
+            "prefixItems": [
+              {
+                "$ref": "#/$defs/value_expression"
+              },
+              {
+                "$ref": "#/$defs/value_expression"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "literal"
+                ],
+                "properties": {
+                  "literal": {
+                    "enum": [
+                      "ns",
+                      "us",
+                      "ms",
+                      "s",
+                      "m",
+                      "h",
+                      "d"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "predicate",
+        "oneOf",
+        122
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "current_timestamp"
+        ],
+        "properties": {
+          "current_timestamp": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 0,
+            "items": false
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_contract",
+        "oneOf",
+        7
+      ],
+      "current": {
+        "type": "object",
+        "required": [
+          "type",
+          "nullable"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "int64"
+          },
+          "nullable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_expression",
+        "oneOf",
+        82,
+        "properties",
+        "decimal_divide",
+        "properties",
+        "rounding",
+        "enum",
+        5
+      ],
+      "current": "exact",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_expression",
+        "oneOf",
+        124
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "timestamp_sub"
+        ],
+        "properties": {
+          "timestamp_sub": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": false,
+            "prefixItems": [
+              {
+                "$ref": "#/$defs/value_expression"
+              },
+              {
+                "$ref": "#/$defs/value_expression"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "literal"
+                ],
+                "properties": {
+                  "literal": {
+                    "enum": [
+                      "ns",
+                      "us",
+                      "ms",
+                      "s",
+                      "m",
+                      "h",
+                      "d"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_expression",
+        "oneOf",
+        123
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "timestamp_add"
+        ],
+        "properties": {
+          "timestamp_add": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": false,
+            "prefixItems": [
+              {
+                "$ref": "#/$defs/value_expression"
+              },
+              {
+                "$ref": "#/$defs/value_expression"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "literal"
+                ],
+                "properties": {
+                  "literal": {
+                    "enum": [
+                      "ns",
+                      "us",
+                      "ms",
+                      "s",
+                      "m",
+                      "h",
+                      "d"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_expression",
+        "oneOf",
+        122
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "current_timestamp"
+        ],
+        "properties": {
+          "current_timestamp": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 0,
+            "items": false
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "values_contract",
+        "oneOf",
+        5
+      ],
+      "current": {
+        "type": "object",
+        "required": [
+          "type",
+          "nullable"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "int64"
+          },
+          "nullable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "params",
+        "additionalProperties",
+        "oneOf",
+        8
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "int64"
+          },
+          "nullable": {
+            "type": "boolean",
+            "default": false
+          },
+          "default": {},
+          "meta": {
+            "$ref": "#/$defs/meta"
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "calendar_series",
+        "properties",
+        "end",
+        "oneOf",
+        0,
+        "pattern"
+      ],
+      "current": "^(?!0000-)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.(?:[0-9]{3}|[0-9]{3,8}[1-9])Z$(?![\\s\\S])",
+      "historical": "^(?!0000-)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "calendar_series",
+        "properties",
+        "start",
+        "oneOf",
+        0,
+        "pattern"
+      ],
+      "current": "^(?!0000-)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.(?:[0-9]{3}|[0-9]{3,8}[1-9])Z$(?![\\s\\S])",
+      "historical": "^(?!0000-)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "time_series",
+        "properties",
+        "end",
+        "oneOf",
+        0,
+        "pattern"
+      ],
+      "current": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.(?:[0-9]{3}|[0-9]{3,8}[1-9])Z$(?![\\s\\S])",
+      "historical": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "time_series",
+        "properties",
+        "start",
+        "oneOf",
+        0,
+        "pattern"
+      ],
+      "current": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.(?:[0-9]{3}|[0-9]{3,8}[1-9])Z$(?![\\s\\S])",
+      "historical": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])"
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "to_vectors",
+        "properties",
+        "id",
+        "minLength"
+      ],
+      "current": null,
+      "historical": 1,
+      "current_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "to_vectors",
+        "properties",
+        "id",
+        "oneOf"
+      ],
+      "current": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "executable_plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "to_vectors",
+        "properties",
+        "id",
+        "type"
+      ],
+      "current": null,
+      "historical": "string",
+      "current_present": false
+    },
+    {
+      "path": [
+        "installation_publication_storage_binding"
+      ],
+      "current": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://smooth.dev/schemas/actql-installation-publication-storage-binding-0.1.json",
+        "title": "actql-installation-publication-storage-binding-0.1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key_generation_cid",
+          "private_namespace",
+          "store_authority_cid",
+          "store_contract_wire",
+          "version"
+        ],
+        "properties": {
+          "key_generation_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "private_namespace": {
+            "const": "publication-private"
+          },
+          "store_authority_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "store_contract_wire": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "const": "actql-installation-publication-storage-binding/0.1"
+          }
+        },
+        "$comment": "Byte-addressed DATA, no self CID. Common checks the exact existing Store contract serialization against store_authority_cid. Physical original membership, authenticated installation generation, metadata capture and funding remain independent."
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "parameter_values",
+        "$defs",
+        "projected_value",
+        "oneOf",
+        9
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "$actql_value"
+        ],
+        "properties": {
+          "$actql_value": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "const": "int64"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?:0|-?[1-9][0-9]*)(?![\\s\\S])",
+                "maxLength": 20
+              }
+            ],
+            "items": false,
+            "minItems": 2,
+            "maxItems": 2
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "parameter_type",
+        "oneOf",
+        8
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "int64"
+          },
+          "nullable": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "predicate",
+        "oneOf",
+        82,
+        "properties",
+        "decimal_divide",
+        "properties",
+        "rounding",
+        "enum",
+        5
+      ],
+      "current": "exact",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "predicate",
+        "oneOf",
+        124
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "timestamp_sub"
+        ],
+        "properties": {
+          "timestamp_sub": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": false,
+            "prefixItems": [
+              {
+                "$ref": "#/$defs/value_expression"
+              },
+              {
+                "$ref": "#/$defs/value_expression"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "literal"
+                ],
+                "properties": {
+                  "literal": {
+                    "enum": [
+                      "ns",
+                      "us",
+                      "ms",
+                      "s",
+                      "m",
+                      "h",
+                      "d"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "predicate",
+        "oneOf",
+        123
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "timestamp_add"
+        ],
+        "properties": {
+          "timestamp_add": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": false,
+            "prefixItems": [
+              {
+                "$ref": "#/$defs/value_expression"
+              },
+              {
+                "$ref": "#/$defs/value_expression"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "literal"
+                ],
+                "properties": {
+                  "literal": {
+                    "enum": [
+                      "ns",
+                      "us",
+                      "ms",
+                      "s",
+                      "m",
+                      "h",
+                      "d"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "predicate",
+        "oneOf",
+        122
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "current_timestamp"
+        ],
+        "properties": {
+          "current_timestamp": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 0,
+            "items": false
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_contract",
+        "oneOf",
+        7
+      ],
+      "current": {
+        "type": "object",
+        "required": [
+          "type",
+          "nullable"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "int64"
+          },
+          "nullable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_expression",
+        "oneOf",
+        82,
+        "properties",
+        "decimal_divide",
+        "properties",
+        "rounding",
+        "enum",
+        5
+      ],
+      "current": "exact",
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_expression",
+        "oneOf",
+        124
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "timestamp_sub"
+        ],
+        "properties": {
+          "timestamp_sub": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": false,
+            "prefixItems": [
+              {
+                "$ref": "#/$defs/value_expression"
+              },
+              {
+                "$ref": "#/$defs/value_expression"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "literal"
+                ],
+                "properties": {
+                  "literal": {
+                    "enum": [
+                      "ns",
+                      "us",
+                      "ms",
+                      "s",
+                      "m",
+                      "h",
+                      "d"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_expression",
+        "oneOf",
+        123
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "timestamp_add"
+        ],
+        "properties": {
+          "timestamp_add": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": false,
+            "prefixItems": [
+              {
+                "$ref": "#/$defs/value_expression"
+              },
+              {
+                "$ref": "#/$defs/value_expression"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "literal"
+                ],
+                "properties": {
+                  "literal": {
+                    "enum": [
+                      "ns",
+                      "us",
+                      "ms",
+                      "s",
+                      "m",
+                      "h",
+                      "d"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "value_expression",
+        "oneOf",
+        122
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "current_timestamp"
+        ],
+        "properties": {
+          "current_timestamp": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 0,
+            "items": false
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "$defs",
+        "values_contract",
+        "oneOf",
+        5
+      ],
+      "current": {
+        "type": "object",
+        "required": [
+          "type",
+          "nullable"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "int64"
+          },
+          "nullable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "params",
+        "additionalProperties",
+        "oneOf",
+        8
+      ],
+      "current": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "int64"
+          },
+          "nullable": {
+            "type": "boolean",
+            "default": false
+          },
+          "default": {},
+          "meta": {
+            "$ref": "#/$defs/meta"
+          }
+        }
+      },
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "calendar_series",
+        "properties",
+        "end",
+        "oneOf",
+        0,
+        "pattern"
+      ],
+      "current": "^(?!0000-)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.(?:[0-9]{3}|[0-9]{3,8}[1-9])Z$(?![\\s\\S])",
+      "historical": "^(?!0000-)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "calendar_series",
+        "properties",
+        "start",
+        "oneOf",
+        0,
+        "pattern"
+      ],
+      "current": "^(?!0000-)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.(?:[0-9]{3}|[0-9]{3,8}[1-9])Z$(?![\\s\\S])",
+      "historical": "^(?!0000-)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "time_series",
+        "properties",
+        "end",
+        "oneOf",
+        0,
+        "pattern"
+      ],
+      "current": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.(?:[0-9]{3}|[0-9]{3,8}[1-9])Z$(?![\\s\\S])",
+      "historical": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "time_series",
+        "properties",
+        "start",
+        "oneOf",
+        0,
+        "pattern"
+      ],
+      "current": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.(?:[0-9]{3}|[0-9]{3,8}[1-9])Z$(?![\\s\\S])",
+      "historical": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])"
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "to_vectors",
+        "properties",
+        "id",
+        "minLength"
+      ],
+      "current": null,
+      "historical": 1,
+      "current_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "to_vectors",
+        "properties",
+        "id",
+        "oneOf"
+      ],
+      "current": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "historical": null,
+      "historical_present": false
+    },
+    {
+      "path": [
+        "plan_document",
+        "properties",
+        "plan",
+        "properties",
+        "execution_material",
+        "properties",
+        "program",
+        "properties",
+        "steps",
+        "items",
+        "properties",
+        "to_vectors",
+        "properties",
+        "id",
+        "type"
+      ],
+      "current": null,
+      "historical": "string",
+      "current_present": false
     }
   ]
 }
