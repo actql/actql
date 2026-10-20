@@ -37361,7 +37361,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "339fda560e4b5d9076438b055d51094c631bdd9814a22040587bccb100e735db",
+      "sha256": "239aaf898dc2aaecfbda64478992875ef5694a3876465e31cd61b912e468e1f6",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -37569,7 +37569,8 @@
             "baseEnvironmentWire",
             "authorizationFor",
             "principalId",
-            "effectResources"
+            "effectResources",
+            "sourceBinding"
           ],
           "async": true
         },
