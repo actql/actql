@@ -357,6 +357,15 @@ when sharing output.
 | `2` | The command line is invalid |
 
 Errors carry a stable `ACTQL_E_*` code in both the human output and the JSON.
+When a parsed command fails before a Run exists, `--json` writes one diagnostic
+object such as `{"code":"ACTQL_E_PARAMETER_MISSING","message":"A required declared parameter has no supplied value or default."}`
+to stderr and leaves stdout empty. Human diagnostics expose the same code and
+message. `ACTQL_E_PARAMETER_INVALID` reports an original supplied-value type or
+constraint rejection; neither code causes a second preparation or submission.
+Diagnostics omit parameter values and authored Program text. A separate cleanup
+failure remains a separate `ACTQL_E_CLEANUP_PENDING` diagnostic; it does not
+erase the primary failure or establish cleanup completion. A real Run retains
+its existing Run state, terminal outcome and delivery reports.
 Unknown commands, unknown options and extra arguments are errors; options may
 come before or after the Program path.
 

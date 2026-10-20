@@ -9,6 +9,11 @@ priv struct LocalCommandParsedInput {
 }
 
 ///|
+priv suberror NativeCommandArgumentStop {
+  NativeCommandArgumentStop(String)
+}
+
+///|
 // Connect bounded input from normal main before physical Host acquisition.
 // This command connection does not issue capacity or authorization.
 extern "C" fn command_capture_native_entry() -> Unit = "actql_native_client_capture_command_entry"
@@ -37,7 +42,9 @@ fn parse_native_initial_arguments(
   // Explicit argv prevents the pinned default_argv from obtaining another
   // native argument array. Include argv0 in the retained original, not parse.
   let start = if arguments.is_empty() { 0 } else { 1 }
-  let matches = definition.parse(argv=arguments[start:])
+  let matches = definition.parse(argv=arguments[start:]) catch {
+    error => raise NativeCommandArgumentStop(error.to_string())
+  }
   let classes = if selected {
     let observed = command_preparation_result(command_preargument_classes())
     if observed.arguments != arguments.length() {

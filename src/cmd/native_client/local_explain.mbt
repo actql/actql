@@ -127,7 +127,7 @@ fn local_explain_for_environment(
       @run_host.client_standard_effect_computation_limits(),
     ) {
     Ok(value) => value
-    Err(_) => stop("LocalPreparationNotReady")
+    Err(issue) => local_stop_native_preparation(issue)
   }
   let wire = local_static_plan_view(prepared)
   local_explain_reply(wire, child.flags.get("json").unwrap_or(false))

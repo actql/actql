@@ -24,5 +24,5 @@ fn local_prepare_submitted_run_program(
     Some(context),
     [],
     @run_host.client_standard_effect_computation_limits(),
-  ).unwrap_or_else(() => stop("LocalPreparationNotReady"))
+  ).unwrap_or_else(issue => local_stop_submitted_preparation(issue))
 }

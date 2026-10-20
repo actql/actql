@@ -13,7 +13,25 @@ extern "C" fn fail_ffi(bytes : Bytes, length : Int) -> Unit = "actql_native_clie
 
 ///|
 fn fail_command(message : String) -> Unit {
-  let bytes = @utf8.encode("actql-native-client: " + message)
+  let bytes = @utf8.encode(
+    local_command_diagnostic_text(
+      "ACTQL_E_COMMAND_FAILED",
+      message,
+      command_diagnostic_json.val,
+    ),
+  )
+  fail_ffi(bytes, bytes.length())
+}
+
+///|
+fn fail_cleanup_command(message : String) -> Unit {
+  let bytes = @utf8.encode(
+    local_command_diagnostic_text(
+      "ACTQL_E_CLEANUP_PENDING",
+      message,
+      command_diagnostic_json.val,
+    ),
+  )
   fail_ffi(bytes, bytes.length())
 }
 
@@ -1400,12 +1418,17 @@ extern "C" fn report_failure_ffi(bytes : Bytes, length : Int) -> Unit = "actql_n
 extern "C" fn exit_failure_ffi() -> Unit = "actql_native_client_exit_failure"
 
 ///|
+extern "C" fn exit_argument_failure_ffi() -> Unit = "actql_native_client_exit_argument_failure"
+
+///|
 // Keep the selected reply and UTF8 alias inside this invocation action. Actual
 // domain retirement after this return still checks all original escaped users.
 fn execute_and_write_native_reply(
   matches : @argparse.Matches,
   pending_reply : Ref[String?],
 ) -> Unit raise ClientStop {
+  local_command_diagnostic_reset()
+  command_diagnostic_json.val = local_command_json_selected(matches)
   command_check_invalid_exit.val = false
   command_result_delivery_failed.val = false
   // Integrity verification reads explicit files and does not acquire a Host,
@@ -1458,6 +1481,7 @@ fn execute_and_write_native_reply(
 
 ///|
 fn main {
+  local_command_diagnostic_reset()
   // Bound and retain ordinary process input before constructing the parser.
   // No pre-main provenance or private libc state is required.
   // These selected Darwin input ceilings include argv0 and terminal bytes;
@@ -1473,6 +1497,16 @@ fn main {
   }
   command_capture_native_entry()
   let control = parse_native_initial_command(selected_arguments) catch {
+    NativeCommandArgumentStop(message) => {
+      let bytes = @utf8.encode(
+        local_command_diagnostic_text(
+          "ACTQL_E_ARGUMENT_INVALID", message, false,
+        ),
+      )
+      report_failure_ffi(bytes, bytes.length())
+      exit_argument_failure_ffi()
+      abort("native Client argument failure")
+    }
     error => {
       fail_command(error.to_string())
       abort("native Client argument failure")
@@ -1488,7 +1522,14 @@ fn main {
     false
   } catch {
     ClientStop(message) => {
-      let bytes = @utf8.encode("actql-native-client: " + message)
+      let (code, original_message) = local_command_primary_diagnostic(message)
+      let bytes = @utf8.encode(
+        local_command_diagnostic_text(
+          code,
+          original_message,
+          command_diagnostic_json.val,
+        ),
+      )
       report_failure_ffi(bytes, bytes.length())
       true
     }
@@ -1496,10 +1537,10 @@ fn main {
   // stdout/flush, Library, component, context/domain/map, Host and FD retirement
   // are separate facts. An output or process exit never substitutes for ACK.
   if local_finish_output_verification() is Err(_) {
-    fail_command("OutputVerificationCleanupPending")
+    fail_cleanup_command("OutputVerificationCleanupPending")
   }
   if local_finish_result_receipt() is Err(_) {
-    fail_command("ResultReceiptCleanupPending")
+    fail_cleanup_command("ResultReceiptCleanupPending")
   }
   let command_cleanup = local_finish_command_preparation()
   let command_closed = command_cleanup is Ok(_)
@@ -1518,7 +1559,7 @@ fn main {
         original.cleanup_read_observation()
       _ => ""
     }
-    fail_command(
+    fail_cleanup_command(
       "LocalCommandPreparationCleanupPending: " +
       stage +
       ": " +
@@ -1527,7 +1568,7 @@ fn main {
     )
   }
   if !crypto_closed {
-    fail_command("InitialCryptoCleanupPending")
+    fail_cleanup_command("InitialCryptoCleanupPending")
   }
   if failed {
     exit_failure_ffi()
