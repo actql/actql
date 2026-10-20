@@ -2959,6 +2959,10 @@ pub fn ClientLocalCheckpointProof::seal(Self, String, String) -> Result[String, 
 pub(all) enum ClientLocalCheckpointProofIssue {
   Checkpoint(@checkpoint_runtime.CheckpointIssue)
   Resolution(@checkpoint_runtime.ResolutionIssue)
+  MissingRequest
+  SubmissionReference
+  CheckpointBinding
+  CheckpointUnit
   ForeignOriginal
 } derive(Eq, @debug.Debug)
 

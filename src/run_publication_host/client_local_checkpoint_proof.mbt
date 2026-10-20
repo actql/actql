@@ -10,6 +10,10 @@ struct ClientLocalCheckpointProof {
 pub(all) enum ClientLocalCheckpointProofIssue {
   Checkpoint(@checkpoint.CheckpointIssue)
   Resolution(@checkpoint.ResolutionIssue)
+  MissingRequest
+  SubmissionReference
+  CheckpointBinding
+  CheckpointUnit
   ForeignOriginal
 } derive(Eq, Debug)
 
@@ -46,11 +50,11 @@ pub fn client_local_checkpoint_effect_subject(
   reference_wire : String,
   checkpoint_wire : String,
 ) -> Result[(String, String), ClientLocalCheckpointProofIssue] {
-  guard materials.request is Some(request) else { return Err(ForeignOriginal) }
+  guard materials.request is Some(request) else { return Err(MissingRequest) }
   let reference = match
     admit_client_submission_reference_record(reference_wire) {
     Ok(value) => value
-    Err(_) => return Err(ForeignOriginal)
+    Err(_) => return Err(SubmissionReference)
   }
   if !client_submission_reference_matches_request(reference, request) {
     return Err(ForeignOriginal)
@@ -63,7 +67,7 @@ pub fn client_local_checkpoint_effect_subject(
       { max_wire_bytes: 1048576, max_nodes: 65536, max_depth: 64, },
     ) {
     Ok(value) => value
-    Err(_) => return Err(ForeignOriginal)
+    Err(_) => return Err(CheckpointBinding)
   }
   let unit = match
     client_effect_review_checkpoint_unit_definition_cid(
@@ -72,7 +76,7 @@ pub fn client_local_checkpoint_effect_subject(
       checkpoint,
     ) {
     Ok(value) => value
-    Err(_) => return Err(ForeignOriginal)
+    Err(_) => return Err(CheckpointUnit)
   }
   Ok((client_submission_reference_record_request_id(reference), unit))
 }
