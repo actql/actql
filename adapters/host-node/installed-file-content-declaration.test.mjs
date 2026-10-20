@@ -182,7 +182,8 @@ function listingContentProgram({maximum = 3, emptySelector = false,
   hostListingMaximum, decodedResponseMaximum = 32768,
   joinCount = 1, filterFirst = false, capturePrefix = false, allFiles = false,
   captureFilter, postJoinFilter, lookupPolicy = {}, reverseSourceInputs = false,
-  sourceFormat = 'json', serialize = false, modelTask, hostCapacityPolicy, classification} = {}) {
+  sourceFormat = 'json', serialize = false, modelTask, hostCapacityPolicy, classification,
+  authoredDocument} = {}) {
   const listing = {...fileListingDeclaration(moon, baseWire.trimEnd()).spec};
   const content = {...fixture().spec};
   if (classification !== undefined) {
@@ -267,7 +268,7 @@ function listingContentProgram({maximum = 3, emptySelector = false,
     ? moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(program), 'json', environment, undefined)
     : installNodePublicSourcePreparation({moon, environment,
       publication: sourceAliasPublication(moon, environment, queryAliases)}).prepare({
-      document: authoredListingJoin(sourceFormat, {allFiles}), format: sourceFormat,
+      document: authoredDocument ?? authoredListingJoin(sourceFormat, {allFiles}), format: sourceFormat,
     }).outcome;
   if (expectReady) assert.ok(moon.clientProgramPreparationReady(preparation) !== undefined,
     inspect(moon.clientProgramPreparationIssue(preparation),
@@ -301,6 +302,43 @@ test('keyed capture SERIALIZE checks and compiles both original Source obligatio
   const policies = JSON.parse(value.environmentWire).schema_snapshots
     .map(view => view.source_data_policy_cid);
   assert.deepEqual(new Set(body.source_data_policy_cids), new Set(policies));
+  assert.equal(control.compiledSourceFreeResultPolicy(plan.compiled), undefined);
+  assert.match(plan.serializationGraph.wire, /REL\.join/u);
+  assert.doesNotMatch(plan.serializationGraph.wire, /REL\.values/u);
+  assert.throws(() => control.issueCheckedClientCompiledInvocation(plan.compiled,
+    plan.runDefinition, {dataPolicyCid: control.compiledSerializationPolicy(plan.compiled).cid},
+    {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}), /RunHostInvocationRejected/u);
+});
+
+for (const syntax of ['aql', 'json']) test(`unfiltered ${syntax} file Content JOIN retains its acquired serialization graph`, () => {
+  const value = listingContentProgram({allFiles: true, serialize: true,
+    sourceFormat: syntax,
+    authoredDocument: 'FROM LIST_FILES(docs.listing) AS f ' +
+      '|> JOIN docs.contents AS c ON f.resource = c.resource AND f.version = c.version ' +
+      '|> SELECT f.name AS name, c.content AS document ' +
+      '|> ASSERT UNIQUE BY (name) ' +
+      "|> SERIALIZE FORMAT JSONL ORDER BY name OPTIONS (name = 'native-files.jsonl')"});
+  const program = value.preparedProgram;
+  const acquisition = checked(moon.clientProgramSelectSingleKeyedAcquisition(program));
+  assert.ok(acquisition, 'The exact original keyed acquisition must be retained');
+  const occurrences = moon.clientProgramSerializationOccurrences(program);
+  assert.equal(occurrences.length, 1);
+  const control = runtimeCore(moon).publicationControl;
+  let plan;
+  try {
+    plan = serializationTaskRunAdmission({moon, control, preparedProgram: program,
+      authorityScopeCid: token('a'), namespaceId: 'unfiltered-keyed-content-plan',
+      now: () => '2026-10-10T00:00:00.000Z'});
+  } catch (cause) {
+    throw new Error(inspect({syntax, occurrences,
+      tasks: moon.clientProgramTaskCount(program), acquisitions: moon.clientProgramAcquisitionCount(program),
+      keyed: moon.clientProgramKeyedAcquisitionCoordinates(acquisition),
+      direct: moon.clientProgramKeyedDirectAcquisitionCoordinates(acquisition)}, {depth: 5}), {cause});
+  }
+  assert.equal(plan.kind, 'serialization');
+  const policy = JSON.parse(control.compiledSerializationPolicy(plan.compiled).wire);
+  assert.deepEqual(new Set(policy.source_data_policy_cids), new Set(
+    JSON.parse(value.environmentWire).schema_snapshots.map(view => view.source_data_policy_cid)));
   assert.equal(control.compiledSourceFreeResultPolicy(plan.compiled), undefined);
   assert.match(plan.serializationGraph.wire, /REL\.join/u);
   assert.doesNotMatch(plan.serializationGraph.wire, /REL\.values/u);
