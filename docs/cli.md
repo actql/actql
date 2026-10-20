@@ -52,8 +52,8 @@ a complete Program with mock fixtures that runs without credentials. The
 ## Quick queries
 
 ```text
-actql sql <query> [--parameter-declarations-file <file>] [--params <file>] [--format <table|json|jsonl|csv>] [--output <file>]
-actql aql <query> [--parameter-declarations-file <file>] [--params <file>] [--format <table|json|jsonl|csv>] [--output <file>]
+actql sql <query> [--parameter-declarations-file <file>] [--params <file>] [--format <table|json|jsonl|csv>] [--output <file>] [--json]
+actql aql <query> [--parameter-declarations-file <file>] [--params <file>] [--format <table|json|jsonl|csv>] [--output <file>] [--json]
 ```
 
 ```text
@@ -70,6 +70,10 @@ id    name
 (`table` by default). They are the command-line form of the libraries' `sql()`
 and `aql()`: read-only, no Effects, no Checkpoints. A query with an Effect is
 refused; put it in a Program file and use `run`.
+
+For quick queries, `--json` selects structured command diagnostics on stderr.
+It does not change the Result row encoding chosen by `--format`, wrap successful
+rows in a command-response object, or turn a delivery failure into success.
 
 For `@name` parameters, `--parameter-declarations-file` supplies a JSON object
 of named value contracts; `--params` supplies a separate JSON object of values.

@@ -16,6 +16,7 @@ struct LocalSortNormalizationInventory {
   audited_work : Int
   entries : Array[LocalSortNormalizationEntry]
   distincts : Bool
+  sets : Bool
   defaulted_parameters : Bool
 }
 
@@ -212,15 +213,18 @@ pub fn local_program_sort_normalization_inventory(
   }
   match owner.local_completion_free_audit {
     Complete(_, _, _, _, _, _, _, _)
-    | DistinctComplete(_, _, _, _, _, _, _, _) => Ok(None)
+    | DistinctComplete(_, _, _, _, _, _, _, _)
+    | SetComplete(_, _, _, _, _, _, _, _, _) => Ok(None)
     SortCompleted(work, entries, defaulted_parameters)
-    | DistinctSortCompleted(work, entries, defaulted_parameters) =>
+    | DistinctSortCompleted(work, entries, defaulted_parameters)
+    | SetSortCompleted(work, entries, _, defaulted_parameters) =>
       Ok(
         Some({
           owner,
           audited_work: work,
           entries,
           defaulted_parameters,
+          sets: local_audit_uses_set(owner.local_completion_free_audit),
           distincts: local_audit_uses_distinct(
             owner.local_completion_free_audit,
           ),
@@ -282,4 +286,12 @@ pub fn local_sort_normalization_inventory_parameters_defaulted(
   value : LocalSortNormalizationInventory,
 ) -> Bool {
   value.defaulted_parameters
+}
+
+///|
+/// Metadata from the same retained audit, not a caller-selected catalogue.
+pub fn local_sort_normalization_inventory_uses_set(
+  value : LocalSortNormalizationInventory,
+) -> Bool {
+  value.sets
 }

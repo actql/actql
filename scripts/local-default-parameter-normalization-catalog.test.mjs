@@ -20,10 +20,10 @@ const sorted={
 test('original Default capability has complete independent catalog and empty source-journal identities',()=>{
   assert.equal(hash(expected.catalog_preimage),expected.catalog_cid);
   assert.equal(hash(expected.journal_preimage),expected.journal_cid);
-  assert.deepEqual(load('fixture.json'),expected);
+  assert.deepEqual(load('pre-set-default-fixture.json'),expected);
   const body=JSON.parse(expected.catalog_preimage);
-  assert.deepEqual(load('catalog.json'),body);
-  const schema=load('catalog.schema.json');
+  assert.deepEqual(load('pre-set-default-catalog.json'),body);
+  const schema=load('pre-set-default-catalog.schema.json');
   assert.equal(schema.additionalProperties,false);
   assert.deepEqual(schema.properties.applicability,{const:body.applicability});
   assert.deepEqual(schema.properties.rules,{const:body.rules});
@@ -48,7 +48,7 @@ test('only original binding capability changes the complete preceding catalog',(
   body.applicability.parameter_declarations='none-or-all-supplied-original-values';
   body.applicability.take_parameter_resolution='original-same-pipeline-step-SafeInteger-supplied-owner';
   assert.deepEqual(body,JSON.parse(prior.catalog_preimage));
-  const schema=load('catalog.schema.json');
+  const schema=load('pre-set-default-catalog.schema.json');
   schema.properties.applicability={const:JSON.parse(prior.catalog_preimage).applicability};
   assert.deepEqual(schema,load('pre-default-catalog.schema.json'));
   assert.notEqual(expected.catalog_cid,prior.catalog_cid);

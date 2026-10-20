@@ -33,7 +33,14 @@ fn local_completion_free_catalog_cid(
   inventory : @checked.LocalCompletionFreeInventory,
 ) -> String {
   if @checked.local_completion_free_inventory_parameters_defaulted(inventory) {
-    return local_default_parameter_catalog_cid()
+    return if @checked.local_completion_free_inventory_uses_set(inventory) {
+      local_default_set_catalog_cid()
+    } else {
+      local_default_parameter_catalog_cid()
+    }
+  }
+  if @checked.local_completion_free_inventory_uses_set(inventory) {
+    return "sha256:0f0003ec6a1ec4520a7b9615b916d903dafc138e94145e5a57d45a1bf7937f33"
   }
   if @checked.local_completion_free_inventory_uses_distinct(inventory) {
     return "sha256:4cbc2466af84dc925b7e79c91c0a7a19a2a16873bb6e7975e8f6855a954831d8"
@@ -81,7 +88,13 @@ fn local_normalization_catalog_cid(
     CompletionFree(value) => local_completion_free_catalog_cid(value)
     SortCompletion(value) =>
       if @checked.local_sort_normalization_inventory_parameters_defaulted(value) {
-        local_default_parameter_catalog_cid()
+        if @checked.local_sort_normalization_inventory_uses_set(value) {
+          local_default_set_catalog_cid()
+        } else {
+          local_default_parameter_catalog_cid()
+        }
+      } else if @checked.local_sort_normalization_inventory_uses_set(value) {
+        "sha256:0f0003ec6a1ec4520a7b9615b916d903dafc138e94145e5a57d45a1bf7937f33"
       } else if @checked.local_sort_normalization_inventory_uses_distinct(value) {
         "sha256:4cbc2466af84dc925b7e79c91c0a7a19a2a16873bb6e7975e8f6855a954831d8"
       } else {
@@ -241,4 +254,9 @@ pub fn restore_prepared_client_local_normalization(
     Ok(value) => Ok(value)
     Err(issue) => Err(Evidence(issue))
   }
+}
+
+///|
+fn local_default_set_catalog_cid() -> String {
+  "sha256:a9d402c6c62d80cc8aed4a55d0753acec16dab22e7cd31399f4bc5459a248d45"
 }

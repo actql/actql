@@ -4,6 +4,7 @@ let local_explicit_cast_public_sql : String = "SELECT 4 AS id, '日本語' AS no
 ///|
 fn local_explicit_cast_original(
   text? : String = local_explicit_cast_public_sql,
+  format? : @source_frontend.Format = @source_frontend.Sql,
 ) -> PreparedClientProgram {
   let environment = admit_client_check_environment(
     run_materials_environment_wire,
@@ -15,11 +16,7 @@ fn local_explicit_cast_original(
     [],
     @checked.checking_environment_cid(environment),
   ).unwrap()
-  let lowered = @source_frontend.lower(
-    text,
-    @source_frontend.Sql,
-    Some(context),
-  ).unwrap()
+  let lowered = @source_frontend.lower(text, format, Some(context)).unwrap()
   prepare_parsed_effect_free_client_program(
     lowered.program.unwrap(),
     environment,

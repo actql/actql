@@ -1,5 +1,5 @@
 ///|
-/// Direct Local assembly of the existing Values task and original Run journal.
+/// Direct Local assembly of the existing Values tasks and original Run journal.
 /// This holds their original cleanup responsibility; it introduces no Run,
 /// scheduler, approval, Source, publication receipt or read grant of its own.
 struct NativeClientValuesWork {
@@ -79,18 +79,33 @@ pub fn native_client_local_values_profile_supported(
   prepared : @host.PreparedClientProgram,
 ) -> Bool {
   let graph = @host.prepared_client_graph(prepared)
-  @host.prepared_client_acquisition_count(prepared) == 0 &&
-  !@host.prepared_client_uses_graph_carrier(prepared) &&
-  !@strategy.graph_program_has_effects(graph) &&
-  @strategy.graph_source_free_inputs_complete(graph) &&
-  @strategy.graph_task_count(graph) == 1 &&
-  @host.prepared_client_infer_execution_occurrence(prepared, 0) is None
+  let task_count = @strategy.graph_task_count(graph)
+  // Keep the existing Local host's bounded task inventory. This shape check
+  // neither quotes its simultaneous holdings nor acquires their supplier.
+  if @host.prepared_client_acquisition_count(prepared) != 0 ||
+    @host.prepared_client_uses_graph_carrier(prepared) ||
+    @strategy.graph_program_has_effects(graph) ||
+    !@strategy.graph_source_free_inputs_complete(graph) ||
+    task_count < 1 ||
+    task_count > 32 {
+    return false
+  }
+  for task in 0..<task_count {
+    if @host.prepared_client_infer_execution_occurrence(prepared, task)
+      is Some(_) {
+      return false
+    }
+  }
+  true
 }
 
 ///|
 fn stop_unstarted_values_setup(run : @strategy.CapturedDAG) -> Unit {
   @strategy.stop_captured_dag(run)
-  @strategy.close_captured_task_output(run, 0)
+  let graph = @strategy.captured_dag_graph(run)
+  for task in 0..<@strategy.graph_task_count(graph) {
+    @strategy.close_captured_task_output(run, task)
+  }
   @strategy.refresh_captured_retention(run)
 }
 
@@ -205,7 +220,7 @@ fn open_native_client_local_values_work(
       return Err(values_unstarted_failure(run, original_access, issue))
   }
   let execution = match
-    @local.execute_source_free_values_guarded(
+    @local.execute_source_free_local_tasks_guarded(
       setup,
       finalization_quantum,
       max_finalization_rounds,
