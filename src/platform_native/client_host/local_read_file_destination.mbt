@@ -175,6 +175,29 @@ fn NativeLocalReadFileDestination::check_current(
 }
 
 ///|
+fn NativeLocalReadFileDestination::original_data(
+  self : NativeLocalReadFileDestination,
+) -> Result[NativeLocalReadFileOriginal, @filesystem.NativeFilesystemIssue] {
+  match self.check_current() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  guard self.parent_identity is Some(parent) && self.writer is Some(writer) else {
+    return Err(@filesystem.WriterClosed)
+  }
+  let identity = writer.ownership()
+  Ok({
+    path: self.path,
+    name: self.name,
+    staging_name: self.staging_name,
+    parent_device: parent.device.to_string(),
+    parent_inode: parent.inode.to_string(),
+    writer_device: identity.device.to_string(),
+    writer_inode: identity.inode.to_string(),
+  })
+}
+
+///|
 fn NativeLocalReadFileDestination::append(
   self : NativeLocalReadFileDestination,
   bytes : Bytes,

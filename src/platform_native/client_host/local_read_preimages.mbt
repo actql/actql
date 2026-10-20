@@ -14,6 +14,19 @@ priv struct NativeLocalReadMaterialOriginal {
 }
 
 ///|
+// Historical comparison DATA only. A live File binding separately retains its
+// actual Root/Writer and cannot be reconstructed from these saved strings.
+priv struct NativeLocalReadFileOriginal {
+  path : String
+  name : String
+  staging_name : String
+  parent_device : String
+  parent_inode : String
+  writer_device : String
+  writer_inode : String
+} derive(Eq)
+
+///|
 // These are private originals, not an admission or a continuing capability.
 // The journal must retain them before exposing references to the grant issuer.
 priv struct NativeLocalReadAdmissionOriginals {
@@ -27,11 +40,23 @@ fn local_read_preimage(
   crypto : @crypto.Library,
   fields : Array[(String, @host.ClientLocalReadEvidenceValue)],
   material? : NativeLocalReadMaterialOriginal? = None,
+  file? : NativeLocalReadFileOriginal? = None,
 ) -> Result[NativeLocalReadPreimage, NativeClientRunJournalIssue] {
   if material is Some(original) {
     fields.push(("material_receiver_cid", Text(original.receiver_cid)))
     fields.push(("result_schema_cid", Text(original.result_schema_cid)))
     fields.push(("ordering_evidence_cid", Text(original.ordering_evidence_cid)))
+  }
+  if file is Some(original) {
+    fields.push(("destination_path", Text(original.path)))
+    fields.push(("destination_name", Text(original.name)))
+    fields.push(("destination_staging_name", Text(original.staging_name)))
+    fields.push(("destination_parent_device", Text(original.parent_device)))
+    fields.push(("destination_parent_inode", Text(original.parent_inode)))
+    fields.push(("destination_writer_device", Text(original.writer_device)))
+    fields.push(("destination_writer_inode", Text(original.writer_inode)))
+  }
+  if material is Some(_) || file is Some(_) {
     fields.sort_by((left, right) => {
       @canonical_value.compare_utf16(left.0, right.0)
     })
@@ -93,6 +118,14 @@ fn NativeLocalReadPolicyBinding::read_admission_preimages(
   } else {
     None
   }
+  let file = if self.selection.sink == File {
+    match self.file_original {
+      Some(value) => Some(value)
+      None => return Err(FileOutputUnavailable)
+    }
+  } else {
+    None
+  }
   let authorization = match
     local_read_preimage(
       self.crypto,
@@ -119,6 +152,7 @@ fn NativeLocalReadPolicyBinding::read_admission_preimages(
         ("run_definition_cid", Text(facts.request.run_definition_cid)),
       ],
       material~,
+      file~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
@@ -135,6 +169,7 @@ fn NativeLocalReadPolicyBinding::read_admission_preimages(
         ("read_original_cid", Text(self.selection_cid)),
       ],
       material~,
+      file~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
@@ -163,9 +198,21 @@ fn NativeLocalReadPolicyBinding::read_admission_preimages(
         ("result_manifest_cid", Text(facts.result_manifest_cid)),
         ("result_name", Text(facts.request.result_name)),
         ("run_definition_cid", Text(facts.request.run_definition_cid)),
-        ("sink", Text(if material is Some(_) { "material" } else { "stdout" })),
+        (
+          "sink",
+          Text(
+            if material is Some(_) {
+              "material"
+            } else if file is Some(_) {
+              "file"
+            } else {
+              "stdout"
+            },
+          ),
+        ),
       ],
       material~,
+      file~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
