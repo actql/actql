@@ -74,6 +74,9 @@
 //   and approved Preview row name. `recoverMemberRequests` explicitly supports
 //   composed recovery: the same full Preview and claims are passed with the
 //   original global `memberIndexes`; result arrays follow that index order.
+// - `prepareRecoveredContentChild(...)` optionally restores original Content
+//   bindings for those already validated requests. Its factory performs no I/O;
+//   the existing recovery owner retains the child before awaiting prepare.
 // Commands require recheckRequests and all three recovery hooks. Target
 // validation must use current reference authority; a parsed envelope alone
 // is not an authority decision. An asynchronous recheck is awaited before send.
@@ -352,7 +355,8 @@ function checkDriver(driver) {
         driver.observeTargets, driver.recoveryEntry, driver.recoverRequests,
         driver.recoverMemberRequests,
         driver.requestCid, driver.checkRequest,
-        driver.admitTargetReadApproval, driver.prepareRequestChild].every(optionalFunction) ||
+        driver.admitTargetReadApproval, driver.prepareRequestChild,
+        driver.prepareRecoveredContentChild].every(optionalFunction) ||
       (driver.check !== undefined && (!text(driver.check?.resource) ||
         !text(driver.check.operation) ||
         typeof driver.checkRequest !== 'function')) ||
@@ -1834,9 +1838,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // exactly the request its durable claim names, the value the Preview
   // approved and, for an update, the Preview's target.
   const recoveredEntries = ({members, body, durable, recorded,
-    previewWire}) => {
+    previewWire, runInvocationCid, dispatches}) => {
     const rebuilt = singular?.owned.recoverRequests === undefined ? undefined :
       singular.owned.recoverRequests({durable, recorded, previewWire, body,
+        members, runInvocationCid, dispatches,
         ...resourceFields(members[0])});
     const requests = members.map((_, index) => rebuilt?.requests?.[index]);
     const usesRecovery = members.map(() => rebuilt !== undefined);
@@ -1848,7 +1853,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           ownerOf(member) === owner ? [index] : []));
         if (memberIndexes.length === 0) continue;
         const recovered = owner.owned.recoverMemberRequests({durable, recorded,
-          previewWire, body, memberIndexes, ...resourceFields(members[memberIndexes[0]])});
+          previewWire, body, memberIndexes, members, runInvocationCid, dispatches,
+          ...resourceFields(members[memberIndexes[0]])});
         if (!Array.isArray(recovered?.requests) ||
             recovered.requests.length !== memberIndexes.length ||
             (recovered.currents !== undefined &&
@@ -1979,15 +1985,27 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     // its close succeeds, so a failed close stays this owner's pending
     // cleanup and a retry by the same owner closes it.
     let closed = false;
+    const recoveryChildren = [];
+    const recoveryPending = () => recoveryChildren.some(child => child.status().pending !== false);
+    const releaseRecoveryChildren = async () => {
+      for (const child of recoveryChildren) await child.release();
+      if (recoveryPending()) fail('InstalledRowEffectContentCleanupPending');
+    };
     const releaseLedger = () => {
       if (closed) return;
       ledger.close();
       closed = true;
     };
     const ledgerOwner = Object.freeze({
-      async close() { releaseLedger(); },
-      async cleanup() { releaseLedger(); return true; },
-      cleanupPending: () => !closed});
+      async close() {
+        if (recoveryChildren.length) await releaseRecoveryChildren();
+        releaseLedger();
+      },
+      async cleanup() {
+        if (recoveryChildren.length) await releaseRecoveryChildren();
+        releaseLedger(); return true;
+      },
+      cleanupPending: () => !closed || recoveryPending()});
     if (retainRecoveryOwner !== undefined) {
       try { retainRecoveryOwner(ledgerOwner); }
       catch (error) { releaseLedger(); throw error; }
@@ -1999,92 +2017,127 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         maxWork: limits.maxWork});
       assertCurrent?.();
       const {entries, currents} = recoveredEntries({members, body, durable,
-        recorded, previewWire});
+        recorded, previewWire, runInvocationCid, dispatches});
       assertCurrent?.();
-      // The installation as loaded now must issue and admit the same
-      // capability the Preview carries, for the same requests, before any
-      // provider I/O.
-      members.forEach((member, index) => {
-        let capability;
-        try {
-          capability = admitCapability(member, entries[index],
-            currents[index], runInvocationCid, dispatches[index]);
-        } catch (error) {
-          fail('InstalledRowEffectInstallationChanged', error);
-        }
-        if (capability.identity !==
-            body.effects[index].capability_evidence_cid) {
-          fail('InstalledRowEffectInstallationChanged');
-        }
-      });
-      const previewRows = body.effects.map(member => member.changes);
-      const dispatchIndexes = body.effects.map(orderedSourceIndexes);
-      const route = physicalRoute({members, entries, previewRows, dispatchIndexes,
-        runInvocationCid, dispatches,
-        subjectCid: control.effectComputationPreviewSemanticCid(preview),
-        applyPreview, ledger, targetReads, assertCurrent});
-      const reconcileStoredResponses = async ({members: claims,
-        preview: ledgerPreview}) => {
-        route.assertClaimedCurrent();
-        for (const [memberIndex, member] of claims.entries()) {
-          for (const [rowIndex, claim] of member.claims.entries()) {
-            route.assertClaimedCurrent();
-            if (ledger.readClaimedResponse(claim) === undefined) continue;
-            const sourceIndex = dispatchIndexes[memberIndex][rowIndex];
-            const entry = entries[memberIndex][sourceIndex];
-            const ownedClaim = admitRow({applyPreview: ledgerPreview,
-              memberIndex, rowIndex, claim, member: members[memberIndex],
-              entry, previewRow: previewRows[memberIndex][sourceIndex]});
-            const recovery = await recoverProjectedEffectResponse({ledger,
-              claims: ownedClaim, commonMoon: moon,
-              expectedRequestCid: entry.requestCid,
-              authorizeEvidenceRead: async () => true,
-              projectStored: stored => {
-                route.assertClaimedCurrent();
-                return ownerOf(members[memberIndex]).owned.project({
-                  member: members[memberIndex], memberIndex, rowIndex,
-                  preview: ledgerPreview, request: entry.request,
-                  current: currents[memberIndex],
-                  observation: Object.freeze({useCid: stored.credentialUseCid,
-                    statusCode: stored.statusCode,
-                    body: stored.responseBytes}),
-                  headers: undefined});
-              }});
-            route.assertClaimedCurrent();
-            settle({ledger, claim: ownedClaim, applyPreview: ledgerPreview,
-              memberIndex, rowIndex, projected: recovery.recovered});
+      const finish = () => {
+        // The installation as loaded now must issue and admit the same
+        // capability the Preview carries, for the same requests, before any
+        // provider I/O.
+        members.forEach((member, index) => {
+          let capability;
+          try {
+            capability = admitCapability(member, entries[index],
+              currents[index], runInvocationCid, dispatches[index]);
+          } catch (error) {
+            fail('InstalledRowEffectInstallationChanged', error);
           }
-        }
+          if (capability.identity !==
+              body.effects[index].capability_evidence_cid) {
+            fail('InstalledRowEffectInstallationChanged');
+          }
+        });
+        const previewRows = body.effects.map(member => member.changes);
+        const dispatchIndexes = body.effects.map(orderedSourceIndexes);
+        const route = physicalRoute({members, entries, previewRows, dispatchIndexes,
+          runInvocationCid, dispatches,
+          subjectCid: control.effectComputationPreviewSemanticCid(preview),
+          applyPreview, ledger, targetReads, assertCurrent});
+        const reconcileStoredResponses = async ({members: claims,
+          preview: ledgerPreview}) => {
+          route.assertClaimedCurrent();
+          for (const [memberIndex, member] of claims.entries()) {
+            for (const [rowIndex, claim] of member.claims.entries()) {
+              route.assertClaimedCurrent();
+              if (ledger.readClaimedResponse(claim) === undefined) continue;
+              const sourceIndex = dispatchIndexes[memberIndex][rowIndex];
+              const entry = entries[memberIndex][sourceIndex];
+              const ownedClaim = admitRow({applyPreview: ledgerPreview,
+                memberIndex, rowIndex, claim, member: members[memberIndex],
+                entry, previewRow: previewRows[memberIndex][sourceIndex]});
+              const recovery = await recoverProjectedEffectResponse({ledger,
+                claims: ownedClaim, commonMoon: moon,
+                expectedRequestCid: entry.requestCid,
+                authorizeEvidenceRead: async () => true,
+                projectStored: stored => {
+                  route.assertClaimedCurrent();
+                  return ownerOf(members[memberIndex]).owned.project({
+                    member: members[memberIndex], memberIndex, rowIndex,
+                    preview: ledgerPreview, request: entry.request,
+                    current: currents[memberIndex],
+                    observation: Object.freeze({useCid: stored.credentialUseCid,
+                      statusCode: stored.statusCode,
+                      body: stored.responseBytes}),
+                    headers: undefined});
+                }});
+              route.assertClaimedCurrent();
+              settle({ledger, claim: ownedClaim, applyPreview: ledgerPreview,
+                memberIndex, rowIndex, projected: recovery.recovered});
+            }
+          }
+        };
+        return Object.freeze({preview, computation, storedResults,
+          ...(requestedStop === undefined ? {} : {requestedStop, assertRequestedStopCurrent}),
+          apply: {moon, store, publicationControl: control, computation,
+            preview, ledger, requestScope, programId: provider.program_id,
+            nodeId: provider.stage_id, maxRows: limits.maxRows,
+            maxFrontierWork: limits.maxFrontierWork,
+            maxRecoveryWork: limits.maxWork,
+            keyLimits: {...limits.key, maxWork: limits.maxWork},
+            reconcileStoredResponses,
+            refreshPreflight: ({signal: refreshSignal} = {}) => route.current({
+              signal: refreshSignal, preflight: basePreflight({
+                effects: body.effects, members, requestScope})}),
+            bindDispatch: route.bindDispatch,
+            authorization: {gate: singular?.authorization, scopes: scopes(members)}},
+          receipt: {ledger, preview: applyPreview, commonMoon: moon,
+            publicationPreview: preview,
+            authorizeEvidenceRead: async () => true,
+            members: recorded.members.map(member => ({rowOwners:
+              member.claims.map(claim => ({claim})), replayed: true})),
+            limits: contractLimits},
+          publication: {execution: null, store, storedResults, control,
+            computation, preview, ledger, request: provider.request,
+            attempt: {...provider.attempt, externalIdempotencyKey:
+              provider.attempt?.externalIdempotencyKey}, contractLimits,
+            now: () => new Date().toISOString()},
+          scopes: scopes(members),
+          continuationWire: canonicalJson(provider),
+          cleanupOwner: ledgerOwner,
+          dispose: () => {
+            if (recoveryPending()) fail('InstalledRowEffectContentCleanupPending');
+            releaseLedger();
+          }});
       };
-      return Object.freeze({preview, computation, storedResults,
-        ...(requestedStop === undefined ? {} : {requestedStop, assertRequestedStopCurrent}),
-        apply: {moon, store, publicationControl: control, computation,
-          preview, ledger, requestScope, programId: provider.program_id,
-          nodeId: provider.stage_id, maxRows: limits.maxRows,
-          maxFrontierWork: limits.maxFrontierWork,
-          maxRecoveryWork: limits.maxWork,
-          keyLimits: {...limits.key, maxWork: limits.maxWork},
-          reconcileStoredResponses,
-          refreshPreflight: ({signal: refreshSignal} = {}) => route.current({
-            signal: refreshSignal, preflight: basePreflight({
-              effects: body.effects, members, requestScope})}),
-          bindDispatch: route.bindDispatch,
-          authorization: {gate: singular?.authorization, scopes: scopes(members)}},
-        receipt: {ledger, preview: applyPreview, commonMoon: moon,
-          publicationPreview: preview,
-          authorizeEvidenceRead: async () => true,
-          members: recorded.members.map(member => ({rowOwners:
-            member.claims.map(claim => ({claim})), replayed: true})),
-          limits: contractLimits},
-        publication: {execution: null, store, storedResults, control,
-          computation, preview, ledger, request: provider.request,
-          attempt: {...provider.attempt, externalIdempotencyKey:
-            provider.attempt?.externalIdempotencyKey}, contractLimits,
-          now: () => new Date().toISOString()},
-        scopes: scopes(members),
-        continuationWire: canonicalJson(provider),
-        cleanupOwner: ledgerOwner,
-        dispose: () => { releaseLedger(); }});
+      for (const owner of owners) {
+        if (owner.owned.prepareRecoveredContentChild === undefined) continue;
+        if (typeof retainRecoveryOwner !== 'function') {
+          fail('InstalledEffectRecoveryCustodyRequired');
+        }
+        const memberIndexes = Object.freeze(members.flatMap((member, index) =>
+          ownerOf(member) === owner ? [index] : []));
+        if (memberIndexes.length === 0) continue;
+        const child = owner.owned.prepareRecoveredContentChild({
+          recovered, members, entries, memberIndexes, control, store, signal,
+          contentRun: facts.contentRun, principalId: facts.principalId,
+          assertCurrent, limits, ...resourceFields(members[memberIndexes[0]])});
+        if (typeof child?.prepare !== 'function' || typeof child.release !== 'function' ||
+            typeof child.status !== 'function') {
+          fail('InvalidInstalledEffectRecoveryChild');
+        }
+        // The same already-retained ledger owner keeps every child before
+        // current callbacks or the first awaited physical Store confirmation.
+        recoveryChildren.push(child);
+        assertCurrent?.();
+      }
+      if (recoveryChildren.length === 0) return finish();
+      return (async () => {
+        for (const child of recoveryChildren) {
+          await child.prepare();
+          signal?.throwIfAborted();
+          assertCurrent?.();
+        }
+        return finish();
+      })();
     } catch (error) {
       if (retainRecoveryOwner === undefined) releaseLedger();
       throw error;

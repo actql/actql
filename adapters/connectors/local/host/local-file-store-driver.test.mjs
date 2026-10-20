@@ -82,3 +82,40 @@ test('Local STORE accepts no structural Account or approval substitute',async()=
       tuple:{connection:'local',resource:'files',operation:'effect'}}}),{code:'LocalStoreNotAuthorized'});
   assert.equal(f.nativeCalls(),0);await f.site.close();
 });
+
+test('Local STORE recovered request connects the retained original Content child before any send',async()=>{
+  const f=fixture(),capture=f.prepare(),initial=capture.prepare();
+  const saved=f.driver.recoveryEntry({entries:[initial]});
+  const member={...f.member,memberIndex:0};
+  const restored=f.driver.recoverRequests({
+    durable:{connectorRecovery:[{memberIndex:0,...saved}]},
+    body:{effects:[{changes:[{}]}]},runOriginal:f.run,members:[member],
+    runInvocationCid:cid('3'),dispatches:[cid('4')]});
+  const request=restored.requests[0][0],entries=[[{request,requestCid:f.driver.requestCid(request)}]];
+  const prepared={},allowed={},definition={},source={},events=[];
+  let pending=true;
+  const borrowed={binding:{},current:()=>pending};
+  const contentOwner={consumeContent(){assert.fail('No bytes are sent during recovery preparation');}};
+  const recovered={prepared,allowed,runDefinition:definition,computation:{
+    effectSources:[{memberIndex:0,source}],preview:{},invocation:{},computation:{capturedRun:{}}}};
+  const child=f.driver.prepareRecoveredContentChild({recovered,members:[member],entries,memberIndexes:[0],
+    control:{adoptCheckedClientEffectSerializationRun(value,run){
+      assert.strictEqual(value,allowed);assert.strictEqual(run,definition);return{};}},
+    store:{},principalId:'reader',runOriginal:f.run,limits:{maxFields:10,maxWork:1000,
+      body:{maxBytes:10000,maxNodes:1000,maxDepth:64}},
+    contentRun:{prepareRecoveredCommandContent(options){
+      assert.strictEqual(options.prepared,prepared);assert.strictEqual(options.source,source);
+      assert.equal(options.row,0);assert.equal(options.inputName,'content');
+      assert.equal(options.referenceWire,wire(f.value.content));
+      events.push('construct');return{
+        async prepare(){events.push('prepare');return{borrow:borrowed,contentOwner};},
+        async release(){events.push('release');pending=false;return true;},status:()=>({pending})};}}});
+  assert.deepEqual(events,[]);assert.equal(child.status().pending,true);
+  await child.prepare();assert.deepEqual(events,['construct','prepare']);
+  f.driver.recheckRequests({member,entries:entries[0],runOriginal:f.run});
+  assert.equal(f.nativeCalls(),0);
+  assert.equal(await child.release(),true);assert.equal(child.status().pending,false);
+  assert.throws(()=>f.driver.requestFacts(request),{code:'ForeignLocalStoreRequest'});
+  assert.throws(()=>child.prepare(),{code:'LocalStoreRecoveryAlreadyAttempted'});
+  await capture.release();await f.site.close();assert.equal(f.nativeCalls(),0);
+});

@@ -10,6 +10,7 @@ import {issueStoredGeneratedContent, retainGeneratedContentEvidence} from './gen
 import {serializationPublicationExecution} from './serialization-result-publication.mjs';
 import {publishCompletedEffectFreeRun} from '../host-common/completed-run-publication.mjs';
 import {installEffectContentFamily} from './installed-content-family.mjs';
+import {prepareRecoveredCommandContent} from './recovered-command-content.mjs';
 import {installRunKeyedContentCapture} from './installed-keyed-content-capture.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 
@@ -376,6 +377,9 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       namespaceId, authorityScopeCid, storeAuthorityCid, installedBinding,
       referenceLimits, completionLimits,
       outputLimits: localOutputLimits, faultInjection, restored});
+  run.prepareRecoveredCommandContent = options => prepareRecoveredCommandContent({
+    ...options, moon, publications, control, ownerPrincipal, storeAuthorityCid,
+    authorityScopeCid, now, authorize, installedBinding, referenceLimits});
   // Resolve this before physical acquisition. The selected Source capacity is
   // opaque and requirement-bound in the common owner, never estimated from rows.
   run.prepareAcquiredLedger = ({preparedProgram, plan, sourceCapacity}) => {

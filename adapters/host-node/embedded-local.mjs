@@ -3944,7 +3944,7 @@ async function openInstalledHost(originalInstallation, preparation) {
                     throw clientOperationError('ClientRunCancellationRequested');
                   }
                 },
-                continuation, retained, moon, control, store,
+                continuation, retained, moon, control, store, principalId, contentRun: runContent,
                 storeAuthorityCid, authorityScopeCid, signal,
                 retainExecution, beginPhysicalWork,
                 observeRun: ({ref}) => observeRun({ref, principalId}),

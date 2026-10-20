@@ -170,11 +170,11 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
     for(const child of children)await child.release();
     if([...children].some(child=>child.status().pending))fail('LocalStoreCleanupPending');
   };
-  const recover=({durable,body,memberIndexes,runOriginal})=>{
+  const recover=({durable,body,memberIndexes,runOriginal,members,runInvocationCid,dispatches})=>{
     runCurrent(runOriginal);
     if(!Array.isArray(body?.effects)||body.effects.length>limits.maxEffects||
         !Array.isArray(durable?.connectorRecovery))fail('InvalidLocalStoreRecovery');
-    const indexes=memberIndexes??body.effects.map((_,index)=>index),restored=[];
+    const indexes=memberIndexes??body.effects.map((_,index)=>index),restored=[],currents=[];
     let previous=-1;
     for(const index of indexes){
       if(!Number.isSafeInteger(index)||index<=previous||index>=body.effects.length)fail('InvalidLocalStoreRecovery');
@@ -191,8 +191,13 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
       // Rebuilding approved DATA does not reconstruct a Content read grant.
       // A still-unattempted send must separately bind its restored original.
       restored.push(saved.requests.map(record=>requestFrom(record,runOriginal)));
+      memberCurrent(members?.[index]);
+      if(!isCid(runInvocationCid)||!isCid(dispatches?.[index]))fail('ForeignLocalStoreDescription');
+      const selected=Object.freeze({});
+      descriptions.set(selected,{runInvocationCid,dispatchRequestCid:dispatches[index],runOriginal});
+      currents.push(selected);
     }
-    return{requests:restored,currents:restored.map(()=>undefined)};
+    return{requests:restored,currents};
   };
   const driver=Object.freeze({kinds:Object.freeze(['command']),writeOperation:()=> 'files.write',
     describe({member,runInvocationCid,dispatchRequestCid,runOriginal}){
@@ -251,6 +256,74 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
       return{kind:'local-file-store',wire:body,observationCid:cid(saved)};
     },
     recoverRequests:recover,recoverMemberRequests:recover,
+    prepareRecoveredContentChild({recovered,members,entries,memberIndexes,control,store,
+      contentRun,principalId:actor,assertCurrent:checkCurrent,signal,limits:inputLimits,runOriginal}){
+      runCurrent(runOriginal);
+      if(typeof contentRun?.prepareRecoveredCommandContent!=='function'||
+          recovered?.prepared===undefined||recovered.allowed===undefined||actor!==principalId)
+        fail('OriginalEffectContentUnavailable');
+      const compiled=control.adoptCheckedClientEffectSerializationRun(
+        recovered.allowed,recovered.runDefinition);
+      const selected=[];
+      for(const index of memberIndexes){
+        memberCurrent(members[index]);
+        for(const entry of entries[index])selected.push({state:own(entry.request,runOriginal),index});
+      }
+      if(selected.length>limits.maxRows)fail('LocalStoreRecoveryLimit');
+      const retained=[];
+      let stopping=false,released=false,attempted=false,flight;
+      const child=Object.freeze({
+        prepare(){
+          if(attempted||stopping)fail('LocalStoreRecoveryAlreadyAttempted');
+          attempted=true;
+          const work=(async()=>{
+            for(const {state,index} of selected){
+              runCurrent(runOriginal);checkCurrent?.();signal?.throwIfAborted();
+              const sources=recovered.computation.effectSources?.filter(source=>
+                source.memberIndex===members[index].memberIndex);
+              if(sources?.length!==1)fail('OriginalEffectContentUnavailable');
+              const contentChild=contentRun.prepareRecoveredCommandContent({
+                prepared:recovered.prepared,compiled,definition:recovered.runDefinition,
+                captured:recovered.computation.computation.capturedRun,
+                preview:recovered.computation.preview,invocation:recovered.computation.invocation,
+                source:sources[0].source,store,principalId:actor,
+                memberIndex:members[index].memberIndex,
+                row:entries[index].findIndex(entry=>requests.get(entry.request)===state),
+                inputName:'content',referenceWire:wire(state.record.value.content),signal,
+                limits:{maxFields:inputLimits.maxFields,maxWork:inputLimits.maxWork,
+                  maxWireBytes:inputLimits.body.maxBytes,maxNodes:inputLimits.body.maxNodes,
+                  maxDepth:inputLimits.body.maxDepth},
+                assertCurrent(){
+                  if(stopping)fail('LocalStoreRequestClosing');
+                  runCurrent(runOriginal);checkCurrent?.();
+                }});
+              retained.push(contentChild); // Before current callbacks or Store I/O.
+              if(stopping)fail('LocalStoreRequestClosing');
+              const restored=await contentChild.prepare();
+              if(stopping)fail('LocalStoreRequestClosing');
+              runCurrent(runOriginal);checkCurrent?.();
+              state.borrow=restored.borrow;state.contentOwner=restored.contentOwner;
+            }
+          })();
+          flight=work;
+          return work.finally(()=>{if(flight===work)flight=undefined;});
+        },
+        async release(){
+          stopping=true;
+          if(flight!==undefined)return false;
+          for(const {state} of selected){
+            if(state.writeChild!==undefined)await state.writeChild.close();
+            if(state.writeChild?.status().pending)return false;
+          }
+          for(const contentChild of retained)await contentChild.release();
+          if(retained.some(contentChild=>contentChild.status().pending))return false;
+          for(const {state} of selected){state.released=true;state.borrow=state.contentOwner=undefined;}
+          released=true;children.delete(child);return true;
+        },
+        status:()=>Object.freeze({pending:!released||flight!==undefined}),
+      });
+      children.add(child);return child;
+    },
     async send({member,request,current:selected,authorization:supplied,signal,runOriginal}){
       memberCurrent(member);const observed=description(selected,runOriginal),original=own(request,runOriginal);
       const grant=grants.get(supplied?.proof);
