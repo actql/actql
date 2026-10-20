@@ -130,6 +130,10 @@ test "shared selection codec preserves the eight selected files bound and origin
   )
   assert_true(
     client_local_configuration_selection_body(Array::make(9, first), None)
+    is Ok(_),
+  )
+  assert_true(
+    client_local_configuration_selection_body(Array::make(10, first), None)
     is Err(ConfigurationLimit),
   )
   assert_true(

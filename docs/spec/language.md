@@ -980,14 +980,15 @@ still require independent type evidence.
 
 <!-- requirement-block: value-contracts.decimal-output-target-is-not-input-evidence -->
 Implementations MUST NOT infer a non-null Decimal input domain, unknown field
-or unresolved Parameter from the output precision/scale of `quantize`. As a
-scoped exception, a direct literal NULL receives the nullable declared result
-Decimal target and remains NULL; this establishes no non-null coefficient and
-converts no Number, Signed64 or String. `decimal_divide` retains its separate
-rule: output precision/scale supplies no input type, including its overloaded
-divisor domain, and bare literal NULL operands remain unresolved. An explicit
-cast such as `CAST(NULL AS DECIMAL(8,2))` supplies that missing input type.
-Already-typed nullable operands still propagate null.
+or unresolved Parameter from the output precision/scale of `quantize` or
+`decimal_divide`; only a syntactically immediate literal NULL receives context:
+quantize and division left use the nullable declared Decimal result target,
+while a division NULL divisor uses the resolved left Decimal contract, including
+an already contextualized literal-NULL left. This establishes no non-null
+coefficient and converts no Number, Signed64 or String. Both original division
+children remain demanded in order, including after a NULL child; NULL never
+suppresses a demanded child failure. Already-typed nullable operands keep their
+original contracts and propagate null.
 
 An empty array obtains its item type from an explicit `empty_array.items`
 contract or the unique common item type of independently typed peers in an
@@ -3050,7 +3051,8 @@ an optional final argument, not expression syntax.
 | `to_decimal(value, precision, scale)`, `try_decimal(value, precision, scale)` | [Decimal expressions](#decimal-expressions) fields; precision/scale are integer literals |
 | `quantize(value, precision, scale, rounding)` | [Decimal expressions](#decimal-expressions) fields; precision/scale are integer literals and rounding is a string literal naming an admitted mode |
 | `quantize(value, scale)` | the complete `quantize(value, 38, scale, 'half_even')` body, retaining the original value subtree and the same static scale role |
-| `decimal_divide(left, right, precision, scale, rounding)` | same literal constraints as `quantize` |
+| `decimal_divide(left, right, precision, scale, rounding)` | same literal target constraints as `quantize`, with division-only `exact` also admitted |
+| `decimal_divide(left, right, scale)` | complete division body with precision38, original static scale in `0..38` and `rounding: exact`; retain both operands |
 | `left(value, length)`, `right(value, length)` | corresponding common scalar side slice |
 | `lpad(value, length[, pattern])`, `rpad(value, length[, pattern])` | corresponding common scalar padding; omitted pattern remains omitted |
 | `split(value[, delimiter])` | common ordered-array expression; ordinary optional STRING delimiter; omitted delimiter remains omitted |
@@ -3753,8 +3755,10 @@ Conversion accepts decimal values, safe integers, or text matching
 `-?(0|[1-9][0-9]*)(\.[0-9]+)?`. Exponents, leading `+`, grouping, currencies,
 negative zero, excess fractional digits, and overflow are rejected without
 rounding. `try_decimal` makes only invalid/unrepresentable conversion input
-null. Null inputs propagate. Only `quantize` and `decimal_divide` round, using
-`half_even|half_up|toward_zero|floor|ceiling`. Division by zero fails.
+null. Null inputs propagate. `quantize` and explicit rounded `decimal_divide`
+use `half_even|half_up|toward_zero|floor|ceiling`. Division additionally admits
+`exact`, which never rounds. Division by zero fails after both non-null operands
+have been evaluated; NULL does not suppress a demanded child error.
 
 <!-- requirement-block: decimal-expressions.quantize-public-shorthand -->
 SQL/Pipe and authored Common expression text `quantize(value, scale)` MUST
@@ -3764,8 +3768,22 @@ normalize to the existing complete
 overflow rules. These are explicit authoring defaults, not fields inferred from
 the input value or omitted during structured/machine admission. No Number,
 Signed64 or String operand is implicitly converted to Decimal. Existing complete
-four-argument bodies, modes and canonical bytes remain unchanged; conversion and
-`decimal_divide` acquire no omitted-target defaults.
+four-argument bodies, modes and canonical bytes remain unchanged; conversion
+acquires no omitted-target defaults.
+
+<!-- requirement-block: decimal-expressions.public-exact-division-at-scale -->
+SQL/Pipe and authored Common expression text `decimal_divide(left,right,scale)`
+MUST emit the complete five-field division body with precision38, the same static
+integer-literal scale in `0..38` and division-only `rounding: exact`. Both original
+operands are retained and demanded in source order. After both children succeed
+and NULL handling, Common requires zero remainder in the original exact scaled
+coefficient ratio and a coefficient fitting the declared precision. Inexactness,
+zero divisor and overflow use the existing arithmetic failure, without rounding,
+clamping, a frontend ratio evaluator or non-null domain promotion. Explicit
+five-argument division may also select `exact`; its original five named rounding
+policies and old body bytes keep their meaning. Quantize does not admit `exact`.
+Closed machine bodies still require all five fields. The separate public
+omitted-scale spelling has no scale policy supplied by this rule.
 
 `decimal_divide` requires a decimal left operand and a decimal or safe-integer
 `number` right operand. A number divisor is interpreted exactly as an integer;
@@ -3934,9 +3952,15 @@ Missing time components MUST resolve to ActQL-defined zero values, not host defa
 absent `HH`/`mm` means `00:00`, absent `ss` means `00`, and absent `SSS`
 means `000`. Parsing uses the proleptic Gregorian calendar, UTC, and the
 closed year range `0000..9999`.
-`format_timestamp` is locale-independent. `try_number` uses the same canonical
-number grammar as `to_number`, but returns null instead of failing for a
-non-null unparsable string.
+`format_timestamp` is locale-independent. For String input, `try_number` uses
+the same canonical number grammar as `to_number`, but returns null instead of
+failing for a non-null unparsable string. For an admitted finite logical Number,
+`try_number` preserves that Number value and canonical zero without a text
+conversion. The result remains nullable Number. No Boolean, Decimal, Signed64,
+temporal, structured or unknown-domain promotion is added. The original child
+is demanded exactly once; child errors, cancellation, bounds, workspace and
+engine failures propagate rather than becoming null. The authored operation
+and original operand remain in the canonical expression.
 
 <!-- requirement-block: text-time.timestamp-pattern-modes -->
 Timestamp patterns MUST be nonempty sequences of the admitted components;
@@ -4108,9 +4132,14 @@ maximum capture index (zero with no references) describe these parts, not the
 source spelling or a deduplicated set of captures.
 
 The operation/input matrix is closed: `split_part`,
-`utf8_truncate`, `try_number`, `parse_timestamp`, `regex_match`,
+`utf8_truncate`, `parse_timestamp`, `regex_match`,
 `regex_extract`, `regex_replace`, `nfkc`, `case_fold`, and `try_timestamp`
-consume strings; `format_timestamp` consumes a timestamp. `parse_timestamp`
+consume strings; `format_timestamp` consumes a timestamp. `try_number` consumes
+a String or an admitted finite Number. Only its String branch uses the String
+parsing profile, Host envelope and parsing workspace; Number identity remains
+subject to ordinary scalar/Run work, live-value, current and cancellation checks.
+The text/time extent and envelope requirements do not manufacture text input
+or a parsing envelope for this Number branch. `parse_timestamp`
 preserves input nullability. `try_number` and `try_timestamp` have nullable
 output because input parse failure produces null.
 
@@ -11383,7 +11412,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:f5504e6c77e4408e51c3bd067a8fbf34e5238af9dcee0da08114ab21465b313a
+../../spec/contracts/actql-aoa.json# sha256:20353c7eda301d0dc655b15abedbfdbcc9b9810fbb3e44b4034088fb97edf430
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11392,13 +11421,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:92b558028f8a5091a33b8b6d6e3fa32344b1b43cf9281e4c8c187886c9b6f292
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:5158d84b45438357fa0e9672445eb0c11420f787628e535a7235e0a25083b828
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:2c8162832e673074c4278aa4ee2148de04862ee5f2d9fa502e2be6a780547f81
+../../spec/contracts/actql-expressions.json# sha256:6ab2396dc413fa604854f6586ec957203ccf23392c52f254dfd7b3c0c6dcbe7f
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:4a1a422c8a320d620ebb7f60eafd97f240e228145d5d8875b2a2d22dbb155400
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:555287df8de017c03d3a8a252e6492e1dc84f9d099980f1115d30be8808d170f
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:b46de6f2e2a1a76fdce33125f841963305a4f1a6d4554c8c18fc0d27cd5807ba
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:038769263b23b02a37978b9ca11bbe1b052f530c0b91789bec9707af46b92955
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:2125b522470b07ed6dfc4dbe322b8c6fc3b9459acc80ea0e826b42e87f705896
+../../spec/contracts/actql-expressions.json#/laws sha256:530e3f66a52b5f57e6a5786c7e6e2c1bddcd2df9adbf6482492919f1292a2bb6
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:8c255485e4b13e8fb372a1db176d113810570e315c5e3e2bb3a03734ad98841e
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:7e7a92a1c40643757d65ba8703cbfc8fcc164a60370330181351b1b441393052
 ```
 
 <!-- stage-contract-pins:start -->

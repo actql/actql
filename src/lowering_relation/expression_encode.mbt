@@ -208,6 +208,14 @@ fn emit_frames(
             pending.push(EndObject)
             pending.push(Expr(arg))
           }
+          Unary(TryNumber, arg) => {
+            // Keep the original authored node and operand, including identity.
+            pending.push(Op("try_number"))
+            @encode.begin_object(output)
+            @encode.key(output, "value")
+            pending.push(EndObject)
+            pending.push(Expr(arg))
+          }
           Unary(TryDecimal, arg) => {
             // Preserve the existing distinct closed operation shape. P/S are
             // projected from the original checked result, not caller data.
@@ -257,7 +265,8 @@ fn emit_frames(
                   Round => "round"
                   Trunc => "trunc"
                   SafeNegate => "safe_negate"
-                  TryDecimal | Quantize(_) => raise @encode.InvalidStructure
+                  TryDecimal | Quantize(_) | TryNumber =>
+                    raise @encode.InvalidStructure
                   Not => "not"
                   IsNull => "is_null"
                   NotNull => "not_null"
@@ -276,9 +285,9 @@ fn emit_frames(
           }
           Binary(DecimalDivide(mode), left, right) => {
             guard expr.contract.shape is @contract.Decimal(precision~, scale~) &&
-              ["half_even", "half_up", "toward_zero", "floor", "ceiling"].contains(
-                mode,
-              ) else {
+              [
+                "half_even", "half_up", "toward_zero", "floor", "ceiling", "exact",
+              ].contains(mode) else {
               raise @encode.InvalidStructure
             }
             pending.push(Op("decimal_divide"))

@@ -239,6 +239,7 @@ fn local_admitted_result_stream(
   store~ : @local_store.Store,
   retained? : LocalCommandBusinessOriginal? = None,
   captured_selection? : @local_host.NativeClientOriginalRunSelection? = None,
+  material? : @local_result.NativeResultMaterialReceiver? = None,
 ) -> String raise ClientStop {
   if captured_selection is Some(_) && retained is None {
     stop("LocalReadOriginalCustodyUnavailable")
@@ -248,7 +249,14 @@ fn local_admitted_result_stream(
       physical_equal(actual, store) &&
       original.operation is Some(_) &&
       original.store_root_operation is Some(_) &&
-      original.result_binding is None &&
+      (
+        original.result_binding is None ||
+        (
+          material is Some(_) &&
+          original.result_binding is Some(prior) &&
+          physical_equal(prior, binding)
+        )
+      ) &&
       original.result_service is None &&
       original.result_session is None &&
       original.result_sink is None &&
@@ -337,8 +345,19 @@ fn local_admitted_result_stream(
   if retained is Some(original) {
     original.result_service = Some(service)
   }
-  let journal = local_host_result(host.run_journal())
-  let epoch = local_host_result(host.epoch_authority())
+  // Captured reads already route the same Journal/Epoch through the original
+  // Read/SQLite exchange. The legacy getters perform an unscoped full binding
+  // check and must run only for their separate legacy branch.
+  let legacy_originals = match captured_selection {
+    None =>
+      Some(
+        (
+          local_host_result(host.run_journal()),
+          local_host_result(host.epoch_authority()),
+        ),
+      )
+    Some(_) => None
+  }
   let prior = match captured_selection {
     Some(original) =>
       binding
@@ -352,7 +371,10 @@ fn local_admitted_result_stream(
       .unwrap_or_else(() => {
         stop("LocalReadHistoryUnknown attempt-id=" + attempt_id)
       })
-    None =>
+    None => {
+      guard legacy_originals is Some((journal, epoch)) else {
+        stop("LocalReadOriginalCustodyUnavailable")
+      }
       journal
       .lookup_submitted_result_delivery(
         epoch,
@@ -372,6 +394,7 @@ fn local_admitted_result_stream(
       .unwrap_or_else(() => {
         stop("LocalReadHistoryUnknown attempt-id=" + attempt_id)
       })
+    }
   }
   if prior is Some(_) {
     stop(
@@ -407,7 +430,10 @@ fn local_admitted_result_stream(
         )
       })
     }
-    None =>
+    None => {
+      guard legacy_originals is Some((journal, epoch)) else {
+        stop("LocalReadOriginalCustodyUnavailable")
+      }
       journal
       .open_submitted_result(
         epoch,
@@ -435,10 +461,38 @@ fn local_admitted_result_stream(
           " lookup=delivery-attempt",
         )
       })
+    }
   }
   // Retain the acquired session before sink construction or another callback.
   if retained is Some(original) {
     original.result_session = Some(session)
+  }
+  if material is Some(receiver) {
+    match receiver.attach(session) {
+      Err(_) =>
+        stop("LocalResultMaterialSessionUnavailable attempt-id=" + attempt_id)
+      Ok(_) => ()
+    }
+    while true {
+      match receiver.poll() {
+        Ok(true) => break
+        Ok(false) => ()
+        Err(_) => {
+          if refusal.val is Some(issue) {
+            stop(local_read_issue(issue) + " attempt-id=" + attempt_id)
+          }
+          stop("LocalResultMaterialReadUnknown attempt-id=" + attempt_id)
+        }
+      }
+    }
+    match receiver.write_table(max_output) {
+      Err(_) => stop("LocalResultTableOutputUnknown attempt-id=" + attempt_id)
+      Ok(_) => ()
+    }
+    if receiver.close() is Err(_) {
+      stop("LocalReadSessionCleanupPending attempt-id=" + attempt_id)
+    }
+    return ""
   }
   let sink = match native_local_stdout_sink(session, max_output) {
     Ok(value) => value

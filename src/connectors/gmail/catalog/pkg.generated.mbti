@@ -27,6 +27,8 @@ pub fn gmail_label_list_schema_wire(Int, Int, Int) -> Result[String, GmailLabelL
 
 pub fn gmail_thread_column_names() -> Array[String]
 
+pub fn gmail_thread_facts_wire() -> String
+
 pub fn gmail_thread_list_count(GmailThreadListPage) -> Int
 
 pub fn gmail_thread_list_id_at(GmailThreadListPage, Int) -> String?

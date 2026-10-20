@@ -2,7 +2,8 @@
 // A closed installer candidate for static command preparation. These finite
 // facilities are selected before their actual FD/mapping/context acquisitions;
 // they do not estimate all-input demand or grant a business Run any capacity.
-// The process retains its separate initial managed/OS originals throughout.
+// Ordinary runtime values use the trusted platform allocator. Explicit native
+// domains retain their own actual backing, currentness and cleanup duties.
 fn local_command_installed_profile(
   source : String,
   manifest : String,
@@ -100,6 +101,10 @@ fn local_command_preparation_selected(
   matches : @argparse.Matches,
 ) -> Bool raise ClientStop {
   if !(matches.subcommand is Some(("check", _)) ||
+    (
+      matches.subcommand is Some((operation, child)) &&
+      local_quick_query_requested(operation, child)
+    ) ||
     matches.subcommand is Some(("explain", _)) ||
     matches.subcommand is Some(("run", _)) ||
     local_checkpoint_action_selected(matches, "approve") ||
@@ -134,7 +139,15 @@ fn prepare_native_command_invocation(
   }
   if (
       matches.subcommand is Some(("run", _)) ||
+      (
+        matches.subcommand is Some((operation, child)) &&
+        local_quick_query_requested(operation, child)
+      ) ||
       matches.subcommand is Some(("status", _)) ||
+      (
+        matches.subcommand is Some(("explain", child)) &&
+        optional(child, "run") is Some(_)
+      ) ||
       matches.subcommand is Some(("result", _))
     ) &&
     matches.sources.get("config-file") is Some(@argparse.Argv) {
@@ -163,6 +176,10 @@ fn prepare_native_command_invocation(
   // The full business candidate exists before backing/domain/Root acquisition,
   // not after epoch issuance, Program admission or first-start claims.
   let (profile, business) = if matches.subcommand is Some(("run", _)) ||
+    (
+      matches.subcommand is Some((operation, child)) &&
+      local_quick_query_requested(operation, child)
+    ) ||
     matches.subcommand is Some(("result", _)) {
     let (profile, business) = local_command_source_free_business_profile(
       static_profile,
@@ -173,8 +190,12 @@ fn prepare_native_command_invocation(
   }
   let original = command_preparation_result(
     prepare_local_command_preparation_original(profile, business~),
+    stage=Some("prepare"),
   )
   command_preparation_invocation.val = Some(original)
-  command_preparation_result(original.acquire(root, source, platform, manifest))
-  command_preparation_result(original.enter())
+  command_preparation_result(
+    original.acquire(root, source, platform, manifest),
+    stage=Some("acquire"),
+  )
+  command_preparation_result(original.enter(), stage=Some("enter"))
 }

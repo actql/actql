@@ -1,5 +1,75 @@
 # Native Local Host binding
 
+## Saved Run Plan inspection
+
+The first ordinary Run acceptance retains the original compiler Plan and
+logical-map view in its existing Run observation metadata, in the same Journal
+transaction as admission. A private first-capture ticket joins the actual
+checked preparation, compilation, Run definition and original admission
+evidence. The saved metadata reader cannot issue that ticket. The optional
+metadata preserves the prior encoding when absent and the existing per-record
+intake bounds; an overflow refuses rather than omitting required new evidence.
+
+`explain --run` selects the authenticated original Run through current RunRead
+and the same bounded Journal scan and physical operation route as status. It
+rechecks the compiled Plan, Program and logical-map identities and current
+authority before returning the exact saved view. It never reads a replacement
+Program or parameters, replans, initializes a missing installation or starts a
+Run. Legacy missing Plan evidence remains unavailable and cannot be backfilled
+by lookup or repeated admission.
+
+The returned existing RunPlanView contains the recorded compiler map. Its
+static observation and unmeasured quantities remain explicit. This metadata
+does not assert unrecorded runtime engine choices, measurements or execution
+history, and the human renderer distinguishes it from a new static EXPLAIN.
+
+## Ordinary literal query caller
+
+Trusted public `sql` and literal `aql` select the ordinary Local Host when no
+explicit Remote connection or legacy installation overrides that choice. A
+project selection retains its configured Store and declarations. Outside a
+project, the default Local installation is selected through the same bounded
+configuration and current-authorization owners.
+
+A genuinely absent default source-free installation may be initialized by
+this caller under the existing Product exclusion and initialization intent.
+The same adoption Session independently admits the Account, Store and required
+purpose-confined physical crypto material. An existing initialization intent,
+interrupted installation or missing adopted original never selects another
+initializer, regrant or rekey. This caller does not register a Reviewer,
+authorize an Effect or infer Mock consent from project metadata or query text.
+
+The complete business facility is selected before acquisition. The original
+submitted intent is read-only; its checked Program and current Run-submit
+authority are admitted before epoch issuance and durable Submission admission.
+The returned Run alone selects Result restoration, with independent current
+Result-read policy. A same-command read uses the Store that published the same
+request and keeps its Values, publication and delivery children until their
+actual acknowledgements. It does not open a second Store or rerun the query
+after an uncertain response.
+
+JSON, JSONL and CSV stdout retain their actual bytes-receipt route. A table
+requires its own admitted material receiver followed by a separately observed
+bounded table write and flush. A stdout encoding receipt is not material
+custody, and an unsupported table or file destination refuses before durable
+Submission admission.
+
+The selected initial table route retains a distinct Material selection original.
+The saved Run still joins its original read-policy CID and expiry; the table
+selection does not replace that original or reuse its stdout permission. Its
+read preimages bind the actual receiver, committed schema and ordering. The
+receiver rechecks each copied row against those original field contracts and
+keeps the same Session/Store through receipt and cleanup. Material completion
+ends the payload reader; a separate current output decision and one actual
+stdout write/flush produce the table receipt without reopening the reader.
+The finite Native selection holds seven installation files plus config and
+environment, with Account separately retained by the same initialization Owner.
+The corresponding nine-file selection and ten-file Product intake retain their
+existing byte/node/depth limits; these counts issue no permission or resource
+credit. A partial write, lost flush acknowledgement or failed current check never
+repeats output. Older installations missing the selected Material original
+refuse before submission instead of acquiring it through a read operation.
+
 This records the adopted trust and credential boundaries for the standard
 Native Local CLI. These are implementation requirements, not claims that Local
 execution or Provider approval has passed public acceptance. The existing
@@ -56,8 +126,10 @@ otherwise denied authority.
 Ordinary reconnection is retained-only. It cannot create a state child, stage
 an absent account copy or initialize a database, key or epoch. Only the explicit
 adoption operation may continue a matching unfinished initialization. The
-operator must first select a private configuration root; configured physical
-libraries are not loaded from an untrusted discovery root.
+trusted default query caller may perform the first initialization described
+above only when the installation is genuinely absent. It selects the ordinary
+private configuration root; an explicit configuration must likewise have a
+trusted private root before its physical libraries are loaded.
 
 ## Initialization and interrupted adoption
 

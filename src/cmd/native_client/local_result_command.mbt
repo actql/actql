@@ -69,6 +69,7 @@ fn local_public_result(
   sqlite : @local_sqlite.Library,
   child : @argparse.Matches,
   prepared? : LocalCommandResultOriginal? = None,
+  material_table? : Bool = false,
 ) -> String raise ClientStop {
   local_result_stdout_only(child)
   let format = local_result_format(child)
@@ -83,7 +84,10 @@ fn local_public_result(
         actual.owner.closed {
         stop("LocalReadOriginalCustodyUnavailable")
       }
-      local_host_result(actual.capture.check_current_in_original_read())
+      local_result_host_value(
+        actual.capture.check_current_in_original_read(),
+        "selected read current",
+      )
       (actual.scope, actual.original)
     }
     None => {
@@ -134,6 +138,23 @@ fn local_public_result(
     }),
   }
   let binding = match prepared {
+    Some(actual) if material_table => {
+      if !settings.installation_files.contains("material-read.json") {
+        stop("LocalResultMaterialOriginalNotSelected")
+      }
+      match
+        actual.capture.bind_result_material_read_policy_for_run_in_original_read(
+          actual.policy,
+          original.reference(),
+          original.request(),
+          @env.now().to_double(),
+          "material-read.json",
+        ) {
+        Ok(value) => value
+        Err(issue) => stop(local_read_issue(issue))
+      }
+    }
+    None if material_table => stop("LocalResultMaterialOriginalUnavailable")
     Some(actual) => actual.binding
     None =>
       local_read_binding_for_original(
@@ -174,7 +195,7 @@ fn local_public_result(
           selected.namespace_id,
         )
       Some(actual) =>
-        local_host_result(
+        local_result_host_value(
           actual.capture.lookup_original_result_names_json_in_original_read(
             settings.principal,
             settings.connection,
@@ -182,6 +203,7 @@ fn local_public_result(
             store,
             selected.namespace_id,
           ),
+          "publication inventory",
         )
     }
     let names = match names_result {
@@ -213,6 +235,36 @@ fn local_public_result(
       format,
       attempt_id,
     }
+    let material = if material_table {
+      guard prepared is Some(actual) &&
+        actual.owner.business is Some(business) &&
+        business.result_binding is None &&
+        business.result_material is None else {
+        stop("LocalReadOriginalCustodyUnavailable")
+      }
+      // Retain the selected binding before workspace/current admission can
+      // fail. Its receiver and this carrier preserve the same partial child.
+      business.result_binding = Some(binding)
+      let receiver = match
+        binding.prepare_material_receiver(
+          selected.request,
+          store,
+          request,
+          local_generation_cid(crypto),
+          local_utc_now(),
+          1000,
+          max_output,
+          128,
+          Int::min(16384, max_output),
+        ) {
+        Ok(value) => value
+        Err(issue) => stop(local_read_issue(issue))
+      }
+      business.result_material = Some(receiver)
+      Some(receiver)
+    } else {
+      None
+    }
     match
       binding.authorize_read_request(
         selected.request,
@@ -239,6 +291,7 @@ fn local_public_result(
       store~,
       retained=prepared.map(value => value.owner.business.unwrap()),
       captured_selection=prepared.map(value => value.original),
+      material~,
     )
   }
   if prepared is None {

@@ -1327,6 +1327,7 @@ fn prepare_client_stage_owners(
 ) -> Result[Array[@lower.BoundPrepared], ClientStageOwnerIssue] {
   let identity = @checked.source_identity(checked)
   let selected = @checked.selected_expression_profiles(checked)
+  let expressions = @checked.expression_closure(checked)
   let owners : Array[@lower.BoundPrepared] = []
   for stage in 0..<@checked.unit_count(checked) {
     guard @checked.unit_pipeline(checked, stage) is Some(pipeline) else {
@@ -1355,6 +1356,21 @@ fn prepare_client_stage_owners(
       ) {
       Ok(value) => value
       Err(issue) => return Err(Binding(issue))
+    }
+    let owner = match expressions {
+      None => owner
+      Some(closure) if @context.expression_closure_count(closure) == 0 => owner
+      Some(closure) =>
+        match
+          @lower.bind_program_expression_closure(
+            owner,
+            closure,
+            stage,
+            limits.lowering.max_work,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(Binding(issue))
+        }
     }
     owners.push(owner)
   }

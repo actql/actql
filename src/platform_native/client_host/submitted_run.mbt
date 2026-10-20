@@ -161,6 +161,11 @@ fn NativeClientRunJournal::accept_submitted_run_with_operations(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let plan = match
+    capture_native_run_plan_original(prepared, compiled, definition) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   self.accept_original_submitted_run(
     authority,
     reference,
@@ -170,6 +175,7 @@ fn NativeClientRunJournal::accept_submitted_run_with_operations(
     authority_scope_cid,
     current_authorization,
     run_observation_originals=Some(observation),
+    run_plan_original=Some(plan),
     operations~,
   )
 }
@@ -275,6 +281,7 @@ fn NativeClientRunJournal::accept_original_submitted_run(
   publication_policy_originals? : String? = None,
   local_run_policy_original? : @host.ClientLocalRunPolicyOriginal? = None,
   run_observation_originals? : @host.ClientRunObservationOriginals? = None,
+  run_plan_original? : NativeClientCapturedRunPlan? = None,
   current_fence? : (() -> Bool)? = None,
   operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue] {
@@ -287,12 +294,36 @@ fn NativeClientRunJournal::accept_original_submitted_run(
       return Err(CustodyLost)
     }
   }
+  if run_plan_original is Some(_) && run_observation_originals is None {
+    return Err(ForeignRun)
+  }
+  if run_plan_original is Some(plan) &&
+    run_observation_originals is Some(observation) &&
+    (
+      plan.definition_cid !=
+      @publication.publication_contract_identity(definition) ||
+      plan.prepared !=
+      @publication.run_evidence_value_json(observation.prepared()) ||
+      plan.authorization !=
+      @publication.run_evidence_value_json(observation.authorization())
+    ) {
+    return Err(ForeignRun)
+  }
   let observation_wire = match run_observation_originals {
     None => None
     Some(value) =>
-      match native_run_observation_originals_wire(value) {
+      match
+        native_run_observation_originals_wire(
+          value,
+          plan=run_plan_original.map(ticket => ticket.original),
+        ) {
         Ok(wire) => {
-          if read_native_run_observation_originals(wire, definition) is Err(_) {
+          if read_native_run_observation_originals(
+              wire,
+              definition,
+              program_cid=Some(@host.client_request_program_cid(request)),
+            )
+            is Err(_) {
             return Err(ForeignRun)
           }
           Some(wire)

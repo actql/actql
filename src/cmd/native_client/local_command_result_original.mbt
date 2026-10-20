@@ -7,8 +7,22 @@ priv struct LocalCommandResultOriginal {
   capture : @local_host.NativeLocalJournalCapture
   original : @local_host.NativeClientOriginalRunSelection
   binding : @local_host.NativeLocalReadPolicyBinding
+  policy : @local_host.NativeLocalRunPolicyBinding
   store : @local_store.Store
   scope : String
+}
+
+///|
+// Static caller context keeps a failed original fence identifiable without
+// exposing configuration paths or replacing its actual error/cleanup duty.
+fn[T] local_result_host_value(
+  result : Result[T, @local_host.NativeLocalAdoptionIssue],
+  stage : String,
+) -> T raise ClientStop {
+  match result {
+    Ok(value) => value
+    Err(issue) => stop(local_host_issue(issue) + " [result: " + stage + "]")
+  }
 }
 
 ///|
@@ -21,6 +35,7 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
   runtime : LocalPackagedRuntime,
   sqlite : @local_sqlite.Library,
   child : @argparse.Matches,
+  publication? : LocalCommandBusinessPreparation? = None,
 ) -> LocalCommandResultOriginal raise ClientStop {
   guard self.journal is Some(actual_capture) &&
     physical_equal(actual_capture, capture) &&
@@ -39,15 +54,16 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
   local_result_stdout_only(child)
   ignore(local_result_format(child))
   let configuration = local_check_original_text(
-    local_host_result(
+    local_result_host_value(
       capture.selected_configuration_in_original_read(configuration_name),
+      "configuration",
     ),
   )
   let (environment_name, _) = local_configuration(configuration)
   let run_file = settings.run_file.unwrap_or_else(() => {
     stop("LocalRunOriginalNotSelected")
   })
-  local_host_result(
+  local_result_host_value(
     capture.bind_packaged_runtime_in_original_read(
       runtime.physical,
       settings.principal,
@@ -56,29 +72,36 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
       run_file,
       "runtime.json",
     ),
+    "runtime binding",
   )
-  local_host_result(capture.require_packaged_runtime_upgrade_in_original_read())
-  let scope = local_host_result(
+  local_result_host_value(
+    capture.require_packaged_runtime_upgrade_in_original_read(),
+    "runtime correspondence",
+  )
+  let scope = local_result_host_value(
     capture.authority_scope_cid_in_original_read(
       settings.principal,
       settings.connection,
     ),
+    "authority",
   )
   let id = required(child, "run")
-  let original = local_host_result(
+  let original = local_result_host_value(
     capture.lookup_submitted_run_original_by_id_in_original_read(
       settings.principal,
       settings.connection,
       id,
     ),
+    "Run identity",
   ).unwrap_or_else(() => stop("LocalOriginalRunUnavailable"))
-  let saved = local_host_result(
+  let saved = local_result_host_value(
     capture.lookup_submitted_run_state_by_id_in_original_read(
       settings.principal,
       settings.connection,
       id,
       @env.now().to_double(),
     ),
+    "saved Run",
   ).unwrap_or_else(() => stop("LocalOriginalRunStateUnavailable"))
   if @local_host.native_client_submission_reference_wire(saved.reference()) !=
     @local_host.native_client_submission_reference_wire(original.reference()) ||
@@ -92,7 +115,7 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
   let read_file = settings.read_file.unwrap_or_else(() => {
     stop("LocalReadPolicyOriginalNotSelected")
   })
-  let policy = local_host_result(
+  let policy = local_result_host_value(
     capture.bind_run_policy_profile_in_original_read(
       settings.principal,
       settings.connection,
@@ -100,6 +123,7 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
       read_file,
       run_file,
     ),
+    "Run policy",
   )
   let binding = match
     capture.bind_result_read_policy_for_run_in_original_read(
@@ -118,25 +142,64 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
   }
   let run = local_run_installation(
     local_check_original_text(
-      local_host_result(
+      local_result_host_value(
         capture.selected_configuration_in_original_read(run_file),
+        "Run installation",
       ),
     ),
   )
   if run.namespace_id != namespace_id || run.source_free is None {
     stop("LocalOriginalRunReferenceMismatch")
   }
-  let managed = local_host_result(capture.managed_root_path_in_original_read()).unwrap_or_else(() => {
-      stop("LocalManagedRootRequired")
-    },
-  )
-  local_host_result(capture.check_current_in_original_read())
-  command_preparation_result(
-    operation.activate().map_err(issue => CommandStoreOperation(issue)),
+  let managed = local_result_host_value(
+    capture.managed_root_path_in_original_read(),
+    "managed Store root",
+  ).unwrap_or_else(() => stop("LocalManagedRootRequired"))
+  local_result_host_value(
+    capture.check_current_in_original_read(),
+    "Store current",
   )
   // Restore only the existing Store. Missing path/DB/custody cannot initialize
   // another namespace, schema, key or Run merely to obtain a public result.
-  let store = self.open_business_store(sqlite, managed, run, existing=true)
-  local_host_result(capture.check_current_in_original_read())
-  { owner: self, host, capture, original, binding, store, scope, }
+  let store = match publication {
+    None => {
+      command_preparation_result(
+        operation.activate().map_err(issue => CommandStoreOperation(issue)),
+      )
+      self.open_business_store(sqlite, managed, run, existing=true)
+    }
+    Some(published) => {
+      // A quick query reads the Store that published this exact request. It
+      // neither opens a second DB nor retires the still-owned Values children.
+      if !physical_equal(published.original, self) ||
+        !physical_equal(published.capture, capture) ||
+        !published.current(host, settings, published.environment) {
+        stop("LocalReadOriginalCustodyUnavailable")
+      }
+      let request = @run_host.prepare_source_free_client_request_identity(
+        published.prepared,
+        published.scope,
+        @run_host.client_request_caller_id(original.request()),
+      ).unwrap_or_else(() => stop("LocalOriginalRunReferenceMismatch"))
+      if @run_host.client_request_identity_relation(request, original.request()) !=
+        @run_host.SameRequest {
+        stop("LocalOriginalRunReferenceMismatch")
+      }
+      let store = business.store.unwrap_or_else(() => {
+        stop("LocalReadOriginalCustodyUnavailable")
+      })
+      let bridge = operation
+        .sqlite_original()
+        .unwrap_or_else(() => stop("LocalReadOriginalCustodyUnavailable"))
+      if !store.matches_original_operation(bridge) {
+        stop("LocalReadOriginalCustodyUnavailable")
+      }
+      store
+    }
+  }
+  local_result_host_value(
+    capture.check_current_in_original_read(),
+    "Store current",
+  )
+  { owner: self, host, capture, original, binding, policy, store, scope, }
 }

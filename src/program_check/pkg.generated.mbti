@@ -342,6 +342,8 @@ pub fn keyed_input_proof_source(KeyedInputProof) -> UnitOperationSource
 
 pub fn local_completion_free_inventory_matches(LocalCompletionFreeInventory, CheckedProgram) -> Bool
 
+pub fn local_completion_free_inventory_parameters_supplied(LocalCompletionFreeInventory) -> Bool
+
 pub fn local_completion_free_inventory_work(LocalCompletionFreeInventory) -> Int
 
 pub fn local_program_completion_free_inventory(CheckedProgram) -> Result[LocalCompletionFreeInventory, CompletionFreeInventoryIssue]

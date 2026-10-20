@@ -6,6 +6,7 @@ priv struct FragmentMaterial {
   graph : GeneratedArtifact
   roots : Array[RootArtifact]
   ordered : OrderedBinding?
+  evaluations : Array[GeneratedArtifact]
 }
 
 ///|
@@ -145,7 +146,18 @@ fn prepare_fragment_material(
     nodes -= root.nodes
     roots.push(root)
   }
-  Ok({ request, graph, roots, ordered: binding, })
+  let evaluations = match
+    prepare_fragment_evaluations(
+      demands,
+      roots,
+      bytes,
+      nodes,
+      budget.max_body_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Artifact(issue))
+  }
+  Ok({ request, graph, roots, ordered: binding, evaluations, })
 }
 
 ///|

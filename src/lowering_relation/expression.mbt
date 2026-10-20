@@ -8,6 +8,8 @@ struct Expression {
   source : @decode.Cursor
   location : @syntax.Location
   uses_veca : Bool
+  text_bound : @context.TextBoundResolution?
+  text_bounds : Map[Int, @context.TextBoundResolution]
 }
 
 ///|
@@ -82,6 +84,7 @@ pub(all) enum UnaryOperator {
   SafeNegate
   TryDecimal
   Quantize(String)
+  TryNumber
 } derive(Eq, Debug)
 
 ///|
@@ -345,6 +348,7 @@ fn expression_tag(
     | "vector_concat"
     | "cast"
     | "try_decimal"
+    | "try_number"
     | "quantize"
     | "decimal_divide"
     | "if"
@@ -410,7 +414,7 @@ fn expression_children(
         @decode.lookup(obj, "right").unwrap(),
       ]
     }
-    "cast" | "try_decimal" | "quantize" => {
+    "cast" | "try_decimal" | "quantize" | "try_number" => {
       let obj = @decode.open_object(body).unwrap()
       [@decode.lookup(obj, "value").unwrap()]
     }
@@ -807,6 +811,7 @@ fn lower_expression_measured(
       bound.by_name,
       profile => expression_profile_admitted(bound, profile),
       limits,
+      original_context=Some((bound, step_index)),
     )
   } catch {
     ExpressionStop(issue) => Err(issue)
@@ -822,6 +827,7 @@ fn lower_typed_expression_measured(
   parameters : Map[String, @value.CheckedValue],
   profile_admitted : (String) -> Bool,
   limits : ExpressionLimits,
+  original_context? : (BoundPrepared, Int)? = None,
 ) -> Result[(Expression, ExpressionBudget), ExpressionIssue] {
   try {
     let syntax = @typing.expression(typed)
@@ -858,10 +864,29 @@ fn lower_typed_expression_measured(
         }
       }
     }
+    let text_bounds : Map[Int, @context.TextBoundResolution] = Map([])
     for obligation in @typing.pending_validations(typed) {
       let admitted = match obligation.kind {
         @typing.ProfileAdmission(profile) => profile_admitted(profile)
-        @typing.PatternValidation(_) | @typing.HostEnvelope => false
+        @typing.PatternValidation(_) => false
+        @typing.HostEnvelope => {
+          let node = @typing.node_at(typed, obligation.node_index).unwrap()
+          let (operation, _) = @decode.field_at(node.source, 0).unwrap()
+          let original = match original_context {
+            Some((bound, step)) =>
+              original_expression_text_bound(
+                bound, step, typed, obligation, budget,
+              )
+            None => None
+          }
+          if operation == "try_number" && original is Some(original) {
+            let index = @decode.tree_index(root, node.source).unwrap()
+            text_bounds[index] = original
+            true
+          } else {
+            false
+          }
+        }
       }
       if !admitted {
         expression_fail(
@@ -1073,6 +1098,7 @@ fn lower_typed_expression_measured(
         "reverse" => Unary(Reverse, args[0])
         "cast" => Cast(args[0])
         "try_decimal" => Unary(TryDecimal, args[0])
+        "try_number" => Unary(TryNumber, args[0])
         "decimal_divide" => {
           let obj = @decode.open_object(body).unwrap()
           let mode = @decode.text(@decode.lookup(obj, "rounding").unwrap()).unwrap()
@@ -1171,6 +1197,8 @@ fn lower_typed_expression_measured(
               source: body,
               location: @syntax.origin(syntax, body).unwrap(),
               uses_veca: false,
+              text_bound: None,
+              text_bounds,
             }
           }
           let clauses = []
@@ -1187,6 +1215,8 @@ fn lower_typed_expression_measured(
         contract,
         source: cursor,
         location: @syntax.origin(syntax, cursor).unwrap(),
+        text_bound: text_bounds.get(index),
+        text_bounds,
         uses_veca: match lowered {
           VectorScore(_, _, _) | VectorConcat(_) => true
           Unary(_, child) => child.uses_veca
@@ -1310,4 +1340,76 @@ fn lower_membership_literal(
     expression_fail(node.source, MissingTypeAnnotation)
   }
   value
+}
+
+///|
+/// Read the original checked runtime bound retained at this exact occurrence.
+/// It is neither an operational Host admission nor a completed preflight.
+pub fn expression_text_bound(
+  value : Expression,
+) -> @context.TextBoundResolution? {
+  value.text_bound
+}
+
+///|
+fn original_expression_text_bound(
+  bound : BoundPrepared,
+  step : Int,
+  typed : @typing.TypedExpression,
+  obligation : @typing.Obligation,
+  budget : ExpressionBudget,
+) -> @context.TextBoundResolution? raise ExpressionStop {
+  guard bound.expression_context is Some((closure, stage)) else { return None }
+  let identity = @context.expression_closure_identity(closure)
+  for i in 0..<@context.expression_closure_count(closure) {
+    expression_spend(budget, @syntax.tree(@typing.expression(typed)))
+    let entry = @context.expression_closure_at(closure, i).unwrap()
+    if @context.validation_site_location(entry.site).0 != stage {
+      continue
+    }
+    let requirement = @context.validation_site_requirement(entry.site)
+    if requirement.step != step ||
+      !physical_equal(requirement.expression, typed) ||
+      requirement.obligation.node_index != obligation.node_index ||
+      requirement.obligation.kind != obligation.kind {
+      continue
+    }
+    if @context.program_identity_producer_is_local(
+        identity,
+        stage,
+        requirement.visit,
+      )
+      is Some(true) &&
+      @context.program_identity_producer_at(identity, stage, requirement.visit)
+      is Some(pipeline) &&
+      physical_equal(bound.prepared.owner, pipeline) &&
+      entry.resolution is @context.Envelope(original) {
+      return Some(original)
+    }
+  }
+  None
+}
+
+///|
+/// The index belongs to this original typed expression, not a serialized node.
+/// All lowered children share the same immutable private resolution map.
+pub fn expression_text_bound_at(
+  value : Expression,
+  node_index : Int,
+) -> @context.TextBoundResolution? {
+  guard @typing.node_at(value.typed_owner, node_index) is Some(node) &&
+    @decode.tree_index(
+      @syntax.tree(@typing.expression(value.typed_owner)),
+      node.source,
+    )
+    is Some(index) else {
+    return None
+  }
+  value.text_bounds.get(index)
+}
+
+///|
+/// Constant-time inventory; no detached resolution array is allocated.
+pub fn expression_text_bound_count(value : Expression) -> Int {
+  value.text_bounds.length()
 }

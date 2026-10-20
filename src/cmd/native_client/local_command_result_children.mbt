@@ -14,6 +14,17 @@ fn LocalCommandBusinessOriginal::close_result_children(
       Ok(_) => ()
     }
   }
+  if self.result_material is Some(receiver) {
+    match receiver.close() {
+      Err(issue) => {
+        if self.result_cleanup_issue is None {
+          self.result_cleanup_issue = Some(issue)
+        }
+        return Err(CommandBusinessResult(issue))
+      }
+      Ok(_) => ()
+    }
+  }
   if self.result_sink is Some(sink) {
     match sink.close() {
       Err(issue) => {
@@ -41,6 +52,7 @@ fn LocalCommandBusinessOriginal::close_result_children(
   // Both Result close entrances return only after the original Store return.
   // Keep even closed aliases until that acknowledgement; no poll/receipt or
   // payload reopen is performed by this cleanup path.
+  self.result_material = None
   self.result_sink = None
   self.result_session = None
   self.result_service = None

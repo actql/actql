@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {loadExplorerAssets} from './assets.mjs';
+import {gatewayLimits} from './gateway.mjs';
 import {startExplorer} from './launcher.mjs';
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 
@@ -21,7 +22,7 @@ test('the installed loader admits actual frozen SPA bytes inside the existing as
   const script = assets.get(scripts[0][1]);
   assert(script); assert.match(script.body.toString(), /Read Plan/u);
   assert(!script.body.toString().includes('/@vite/client'));
-  assert([...assets.values()].reduce((n, a) => n + a.body.length, 0) < 2 * 1024 * 1024);
+  assert([...assets.values()].reduce((n, a) => n + a.body.length, 0) <= gatewayLimits.assetBytes);
 });
 
 test('a built viewer closes its server without closing, cancelling or submitting on the borrowed Client', async t => {
@@ -59,6 +60,19 @@ test('the frozen inventory refuses replaced bytes, duplicate paths and escaping 
     version: 'actql-explorer-assets/0.1', assets: entries}));
   const {loadExplorerAssets: load} = await import(`file://${directory}/assets.mjs`);
   await manifest([item]); assert.equal((await load()).size, 1);
+  const exact = Buffer.alloc(gatewayLimits.assetBytes, 0x61);
+  await writeFile(join(directory, 'dist/index.html'), exact);
+  await manifest([{...item, bytes: exact.length, sha256: hash(exact)}]);
+  assert.equal((await load()).get('/index.html').body.length, gatewayLimits.assetBytes);
+  const over = Buffer.concat([exact, Buffer.from('x')]);
+  await writeFile(join(directory, 'dist/index.html'), over);
+  await manifest([{...item, bytes: over.length, sha256: hash(over)}]);
+  await assert.rejects(load(), {code: 'ExplorerInvalidBuiltAssets'});
+  await writeFile(join(directory, 'dist/assets.json'), Buffer.alloc(16385, 0x20));
+  await assert.rejects(load(), {code: 'ExplorerInvalidBuiltAssets'});
+  await manifest([item, ...Array.from({length: 32}, (_, n) => ({...item, path: `/assets/file${n}.js`}))]);
+  await assert.rejects(load(), {code: 'ExplorerInvalidBuiltAssets'});
+  await manifest([item]);
   await writeFile(join(directory, 'dist/index.html'), Buffer.from('x'.repeat(original.length)));
   await assert.rejects(load(), {code: 'ExplorerInvalidBuiltAssets'});
   await writeFile(join(directory, 'dist/index.html'), original);

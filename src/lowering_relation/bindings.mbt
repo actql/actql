@@ -6,6 +6,8 @@ struct BoundPrepared {
   bindings : @parameter.BoundValues?
   by_name : Map[String, @value.CheckedValue]
   expression_profiles : ExpressionProfileAdmission
+  expression_context : (@context.ProgramExpressionClosure, Int)?
+  text_time_policy : @text_policy.Policy?
 }
 
 ///|
@@ -53,6 +55,8 @@ pub fn bind_parameters(
     bindings,
     by_name: resolved.0,
     expression_profiles,
+    expression_context: None,
+    text_time_policy: None,
   })
 }
 
@@ -138,4 +142,79 @@ pub fn parameter_value(
   name : String,
 ) -> @value.CheckedValue? {
   value.by_name.get(name)
+}
+
+///|
+/// Retain the checked Program's original expression resolutions for one local
+/// Stage. Equal source text, schemas or Parameters from another check do not
+/// establish this association. Runtime checks and fragment admission remain.
+pub fn bind_program_expression_closure(
+  bound : BoundPrepared,
+  closure : @context.ProgramExpressionClosure,
+  stage : Int,
+  max_work : Int,
+) -> Result[BoundPrepared, BindingIssue] {
+  let source = @pipeline.source(bound.prepared.owner)
+  if max_work < 0 {
+    return Err({ kind: InvalidBindingLimits, source, })
+  }
+  let identity = @context.expression_closure_identity(closure)
+  guard @context.program_identity_stage_at(identity, stage) is Some(selected) &&
+    @context.program_identity_producer_count(identity, stage) is Some(count) &&
+    bound.bindings is Some(values) &&
+    physical_equal(
+      values,
+      @parameter_refs.bound_values(
+        @context.stage_identity_parameter_values(selected),
+      ),
+    ) else {
+    return Err({ kind: BindingOwnerMismatch, source, })
+  }
+  if count >= max_work {
+    return Err({ kind: BindingBudgetExceeded, source, })
+  }
+  let mut found = false
+  for visit in 0..<count {
+    if @context.program_identity_producer_is_local(identity, stage, visit)
+      is Some(true) &&
+      @context.program_identity_producer_at(identity, stage, visit)
+      is Some(pipeline) &&
+      physical_equal(bound.prepared.owner, pipeline) {
+      found = true
+    }
+  }
+  if !found {
+    return Err({ kind: BindingOwnerMismatch, source, })
+  }
+  let requirements = @context.expression_closure_count(closure)
+  if requirements > max_work - count - 1 {
+    return Err({ kind: BindingBudgetExceeded, source, })
+  }
+  let mut text_time_policy = None
+  for i in 0..<requirements {
+    let entry = @context.expression_closure_at(closure, i).unwrap()
+    if @context.validation_site_location(entry.site).0 != stage {
+      continue
+    }
+    let requirement = @context.validation_site_requirement(entry.site)
+    if @context.program_identity_producer_is_local(
+        identity,
+        stage,
+        requirement.visit,
+      )
+      is Some(true) &&
+      @context.program_identity_producer_at(identity, stage, requirement.visit)
+      is Some(pipeline) &&
+      physical_equal(bound.prepared.owner, pipeline) &&
+      entry.resolution is @context.Envelope(original) {
+      let policy = @environment.text_time_policy(
+        @context.text_bound_policy(original),
+      )
+      if text_time_policy is Some(prior) && !physical_equal(prior, policy) {
+        return Err({ kind: BindingOwnerMismatch, source, })
+      }
+      text_time_policy = Some(policy)
+    }
+  }
+  Ok({ ..bound, expression_context: Some((closure, stage)), text_time_policy, })
 }

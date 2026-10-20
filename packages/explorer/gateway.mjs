@@ -12,7 +12,7 @@ import {readRunObservation} from '@actql/explorer-ui/run-observation';
 // These are presentation/transport ceilings, not new execution reservations.
 export const gatewayLimits = Object.freeze({bodyBytes: 65536, replyBytes: 262144,
   bodyDepth: 64, bodyNodes: 10000, inFlight: 4, assets: 32,
-  assetBytes: 2 * 1024 * 1024, sessionMs: 300000, bootstrapMs: 60000,
+  assetBytes: 4 * 1024 * 1024, sessionMs: 300000, bootstrapMs: 60000,
   requestMs: 15000});
 const cookieName = 'actql_explorer_session';
 const token = () => randomBytes(32).toString('base64url');

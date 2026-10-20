@@ -85,10 +85,11 @@ fn retry_holder_cleanup_custody(original : HolderCleanupCustody) -> Bool {
     match step {
       5 => custody.environment.journal.close()
       6 =>
-        // Missing is not a fabricated release ACK, including after an unknown
-        // commit. Keep the exact original holding/Store for reconciliation.
-        custody.environment.bundles.release(custody.environment.process_hold_id)
-        is Ok(true)
+        holder_runtime_process_hold_released(
+          custody.environment.bundles.release(
+            custody.environment.process_hold_id,
+          ),
+        )
       7 => custody.environment.bundles.close() is Ok(_)
       8 =>
         if custody.slot_close_unknown {
@@ -120,11 +121,20 @@ fn holder_cleanup_caller_read_current(
     ) {
     (Some(operation), Some(current)) =>
       @site.site_operation_available(operation) && current()
+    (None, Some(current)) if resources.effect_host_caller_ordinary => current()
     (None, None) =>
       match resources.effect_host_setup.val {
         Some(scope) =>
-          scope.caller_operation is Some(operation) &&
-          @site.site_operation_available(operation) &&
+          (match scope.ordinary {
+            Some(_) =>
+              scope.profile is None &&
+              scope.caller_operation is None &&
+              scope.read_domain is None &&
+              scope.read_parent is None
+            None =>
+              scope.caller_operation is Some(operation) &&
+              @site.site_operation_available(operation)
+          }) &&
           scope.current_binding is Some(current) &&
           current()
         None => false
@@ -211,6 +221,7 @@ fn finish_holder_cleanup_lifetime(
     original_failure,
   )
   resources.effect_host_caller_current = None
+  resources.effect_host_caller_ordinary = false
   let operation = resources.effect_host_caller_operation
   resources.effect_host_caller_operation = None
   (operation, failure)

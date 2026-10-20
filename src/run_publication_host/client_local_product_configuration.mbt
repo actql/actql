@@ -520,6 +520,7 @@ fn product_assemble_originals(
           settings["run_policy_profile_file"] = Json::string("profile.json")
           settings["installation_files"] = product_texts([
             "read.json", "run.json", "retention.json", "store.json", "profile.json",
+            "material-read.json",
           ])
         } else {
           guard native.get("result_read") is Some(Object(read)) else {
@@ -543,6 +544,32 @@ fn product_assemble_originals(
       (
         "profile.json",
         @utf8.encode(client_local_run_policy_profile_wire(profile)),
+      ),
+    )
+    // Independent initial Material selection. Preserve the stdout original's
+    // bytes/CID and its existing saved Run-policy identity unchanged.
+    guard originals.iter().find_first(entry => entry.0 == "read.json")
+      is Some((_, read_bytes)) else {
+      return Err(ConfigurationLimit)
+    }
+    let material_text = @utf8.decode(read_bytes) catch {
+      _ => return Err(ConfigurationLimit)
+    }
+    let material = @json.parse(material_text) catch {
+      _ => return Err(ConfigurationLimit)
+    }
+    guard material is Object(root) &&
+      root.get("native") is Some(Object(native)) &&
+      native.get("result_read") is Some(Object(read)) else {
+      return Err(ConfigurationLimit)
+    }
+    read["sink"] = Json::string("material")
+    read["purpose"] = Json::string("cli-table")
+    read["formats"] = product_texts(["json"])
+    originals.push(
+      (
+        "material-read.json",
+        @utf8.encode(product_require(product_wire(material))),
       ),
     )
   }

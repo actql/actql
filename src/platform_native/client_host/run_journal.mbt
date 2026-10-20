@@ -202,7 +202,12 @@ fn read_run_record_in_mode(
     return Err(CustodyLost)
   }
   if run_observation_originals is Some(wire) &&
-    read_native_run_observation_originals(wire, definition) is Err(_) {
+    read_native_run_observation_originals(
+      wire,
+      definition,
+      program_cid=Some(@host.client_request_program_cid(request)),
+    )
+    is Err(_) {
     return Err(CustodyLost)
   }
   match run_record_body(record) {

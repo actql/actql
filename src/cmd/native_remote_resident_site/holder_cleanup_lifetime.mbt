@@ -22,6 +22,17 @@ fn holder_cleanup_progress_frame(line : String) -> Bool {
 }
 
 ///|
+/// This result comes from the same Runtime Store's release operation. Both
+/// success values confirm that the original holding is absent after its
+/// verification Reader is closed and the current catalog is validated.
+/// An unavailable Store or uncertain release remains pending.
+fn holder_runtime_process_hold_released(
+  result : Result[Bool, @bundle.NativeRuntimeBundleStoreIssue],
+) -> Bool {
+  result is Ok(_)
+}
+
+///|
 /// Keep the exact opaque caller value alive across the existing channel and
 /// signal waits. EOF/read failure disables further reads; it is not retirement.
 /// Only the original Owner close pass can return this value as closed.

@@ -92,10 +92,27 @@ fn command_preparation_read_cleanup_kind(
 ///|
 fn[T] command_preparation_result(
   result : Result[T, LocalCommandPreparationIssue],
+  stage? : String? = None,
 ) -> T raise ClientStop {
   match result {
     Ok(value) => value
-    Err(_) => stop("LocalCommandPreparationUnavailable")
+    // read_command retains the original public ClientStop across its physical
+    // return. Preserve that application failure after the return completes;
+    // it must not become an unrelated preparation/supplier error.
+    Err(CommandApplication(message)) => stop(message)
+    Err(issue) => {
+      // Closed caller-owned labels and the existing error-family projection
+      // identify the failed boundary without exposing paths, keys or messages.
+      let message = match stage {
+        None => "LocalCommandPreparationUnavailable"
+        Some(name) =>
+          "LocalCommandPreparationUnavailable:" +
+          name +
+          ":" +
+          command_preparation_cleanup_kind(issue)
+      }
+      stop(message)
+    }
   }
 }
 
@@ -111,6 +128,12 @@ fn local_command_preparation_operation_selected(
   operation == "check" ||
   operation == "explain" ||
   operation == "adopt" ||
+  (
+    matches.subcommand is Some((selected, child)) &&
+    selected == operation &&
+    local_quick_query_requested(selected, child) &&
+    business_selected
+  ) ||
   local_checkpoint_action_selected(matches, operation) ||
   (
     operation == "status" &&
@@ -158,9 +181,9 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   }
   // Project discovery was already inside this Read. Suspend only this scope
   // while the Runtime performs its own original-current brackets.
-  command_preparation_result(self.leave())
+  command_preparation_result(self.leave(), stage=Some("runtime-return"))
   let runtime = local_packaged_runtime_from_physical(physical)
-  command_preparation_result(self.enter())
+  command_preparation_result(self.enter(), stage=Some("runtime-reenter"))
   // Required HOME/path decoding and selection now allocate in the same
   // consuming Read; an explicit directory never obtains the HOME workspace.
   let location = local_product_original_location(optional(matches, "state-dir"))
@@ -169,9 +192,12 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   } else {
     location.parent_path + "/" + location.directory_name
   }
-  let originals = if operation == "adopt" {
+  let (_, selected_child) = matches.subcommand.unwrap()
+  let quick_query = local_quick_query_requested(operation, selected_child)
+  let originals = if operation == "adopt" || quick_query {
     let parent = command_preparation_result(
       self.select_product_parent(location.parent_path),
+      stage=Some("product-parent"),
     )
     let ownership = parent
       .bootstrap_parent_ownership()
@@ -207,7 +233,12 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   }
   command_preparation_result(
     self.stage_product(location.parent_path, location.directory_name, originals),
+    stage=Some("product-stage"),
   )
+  // Selection is remembered only after the original excluded Product capture
+  // staged these initial bodies. The Native Session still proves first-key
+  // eligibility independently; restored/missing adopted state cannot rekey.
+  self.initial_product_selected = originals is Some(_)
   let original_runtime = text_file(configuration_root, "runtime.json", 65536L)
   local_product_require_same_runtime_wire(
     original_runtime,
@@ -223,6 +254,7 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   }
   command_preparation_result(
     self.stage_product(location.parent_path, location.directory_name, None),
+    stage=Some("product-current"),
   )
   if optional(matches, "input-root") is None {
     matches.values["input-root"] = [
@@ -275,8 +307,13 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
         configuration_files: selected_files,
         managed_root_path: Some(settings.managed_root),
       },
-      operation == "adopt",
+      operation == "adopt" ||
+      (
+        local_quick_query_requested(operation, child) &&
+        self.initial_product_selected
+      ),
     ),
+    stage=Some("adoption-open"),
   )
   let expected = [
     (name, @utf8.encode(configuration)),
@@ -291,10 +328,17 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
       stop("LocalConfigurationChanged")
     }
   }
-  // Only the actual explicit initializer may request its existing first-key
-  // branch. The Session independently decides eligibility and durable custody.
-  let initialize_signing = operation == "adopt" &&
-    child.flags.get("initialize-signing").unwrap_or(false)
+  // Trusted literal quick queries may initialize a genuinely absent default
+  // Host through the same original Session. This selects physical setup only,
+  // not Reviewer registration, Effect approval or missing-state repair.
+  let initialize_signing = (
+      operation == "adopt" &&
+      child.flags.get("initialize-signing").unwrap_or(false)
+    ) ||
+    (
+      local_quick_query_requested(operation, child) &&
+      self.initial_product_selected
+    )
   command_preparation_result(
     self.open_adopted_journal(initialize_signing, {
       initialize_signing,
@@ -302,6 +346,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
       max_records: settings.record_limit,
       max_snapshot_bytes: settings.snapshot_bytes,
     }),
+    stage=Some("journal-open"),
   )
   |> ignore
   let crypto = self.inner_library.unwrap()
@@ -318,9 +363,19 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             capture=Some(capture),
           )
         } else if operation == "explain" {
-          local_check_context(host, crypto, name, capture=Some(capture)).explain(
-            input_root, child,
-          )
+          if optional(child, "run") is Some(_) {
+            local_saved_run_explain(
+              host,
+              settings,
+              crypto,
+              child,
+              capture=Some(capture),
+            )
+          } else {
+            local_check_context(host, crypto, name, capture=Some(capture)).explain(
+              input_root, child,
+            )
+          }
         } else if operation == "approve" || operation == "reject" {
           local_checkpoint_answer_by_id(
             host,
@@ -338,6 +393,13 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             input_root,
             child,
             capture=Some(capture),
+          )
+        } else if local_quick_query_requested(operation, child) {
+          let runtime = preparation_runtime.unwrap_or_else(() => {
+            stop("LocalBusinessOriginalUnavailable")
+          })
+          self.execute_original_quick_query(
+            host, capture, settings, name, runtime, input_root, operation, child,
           )
         } else if operation == "result" {
           let runtime = preparation_runtime.unwrap_or_else(() => {

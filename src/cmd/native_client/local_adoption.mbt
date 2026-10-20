@@ -79,7 +79,7 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
   }
   let installation_files : Array[String] = []
   if @decode.lookup(fields, "installation_files") is Some(files) {
-    guard @decode.elements(files) is Ok(files) && files.length() <= 6 else {
+    guard @decode.elements(files) is Ok(files) && files.length() <= 7 else {
       stop("InvalidLocalInstallationSelection")
     }
     for file in files {
@@ -187,7 +187,10 @@ fn execute_native_local_adoption(
   // physical libraries. The adoption Owner rechecks all original generations.
   let selected_root = match preparation {
     Some(original) =>
-      command_preparation_result(original.select_configuration_root(root))
+      command_preparation_result(
+        original.select_configuration_root(root),
+        stage=Some("configuration-root"),
+      )
     None =>
       @local_filesystem.open_private_root(root).unwrap_or_else(() => {
         stop("LocalConfigurationRootUntrusted")

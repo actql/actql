@@ -92,23 +92,14 @@ class LocalScopedComposition(unittest.TestCase):
         self.assertEqual(planned[2][1:], self.commands[2][1:])
         for before, after in zip(self.commands[3:], planned[3:]):
             original = [p.replace('$MOON_HOME', str(self.home)) for p in before[1:]]
-            selected = after[6:]  # Only the common header/SDK/allocator prefix is inserted.
+            selected = after[7:]  # Common prefix plus the ordinary managed-value mode.
             if before == self.commands[-1]:
                 exports = ['-Wl,-exported_symbol,_' + symbol
                            for symbol in MODULE.LOCAL_COMPONENT_PROVIDER_EXPORTS]
                 self.assertEqual(selected[-len(exports):], exports)
                 selected = selected[:-len(exports)]
-                self.assertEqual(selected[-1], MODULE.LOCAL_INITIAL_ENTRY_ANCHOR)
-                selected = selected[:-1]
-                archive = str(self.emission / 'native/release/build/cmd/native_client/libnative_client-0123456789abcdef.a')
-                original.remove(archive)
-                original.insert(original.index(str(self.home / 'lib/libmoonbitrun.o')), archive)
             if before[-1].endswith('/stdout_stub.c'):
                 self.assertEqual(selected[-1], '-DACTQL_NATIVE_CLIENT_SOURCE_SHA="' + self.source + '"')
-                selected = selected[:-1]
-                self.assertEqual(selected[-1], '-DACTQL_NATIVE_COMMAND_INITIAL_OS_RECIPE=1')
-                selected = selected[:-1]
-                self.assertEqual(selected[-1], '-DACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY=1')
                 selected = selected[:-1]
             elif before[-1].endswith('/bootstrap_stub.c'):
                 selected = selected[:-1]
@@ -116,11 +107,11 @@ class LocalScopedComposition(unittest.TestCase):
                 original[-1] = str(self.allocator / Path(before[-1]).name)
             self.assertEqual(selected, original)
 
-    def test_local_entry_archive_precedes_allocator_without_whole_archive(self):
+    def test_local_entry_keeps_original_link_order_without_startup_anchor(self):
         final = self.plan()[-1]
         archive = str(self.emission / 'native/release/build/cmd/native_client/libnative_client-0123456789abcdef.a')
-        self.assertLess(final.index(archive), final.index(str(self.home / 'lib/libmoonbitrun.o')))
-        self.assertEqual(final.count(MODULE.LOCAL_INITIAL_ENTRY_ANCHOR), 1)
+        self.assertGreater(final.index(archive), final.index(str(self.home / 'lib/libmoonbitrun.o')))
+        self.assertFalse(any('_actql_native_client_capture_command_entry' in value for value in final))
         self.assertFalse(any('force_load' in value or 'all_load' in value for value in final))
 
     def test_missing_original_initialization_members_refuse(self):
@@ -210,9 +201,13 @@ class LocalScopedComposition(unittest.TestCase):
         self.assertIn('./src/cmd/native_client/stdout_stub.c', pins[0][0])
         self.assertEqual(pins[0][1], '-DACTQL_NATIVE_CLIENT_SOURCE_SHA="' + self.source + '"')
         operational = [c for c in planned if '-DACTQL_NATIVE_COMMAND_OPERATIONAL_ENTRY=1' in c]
-        self.assertEqual(operational, [pins[0][0]])
+        self.assertEqual(operational, [])
         recipe = [c for c in planned if '-DACTQL_NATIVE_COMMAND_INITIAL_OS_RECIPE=1' in c]
-        self.assertEqual(recipe, [pins[0][0]])
+        self.assertEqual(recipe, [])
+        c_steps = [c for c in planned if c[0] == str(self.clang)]
+        self.assertTrue(c_steps)
+        for command in c_steps:
+            self.assertEqual(command.count('-DACTQL_RUNTIME_MANAGED_VALUES=1'), 1)
 
     def test_missing_malformed_or_duplicate_local_source_pin_refuses(self):
         output = '\n'.join(shlex.join(c) for c in self.commands)

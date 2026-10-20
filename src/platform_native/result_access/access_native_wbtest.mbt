@@ -44,6 +44,7 @@ fn native_access_fixture(
   store : @store.Store,
   store_authority_cid : String,
   token : String,
+  checked_schema? : String? = None,
 ) -> AccessPublicationFixture {
   let program_cid = native_access_cid(token + "-program")
   let template = native_access_evidence(
@@ -143,7 +144,9 @@ fn native_access_fixture(
     @publication.prepare_result_definition(program_cid, "answer").unwrap(),
   )
   let row_wire = "[{\"value\":7}]"
-  let schema_wire = "{\"value\":{\"nullable\":false,\"type\":\"integer\"}}"
+  let schema_wire = checked_schema.unwrap_or(
+    "{\"value\":{\"nullable\":false,\"type\":\"integer\"}}",
+  )
   let rows_source = @source.parse_json(row_wire, {
     max_input_bytes: 65536,
     max_nodes: 4096,

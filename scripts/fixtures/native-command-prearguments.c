@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
     }
   }
   actql_native_client_capture_command_entry();
-  assert(actql_native_command_platform_current() == NULL);
+  assert((actql_native_command_platform_current() != NULL) == (status == 0));
   unsigned char source[40] = {0}, context[128] = {0};
   if (status == 0) {
     int storage = 0;

@@ -328,6 +328,12 @@ fn local_project_apply_selection(
       matches.values["mode"] = ["local"]
     }
     matches.values["state-dir"] = [project.state_directory]
+  } else if local_project_default_local_candidate(matches) &&
+    matches.subcommand is Some((operation, child)) &&
+    local_quick_query_requested(operation, child) {
+    // A literal public query selects the ordinary Local Host even outside a
+    // project. Explicit Remote/connection choices never enter this branch.
+    matches.values["mode"] = ["local"]
   }
 }
 

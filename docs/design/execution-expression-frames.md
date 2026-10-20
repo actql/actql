@@ -218,3 +218,38 @@ work; these are not physical byte admission. Both operands, temporary integer
 limbs and powers, formatter output, result and root aliases can overlap under
 the existing phase. Scratch release is distinct from logical-root retirement
 and physical cleanup acknowledgement.
+
+### Original String TRY_NUMBER occurrence
+
+The ordinary checked Program preparation binds its local Stage's opaque
+expression closure to the same prepared pipeline and original Parameter binding.
+An equal source document, contract, profile CID or separately checked binding
+cannot replace that original. Empty closures retain the previous preparation
+path. Lowering discharges only the String TRY_NUMBER envelope occurrence it can
+find at the same typed node and semantic step; unsupported envelope operations
+remain pending at their existing boundary.
+
+The lowered expression retains its original text bound and policy. Fragment
+construction projects every such occurrence from those same typed roots, with
+source and machine-node pointers, argument and input-evidence CIDs, semantic
+step and original demand path. It emits the existing closed envelope and its
+self-CID, sorted by UTF-16 source pointer. Admission regenerates the complete
+array; a matching digest or omitted envelope cannot supply another occurrence.
+The retained request includes that same complete policy, without issuing Host
+capacity or operation authority.
+
+The existing expression frame demands the original child once. A demanded
+String first receives a complete scalar/UTF-8 extent check against its retained
+input bound, including text that is invalid at its first character. It then
+uses the existing Number lexeme and finite Number reader. Only conversion-domain
+failure becomes NULL; child, control, input-bound, engine and root failures keep
+their original error paths. An undemanded lazy branch does no input preflight.
+The admitted Number identity branch remains an ordinary scalar operation and
+needs no String parsing envelope.
+
+The closure and selected pipeline/Parameter aliases, node-resolution map,
+policy/input/output bound chain, canonical root and argument trees, envelope
+writers/hash/cursors and emitted artifact overlap under the existing preparation
+and execution phases. String operands, parser workspace, result and root aliases
+remain subject to those owners' logical and physical limits. Dropping these
+references is neither a physical cleanup acknowledgment nor numerical funding.

@@ -74,7 +74,10 @@ fn text_file(
   maximum : Int64,
 ) -> String raise ClientStop {
   if command_preparation_invocation.val is Some(original) {
-    return command_preparation_result(original.text_file(root, name, maximum))
+    return command_preparation_result(
+      original.text_file(root, name, maximum),
+      stage=Some("configuration-read"),
+    )
   }
   if initial_crypto_invocation.val is Some(original) && original.scope_open {
     return local_initial_crypto_text_file(original, root, name, maximum)
@@ -826,10 +829,15 @@ fn command() -> @argparse.Command {
         "explain",
         flags=[@argparse.FlagArg("json")],
         positionals=[
-          @argparse.PositionArg("program", conflicts_with=["program-file"]),
+          @argparse.PositionArg("program", conflicts_with=[
+            "program-file", "run",
+          ]),
         ],
         options=[
-          @argparse.OptionArg("program-file", conflicts_with=["program"]),
+          @argparse.OptionArg("program-file", conflicts_with=["program", "run"]),
+          @argparse.OptionArg("run", conflicts_with=[
+            "program", "program-file", "format", "parameters-file", "params", "parameter-declarations-file",
+          ]),
           @argparse.OptionArg("format"),
           @argparse.OptionArg("parameters-file", conflicts_with=["params"]),
           @argparse.OptionArg("params", conflicts_with=["parameters-file"]),
@@ -1427,8 +1435,8 @@ fn execute_and_write_native_reply(
 
 ///|
 fn main {
-  // Join the bounded raw input retained by the actual pre-module entry.
-  // Replaced argv cannot be adopted after the original startup observation.
+  // Bound and retain ordinary process input before constructing the parser.
+  // No pre-main provenance or private libc state is required.
   // These selected Darwin input ceilings include argv0 and terminal bytes;
   // they are not the initial-control or physical-capacity admission itself.
   // Help/version and argument failure acquire no Host/Root/Read resources.
@@ -1476,11 +1484,17 @@ fn main {
       Some(original) => original.cleanup_stage
       None => "original-retained"
     }
+    let observed = match (issue, command_preparation_invocation.val) {
+      (CommandPair(@initial_arena.Read(_)), Some(original)) =>
+        original.cleanup_read_observation()
+      _ => ""
+    }
     fail_command(
       "LocalCommandPreparationCleanupPending: " +
       stage +
       ": " +
-      command_preparation_cleanup_kind(issue),
+      command_preparation_cleanup_kind(issue) +
+      observed,
     )
   }
   if !crypto_closed {

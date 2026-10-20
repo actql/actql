@@ -1,10 +1,18 @@
+import {gunzipSync} from 'node:zlib';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {updateCurrentTimestampContracts, updateQueryTimeScalarLaw} from './current-timestamp-expression-contract.mjs';
 
-const read = path => JSON.parse(readFileSync(path, 'utf8'));
+const readCurrent = path => JSON.parse(readFileSync(path, 'utf8'));
+// Exact division is a later semantic extension. History assertions retain the
+// complete actual accepted successor before that extension; current scope
+// admission and mutation checks still read current contracts.
+const divisionPredecessor = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/decimal-division-exact/predecessor.json.gz')));
+let historicalBoundary = false;
+const read = path => historicalBoundary && Object.hasOwn(divisionPredecessor.bodies, path)
+  ? structuredClone(divisionPredecessor.bodies[path]) : readCurrent(path);
 // Independent UTF-16 key order and canonical preimages, never compiler output.
 const canonical = value => Array.isArray(value) ? '[' + value.map(canonical).join(',') + ']'
   : value !== null && typeof value === 'object' ? '{' + Object.keys(value).sort()
@@ -38,6 +46,8 @@ function strip(value) {
 }
 
 test('query time retains complete preceding expression, scalar, containing schemas and grammar identities', () => {
+  historicalBoundary = true;
+  try {
   assert.equal(retained.source_revision, '68b63f0aad3d4fcf831c180ba3eed9d4e08490de');
   const fixed = {
     expression_contract: 'sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35',
@@ -65,6 +75,7 @@ test('query time retains complete preceding expression, scalar, containing schem
     assert.notEqual(protocol.artifact_schema_cids[name], retained.artifact_schema_cids[name]);
   }
   assert.equal(protocol.artifact_registry_cid, cid(protocol.artifact_schemas));
+  } finally { historicalBoundary = false; }
 });
 
 test('query time and fixed intervals own their exact ten closed embeddings without changing previous alternatives', () => {
@@ -103,6 +114,8 @@ test('query time preflight refuses missing, duplicated and foreign expression sc
 });
 
 test('query time preserves date arithmetic and authority clocks under its separate original-Run law', () => {
+  historicalBoundary = true;
+  try {
   const scalar = read('spec/dependencies/aoa-rela-scalar-laws.json');
   const {query_time: rule, fixed_interval: interval, ...time} = scalar.time;
   assert.match(interval.amount, /original integral source token/u);
@@ -144,9 +157,12 @@ test('query time preserves date arithmetic and authority clocks under its separa
   assert.equal(cid(registry), before.aoa_contract.pipeline_registry_cid);
   prior.pipeline_registry_cid = cid(registry);
   assert.deepEqual(prior, before.aoa_contract);
+  } finally { historicalBoundary = false; }
 });
 
 test('query time changes only declared Stage and Program identity dependencies with complete old envelopes retained', () => {
+  historicalBoundary = true;
+  try {
   const history = read('scripts/fixtures/query-time-source/stage-predecessors.json');
   assert.equal(history.source_revision, retained.source_revision);
   assert.equal(history.expression_contract_cid, cid(before.expression_contract));
@@ -193,6 +209,7 @@ test('query time changes only declared Stage and Program identity dependencies w
     row.expected_cid = cid(envelope(next));
   }
   for (const name of names) assert.deepEqual(read(`portability/corpus/${name}.json`), next[name]);
+  } finally { historicalBoundary = false; }
 });
 
 test('query time retains fixed independent source and machine data preimages without a sampled value', () => {
