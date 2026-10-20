@@ -14,6 +14,7 @@ import {originalModelRawTransportPersistenceMatches, bindOriginalModelRawTranspo
 const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
   {code: 'ClientDispatchCleanupPending'});
 const activeOperations = new WeakMap();
+const originalOperations = new WeakSet();
 const cleanedOriginalReads = new WeakSet();
 const isPromise = utilTypes.isPromise;
 const observePromise = Promise.prototype.then;
@@ -83,6 +84,14 @@ export function startCompleteInferObservation({moon, operations, ledger, maxSlot
     if (value === undefined) throw new TypeError('ForeignInferOperation');
     return value;
   });
+  if (operations.some(operation => originalOperations.has(operation))) {
+    if (operations.length !== 1 || ledger !== undefined || content !== undefined) {
+      throw new TypeError('InferOriginalPublicationCapacityUnavailable');
+    }
+    // The actual operation retains its original opaque publication borrow.
+    // A Source Ledger or a matching caller object cannot select that issuer.
+    return operations[0].startObservation({maxSlots, maxWireBytes, maxWork});
+  }
   if (content !== undefined) {
     return content.control.startCheckedClientContentInferObservation(content.compiled,
       active, content.generations, ledger, {maxSlots, maxWireBytes, maxWork});
@@ -1048,6 +1057,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         signal: resultSignal, quantum}),
   });
   activeOperations.set(operation, active);
+  if (originalConsumer !== undefined) originalOperations.add(operation);
   try {
     // Input construction already owns Core resources. Transfer that exact
     // owner before any fallible binding, without granting permission to run.

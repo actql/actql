@@ -70,6 +70,15 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     for (const child of children) {
       const physical = child.capture?.custody ?? child.operation;
       if (physical !== undefined && !child.captureReleased) {
+        if (child.operation?.publicationCapacityPending?.()) {
+          // Real publication child/alias retirement precedes release of this
+          // exact borrow. Parent Model cleanup is pinned until both settle.
+          if (!await child.capture.custody.retirePublication() ||
+              !child.operation.releaseOriginalPublicationCapacity()) {
+            pending = true;
+            continue;
+          }
+        }
         const retry = child.captureCloseAttempted === true;
         child.captureCloseAttempted = true;
         const result = await (retry ? physical.cleanup() : physical.close());
@@ -281,7 +290,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   for (const child of children) await child.capture.persist();
   const calls = children.reduce((sum, child) => sum + child.capture.evaluationBundle().count, 0);
   issuance = startCompleteInferObservation({moon, operations: children.map(child => child.operation),
-    ledger: originalPreparation !== undefined ? input.ledger :
+    ledger: originalPreparation !== undefined ? undefined :
       checked(moon.clientProgramInferPublicationLedger(262144n + BigInt(calls * 128 + (children.length - 1) * 256), calls + 2)),
     maxSlots: calls, maxWireBytes: 16384, maxWork: calls + 2});
   while (!issuanceComplete) {
