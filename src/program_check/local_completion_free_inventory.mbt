@@ -1,6 +1,6 @@
 ///|
 priv enum LocalCompletionFreeAudit {
-  Complete(Int, @parameters.BoundValues?, Bool, Bool)
+  Complete(Int, @parameters.BoundValues?, Bool, Bool, Bool)
   ProfileNotInstalled
   CompletionObserved
 }
@@ -14,6 +14,67 @@ struct LocalCompletionFreeInventory {
   supplied_parameters : @parameters.BoundValues?
   explicit_cast : Bool
   checked_expressions : Bool
+  groups : Bool
+}
+
+///|
+// Audit the existing count and extrema reduction family. Ordered, collection and
+// numeric-policy reductions keep their separate completion/resource owners.
+// Returning a remaining budget never grants execution or validates an input row.
+fn audit_local_completion_free_group(
+  operation : @relation.CheckedOperation,
+  available : Int,
+) -> Int? {
+  guard @relation.group(operation) is Some(group) else { return None }
+  if @relation.group_has_additional_prefix(group) {
+    return None
+  }
+  let mut remaining = available
+  for index in 0..<@relation.group_key_count(group) {
+    if remaining <= 0 {
+      return None
+    }
+    remaining -= 1
+    let key = @relation.group_key_at(group, index).unwrap()
+    // The original ordinary Group owner retains each authored key cursor.
+    if !(@decode.view(key.source) is @decode.TextValue(_)) {
+      return None
+    }
+  }
+  for index in 0..<@relation.aggregate_count(group) {
+    if remaining <= 0 {
+      return None
+    }
+    remaining -= 1
+    let call = @relation.aggregate_at(group, index).unwrap()
+    match @relation.aggregate_function(call) {
+      Count | CountIf | Min | Max => ()
+      _ => return None
+    }
+    if @relation.aggregate_order_count(call) != 0 ||
+      @relation.aggregate_item_limit(call) is Some(_) ||
+      @relation.aggregate_byte_limit(call) is Some(_) ||
+      @relation.aggregate_fraction(call) is Some(_) ||
+      @relation.aggregate_delimiter(call) is Some(_) {
+      return None
+    }
+    match @relation.aggregate_argument(call) {
+      Rows => ()
+      Field(key) =>
+        if !(@decode.view(key.source) is @decode.TextValue(_)) {
+          return None
+        }
+      Expression(binding) =>
+        if binding < 0 || binding >= @relation.binding_count(operation) {
+          return None
+        }
+    }
+    if @relation.aggregate_filter(call) is Some(binding) &&
+      (binding < 0 || binding >= @relation.binding_count(operation)) {
+      return None
+    }
+  }
+  Some(remaining)
 }
 
 ///|
@@ -181,6 +242,7 @@ fn audit_local_completion_free_units(
   }
   let mut explicit_cast = false
   let mut checked_expressions = false
+  let mut groups = false
   let sources : Array[(Int, Int)] = []
   let mut roots = 0
   for unit in units {
@@ -222,6 +284,14 @@ fn audit_local_completion_free_units(
         @pipeline.Unary(operation) => {
           match @relation.operation(operation) {
             Filter | Select | Derive => ()
+            Group => {
+              guard audit_local_completion_free_group(operation, remaining)
+                is Some(left) else {
+                return ProfileNotInstalled
+              }
+              remaining = left
+              groups = true
+            }
             _ => return ProfileNotInstalled
           }
           for binding in 0..<@relation.binding_count(operation) {
@@ -284,6 +354,7 @@ fn audit_local_completion_free_units(
     supplied_parameters,
     explicit_cast,
     checked_expressions,
+    groups,
   )
 }
 
@@ -295,13 +366,20 @@ pub fn local_program_completion_free_inventory(
     return Err(ProfileNotInstalled)
   }
   match owner.local_completion_free_audit {
-    Complete(work, supplied_parameters, explicit_cast, checked_expressions) =>
+    Complete(
+      work,
+      supplied_parameters,
+      explicit_cast,
+      checked_expressions,
+      groups
+    ) =>
       Ok({
         owner,
         audited_work: work,
         supplied_parameters,
         explicit_cast,
         checked_expressions,
+        groups,
       })
     ProfileNotInstalled => Err(ProfileNotInstalled)
     CompletionObserved => Err(CompletionObserved)
@@ -345,4 +423,12 @@ pub fn local_completion_free_inventory_uses_checked_expressions(
   inventory : LocalCompletionFreeInventory,
 ) -> Bool {
   inventory.checked_expressions
+}
+
+///|
+/// Original audited Group metadata, not a caller-selected profile or permission.
+pub fn local_completion_free_inventory_uses_groups(
+  inventory : LocalCompletionFreeInventory,
+) -> Bool {
+  inventory.groups
 }
