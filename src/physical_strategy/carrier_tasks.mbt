@@ -348,6 +348,67 @@ fn carrier_segment_shape(
 }
 
 ///|
+/// Keep a single original Model execution through a checked intermediate
+/// Result, with an independently supported unary Relation suffix.
+fn infer_result_prefix_end(
+  graph : CheckedDAG,
+  stage : Int,
+  work : Ref[Int],
+) -> Int? raise CarrierWorkStop {
+  let prepared = @lower.bound_preparation(graph.owners[stage])
+  let count = @pipeline.step_count(@lower.pipeline(prepared))
+  let mut boundary = None
+  for step in 0..<count {
+    carrier_work(work)
+    guard @lower.node_at(prepared, step) is Some(node) else { return None }
+    match @lower.payload(node) {
+      @lower.Infer(_) => {
+        if boundary is Some(_) {
+          return None
+        }
+        boundary = Some(step)
+      }
+      @lower.Serialize(_) => return None
+      _ => ()
+    }
+  }
+  guard boundary is Some(infer) else { return None }
+  let mut terminal = count - 1
+  for result in graph.results {
+    carrier_work(work)
+    if result.task != stage {
+      continue
+    }
+    guard @ports.port_target(
+        @execution.managed_result_occurrence_port(result.occurrence),
+      )
+      is @pipeline.Step(step) &&
+      step >= infer else {
+      return None
+    }
+    terminal = Int::min(terminal, step)
+  }
+  if terminal == count - 1 {
+    return None
+  }
+  // The one Model operation stays in its original fused prefix. Only the
+  // already registered unary Relation suffix becomes independent tasks;
+  // no selected Model provider, repeated call, or substitute Result is made.
+  for step in (terminal + 1)..<count {
+    carrier_work(work)
+    guard @lower.node_at(prepared, step) is Some(node) &&
+      carrier_node_supports_selected_execution(node, work) &&
+      @lower.node_input_count(node) == 1 &&
+      @lower.node_accepts_managed_relation_view(node, 0) &&
+      @lower.node_input_target(node, 0) == Some(@pipeline.Step(step - 1)) &&
+      @carrier.kind(@lower.node_output_carrier(node)) == @carrier.RelationKind else {
+      return None
+    }
+  }
+  Some(terminal)
+}
+
+///|
 /// Split a mixed sequence at checked managed read boundaries. A prefix without
 /// standalone providers remains one fused task through its Relation bridge;
 /// later row operations use their own selected tasks.
@@ -420,6 +481,10 @@ fn carrier_segment_prefix_end(
   }
   if count < 2 {
     return None
+  }
+  if intermediate_result &&
+    infer_result_prefix_end(graph, stage, work) is Some(last) {
+    return Some(last)
   }
   // The registered family child and bounded row suffix share one chain owner.
   // Carrier-valued inputs and intermediate Result roots still use segmentation.

@@ -418,8 +418,7 @@ fn issue_client_infer_plan_graph_for_occurrence(
   let owner = occurrence.preparation
   let step = occurrence.step
   let task = occurrence.task
-  guard @lower.preparation_output_target(@lower.bound_preparation(owner))
-    is Some(@pipeline.Step(terminal)) &&
+  guard client_infer_occurrence_output_step(occurrence) is Some(terminal) &&
     terminal >= step &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @lower.payload(node) is @lower.Infer(infer) else {

@@ -873,10 +873,13 @@ pub fn bind_compute_suffix(
     ) else {
     return Err(InvalidAdvance)
   }
-  let full = @relation.generated_prepared_sequence(sequence)
   let count = @relation.generated_sequence_step_count(sequence)
   if count < 1 ||
-    count != @lower.sequence_count(full) - active.step - 1 ||
+    count !=
+    @publication_host.client_infer_occurrence_output_step(active.occurrence).unwrap_or(
+      -1,
+    ) -
+    active.step ||
     @local.local_bounded_relation_provider(
       active.limits.input,
       active.limits.measurement,

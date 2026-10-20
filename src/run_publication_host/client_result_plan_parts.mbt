@@ -43,6 +43,30 @@ fn issue_client_result_plan_parts(
   infer_output? : (ClientInferOccurrence, Int)? = None,
   serialization_output? : @lower.PreparedSerialization? = None,
 ) -> Result[ClientResultPlanParts, ClientResultPlanPartsIssue] {
+  if infer_output is Some((inference, selected)) {
+    // A direct root must not bypass the same original correspondence merely
+    // because its newly retained task output needs no field transformation.
+    guard client_infer_occurrence_matches(inference, owner) &&
+      @strategy.graph_result_task(owner.graph, result) == Some(inference.task) &&
+      @strategy.graph_result_occurrence(owner.graph, result) is Some(occurrence) &&
+      physical_equal(
+        @execution.managed_result_occurrence_owner(occurrence),
+        inference.preparation,
+      ) &&
+      selected >= inference.step &&
+      client_infer_occurrence_output_step(inference)
+      .map(last => selected <= last)
+      .unwrap_or(false) &&
+      @results.port_target(
+        @execution.managed_result_occurrence_port(occurrence),
+      ) ==
+      @pipeline.Step(selected) &&
+      @lower.node_at(@lower.bound_preparation(inference.preparation), selected)
+      is Some(node) &&
+      @lower.node_id(node) == producer_port else {
+      return Err(Root(RequiresResultTransformation))
+    }
+  }
   match
     issue_prepared_client_direct_result_root_for_output(
       owner, result, producer_node, producer_port, producer_contract, max_wire_bytes,

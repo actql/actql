@@ -1,5 +1,5 @@
 ///|
-test "Local selects the original whole INFER Unit and retains its Model owner" {
+fn exercise_original_local_infer_provider(retained_prefix : Bool) -> Unit raise {
   let source = infer_fixture_program
     .replace(
       old="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"}]",
@@ -13,6 +13,14 @@ test "Local selects the original whole INFER Unit and retains its Model owner" {
       old="\"from\":\"captured\",\"fields\":[\"id\",\"outcome\",\"value\"]",
       new="\"from\":\"projected\",\"fields\":[\"id\",\"outcome\"]",
     )
+  let source = if retained_prefix {
+    source.replace(
+      old="\"as\":\"projected\"}],",
+      new="\"as\":\"projected\"},{\"select\":[\"id\"],\"as\":\"later_effect_input\"}],",
+    )
+  } else {
+    source
+  }
   let prepared = fixture_prepared(source~)
   let occurrence = @publication_host.prepared_client_composed_infer_occurrence(
     prepared,
@@ -43,7 +51,15 @@ test "Local selects the original whole INFER Unit and retains its Model owner" {
     100000,
     10000,
   )
-  let sequence = generated.unwrap()
+  let sequence = if retained_prefix {
+    @relation.select_generated_sequence_range(
+      generated.unwrap(),
+      0,
+      @publication_host.client_infer_occurrence_output_step(occurrence).unwrap(),
+    ).unwrap()
+  } else {
+    generated.unwrap()
+  }
   let calls = Ref(0)
   let starts = Ref(0)
   let owner : Ref[Execution?] = Ref(None)
@@ -71,7 +87,11 @@ test "Local selects the original whole INFER Unit and retains its Model owner" {
       starts.val += 1
       let active = start_composed(
         occurrence,
-        call_identity_plan(prepared),
+        if retained_prefix {
+          call_identity_plan(prepared, occurrence=Some(occurrence))
+        } else {
+          call_identity_plan(prepared)
+        },
         prefix,
         inputs,
         provider,
@@ -239,9 +259,63 @@ test "Local selects the original whole INFER Unit and retains its Model owner" {
   assert_true(
     @relation.completed_cell(output, 0, 1) is Some(@relation.Text("ok")),
   )
+  if retained_prefix {
+    let sequences = @input.prepare_client_local_sequences(
+      prepared,
+      infer_fixture_registry,
+      infer_fixture_values,
+      None,
+      None,
+    ).unwrap()
+    assert_eq(sequences.length(), 2)
+    assert_eq(@relation.generated_sequence_step_count(sequences[0]), 4)
+    assert_eq(
+      @relation.generated_sequence_step_index_at(sequences[1], 0),
+      Some(4),
+    )
+    let suffix_child = @input.start_client_infer_suffix(
+      sequences[1],
+      [output],
+      limits.input,
+      limits.measurement,
+    ).unwrap()
+    let mut later = None
+    for _ in 0..<5000 {
+      match @local.advance_managed_provider(suffix_child, 1).unwrap() {
+        @local.Continue(..) => ()
+        @local.Complete(value, ..) => {
+          later = Some(value)
+          break
+        }
+        _ =>
+          abort(
+            "original selected suffix must complete without another Model call",
+          )
+      }
+    }
+    let later = later.unwrap()
+    assert_eq(@relation.completed_row_count(later), 2)
+    assert_eq(@relation.completed_column_count(later), 1)
+    assert_eq(@relation.completed_column_name(later, 0), Some("id"))
+    assert_true(
+      @relation.completed_cell(later, 0, 0) is Some(@relation.Text("a")),
+    )
+    assert_eq(calls.val, 2)
+    assert_true(@local.cleanup_managed_provider(suffix_child).unwrap())
+  }
   let held = capture_owner.val.unwrap()
   assert_true(!@local.cleanup_managed_provider(child).unwrap())
   assert_true(release_output(held))
   assert_true(@local.cleanup_managed_provider(child).unwrap())
   assert_eq(calls.val, 2)
+}
+
+///|
+test "Local selects the original whole INFER Unit and retains its Model owner" {
+  exercise_original_local_infer_provider(false)
+}
+
+///|
+test "Local retains the original INFER Result prefix before a later independent projection" {
+  exercise_original_local_infer_provider(true)
 }

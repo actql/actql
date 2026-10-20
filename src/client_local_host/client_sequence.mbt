@@ -670,8 +670,14 @@ fn prepare_client_local_sequences_owned(
   for task in 0..<count {
     let composed_boundary = composed_boundaries
       .filter(occurrence => {
-        @publication_host.client_infer_occurrence_coordinates(occurrence).0 ==
-        task
+        @strategy.graph_task_owner(graph, task)
+        .map(owner => {
+          physical_equal(
+            owner,
+            @publication_host.client_infer_occurrence_preparation(occurrence),
+          )
+        })
+        .unwrap_or(false)
       })
       .get(0)
       .map(@publication_host.client_infer_occurrence_coordinates)
@@ -754,7 +760,7 @@ fn prepare_client_local_sequences_owned(
                       )
                     _ =>
                       match composed_boundary {
-                        Some((infer_task, _, step)) if infer_task == task =>
+                        Some((_, _, step)) =>
                           @lower.prepare_sequence_with_infer_boundary(
                             owner,
                             step,
@@ -943,7 +949,9 @@ fn prepare_client_local_sequences_owned(
       guard @execution.select_generated_sequence_range(
           sequence,
           boundary + 1,
-          @execution.generated_sequence_step_count(sequence) - 1,
+          @strategy.graph_task_prefix_end(graph, task).unwrap_or(
+            @execution.generated_sequence_step_count(sequence) - 1,
+          ),
         )
         is Some(selected) else {
         return None
@@ -959,6 +967,16 @@ fn prepare_client_local_sequences_owned(
       serialization_restore is None &&
       @strategy.graph_task_selected_step(graph, task) is Some(step) {
       guard @execution.select_generated_sequence_step(sequence, step)
+        is Some(selected) else {
+        return None
+      }
+      selected
+    } else if infer_prefix is None &&
+      acquisition_source is None &&
+      serialization_input is None &&
+      serialization_restore is None &&
+      @strategy.graph_task_prefix_end(graph, task) is Some(last) {
+      guard @execution.select_generated_sequence_range(sequence, 0, last)
         is Some(selected) else {
         return None
       }

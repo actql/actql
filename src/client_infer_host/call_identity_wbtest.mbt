@@ -92,6 +92,7 @@ fn call_identity_plan(
   wire_bytes? : Int64 = 133072L,
   token_reservation? : Int64 = 128L,
   duration_ms? : Int64 = 1000L,
+  occurrence? : @publication_host.ClientInferOccurrence? = None,
 ) -> @publication_host.ClientInferPlanGraph {
   let execution_wire =
     #|{"backoff_contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","default_publication":"outcomes","max_attempts_per_slot":2,"max_total_attempts":4,"max_total_cost_units":0,"max_total_duration_ms":1000,"max_total_token_reservation":128,"max_total_wire_bytes":2048,"media_input_contracts":{},"model_task_contract_cid":"sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560","retry_classification_contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","self_cid":"sha256:564c77f8cde8da49fda0b61b072ddce8ee598116eada536c71d27457f1b478da","version":"actql-model-execution-contract/0.1"}
@@ -101,7 +102,12 @@ fn call_identity_plan(
   let unsigned = execution_wire
     .replace(
       old="sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560",
-      new=@publication_host.prepared_client_infer_model_task_cid(prepared, 2).unwrap(),
+      new=(match occurrence {
+        Some(original) =>
+          @publication_host.client_infer_occurrence_model_task_cid(original)
+        None =>
+          @publication_host.prepared_client_infer_model_task_cid(prepared, 2)
+      }).unwrap(),
     )
     .replace(
       old="\"self_cid\":\"sha256:564c77f8cde8da49fda0b61b072ddce8ee598116eada536c71d27457f1b478da\",",
@@ -128,25 +134,50 @@ fn call_identity_plan(
     old="\"version\":",
     new="\"self_cid\":\"" + identity + "\",\"version\":",
   )
-  let model_execution = @publication_host.read_prepared_client_infer_model_execution(
-    prepared,
-    2,
-    @utf8.encode(execution_wire),
-    identity,
-    { max_bytes: 10000, max_nodes: 1000, max_depth: 30, max_members: 1000, },
-    100000,
-  ).unwrap()
-  @publication_host.issue_prepared_client_infer_plan_graph(
-    prepared,
-    2,
-    model_execution,
-    "sha256:" + "b".repeat(64),
-    "sha256:" + "c".repeat(64),
-    @publication_host.client_standard_values_sequence_limits(),
-    100000,
-    10000,
-    100,
-  ).unwrap()
+  let model_execution = (match occurrence {
+    Some(original) =>
+      @publication_host.read_client_infer_occurrence_model_execution(
+        original,
+        @utf8.encode(execution_wire),
+        identity,
+        { max_bytes: 10000, max_nodes: 1000, max_depth: 30, max_members: 1000, },
+        100000,
+      )
+    None =>
+      @publication_host.read_prepared_client_infer_model_execution(
+        prepared,
+        2,
+        @utf8.encode(execution_wire),
+        identity,
+        { max_bytes: 10000, max_nodes: 1000, max_depth: 30, max_members: 1000, },
+        100000,
+      )
+  }).unwrap()
+  (match occurrence {
+    Some(original) =>
+      @publication_host.issue_prepared_client_composed_infer_plan_graph(
+        original,
+        model_execution,
+        "sha256:" + "b".repeat(64),
+        "sha256:" + "c".repeat(64),
+        @publication_host.client_standard_values_sequence_limits(),
+        100000,
+        10000,
+        100,
+      )
+    None =>
+      @publication_host.issue_prepared_client_infer_plan_graph(
+        prepared,
+        2,
+        model_execution,
+        "sha256:" + "b".repeat(64),
+        "sha256:" + "c".repeat(64),
+        @publication_host.client_standard_values_sequence_limits(),
+        100000,
+        10000,
+        100,
+      )
+  }).unwrap()
 }
 
 ///|

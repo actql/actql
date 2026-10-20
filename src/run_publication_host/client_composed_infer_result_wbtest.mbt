@@ -41,7 +41,28 @@ fn captured_infer_result_fixture() -> (
   assert_eq(client_infer_occurrence_coordinates(occurrence), (2, 2, 3))
   assert_eq(
     @strategy.graph_task_target(occurrence.owner.graph, 2),
-    Some(@pipeline.Step(5)),
+    Some(@pipeline.Step(4)),
+  )
+  assert_eq(@strategy.graph_task_prefix_end(occurrence.owner.graph, 2), Some(4))
+  assert_eq(
+    @strategy.graph_task_selected_step(occurrence.owner.graph, 3),
+    Some(5),
+  )
+  assert_eq(
+    @strategy.graph_stage_target_task(
+      occurrence.owner.graph,
+      2,
+      @pipeline.Step(4),
+    ),
+    Some(2),
+  )
+  assert_eq(
+    @strategy.graph_stage_target_task(
+      occurrence.owner.graph,
+      2,
+      @pipeline.Step(5),
+    ),
+    Some(3),
   )
   assert_eq(
     @results.port_target(
@@ -71,23 +92,36 @@ fn captured_infer_result_fixture() -> (
 ///|
 test "captured JOIN INFER Result retains its original intermediate producer in an Effect compilation" {
   let (owner, component) = captured_infer_result_fixture()
-  let compiled = issue_prepared_client_effect_compilation(
-    owner,
-    run_materials_manifests(),
-    run_materials_limits().sequence,
-    1000,
-    10000,
-    100000,
-    10000,
-    100,
-    infer=Some(component),
-  ).unwrap()
+  let compiled = match
+    issue_prepared_client_effect_compilation(
+      owner,
+      run_materials_manifests(),
+      run_materials_limits().sequence,
+      1000,
+      10000,
+      100000,
+      10000,
+      100,
+      infer=Some(component),
+    ) {
+    Ok(value) => value
+    Err(Graph(Fragment(_))) => fail("original intermediate Result fragment")
+    Err(Graph(InvalidEdge)) => fail("original intermediate Result edge")
+    Err(Graph(ContractMismatch)) =>
+      fail("original intermediate Result contract")
+    Err(Graph(Root(_))) => fail("original intermediate Result root")
+    Err(Graph(_)) => fail("original intermediate Result graph")
+    Err(Template(_)) => fail("original intermediate Result template")
+    Err(Plan(_)) => fail("original intermediate Result plan")
+    Err(Material(_)) => fail("original intermediate Result material")
+    Err(Compilation(_)) =>
+      fail("original intermediate Result compilation admission")
+    Err(_) => fail("original intermediate Result preparation")
+  }
   assert_eq(compiled.compiled.result_names, ["published"])
-  assert_eq(compiled.compiled.plan.plan.transformations.length(), 1)
-  let selected = compiled.compiled.plan.plan.transformations[0]
-  assert_true(
-    client_result_transformation_matches(selected, component.owner, 0),
-  )
+  // This task now completes the exact named one-field Relation itself.
+  // No redundant projection may substitute a different producer occurrence.
+  assert_eq(compiled.compiled.plan.plan.transformations.length(), 0)
   assert_true(physical_equal(compiled.compiled.infer.unwrap(), component))
   let producer = client_infer_result_producer(
     component.occurrence,
@@ -96,7 +130,32 @@ test "captured JOIN INFER Result retains its original intermediate producer in a
   ).unwrap()
   assert_eq(producer.0, 4)
   assert_eq(producer.1, "task_2_after_infer_4")
-  assert_true(producer.1 != component.output.node_id)
+  assert_eq(producer.1, component.output.node_id)
+  let allowed = issue_client_effect_allowed_run(
+    compiled,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = issue_client_effect_run_definition(
+    allowed, "namespace-a", "intermediate-infer-result", "2026-10-20T00:00:00.000Z",
+    "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let run = bind_client_effect_compiled_run(owner, allowed, definition).unwrap()
+  let ledger = @resources.create_ledger({
+    planning_work: 100000,
+    attempts: 32,
+    holdings: 32,
+    transfer_bytes: 1000000L,
+    retained_bytes: 1000000L,
+    execution_bytes: 1000000L,
+  }).unwrap()
+  // Complete dependency traversal must retain both exact Result producers.
+  // Missing physical captures, not an invented producer, still refuse here.
+  assert_true(
+    open_prepared_multi_captured_client_effect_run(run, [], ledger)
+    is Err(Run(@strategy.ForeignCapture)),
+  )
   let foreign = captured_infer_result_fixture().0
   assert_true(
     issue_prepared_client_effect_compilation(
@@ -134,8 +193,8 @@ test "captured INFER Result transformation refuses a foreign occurrence and wron
     100,
     infer_output=Some((occurrence, producer.0)),
   ).unwrap()
-  let (_, edge) = original.transformation.unwrap()
-  let from = @canonical.object_field(edge, "from").unwrap()
+  assert_true(original.transformation is None)
+  let from = @canonical.object_field(original.root, "ref").unwrap()
   assert_true(
     @canonical.object_field(from, "node_id")
     is Some(@canonical.String("task_2_after_infer_4")),
@@ -178,29 +237,21 @@ test "direct INFER component keeps an intermediate Result before the final Effec
     10000,
     100,
   ).unwrap()
-  assert_eq(component.graph.transformations.length(), 1)
+  assert_eq(component.graph.transformations.length(), 0)
   let graph = parse_plan_identity_value(
     component.graph.wire,
     100000,
     10000,
     100,
   ).unwrap()
-  guard @canonical.object_field(graph, "data_edges")
-    is Some(@canonical.Array(edges)) else {
-    fail("original component edges")
+  guard @canonical.object_field(graph, "root_refs")
+    is Some(@canonical.Array(roots)) else {
+    fail("original component roots")
   }
-  let mut selected = 0
-  for edge in @canonical.array_values(edges) {
-    let to = @canonical.object_field(edge, "to").unwrap()
-    if @canonical.object_field(to, "node_id")
-      is Some(@canonical.String("result_0")) {
-      selected += 1
-      let from = @canonical.object_field(edge, "from").unwrap()
-      assert_true(
-        @canonical.object_field(from, "node_id")
-        is Some(@canonical.String("task_2_after_infer_4")),
-      )
-    }
-  }
-  assert_eq(selected, 1)
+  assert_eq(@canonical.array_values(roots).length(), 1)
+  let from = @canonical.object_field(@canonical.array_values(roots)[0], "ref").unwrap()
+  assert_true(
+    @canonical.object_field(from, "node_id")
+    is Some(@canonical.String("task_2_after_infer_4")),
+  )
 }

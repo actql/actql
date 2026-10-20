@@ -633,6 +633,8 @@ pub fn client_infer_occurrence_matches_plan(ClientInferOccurrence, ClientInferPl
 
 pub fn client_infer_occurrence_model_task_cid(ClientInferOccurrence) -> String?
 
+pub fn client_infer_occurrence_output_step(ClientInferOccurrence) -> Int?
+
 pub fn client_infer_occurrence_preparation(ClientInferOccurrence) -> @lowering_relation.BoundPrepared
 
 pub fn client_infer_occurrence_target_name(ClientInferOccurrence) -> String?
