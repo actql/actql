@@ -48,6 +48,7 @@ from ._values import content_cid, wire_bytes
 _T = TypeVar('_T')
 _LOCAL_SELECTION = {'mode': 'local', 'owner': 'local', 'durability': 'durable',
                     'consentRefs': [], 'runners': []}
+_PUBLICATION_WORK_QUANTUM = 256
 
 
 def _ordinary_core_limits() -> LocalCoreResources:
@@ -1315,7 +1316,8 @@ class InstalledLocalHost:
             while True:
                 captured: list[LocalResultProgress] = []
                 installation.binding.inspect(lambda _: captured.append(
-                    self._core.advance_publication(publication, configuration.handle, 16)))
+                    self._core.advance_publication(publication, configuration.handle,
+                                                   _PUBLICATION_WORK_QUANTUM)))
                 if captured[0].ready: break
             installation.binding.inspect(lambda _:
                 self._core.finish_publication(publication, configuration.handle))
@@ -2109,7 +2111,8 @@ class InstalledLocalHost:
                     return projection
             progress = []
             installation.binding.inspect(lambda _:
-                progress.append(self._core.advance_publication_commit(publication, configuration.handle, 16)))
+                progress.append(self._core.advance_publication_commit(publication, configuration.handle,
+                                                                      _PUBLICATION_WORK_QUANTUM)))
             if not progress[0].ready:
                 return None
             installation.binding.inspect(lambda _:

@@ -56,7 +56,7 @@ class ProductCommitCandidateTests(unittest.TestCase):
             projection = host._advance_original_commit_candidate(publication)
             self.assertIs(projection._publication, publication)
             self.assertIs(host._advance_original_commit_candidate(publication), projection)
-            self.assertEqual(advances, [16, 16])
+            self.assertEqual(advances, [256, 256])
             self.assertFalse(host._publication_write_attempts)
             self.assertIsNone(host._pending_publication_write)
             self.assertFalse(any(f == 'publication' and n in ('prepare_observation', 'finish_observation')

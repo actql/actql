@@ -2680,6 +2680,12 @@ COMMIT or infer release. Failed or pending cleanup retains its original handles
 and carrier. A later explicit close attempt remains cleanup-only and preserves
 all actual child, alias, FD, Store, Engine and parent acknowledgement boundaries.
 
+Ordinary Result capture and commit preparation advance at most 256 existing
+Owner work units per Host yield. The same current and authorization checks
+still surround every advance, and the original cumulative work, workspace and
+instruction ceilings remain in force. Batching reduces repeated transport and
+current-check overhead; it neither refreshes fuel nor retries a failed phase.
+
 Once original installation files and the four metadata outputs are validated
 through the same Host binding, the consumed bootstrap output and its input are
 closed through their original Core loans before later Run transfers begin.
