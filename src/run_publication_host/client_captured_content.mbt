@@ -12,12 +12,12 @@ struct ClientCapturedContent {
 ///|
 fn client_captured_content_schema_media_matches(
   schema : @schema.Schema,
-  media_type : String,
+  observed_media_type : String,
 ) -> Bool {
   let mut contents = 0
   for field in @schema.fields(schema) {
-    if field.contract.shape is @contract.ContentRef(media_type=Some(expected)) {
-      if expected != media_type {
+    if field.contract.shape is @contract.ContentRef(media_type=expected) {
+      if expected is Some(required) && required != observed_media_type {
         return false
       }
       contents += 1
@@ -69,8 +69,9 @@ pub fn prepare_client_captured_content(
     Ok(value) => value
     Err(_) => return Err(InvalidBinding("source_schema"))
   }
-  // Provider metadata or a file extension cannot narrow the declared MIME.
-  // The first capture profile must have one statically typed Content column.
+  // The declared Content column may leave MIME unrefined. Its actual report
+  // is still validated above and retained below; a declared refinement must
+  // match. Provider metadata cannot invent or narrow that Source contract.
   if !client_captured_content_schema_media_matches(schema, observed_media_type) {
     return Err(InvalidBinding("source_media_type"))
   }
