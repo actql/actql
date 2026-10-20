@@ -104,6 +104,18 @@ without actual appended terms keeps that prior identity; preparations without
 Sort retain all seven earlier catalogue/journal identities. No new Host profile,
 wire version, permission or sorting evaluator is introduced.
 
+The bounded-relation catalogue also admits the existing checked DISTINCT operation.
+Its audit retains the same original pipeline step and schema: whole-row DISTINCT
+preserves the input schema, while keyed DISTINCT retains each authored Required
+reference and its original contract in the checked projection. Canonical schema
+storage order does not replace authored key priority. Complete input row and
+presence admission, exact typed equality, NULL versus omission and first occurrence
+remain with the existing execution owners. DISTINCT supplies no new total order
+and creates no completion journal entry. If a later Sort actually appends keys,
+the same audit must retain its real nonempty semantic entries. The distinct-aware
+catalogue has a new identity; unchanged programs retain their prior catalogue and
+journal bytes. Metadata traversal remains charged to the existing audit bound.
+
 SQL/Pipe CASE without ELSE keeps that field absent in the Common form. The
 original parsed source distinguishes its synthetic END-anchored NULL from an
 authored ELSE NULL. Preserving this distinction lets the existing Common
