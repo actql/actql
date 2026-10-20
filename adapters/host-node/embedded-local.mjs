@@ -2732,6 +2732,7 @@ async function openInstalledHost(originalInstallation, preparation) {
               recoverEffectCapture(facts.ref, recoverySignal),
             effectAuthorization: checkpoints === undefined ? undefined : options =>
               checkpoints.effectAuthorization({...options,
+                runDefinition: facts.retained?.runDefinition ?? facts.runDefinition,
                 ...(nextJournal === undefined ? {} : {journalPort: nextJournal})}),
             recordReconciliation: (...args) =>
               effectRun.recordReconciliation(...args)}));

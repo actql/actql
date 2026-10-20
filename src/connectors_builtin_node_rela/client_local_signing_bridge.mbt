@@ -53,6 +53,23 @@ pub fn client_local_checkpoint_proof_effect_subject(
 }
 
 ///|
+/// Project the same admitted Run's immutable lifetime. This is neither a new
+/// admission nor a renewal; the Host retains current authority independently.
+#export_name("clientLocalCheckpointRunLifetime")
+pub fn client_local_checkpoint_run_lifetime(
+  definition : @publication.PublicationContract,
+  expected_cid : String,
+) -> Result[(String, String), @publication_host.ClientLocalCheckpointProofIssue] {
+  if @publication.publication_contract_identity(definition) != expected_cid {
+    return Err(ForeignOriginal)
+  }
+  match @publication.run_definition_lifetime(definition) {
+    Some(lifetime) => Ok(lifetime)
+    None => Err(ForeignOriginal)
+  }
+}
+
+///|
 /// Canonical public-byte identity only. The Host must independently retain the
 /// actual adopted private key, generation, purpose and current authority.
 #export_name("clientLocalSigningPublicKeyOriginal")

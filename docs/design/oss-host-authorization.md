@@ -92,6 +92,14 @@ in for reviewer authority. Signing still requires the original Checkpoint,
 Run/request, approval scope, exact preimage, original use claim and independently
 current role/key checks; Unknown never allocates a replacement use.
 
+An Effect Checkpoint, whether issued by genuine Account delegation or an
+explicit requested stop, ends strictly before the same admitted Run's original
+exclusive deadline. The Host projects that immutable lifetime from the retained
+Run Definition, caps its existing Checkpoint TTL at the last preceding
+millisecond, and refuses an empty window after asynchronous preparation. This
+does not renew the Run, replace a saved Checkpoint or relax Common's lifetime
+reader; approval and signing still require the current original authority.
+
 Read limits bound UTF-8 input, parser nodes/depth and selected signer count.
 They do not fund the original String, byte conversion, parser workspace,
 selection records, key-file reads, signing work or their overlap. Those costs

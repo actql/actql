@@ -166,6 +166,8 @@ pub fn client_local_checkpoint_proof_prepare(String, String) -> Result[@run_publ
 
 pub fn client_local_checkpoint_proof_seal(@run_publication_host.ClientLocalCheckpointProof, String, String) -> Result[String, @run_publication_host.ClientLocalCheckpointProofIssue]
 
+pub fn client_local_checkpoint_run_lifetime(@run_publication.PublicationContract, String) -> Result[(String, String), @run_publication_host.ClientLocalCheckpointProofIssue]
+
 pub fn client_local_signing_bootstrap_issue(String, String, String, Int64, Int64) -> Result[(String, Int64, Int64, Int), @run_publication_host.ClientLocalSigningBootstrapIssueError]
 
 pub fn client_local_signing_bootstrap_original() -> (String, String)

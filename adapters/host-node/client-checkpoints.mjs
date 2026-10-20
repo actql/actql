@@ -1841,7 +1841,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // Host-installed Effect execution uses this same journal and reviewer
     // authority. The read boundary has no deferral port in this profile:
     // a deferred target read is unsupported before any provider I/O.
-    async effectAuthorization({runId, runDefinitionCid, unitId,
+    async effectAuthorization({runId, runDefinitionCid, runDefinition, unitId,
       declaredResults, reviewWire, continuationWire, beforeDefer, targetReads,
       requestedStop, assertRequestedStopCurrent, projectReview,
       journalPort = journal}) {
@@ -1858,6 +1858,26 @@ export async function installRemoteCheckpoints({root, namespaceId,
            typeof contractControl.sealRequestedEffectStop !== 'function')) {
         fail('RequestedEffectStopUnavailable');
       }
+      const originalLifetime = runDefinition === undefined ? undefined :
+        contractControl.runDefinitionLifetime(runDefinition, runDefinitionCid);
+      const checkpointEnd = (created, stopLifetime) => {
+        let expires = created + checkpointTtlMs;
+        for (const lifetime of [originalLifetime, stopLifetime]) {
+          if (lifetime === undefined) continue;
+          const start = Date.parse(lifetime.createdAt);
+          const end = Date.parse(lifetime.validUntil);
+          if (!Number.isFinite(start) || !Number.isFinite(end) || created < start) {
+            fail('RequestedEffectStopLifetimeUnavailable');
+          }
+          // Common requires the Checkpoint end strictly inside the SAME Run's
+          // exclusive deadline, even when a genuine Delegate creates the stop.
+          expires = Math.min(expires, end - 1);
+        }
+        if (!Number.isFinite(expires) || expires <= created) {
+          fail('RequestedEffectStopLifetimeUnavailable');
+        }
+        return expires;
+      };
       declaredResults = Object.freeze([...declaredResults]);
       const reviewLimits = Object.freeze({...INSTALLED_EFFECT_CHECKPOINT_LIMITS,
         maxWireBytes: maxReviewBytes});
@@ -1907,6 +1927,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
                 {name: 'continuation_record', wire: continuationWire},
               ]);
               const created = now();
+              const expires = checkpointEnd(created, requestedStop === undefined
+                ? undefined : contractControl.requestedEffectStopLifetime(requestedStop));
               return {priorStatus: 'running', declaredResults, body: {
                 checkpoint_id: `${runId}-effect-commit`, run_id: runId,
                 run_definition_cid: runDefinitionCid,
@@ -1917,7 +1939,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
                 review_projection_cid: review.identity,
                 human_summary: 'Approve the complete Effect Set',
                 created_at: new Date(created).toISOString(),
-                expires_at: new Date(created + checkpointTtlMs).toISOString(),
+                expires_at: new Date(expires).toISOString(),
               }};
             },
           }});
@@ -1984,13 +2006,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           options.signal?.throwIfAborted();
           const lifetime = contractControl.requestedEffectStopLifetime(requestedStop);
           const created = now();
-          // Run admission owns an exclusive end. A requested review cannot
-          // extend it, including after restart or a slow evidence Store write.
-          const expires = Math.min(created + checkpointTtlMs,
-            Date.parse(lifetime.validUntil) - 1);
-          if (!Number.isFinite(expires) || expires <= created) {
-            fail('RequestedEffectStopLifetimeUnavailable');
-          }
+          const expires = checkpointEnd(created, lifetime);
           const body = {version: 'actql-execution-checkpoint/0.1',
               checkpoint_id: `${runId}-effect-commit`, run_id: runId,
               run_definition_cid: runDefinitionCid,

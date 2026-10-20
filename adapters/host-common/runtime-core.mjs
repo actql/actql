@@ -5221,6 +5221,12 @@ function publicationControl(moon) {
     runDefinitionRunId(runDefinition) {
       return checked(moon.strategyRunDefinitionRunId(token(runDefinition)));
     },
+    runDefinitionLifetime(runDefinition, expectedCid) {
+      const lifetime = checked(moon.clientLocalCheckpointRunLifetime(
+        token(runDefinition), expectedCid));
+      return Object.freeze({createdAt: runtimeField(lifetime, 0),
+        validUntil: runtimeField(lifetime, 1)});
+    },
     // The Common reader checks the exact canonical document and embedded
     // resource CID. This private handle carries data, never restored custody.
     encodeModelOriginalResourceDocument(originWire, stateWire, cutWire, phase, limits) {

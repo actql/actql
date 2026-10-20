@@ -20,14 +20,17 @@ const tuple = {connection: 'reference', resource: 'records', operation: 'effect'
 const pem = key => key.export({type: key.type === 'private' ? 'pkcs8'
   : 'spki', format: 'pem'});
 
-async function fixture(t, {outcome = 'allow', decide} = {}) {
+async function fixture(t, {outcome = 'allow', decide, originalRun = false,
+  deferAdvanceMs = 0} = {}) {
   const rootBase = new URL('../../_build/requested-effect-checkpoints/', import.meta.url);
   await mkdir(rootBase, {recursive: true});
   const root = await mkdtemp(join(rootBase.pathname, 'host-'));
   const reviewer = generateKeyPairSync('ed25519');
   const host = generateKeyPairSync('ed25519');
   const original = Object.freeze({});
+  const runDefinition = Object.freeze({identity: cid('1')});
   const clock = Date.parse('2026-10-17T00:00:00.000Z');
+  let sample = clock;
   const continuationWire = canonicalJson({request: 'original',
     requested_stop: {intent_cid: cid('6')}});
   let retained = 0;
@@ -35,6 +38,12 @@ async function fixture(t, {outcome = 'allow', decide} = {}) {
   const services = new Set();
   const gates = new Set();
   const control = {...runtimeCore(moon).publicationControl,
+    runDefinitionLifetime(value, expectedCid) {
+      assert.strictEqual(value, runDefinition);
+      assert.equal(expectedCid, runDefinition.identity);
+      return {createdAt: new Date(clock).toISOString(),
+        validUntil: new Date(clock + 60_000).toISOString()};
+    },
     requestedEffectStopIntentCid(value) { assert.equal(value, original); return cid('6'); },
     requestedEffectStopLifetime(value) {
       assert.equal(value, original);
@@ -59,7 +68,7 @@ async function fixture(t, {outcome = 'allow', decide} = {}) {
     const installed = await installRemoteCheckpoints({root,
       namespaceId: 'local', authorityScopeCid: cid('3'), ownerPrincipal: 'owner',
       siteKey: 'local', realizationKey: 'source-free-values', environmentCid: cid('4'),
-      contractControl: control, now: () => clock,
+      contractControl: control, now: () => sample,
       authorization: {accountConfiguration: canonicalJson({
         version: 'actql-execution-account-config/0.1', account_id: 'local',
         entries: [{entry_id: 'write', outcome, principal: {all: true},
@@ -74,12 +83,13 @@ async function fixture(t, {outcome = 'allow', decide} = {}) {
     return installed;
   };
   const options = () => ({runId: 'requested-run', runDefinitionCid: cid('1'),
+    ...(originalRun ? {runDefinition} : {}),
     unitId: 'effect', declaredResults: ['answer'], reviewWire: '{"preview":"original"}',
     projectReview: checkpointEffectReviewDouble(control,cid('2')),
     continuationWire, requestedStop: original,
     assertRequestedStopCurrent() {
       if (!current) throw Object.assign(new Error('OriginalRetired'), {code: 'OriginalRetired'});
-    }, async beforeDefer() { retained++; }});
+    }, async beforeDefer() { retained++; sample += deferAdvanceMs; }});
   const gate = async (installed, changed = {}) => {
     const result = await installed.effectAuthorization({...options(), ...changed});
     gates.add(result);
@@ -206,6 +216,36 @@ test('requested first Effect approval cannot answer a current Delegate request',
   assert.equal(asks, 2, 'the actual Host decision is asked, not reconstructed from review claims');
   assert.equal(installed.journal.hasStartedResume(claim.checkpointCid), false);
 });
+
+for (const requestedStop of [false, true]) {
+  test(`delegated Effect expiry preserves the original Run deadline: requestedStop=${requestedStop}`, async t => {
+    const f = await fixture(t, {outcome: 'delegate', originalRun: true});
+    const installed = await f.open();
+    const gate = await f.gate(installed, requestedStop ? {} :
+      {requestedStop: undefined, assertRequestedStopCurrent: undefined});
+    const result = await gate.authorize('effect_commit', tuple, {subjectCid: cid('2')});
+    assert.equal(result.action, 'waiting');
+    const [view] = installed.journal.listRunCheckpoints();
+    assert.equal(view.reasonCode, 'delegated_decision_deferred');
+    assert.equal(Date.parse(view.expiresAt), Date.parse('2026-10-17T00:01:00.000Z') - 1);
+    assert.equal(installed.journal.listRunCheckpoints().length, 1);
+    assert.equal(f.retained(), 1);
+  });
+  test(`delegated Effect refuses an empty original Run window: requestedStop=${requestedStop}`, async t => {
+    const f = await fixture(t, {outcome: 'delegate', originalRun: true,
+      deferAdvanceMs: 59_999});
+    const installed = await f.open();
+    const gate = await f.gate(installed, requestedStop ? {} :
+      {requestedStop: undefined, assertRequestedStopCurrent: undefined});
+    const refused = await gate.authorize('effect_commit', tuple, {subjectCid: cid('2')});
+    assert.equal(refused.action, 'failure');
+    assert.equal(refused.detail, 'CheckpointNotPersisted');
+    assert.equal(refused.error.code, 'RequestedEffectStopLifetimeUnavailable');
+    assert.equal(authorizationDispatchFacts(refused), undefined);
+    assert.equal(installed.journal.listRunCheckpoints().length, 0);
+    assert.equal(f.retained(), 1, 'same capture is retained, never renewed');
+  });
+}
 
 test('requested first Effect retains genuine delegated review and Account Deny behavior', async t => {
   for (const outcome of ['delegate', 'deny']) {
