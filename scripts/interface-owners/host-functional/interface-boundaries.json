@@ -43570,7 +43570,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-mock.mjs",
-                "anchor": "record.original = model === undefined ? sourceManaged.prepareRun(prepared)"
+                "anchor": "? (effectful ? sourceManaged.prepareEffectRun(prepared) : sourceManaged.prepareRun(prepared))"
               }
             ],
             "synchronization": [
@@ -43608,7 +43608,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/installed-project-mock.mjs",
-                "anchor": "else if (record.admission !== undefined) checked(moon.clientProgramNodeManagedRunCleanup(record.admission));"
+                "anchor": "else if (record.admission !== undefined) checked((record.effectful ? moon.clientProgramNodeEffectManagedRunCleanup"
               }
             ],
             "verification": [
@@ -51243,7 +51243,7 @@
               },
               {
                 "path": "adapters/host-node/node-host-result-installation.mjs",
-                "anchor": "readHostResultPublicationPreparation(originals), readHostResultPublicationRunRequirements);"
+                "anchor": "readHostResultPublicationPreparation(originals), readHostResultPublicationRunRequirements,"
               }
             ],
             "ownership": [
