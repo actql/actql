@@ -18,6 +18,7 @@ priv struct NativeLocalReadFileDestination {
   mut primary : @filesystem.NativeFilesystemIssue?
   mut write_attempted : Bool
   mut finish_attempted : Bool
+  mut sink_installed : Bool
   mut closing : Bool
   mut closed : Bool
 }
@@ -46,6 +47,7 @@ fn local_read_file_destination(
     primary: None,
     write_attempted: false,
     finish_attempted: false,
+    sink_installed: false,
     closing: false,
     closed: false,
   }
@@ -83,17 +85,17 @@ fn NativeLocalReadFileDestination::open_parent(
     }
   }
   self.root = Some(root)
-  let identity = match root.bootstrap_parent_ownership() {
-    Ok(value) => value
-    Err(issue) => return Err(self.remember(issue))
-  }
-  self.parent_identity = Some(identity)
   let observation = match root.observe_directory() {
     Ok(value) => value
     Err(issue) => return Err(self.remember(issue))
   }
   self.parent_observation = Some(observation)
-  observation.check_current().map_err(issue => self.remember(issue))
+  let identity = match observation.identity() {
+    Ok(value) => value
+    Err(issue) => return Err(self.remember(issue))
+  }
+  self.parent_identity = Some(identity)
+  Ok(())
 }
 
 ///|
@@ -146,11 +148,7 @@ fn NativeLocalReadFileDestination::check_current(
     self.parent_observation is Some(observation) else {
     return Err(@filesystem.WriterClosed)
   }
-  match observation.check_current() {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
-  }
-  match root.bootstrap_parent_ownership() {
+  match observation.identity() {
     Ok(actual) if actual == identity => ()
     Ok(_) => return Err(@filesystem.GenerationMismatch)
     Err(issue) => return Err(issue)

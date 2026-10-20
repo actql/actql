@@ -123,3 +123,43 @@ pub fn NativeLocalReadPolicyBinding::close_file_output(
   self.file_preparation = None
   Ok(())
 }
+
+///|
+/// Install one sink over the same already-admitted session and the retained
+/// exclusive Writer. Session correlation is not authorization: the binding's
+/// existing current read/delivery checks remain in the access service.
+pub fn NativeLocalReadPolicyBinding::install_file_result_sink(
+  self : NativeLocalReadPolicyBinding,
+  session : @result_access.NativeResultAccessSession,
+  max_output_bytes : Int,
+) -> Result[@result_access.NativeResultSink, NativeLocalReadBindingIssue] {
+  guard self.selection.sink == File &&
+    self.file_store is Some(store) &&
+    self.file_preparation is Some((_, request)) &&
+    self.file_destination is Some(destination) &&
+    self.file_original is Some(original) &&
+    !destination.sink_installed &&
+    max_output_bytes >= 0 &&
+    max_output_bytes <= self.selection.max_bytes &&
+    session.matches_original(store, request) else {
+    return Err(SelectionMismatch)
+  }
+  match destination.original_data() {
+    Ok(actual) if actual == original => ()
+    Ok(_) => return Err(SelectionMismatch)
+    Err(issue) => return Err(FileOutput(issue))
+  }
+  let sink = match
+    @result_access.install_native_result_sink(
+      session,
+      Int::min(16384, Int::max(1, max_output_bytes)),
+      max_output_bytes,
+      bytes => destination.append(bytes),
+      () => destination.finish(),
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(FileOutputUnavailable)
+  }
+  destination.sink_installed = true
+  Ok(sink)
+}
