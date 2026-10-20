@@ -83,7 +83,7 @@ fn local_explain_for_environment(
     Err(_) => stop("UnsupportedLocalSourceFormat")
   }
   let supplied = optional(child, "parameters-file").map(name => {
-    local_input_cursor(text_file(input_root, name, 65536L))
+    local_input_cursor(local_input_text_file(input_root, name, 65536L))
   })
   let declarations = match optional(child, "parameter-declarations-file") {
     None => None
@@ -91,7 +91,9 @@ fn local_explain_for_environment(
       if format != Text && format != Sql {
         stop("external declarations require aql-text or sql")
       }
-      let source = local_input_cursor(text_file(input_root, name, 65536L))
+      let source = local_input_cursor(
+        local_input_text_file(input_root, name, 65536L),
+      )
       match
         @parameters.read_declarations(Some(source), {
           max_parameters: 1024,
@@ -116,7 +118,7 @@ fn local_explain_for_environment(
   }
   let prepared = match
     @local_host.prepare_native_client_program(
-      text_file(input_root, required(child, "program-file"), 65536L),
+      local_input_text_file(input_root, required(child, "program-file"), 65536L),
       format,
       environment,
       supplied,

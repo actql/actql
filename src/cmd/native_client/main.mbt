@@ -94,7 +94,15 @@ fn json_file(
   name : String,
   maximum : Int64,
 ) -> Json raise ClientStop {
-  let text = text_file(root, name, maximum)
+  json_file_text(text_file(root, name, maximum), name, maximum)
+}
+
+///|
+fn json_file_text(
+  text : String,
+  name : String,
+  maximum : Int64,
+) -> Json raise ClientStop {
   match
     @source.parse_json_bytes_preserving(@utf8.encode(text), {
       max_input_bytes: maximum.to_int(),

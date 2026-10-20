@@ -322,17 +322,21 @@ fn local_check_for_host(
     },
   )
   let declarations = optional(child, "parameter-declarations-file").map(name => {
-    text_file(input_root, name, 65536L)
+    local_input_text_file(input_root, name, 65536L)
   })
   if declarations is Some(_) && format != Text && format != Sql {
     stop("external declarations require aql-text or sql")
   }
   let input : LocalCheckInput = {
-    document: text_file(input_root, required(child, "program-file"), 65536L),
+    document: local_input_text_file(
+      input_root,
+      required(child, "program-file"),
+      65536L,
+    ),
     format,
     declarations,
     parameters: optional(child, "parameters-file").map(name => {
-      text_file(input_root, name, 65536L)
+      local_input_text_file(input_root, name, 65536L)
     }),
   }
   let wire = context.project(input)

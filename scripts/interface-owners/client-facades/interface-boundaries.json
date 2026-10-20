@@ -12506,7 +12506,7 @@
     {
       "module": "packages/sdk/source-query.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "dd72a93531fa82e540ee33bdf9ce7dfe945ffa266bbe66efff97d0447dbbd71e",
+      "sha256": "280d8a063ffcb7513e3aa4fef6a8cc09b2257f1078893dea93f011840f5d2999",
       "exports": [
         "sourceQuery"
       ],
