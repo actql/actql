@@ -1156,7 +1156,6 @@ class InstalledLocalHost:
                 'now': self._now(),
                 'attempt_id': os.urandom(32).hex(),
                 'fence_cid': 'sha256:' + hashlib.sha256(os.urandom(32)).hexdigest(),
-                'external_idempotency_key': None,
             }))
             preflight = self._reserve(lambda: self._core.reserve_publication_preflight(
                 invocation, request, cleanup=lambda: True))
