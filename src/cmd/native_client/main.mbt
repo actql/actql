@@ -897,6 +897,7 @@ fn command() -> @argparse.Command {
       ]),
       @argparse.Command(
         "sql",
+        flags=[@argparse.FlagArg("json")],
         positionals=[
           @argparse.PositionArg(
             "query",
@@ -913,6 +914,7 @@ fn command() -> @argparse.Command {
       ),
       @argparse.Command(
         "aql",
+        flags=[@argparse.FlagArg("json")],
         positionals=[
           @argparse.PositionArg("query", conflicts_with=["program-file"]),
         ],
