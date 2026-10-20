@@ -883,6 +883,7 @@ A Run Receipt proves which logical Results the Run produced; a delivery receipt
 proves which canonical bytes were later released. Modifying either the delivered
 bytes or any bound receipt field MUST make delivery verification fail.
 
+<!-- requirement-block: result-delivery.single-receipt-preserves-canonical-object result-delivery.multiple-receipts-preserve-ordered-array result-delivery.receipt-export-failure-does-not-resend -->
 The CLI receipt-file container is separate from this closed receipt object.
 For one requested Result delivery, `result --receipt` MUST preserve the canonical
 object bytes and existing self-CID. For multiple requested deliveries it MUST
@@ -892,6 +893,7 @@ The array introduces no kind, version, aggregate CID, aggregate success or atomi
 rollback. Export failure MUST NOT resend any output or erase an Unknown outcome.
 `run --receipt` remains a Run receipt.
 
+<!-- requirement-block: result-delivery.verify-output-admits-all-receipts result-delivery.verify-output-matches-count-and-digest -->
 `verify output` MUST admit every supplied object and its existing self-CID before
 accepting any match. It MUST match both the observed byte count and SHA256 of one
 explicit file, reject invalid unrelated members and zero matches, and report all
