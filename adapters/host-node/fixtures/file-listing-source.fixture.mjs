@@ -17,8 +17,9 @@ export const resource = ch => ({$actql_ref: 'resource', version: 'actql-resource
 export const item = (ch, path, version = '1') => ({resource: resource(ch), name: path,
   path, version, media_type: null, size_bytes: 3, modified_at: null});
 
-export function fileListingDeclaration(moon, baseWire, {maxListingBytes = 32768} = {}) {
-  const schema = {
+export function fileListingDeclaration(moon, baseWire, {maxListingBytes = 32768,
+  schema: declaredSchema} = {}) {
+  const schema = declaredSchema ?? {
     resource: {type: 'resource_ref', resource_kind: 'file', nullable: false},
     version: {type: 'string', nullable: false}, name: {type: 'string', nullable: false},
     path: {type: 'string', nullable: true}, media_type: {type: 'string', nullable: true},

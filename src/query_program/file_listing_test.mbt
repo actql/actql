@@ -54,15 +54,22 @@ fn file_query_environment(
   profile? : Bool = true,
   all? : Bool = false,
   glob? : Bool = true,
+  native_metadata? : Bool = false,
 ) -> @check.CheckEnvironment raise {
-  let schema = file_query_contract(
-    "carrier_schema",
-    @json.parse(
-      (
-        #|{"type":"object","nullable":false,"additional_properties":false,"fields":{"resource":{"type":"resource_ref","resource_kind":"file","nullable":false},"version":{"type":"string","nullable":false},"name":{"type":"string","nullable":false},"path":{"type":"string","nullable":true},"media_type":{"type":"string","nullable":true},"size_bytes":{"type":"number","nullable":true},"modified_at":{"type":"timestamp","nullable":true}}}
-      ),
+  let schema_body = @json.parse(
+    (
+      #|{"type":"object","nullable":false,"additional_properties":false,"fields":{"resource":{"type":"resource_ref","resource_kind":"file","nullable":false},"version":{"type":"string","nullable":false},"name":{"type":"string","nullable":false},"path":{"type":"string","nullable":true},"media_type":{"type":"string","nullable":true},"size_bytes":{"type":"number","nullable":true},"modified_at":{"type":"timestamp","nullable":true}}}
     ),
   )
+  if native_metadata {
+    guard schema_body is Object(body) && body["fields"] is Object(fields) else {
+      abort("native listing schema fixture")
+    }
+    fields["size"] = ({ "type": "int64", "nullable": false } : Json)
+    fields["modified_time"] = ({ "type": "timestamp", "nullable": false } : Json)
+    fields["path"] = ({ "type": "string", "nullable": false } : Json)
+  }
+  let schema = file_query_contract("carrier_schema", schema_body)
   let request = file_query_contract(
     "request_schema",
     @json.parse(
@@ -202,10 +209,11 @@ fn file_query_context(
   profile? : Bool = true,
   all? : Bool = false,
   glob? : Bool = true,
+  native_metadata? : Bool = false,
 ) -> Context raise {
   let catalog = @check.source_catalog_contracts(
     @check.prepare_source_catalog(
-      file_query_environment(profile~, all~, glob~),
+      file_query_environment(profile~, all~, glob~, native_metadata~),
       {
         max_work: 1000000,
         max_bytes: 100000,
@@ -217,6 +225,10 @@ fn file_query_context(
   let fields = [
     "resource", "version", "name", "path", "media_type", "size_bytes", "modified_at",
   ]
+  if native_metadata {
+    fields.push("size")
+    fields.push("modified_time")
+  }
   let source = @wire.admit(
     @source.parse_json(
       "{\"connector\":\"fixture/files\",\"resource\":\"mount\",\"view\":\"listing\"}",
@@ -306,6 +318,30 @@ test "LIST_FILES SQL and Pipe retain exact Request values through common source 
       construction_limits(),
     ).unwrap()
     assert_eq(file_query_input_declarations(program), [expected])
+    programs.push(semantic(program))
+  }
+  assert_eq(programs[0], programs[1])
+}
+
+///|
+test "LIST_FILES exposes declared native metadata directly for SQL Pipe and empty selectors" {
+  let context = file_query_context(native_metadata=true)
+  let programs = []
+  for
+    text in [
+      "SELECT f.size, f.modified_time FROM LIST_FILES(docs.invoices, paths => ARRAY<STRING>[]) AS f",
+      "FROM LIST_FILES(docs.invoices, paths => ARRAY<STRING>[]) AS f |> SELECT f.size, f.modified_time",
+    ] {
+    let program = compile(
+      @query.parse_query(text, syntax_limits()).unwrap(),
+      context,
+      construction_limits(),
+    ).unwrap()
+    assert_eq(file_query_input_declarations(program), [
+      @json.parse(
+        "{\"connector\":\"fixture/files\",\"resource\":\"mount\",\"view\":\"listing\",\"request\":{\"paths\":[],\"glob\":null}}",
+      ),
+    ])
     programs.push(semantic(program))
   }
   assert_eq(programs[0], programs[1])
