@@ -38738,7 +38738,7 @@
     {
       "module": "adapters/host-node/installed-effect-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1658b6573417856806b7a569ee25c05bd2e44ae7a904354139d94309d2829080",
+      "sha256": "cae14511bd3d234b9a2f1c5a2601182230b110cac7323a71247673b1f5143ad4",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
