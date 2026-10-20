@@ -63,6 +63,28 @@ fn local_run_operation_allowed(
 }
 
 ///|
+// Both literal queries and file-backed text retain the same bounded declaration
+// input. Values never infer declarations, defaults or nullability.
+fn local_aql_intent_input(
+  root : String,
+  text : String,
+  format : String,
+  child : @argparse.Matches,
+) -> Json raise ClientStop {
+  let input : Map[String, Json] = Map([
+    ("text", Json::string(text)),
+    ("format", Json::string(format)),
+  ])
+  if optional(child, "parameter-declarations-file") is Some(file) {
+    if format != "aql-text" && format != "sql" {
+      stop("external declarations require aql-text or sql")
+    }
+    input["parameterDeclarations"] = json_file(root, file, 65536L)
+  }
+  Json::object(input)
+}
+
+///|
 fn local_intent_wire(
   root : String,
   operation : String,
@@ -71,14 +93,15 @@ fn local_intent_wire(
   let stop_before = native_requested_stop_before(child)
   let query = local_quick_query_requested(operation, child)
   let input = if query {
-    Json::object(
-      Map([
-        ("text", Json::string(required(child, "query"))),
-        (
-          "format",
-          Json::string(if operation == "sql" { "sql" } else { "aql-text" }),
-        ),
-      ]),
+    local_aql_intent_input(
+      root,
+      required(child, "query"),
+      if operation == "sql" {
+        "sql"
+      } else {
+        "aql-text"
+      },
+      child,
     )
   } else if operation == "start" {
     json_file(root, required(child, "program-file"), 65536L)
@@ -87,20 +110,12 @@ fn local_intent_wire(
     guard @frontend.select_format(format) is Ok(_) else {
       stop("UnsupportedLocalSourceFormat")
     }
-    let input : Map[String, Json] = Map([
-      (
-        "text",
-        Json::string(text_file(root, required(child, "program-file"), 65536L)),
-      ),
-      ("format", Json::string(format)),
-    ])
-    if optional(child, "parameter-declarations-file") is Some(file) {
-      if format != "aql-text" && format != "sql" {
-        stop("external declarations require aql-text or sql")
-      }
-      input["parameterDeclarations"] = json_file(root, file, 65536L)
-    }
-    Json::object(input)
+    local_aql_intent_input(
+      root,
+      text_file(root, required(child, "program-file"), 65536L),
+      format,
+      child,
+    )
   }
   let parameters = match optional(child, "parameters-file") {
     Some(file) => json_file(root, file, 65536L)

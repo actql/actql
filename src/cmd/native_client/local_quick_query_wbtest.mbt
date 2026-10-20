@@ -80,6 +80,119 @@ test "quick query params aliases keep the original separate parameter input" {
 }
 
 ///|
+fn quick_query_declared_preparation(
+  wire : String,
+) -> Result[
+  @local_host.NativeClientSubmittedPreparation,
+  @local_host.NativeClientSubmittedPreparationIssue,
+] raise {
+  let environment = explain_fixture_environment()
+  let context = @frontend.bind_query_context(
+    [],
+    @checked.checking_environment_cid(environment),
+  ).unwrap()
+  @local_host.prepare_native_client_submitted_program(
+    quick_query_intent_original(wire),
+    environment,
+    Some(context),
+    [],
+    @run_host.client_standard_effect_computation_limits(),
+  )
+}
+
+///|
+test "literal queries retain bounded typed declarations through actual preparation" {
+  let root = @env.current_dir().unwrap() + "/scripts/fixtures/native-local-cli"
+  for operation in ["sql", "aql"] {
+    let selected = quick_query_arguments([
+      operation, "SELECT @id AS id", "--parameter-declarations-file", "parameter-declarations.json",
+      "--params", "parameter-values.json",
+    ])
+    normalize_native_query_arguments(selected)
+    let (_, child) = selected.subcommand.unwrap()
+    assert_eq(
+      optional(child, "parameter-declarations-file"),
+      Some("parameter-declarations.json"),
+    )
+    let wire = local_intent_wire(root, operation, child)
+    let prepared = quick_query_declared_preparation(wire).unwrap()
+    assert_eq(
+      @local_host.native_client_submitted_preparation_intent_cid(prepared),
+      @run_host.client_submitted_intent_cid(quick_query_intent_original(wire)),
+    )
+    guard @local_host.native_client_submitted_preparation(prepared)
+      is @local_host.Computation(original) else {
+      fail("typed literal query did not prepare its own computation")
+    }
+    assert_eq(@run_host.prepared_client_result_count(original), 1)
+    // Both routes share the same original declaration/values file intake.
+    let file = command().parse(
+      argv=[
+        "run",
+        "--program-file",
+        "parameterized.sql",
+        "--format",
+        if operation == "sql" {
+          "sql"
+        } else {
+          "aql-text"
+        },
+        "--parameter-declarations-file",
+        "parameter-declarations.json",
+        "--params",
+        "parameter-values.json",
+      ],
+      env=Map([]),
+    )
+    normalize_native_program_arguments(file)
+    let file_wire = local_intent_wire(root, "run", file.subcommand.unwrap().1)
+    let file_prepared = quick_query_declared_preparation(file_wire).unwrap()
+    guard @local_host.native_client_submitted_preparation(file_prepared)
+      is @local_host.Computation(file_original) else {
+      fail("file-backed typed query did not prepare")
+    }
+    assert_eq(
+      @run_host.prepared_client_identity(original).parameter_values_cid,
+      @run_host.prepared_client_identity(file_original).parameter_values_cid,
+    )
+  }
+}
+
+///|
+test "literal query values cannot infer declarations or bypass required value contracts" {
+  let root = @env.current_dir().unwrap() + "/scripts/fixtures/native-local-cli"
+  for operation in ["sql", "aql"] {
+    let undeclared = quick_query_arguments([
+      operation, "SELECT @id AS id", "--params", "parameter-values.json",
+    ])
+    let wire = local_intent_wire(
+      root,
+      operation,
+      undeclared.subcommand.unwrap().1,
+    )
+    assert_true(quick_query_declared_preparation(wire) is Err(_))
+    let selected = quick_query_arguments([
+      operation, "SELECT @id AS id", "--parameter-declarations-file", "parameter-declarations.json",
+      "--params", "parameter-values.json",
+    ])
+    let wire = local_intent_wire(
+      root,
+      operation,
+      selected.subcommand.unwrap().1,
+    )
+    let original_values = "\"parameters\":{\"id\":7}"
+    assert_true(wire.contains(original_values))
+    for invalid in ["{}", "{\"id\":null}", "{\"id\":\"7\"}"] {
+      let changed = wire.replace(
+        old=original_values,
+        new="\"parameters\":" + invalid,
+      )
+      assert_true(quick_query_declared_preparation(changed) is Err(_))
+    }
+  }
+}
+
+///|
 test "quick query result encoding never chooses the source parser" {
   for operation in ["sql", "aql"] {
     for format in ["json", "jsonl", "csv", "table"] {

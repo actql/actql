@@ -116,6 +116,11 @@ propagation is not supported.
 The full function list, with types and NULL rules, is in
 [Types and functions](types-and-functions.md).
 
+For literal CLI `sql` and `aql` queries, the optional
+`--parameter-declarations-file` supplies those declarations as named value
+contracts. `--params` supplies values separately; neither types nor nullability
+are inferred from them. See the [typed quick-query example](../cli.md#quick-queries).
+
 ## NULL rules
 
 - `NULL` is SQL `NULL`: unknown. Comparisons with `NULL` yield `NULL`, and a
