@@ -26,7 +26,16 @@ pub fn client_local_completion_free_catalog_cid() -> String {
 fn local_normalization_catalog_cid(
   inventory : @checked.LocalCompletionFreeInventory,
 ) -> String {
-  if @checked.local_completion_free_inventory_parameters_supplied(inventory) {
+  let supplied = @checked.local_completion_free_inventory_parameters_supplied(
+    inventory,
+  )
+  if @checked.local_completion_free_inventory_uses_explicit_cast(inventory) {
+    if supplied {
+      "sha256:0eebf603b459361c55386c3863c0fc6e3928cdae2def8aeca899272b3ecade47"
+    } else {
+      "sha256:538424f689566bf75ba8e9e20241aad4bea6acdeccf301216bcd3dc64036ad49"
+    }
+  } else if supplied {
     "sha256:105e716b0494553cf970393a550ece0553787fb1967ee01f245ea607b03d0fe1"
   } else {
     client_local_completion_free_catalog_cid()
