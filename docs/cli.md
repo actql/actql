@@ -95,6 +95,16 @@ The result is `{"id":7}`. An undeclared parameter, a missing required value or
 a value outside its declared contract is refused. The same option works with
 literal Pipe queries through `aql`.
 
+With an explicit `json`, `jsonl` or `csv` format, `--output` delivers that saved
+Result to an exclusively created file instead of stdout:
+
+```sh
+actql sql 'SELECT 1 AS id' --format jsonl --output rows.jsonl
+```
+
+Existing destinations are not overwritten. A delivery failure after submission
+reports the original Run ID; inspect that Run instead of repeating the query.
+
 ## Configuration
 
 The CLI looks for `actql.config.json` in the current directory and its
