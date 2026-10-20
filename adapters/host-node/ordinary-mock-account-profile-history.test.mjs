@@ -16,7 +16,7 @@ const current=Object.freeze({...previous,
 // the Common policy/evaluator is tested in its own actual Owner cases.
 async function fixture() {
   const root=await mkdtemp(join(process.env.ACTQL_TEST_STATE_SCRATCH??tmpdir(),'actql-mock-profile-history-'));
-  const calls={configuration:0,known:[]};let selected=previous;
+  const calls={configuration:0,known:[],admitted:[],issues:0};let selected=previous;
   const moon={
     clientProgramLocalMockAccountProfile(){return {_0:selected.id,_1:selected.version,_2:selected.cid,_3:'fixture policy'};},
     clientProgramLocalMockAccountProfileKnown(id,version,cid){
@@ -29,7 +29,13 @@ async function fixture() {
         bootstrap:{profile_id:selected.id,profile_version:selected.version,profile_cid:selected.cid},
         entries:[{entry_id:'explicit-fixture-only',principal,connection,outcome:'deny'}]})};
     },
-    executionAuthorizationAdmit(wire){assert.equal(typeof JSON.parse(wire).account_id,'string');},
+    executionAuthorizationAdmit(wire){assert.equal(typeof JSON.parse(wire).account_id,'string');calls.admitted.push(wire);},
+    clientLocalSigningBootstrapOriginal(){return {_0:'explicit fixture policy',_1:'fixture-policy-cid'};},
+    clientLocalSigningPublicKeyOriginal(bytes){return {$tag:1,_0:{_0:Buffer.from(bytes).toString('hex'),_1:'fixture-public-key-cid'}};},
+    clientLocalSigningBootstrapIssue(policy,cid,intent,sampledAt,validUntil){
+      assert.equal(policy,'explicit fixture policy');assert.equal(cid,'fixture-policy-cid');
+      calls.issues++;return {$tag:1,_0:{_0:'fixture-issuer',_1:sampledAt,_2:validUntil,_3:1}};
+    },
   };
   const options={moon,root,principal:'local-test',subject:{projectDirectory:root,backend:'original-test'},
     sources:[],modelTasks:[],explicitSelection:true,assertExclusiveCurrent(){}};
@@ -39,8 +45,8 @@ async function fixture() {
     await binding.adoptStore(store);
   }
   const originals=['initialization.json','adopted.json','account.json','reviewer.pem','host.pem','continuation.key'];
-  const snapshot=async()=>Promise.all(originals.map(async name=>({name,bytes:await readFile(join(root,'mock-account',name)),mode:(await stat(join(root,'mock-account',name))).mode&0o777})));
-  return {root,moon,options,calls,adopt,snapshot,useCurrent(){selected=current;}};
+  const snapshot=async(excluded=[])=>Promise.all(originals.filter(name=>!excluded.includes(name)).map(async name=>({name,bytes:await readFile(join(root,'mock-account',name)),mode:(await stat(join(root,'mock-account',name))).mode&0o777})));
+  return {root,moon,options,calls,store,adopt,snapshot,useCurrent(){selected=current;}};
 }
 
 test('saved predecessor Mock initialization reopens without profile migration or replacement keys',async()=>{
@@ -56,7 +62,7 @@ test('saved predecessor Mock initialization reopens without profile migration or
   first.evidenceKey.key.fill(0);reopened.evidenceKey.key.fill(0);
 });
 
-test('known predecessor does not bypass current Deny or recreate a missing adopted key',async()=>{
+test('missing adopted Reviewer leaves current Account available without recreating signing capability',async()=>{
   const f=await fixture(),first=await initializeOrdinaryMockAccount(f.options);
   await f.adopt(first);f.useCurrent();
   const config=JSON.parse(await readFile(first.configurationPath,'utf8'));
@@ -66,9 +72,52 @@ test('known predecessor does not bypass current Deny or recreate a missing adopt
   assert.equal(await readFile(first.configurationPath,'utf8'),restricted);
   assert.deepEqual(reopened.profile,previous);assert.equal(f.calls.configuration,1);
   const key=join(f.root,'mock-account','reviewer.pem');await rename(key,key+'.retained');
-  await assert.rejects(initializeOrdinaryMockAccount(f.options),{code:'LocalMockAdoptedStateMissing'});
+  const before=await f.snapshot(['reviewer.pem']);
+  const accountOnly=await initializeOrdinaryMockAccount({...f.options,explicitSelection:false});
+  assert.deepEqual(accountOnly.profile,previous);
+  assert.deepEqual(accountOnly.authorization,{accountConfig:first.configurationPath});
+  assert.equal(accountOnly.reviewer,undefined);
+  assert.deepEqual(accountOnly.evidenceKey.key,first.evidenceKey.key);
+  assert.equal(f.calls.admitted.at(-1),restricted,'the current Deny is still admitted, not replaced');
+  await accountOnly.adoptStore(f.store);
+  await assert.rejects(accountOnly.assertSigningCurrent(f.store),{code:'CheckpointSignerUnavailable'});
+  assert.throws(()=>accountOnly.signingOriginal(f.store,1n,100n),{code:'CheckpointSignerUnavailable'});
+  assert.equal(f.calls.issues,0,'saved intent PEM must not supply a missing Reviewer');
+  assert.deepEqual(await f.snapshot(['reviewer.pem']),before);
   await assert.rejects(stat(key),{code:'ENOENT'});assert.equal(f.calls.configuration,1);
-  first.evidenceKey.key.fill(0);reopened.evidenceKey.key.fill(0);
+  first.evidenceKey.key.fill(0);reopened.evidenceKey.key.fill(0);accountOnly.evidenceKey.key.fill(0);
+});
+
+test('Reviewer absence does not bypass mandatory adopted Account, Store, Host or evidence originals',async()=>{
+  for(const missing of ['initialization.json','account.json','host.pem','continuation.key','../publication/store.json']) {
+    const f=await fixture(),first=await initializeOrdinaryMockAccount(f.options);await f.adopt(first);
+    const directory=join(f.root,'mock-account'),reviewer=join(directory,'reviewer.pem');
+    await rename(reviewer,reviewer+'.retained');
+    const path=join(directory,missing);await rename(path,path+'.retained');
+    await assert.rejects(initializeOrdinaryMockAccount({...f.options,explicitSelection:false}),{code:'LocalMockAdoptedStateMissing'},missing);
+    await assert.rejects(stat(path),{code:'ENOENT'});await assert.rejects(stat(reviewer),{code:'ENOENT'});
+    assert.equal(f.calls.configuration,1);first.evidenceKey.key.fill(0);
+  }
+});
+
+test('present mismatched Reviewer is not silently treated as an absent capability',async()=>{
+  const f=await fixture(),first=await initializeOrdinaryMockAccount(f.options);await f.adopt(first);
+  const key=join(f.root,'mock-account','reviewer.pem');await rename(key,key+'.retained');
+  await writeFile(key,'not the original Reviewer',{mode:0o600,flag:'wx'});
+  await assert.rejects(initializeOrdinaryMockAccount(f.options),{code:'LocalMockAdoptedStateMissing'});
+  assert.equal(await readFile(key,'utf8'),'not the original Reviewer');assert.equal(f.calls.configuration,1);
+  first.evidenceKey.key.fill(0);
+});
+
+test('signing currentness refuses a missing Reviewer after an originally available signer',async()=>{
+  const f=await fixture(),first=await initializeOrdinaryMockAccount(f.options);await f.adopt(first);
+  await first.assertSigningCurrent(f.store);
+  const original=first.signingOriginal(f.store,1n,100n);
+  assert.strictEqual(original.privateKey,first.reviewer.privateKey);assert.equal(f.calls.issues,1);
+  const key=join(f.root,'mock-account','reviewer.pem');await rename(key,key+'.retained');
+  await assert.rejects(first.assertSigningCurrent(f.store),{code:'CheckpointSignerUnavailable'});
+  await assert.rejects(stat(key),{code:'ENOENT'});assert.equal(f.calls.issues,1);
+  first.evidenceKey.key.fill(0);
 });
 
 test('foreign saved profile is refused without recreating its configuration',async()=>{
