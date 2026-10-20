@@ -59,7 +59,10 @@ def _ordinary_core_limits() -> LocalCoreResources:
     """
     return LocalCoreResources(planning_work=1_000_000, attempts=4096,
         holdings=4096, transfer_bytes=64 * 1024 * 1024,
-        retained_bytes=64 * 1024 * 1024, execution_bytes=64 * 1024 * 1024)
+        retained_bytes=512 * 1024 * 1024,
+        # Existing Local Compute admits a 512 MiB execution envelope. Keep
+        # the Core/transfer/setup allowances concurrent on this same Root.
+        execution_bytes=(512 + 64) * 1024 * 1024)
 
 
 def _state_directory_option(value: str | os.PathLike[str] | None) -> Path | None:

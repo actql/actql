@@ -2610,6 +2610,18 @@ and allocator caches remain platform-owned. Any selected native arena, worker
 or zero-copy buffer still requires its actual original acquisition and release;
 these ordinary limits cannot satisfy an imported-VM or worker-funding port.
 
+The default logical Root permits 512 MiB of retained values and 576 MiB of
+execution allowance. The existing Local Compute configuration quotes a
+512 MiB execution ceiling and at least 200,000,000 retained bytes even for a
+single Values task. The additional 64 MiB of execution allowance keeps Core,
+transfer and setup reservations concurrent on that same Root. Transfer remains
+bounded to 64 MiB, including the selected 12 MiB pool; planning work is one
+million and attempts and holdings are each limited to 4096. These are finite
+admission ceilings, not a reservation of platform memory or a guarantee that
+every valid Program fits. Actual allocation failure and an insufficient Root
+still refuse through their existing Owners, without replacing the Root,
+discarding retained users or retrying an uncertain operation.
+
 Normal initialization does not consume the private CPython initial-preparation
 carrier or require an exact patch build, allocator callback census, prior
 imports or a one-shot process history. That explicit private mechanism retains
