@@ -106,6 +106,90 @@ fn submitted_rows_finite_policy(
 }
 
 ///|
+test "SDK first acceptance retains evidence while legacy rows remain unchanged" {
+  let preparation = submitted_rows_preparation("SELECT 1 AS n")
+  let plan = submitted_rows_plan(
+    preparation,
+    created_at="2026-10-13T00:00:00.001Z",
+    valid_until="2026-10-14T00:00:00.001Z",
+  )
+  let reference = @host.admit_client_submission_reference_record(
+    submitted_rows_reference_wire,
+  ).unwrap()
+  let policy = submitted_rows_finite_policy(plan)
+  let before = submitted_rows_before(preparation)
+  let legacy = submitted_rows_prepare(
+    plan,
+    preparation,
+    before,
+    local_policy_original=Some(policy),
+  ).unwrap()
+  let rows = prepare_local_sdk_submitted_run_rows(
+    plan,
+    preparation,
+    reference,
+    before,
+    permit(
+      @input.local_submitted_preparation_input(preparation),
+      account(Allow),
+    ),
+    account(Allow),
+    tuple(),
+    context_cid(),
+    1000.0,
+    policy,
+  ).unwrap()
+  let (_, _, old_observation) = @host.decode_client_run_journal_row_with_observation_originals(
+    legacy.run,
+  ).unwrap()
+  assert_eq(old_observation, None)
+  let (record, finite, observation) = @host.decode_client_run_journal_row_with_observation_originals(
+    rows.run,
+  ).unwrap()
+  assert_true(finite is Some(_))
+  let expected = @host.capture_client_run_observation_originals(
+      plan.compiled,
+      plan.definition,
+    )
+    .unwrap()
+    .wire()
+    .unwrap()
+  assert_eq(observation, Some(expected))
+  validate_local_saved_submitted_rows(
+    rows,
+    plan,
+    preparation,
+    @host.client_request_scope_cid(plan.request),
+    0L,
+    rows.run,
+    @host.client_submission_reference_record_request_id(reference),
+    0L,
+    rows.submitted,
+  ).unwrap()
+  for changed in [None, Some("foreign")] {
+    let replaced = @host.client_run_journal_row_body(
+      record,
+      local_run_policy_originals=finite,
+      run_observation_originals=changed,
+    ).unwrap()
+    assert_true(
+      validate_local_saved_submitted_rows(
+        rows,
+        plan,
+        preparation,
+        @host.client_request_scope_cid(plan.request),
+        0L,
+        replaced,
+        @host.client_submission_reference_record_request_id(reference),
+        0L,
+        rows.submitted,
+      )
+      is Err(CustodyLost),
+    )
+  }
+}
+
+///|
 test "first accept row keeps finite packet beyond initial adoption deadline" {
   let preparation = submitted_rows_preparation("SELECT 1 AS n")
   let plan = submitted_rows_plan(

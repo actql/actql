@@ -1971,6 +1971,8 @@ pub fn restore_client_retained_task_input(@remote_site_protocol.RemoteInputBindi
 
 pub fn restore_client_run_observation_originals(@run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[ClientRunObservationOriginals, ClientRunObservationOriginalsIssue]
 
+pub fn restore_client_run_observation_originals_wire(@run_publication.PublicationContract, String, Int, Int, Int) -> Result[ClientRunObservationOriginals, ClientRunObservationOriginalsIssue]
+
 pub fn restore_client_run_state_original(@run_publication.PublicationContract, String) -> Result[ClientRunStateOriginal, ClientJournalDecodingIssue]
 
 pub fn restore_prepared_client_effect_normalization(PreparedClientEffectComputation, ClientEffectNormalization, String, String) -> Result[@run_publication.RunEvidenceValue, ClientEffectNormalizationIssue]
@@ -3821,11 +3823,13 @@ pub(all) enum ClientRunMaterialsIssue {
 type ClientRunObservationOriginals
 pub fn ClientRunObservationOriginals::authorization(Self) -> @run_publication.RunEvidenceValue
 pub fn ClientRunObservationOriginals::prepared(Self) -> @run_publication.RunEvidenceValue
+pub fn ClientRunObservationOriginals::wire(Self) -> Result[String, ClientRunObservationOriginalsIssue]
 
 pub(all) enum ClientRunObservationOriginalsIssue {
   Compilation(ClientCompiledRunIssue)
   Evidence(@run_publication.RunEvidenceValueIssue)
   Binding(@run_publication.RunControlReadIssue)
+  Encoding
 }
 
 pub(all) enum ClientRunOpenIssue {

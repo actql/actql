@@ -182,6 +182,8 @@ pub fn prepare_local_sdk_read_originals(LocalPublicationPreflight, @execution_au
 
 pub fn[E] prepare_local_sdk_read_payload_codecs(LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, LocalSDKReadDeliveryPreparation, String, String, String, String, Int, Int, Int, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[(@run_publication.DurableResultRowFrames, @run_publication.ResultDeliverySerializer), LocalSDKReadPayloadCodecIssue[E]]
 
+pub fn prepare_local_sdk_submitted_run_rows(LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation, @run_publication_host.ClientSubmissionReferenceRecord, Bytes, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, Double, @run_publication_host.ClientLocalRunPolicyOriginal) -> Result[LocalSubmittedRunRows, LocalSubmittedRunRowsIssue]
+
 pub fn prepare_local_source_publication(LocalNativeSourceConfiguration, LocalComputeHost, @host.NativeHostSourceCapture, @execution_authorization.AdmittedAccountConfiguration, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int) -> Result[LocalSourcePublicationPreparation, LocalSourcePublicationIssue]
 
 pub fn prepare_local_submitted_run_rows(LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation, @run_publication_host.ClientSubmissionReferenceRecord, Bytes, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, Double, local_policy_original? : @run_publication_host.ClientLocalRunPolicyOriginal?) -> Result[LocalSubmittedRunRows, LocalSubmittedRunRowsIssue]
@@ -606,6 +608,7 @@ pub struct LocalSubmittedRunRows {
   run : Bytes
   submitted : Bytes
   local_policy_original : String?
+  observation_originals : String?
 }
 
 pub(all) enum LocalSubmittedRunRowsIssue {

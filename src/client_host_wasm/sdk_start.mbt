@@ -72,7 +72,13 @@ fn sdk_start_original_row(
   run : Int,
   plan : @local_run.LocalRunPlan,
 ) -> Result[
-  (@host.ClientJournalPhysicalRow, @host.ClientRunJournalEncoding, String?, Int),
+  (
+    @host.ClientJournalPhysicalRow,
+    @host.ClientRunJournalEncoding,
+    String?,
+    String?,
+    Int,
+  ),
   Int,
 ] {
   let (row, submission, _, _, _) = match
@@ -80,8 +86,8 @@ fn sdk_start_original_row(
     Ok(value) => value
     Err(code) => return Err(code)
   }
-  let (encoding, policy) = match
-    @host.decode_client_run_journal_row_with_local_policy(row.body) {
+  let (encoding, policy, observation_originals) = match
+    @host.decode_client_run_journal_row_with_observation_originals(row.body) {
     Ok(value) => value
     Err(_) => return Err(-31)
   }
@@ -100,7 +106,8 @@ fn sdk_start_original_row(
         @local_run.validate_local_run_publication_binding_original(
           original, row, submission,
         ) {
-        Ok(_) => return Ok((row, encoding, policy, handle))
+        Ok(_) =>
+          return Ok((row, encoding, policy, observation_originals, handle))
         Err(issue) => return Err(sdk_publication_binding_issue(issue))
       }
     }
@@ -119,7 +126,7 @@ fn prepare_sdk_start_step(
     current.sdk is Some(_) else {
     return Err(-2)
   }
-  let (row, encoding, policy, publication_material) = match
+  let (row, encoding, policy, observation_originals, publication_material) = match
     sdk_start_original_row(value, material.run, plan) {
     Ok(value) => value
     Err(code) => return Err(code)
@@ -192,6 +199,7 @@ fn prepare_sdk_start_step(
     @host.client_run_journal_row_body(
       changed,
       local_run_policy_originals=policy,
+      run_observation_originals=observation_originals,
     ) {
     Ok(body) => body
     Err(_) => return Err(-34)
@@ -277,7 +285,7 @@ fn confirm_sdk_start_step(
     value.run_configurations.get(record.configuration) is Some(current) else {
     return -2
   }
-  let (row, _, _, publication_material) = match
+  let (row, _, _, _, publication_material) = match
     sdk_start_original_row(value, material.run, plan) {
     Ok(value) => value
     Err(code) => return code
