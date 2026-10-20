@@ -156,15 +156,20 @@ fn NativeLocalJournalCapture::original_submit_allowed(
   connection : String,
   expected_scope : String,
 ) -> Result[Bool, NativeLocalAdoptionIssue] {
+  // These immutable originals determine identity, never Allow. The material
+  // was joined to this Host immediately before this closed operation. Account
+  // evaluation below still observes that same material before and after its
+  // actual decision, including after the digest and before protected SQL.
   let body = match
-    @host.client_local_adopted_authority_scope_body(
-      material,
-      host.database,
+    @host.client_local_authority_scope_body(
+      host.session.configuration,
+      "sha256:" + @sha.hex(host.adoption_body),
       principal,
       connection,
     ) {
     Ok(body) => body
-    Err(issue) => return Err(local_current_material_issue(issue))
+    Err(@host.InvalidInput) => return Err(InvalidInput)
+    Err(@host.Encoding) => return Err(Encoding)
   }
   let current_scope = match local_adoption_digest(self.crypto, body) {
     Ok(value) => value
