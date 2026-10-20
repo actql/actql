@@ -80,3 +80,15 @@ test('Explicit null, empty and partial Checkpoint options retain the existing re
       ['InvalidRemoteHostAuthorization', 'InvalidCheckpointReviewers'].includes(error.code));
   }
 });
+
+test('An explicit Checkpoint observer does not silently become Account-only configuration', async () => {
+  for (const observe of [null, {}, () => {}, undefined]) {
+    await assert.rejects(async () => {
+      let installed;
+      try {
+        installed = await installHostRunAcceptance(options({
+          accountConfiguration: configuration(), observe}));
+      } finally { installed?.runAcceptance.close(); }
+    }, {code: 'InvalidCheckpointReviewers'});
+  }
+});

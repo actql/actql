@@ -205,7 +205,7 @@ export async function installHostRunAcceptance(options) {
   const checkpointFields = ['reviewers', 'hostKey', 'reviewReaders',
     'answeringAuthorities', 'effectRequiredClaims', 'checkpointTtlMs',
     'leaseMs', 'maxReviewBytes', 'resumeAfterAnswer', 'faultInjection',
-    'sweepPage', 'decide'];
+    'sweepPage', 'decide', 'observe'];
   if (authorization === undefined) return Object.freeze({});
   if (authorization === null || typeof authorization !== 'object' ||
       Array.isArray(authorization) ||

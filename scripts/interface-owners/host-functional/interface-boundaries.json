@@ -12981,7 +12981,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6b330558745dc4173acd5c23579765dcc5e6ab03ca94c4d6f48e84a315eb4eba",
+      "sha256": "14a87e0cf4de889f4af6f0484078d3e819adb631ded73f25fb7be073cfa120e7",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
