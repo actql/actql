@@ -42,6 +42,7 @@ from ._local_sdk_response import OriginalLocalSDKResponseStream
 from ._local_sdk_payload_reader import OriginalSDKPayloadReader, SDKPayloadReaderCleanupPending
 from ._local_work import OriginalLocalWork
 from ._local_saved_read import OriginalSavedResultRead
+from ._local_check import OriginalLocalCheck
 from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalStorageError, StoredBytes
 from ._local_native_store import _OriginalNativeStoreSelection
 from ._values import content_cid, wire_bytes
@@ -220,6 +221,7 @@ class InstalledLocalHost:
         # Routing alias to the same retained publisher loan, never a new grant.
         self._pending_publication_publisher: _Output | None = None
         self._saved_result_reads: list[OriginalSavedResultRead] = []
+        self._client_check = OriginalLocalCheck(self)
         self._payloads: list[_PayloadCustody] = []
         self._payload_write_attempts: set[int] = set()
         self._payload_capacity_attempts: set[int] = set()
@@ -337,6 +339,8 @@ class InstalledLocalHost:
         with self._core._lock:
             if operation == 'connect':
                 raw = wire_bytes(self._profile())  # type: ignore[no-untyped-call]
+            elif operation == 'check':
+                raw = self._client_check.report(body)
             elif operation == 'lookup-submission':
                 raw = self._lookup_original_submission(body['submissionRef'])
             elif operation == 'attach':
@@ -397,7 +401,8 @@ class InstalledLocalHost:
                     body['resultName'], body['attemptId'])
             else:
                 raise ValueError('Original Local operation supplier is unavailable')
-            stream = OriginalLocalResponseStream(self, raw)
+            stream = OriginalLocalResponseStream(self, raw,
+                maximum=1048576 if operation == 'check' else 8192)
         if work is not None:
             # Keep the accounted response and original invocation even if the
             # awaiting coroutine disappears. Host close observes actual worker
@@ -748,6 +753,19 @@ class InstalledLocalHost:
             self._core.fill_input(loan, start, min(16384, len(raw) - start))
         self._core.seal_input(loan)
         return loan
+
+    def _original_check_environment(self) -> _Environment:
+        installation = self._active()
+        if self._environment is None:
+            selected = next(value for value in installation.binding._selected
+                            if value.name == 'environment.json')
+            source = self._copy(installation.binding._source.original_bytes(selected))
+            def install(_: _Output) -> None:
+                self._environment = self._preparation.install_environment(source, profile='source-free')
+            installation.binding.inspect(install)
+        assert self._environment is not None
+        self._preparation._environment(self._environment)
+        return self._environment
 
     def _project_epoch(self, kind: int, raw: bytes) -> bytes:
         """Forward the physical key/clock body through the same current Owner."""
@@ -2746,6 +2764,8 @@ class InstalledLocalHost:
                 if stream._attached or not stream._close():
                     return False
             if self._uncertain_ticket is not None and not self._core._closed:
+                return False
+            if not self._client_check.close():
                 return False
             for saved_read in tuple(reversed(self._saved_result_reads)):
                 if not saved_read.close():

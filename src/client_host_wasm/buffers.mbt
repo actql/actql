@@ -36,6 +36,7 @@ priv struct Instance {
   runs : Map[Int, StoredRun]
   submissions : Map[Int, StoredSubmissionProjection]
   bootstraps : Map[Int, StoredBootstrap]
+  client_checks : Map[Int, StoredClientCheck]
   host_currents : Map[Int, StoredHostCurrent]
   original_metadata : Map[Int, StoredOriginalMetadata]
   journal_observations : Map[Int, StoredJournalObservation]
@@ -147,6 +148,7 @@ fn install_buffer_instance(
     runs: {},
     submissions: {},
     bootstraps: {},
+    client_checks: {},
     host_currents: {},
     original_metadata: {},
     journal_observations: {},
@@ -516,7 +518,8 @@ pub fn close_pool(nonce : Int64) -> Int {
   }
   // Pending Native work and its downstream consumers must retire through
   // their existing stop/cleanup boundary before the Root can be closed.
-  if !value.bootstraps.is_empty() ||
+  if !value.client_checks.is_empty() ||
+    !value.bootstraps.is_empty() ||
     !value.host_currents.is_empty() ||
     !value.original_metadata.is_empty() ||
     !value.journal_observations.is_empty() ||
@@ -569,6 +572,7 @@ pub fn close_pool(nonce : Int64) -> Int {
     value.copies.clear()
     value.readers.clear()
     value.environments.clear()
+    value.client_checks.clear()
     value.preparations.clear()
     value.run_configurations.clear()
     value.runs.clear()
