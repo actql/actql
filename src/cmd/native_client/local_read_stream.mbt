@@ -279,7 +279,7 @@ fn local_admitted_result_stream(
       material is None else {
       stop("LocalReadOriginalCustodyUnavailable")
     }
-    let location = local_product_selected_location(Some(destination.path), None)
+    let location = local_result_file_location(destination.path)
     match
       binding.open_file_output_parent(
         selected.request,

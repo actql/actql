@@ -25,6 +25,29 @@ fn normalize_native_result_arguments(
 }
 
 ///|
+// Ordinary file presentation metadata, separate from the installation's
+// managed-object basename restriction. OS lookup/seal supplies actual name
+// limits and errors; this split never opens a path or grants output access.
+fn local_result_file_location(
+  path : String,
+) -> LocalProductLocation raise ClientStop {
+  if !local_product_path(path) || path.contains("\\") {
+    stop("InvalidLocalResultDestination")
+  }
+  let parts = path.split("/").to_array()
+  let name = parts[parts.length() - 1].to_owned()
+  let prefix = path[:path.length() - name.length() - 1].to_owned()
+  {
+    parent_path: if prefix.is_empty() {
+      "/"
+    } else {
+      prefix
+    },
+    directory_name: name,
+  }
+}
+
+///|
 fn local_result_output_path(
   directory : String,
   value : String,
@@ -35,10 +58,7 @@ fn local_result_output_path(
   let absolute = local_project_absolute_path(directory, value) catch {
     ClientStop(_) => stop("InvalidLocalResultDestination")
   }
-  let selected = local_product_selected_location(Some(absolute), None)
-  if selected.directory_name.length() > 128 {
-    stop("InvalidLocalResultDestination")
-  }
+  ignore(local_result_file_location(absolute))
   absolute
 }
 

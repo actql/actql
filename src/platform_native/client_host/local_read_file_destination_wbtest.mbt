@@ -41,6 +41,31 @@ test "File destination acknowledges actual Writer and rechecks completed origina
 }
 
 ///|
+test "File destination uses actual ordinary names without truncation or normalization" {
+  let base = file_destination_fixture("ordinary")
+  let name = "result " + "e\u{0301}é-data-".repeat(15) + ".json"
+  let destination = local_read_file_destination(
+    base.parent + "/" + name,
+    base.parent,
+    name,
+    "private.stage",
+    64,
+  )
+  destination.open_parent().unwrap()
+  destination.create_writer().unwrap()
+  let original = destination.original_data().unwrap()
+  assert_eq(original.name, name)
+  assert_true(
+    destination.append(b"ordinary") is @result_access.SinkChunkConfirmed,
+  )
+  assert_true(destination.finish())
+  let (count, digest) = destination.verify_completed(original).unwrap()
+  assert_eq(count, 8L)
+  assert_eq(digest, @sha.hex(@sha.digest(b"ordinary")))
+  destination.close().unwrap()
+}
+
+///|
 test "File destination never overwrites an existing final name" {
   let destination = file_destination_fixture("existing")
   destination.open_parent().unwrap()

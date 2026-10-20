@@ -25,10 +25,7 @@ fn local_output_verification_path(
   let absolute = local_project_absolute_path(directory, value) catch {
     ClientStop(_) => stop("InvalidOutputVerificationPath")
   }
-  if local_product_selected_location(Some(absolute), None).directory_name.length() >
-    128 {
-    stop("InvalidOutputVerificationPath")
-  }
+  ignore(local_result_file_location(absolute))
   absolute
 }
 
@@ -36,7 +33,7 @@ fn local_output_verification_path(
 fn local_output_verification_file(
   path : String,
 ) -> LocalOutputVerificationFile raise ClientStop {
-  let location = local_product_selected_location(Some(path), None)
+  let location = local_result_file_location(path)
   let original : LocalOutputVerificationFile = {
     location,
     root: None,
@@ -71,14 +68,15 @@ fn LocalOutputVerificationFile::open(
     }
   }
   self.root = Some(root)
-  let generation = match root.inspect_generation(self.location.directory_name) {
+  let generation = match
+    root.inspect_file_generation(self.location.directory_name) {
     Ok(Some(value)) if value.size >= 0L && value.size <= maximum => value
     Ok(_) => stop("OutputVerificationInputUnavailable")
     Err(_) => stop("OutputVerificationInputUnavailable")
   }
   self.generation = Some(generation)
   let reader = match
-    root.open_reader_with_custody(self.location.directory_name, generation) {
+    root.open_file_reader_with_custody(self.location.directory_name, generation) {
     Ok(value) => value
     Err(failure) => {
       self.reader_failure = Some(failure)
@@ -139,7 +137,7 @@ fn LocalOutputVerificationFile::read(
   if !complete ||
     count != generation.size ||
     reader.finish() is Err(_) ||
-    !root.verify_generation(self.location.directory_name, generation) {
+    !root.verify_file_generation(self.location.directory_name, generation) {
     stop("OutputVerificationInputChanged")
   }
   let hash = @sha.finish_hex(digest) catch {

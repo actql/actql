@@ -17,7 +17,7 @@ fn local_read_file_unsigned_identity(value : String) -> Bool {
 ///|
 fn local_read_file_name(value : String) -> Bool {
   !value.is_empty() &&
-  value.length() <= 128 &&
+  value.length() <= 4096 &&
   value != "." &&
   value != ".." &&
   !value.contains("/") &&

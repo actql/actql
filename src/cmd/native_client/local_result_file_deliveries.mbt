@@ -157,7 +157,16 @@ fn local_result_file_deliveries(
     }
     // No next destination can bypass an outstanding same-session/Store return.
     // A failed cleanup keeps all originals and stops before any further open.
-    command_preparation_result(business.close_result_children())
+    if business.close_result_children_after_return() is Err(cleanup) {
+      let pending = "LocalResultCleanupPending: " +
+        command_preparation_cleanup_kind(cleanup)
+      stop(
+        match outcome {
+          Ok(_) => pending
+          Err(primary) => primary + "; cleanup=" + pending
+        },
+      )
+    }
     let fields : Map[String, Json] = Map::from_array([
       (
         "delivery_id",

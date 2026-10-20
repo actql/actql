@@ -84,7 +84,7 @@ fn local_write_result_receipt(
   if bytes.length() > 65536 {
     stop("ResultReceiptExportTooLarge")
   }
-  let location = local_product_selected_location(Some(path), None)
+  let location = local_result_file_location(path)
   let original : LocalResultReceiptOutput = {
     root: None,
     root_failure: None,
@@ -109,7 +109,7 @@ fn local_write_result_receipt(
   let identity = observation
     .identity()
     .unwrap_or_else(() => stop("ResultReceiptOpenFailed"))
-  match root.inspect_generation(location.directory_name) {
+  match root.inspect_file_generation(location.directory_name) {
     Ok(None) => ()
     Ok(Some(_)) => stop("ResultReceiptDestinationExists")
     Err(_) => stop("ResultReceiptOpenFailed")
@@ -131,9 +131,9 @@ fn local_write_result_receipt(
     stop("ResultReceiptWriteUnknown")
   }
   let generation = writer
-    .seal(location.directory_name)
+    .seal_file(location.directory_name)
     .unwrap_or_else(() => stop("ResultReceiptWriteUnknown"))
-  if !root.verify_generation(location.directory_name, generation) ||
+  if !root.verify_file_generation(location.directory_name, generation) ||
     !(observation.identity() is Ok(actual) && actual == identity) {
     stop("ResultReceiptWriteUnknown")
   }

@@ -119,7 +119,7 @@ fn NativeLocalReadFileDestination::create_writer(
     Ok(_) => ()
     Err(issue) => return Err(self.remember(issue))
   }
-  match root.inspect_generation(self.name) {
+  match root.inspect_file_generation(self.name) {
     Ok(None) => ()
     Ok(Some(_)) => return Err(self.remember(@filesystem.Conflict))
     Err(issue) => return Err(self.remember(issue))
@@ -171,7 +171,7 @@ fn NativeLocalReadFileDestination::check_current(
       )
     }
   }
-  if root.verify_generation(name, generation) {
+  if root.verify_file_generation(name, generation) {
     Ok(())
   } else {
     Err(@filesystem.GenerationMismatch)
@@ -253,7 +253,7 @@ fn NativeLocalReadFileDestination::finish(
     }
   }
   guard self.writer is Some(writer) else { return false }
-  match writer.seal(self.name) {
+  match writer.seal_file(self.name) {
     Ok(generation) => self.generation = Some(generation)
     Err(issue) => {
       ignore(self.remember(issue))
@@ -353,7 +353,7 @@ fn NativeLocalReadFileDestination::verify_completed(
     parent.inode.to_string() != saved.parent_inode {
     return Err(self.remember(@filesystem.GenerationMismatch))
   }
-  let generation = match root.inspect_generation(self.name) {
+  let generation = match root.inspect_file_generation(self.name) {
     Ok(Some(value)) if value.size >= 0L &&
       value.size <= self.max_bytes.to_int64() &&
       value.device.to_string() == saved.writer_device &&
@@ -361,7 +361,7 @@ fn NativeLocalReadFileDestination::verify_completed(
     Ok(_) => return Err(self.remember(@filesystem.GenerationMismatch))
     Err(issue) => return Err(self.remember(issue))
   }
-  let reader = match root.open_reader_with_custody(self.name, generation) {
+  let reader = match root.open_file_reader_with_custody(self.name, generation) {
     Ok(value) => value
     Err(original) => {
       self.reader_failure = Some(original)
@@ -393,7 +393,7 @@ fn NativeLocalReadFileDestination::verify_completed(
   if !complete ||
     count != generation.size ||
     reader.finish() is Err(_) ||
-    !root.verify_generation(self.name, generation) ||
+    !root.verify_file_generation(self.name, generation) ||
     !(observation.identity() is Ok(actual) && actual == parent) {
     return Err(self.remember(@filesystem.GenerationMismatch))
   }

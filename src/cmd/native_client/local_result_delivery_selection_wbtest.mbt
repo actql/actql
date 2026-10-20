@@ -93,3 +93,21 @@ test "Result file selection bounds input and preserves the ordinary stdout route
   assert_eq(selected.receipt, None)
   assert_false(selected.json)
 }
+
+///|
+test "Result and output verification preserve ordinary file names beyond object-name limits" {
+  let name = "result " + "e\u{0301}é-data-".repeat(15) + ".json"
+  assert_true(name.length() > 128)
+  let path = "/project/" + name
+  let selected = local_result_delivery_selection(
+    result_command_child([
+      "result", "original-run", "--output", name, "--receipt", "receipt file.json",
+    ]),
+    "/project",
+  )
+  assert_eq(selected.files[0].path, path)
+  assert_eq(local_result_file_location(path).directory_name, name)
+  assert_eq(local_result_file_location(path).parent_path, "/project")
+  assert_eq(local_output_verification_path("/project", name), path)
+  assert_eq(local_result_file_location("/file name").parent_path, "/")
+}
