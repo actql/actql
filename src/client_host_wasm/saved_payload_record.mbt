@@ -69,6 +69,20 @@ fn observe_saved_payload_record(
       Err(code) => return Err(code)
       _ => return Err(-41)
     }
+    guard record.saved_allocation
+      is Some((allocation_revision, allocation_body, _)) else {
+      return Err(-32)
+    }
+    match
+      sdk_run_journal_port(
+        value, current, 1, "publication_payload_allocation", key,
+      ) {
+      Ok(Some(row)) if row.key == key &&
+        row.revision == allocation_revision &&
+        row.body == allocation_body => ()
+      Err(code) => return Err(code)
+      _ => return Err(-41)
+    }
   }
   if record.closing {
     Err(-5)
@@ -107,6 +121,9 @@ fn load_saved_payload_record(
     saved.owner is Some(owner) &&
     saved.view is Some(view) else {
     return Err(-32)
+  }
+  if record.restore_invoked && !record.confirmed {
+    return Err(-33)
   }
   if record.record is None {
     if record.restore_invoked {
@@ -147,6 +164,31 @@ fn load_saved_payload_record(
       return Err(-41)
     }
     record.record = Some(original)
+    let allocation_row = match
+      sdk_run_journal_port(
+        value, current, 1, "publication_payload_allocation", key,
+      ) {
+      Ok(Some(row)) if row.key == key &&
+        row.revision >= 0L &&
+        row.body.length() <= 65536 => row
+      Err(code) => return Err(code)
+      _ => return Err(-41)
+    }
+    let allocation = match
+      @payload.admit_publication_payload_allocation(
+        @payload.publication_payload_record_request(original),
+        allocation_row.body,
+      ) {
+      Ok(value) => value
+      Err(_) => return Err(-32)
+    }
+    if @payload.publication_payload_allocation_ownership(allocation) !=
+      @payload.publication_payload_record_ownership(original) {
+      return Err(-32)
+    }
+    record.saved_allocation = Some(
+      (allocation_row.revision, allocation_row.body, allocation),
+    )
     // Read-only observation of an existing Sealed state, not a write/COMMIT ACK.
     record.confirmed = true
   }
@@ -212,4 +254,52 @@ fn saved_payload_binding(
     saved.result_name,
     original,
   ).map_err(_ => -32)
+}
+
+///|
+fn saved_payload_names_json(
+  record : StoredPayloadRecord,
+) -> Result[String, Int] {
+  guard record.record is Some(original) &&
+    record.saved_allocation is Some((_, _, allocation)) &&
+    @payload.publication_payload_allocation_ownership(allocation)
+    is Some(directory) else {
+    return Err(-32)
+  }
+  let request = @payload.publication_payload_record_request(original)
+  try {
+    let writer = @encode.writer(1024, 32, 1)
+    @encode.begin_object(writer)
+    for
+      (name, text) in [
+        ("staging_name", @payload.publication_payload_staging_name(request)),
+        ("object_name", @payload.publication_payload_object_name(request)),
+        (
+          "material_generation_cid",
+          @payload.publication_payload_material_identity(request),
+        ),
+        (
+          "store_authority_cid",
+          @payload.publication_payload_request_store_authority(request),
+        ),
+        (
+          "record_revision",
+          @payload.publication_payload_record_revision(original).to_string(),
+        ),
+        ("request_cid", @payload.publication_payload_request_identity(request)),
+        (
+          "allocation_name",
+          @payload.publication_payload_allocation_name(allocation),
+        ),
+        ("allocation_device", directory.device.to_string()),
+        ("allocation_inode", directory.inode.to_string()),
+      ] {
+      @encode.key(writer, name)
+      @encode.string_value(writer, text)
+    }
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => Err(-34)
+  }
 }

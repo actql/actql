@@ -426,11 +426,19 @@ test "saved SDK source reaches existing payload codecs and terminal observation"
   let selected = fixture.owner
     .observed_result_read_materials(fixture.view, "answer", 16)
     .unwrap()
+  let names = @publication.manifest_result_names(
+    fixture.owner.view_contract(fixture.view, 2).unwrap(),
+  ).unwrap()
+  assert_eq(names[ordinal], "answer")
   assert_eq(
-    @publication.publication_contract_json(
-      fixture.owner.view_contract(fixture.view, ordinal).unwrap(),
-    ),
-    @publication.publication_contract_json(selected.artifact),
+    local_sdk_saved_result_coordinates(
+      source,
+      fixture.account,
+      fixture.owner,
+      fixture.view,
+      "answer",
+    ).unwrap(),
+    (ordinal, binding),
   )
   assert_eq(
     @publication.publication_contract_identity(

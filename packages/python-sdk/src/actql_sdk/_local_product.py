@@ -41,6 +41,7 @@ from ._local_response import OriginalLocalResponseStream
 from ._local_sdk_response import OriginalLocalSDKResponseStream
 from ._local_sdk_payload_reader import OriginalSDKPayloadReader, SDKPayloadReaderCleanupPending
 from ._local_work import OriginalLocalWork
+from ._local_saved_read import OriginalSavedResultRead
 from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalStorageError, StoredBytes
 from ._local_native_store import _OriginalNativeStoreSelection
 from ._values import content_cid, wire_bytes
@@ -218,6 +219,7 @@ class InstalledLocalHost:
         self._pending_publication_write: OriginalCommitProjection | None = None
         # Routing alias to the same retained publisher loan, never a new grant.
         self._pending_publication_publisher: _Output | None = None
+        self._saved_result_reads: list[OriginalSavedResultRead] = []
         self._payloads: list[_PayloadCustody] = []
         self._payload_write_attempts: set[int] = set()
         self._payload_capacity_attempts: set[int] = set()
@@ -376,6 +378,10 @@ class InstalledLocalHost:
                 projection = self._original_run_projection(run)
                 return self._original_run_response(run, projection)
             elif operation == 'read':
+                if not self._has_live_original_run_reference(body['ref']):
+                    saved_read = OriginalSavedResultRead(self)
+                    self._saved_result_reads.append(saved_read)
+                    return saved_read.prepare(body['ref'], body['resultName'], body['format'], body['attemptId'])
                 run, _ = self._select_original_run(body['ref'])
                 projection = self._original_run_projection(run)
                 return self._original_sdk_read_response(run, projection,
@@ -422,6 +428,17 @@ class InstalledLocalHost:
             if held == raw:
                 raise ValueError('Ambiguous original Local Run reference')
         self._public_run_references.append(_OriginalRunReference(run, self._copy(raw)))
+
+    def _has_live_original_run_reference(self, reference: object) -> bool:
+        """Locate existing live custody only; exact equality is not authority."""
+        captured = wire_bytes(reference)  # type: ignore[no-untyped-call]
+        if len(captured) > 4096:
+            raise ValueError('Invalid original Local Run reference')
+        for original in self._public_run_references:
+            self._core._owned_input(original.source)
+            if self._core._inputs[original.source.ticket].payload == captured:
+                return True
+        return False
 
     def _select_original_run(self, reference: object) -> tuple[_Run, bytes]:
         """Route a reference, then reobserve its original actual saved admission.
@@ -957,10 +974,12 @@ class InstalledLocalHost:
             installation.binding.inspect(inspect)
             packet = packets[0]
             fields = {'kind', 'resultName', 'runDefinitionCid', 'index', 'manifest',
-                      'definition', 'artifact', 'retention', 'binding'}
+                      'definition', 'artifact', 'retention', 'binding', 'resultOrdinal', 'bindingOrdinal'}
             if (set(packet) != fields or any(type(packet[key]) is not str for key in fields)
                     or packet['kind'] != 'result-originals' or packet['resultName'] != result_name
-                    or packet['runDefinitionCid'] != selected['runDefinitionCid']):
+                    or packet['runDefinitionCid'] != selected['runDefinitionCid']
+                    or any(packet[key] not in tuple(str(i) for i in range(8))
+                           for key in ('resultOrdinal', 'bindingOrdinal'))):
                 raise ValueError('Foreign original saved Local Result projection')
             return output
 
@@ -2724,6 +2743,10 @@ class InstalledLocalHost:
                     return False
             if self._uncertain_ticket is not None and not self._core._closed:
                 return False
+            for saved_read in tuple(reversed(self._saved_result_reads)):
+                if not saved_read.close():
+                    return False
+                self._saved_result_reads.remove(saved_read)
             for key, state_custody in tuple(self._run_state_custody.items()):
                 if state_custody.output is not None:
                     if not self._core.close_publication_commit_export(state_custody.output):

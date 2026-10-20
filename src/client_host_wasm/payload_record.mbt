@@ -11,6 +11,7 @@ priv struct StoredPayloadRecord {
   request : Int
   source : StoredPayloadRecordSource
   mut saved_row : (Int64, Bytes)?
+  mut saved_allocation : (Int64, Bytes, @payload.PublicationPayloadAllocation)?
   mut restore_invoked : Bool
   mut pending : Bool
   slot : @buffers.BufferSlot
@@ -72,6 +73,7 @@ pub fn reserve_payload_record(
     request,
     source,
     saved_row: None,
+    saved_allocation: None,
     restore_invoked: false,
     pending: false,
     slot,

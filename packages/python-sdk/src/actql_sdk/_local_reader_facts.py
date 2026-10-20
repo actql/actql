@@ -5,7 +5,7 @@ import json
 
 from ._local_commit_projection import OriginalCommitProjection
 from ._local_core import _Input, _Output
-from ._local_files import LocalFileRoot, _FileReader
+from ._local_files import LocalFileRoot, PhysicalFileSnapshot, _FileReader, _OriginalFileReader
 
 
 class OriginalReaderFacts:
@@ -32,7 +32,7 @@ class OriginalReaderFacts:
     """
 
     def __init__(self, projection: OriginalCommitProjection, record: _Output,
-                 root: LocalFileRoot, reader: _FileReader, result: int,
+                 root: LocalFileRoot, reader: _FileReader | _OriginalFileReader, result: int,
                  binding_index: int, store_authority_cid: str,
                  material_generation_cid: str, *, cleanup: Callable[[], bool],
                  stopped: Callable[[int], bool]) -> None:
@@ -50,7 +50,12 @@ class OriginalReaderFacts:
             projection._ready()
             projection._core._owned_output(record, 'payload_record')
             with root._lock:
-                root._owned_reader(reader)
+                if type(reader) is _OriginalFileReader and projection._saved:
+                    root._owned_original(reader)
+                elif type(reader) is _FileReader and not projection._saved:
+                    root._owned_reader(reader)
+                else:
+                    raise ValueError('Foreign original saved/live Reader variant')
         self._projection = projection
         self._record = record
         self._root = root
@@ -66,6 +71,11 @@ class OriginalReaderFacts:
         self._sealed = False
         self._active = False
         self._closing = False
+
+    def _observe_reader(self) -> PhysicalFileSnapshot:
+        if isinstance(self._reader, _OriginalFileReader):
+            return self._root.observe_original(self._reader)
+        return self._root.observe_completed_reader(self._reader)
 
     @property
     def pending_input(self) -> _Input | None:
@@ -102,7 +112,7 @@ class OriginalReaderFacts:
             with self._root._lock:
                 if self._active:
                     raise RuntimeError('Local reader facts transaction is already active')
-                self._root.observe_completed_reader(self._reader)
+                self._observe_reader()
                 self._active = True
                 try:
                     yield
@@ -115,7 +125,7 @@ class OriginalReaderFacts:
         with core._lock:
             self._ready()
             with self._root._lock:
-                observed = self._root.observe_completed_reader(self._reader)
+                observed = self._observe_reader()
                 self._projection.validate_payload_binding(
                     self._record, self._result, self._binding_index)
                 if self._input is None:
@@ -149,7 +159,7 @@ class OriginalReaderFacts:
                     raise RuntimeError('Original Local reader fact transfer requires cleanup')
                 core.validate_payload_snapshot(
                     self._record, self._input, self._projection._configuration)
-                self._root.observe_completed_reader(self._reader)
+                self._observe_reader()
 
     def before_lookup(self, publisher: _Output) -> None:
         """Recheck original physical facts around the current Request stage.

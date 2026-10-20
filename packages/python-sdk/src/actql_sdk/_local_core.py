@@ -2502,6 +2502,23 @@ class LocalCore:
                 'publication_commit_export', 'validate_payload_binding', publication.handle,
                 record.handle, current_configuration, result, binding_index))
 
+    def validate_saved_payload_binding(self, original: _Output, record: _Output,
+                                       current_configuration: int, result: int,
+                                       binding_index: int) -> None:
+        """Match the same saved-read Owner and original Sealed row; no grant."""
+        with self._lock:
+            self._owned_output(original, 'submission_lookup')
+            self._owned_output(record, 'payload_record')
+            if (type(current_configuration) is not int or not 0 < current_configuration < 2**31
+                    or any(type(value) is not int or not 0 <= value < 8
+                           for value in (result, binding_index))):
+                raise ValueError('Invalid original saved payload coordinates')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            self._check('validate_saved_payload_binding', self._call(
+                'publication_commit_export', 'validate_payload_binding', original.handle,
+                record.handle, current_configuration, result, binding_index))
+
     def read_publication_commit_material(self, value: _Output) -> bytes:
         """Read original raw bytes, without parsing or recreating a contract."""
         return self._read_output(value, 'publication_commit_export', 'length')

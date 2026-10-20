@@ -250,12 +250,25 @@ fn prepare_saved_result_read(
     }
   }
   guard binding is Some(binding) else { return Err(-31) }
+  let (result_ordinal, binding_ordinal) = match
+    @local_run.local_sdk_saved_result_coordinates(
+      source,
+      configuration.account,
+      owner,
+      view,
+      result_name,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(-32)
+  }
   let wire = try {
     let writer = @encode.writer(1048576, 32, 1)
     @encode.begin_object(writer)
     for
       (key, text) in [
         ("kind", "result-originals"),
+        ("resultOrdinal", result_ordinal.to_string()),
+        ("bindingOrdinal", binding_ordinal.to_string()),
         ("resultName", result_name),
         (
           "runDefinitionCid",

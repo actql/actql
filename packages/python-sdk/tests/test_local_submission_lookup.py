@@ -210,7 +210,7 @@ class LocalSubmissionLookupTests(unittest.TestCase):
     def test_saved_result_reader_keeps_nominal_owner_without_compiling_or_delivering(self):
         reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
                      'runDefinitionCid': 'sha256:' + 'd' * 64}
-        packet = {'kind': 'result-originals', 'resultName': 'answer',
+        packet = {'resultOrdinal': '0', 'bindingOrdinal': '0', 'kind': 'result-originals', 'resultName': 'answer',
                   'runDefinitionCid': reference['runDefinitionCid'],
                   **{name: '{"fixture":"transport"}' for name in
                      ('index', 'manifest', 'definition', 'artifact', 'retention', 'binding')}}
@@ -237,7 +237,7 @@ class LocalSubmissionLookupTests(unittest.TestCase):
     def test_saved_result_reader_rejects_changed_selection_with_same_cleanup_carrier(self):
         reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
                      'runDefinitionCid': 'sha256:' + 'd' * 64}
-        packet = {'kind': 'result-originals', 'resultName': 'foreign',
+        packet = {'resultOrdinal': '0', 'bindingOrdinal': '0', 'kind': 'result-originals', 'resultName': 'foreign',
                   'runDefinitionCid': reference['runDefinitionCid'],
                   **{name: '{}' for name in
                      ('index', 'manifest', 'definition', 'artifact', 'retention', 'binding')}}

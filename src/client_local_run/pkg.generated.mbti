@@ -150,6 +150,8 @@ pub fn local_sdk_read_original(LocalSDKReadOriginals, Int) -> Result[(String, St
 
 pub fn local_sdk_read_source(LocalPublicationPreflight) -> LocalSDKReadSource
 
+pub fn local_sdk_saved_result_coordinates(LocalSDKReadSource, @execution_authorization.AdmittedAccountConfiguration, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, String) -> Result[(Int, Int), LocalSDKReadOriginalsIssue]
+
 pub fn local_source_publication_evidence(LocalSourcePublication) -> @run_publication.RunEvidenceValue
 
 pub fn local_source_publication_logical(LocalSourcePublication) -> @run_publication.RunEvidenceValue

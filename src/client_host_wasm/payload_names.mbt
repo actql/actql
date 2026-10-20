@@ -88,8 +88,14 @@ pub fn produce_payload_names(
   if child.produced {
     return 0
   }
-  let wire = match
-    @payload.publication_payload_filesystem_names_json(original) {
+  let names = match parent.source {
+    LiveRequest =>
+      @payload.publication_payload_filesystem_names_json(original).map_err(_ => {
+        -32
+      })
+    SavedResult(_, _) => saved_payload_names_json(parent)
+  }
+  let wire = match names {
     Ok(wire) => wire
     Err(_) => return -32
   }
