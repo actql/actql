@@ -1,6 +1,7 @@
 """Same-Store/current transport checks with scalar Core, not installed evidence."""
 import asyncio
 import copy
+from dataclasses import replace
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -14,9 +15,14 @@ import test_local_submission_append as append_fixture
 
 
 class LocalSubmissionLookupTests(unittest.TestCase):
-    def fixture(self, directory, observed, *, run_reference=None):
+    def fixture(self, directory, observed, *, run_reference=None, result_name=None):
         fixture = append_fixture.LocalSubmissionAppendTests()
         host, core, calls, _ = fixture.host(Path(directory))
+        if result_name is not None:
+            # Scalar metadata selects this transport branch only. It does not
+            # prove actual SDK Account/profile/Run admission or Core execution.
+            host._configuration = replace(host._configuration, sdk=True)
+            host._runs._configurations[host._configuration.handle] = host._configuration
         self.addCleanup(host.close)
         reference = fixture.reference(host)
         base = core._call
@@ -30,12 +36,12 @@ class LocalSubmissionLookupTests(unittest.TestCase):
             return callbacks
 
         def call(family, name, *args):
-            if family == 'submission' and name == 'reserve' and args[2] in (4, 5):
+            if family == 'submission' and name == 'reserve' and args[2] in (4, 5, 6):
                 # Reserve output custody before entering its physical Read.
                 callbacks = core._journal_callbacks(host._installation.binding._current.ticket)
                 self.assertIsNone(callbacks.reader)
                 handle = 100 + args[3]
-                self.assertEqual(args[2], 4 if run_reference is None else 5)
+                self.assertEqual(args[2], 6 if result_name is not None else 4 if run_reference is None else 5)
                 sources[handle] = args[1]
                 return handle
             if family == 'submission' and name == 'produce' and args[0] in sources:
@@ -43,7 +49,8 @@ class LocalSubmissionLookupTests(unittest.TestCase):
                 current()
                 source = core._inputs[sources[args[0]] - 100].payload
                 expected = ({'reference': json.dumps(reference, ensure_ascii=False, separators=(',', ':'))}
-                            if run_reference is None else run_reference)
+                            if run_reference is None else run_reference if result_name is None else
+                            {**run_reference, "resultName": result_name})
                 self.assertEqual(json.loads(source), expected)
                 outputs[args[0]] = json.dumps(observed, separators=(',', ':')).encode()
                 return 0
@@ -198,6 +205,49 @@ class LocalSubmissionLookupTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Foreign original Local Run admission'):
                 host._attach_original_run(requested)
             self.assertFalse(host._run_loans)
+            self.assertTrue(host.close())
+
+    def test_saved_result_reader_keeps_nominal_owner_without_compiling_or_delivering(self):
+        reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
+                     'runDefinitionCid': 'sha256:' + 'd' * 64}
+        packet = {'kind': 'result-originals', 'resultName': 'answer',
+                  'runDefinitionCid': reference['runDefinitionCid'],
+                  **{name: '{"fixture":"transport"}' for name in
+                     ('index', 'manifest', 'definition', 'artifact', 'retention', 'binding')}}
+        with TemporaryDirectory(prefix='actql-cold-read-') as directory:
+            host, core, calls, counts, _ = self.fixture(directory, packet,
+                run_reference=reference, result_name='answer')
+            store = host._installation._store
+            with patch.object(store, 'compare_exchange_many_inspected',
+                              side_effect=AssertionError('Metadata read must not write or deliver')):
+                output = host._retain_original_result_read(reference, 'answer')
+            self.assertIs(core._loans[output.ticket], output)
+            self.assertIs(host._projections[-1], output)
+            self.assertFalse(host._run_loans)
+            self.assertFalse(host._prepared_inputs)
+            self.assertEqual(counts, {'produce': 1, 'validate': 3})
+            self.assertFalse(any(family in ('program', 'compute', 'publication')
+                                 for family, _, _ in calls))
+            with patch.object(core, 'close_submission_lookup', return_value=False):
+                self.assertFalse(host._close_projection(output))
+                self.assertIs(core._loans[output.ticket], output)
+            self.assertTrue(host._close_projection(output))
+            self.assertTrue(host.close())
+
+    def test_saved_result_reader_rejects_changed_selection_with_same_cleanup_carrier(self):
+        reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
+                     'runDefinitionCid': 'sha256:' + 'd' * 64}
+        packet = {'kind': 'result-originals', 'resultName': 'foreign',
+                  'runDefinitionCid': reference['runDefinitionCid'],
+                  **{name: '{}' for name in
+                     ('index', 'manifest', 'definition', 'artifact', 'retention', 'binding')}}
+        with TemporaryDirectory(prefix='actql-cold-foreign-') as directory:
+            host, core, _, _, _ = self.fixture(directory, packet,
+                run_reference=reference, result_name='answer')
+            with self.assertRaisesRegex(ValueError, 'Foreign original saved Local Result'):
+                host._retain_original_result_read(reference, 'answer')
+            original = host._projections[-1]
+            self.assertIs(core._loans[original.ticket], original)
             self.assertTrue(host.close())
 
 

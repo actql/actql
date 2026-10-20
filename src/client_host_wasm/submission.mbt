@@ -6,6 +6,7 @@ priv struct StoredSubmissionProjection {
   kind : Int
   borrow : Result[@buffers.BufferBorrow, @buffers.BufferIssue]
   slot : @buffers.BufferSlot
+  mut saved_result : StoredSavedResultRead?
   mut append_plan : @host.ClientSubmittedJournalAppendPlan?
   mut invoked : Bool
   mut produced : Bool
@@ -38,7 +39,9 @@ pub fn reserve_submission_projection(
   if value.closing || value.runtime_closing {
     return -5
   }
-  if (kind != 1 && kind != 2 && kind != 3 && kind != 4 && kind != 5) ||
+  if (
+      kind != 1 && kind != 2 && kind != 3 && kind != 4 && kind != 5 && kind != 6
+    ) ||
     physical_ticket <= 0 ||
     value.next_handle == 2147483647 ||
     value.copies.values().any(pair => pair.1 == physical_ticket) ||
@@ -55,7 +58,7 @@ pub fn reserve_submission_projection(
   let slot = match
     @buffers.reserve_output_buffer(
       value.pool,
-      if kind == 3 || kind == 4 || kind == 5 {
+      if kind == 3 || kind == 4 || kind == 5 || kind == 6 {
         1048576
       } else {
         4096
@@ -76,6 +79,7 @@ pub fn reserve_submission_projection(
     kind,
     borrow,
     slot,
+    saved_result: None,
     append_plan: None,
     invoked: false,
     produced: false,
@@ -267,6 +271,10 @@ pub fn close_submission_projection(nonce : Int64, handle : Int) -> Int {
       return result
     }
     record.output_closed = true
+  }
+  let closed = close_saved_result_read(record)
+  if closed != 0 {
+    return closed
   }
   let result = match record.borrow {
     Ok(borrow) => status(@buffers.return_buffer_borrow(value.pool, borrow))

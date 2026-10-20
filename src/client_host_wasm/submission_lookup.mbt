@@ -66,10 +66,15 @@ fn observe_submission_lookup(
       1024, scan, read, -31, -42,
     )
   }
-  if record.kind == 5 {
-    guard @decode.closed_object(cursor, [
-        "namespaceId", "authorityScopeCid", "runDefinitionCid",
-      ])
+  if record.kind == 5 || record.kind == 6 {
+    guard @decode.closed_object(
+        cursor,
+        if record.kind == 6 {
+          ["namespaceId", "authorityScopeCid", "runDefinitionCid", "resultName"]
+        } else {
+          ["namespaceId", "authorityScopeCid", "runDefinitionCid"]
+        },
+      )
       is Ok(object) &&
       required_text(object, "namespaceId") is Some(namespace) &&
       required_text(object, "authorityScopeCid") is Some(scope) &&
@@ -186,6 +191,19 @@ fn produce_submission_lookup(
     return -33
   }
   record.invoked = true
+  if record.kind == 6 {
+    let wire = match prepare_saved_result_read(value, record, configuration) {
+      Ok(value) => value
+      Err(code) => return code
+    }
+    let result = status(
+      @buffers.supply_buffer_output(value.pool, record.slot, wire),
+    )
+    if result == 0 {
+      record.produced = true
+    }
+    return result
+  }
   let snapshot = match observe_submission_lookup(value, record, configuration) {
     Ok(value) => value
     Err(code) => return code
@@ -215,12 +233,18 @@ fn validate_submission_lookup(
 ) -> Int {
   guard selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) &&
-    (record.kind == 4 || record.kind == 5) &&
+    (record.kind == 4 || record.kind == 5 || record.kind == 6) &&
     record.produced &&
     !record.output_closed &&
     value.run_configurations.get(record.configuration) is Some(configuration) &&
     configuration.host_current == Some(current) else {
     return -2
+  }
+  if record.kind == 6 {
+    return match validate_saved_result_read(value, record, configuration) {
+      Ok(_) => 0
+      Err(code) => code
+    }
   }
   let snapshot = match observe_submission_lookup(value, record, configuration) {
     Ok(value) => value

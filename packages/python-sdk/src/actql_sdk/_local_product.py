@@ -926,6 +926,44 @@ class InstalledLocalHost:
                 raise LocalProductCleanupPending(self)
             return raw
 
+    def _retain_original_result_read(self, reference: object, result_name: str) -> _Output:
+        """Retain Core's actual stored-chain reader, never an executable plan.
+
+        Its private wire carries metadata only. A later Result delivery must
+        still use this nominal Core output, recheck its original Store/current
+        fences and acquire the actual generation/grant/usage through their
+        existing Owners. No reconstruction from these strings is authorized.
+        Partial preparation, changed history or output close keeps the original
+        input/output reachable for same-handle cleanup.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        selected = _object(wire_bytes(reference), 8192)  # type: ignore[no-untyped-call]
+        if (configuration is None or not configuration.sdk
+                or installation._store is None or installation._epoch is None
+                or not wire.valid(selected, 'run_ref')  # type: ignore[no-untyped-call]
+                or not wire.bounded_text(result_name)):  # type: ignore[no-untyped-call]
+            raise ValueError('Invalid original saved Local Result selection')
+        with self._core._lock:
+            source = self._copy(wire_bytes({**selected, 'resultName': result_name}))  # type: ignore[no-untyped-call]
+            output = self._reserve(lambda: self._core.reserve_submission_projection(
+                configuration.handle, source, 6, cleanup=lambda: True))
+            self._projections.append(output)
+            self._append_sources[output.ticket] = source
+            packets: list[dict[str, Any]] = []
+            def inspect(current: _Output) -> None:
+                self._core.produce_submission_lookup(output, current)
+                packets.append(_object(self._core.read_submission_lookup(output, current), 1048576))
+            installation.binding.inspect(inspect)
+            packet = packets[0]
+            fields = {'kind', 'resultName', 'runDefinitionCid', 'index', 'manifest',
+                      'definition', 'artifact', 'retention', 'binding'}
+            if (set(packet) != fields or any(type(packet[key]) is not str for key in fields)
+                    or packet['kind'] != 'result-originals' or packet['resultName'] != result_name
+                    or packet['runDefinitionCid'] != selected['runDefinitionCid']):
+                raise ValueError('Foreign original saved Local Result projection')
+            return output
+
     def _close_projection(self, output: _Output) -> bool:
         """Release only original transport loans after successful cleanup."""
         closed = (self._core.close_submission_append(output) if output.family == 'submission_append'
