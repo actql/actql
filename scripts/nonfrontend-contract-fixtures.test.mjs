@@ -185,3 +185,13 @@ test('current complete-fragment callers rebind only their declared normative dep
     assert.notEqual(cid(current), item.cid);
   }
 });
+
+
+test('current Registry, Values and graph caller literals bind complete normative bodies', () => {
+  const owner = json('spec/contracts/actql-aoa.json');
+  const registry = json(owner.pipeline_registry_file);
+  const path = 'src/execution_relation/registry_wbtest.mbt';
+  hasPin(path, cid(registry));
+  hasPin(path, cid(owner.execution_contracts['REL.values']));
+  hasPin(path, cid(owner.execution_contracts['BRIDGE.rows.to_graph']));
+});
