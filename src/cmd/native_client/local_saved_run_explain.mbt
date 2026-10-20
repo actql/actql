@@ -53,28 +53,11 @@ fn local_saved_run_explain(
     Err(issue) => stop(local_saved_state_issue(issue))
   }
   let plan_wire = selected.wire()
-  let plan = @json.parse(plan_wire) catch {
-    _ => stop("LocalOriginalRunPlanUnavailable")
-  }
   let reference = local_original_run_reference(
     selected.original().definition(),
     scope,
   )
-  let wire = encode_request_json(
-    Json::object(
-      Map([
-        ("version", Json::string("actql-run-plan-view/0.1")),
-        ("run_ref", reference),
-        ("plan_view", plan),
-      ]),
-    ),
-    65536,
-  )
-  ignore(
-    @publication.parse_interactive_run_control_shape(
-      "run_plan_view", wire, 65536, 8192, 64,
-    ).unwrap_or_else(() => stop("LocalOriginalRunPlanUnavailable")),
-  )
+  let wire = local_saved_run_plan_reply(reference, plan_wire)
   if !current() {
     stop("LocalRunStateReadAuthorizationDenied")
   }
@@ -87,6 +70,46 @@ fn local_saved_run_explain(
     local_explain_literal(Json::string(id)) +
     "\nRecorded compiler plan; runtime choices and measurements are not represented.\n",
   )
+  let plan = @json.parse(plan_wire) catch {
+    _ => stop("LocalOriginalRunPlanUnavailable")
+  }
   local_explain_computation(output, plan)
   output.text.to_string()
+}
+
+///|
+// Bounded presentation of an already selected original. DATA construction here
+// cannot select a Run, authorize a read or manufacture compiler evidence.
+fn local_saved_run_plan_reply(
+  reference : Json,
+  plan_wire : String,
+) -> String raise ClientStop {
+  let plan = @json.parse(plan_wire) catch {
+    _ => stop("LocalOriginalRunPlanUnavailable")
+  }
+  let envelope = Json::object(
+    Map([
+      ("version", Json::string("actql-run-plan-view/0.1")),
+      ("run_ref", reference),
+      ("plan_view", plan),
+    ]),
+  )
+  let canonical = @canonical.from_json(
+    envelope,
+    65536,
+    8192,
+    64,
+    data_keys=true,
+  ) catch {
+    _ => stop("LocalOriginalRunPlanUnavailable")
+  }
+  let wire = @canonical.stringify_value(canonical, 65536, 8192, 64) catch {
+    _ => stop("LocalOriginalRunPlanUnavailable")
+  }
+  ignore(
+    @publication.parse_interactive_run_control_shape(
+      "run_plan_view", wire, 65536, 8192, 64,
+    ).unwrap_or_else(() => stop("LocalOriginalRunPlanUnavailable")),
+  )
+  wire
 }

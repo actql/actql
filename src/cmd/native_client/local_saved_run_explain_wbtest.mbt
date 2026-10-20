@@ -64,3 +64,30 @@ test "saved explain bounds an original ID without acquiring an invocation" {
   assert_true(refused)
   assert_true(command_preparation_invocation.val is None)
 }
+
+///|
+test "saved explain canonicalizes the same actual compiler view before strict envelope admission" {
+  let plan = local_static_plan_view(
+    explain_fixture(explain_fixture_chain, Json),
+  )
+  let reference = Json::object(
+    Map([
+      ("namespaceId", Json::string("workspace:original")),
+      ("authorityScopeCid", Json::string("sha256:" + "a".repeat(64))),
+      ("runDefinitionCid", Json::string("sha256:" + "b".repeat(64))),
+    ]),
+  )
+  let wire = local_saved_run_plan_reply(reference, plan)
+  let value = @publication.parse_interactive_run_control_shape(
+    "run_plan_view", wire, 65536, 8192, 64,
+  ).unwrap()
+  assert_eq(@canonical.stringify_value(value, 65536, 8192, 64), wire)
+  assert_eq(local_saved_run_plan_reply(reference, plan), wire)
+  let invalid = try {
+    ignore(local_saved_run_plan_reply(reference, "{}"))
+    false
+  } catch {
+    ClientStop(issue) => issue == "LocalOriginalRunPlanUnavailable"
+  }
+  assert_true(invalid)
+}
