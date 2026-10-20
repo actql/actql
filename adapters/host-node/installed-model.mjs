@@ -315,8 +315,9 @@ export function installModelProviders(moon, register, assertHostRuntime,
     const sdkStaticOriginals = entry.sdkStaticOriginals;
     const defaultsCallbacks = modelDefaultsCallbacks(moon);
     let requireOriginalEagerStartup;
-    // The Host supplies this private connection, not registration DATA or a
-    // packet flag. Missing selected startup is Unavailable, never coverage.
+    // The Host supplies this private same-installation/current connection,
+    // not registration DATA or a packet flag. Ordinary platform trust does
+    // not imply the optional explicit recipe's eager-startup responsibility.
     if (sdkStaticOriginals !== undefined) {
       if (typeof bindSdkStaticOriginals !== 'function') {
         throw Object.assign(new TypeError('InferTrustedSdkStaticUnavailable'),

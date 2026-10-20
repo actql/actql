@@ -203,6 +203,16 @@ read/decode/parse/type checks. Package integrity and API/ABI compatibility remai
 relevant; one compiler pin, exact runtime patch, load-cache ancestry, pristine
 stdout or absent diagnostic options is not an ordinary initialization authority.
 
+Configured Model Providers follow the same ordinary factory boundary. The Host
+retains its actual Provider callback and loaded SDK module originals, checks
+the same installation and Store while they are borrowed, and retires those
+references with the Host. Early import or eager compilation history is not
+required. An explicitly selected diagnostic startup may still check its own
+history; normal initialization neither manufactures nor borrows that proof.
+Provider registration alone supplies no Model I/O admission, quantity budget,
+current authorization or permission to send. Model preparation and dispatch
+retain their original Common Scope, same-Run limits and physical child cleanup.
+
 Each Host owns its active/closing/closed lifecycle. Independent Hosts and reopen
 are supported within the same process, subject to actual directory locks and
 resource limits. A shared module/runtime cache does not become a Host child
