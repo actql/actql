@@ -108,11 +108,28 @@ class LocalHostFiles:
     def original_bytes(self, value: _HostFile) -> bytes:
         with self._lock:
             self._nominal()
-            if (type(value) is not _HostFile or value.owner is not self._identity
-                    or self._files.get(value.name) is not value):
-                raise ValueError('Copied, foreign or retired original Local Host file')
+            self._require_original(value)
             self.current()
             return value.body
+
+    def _require_original(self, value: _HostFile) -> None:
+        if (type(value) is not _HostFile or value.owner is not self._identity
+                or self._files.get(value.name) is not value):
+            raise ValueError('Copied, foreign or retired original Local Host file')
+
+    def require_current_originals(self, values: tuple[_HostFile, ...]) -> None:
+        """Check the original members and observe the complete group once.
+
+        This returns no bytes, permission or reusable currentness token. Every
+        invocation still observes all retained files, Store and root originals.
+        """
+        with self._lock:
+            self._nominal()
+            if len(values) > self._max_files:
+                raise ValueError('Original Local Host member bound exceeded')
+            for value in values:
+                self._require_original(value)
+            self.current()
 
     def current(self) -> None:
         """Observe physical originals only, never return a permission boolean."""

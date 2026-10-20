@@ -2015,6 +2015,14 @@ authority-scope CIDs. It is neither Account Allow nor execution, Result read,
 publication, durable ACK or retry permission. Reuse outside a live frame, through
 another Store, copied loan, closing instance or retired buffer is refused.
 
+The Python physical current callback checks exact retained file membership and
+observes each complete source/state file group once per callback, under that
+group's existing lock. The observation still includes every pinned descriptor,
+the original root and Store generation. Membership checks do not read bytes or
+issue permission, and return no token that can carry currentness to another
+callback. The next callback observes the physical originals again; Account,
+epoch, namespace and Core-loan checks retain their independent boundaries.
+
 The existing Store supplies this reader with `inspect_namespaces`, using a
 read-only transaction and the existing bounded/failure-latched reader and
 physical fence validator. It performs no write or COMMIT. Failed transaction

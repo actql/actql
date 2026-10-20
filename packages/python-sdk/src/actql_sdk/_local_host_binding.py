@@ -166,13 +166,9 @@ class OriginalHostBinding:
         self._nominal()
         if self._closing:
             raise ValueError('Original Local Host supplier is closing')
-        self._source.current()
-        self._state.current()
-        for value in (self._account, *self._selected):
-            self._source.original_bytes(value)
-        for value in (self._staged_account, self._initialization,
-                      self._configuration, self._journal):
-            self._state.original_bytes(value)
+        self._source.require_current_originals((self._account, *self._selected))
+        self._state.require_current_originals((self._staged_account, self._initialization,
+                                              self._configuration, self._journal))
         for projection in self._expected:
             self._core._owned_output(projection, 'original')
         if self._active:
