@@ -1,11 +1,30 @@
 ///|
 priv enum LocalCompletionFreeAudit {
-  Complete(Int, @parameters.BoundValues?, Bool, Bool, Bool, Bool, Bool)
-  DistinctComplete(Int, @parameters.BoundValues?, Bool, Bool, Bool, Bool, Bool)
-  SortCompleted(Int, Array[LocalSortNormalizationEntry])
-  DistinctSortCompleted(Int, Array[LocalSortNormalizationEntry])
-  SetComplete(Int, @parameters.BoundValues?, Bool, Bool, Bool, Bool, Bool, Bool)
-  SetSortCompleted(Int, Array[LocalSortNormalizationEntry], Bool)
+  Complete(Int, @parameters.BoundValues?, Bool, Bool, Bool, Bool, Bool, Bool)
+  DistinctComplete(
+    Int,
+    @parameters.BoundValues?,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool
+  )
+  SortCompleted(Int, Array[LocalSortNormalizationEntry], Bool)
+  DistinctSortCompleted(Int, Array[LocalSortNormalizationEntry], Bool)
+  SetComplete(
+    Int,
+    @parameters.BoundValues?,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool
+  )
+  SetSortCompleted(Int, Array[LocalSortNormalizationEntry], Bool, Bool)
   ProfileNotInstalled
   CompletionObserved
 }
@@ -16,7 +35,8 @@ priv enum LocalCompletionFreeAudit {
 struct LocalCompletionFreeInventory {
   owner : CheckedProgram
   audited_work : Int
-  supplied_parameters : @parameters.BoundValues?
+  bound_parameters : @parameters.BoundValues?
+  defaulted_parameters : Bool
   explicit_cast : Bool
   checked_expressions : Bool
   groups : Bool
@@ -29,9 +49,10 @@ struct LocalCompletionFreeInventory {
 ///|
 fn local_audit_uses_distinct(audit : LocalCompletionFreeAudit) -> Bool {
   match audit {
-    DistinctComplete(_, _, _, _, _, _, _) | DistinctSortCompleted(_, _) => true
-    SetComplete(_, _, _, _, _, _, _, distincts)
-    | SetSortCompleted(_, _, distincts) => distincts
+    DistinctComplete(_, _, _, _, _, _, _, _) | DistinctSortCompleted(_, _, _) =>
+      true
+    SetComplete(_, _, _, _, _, _, _, distincts, _)
+    | SetSortCompleted(_, _, distincts, _) => distincts
     _ => false
   }
 }
@@ -39,7 +60,8 @@ fn local_audit_uses_distinct(audit : LocalCompletionFreeAudit) -> Bool {
 ///|
 fn local_audit_uses_set(audit : LocalCompletionFreeAudit) -> Bool {
   match audit {
-    SetComplete(_, _, _, _, _, _, _, _) | SetSortCompleted(_, _, _) => true
+    SetComplete(_, _, _, _, _, _, _, _, _) | SetSortCompleted(_, _, _, _) =>
+      true
     _ => false
   }
 }
@@ -268,14 +290,21 @@ fn audit_local_completion_free_take(
           remaining -= 1
           let original = @parameters.bound_value_at(values, index).unwrap()
           if original.name == name {
+            if original.origin is @parameters.Default {
+              if original.name.length() > remaining / 2 {
+                return None
+              }
+              remaining -= original.name.length() * 2
+              guard @parameters.bound_value_declaration(values, index)
+                is Some(_) else {
+                return None
+              }
+            }
             selected = Some(original)
             break
           }
         }
-        guard selected is Some(original) &&
-          original.origin is @parameters.Supplied else {
-          return None
-        }
+        guard selected is Some(original) else { return None }
         let mut found = false
         for index in 0..<@context.operation_closure_count(closure) {
           if remaining <= 0 {
@@ -512,7 +541,8 @@ fn audit_local_completion_free_units(
     }
   }
   let names = @syntax.program_parameter_names(program)
-  let supplied_parameters = if names.is_empty() {
+  let mut defaulted_parameters = false
+  let bound_parameters = if names.is_empty() {
     None
   } else {
     if names.length() >= remaining ||
@@ -530,15 +560,22 @@ fn audit_local_completion_free_units(
       return ProfileNotInstalled
     }
     // These are the original complete bindings, including unused declarations.
-    // Equal effective values intentionally do not establish Supplied origin.
+    // Equal effective values never erase the original Supplied/Default origin.
     for index in 0..<@parameters.bound_value_count(values) {
       if remaining <= 0 {
         return ProfileNotInstalled
       }
       remaining -= 1
       let value = @parameters.bound_value_at(values, index).unwrap()
-      if !(value.origin is @parameters.Supplied) {
-        return ProfileNotInstalled
+      if value.origin is @parameters.Default {
+        if value.name.length() > remaining / 2 {
+          return ProfileNotInstalled
+        }
+        remaining -= value.name.length() * 2
+        guard @parameters.bound_value_declaration(values, index) is Some(_) else {
+          return ProfileNotInstalled
+        }
+        defaulted_parameters = true
       }
     }
     for index, unit in units {
@@ -649,7 +686,7 @@ fn audit_local_completion_free_units(
                   operation,
                   pipeline,
                   index,
-                  supplied_parameters,
+                  bound_parameters,
                   @context.stage_requirement_operations(requirements),
                   remaining,
                 )
@@ -685,7 +722,7 @@ fn audit_local_completion_free_units(
                 Expression("template", _) => return CompletionObserved
                 Expression("cast", _) => explicit_cast = true
                 Expression("$param", _) =>
-                  if supplied_parameters is None {
+                  if bound_parameters is None {
                     return ProfileNotInstalled
                   }
                 MembershipList(_) => checked_expressions = true
@@ -729,44 +766,52 @@ fn audit_local_completion_free_units(
       return ProfileNotInstalled
     }
     return if sets {
-      SetSortCompleted(10000 - left, sort_entries, distincts)
+      SetSortCompleted(
+        10000 - left,
+        sort_entries,
+        distincts,
+        defaulted_parameters,
+      )
     } else if distincts {
-      DistinctSortCompleted(10000 - left, sort_entries)
+      DistinctSortCompleted(10000 - left, sort_entries, defaulted_parameters)
     } else {
-      SortCompleted(10000 - left, sort_entries)
+      SortCompleted(10000 - left, sort_entries, defaulted_parameters)
     }
   }
   if sets {
     return SetComplete(
       10000 - remaining,
-      supplied_parameters,
+      bound_parameters,
       explicit_cast,
       checked_expressions,
       groups,
       takes,
       sorts,
       distincts,
+      defaulted_parameters,
     )
   }
   if distincts {
     return DistinctComplete(
       10000 - remaining,
-      supplied_parameters,
+      bound_parameters,
       explicit_cast,
       checked_expressions,
       groups,
       takes,
       sorts,
+      defaulted_parameters,
     )
   }
   Complete(
     10000 - remaining,
-    supplied_parameters,
+    bound_parameters,
     explicit_cast,
     checked_expressions,
     groups,
     takes,
     sorts,
+    defaulted_parameters,
   )
 }
 
@@ -780,36 +825,40 @@ pub fn local_program_completion_free_inventory(
   match owner.local_completion_free_audit {
     Complete(
       work,
-      supplied_parameters,
-      explicit_cast,
-      checked_expressions,
-      groups,
-      takes,
-      sorts
-    )
-    | DistinctComplete(
-      work,
-      supplied_parameters,
-      explicit_cast,
-      checked_expressions,
-      groups,
-      takes,
-      sorts
-    )
-    | SetComplete(
-      work,
-      supplied_parameters,
+      bound_parameters,
       explicit_cast,
       checked_expressions,
       groups,
       takes,
       sorts,
-      _
+      defaulted_parameters
+    )
+    | DistinctComplete(
+      work,
+      bound_parameters,
+      explicit_cast,
+      checked_expressions,
+      groups,
+      takes,
+      sorts,
+      defaulted_parameters
+    )
+    | SetComplete(
+      work,
+      bound_parameters,
+      explicit_cast,
+      checked_expressions,
+      groups,
+      takes,
+      sorts,
+      _,
+      defaulted_parameters
     ) =>
       Ok({
         owner,
         audited_work: work,
-        supplied_parameters,
+        bound_parameters,
+        defaulted_parameters,
         explicit_cast,
         checked_expressions,
         groups,
@@ -820,9 +869,9 @@ pub fn local_program_completion_free_inventory(
       })
     ProfileNotInstalled => Err(ProfileNotInstalled)
     CompletionObserved
-    | SortCompleted(_, _)
-    | DistinctSortCompleted(_, _)
-    | SetSortCompleted(_, _, _) => Err(CompletionObserved)
+    | SortCompleted(_, _, _)
+    | DistinctSortCompleted(_, _, _)
+    | SetSortCompleted(_, _, _, _) => Err(CompletionObserved)
   }
 }
 
@@ -846,7 +895,15 @@ pub fn local_completion_free_inventory_work(
 pub fn local_completion_free_inventory_parameters_supplied(
   inventory : LocalCompletionFreeInventory,
 ) -> Bool {
-  inventory.supplied_parameters is Some(_)
+  inventory.bound_parameters is Some(_) && !inventory.defaulted_parameters
+}
+
+///|
+/// Actual original Default selections, not a source rewrite or a caller flag.
+pub fn local_completion_free_inventory_parameters_defaulted(
+  inventory : LocalCompletionFreeInventory,
+) -> Bool {
+  inventory.defaulted_parameters
 }
 
 ///|

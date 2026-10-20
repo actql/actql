@@ -122,7 +122,7 @@ test "set evidence never admits an equal foreign preparation or predecessor jour
 }
 
 ///|
-test "public set operands retain exact supplied bindings and refuse equal defaults" {
+test "public set operands retain distinct original supplied and default bindings" {
   let declarations = "{\"id\":{\"type\":\"int64\",\"nullable\":false,\"default\":\"9007199254740993\"}}"
   for format in [@source_frontend.Sql, @source_frontend.Text] {
     let text = if format == @source_frontend.Sql {
@@ -147,11 +147,15 @@ test "public set operands retain exact supplied bindings and refuse equal defaul
       local_parameter_values_identity(supplied),
       local_parameter_values_identity(defaulted),
     )
+    let proof = local_default_set_normalization(defaulted)
     assert_true(
-      issue_prepared_client_local_normalization(defaulted)
-      is Err(Inventory(ProfileNotInstalled)),
+      @parameter.bound_value_at(local_default_bound_values(defaulted), 0).unwrap().origin
+      is @parameter.Default,
     )
-    assert_true(defaulted.local_normalization is None)
+    assert_true(
+      prepared_client_local_normalization_evidence(supplied, proof)
+      is Err(ForeignPreparation),
+    )
   }
 }
 

@@ -342,6 +342,8 @@ pub fn keyed_input_proof_source(KeyedInputProof) -> UnitOperationSource
 
 pub fn local_completion_free_inventory_matches(LocalCompletionFreeInventory, CheckedProgram) -> Bool
 
+pub fn local_completion_free_inventory_parameters_defaulted(LocalCompletionFreeInventory) -> Bool
+
 pub fn local_completion_free_inventory_parameters_supplied(LocalCompletionFreeInventory) -> Bool
 
 pub fn local_completion_free_inventory_uses_checked_expressions(LocalCompletionFreeInventory) -> Bool
@@ -369,6 +371,8 @@ pub fn local_sort_normalization_entry_at(LocalSortNormalizationInventory, Int) -
 pub fn local_sort_normalization_entry_count(LocalSortNormalizationInventory) -> Int
 
 pub fn local_sort_normalization_inventory_matches(LocalSortNormalizationInventory, CheckedProgram) -> Bool
+
+pub fn local_sort_normalization_inventory_parameters_defaulted(LocalSortNormalizationInventory) -> Bool
 
 pub fn local_sort_normalization_inventory_uses_distinct(LocalSortNormalizationInventory) -> Bool
 

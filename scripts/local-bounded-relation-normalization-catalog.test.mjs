@@ -174,10 +174,10 @@ const binary = {
 test('original binary set catalogue keeps prior bodies and exact independent identities', () => {
   assert.equal(cid(binary.catalog_preimage), binary.catalog_cid);
   assert.equal(cid(binary.journal_preimage), binary.journal_cid);
-  assert.deepEqual(load(prefix + 'fixture.json'), binary);
+  assert.deepEqual(load(prefix + 'pre-defaulted-set-fixture.json'), binary);
   const body = JSON.parse(binary.catalog_preimage);
-  assert.deepEqual(load(prefix + 'catalog.json'), body);
-  const schema = load(prefix + 'catalog.schema.json');
+  assert.deepEqual(load(prefix + 'pre-defaulted-set-catalog.json'), body);
+  const schema = load(prefix + 'pre-defaulted-set-catalog.schema.json');
   assert.equal(schema.additionalProperties, false);
   assert.deepEqual(schema.properties.applicability, {const: body.applicability});
   assert.deepEqual(schema.properties.rules, {const: body.rules});

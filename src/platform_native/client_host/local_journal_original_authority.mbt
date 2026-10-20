@@ -13,14 +13,20 @@ fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read
     NativeClientJournalOperationAccess,
   ) -> Result[T, NativeLocalAdoptionIssue],
 ) -> Result[T, NativeLocalAdoptionIssue] {
-  match self.check_current_in_original_read() {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
+  if self.closing || self.read_operation_issue is Some(_) {
+    return Err(
+      self.read_operation_issue.unwrap_or(OriginalResourceScopePending),
+    )
   }
   guard self.opening is JournalAcquired(host) &&
-    self.original_resources is Some(original) else {
+    self.original_resources is Some(original) &&
+    !original.interrupted &&
+    original.active_phase is Some(@arena.HostRead) else {
     return Err(OriginalResourceScopePending)
   }
+  // Binding immediately invokes the current port below, before its first SQL
+  // read. Only private query records are constructed before that invocation;
+  // repeating the whole physical fence here observes no intervening operation.
   let queries : NativeLocalJournalReadQueries = {
     original,
     database: host.database,

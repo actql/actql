@@ -78,11 +78,7 @@ test "one Group catalog covers count extrema and original supplied cast combinat
       local_parameter_values_identity(supplied),
       local_parameter_values_identity(defaulted),
     )
-    assert_true(
-      issue_prepared_client_local_normalization(defaulted)
-      is Err(Inventory(ProfileNotInstalled)),
-    )
-    assert_true(defaulted.local_normalization is None)
+    ignore(local_default_parameter_normalization(defaulted))
     assert_true(
       prepared_client_local_normalization_evidence(defaulted, issued)
       is Err(ForeignPreparation),
