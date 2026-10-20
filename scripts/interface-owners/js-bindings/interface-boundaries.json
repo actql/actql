@@ -49306,7 +49306,7 @@
               },
               {
                 "path": "src/client_infer_host/local_provider.mbt",
-                "anchor": "provider, prefix, step, limits.input, limits.measurement,"
+                "anchor": "@local.managed_provider_with_infer_relation_prefix("
               }
             ],
             "extension": [
