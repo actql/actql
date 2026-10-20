@@ -14,8 +14,16 @@ import {originalModelRawTransportPersistenceMatches, bindOriginalModelRawTranspo
 const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
   {code: 'ClientDispatchCleanupPending'});
 const activeOperations = new WeakMap();
+const cleanedOriginalReads = new WeakSet();
 const isPromise = utilTypes.isPromise;
 const observePromise = Promise.prototype.then;
+
+// A parent may retire this exact descriptor alias after the consumer's actual
+// Core cleanup. This observation issues no ACK and cannot mark another read,
+// release a Scope, or turn a stopped/unknown operation into completed cleanup.
+export function inferOriginalReadCleanupComplete(read) {
+  return cleanedOriginalReads.has(read);
+}
 // This is nominal membership in the existing operation, not a resource Owner.
 // Escaped handles weakly borrow its retained record and cannot keep the original
 // Model/Scope/Ledger graph alive after actual operation cleanup.
@@ -106,6 +114,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   // envelope, including this adapter's controls. Do not derive it from counts,
   // aggregate headroom or the later Model seal's distinct requirements.
   let originalConsumer;
+  let originalRead;
   let originalScope = originalPreparation?.scope;
   let metadataInstallation = originalPreparation?.metadataInstallation;
   let metadataNodeInstallation = originalPreparation?.nodeInstallation;
@@ -129,6 +138,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         originalPreparation.modelExecutionBytes < 0n) {
       throw new TypeError('InvalidInferOriginalPreparation');
     }
+    originalRead = originalPreparation.read;
     // The original read owner retains the issued ticket if a later constructor
     // fails. No JS ownership map, claim reset or unowned-start fallback exists.
     if (composedInput !== undefined) {
@@ -139,7 +149,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       }
       originalConsumer = control.claimCheckedClientInferOriginalComposedPreparation(
         originalPreparation.compiled, originalPreparation.runDefinition, graph,
-        originalPreparation.read, originalPreparation.readRetainedBytes,
+        originalRead, originalPreparation.readRetainedBytes,
         originalPreparation.readExecutionBytes);
     } else if (Object.hasOwn(originalPreparation, 'nodeInstallation')) {
       const selected = originalPreparation.nodeInstallation;
@@ -154,11 +164,11 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       // the older private envelope seam, or derive grants from support bounds.
       originalConsumer = originalPreparation.control.claimCheckedClientInferNodePreparationLayout(
         originalPreparation.compiled, originalPreparation.runDefinition, graph,
-        originalPreparation.read, selected);
+        originalRead, selected);
     } else {
       // Explicit existing private envelope caller; no production supplier or
       // physical adequacy is implied by this older diagnostic interface.
-      originalConsumer = checked(moon.clientProgramClaimInferOriginalPreparation(originalPreparation.read,
+      originalConsumer = checked(moon.clientProgramClaimInferOriginalPreparation(originalRead,
         originalPreparation.compiled, originalPreparation.runDefinition, graph,
         originalPreparation.readRetainedBytes, originalPreparation.readExecutionBytes));
     }
@@ -373,6 +383,11 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     if (!moon.clientProgramInferExecutionStopped(active)) return false;
     reclaimed = checked(moon.clientProgramCleanupInferExecution(active));
     if (reclaimed) {
+      if (reclaimed === true && originalConsumer !== undefined && originalRead !== null &&
+          (typeof originalRead === 'object' || typeof originalRead === 'function')) {
+        cleanedOriginalReads.add(originalRead);
+      }
+      originalRead = undefined;
       signal?.removeEventListener('abort', requestStop);
       originalPreparedCallSet = undefined;
       if (originalMetadata !== undefined) originalMetadataSources.delete(originalMetadata.handle);

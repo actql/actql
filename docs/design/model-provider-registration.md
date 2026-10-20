@@ -533,6 +533,15 @@ census/bootstrap retirement also waits for the other children. Closing one
 Source, dropping a JavaScript reference or retiring that read cannot acknowledge
 its sibling or the whole Run.
 
+The Node operation snapshots the exact read it claims. Its private weak
+membership observation becomes true only after that operation receives the
+existing Core execution's successful cleanup result. The parent can then drop
+its consumed descriptor alias without trying to stop the spent read again.
+There is no setter or synthetic acknowledgement: stop, pending cleanup, a
+thrown cleanup result, a copied read or another child's completion cannot mark
+this original. Until the actual acknowledgement, the existing parent keeps
+its read/Scope duty and original failure.
+
 The existing Model Owner admits the selected `task`/`answers` document against
 the same original public Task declaration's output Contract. `default` and
 every `by_key` value, including unused entries, are checked under aggregate
