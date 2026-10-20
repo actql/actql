@@ -1453,7 +1453,8 @@ evidence remain explicit rather than being described as generally preserved.
 
 <!-- requirement-block: file-sources.listing-resolution-and-metadata -->
 A published file-list Source MUST identify the selected connection and expose
-`resource`, `version`, `path`, `media_type` and `size` as typed metadata,
+`resource`, `version`, `name`, `path`, `media_type`, `size_bytes` and
+`modified_at` as its canonical typed metadata roles,
 with its presence and version guarantees explicit in the SourceView contract.
 The bare-connection LIST_FILES form is admitted only with exactly one such
 Source. Selection, pagination and matching use the existing SourceView and
