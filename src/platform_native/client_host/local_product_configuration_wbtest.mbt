@@ -78,12 +78,14 @@ test "Material installation refuses a stale tenth claim before creating an inten
   let writer = parent.create_writer("tenth.stage", 4096L).unwrap()
   writer.append(b"original-unresolved-claim").unwrap()
   let claim = writer.seal("product-original-9.claim").unwrap()
+  let cleanup = new_local_adoption_open_failure()
   assert_true(
-    begin_native_local_product_configuration(
+    begin_native_local_product_configuration_original(
       path,
       "product-tenth-claim",
       [("config.json", b"{}")],
       epoch_test_crypto(),
+      custody=Some(cleanup),
     )
     is Err(CustodyLost),
   )
@@ -96,6 +98,7 @@ test "Material installation refuses a stale tenth claim before creating an inten
     parent.inspect_generation("product-original-9.claim").unwrap(),
     Some(claim),
   )
+  cleanup.retry_cleanup().unwrap()
   parent.close().unwrap()
 }
 
