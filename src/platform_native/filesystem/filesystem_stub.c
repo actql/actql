@@ -321,6 +321,19 @@ static bool actql_valid_name(const char *name, size_t length) {
   return true;
 }
 
+// Ordinary output basenames are not internal object identifiers. Preserve
+// their exact bytes and let the selected filesystem enforce its actual limit.
+// Every operation remains relative to the original directory descriptor.
+static bool actql_valid_file_component(const char *name, size_t length) {
+  if (name == NULL || length == 0 ||
+      (length == 1 && name[0] == '.') ||
+      (length == 2 && name[0] == '.' && name[1] == '.')) return false;
+  for (size_t index = 0; index < length; index++) {
+    if (name[index] == '\0' || name[index] == '/') return false;
+  }
+  return true;
+}
+
 // Expected names use a private borrowed FFI frame: kind byte, ASCII name, NUL.
 // It is not a persisted wire, identity domain or permission. The existing
 // formal inventory intake bounds apply before temporary state is allocated.
@@ -1889,7 +1902,7 @@ int32_t actql_native_filesystem_writer_seal(
     actql_replace_error(&writer->error, "final name allocation failed");
     return -1;
   }
-  if (!actql_valid_name(final_name, (size_t)length)) {
+  if (!actql_valid_file_component(final_name, (size_t)length)) {
     free(final_name);
     actql_replace_error(&writer->error, "invalid final name");
     return -1;
@@ -2195,7 +2208,7 @@ int32_t actql_native_filesystem_verify_generation(
 ) {
   char *name_text = actql_copy_text(name, length);
   if (name_text == NULL) return 0;
-  if (!actql_valid_name(name_text, (size_t)length)) {
+  if (!actql_valid_file_component(name_text, (size_t)length)) {
     free(name_text);
     return 0;
   }
@@ -2221,7 +2234,7 @@ int32_t actql_native_filesystem_inspect_generation(
     actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "object name allocation failed");
     return -1;
   }
-  if (!actql_valid_name(name_text, (size_t)length)) {
+  if (!actql_valid_file_component(name_text, (size_t)length)) {
     free(name_text);
     actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "invalid object name");
     return 2;
@@ -2387,7 +2400,7 @@ void *actql_native_filesystem_open_reader(
     actql_replace_bounded_error(&reader->error, reader->diagnostic_ceiling, "object name allocation failed");
     return reader;
   }
-  if (!actql_valid_name(name_text, (size_t)length) || size < 0) {
+  if (!actql_valid_file_component(name_text, (size_t)length) || size < 0) {
     free(name_text);
     actql_replace_bounded_error(&reader->error, reader->diagnostic_ceiling, "invalid object generation");
     return reader;
