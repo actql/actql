@@ -101,7 +101,8 @@ test "CLI receipt admission rejects malformed unrelated members and tampered sel
     )
   }
   let duplicate = delivery_container_first.replace(
-    old="{", new="{\"result_name\":\"answer\",",
+    old="{",
+    new="{\"result_name\":\"answer\",",
   )
   assert_true(admit_client_result_delivery_receipts(duplicate) is Err(_))
   let extra = delivery_container_first.replace(old="{", new="{\"extra\":true,")

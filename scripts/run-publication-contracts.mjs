@@ -7,6 +7,8 @@ import {checkLocalTableInputContract} from './local-table-input-contract.mjs';
 
 const registryPath = 'spec/contracts/actql-protocol-schemas.json';
 const cliPath = 'spec/contracts/actql-cli-run-response.schema.json';
+const cliReceiptPath = 'spec/contracts/actql-cli-result-delivery-receipts.schema.json';
+const cliVerificationPath = 'spec/contracts/actql-cli-output-verification.schema.json';
 const cid = {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'};
 const timestamp = {
   type: 'string',
@@ -597,6 +599,39 @@ export function correctedContracts(registry, cli) {
   return {registry: next, cli: nextCli};
 }
 
+// CLI containers reuse the existing closed receipt object. The array has no
+// protocol version, kind, CID or aggregate authority of its own.
+export function cliResultDeliveryReceiptFileSchema(registry) {
+  const receipt = clone(registry.artifact_schemas.result_delivery_receipt);
+  return {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    title: 'CLI Result delivery receipt file',
+    oneOf: [receipt, {type: 'array', maxItems: 16, items: clone(receipt)}],
+  };
+}
+
+export function cliOutputVerificationSchema() {
+  return {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    title: 'CLI output verification report',
+    type: 'object', additionalProperties: false,
+    required: ['verified', 'byte_count', 'sha256', 'supplied_receipt_count',
+      'matching_receipt_count', 'receipt_cids'],
+    properties: {
+      verified: {const: true},
+      byte_count: {type: 'integer', minimum: 0, maximum: 536870912},
+      sha256: {type: 'string', pattern: '^[0-9a-f]{64}$'},
+      supplied_receipt_count: {type: 'integer', minimum: 1, maximum: 16},
+      matching_receipt_count: {type: 'integer', minimum: 1, maximum: 16},
+      receipt_cids: {type: 'array', minItems: 1, maxItems: 16,
+        uniqueItems: true, items: clone(cid)},
+    },
+    $comment: 'receipt_cids contains every distinct matching admitted identity; '
+      + 'matching_receipt_count equals its length and is at most supplied_receipt_count. '
+      + 'Other valid receipts make no claim about unprovided output files.',
+  };
+}
+
 export function checkContracts(registry, cli) {
   checkLocalTableInputContract(stageRegistry);
   const expected = correctedContracts(registry, cli);
@@ -656,6 +691,15 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     checkContracts(next.registry, next.cli);
   } else {
     checkContracts(registry, cli);
+  }
+  if (!process.argv.includes('--review-only')) {
+    for (const [path, expected] of [
+      [cliReceiptPath, cliResultDeliveryReceiptFileSchema(read(registryPath))],
+      [cliVerificationPath, cliOutputVerificationSchema()],
+    ]) {
+      if (process.argv.includes('--write')) writeFileSync(path, JSON.stringify(expected, null, 2) + '\n');
+      else assert.deepEqual(read(path), expected, `CLI receipt container/report is stale: ${path}`);
+    }
   }
   console.log(process.argv.includes('--review-only')
     ? 'Effect Preview/review 0.1 schemas verified; unrelated publication/CLI contracts not checked.'
