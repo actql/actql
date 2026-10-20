@@ -442,17 +442,9 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
           let sqlite = physical
             .borrow_local_host_sqlite(pair)
             .unwrap_or_else(() => stop("LocalBusinessOriginalUnavailable"))
-          local_submission_start(
-            host,
-            settings,
-            crypto,
-            sqlite,
-            selection.environment,
-            input_root,
-            operation,
-            child,
-            public_run=true,
-            business=Some(selection),
+          self.execute_original_run_presentation(
+            host, capture, settings, crypto, sqlite, name, runtime, input_root, operation,
+            child, selection,
           )
         } else {
           let runtime = self.runtime.unwrap()

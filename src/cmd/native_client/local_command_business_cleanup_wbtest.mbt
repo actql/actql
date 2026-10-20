@@ -74,6 +74,7 @@ test "Business child cleanup retries the same failed physical entry after origin
     publication_cleanup_failure: None,
     publication_attempted: false,
     publication_result: None,
+    run_receipt_original: None,
     publication_retired: false,
     result_binding: None,
     result_service: None,

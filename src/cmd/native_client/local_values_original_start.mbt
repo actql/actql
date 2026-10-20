@@ -177,7 +177,10 @@ fn local_execute_original_publish_values(
       16,
       1000,
     ) {
-    Ok(observed) =>
+    Ok(observed) => {
+      // Retain the same accepted receipt before the following Journal action.
+      // The command cuts this alias only in existing publication-child cleanup.
+      business.run_receipt_original = Some(observed)
       selection.capture
       .retain_observed_run_state_in_original_read(
         settings.principal,
@@ -188,6 +191,7 @@ fn local_execute_original_publish_values(
         @env.now().to_double(),
       )
       .unwrap_or_else(() => stop("LocalRunStateNeedsReconciliation"))
+    }
     Err(Journal(@local_host.AuthorizationDenied)) => {
       if !publisher.current() ||
         !selection.current(selection.host, settings, selection.environment) {

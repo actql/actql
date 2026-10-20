@@ -188,7 +188,12 @@ actually used, from its record. See [Plans and pushdown](guides/plans-and-pushdo
 | `--json` | Print the Run state as data instead of the human summary |
 
 `run` publishes Results and reports the Run state; it does not stream rows.
-Read them with `result` or deliver them to files.
+Read them with `result` or deliver them to files. `run --output` writes the sole
+Result as JSONL; repeated `--deliver` entries select their own formats.
+`run --receipt` exports the original Run receipt, independently of per-delivery
+receipts. Existing destinations are not replaced. If export or delivery fails
+after admission, inspect the reported original Run instead of resubmitting the
+Program; files already delivered are not rolled back.
 
 All three commands accept `--connectors`, `--model-tasks` and `--lock` to
 override the configured files, and `--bindings <file>` for pre-bound inputs.

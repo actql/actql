@@ -941,6 +941,9 @@ fn command() -> @argparse.Command {
           @argparse.OptionArg("params", conflicts_with=["parameters-file"]),
           @argparse.OptionArg("parameter-declarations-file"),
           @argparse.OptionArg("format"),
+          @argparse.OptionArg("output"),
+          @argparse.OptionArg("deliver", action=Append),
+          @argparse.OptionArg("receipt"),
           @argparse.OptionArg("request-id", requires=["submission-ref-file"]),
           @argparse.OptionArg("submission-ref-file", requires=[
             "operation-attempt-id",
