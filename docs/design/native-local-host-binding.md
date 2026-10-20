@@ -62,9 +62,9 @@ receiver rechecks each copied row against those original field contracts and
 keeps the same Session/Store through receipt and cleanup. Material completion
 ends the payload reader; a separate current output decision and one actual
 stdout write/flush produce the table receipt without reopening the reader.
-The finite Native selection holds seven installation files plus config and
+The finite Native selection holds eight installation files plus config and
 environment, with Account separately retained by the same initialization Owner.
-The corresponding nine-file selection and ten-file Product intake retain their
+The corresponding ten-file selection and eleven-file Product intake retain their
 existing byte/node/depth limits; these counts issue no permission or resource
 credit. A partial write, lost flush acknowledgement or failed current check never
 repeats output. Older installations missing the selected Material original
@@ -217,7 +217,7 @@ has a separate exclusive creation proof; ordinary open or physical absence is
 not that proof.
 
 The explicitly selected runtime configuration originals accompany account
-adoption. The bounded selection admits at most eight distinct single-component
+adoption. The bounded selection admits at most ten distinct single-component
 file names, each with at most 64 KiB of exact bytes. It excludes the separately
 bound account file. Its immutable manifest records raw-content digests, source
 file generations and the actual selected private managed-root identity. The
