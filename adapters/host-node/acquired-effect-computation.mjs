@@ -316,6 +316,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
     if (multiple) {
       if (sources.some(source => source.adapter.realizationKey !== 'duckdb-acquired')) {
         ledger = prepareInstalledAcquiredEffectLedger({moon, preparedEffect: acquired.prepared,
+          requestIdentity: acquired.requestIdentity,
           sources, registry, values, fragment, ordered});
       } else {
         const capacities = sources.map(value => capturedDuckDBPhysicalCapacity(value.preparedSource));

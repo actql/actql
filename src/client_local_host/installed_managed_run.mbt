@@ -1,12 +1,23 @@
 ///|
 /// A same-Host consumer of the selected Resource admission, not another
 /// capacity issuer. Any Source reads and the managed DAG borrow this one Ledger.
+priv enum ClientInstalledManagedRunOriginal {
+  PureManaged(
+    @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
+    @publication_host.PreparedClientProgram
+  )
+  EffectManaged(
+    @resources.NodeManagedRunAdmission[
+      @publication_host.PreparedClientEffectComputation,
+    ],
+    @publication_host.PreparedClientEffectComputation
+  )
+}
+
+///|
 struct ClientInstalledManagedRun {
   mut original : ClientInstalledManagedRun?
-  admission : @resources.NodeManagedRunAdmission[
-    @publication_host.PreparedClientProgram,
-  ]
-  prepared : @publication_host.PreparedClientProgram
+  preparation : ClientInstalledManagedRunOriginal
   request : @publication_host.ClientRequestIdentity
   mut ledger : @resources.Ledger?
   reads : Array[ClientInstalledSourceRead?]
@@ -39,32 +50,63 @@ fn installed_managed_run_shape_supported(
   prepared : @publication_host.PreparedClientProgram,
   mock_model : Bool,
 ) -> Bool {
-  let graph = @publication_host.prepared_client_graph(prepared)
+  installed_managed_owner_shape_supported(Pure(prepared), mock_model)
+}
+
+///|
+fn installed_managed_owner_shape_supported(
+  owner : ClientLocalSequenceOwner,
+  mock_model : Bool,
+) -> Bool {
+  let graph = installed_managed_owner_graph(owner)
   let captured = @strategy.graph_captured_prefix(graph)
+  let boundary_count = match owner {
+    Pure(prepared) =>
+      @publication_host.prepared_client_composed_infer_occurrences(prepared).map(value => {
+          value.length()
+        },
+      )
+    Effect(prepared) =>
+      Some(
+        if @publication_host.prepared_client_effect_infer_occurrence(prepared)
+          is Some(_) {
+          1
+        } else {
+          0
+        },
+      )
+  }
+  let serialized = match owner {
+    Pure(prepared) =>
+      @publication_host.prepared_client_serialization_occurrences(prepared)
+    Effect(prepared) =>
+      @publication_host.prepared_client_effect_serialization_occurrences(
+        prepared,
+      )
+  }
   (
     captured == 2 ||
     (captured == 0 && @strategy.graph_source_free_inputs_complete(graph))
   ) &&
-  @publication_host.prepared_client_composed_infer_occurrences(prepared)
-  is Some(infers) &&
-  (if mock_model { infers.length() == 1 } else { infers.is_empty() }) &&
-  @publication_host.prepared_client_serialization_occurrences(prepared).is_empty()
+  boundary_count is Some(count) &&
+  count == (if mock_model { 1 } else { 0 }) &&
+  serialized.is_empty()
 }
 
 ///|
 /// Quote source-free Local work from the same generated sequences, receiving
 /// ports and retained-output envelope as the existing installed Local Host.
 /// This is demand only; it neither constructs a Ledger nor supplies admission.
-fn source_free_installed_managed_limits(
-  prepared : @publication_host.PreparedClientProgram,
+fn source_free_installed_managed_limits_owned(
+  owner : ClientLocalSequenceOwner,
   registry_body : String,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
-  mock_model? : Bool = false,
+  mock_model : Bool,
 ) -> @resources.LedgerLimits? {
-  let graph = @publication_host.prepared_client_graph(prepared)
-  if !installed_managed_run_shape_supported(prepared, mock_model) ||
+  let graph = installed_managed_owner_graph(owner)
+  if !installed_managed_owner_shape_supported(owner, mock_model) ||
     @strategy.graph_captured_prefix(graph) != 0 ||
     !@strategy.graph_source_free_inputs_complete(graph) {
     return None
@@ -73,8 +115,8 @@ fn source_free_installed_managed_limits(
   if task_count < 1 || task_count > 32 {
     return None
   }
-  guard prepare_client_local_sequences(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
+  guard prepare_client_local_sequences_owned(
+      owner, registry_body, values_body, fragment_body, ordered_body,
     )
     is Some(sequences) &&
     sequences.length() == task_count else {
@@ -95,7 +137,12 @@ fn source_free_installed_managed_limits(
       sequences,
       task_count,
       retained_inputs=Some(inputs),
-      max_rows=@publication_host.prepared_client_values_max_rows(prepared),
+      max_rows=match owner {
+        Pure(prepared) =>
+          @publication_host.prepared_client_values_max_rows(prepared)
+        Effect(_) =>
+          @publication_host.client_standard_values_sequence_limits().max_rows
+      },
     )
     is Some((limits, _, _)) else {
     return None
@@ -120,8 +167,16 @@ pub fn installed_managed_run_requirements(
   ordered_body : String?,
 ) -> Result[Array[Int64], ClientInstalledManagedRunIssue] {
   installed_managed_run_requirements_owned(
-    prepared, declarations, query_contract_body, evidence_contract_body, transport_bytes,
-    transport_execution_bytes, registry_body, values_body, fragment_body, ordered_body,
+    Pure(prepared),
+    declarations,
+    query_contract_body,
+    evidence_contract_body,
+    transport_bytes,
+    transport_execution_bytes,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
     false,
   )
 }
@@ -142,15 +197,23 @@ pub fn installed_mock_model_run_requirements(
   ordered_body : String?,
 ) -> Result[Array[Int64], ClientInstalledManagedRunIssue] {
   installed_managed_run_requirements_owned(
-    prepared, declarations, query_contract_body, evidence_contract_body, transport_bytes,
-    transport_execution_bytes, registry_body, values_body, fragment_body, ordered_body,
+    Pure(prepared),
+    declarations,
+    query_contract_body,
+    evidence_contract_body,
+    transport_bytes,
+    transport_execution_bytes,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
     true,
   )
 }
 
 ///|
 fn installed_managed_run_requirements_owned(
-  prepared : @publication_host.PreparedClientProgram,
+  owner : ClientLocalSequenceOwner,
   declarations : Array[@row_source_host.RowDeclaration],
   query_contract_body : String,
   evidence_contract_body : String,
@@ -162,25 +225,17 @@ fn installed_managed_run_requirements_owned(
   ordered_body : String?,
   mock_model : Bool,
 ) -> Result[Array[Int64], ClientInstalledManagedRunIssue] {
-  if !installed_managed_run_shape_supported(prepared, mock_model) {
+  if !installed_managed_owner_shape_supported(owner, mock_model) {
     return Err(Unsupported)
   }
-  if @strategy.graph_captured_prefix(
-      @publication_host.prepared_client_graph(prepared),
-    ) ==
-    0 {
+  if @strategy.graph_captured_prefix(installed_managed_owner_graph(owner)) == 0 {
     if !declarations.is_empty() ||
       !transport_bytes.is_empty() ||
       !transport_execution_bytes.is_empty() {
       return Err(Unsupported)
     }
-    guard source_free_installed_managed_limits(
-        prepared,
-        registry_body,
-        values_body,
-        fragment_body,
-        ordered_body,
-        mock_model~,
+    guard source_free_installed_managed_limits_owned(
+        owner, registry_body, values_body, fragment_body, ordered_body, mock_model,
       )
       is Some(limits) else {
       return Err(Unsupported)
@@ -199,8 +254,8 @@ fn installed_managed_run_requirements_owned(
   }
   let capacities = []
   for index in 0..<2 {
-    guard prepare_local_query_requirement(
-        prepared, index, 0, registry_body, values_body, fragment_body, ordered_body,
+    guard prepare_local_query_requirement_owned(
+        owner, index, 0, registry_body, values_body, fragment_body, ordered_body,
       )
       is Ok(requirement) &&
       @row_source_host.prepare_row_acquisition(
@@ -216,14 +271,8 @@ fn installed_managed_run_requirements_owned(
     capacities.push(capacity)
   }
   guard multi_captured_installed_limits_owned(
-      Pure(prepared),
-      capacities,
-      transport_bytes,
-      transport_execution_bytes,
-      registry_body,
-      values_body,
-      fragment_body,
-      ordered_body,
+      owner, capacities, transport_bytes, transport_execution_bytes, registry_body,
+      values_body, fragment_body, ordered_body,
     )
     is Some(limits) else {
     return Err(Unsupported)
@@ -280,15 +329,55 @@ fn new_installed_managed_run(
   request : @publication_host.ClientRequestIdentity,
   ledger : @resources.Ledger,
 ) -> ClientInstalledManagedRun {
+  new_installed_managed_run_owned(
+    PureManaged(admission, prepared),
+    request,
+    ledger,
+  )
+}
+
+///|
+fn installed_managed_run_owner(
+  value : ClientInstalledManagedRun,
+) -> ClientLocalSequenceOwner {
+  match value.preparation {
+    PureManaged(_, prepared) => Pure(prepared)
+    EffectManaged(_, prepared) => Effect(prepared)
+  }
+}
+
+///|
+fn installed_managed_owner_graph(
+  owner : ClientLocalSequenceOwner,
+) -> @strategy.CheckedDAG {
+  match owner {
+    Pure(prepared) => @publication_host.prepared_client_graph(prepared)
+    Effect(prepared) =>
+      @strategy.checked_effect_computation_graph(
+        @publication_host.prepared_client_effect_computation_graph(prepared),
+      )
+  }
+}
+
+///|
+fn new_installed_managed_run_owned(
+  preparation : ClientInstalledManagedRunOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  ledger : @resources.Ledger,
+) -> ClientInstalledManagedRun {
   let value : ClientInstalledManagedRun = {
     original: None,
-    admission,
-    prepared,
+    preparation,
     request,
     ledger: Some(ledger),
     reads: Array::make(
       @strategy.graph_captured_prefix(
-        @publication_host.prepared_client_graph(prepared),
+        installed_managed_owner_graph(
+          match preparation {
+            PureManaged(_, prepared) => Pure(prepared)
+            EffectManaged(_, prepared) => Effect(prepared)
+          },
+        ),
       ),
       None,
     ),
@@ -305,15 +394,13 @@ fn require_installed_managed_run(
     return Err(ForeignOriginal)
   }
   guard value.ledger is Some(ledger) else { return Err(Retired) }
-  match
-    @resources.check_node_managed_run_preparation(
-      value.admission,
-      value.prepared,
-    ) {
-    Err(issue) => return Err(Resource(issue))
-    Ok(_) => ()
+  let checked = match value.preparation {
+    PureManaged(admission, prepared) =>
+      check_installed_managed_run_admission(admission, prepared, ledger)
+    EffectManaged(admission, prepared) =>
+      check_installed_managed_run_admission(admission, prepared, ledger)
   }
-  match @resources.check_node_managed_run_admission(value.admission, ledger) {
+  match checked {
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
   }
@@ -326,12 +413,26 @@ fn require_installed_managed_run(
 }
 
 ///|
+fn[P] check_installed_managed_run_admission(
+  admission : @resources.NodeManagedRunAdmission[P],
+  prepared : P,
+  ledger : @resources.Ledger,
+) -> Result[Unit, @resources.ImportedChildLedgerIssue] {
+  match @resources.check_node_managed_run_preparation(admission, prepared) {
+    Err(issue) => Err(issue)
+    Ok(_) => @resources.check_node_managed_run_admission(admission, ledger)
+  }
+}
+
+///|
 pub fn check_installed_managed_run(
   value : ClientInstalledManagedRun,
   prepared : @publication_host.PreparedClientProgram,
   request : @publication_host.ClientRequestIdentity,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
-  if !physical_equal(value.prepared, prepared) || value.request != request {
+  guard value.preparation is PureManaged(_, original) &&
+    physical_equal(original, prepared) &&
+    value.request == request else {
     return Err(ForeignOriginal)
   }
   require_installed_managed_run(value).map(_ => ())
@@ -359,7 +460,7 @@ pub fn begin_installed_managed_run_source_read(
     child: None,
     managed_run: Some((value, occurrence)),
     ledger: Some(ledger),
-    owner: Some(Pure(value.prepared)),
+    owner: Some(installed_managed_run_owner(value)),
     declaration: None,
     requirement: None,
     acquisition: None,
@@ -390,34 +491,46 @@ pub fn prepare_installed_managed_run_ledger(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  prepare_installed_managed_run_ledger_owned(
+    value, capacities, transport_bytes, transport_execution_bytes, registry_body,
+    values_body, fragment_body, ordered_body,
+  )
+}
+
+///|
+fn prepare_installed_managed_run_ledger_owned(
+  value : ClientInstalledManagedRun,
+  capacities : Array[ClientInstalledCaptureCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
   let ledger = match require_installed_managed_run(value) {
     Err(issue) => return Err(issue)
     Ok(ledger) => ledger
   }
+  let owner = installed_managed_run_owner(value)
   let required = if value.reads.is_empty() {
     if !capacities.is_empty() ||
       !transport_bytes.is_empty() ||
       !transport_execution_bytes.is_empty() {
       return Err(Unsupported)
     }
-    source_free_installed_managed_limits(
-      prepared,
+    source_free_installed_managed_limits_owned(
+      owner,
       registry_body,
       values_body,
       fragment_body,
       ordered_body,
-      mock_model=installed_managed_run_shape_supported(prepared, true),
+      installed_managed_owner_shape_supported(owner, true),
     )
   } else {
     multi_captured_installed_limits_owned(
-      Pure(prepared),
-      capacities,
-      transport_bytes,
-      transport_execution_bytes,
-      registry_body,
-      values_body,
-      fragment_body,
-      ordered_body,
+      owner, capacities, transport_bytes, transport_execution_bytes, registry_body,
+      values_body, fragment_body, ordered_body,
     )
   }
   guard required is Some(required) else { return Err(Unsupported) }
@@ -527,7 +640,13 @@ pub fn retire_installed_managed_run(
   // Use the original admission's complete cleanup path too. It retains an
   // early read bootstrap when later Scope construction did not return a view;
   // successful child cleanup cannot strand that same initialization token.
-  match @resources.cleanup_node_managed_run_admission(value.admission) {
+  let cleaned = match value.preparation {
+    PureManaged(admission, _) =>
+      @resources.cleanup_node_managed_run_admission(admission)
+    EffectManaged(admission, _) =>
+      @resources.cleanup_node_managed_run_admission(admission)
+  }
+  match cleaned {
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
   }

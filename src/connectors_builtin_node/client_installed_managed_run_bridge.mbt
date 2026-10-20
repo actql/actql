@@ -193,6 +193,14 @@ pub fn client_program_installed_mock_model_managed_run_requirements(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
+  combine_installed_mock_model_run_requirements(base, selected)
+}
+
+///|
+fn combine_installed_mock_model_run_requirements(
+  base : Array[Int64],
+  selected : @infer_host.Limits,
+) -> Result[Array[Int64], @client_local_host.ClientInstalledManagedRunIssue] {
   let model = selected.model.ledger
   // Keep the existing bounded input/read allowance separate from both the
   // Scope bootstrap and Model purpose. No alias count or byte sum issues a
