@@ -81,34 +81,34 @@ test "product originals reject invalid selection before physical creation" {
 ///|
 test "File installation refuses stale tenth and eleventh claims before creating an intent" {
   for (label, index) in [("tenth", "9"), ("eleventh", "10")] {
-  let path = product_test_parent("product-parent-\{label}-claim")
-  let parent = @filesystem.open_private_root(path).unwrap()
-  let writer = parent.create_writer("tenth.stage", 4096L).unwrap()
-  writer.append(b"original-unresolved-claim").unwrap()
-  let claim = writer.seal("product-original-\{index}.claim").unwrap()
-  let cleanup = new_local_adoption_open_failure()
-  assert_true(
-    begin_native_local_product_configuration_original(
-      path,
-      "product-\{label}-claim",
-      [("config.json", b"{}")],
-      epoch_test_crypto(),
-      custody=Some(cleanup),
+    let path = product_test_parent("product-parent-\{label}-claim")
+    let parent = @filesystem.open_private_root(path).unwrap()
+    let writer = parent.create_writer("tenth.stage", 4096L).unwrap()
+    writer.append(b"original-unresolved-claim").unwrap()
+    let claim = writer.seal("product-original-\{index}.claim").unwrap()
+    let cleanup = new_local_adoption_open_failure()
+    assert_true(
+      begin_native_local_product_configuration_original(
+        path,
+        "product-\{label}-claim",
+        [("config.json", b"{}")],
+        epoch_test_crypto(),
+        custody=Some(cleanup),
+      )
+      is Err(CustodyLost),
     )
-    is Err(CustodyLost),
-  )
-  assert_eq(
-    parent.inspect_generation("product-initialization.json").unwrap(),
-    None,
-  )
-  assert_eq(parent.inspect_directory("product-\{label}-claim").unwrap(), None)
-  assert_eq(
-    parent.inspect_generation("product-original-\{index}.claim").unwrap(),
-    Some(claim),
-  )
-  cleanup.retry_cleanup().unwrap()
-  parent.close().unwrap()
-}  }
+    assert_eq(
+      parent.inspect_generation("product-initialization.json").unwrap(),
+      None,
+    )
+    assert_eq(parent.inspect_directory("product-\{label}-claim").unwrap(), None)
+    assert_eq(
+      parent.inspect_generation("product-original-\{index}.claim").unwrap(),
+      Some(claim),
+    )
+    cleanup.retry_cleanup().unwrap()
+    parent.close().unwrap()
+  }
 }
 
 ///|
