@@ -184,7 +184,24 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
   moon.executionAuthorizationAdmit(currentConfiguration);
   const reviewerKey = reviewerPem === undefined ? undefined : createPrivateKey(reviewerPem);
   const hostKey = createPrivateKey(intent.hostPem);
-  const publicKey = reviewerKey === undefined ? undefined : createPublicKey(reviewerKey).export({type: 'spki', format: 'pem'});
+  let publicKey = reviewerKey === undefined ? undefined : createPublicKey(reviewerKey).export({type: 'spki', format: 'pem'});
+  if (reviewerKey === undefined && intent.signingPublicKey !== undefined) {
+    // The adopted intent/receipt can retain verification without a private
+    // Reviewer. Re-admit its exact public bytes through the existing Common
+    // Owner; the saved private PEM is never used to reconstruct this view.
+    const saved = intent.signingPublicKey;
+    if (typeof saved?.wire !== 'string' || typeof saved?.cid !== 'string' ||
+        typeof publicKeyOriginal !== 'function') fail('LocalMockInstallationChanged');
+    const body = parse(saved.wire);
+    if (typeof body?.public_key !== 'string') fail('LocalMockInstallationChanged');
+    const raw32 = Buffer.from(body.public_key, 'base64');
+    const original = checked(Reflect.apply(publicKeyOriginal, moon, [raw32]));
+    if (saved.wire !== runtimeField(original, 0) || saved.cid !== runtimeField(original, 1)) {
+      fail('LocalMockInstallationChanged');
+    }
+    publicKey = createPublicKey({key: {kty: 'OKP', crv: 'Ed25519', x: raw32.toString('base64url')},
+      format: 'jwk'}).export({type: 'spki', format: 'pem'});
+  }
   if (publicKey !== undefined && bytesCid(Buffer.from(publicKey)) !== intent.reviewerResource) fail('LocalMockInstallationChanged');
   const evidence = Buffer.from(intent.evidence, 'base64');
   if (evidence.length !== 32) fail('LocalMockInstallationChanged');
@@ -261,7 +278,7 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
         privateKey: reviewerKey});
     },
     // The original control connection is independent of signing capability.
-    authorization: Object.freeze(reviewerKey === undefined ? {accountConfig: configPath, siteKey: 'local-mock'} : {accountConfig: configPath, siteKey: 'local-mock',
+    authorization: Object.freeze(publicKey === undefined ? {accountConfig: configPath, siteKey: 'local-mock'} : {accountConfig: configPath, siteKey: 'local-mock',
       reviewers: Object.freeze([Object.freeze({keyId: 'local-mock-reviewer', reviewerId: 'local-mock',
         principalId: principal, publicKey})]), reviewReaders: Object.freeze([principal]),
       // Existing Checkpoint construction admits PKCS8 input itself. Preserve
