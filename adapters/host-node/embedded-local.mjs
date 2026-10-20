@@ -1840,7 +1840,8 @@ async function openInstalledHost(originalInstallation, preparation) {
         // egress observation, quantity grant or replacement Model Ledger.
         const effectful = prepareSubmit.kindOf(preparedProgram) === 'effectful';
         if (occurrence === undefined || restoredInfer !== undefined || originalInfer !== undefined ||
-            moon.clientProgramSerializationOccurrences(preparedProgram).length !== 0) {
+            (effectful ? moon.clientProgramEffectSerializationOccurrences
+              : moon.clientProgramSerializationOccurrences)(preparedProgram).length !== 0) {
           throw clientOperationError('InstalledMockModelOriginalCompositionUnavailable');
         }
         const segments = checked((effectful ? moon.clientProgramPrepareEffectInferSegments
