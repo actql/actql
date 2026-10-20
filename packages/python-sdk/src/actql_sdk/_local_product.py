@@ -1349,7 +1349,7 @@ class InstalledLocalHost:
             held = _PayloadCustody(publication, index,
                 'sha256:' + hashlib.sha256(store_body).hexdigest(),
                 'sha256:' + hashlib.sha256(secrets.token_bytes(32)).hexdigest(),
-                store._max_record_bytes)
+                0)
             self._payloads.append(held)
             # Bound simultaneous physical row, decoded text and outer JSON
             # encoding before making those copies. Core output/copy loans and
@@ -1359,13 +1359,33 @@ class InstalledLocalHost:
             source = self._copy(wire_bytes({  # type: ignore[no-untyped-call]
                 'store_authority_cid': held.store_authority,
                 'material_generation_cid': held.generation,
-                'max_payload_bytes': held.maximum,
+                'max_payload_bytes': store._max_record_bytes,
             }))
             request = self._reserve(lambda: self._core.reserve_payload_request(
                 publication, index, source, cleanup=lambda: True))
             held.request = request
             installation.binding.inspect(lambda _:
                 self._core.produce_payload_request(request, configuration.handle))
+            # The physical limit is an upper bound. Core's original request
+            # selects the exact completed payload amount; reserve that amount,
+            # never the enclosing Store limit or a Python row-size estimate.
+            selected_request = _object(self._core.read_payload_request(request), 32768)
+            fields = {'durable_codec_cid', 'logical_relation_cid',
+                      'material_generation_cid', 'max_bytes', 'ordering_evidence_cid',
+                      'publication_attempt_cid', 'result_definition_cid',
+                      'result_schema_cid', 'row_count', 'store_authority_cid', 'version'}
+            if (set(selected_request) != fields
+                    or any(type(selected_request[key]) is not str for key in fields)
+                    or selected_request['version'] != 'actql-publication-payload-request/0.1'
+                    or selected_request['store_authority_cid'] != held.store_authority
+                    or selected_request['material_generation_cid'] != held.generation):
+                raise ValueError('Foreign original Core payload request')
+            maximum = selected_request['max_bytes']
+            if (not maximum.isascii() or not maximum.isdecimal()
+                    or not 1 <= len(maximum) <= 10 or maximum.startswith('0')
+                    or not 0 < int(maximum) <= min(store._max_record_bytes, 2**31 - 1)):
+                raise ValueError('Invalid original Core payload amount')
+            held.maximum = int(maximum)
             record = self._reserve(lambda: self._core.reserve_payload_record(
                 request, cleanup=lambda: True))
             held.record = record
