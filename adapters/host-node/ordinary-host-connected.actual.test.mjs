@@ -248,3 +248,45 @@ test('ordinary actual Mock Host runs original Quickstart INFER without applying 
     } finally {process.chdir(cwd);}
   }
 });
+
+test('ordinary actual Mock Host captures the original Quickstart Effect without writing before approval', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-ordinary-mock-effect-'));
+  const project = scaffoldProject(join(directory, 'project'), 'churn-risk-mock');
+  const cwd = process.cwd(); let client, primaryFailure;
+  t.diagnostic(JSON.stringify({project: project.directory}));
+  process.chdir(project.directory);
+  try {
+    client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
+      installation: {directory: '.actql'}, profile: 'mock'});
+    const before = await readFile('mock/data.json', 'utf8');
+    const source = await readFile('churn-risk.aql', 'utf8');
+    const execution = await client.startSource(source, {format: 'aql', stopBefore: 'commit'});
+    const state = await execution.wait();
+    t.diagnostic(JSON.stringify({ref: execution.ref, state}));
+    assert.equal(state.status, 'waiting_checkpoint');
+    assert.equal(typeof state.checkpoint?.id, 'string');
+    assert.equal(await readFile('mock/data.json', 'utf8'), before);
+    const page = await client.checkpoints({checkpointId: state.checkpoint.id});
+    assert.equal(page.items.length, 1);
+    assert.equal(page.items[0].checkpointCid, state.checkpoint.checkpoint_cid);
+    const review = await client.reviewCheckpoint(page.items[0]);
+    const body = JSON.parse(Buffer.from(review.bytes).toString('utf8'));
+    assert.equal(body.version, 'actql-review-projection/0.1');
+    assert.equal(body.displayed_rows.length, 2);
+    assert.equal(body.encryption_required, true);
+    assert.deepEqual(body.displayed_rows.map(row => row.target_row_identity).sort(), ['001Acme', '001Globex']);
+    assert.equal(await readFile('mock/data.json', 'utf8'), before);
+  } catch (error) {primaryFailure = error; throw error;}
+  finally {
+    try {await client?.close();}
+    catch (cleanupFailure) {
+      if (primaryFailure !== undefined) {
+        t.diagnostic(JSON.stringify({primaryCode: primaryFailure.code, primaryMessage: primaryFailure.message,
+          cleanupCode: cleanupFailure.code, cleanupMessage: cleanupFailure.message}));
+        throw new AggregateError([primaryFailure, cleanupFailure],
+          'Original Effect failed and Host cleanup remains pending', {cause: primaryFailure});
+      }
+      throw cleanupFailure;
+    } finally {process.chdir(cwd);}
+  }
+});
