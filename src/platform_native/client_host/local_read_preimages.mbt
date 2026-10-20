@@ -32,7 +32,9 @@ fn local_read_preimage(
     fields.push(("material_receiver_cid", Text(original.receiver_cid)))
     fields.push(("result_schema_cid", Text(original.result_schema_cid)))
     fields.push(("ordering_evidence_cid", Text(original.ordering_evidence_cid)))
-    fields.sort_by((left, right) => left.0.compare(right.0))
+    fields.sort_by((left, right) => {
+      @canonical_value.compare_utf16(left.0, right.0)
+    })
   }
   let wire = match @host.encode_client_local_read_preimage(fields) {
     Ok(value) => value
