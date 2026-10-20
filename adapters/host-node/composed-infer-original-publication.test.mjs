@@ -9,8 +9,8 @@ const source=readFileSync(new URL('./installed-composed-infer-run.mjs',import.me
 const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});
 const run=ast.body.map(node=>node.declaration??node).find(node=>node.type==='FunctionDeclaration'&&node.id.name==='runInstalledComposedInfers');
 const cleanup=run.body.body.find(node=>node.type==='FunctionDeclaration'&&node.id.name==='cleanup');
-const issuance=run.body.body.find(node=>node.type==='ExpressionStatement'&&
-  node.expression.type==='AssignmentExpression'&&node.expression.left.name==='issuance');
+const issuance=run.body.body.find(node=>node.type==='IfStatement'&&node.test.type==='BinaryExpression'&&node.test.operator==='==='&&
+  node.test.left.name==='originalPreparation'&&node.test.right.name==='undefined');
 assert.ok(cleanup);assert.ok(issuance);
 // Execute the installed caller's exact cleanup and issuer-selection statements
 // with explicit Core/physical ports. This is not a funded or installed Host.
@@ -20,8 +20,9 @@ const construct=compileFunction(`
   let closeAttempted=false;
   ${source.slice(cleanup.start,cleanup.end)}
   return {cleanup,pending:()=>!released};`,['context','checked']);
-const selectIssuance=compileFunction(`return (${source.slice(issuance.expression.right.start,issuance.expression.right.end)});`,
-  ['children','originalPreparation','input','moon','calls','startCompleteInferObservation','checked']);
+const selectIssuance=compileFunction(`let issuance=originalIssuer,issuanceComplete=originalIssuer!==undefined;
+  ${source.slice(issuance.start,issuance.end)}\nreturn issuance;`,
+  ['children','originalPreparation','input','moon','calls','startCompleteInferObservation','checked','originalIssuer']);
 
 function fixture(count=1) {
   const events=[],flags={aliases:false,release:false,issue:undefined,blockedAliases:new Set()};
@@ -88,13 +89,14 @@ test('composed cleanup keeps a pending original without blocking independent sib
   assert.deepEqual(f.events,['aliases0','aliases1','release1','close1','aliases0','release0','close0','parent']);
 });
 
-test('composed original issuer selection does not forward the Source Ledger as publication funding',()=>{
-  const operation={},children=[{operation}],input={ledger:{source:true}};
+test('composed original issuer selection retains its sealed issuer instead of forwarding Source funding',()=>{
+  const operation={},children=[{operation}],input={ledger:{source:true}},originalIssuer={};
   const selected=selectIssuance(children,{},input,{
-    clientProgramInferPublicationLedger(){assert.fail('never issue a replacement Ledger');}},1,args=>args,checked);
-  assert.strictEqual(selected.operations[0],operation);
-  assert.equal(selected.ledger,undefined);
-  assert.deepEqual([selected.maxSlots,selected.maxWireBytes,selected.maxWork],[1,16384,3]);
+    clientProgramInferPublicationLedger(){assert.fail('never issue a replacement Ledger');}},1,
+    ()=>assert.fail('never replace the original sealed issuer'),checked,originalIssuer);
+  assert.strictEqual(selected,originalIssuer);
+  assert.throws(()=>selectIssuance(children,{},input,{},1,
+    ()=>assert.fail('missing original cannot fall back'),checked),/InstalledComposedInferOriginalObservationUnavailable/);
 });
 
 test('composed legacy issuer selection retains its existing explicit metadata Ledger',()=>{

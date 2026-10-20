@@ -526,6 +526,17 @@ registered operation, never from the Source Ledger or copied operation fields.
 Its publication aliases retire before the exact borrow is released and before
 Model cleanup. A pending sibling retains its own custody without preventing
 independent siblings from retiring theirs.
+
+The original Model observation is sealed at its real completion callback,
+before Local transfers the enclosing task's retained output ownership. The
+existing capture supplies only its validated call count; this is not a Store
+persistence proof. Issuance uses its existing finite slot/work bounds while
+the original input-token checks still hold. Later publication reuses that
+sealed original and its live Model capacity rather than reissuing against an
+obsolete upstream snapshot. Store persistence and the public Result still wait
+for successful DAG completion. A failed or partial issuer remains reachable
+under the same cleanup; the legacy explicit-Ledger route is unchanged.
+
 The continuation recognizes this no-I/O preparation through the same live
 Core Mock installation and its retained Provider, not a Host flag or Provider
 name alone. External Providers retain their existing egress requirement;
