@@ -394,6 +394,9 @@ export function createInstalledEffectSite({environmentWire,
       // A failed Preview or Store operation still belongs to the dispatch
       // cleanup owner. Retain before any provider callback can fail.
       custody.attachPhysical(opened.cleanupOwner ?? execution);
+      // This original belongs to the completed computation's retained cleanup
+      // owner. It is not a holding-CID resolver supplied by the caller.
+      const contentOwner = opened.contentOwner;
       // Acquired Runs can issue their Observation Set only after acquisition.
       // The installed Host supplies this plan from the same checked owner.
       if (opened.publicationPlan !== undefined) {
@@ -403,8 +406,10 @@ export function createInstalledEffectSite({environmentWire,
       let stage;
       try {
         facts.assertUpdateSelectionCurrent?.();
-        stage = await prepareCaptured(Object.freeze({...facts,
-          execution, checkedHost}));
+        const capturedFacts = {...facts, execution, checkedHost};
+        delete capturedFacts.contentOwner;
+        if (contentOwner !== undefined) capturedFacts.contentOwner = contentOwner;
+        stage = await prepareCaptured(Object.freeze(capturedFacts));
       } catch (error) {
         // Preparation has no Effect dispatch permit. A checked refusal is
         // definitive here, but observation/transport failures are not. The
