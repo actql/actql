@@ -3,6 +3,7 @@ import test from 'node:test';
 import {mkdtemp, readFile, stat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {inspect} from 'node:util';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {scaffoldProject} from '../../packages/native-cli/lib/project-scaffold.mjs';
 
@@ -76,7 +77,7 @@ test('actual Local Mock answers its original Checkpoint after reopen and applies
   } catch (cause) {
     primary = cause; firstFailedStep = activeStep;
     t.diagnostic(JSON.stringify({firstFailedStep, code: cause.code, message: cause.message,
-      stack: cause.stack, cause: cause.cause}));
+      stack: cause.stack, cause: inspect(cause.cause, {depth: 4})}));
   } finally {
     try {await client?.close();}
     catch (cause) {
