@@ -838,6 +838,21 @@ fn command() -> @argparse.Command {
     ],
     subcommands=[
       @argparse.Command("schema", about="Print the Program JSON Schema"),
+      @argparse.Command("op", subcommand_required=true, subcommands=[
+        @argparse.Command("list", flags=[@argparse.FlagArg("json")], options=[
+          @argparse.OptionArg("family"),
+          @argparse.OptionArg("output"),
+        ]),
+        @argparse.Command("show", flags=[@argparse.FlagArg("json")], positionals=[
+          @argparse.PositionArg(
+            "operation",
+            num_args=@argparse.ValueRange::single(),
+          ),
+        ]),
+        @argparse.Command("search", flags=[@argparse.FlagArg("json")], positionals=[
+          @argparse.PositionArg("words", num_args=@argparse.ValueRange(lower=1)),
+        ]),
+      ]),
       @argparse.Command("verify", subcommand_required=true, subcommands=[
         @argparse.Command("output", flags=[@argparse.FlagArg("json")], positionals=[
           @argparse.PositionArg("receipt"),
@@ -1441,6 +1456,10 @@ fn execute_and_write_native_reply(
   // selection, installation IO, a Host or a Run. Main owns stdout/flush errors.
   if matches.subcommand is Some(("schema", _)) {
     pending_reply.val = Some(generated_program_schema())
+    return
+  }
+  if matches.subcommand is Some(("op", child)) {
+    pending_reply.val = Some(local_language_operation_command(matches, child))
     return
   }
   // Integrity verification reads explicit files and does not acquire a Host,

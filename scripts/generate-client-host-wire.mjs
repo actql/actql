@@ -10,6 +10,7 @@ import {project, structuralValidatorSource, typeOf} from
 import {nativeClientWire, responseRules, jsResponseRules,
   requestResponseRules, jsRequestResponseRules} from './generate-native-client-wire.mjs';
 import {checkReportRules, jsCheckReportRules} from './client-check-report-rules.mjs';
+import {verifyIdentity} from './check-canonical-json.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const source = 'spec/contracts/actql-client-host.json';
@@ -49,6 +50,39 @@ export function nativeProgramSchema(protocol) {
     '// Run: node scripts/generate-client-host-wire.mjs --write\n' +
     '// DATA for language discovery; this does not admit a Program or issue authority.\n\n' +
     '///|\nfn generated_program_schema() -> String {\n  ' +
+    JSON.stringify(body) + '\n}\n';
+}
+
+// Language metadata comes from the registered signatures, not a second
+// operation list or a claim that a selected Host can execute the operation.
+export function nativeOperationCatalog(aoa, registry) {
+  if (aoa?.version !== 'actql-aoa-contract/0.1' ||
+      registry === null || typeof registry !== 'object' || Array.isArray(registry) ||
+      !Array.isArray(aoa.non_authoring_registry_operations) ||
+      new Set(aoa.non_authoring_registry_operations).size !== aoa.non_authoring_registry_operations.length ||
+      aoa.non_authoring_registry_operations.some(name => typeof name !== 'string' || !Object.hasOwn(registry, name))) {
+    throw new Error('InvalidNativeOperationRegistry');
+  }
+  verifyIdentity(registry, aoa.pipeline_registry_cid);
+  const excluded = new Set(aoa.non_authoring_registry_operations);
+  const records = Object.keys(registry).sort().filter(name => !excluded.has(name)).map(name => {
+    const signature = registry[name];
+    const separator = name.indexOf('.');
+    if (separator <= 0 || signature === null || typeof signature !== 'object' ||
+        Array.isArray(signature) || typeof signature.output !== 'string') {
+      throw new Error('InvalidNativeOperationSignature');
+    }
+    // Keep alternatives, finite/policy inputs and execution references intact.
+    return {operation: name, family: name.slice(0, separator), signature};
+  });
+  const body = JSON.stringify(records);
+  if (records.length === 0 || records.length > 4096 || Buffer.byteLength(body, 'utf8') > 1048576) {
+    throw new Error('NativeOperationCatalogOutputLimit');
+  }
+  return '// Generated from the pinned AoA operation registry. Do not edit.\n' +
+    '// Run: node scripts/generate-client-host-wire.mjs --write\n' +
+    '// Language metadata only; not Host support, capacity or authority.\n\n' +
+    '///|\nfn generated_language_operation_catalog() -> String {\n  ' +
     JSON.stringify(body) + '\n}\n';
 }
 
@@ -213,9 +247,12 @@ async function main() {
   const registry = JSON.parse(await readFile(join(root, source), 'utf8'));
   const protocol = JSON.parse(await readFile(join(root, runStateSource),
     'utf8'));
+  const aoa = JSON.parse(await readFile(join(root, 'spec/contracts/actql-aoa.json'), 'utf8'));
+  const operations = JSON.parse(await readFile(join(root, aoa.pipeline_registry_file), 'utf8'));
   const outputs = buildClientHostWire(registry, protocol);
   const files = [
     ['src/cmd/native_client/program_schema.generated.mbt', nativeProgramSchema(protocol)],
+    ['src/cmd/native_client/operation_catalog.generated.mbt', nativeOperationCatalog(aoa, operations)],
     ['packages/client-wire/client-host.generated.js', outputs.module],
     ['packages/client-wire/client-host.generated.d.ts', outputs.types],
     ['packages/sdk/internal/checkpoint-answer-contract.generated.mjs', outputs.checkpointAnswers],

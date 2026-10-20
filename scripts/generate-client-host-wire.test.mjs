@@ -1,13 +1,77 @@
 import './generate-check-reason-catalog.test.mjs';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {test} from 'node:test';
-import {buildClientHostWire, nativeProgramSchema} from './generate-client-host-wire.mjs';
+import {buildClientHostWire, nativeOperationCatalog, nativeProgramSchema} from './generate-client-host-wire.mjs';
+import {canonicalText} from './check-canonical-json.mjs';
 
 const registry = JSON.parse(await readFile(new URL(
   '../spec/contracts/actql-client-host.json', import.meta.url), 'utf8'));
 const protocol = JSON.parse(await readFile(new URL(
   '../spec/contracts/actql-protocol-schemas.json', import.meta.url), 'utf8'));
+
+const aoa = JSON.parse(await readFile(new URL('../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'));
+const operations = JSON.parse(await readFile(new URL('../' + aoa.pipeline_registry_file, import.meta.url), 'utf8'));
+const operationRows = output => {
+  const marker = '-> String {\n  ';
+  return JSON.parse(JSON.parse(output.slice(output.indexOf(marker) + marker.length, -3)));
+};
+const repinOperations = value => ({...aoa, pipeline_registry_cid:
+  'sha256:' + createHash('sha256').update(canonicalText(value)).digest('hex')});
+
+test('Native operation discovery preserves every complete authoring signature in registry order', async () => {
+  const original = structuredClone(operations);
+  const output = nativeOperationCatalog(aoa, operations);
+  assert.equal(output, await readFile(new URL(
+    '../src/cmd/native_client/operation_catalog.generated.mbt', import.meta.url), 'utf8'));
+  const rows = operationRows(output);
+  const names = Object.keys(operations).sort().filter(name => !aoa.non_authoring_registry_operations.includes(name));
+  assert.equal(rows.length, 69);
+  assert.deepEqual(rows.map(value => value.operation), names);
+  for (const {operation, family, signature} of rows) {
+    assert.equal(family, operation.split('.')[0]);
+    assert.deepEqual(signature, operations[operation]);
+  }
+  assert.ok(!names.includes('EFFECT.plan'));
+  assert.deepEqual(operations, original);
+  for (const name of ['SGA.shortest_path', 'VEC.merge_rankings', 'BRIDGE.rows.to_graph']) {
+    assert.deepEqual(rows.find(value => value.operation === name).signature, operations[name]);
+  }
+});
+
+test('Native operation discovery refuses stale identity and malformed registry metadata', () => {
+  const stale = structuredClone(operations);
+  stale['REL.select'].description = 'changed without the original registry identity';
+  assert.throws(() => nativeOperationCatalog(aoa, stale), /canonical CID/);
+  for (const value of [null, [], false, 'registry']) {
+    assert.throws(() => nativeOperationCatalog(aoa, value), /InvalidNativeOperationRegistry/);
+  }
+  for (const change of [
+    value => {value.version = null;},
+    value => {delete value.non_authoring_registry_operations;},
+    value => {value.non_authoring_registry_operations = ['absent.operation'];},
+    value => {value.non_authoring_registry_operations.push('EFFECT.plan');},
+  ]) {
+    const invalid = structuredClone(aoa); change(invalid);
+    assert.throws(() => nativeOperationCatalog(invalid, operations), /InvalidNativeOperationRegistry/);
+  }
+  const malformed = structuredClone(operations);
+  malformed['REL.select'].output = null;
+  assert.throws(() => nativeOperationCatalog(repinOperations(malformed), malformed), /InvalidNativeOperationSignature/);
+});
+
+test('Native operation discovery bounds complete metadata instead of dropping signature fields', () => {
+  const changed = structuredClone(operations);
+  changed['SGA.shortest_path'].description = 'independent annotation retained verbatim';
+  const rows = operationRows(nativeOperationCatalog(repinOperations(changed), changed));
+  assert.deepEqual(rows.find(value => value.operation === 'SGA.shortest_path').signature, changed['SGA.shortest_path']);
+  changed['SGA.shortest_path'].description = 'x'.repeat(1048576);
+  assert.throws(() => nativeOperationCatalog(repinOperations(changed), changed), /NativeOperationCatalogOutputLimit/);
+  const excessive = Object.fromEntries(Array.from({length: 4097}, (_, index) => ['REL.test' + index, {output: 'relation'}]));
+  assert.throws(() => nativeOperationCatalog({...repinOperations(excessive), non_authoring_registry_operations: []}, excessive),
+    /NativeOperationCatalogOutputLimit/);
+});
 
 test('Native schema discovery preserves the full registered Program schema', async () => {
   const output = nativeProgramSchema(protocol);

@@ -316,6 +316,25 @@ actql schema
 syntax and `schema` the JSON schema of the Program model. Agents use these
 instead of guessing.
 
+`op` uses canonical operation names such as `REL.select`. `list` and `search`
+write a JSON array under `--json`; `show` writes one object. Each object has
+`operation`, `family`, and `signature`, where `signature` is the complete
+registered signature, including any input alternatives or policy inputs.
+The list is ordered by operation name. `--family REL` and `--output relation`
+filter by exact family and output carrier; no matches produce an empty array.
+`search` requires every supplied word to occur in the operation name or its
+signature, ignoring ASCII letter case. For example:
+
+```sh
+actql op list --family REL --output relation --json
+actql op show SGA.shortest_path --json
+actql op search vector ranking --json
+```
+
+These commands read language metadata without selecting a project, acquiring
+a Host or creating a Run. A registered operation is not a claim that a
+selected Host supports its execution. Unknown names passed to `show` fail.
+
 `schema` writes the registered Program JSON Schema as one JSON object followed
 by a newline. It does not inspect a database, select a project, initialize a
 Local Host or create a Run. It works in an empty directory without credentials.
