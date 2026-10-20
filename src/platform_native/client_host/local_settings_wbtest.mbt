@@ -289,6 +289,45 @@ test "Native Local selected managed-root custody cannot be replaced or detached"
 }
 
 ///|
+test "Material installation selects the ninth actual original and refuses a tenth" {
+  let (_, account, parent, _) = local_selected_source("local-settings-ninth")
+  let names : Array[String] = []
+  for index in 0..<9 {
+    let name = "selected-" + index.to_string() + ".json"
+    let writer = parent.create_writer("selected.stage", 65536L).unwrap()
+    writer.append(b"{}").unwrap()
+    writer.seal(name).unwrap() |> ignore
+    names.push(name)
+  }
+  let selected = select_native_local_configuration(
+    parent,
+    account,
+    names,
+    None,
+    epoch_test_crypto(),
+  ).unwrap()
+  assert_eq(selected.files.length(), 9)
+  selected.check_source(parent).unwrap()
+  for file in selected.files {
+    assert_eq(file.body, b"{}")
+    assert_true(names.contains(file.name))
+  }
+  // The tenth name has no file: count refusal must precede physical intake.
+  names.push("not-created.json")
+  assert_true(
+    select_native_local_configuration(
+      parent,
+      account,
+      names,
+      None,
+      epoch_test_crypto(),
+    )
+    is Err(ConfigurationLimit),
+  )
+  parent.close().unwrap()
+}
+
+///|
 test "Native Local selection rejects duplicate escape and over-budget originals before state creation" {
   let (path, account, parent, _) = local_selected_source(
     "local-settings-invalid",

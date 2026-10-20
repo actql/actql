@@ -92,6 +92,7 @@ fn command_preparation_read_cleanup_kind(
 ///|
 fn[T] command_preparation_result(
   result : Result[T, LocalCommandPreparationIssue],
+  stage? : String? = None,
 ) -> T raise ClientStop {
   match result {
     Ok(value) => value
@@ -99,7 +100,19 @@ fn[T] command_preparation_result(
     // return. Preserve that application failure after the return completes;
     // it must not become an unrelated preparation/supplier error.
     Err(CommandApplication(message)) => stop(message)
-    Err(_) => stop("LocalCommandPreparationUnavailable")
+    Err(issue) => {
+      // Closed caller-owned labels and the existing error-family projection
+      // identify the failed boundary without exposing paths, keys or messages.
+      let message = match stage {
+        None => "LocalCommandPreparationUnavailable"
+        Some(name) =>
+          "LocalCommandPreparationUnavailable:" +
+          name +
+          ":" +
+          command_preparation_cleanup_kind(issue)
+      }
+      stop(message)
+    }
   }
 }
 
@@ -168,9 +181,9 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   }
   // Project discovery was already inside this Read. Suspend only this scope
   // while the Runtime performs its own original-current brackets.
-  command_preparation_result(self.leave())
+  command_preparation_result(self.leave(), stage=Some("runtime-return"))
   let runtime = local_packaged_runtime_from_physical(physical)
-  command_preparation_result(self.enter())
+  command_preparation_result(self.enter(), stage=Some("runtime-reenter"))
   // Required HOME/path decoding and selection now allocate in the same
   // consuming Read; an explicit directory never obtains the HOME workspace.
   let location = local_product_original_location(optional(matches, "state-dir"))
@@ -184,6 +197,7 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   let originals = if operation == "adopt" || quick_query {
     let parent = command_preparation_result(
       self.select_product_parent(location.parent_path),
+      stage=Some("product-parent"),
     )
     let ownership = parent
       .bootstrap_parent_ownership()
@@ -219,6 +233,7 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   }
   command_preparation_result(
     self.stage_product(location.parent_path, location.directory_name, originals),
+    stage=Some("product-stage"),
   )
   // Selection is remembered only after the original excluded Product capture
   // staged these initial bodies. The Native Session still proves first-key
@@ -239,6 +254,7 @@ fn LocalCommandPreparationOriginal::execute_product_command(
   }
   command_preparation_result(
     self.stage_product(location.parent_path, location.directory_name, None),
+    stage=Some("product-current"),
   )
   if optional(matches, "input-root") is None {
     matches.values["input-root"] = [
@@ -297,6 +313,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
         self.initial_product_selected
       ),
     ),
+    stage=Some("adoption-open"),
   )
   let expected = [
     (name, @utf8.encode(configuration)),
@@ -329,6 +346,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
       max_records: settings.record_limit,
       max_snapshot_bytes: settings.snapshot_bytes,
     }),
+    stage=Some("journal-open"),
   )
   |> ignore
   let crypto = self.inner_library.unwrap()

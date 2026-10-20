@@ -186,8 +186,12 @@ fn prepare_native_command_invocation(
   }
   let original = command_preparation_result(
     prepare_local_command_preparation_original(profile, business~),
+    stage=Some("prepare"),
   )
   command_preparation_invocation.val = Some(original)
-  command_preparation_result(original.acquire(root, source, platform, manifest))
-  command_preparation_result(original.enter())
+  command_preparation_result(
+    original.acquire(root, source, platform, manifest),
+    stage=Some("acquire"),
+  )
+  command_preparation_result(original.enter(), stage=Some("enter"))
 }
