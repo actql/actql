@@ -4091,10 +4091,11 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1afc464565223d33e3b9a57685bec0c95350b1e273c5f213cbcfa81a88c77bc3",
+      "sha256": "a50abdc9579a394890a376deb95e88bfdfee66061494ee82a8c44ece0d258bee",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
+        "assertOriginalPreparedLocalPublicationStoreFirstInitialization",
         "assertOriginalPreparedLocalPublicationStoreOwnership",
         "closePreparedLocalPublicationStoreOwnership",
         "openLocalPublicationStore",
@@ -4155,6 +4156,14 @@
             "bindings"
           ],
           "async": false
+        },
+        {
+          "name": "assertOriginalPreparedLocalPublicationStoreFirstInitialization",
+          "parameters": [
+            "original",
+            "directory"
+          ],
+          "async": true
         },
         {
           "name": "assertOriginalPreparedLocalPublicationStoreOwnership",
@@ -7963,6 +7972,80 @@
               {
                 "path": "adapters/store-local/prepared-ownership.test.mjs",
                 "anchor": "old pending durability retry never reads or removes a successor owner"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "assertOriginalPreparedLocalPublicationStoreFirstInitialization"
+          ],
+          "exports": [
+            "assertOriginalPreparedLocalPublicationStoreFirstInitialization"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "export async function assertOriginalPreparedLocalPublicationStoreFirstInitialization(original, directory) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const entry = originalPreparedStoreOwnership(original);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "await entry.ownership.assertCurrent();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "assertOriginalPreparedLocalPublicationStoreOwnership(original, directory);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (!entry.fresh || entry.phase !== 'prepared') {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (entry.root !== resolve(directory) || entry.closing ||"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary key first setup refuses another Owner or directory before key creation'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary existing no-key Store cannot infer first adoption from missing key metadata'"
               }
             ]
           }

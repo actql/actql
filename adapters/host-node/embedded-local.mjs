@@ -250,13 +250,23 @@ export function readInstalledMockPreparation(originals) {
 // the packet snapshot. This exact checked original supplies only the existing
 // Core inventory for its bounds check, never a replacement issuer or Ledger.
 export function readSourceManagedRunRequirements(originals, checkedPrepared) {
+  return readSourceManagedRunRequirementsOwned(originals, checkedPrepared, false);
+}
+
+export function readSourceManagedEffectRunRequirements(originals, checkedPrepared) {
+  return readSourceManagedRunRequirementsOwned(originals, checkedPrepared, true);
+}
+
+function readSourceManagedRunRequirementsOwned(originals, checkedPrepared, effectful) {
   assertSourceManagedHostPreparation(originals);
   originalSourceManagedHostRequest(originals, checkedPrepared);
   const {initialControl, projectRuntime: moon} = originals.installation;
   const retained = profiles.mockPreparation(originals.host, originals.installation,
     originals.generation);
+  const requirements = effectful ? moon.clientProgramInstalledEffectManagedRunRequirements
+    : moon.clientProgramInstalledManagedRunRequirements;
   if (retained.runtime !== moon || initialControl === undefined ||
-      typeof moon.clientProgramInstalledManagedRunRequirements !== 'function') {
+      typeof requirements !== 'function') {
     throw clientOperationError('NodeManagedRunAdmissionUnavailable');
   }
   const mock = retained.view.originalsForRuntime(moon);
@@ -266,7 +276,7 @@ export function readSourceManagedRunRequirements(originals, checkedPrepared) {
   // once. Its original raw bytes remain charged alongside decoded/captured
   // rows; this is not a byte total sampled from the successful template.
   const documentBytes = 1048576n;
-  const limits = checked(moon.clientProgramInstalledManagedRunRequirements(
+  const limits = checked(Reflect.apply(requirements, moon, [
     checkedPrepared, mock.sources.map(source => source.declaration),
     asset('spec/contracts/actql-query-acquisition.json'),
     asset('spec/contracts/actql-query-process-evidence.json'),
@@ -274,7 +284,7 @@ export function readSourceManagedRunRequirements(originals, checkedPrepared) {
     asset('spec/dependencies/aoa-pipeline-registry.json'),
     JSON.stringify(aoa.execution_contracts['REL.values']),
     JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])]));
   if (!Array.isArray(limits) || limits.length !== 6 ||
       limits.some(value => typeof value !== 'bigint' || value < 0n) ||
       limits.slice(0, 3).some(value => value > 2147483647n)) {
@@ -330,11 +340,16 @@ export function readLocalMockModelRunRequirements(originals, prepared, model) {
   const {initialControl, projectRuntime: moon} = originals.installation;
   const asset = path => readInitialControlInstallationAsset(initialControl, originals, path);
   const aoa = JSON.parse(asset('spec/contracts/actql-aoa.json'));
-  const declarations = moon.clientProgramAcquisitionCount(prepared) === 0 ? []
+  const declarations = (model.compilation === undefined ? moon.clientProgramAcquisitionCount(prepared)
+    : moon.clientProgramEffectAcquisitionCount(prepared)) === 0 ? []
     : readInstalledMockPreparation(originals).sources.map(source => source.declaration);
   const documentBytes = declarations.map(() => 1048576n);
-  const limits = runtimeCore(moon).publicationControl.checkedClientMockModelRunRequirements(
-    prepared, model.compiled, model.runDefinition, model.occurrence, model.graph,
+  const control = runtimeCore(moon).publicationControl;
+  const limits = (model.compilation === undefined
+    ? control.checkedClientMockModelRunRequirements
+    : control.checkedClientEffectMockModelRunRequirements)(
+    prepared, model.compiled, ...(model.compilation === undefined ? [] : [model.compilation]),
+    model.runDefinition, model.occurrence, model.graph,
     declarations, asset('spec/contracts/actql-query-acquisition.json'),
     asset('spec/contracts/actql-query-process-evidence.json'), documentBytes, documentBytes,
     asset('spec/dependencies/aoa-pipeline-registry.json'),
@@ -718,6 +733,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     : new Map();
   const inferSelections = new WeakMap();
   const earlyMockInferPlans = new WeakMap();
+  const earlyContentPlans = new WeakMap();
   const effectSubmissions = new WeakMap();
   const effectSelections = new WeakMap();
   // A prepared Local Host borrows the selected startup's original fixed image;
@@ -1119,7 +1135,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (preparation !== undefined) {
       // query.all() captures its caller input before awaiting submission.
       // Bind the separate Result control original before exposing the client;
-      // Store/key/payload construction itself remains lazy below.
+      // The same initialization selects its private-evidence key here;
+      // Store/payload construction itself remains lazy below.
       await preparation.prepareResultPublication();
       if (originalSourcePreparation === undefined) await preparation.prepareManagedCompute();
     }
@@ -2126,6 +2143,14 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       return earlyMock.plan;
     }
+    const earlyContent = earlyContentPlans.get(preparedProgram);
+    if (earlyContent !== undefined) {
+      if (earlyContent.requestId !== requestId || retainedDefinitionWire !== undefined &&
+          retainedDefinitionWire !== earlyContent.plan.runDefinition.wire) {
+        throw clientOperationError('ForeignInstalledContentRun');
+      }
+      return earlyContent.plan;
+    }
     const restored = prepareSubmit.originalInferRun(preparedProgram);
     if (restored !== undefined) {
       return restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity});
@@ -2231,6 +2256,9 @@ async function openInstalledHost(originalInstallation, preparation) {
     registry, values, fragment, ordered, namespaceId, authorityScopeCid,
     storeAuthorityCid, ownerPrincipal: principalId, now,
     authorize: actual => hostConnection({principalId: actual, connection: {mode, owner: mode}}),
+    preparedRunRequired: preparation !== undefined,
+    assertRunCurrent: preparation === undefined ? undefined
+      : preparation.assertContentRunCurrent.bind(preparation),
     faultInjection: authorization?.faultInjection});
   const runInfer = installNodeInferRun({moon, core: runtimeCore(moon), fragment, ordered,
     registry, values, selections: inferSelections, namespaceId, authorityScopeCid,
@@ -3043,9 +3071,28 @@ async function openInstalledHost(originalInstallation, preparation) {
     admitPreparedSubmission: preparation === undefined ? undefined : submission => {
       const {requested, acquisitionCount, effectful} = requestOf(submission);
       const selection = inferSelections.get(submission.preparedProgram);
-      if (effectful || selection !== undefined && !selection.localMock ||
-          moon.clientProgramSerializationOccurrences(submission.preparedProgram).length !== 0) {
+      if (effectful || selection !== undefined && !selection.localMock) {
         throw clientOperationError('HostResultPublicationPurposeUnavailable');
+      }
+      if (moon.clientProgramSerializationOccurrences(submission.preparedProgram).length !== 0) {
+        // Content has its own pre-admitted prefix and real Store writers. A
+        // Result service or Source/Model allowance cannot supply that work.
+        if (selection !== undefined || acquisitionCount !== 0) {
+          throw clientOperationError('InstalledContentRunPreparationUnsupported');
+        }
+        preparation.admitResultPublicationRun(submission.preparedProgram);
+        const retained = journal.resolveDefinition(requested, {namespaceId}, moon, control);
+        // A prior physical start is observed through its saved Run. Resource
+        // preparation cannot regenerate Content or replace an uncertain write.
+        if (retained?.physicalStartReserved === true) return;
+        let early = earlyContentPlans.get(submission.preparedProgram);
+        if (early === undefined) {
+          early = {requestId: submission.requestId,
+            plan: planFor(submission, retained?.runDefinition.wire, requested)};
+          earlyContentPlans.set(submission.preparedProgram, early);
+        }
+        runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan});
+        return;
       }
       preparation.admitResultPublicationRun(submission.preparedProgram);
       if (selection?.localMock) {
@@ -4362,6 +4409,14 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     admitResultPublicationRun(prepared) {
       if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
       resultPublication.admitRun(prepared);
+    },
+    assertContentRunCurrent() {
+      assertInitialControlHostPreparation(originals);
+      // This is the existing ordinary factory's actual Journal/Store, not
+      // initial/preload provenance or another purpose's resource credit.
+      ordinaryHostJournalInstallation(originals).assertCurrent();
+      if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
+      resultPublication.assertContentCurrent();
     },
     modelPublicationCapacity(prepared) {
       if (resultPublication === undefined || typeof resultPublication.modelPublicationCapacity !== 'function') {

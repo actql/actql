@@ -3,6 +3,7 @@ import test from 'node:test';
 import {mkdtemp, readFile, writeFile, rename, stat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {createHash} from 'node:crypto';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {prepareOrdinaryHostJournal} from './ordinary-host-journal.mjs';
@@ -53,6 +54,92 @@ async function accountFixture() {
     requestTarget: ['local-mock', 'installed-multi-acquired'], updateTarget: ['salesforce', 'Account'],
     explicitSelection: true, assertExclusiveCurrent: () => journal.assertInitializationCurrent()}};
 }
+
+test('ordinary actual Host serializes bounded CSV on its original Run and closes', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-ordinary-content-'));
+  const cwd = process.cwd(); let client, primary;
+  process.chdir(directory);
+  try {
+    client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
+      installation: {directory: join(directory, 'host')}});
+    const source = "SELECT 2 AS id, CAST(NULL AS FLOAT64) AS p\n" +
+      "|> SERIALIZE FORMAT CSV PRESERVE ORDER OPTIONS (\n" +
+      "     name = 'selected.csv', header = TRUE, null_marker = r'\\N',\n" +
+      "     encoding = 'UTF-8', line_ending = 'CRLF', max_rows = 3, max_bytes = 128\n" +
+      "   )\n|> RESULT file;";
+    const execution = await client.startSource(source, {format: 'aql'});
+    const state = await execution.wait();
+    if (state.status !== 'succeeded') t.diagnostic(JSON.stringify({state}));
+    assert.equal(state.status, 'succeeded');
+    const rows = await execution.result('file').all();
+    assert.equal(rows.length, 1);
+    const row = rows[0];
+    assert.deepEqual(Object.keys(row).sort(), ['content', 'media_type', 'name', 'row_count', 'size_bytes']);
+    assert.equal(row.name, 'selected.csv');
+    assert.equal(row.media_type, 'text/csv');
+    assert.equal(row.row_count, 1);
+    assert.equal(row.size_bytes, Buffer.byteLength('id,p\r\n2,\\N\r\n'));
+    assert.equal(row.content.$actql_ref, 'content');
+    assert.equal(row.content.media_type, 'text/csv');
+    assert.equal(row.content.metadata.truncated, false);
+    const expected = Buffer.from('id,p\r\n2,\\N\r\n');
+    const contentHash = createHash('sha256').update(expected).digest('hex');
+    assert.equal(row.content.metadata.content_cid, 'sha256:' + contentHash);
+    assert.equal(row.content.metadata.issuer_evidence.issuer_kind, 'content_derivation');
+    assert.equal(row.content.metadata.issuer_evidence.content_cid, 'sha256:' + contentHash);
+    // Source-checkout physical observation, not a claim of a public Content
+    // byte-reader API. The persisted original must match the promised bytes.
+    assert.deepEqual(await readFile(join(directory, 'host', 'publication', 'objects', contentHash)), expected);
+  } catch (error) {primary = error;}
+  finally {
+    try {await client?.close();}
+    catch (error) {primary = primary === undefined ? error
+      : new AggregateError([primary, error], 'Original Content execution and cleanup failed');}
+    finally {process.chdir(cwd);}
+  }
+  if (primary !== undefined) throw primary;
+});
+
+test('ordinary actual Content reopens its saved Run and adopted key without generating again', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-ordinary-content-reopen-'));
+  const cwd = process.cwd(), root = join(directory, 'host');
+  let client, primary, savedKey;
+  process.chdir(directory);
+  try {
+    const options = {mode: 'local', owner: 'local', installation: {directory: root}};
+    client = await connectEmbeddedLocal(options);
+    const keyPath = join(root, 'checkpoints', 'private-evidence.key');
+    savedKey = await readFile(keyPath);
+    assert.equal(savedKey.length, 32, 'ordinary initialization selects the real key before any query');
+    await client.close(); client = undefined;
+    client = await connectEmbeddedLocal(options);
+    assert.deepEqual(await readFile(keyPath), savedKey, 'an unused Host reopen retains the same initial generation');
+    const execution = await client.startSource("SELECT 2 AS id\n" +
+      "|> SERIALIZE FORMAT CSV PRESERVE ORDER OPTIONS (name = 'saved.csv', " +
+      "header = TRUE, null_marker = r'\\N', max_rows = 3, max_bytes = 128)\n|> RESULT file;", {format: 'aql'});
+    const before = await execution.wait(); assert.equal(before.status, 'succeeded');
+    const rows = await execution.result('file').all(), ref = structuredClone(execution.ref);
+    assert.deepEqual(await readFile(keyPath), savedKey);
+    const intent = await readFile(join(root, 'checkpoints', 'private-evidence-initialization.json'));
+    const adopted = await readFile(join(root, 'checkpoints', 'private-evidence-adopted.json'));
+    await client.close(); client = undefined;
+    client = await connectEmbeddedLocal(options);
+    const same = await client.attach(ref), after = await same.status();
+    assert.equal(after.status, 'succeeded'); assert.equal(after.run_id, before.run_id);
+    assert.deepEqual(await same.result('file').all(), rows);
+    assert.deepEqual(await readFile(keyPath), savedKey);
+    assert.deepEqual(await readFile(join(root, 'checkpoints', 'private-evidence-initialization.json')), intent);
+    assert.deepEqual(await readFile(join(root, 'checkpoints', 'private-evidence-adopted.json')), adopted);
+  } catch (error) {primary = error;}
+  finally {
+    savedKey?.fill(0);
+    try {await client?.close();}
+    catch (error) {primary = primary === undefined ? error
+      : new AggregateError([primary, error], 'Saved Content read and cleanup failed');}
+    finally {process.chdir(cwd);}
+  }
+  if (primary !== undefined) throw primary;
+});
 
 test('actual Common Mock profile creates real distinct purpose keys and respects current Deny on reopen', async () => {
   const f = await accountFixture();

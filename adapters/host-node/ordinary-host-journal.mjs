@@ -27,6 +27,8 @@ export function prepareOrdinaryHostJournal(originals) {
   let closing = false, closed = false, acquisitionAttempted = false, openAttempted = false, ownership, journal;
   let journalClose, openingFailure, openingCleanup, openingStatus, openingRetry;
   let ownershipForwarded = false, flight, openingFlight, ownershipFlight;
+  let privateEvidenceInitialization, privateEvidenceStatus;
+  let rootFormatAdmission;
   const current = () => {
     if (closing || closed || originals.installation !== installation || installation.root !== root) {
       throw Object.assign(new Error('HostJournalPreparationUnavailable'), {code: 'HostJournalPreparationUnavailable'});
@@ -48,7 +50,18 @@ export function prepareOrdinaryHostJournal(originals) {
     const result = Reflect.apply(openingStatus, openingCleanup, []);
     return result?.pending !== false;
   }
-  const dependency = Object.freeze({status() {return Object.freeze({pending: nativePending()});}});
+  function privateEvidencePending() {
+    if (privateEvidenceInitialization === undefined) return false;
+    try {
+      const value = Reflect.apply(privateEvidenceStatus, privateEvidenceInitialization, []);
+      const field = value !== null && typeof value === 'object'
+        ? Object.getOwnPropertyDescriptor(value, 'pending') : undefined;
+      return field === undefined || !Object.hasOwn(field, 'value') || field.value !== false;
+    } catch {return true;}
+  }
+  const dependency = Object.freeze({status() {
+    return Object.freeze({pending: nativePending() || privateEvidencePending()});
+  }});
   function retainOwnership() {
     if (ownershipFlight !== undefined) return ownershipFlight;
     ownershipFlight = Promise.resolve().then(async () => {
@@ -61,7 +74,7 @@ export function prepareOrdinaryHostJournal(originals) {
     return ownershipFlight;
   }
   const status = () => Object.freeze({pending: !closed, journalPending: nativePending(),
-    ownershipPending: ownership !== undefined});
+    privateEvidencePending: privateEvidencePending(), ownershipPending: ownership !== undefined});
   async function close() {
     if (closed) return status();
     if (flight !== undefined) return flight;
@@ -81,12 +94,17 @@ export function prepareOrdinaryHostJournal(originals) {
         await Reflect.apply(openingRetry, openingCleanup, []);
       }
       if (nativePending()) return status();
+      // Key initialization retains its own failed FD/cleanup. The Journal
+      // may close independently, but the same shared exclusion cannot retire
+      // before that original child acknowledges close.
+      if (privateEvidencePending()) return status();
       if (ownership !== undefined) {
         const result = await closePreparedLocalPublicationStoreOwnership(ownership);
         if (result?.pending !== false) return status();
         ownership = undefined;
       }
       journal = journalClose = openingFailure = openingCleanup = openingStatus = openingRetry = undefined;
+      privateEvidenceInitialization = privateEvidenceStatus = undefined;
       openAttempted = false; closed = true;
       if (installations.get(originals.host)?.view === view) installations.delete(originals.host);
       return status();
@@ -97,7 +115,9 @@ export function prepareOrdinaryHostJournal(originals) {
   const view = Object.freeze({assertCurrent: current, close,
     async admitRootFormat(directory) {
       current(); if (directory !== root) throw new TypeError('ForeignInstalledHostRoot');
-      await admitHostRootFormat(root); current();
+      const admission = await admitHostRootFormat(root);
+      rootFormatAdmission ??= admission;
+      current();
       // The same exclusion also serializes explicitly authorized first
       // setup, before its external configuration/key files are created.
       await retainOwnership(); current();
@@ -141,6 +161,33 @@ export function prepareOrdinaryHostJournal(originals) {
     assertInitializationCurrent() {
       current();
       assertOriginalPreparedLocalPublicationStoreOwnership(ownership, join(root, 'publication'));
+    },
+    privateEvidenceInitializationOwnership() {
+      current();
+      assertOriginalPreparedLocalPublicationStoreOwnership(ownership, join(root, 'publication'));
+      return ownership;
+    },
+    assertPrivateEvidenceFirstInitialization() {
+      current();
+      assertOriginalPreparedLocalPublicationStoreOwnership(ownership, join(root, 'publication'));
+      // This initializer's actual marker creation, not absent key/Store
+      // directories, establishes the first setup. A saved intent separately
+      // resumes its original generation on later installations.
+      if (rootFormatAdmission !== 'new') {
+        throw Object.assign(new Error('PrivateEvidenceFirstInitializationUnavailable'),
+          {code: 'PrivateEvidenceFirstInitializationUnavailable'});
+      }
+    },
+    retainPrivateEvidenceInitialization(duty) {
+      current();
+      if (privateEvidenceInitialization === duty) return;
+      const field = duty !== null && typeof duty === 'object'
+        ? Object.getOwnPropertyDescriptor(duty, 'status') : undefined;
+      if (privateEvidenceInitialization !== undefined || field === undefined ||
+          !Object.hasOwn(field, 'value') || typeof field.value !== 'function') {
+        throw new TypeError('ForeignPrivateEvidenceInitialization');
+      }
+      privateEvidenceInitialization = duty; privateEvidenceStatus = field.value;
     },
   });
   installations.set(originals.host, {originals, view});

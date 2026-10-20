@@ -36728,7 +36728,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "88b9b16486d2225d8b4378111f07ff010844cdd6c5ad9d2d673accbba4f1553b",
+      "sha256": "6e305d1c63e1b7aeedb2d26384157feea0216b4d4b71e093152b8751120b1f0d",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -36750,7 +36750,9 @@
             "ownerPrincipal",
             "now",
             "authorize",
-            "faultInjection"
+            "faultInjection",
+            "assertRunCurrent",
+            "preparedRunRequired"
           ],
           "async": false
         },
@@ -36852,7 +36854,8 @@
         {
           "name": "installNodeContentRun/installNodeContentRun",
           "parameters": [
-            "options"
+            "preparedProgram",
+            "plan"
           ],
           "async": false
         },
@@ -36978,6 +36981,13 @@
         {
           "name": "installNodeContentRun/installNodeContentRun#2",
           "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun#3",
+          "parameters": [
             "preparedProgram",
             "plan",
             "store",
@@ -36992,14 +37002,14 @@
           "async": true
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#3",
+          "name": "installNodeContentRun/installNodeContentRun#4",
           "parameters": [
             "options"
           ],
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#4",
+          "name": "installNodeContentRun/installNodeContentRun#5",
           "parameters": [
             "prepared",
             "plan",
@@ -37011,7 +37021,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#5",
+          "name": "installNodeContentRun/installNodeContentRun#6",
           "parameters": [
             "preparedProgram",
             "plan",
@@ -37020,7 +37030,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#6",
+          "name": "installNodeContentRun/installNodeContentRun#7",
           "parameters": [
             "preparedProgram",
             "plan",
@@ -37032,7 +37042,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#7",
+          "name": "installNodeContentRun/installNodeContentRun#8",
           "parameters": [
             "preparedProgram",
             "preparedEffect",
@@ -37100,7 +37110,8 @@
             "installNodeContentRun/installNodeContentRun/recheckBinding/recheckBinding",
             "installNodeContentRun/installNodeContentRun/verifyRead/verifyRead",
             "installNodeContentRun/installedBinding/installedBinding",
-            "installNodeContentRun/run/run"
+            "installNodeContentRun/run/run",
+            "installNodeContentRun/installNodeContentRun#8"
           ],
           "exports": [
             "installNodeContentRun"
@@ -37122,6 +37133,10 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "## Generated Content original storage correspondence"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
               }
             ],
             "inputsOutputs": [
@@ -37140,6 +37155,10 @@
               {
                 "path": "adapters/host-node/installed-content-family.mjs",
                 "anchor": "storageForContent: binding => selectedForContent(binding)"
+              },
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "run.prepareRun = ({preparedProgram, plan}) => {"
               }
             ],
             "identity": [
@@ -37158,6 +37177,10 @@
               {
                 "path": "adapters/host-node/installed-content-family.mjs",
                 "anchor": "moon.clientProgramEffectCommandContentMatchesIssued(binding, original.issued)"
+              },
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "if (original === undefined || original.plan !== plan || original.attempted ||"
               }
             ],
             "ownership": [
@@ -37176,6 +37199,14 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "The installed serialization family keeps the exact candidate, issued checked"
+              },
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "preparedRuns.set(preparedProgram, original);"
+              },
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "if (physical?.prepared.status().pending === true) return false;"
               }
             ],
             "synchronization": [
@@ -37194,6 +37225,10 @@
               {
                 "path": "adapters/host-node/installed-content-family.mjs",
                 "anchor": "if (!current() || !live() || !current()) return undefined;"
+              },
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "original.attempted = true;"
               }
             ],
             "failure": [
@@ -37212,6 +37247,10 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "Legacy restoration without this original receiver cannot"
+              },
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "if (prior.failure !== undefined) throw prior.failure;"
               }
             ],
             "cancellation": [
@@ -37230,6 +37269,10 @@
               {
                 "path": "adapters/host-node/installed-content-family.mjs",
                 "anchor": "const current = () => durable && !cancelled && flight === undefined &&"
+              },
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "if (!stopGeneratedContentPrefix({control, prefix, chargeWork})) return false;"
               }
             ],
             "resources": [
@@ -37248,6 +37291,14 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "The additional family reference and restored-result field keep candidate,"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              },
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "original.capacity = control.prefixCapacity(preparedProgram, task, step,"
               }
             ],
             "extension": [
@@ -37266,6 +37317,10 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "read grant nor a consumer-phase capacity/allocation, physical loan or dispatch"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
               }
             ],
             "verification": [
@@ -37284,6 +37339,18 @@
               {
                 "path": "adapters/host-node/generated-content-original-selection.integration.test.mjs",
                 "anchor": "test('generated family refences cancellation begun during the original matcher callback'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
+              },
+              {
+                "path": "adapters/host-node/installed-content-preparation.test.mjs",
+                "anchor": "test('ordinary Content preserves the original preparation failure without a new Ledger attempt'"
+              },
+              {
+                "path": "adapters/host-node/installed-content-cleanup-ack.test.mjs",
+                "anchor": "test('installed Content cleanup retains a real prepared object until the same release ACK'"
               }
             ]
           }
@@ -46811,14 +46878,15 @@
     {
       "module": "adapters/host-node/local-continuation-evidence.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "630fb74d7ebbf8f3e8612d7db85a2e6bedc72961c963eed049c81f09cdb182ac",
+      "sha256": "c9ef7392307ade7c77d6e9311d97d1fed464a0eff6f31dc4b564dc03cbf556f7",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
         "PRIVATE_EVIDENCE_KEY_FILE",
         "createPrivateEvidenceKey",
         "loadPrivateEvidenceKey",
-        "openContinuationEvidence"
+        "openContinuationEvidence",
+        "preparePrivateEvidenceKeyInstallation"
       ],
       "operations": [
         {
@@ -47381,6 +47449,123 @@
             "ledger"
           ],
           "async": false
+        },
+        {
+          "name": "preparePrivateEvidenceKeyInstallation",
+          "parameters": [
+            "stateDirectory",
+            "storeDirectory",
+            "storeAuthorityCid",
+            "preparedOwnership",
+            "assertCurrent",
+            "assertFirstInitialization"
+          ],
+          "async": true
+        },
+        {
+          "name": "preparePrivateEvidenceKeyInstallation/canonical/canonical",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "preparePrivateEvidenceKeyInstallation/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "preparePrivateEvidenceKeyInstallation/init:adoptStore/init:adoptStore",
+          "parameters": [
+            "store"
+          ],
+          "async": false
+        },
+        {
+          "name": "preparePrivateEvidenceKeyInstallation/init:adoptStore/init:adoptStore/init:adoptStore",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "preparePrivateEvidenceKeyInstallation/optional",
+          "parameters": [
+            "path",
+            "maximum"
+          ],
+          "async": true
+        },
+        {
+          "name": "syncPrivateEvidenceInitializationPath",
+          "parameters": [
+            "path",
+            "current"
+          ],
+          "async": true
+        },
+        {
+          "name": "syncPrivateEvidenceInitializationPath/syncPrivateEvidenceInitializationPath",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "syncPrivateEvidenceInitializationPath/syncPrivateEvidenceInitializationPath#2",
+          "parameters": [
+            "handle"
+          ],
+          "async": true
+        },
+        {
+          "name": "syncPrivateEvidenceInitializationPath/syncPrivateEvidenceInitializationPath#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "syncPrivateEvidenceInitializationPath/syncPrivateEvidenceInitializationPath#4",
+          "parameters": [
+            "handle"
+          ],
+          "async": true
+        },
+        {
+          "name": "writePrivateEvidenceInitializationFile",
+          "parameters": [
+            "path",
+            "bytes",
+            "current"
+          ],
+          "async": true
+        },
+        {
+          "name": "writePrivateEvidenceInitializationFile/writePrivateEvidenceInitializationFile",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "writePrivateEvidenceInitializationFile/writePrivateEvidenceInitializationFile#2",
+          "parameters": [
+            "handle"
+          ],
+          "async": true
+        },
+        {
+          "name": "writePrivateEvidenceInitializationFile/writePrivateEvidenceInitializationFile#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "writePrivateEvidenceInitializationFile/writePrivateEvidenceInitializationFile#4",
+          "parameters": [
+            "handle"
+          ],
+          "async": true
         }
       ],
       "contracts": [
@@ -47488,6 +47673,10 @@
               {
                 "path": "src/run_publication/effect_review_projection.mbt",
                 "anchor": "pub fn project_effect_review_projection("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
               }
             ],
             "inputsOutputs": [
@@ -47510,6 +47699,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "const originalReview = (subjectCid, claims) =>"
+              },
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "export async function preparePrivateEvidenceKeyInstallation(stateDirectory,"
               }
             ],
             "identity": [
@@ -47536,6 +47729,10 @@
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "value.review_projection_cid !== artifactCid"
+              },
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "if (key.keyId !== intent.keyId) fail('PrivateEvidenceKeyGenerationMismatch');"
               }
             ],
             "ownership": [
@@ -47558,6 +47755,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "same review holding: its historical `semantic_cid` still addresses complete"
+              },
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "await withOriginalFile(path, name => openFile(name, 'wx', 0o600), async handle => {"
               }
             ],
             "synchronization": [
@@ -47580,6 +47781,14 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "facts.assertUpdateSelectionCurrent?.();"
+              },
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "if (adoptionFlight !== undefined) return adoptionFlight;"
+              },
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "await syncPrivateEvidenceInitializationPath(keyPath, current);"
               }
             ],
             "failure": [
@@ -47602,6 +47811,14 @@
               {
                 "path": "adapters/host-node/local-continuation-evidence.mjs",
                 "anchor": "fail('ContinuationEvidenceRetired')"
+              },
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "if (adoptedWire !== undefined) fail('PrivateEvidenceKeyUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary interrupted key setup cannot generate a replacement for missing original material'"
               }
             ],
             "cancellation": [
@@ -47624,6 +47841,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "and cleanup custody remain with their existing Owners."
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "if (await applyOriginal(originalClose, original, []) === false) {"
               }
             ],
             "resources": [
@@ -47650,6 +47871,14 @@
               {
                 "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
                 "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              },
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "const bytes = randomBytes(32);"
               }
             ],
             "extension": [
@@ -47672,6 +47901,14 @@
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "value?.version === 'actql-review-projection/0.1'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              },
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "cause?.code === 'PrivateEvidenceFirstInitializationUnavailable') return undefined;"
               }
             ],
             "verification": [
@@ -47694,6 +47931,18 @@
               {
                 "path": "packages/sdk/effect-review-checkpoints.test.mjs",
                 "anchor": "test('Effect semantic review verification rejects"
+              },
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary key setup persists real owner-only material and reopens the same adopted Store generation'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary Journal retains the same exclusion until a partial key FD closes independently'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary key sync failure retains its original FD without repeating sync on cleanup'"
               }
             ]
           }
@@ -47818,6 +48067,115 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "preparePrivateEvidenceKeyInstallation",
+            "preparePrivateEvidenceKeyInstallation/canonical/canonical",
+            "preparePrivateEvidenceKeyInstallation/current/current",
+            "preparePrivateEvidenceKeyInstallation/init:adoptStore/init:adoptStore",
+            "preparePrivateEvidenceKeyInstallation/init:adoptStore/init:adoptStore/init:adoptStore",
+            "preparePrivateEvidenceKeyInstallation/optional",
+            "syncPrivateEvidenceInitializationPath",
+            "syncPrivateEvidenceInitializationPath/syncPrivateEvidenceInitializationPath",
+            "syncPrivateEvidenceInitializationPath/syncPrivateEvidenceInitializationPath#2",
+            "syncPrivateEvidenceInitializationPath/syncPrivateEvidenceInitializationPath#3",
+            "syncPrivateEvidenceInitializationPath/syncPrivateEvidenceInitializationPath#4",
+            "writePrivateEvidenceInitializationFile",
+            "writePrivateEvidenceInitializationFile/writePrivateEvidenceInitializationFile",
+            "writePrivateEvidenceInitializationFile/writePrivateEvidenceInitializationFile#2",
+            "writePrivateEvidenceInitializationFile/writePrivateEvidenceInitializationFile#3",
+            "writePrivateEvidenceInitializationFile/writePrivateEvidenceInitializationFile#4"
+          ],
+          "exports": [
+            "preparePrivateEvidenceKeyInstallation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "export async function preparePrivateEvidenceKeyInstallation(stateDirectory,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "if (key.keyId !== intent.keyId) fail('PrivateEvidenceKeyGenerationMismatch');"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "await withOriginalFile(path, name => openFile(name, 'wx', 0o600), async handle => {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "if (adoptionFlight !== undefined) return adoptionFlight;"
+              },
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "await syncPrivateEvidenceInitializationPath(keyPath, current);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "if (adoptedWire !== undefined) fail('PrivateEvidenceKeyUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary interrupted key setup cannot generate a replacement for missing original material'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "if (await applyOriginal(originalClose, original, []) === false) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              },
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "const bytes = randomBytes(32);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              },
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "cause?.code === 'PrivateEvidenceFirstInitializationUnavailable') return undefined;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary key setup persists real owner-only material and reopens the same adopted Store generation'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary Journal retains the same exclusion until a partial key FD closes independently'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary key sync failure retains its original FD without repeating sync on cleanup'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -47826,6 +48184,7 @@
         "./bounded-continuation-directory.mjs",
         "./bounded-continuation-metadata.mjs",
         "./infer-operation.mjs",
+        "./source-profile-json.mjs",
         "node:crypto",
         "node:fs/promises",
         "node:path"
@@ -50546,7 +50905,7 @@
     },
     {
       "module": "adapters/host-node/node-host-result-installation.mjs",
-      "sha256": "ffe1869526bc67418fb7491b4e3a552792b9f95fc5b6a883404e0fb42c7ff2ea",
+      "sha256": "edb7ddf3d22802511e00f2e3f90a3eea64bee9ec8857e089a354ba798bec2c0d",
       "exports": [
         "prepareHostResultPublicationInstallation"
       ],
@@ -50692,12 +51051,20 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The ordinary selected Node Host has a separate finite Local Result/publication"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/node-host-result-installation.mjs",
                 "anchor": "export async function prepareHostResultPublicationInstallation("
+              },
+              {
+                "path": "adapters/host-node/node-host-result-installation.mjs",
+                "anchor": "const original = prepareOrdinaryHostResult(originals,"
               }
             ],
             "identity": [
@@ -50708,6 +51075,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid')"
+              },
+              {
+                "path": "adapters/host-node/node-host-result-installation.mjs",
+                "anchor": "readHostResultPublicationPreparation(originals), readHostResultPublicationRunRequirements);"
               }
             ],
             "ownership": [
@@ -50718,6 +51089,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "same duty before its returned view observes it, that view receives the retained"
+              },
+              {
+                "path": "adapters/host-node/node-host-result-installation.mjs",
+                "anchor": "await original.initialize();"
               }
             ],
             "synchronization": [
@@ -50728,6 +51103,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
+              },
+              {
+                "path": "adapters/host-node/node-host-result-installation.mjs",
+                "anchor": "return original;"
               }
             ],
             "failure": [
@@ -50738,6 +51117,10 @@
               {
                 "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
                 "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "failure ??= cause;"
               }
             ],
             "cancellation": [
@@ -50748,6 +51131,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "entry.closedObservation = resultStatus(entry);"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "if (keyFlight !== undefined) {try {await keyFlight;} catch {}}"
               }
             ],
             "resources": [
@@ -50758,6 +51145,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "entry.storeOperations++;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
               }
             ],
             "extension": [
@@ -50768,6 +51159,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "legacy private Evidence key; a later key-dependent operation keeps its original"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
               }
             ],
             "verification": [
@@ -50778,6 +51173,14 @@
               {
                 "path": "adapters/host-node/host-result-service.test.mjs",
                 "anchor": "candidate refusal, Promise or Boolean cannot cross the actual durable record boundary"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary Journal retains the same exclusion until a partial key FD closes independently'"
               }
             ]
           }
@@ -68897,7 +69300,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-journal.mjs",
-      "sha256": "5f4ef08d425eebfe9c960ba635c2bdb7ab4d47d6888dd22f5eae80264d72f457",
+      "sha256": "d18491bc70ac6cdc34873b8e6d22e84a1209fca7e9de7aa515d1b4e7c9feea09",
       "exports": [
         "ordinaryHostJournalInstallation",
         "prepareOrdinaryHostJournal"
@@ -68943,6 +69346,11 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryHostJournal/privateEvidencePending",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryHostJournal/retainOwnership",
           "parameters": [],
           "async": false
@@ -68970,6 +69378,11 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryHostJournal/view/init:assertPrivateEvidenceFirstInitialization/init:assertPrivateEvidenceFirstInitialization",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryHostJournal/view/init:openRequestJournal/init:openRequestJournal",
           "parameters": [
             "directory",
@@ -68983,8 +69396,20 @@
           "async": true
         },
         {
+          "name": "prepareOrdinaryHostJournal/view/init:privateEvidenceInitializationOwnership/init:privateEvidenceInitializationOwnership",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryHostJournal/view/init:publicationOwnership/init:publicationOwnership",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryHostJournal/view/init:retainPrivateEvidenceInitialization/init:retainPrivateEvidenceInitialization",
+          "parameters": [
+            "duty"
+          ],
           "async": false
         }
       ],
@@ -69087,12 +69512,162 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryHostJournal/privateEvidencePending",
+            "prepareOrdinaryHostJournal/view/init:retainPrivateEvidenceInitialization/init:retainPrivateEvidenceInitialization"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "anchor": "retainPrivateEvidenceInitialization(duty) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "anchor": "if (privateEvidenceInitialization === duty) return;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "anchor": "privateEvidenceInitialization = duty; privateEvidenceStatus = field.value;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "anchor": "return Object.freeze({pending: nativePending() || privateEvidencePending()});"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "anchor": "throw new TypeError('ForeignPrivateEvidenceInitialization');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "anchor": "if (privateEvidencePending()) return status();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary Journal retains the same exclusion until a partial key FD closes independently'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryHostJournal/view/init:assertPrivateEvidenceFirstInitialization/init:assertPrivateEvidenceFirstInitialization",
+            "prepareOrdinaryHostJournal/view/init:privateEvidenceInitializationOwnership/init:privateEvidenceInitializationOwnership"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "anchor": "retainPrivateEvidenceInitialization(duty) {"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "anchor": "privateEvidenceInitializationOwnership() {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "anchor": "if (privateEvidenceInitialization === duty) return;"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "anchor": "if (rootFormatAdmission !== 'new') {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "anchor": "privateEvidenceInitialization = duty; privateEvidenceStatus = field.value;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "anchor": "return Object.freeze({pending: nativePending() || privateEvidencePending()});"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "anchor": "throw new TypeError('ForeignPrivateEvidenceInitialization');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "anchor": "if (privateEvidencePending()) return status();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary Journal retains the same exclusion until a partial key FD closes independently'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary lost Store and key directories cannot become another first key initialization'"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "adapters/host-node/ordinary-host-result.mjs",
-      "sha256": "d4f755187b7463e3464514c2cb88f1ac7879a07028bd490eebd26fb715b461a7",
+      "sha256": "41bdfde89ec385a7053cc8869893ca31e820a499d3fcb82386f7edc5cfc0274a",
       "exports": [
         "prepareOrdinaryHostResult"
       ],
@@ -69129,6 +69704,38 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryHostResult/initializeKey",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryHostResult/initializeKey/initializeKey",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryHostResult/initializeKey/initializeKey/initializeKey",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryHostResult/initializeKey/initializeKey/initializeKey#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryHostResult/keyDuty/keyDuty",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryHostResult/retainFailure",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryHostResult/status/status",
           "parameters": [],
           "async": false
@@ -69141,8 +69748,25 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryHostResult/view/init:assertContentCurrent/init:assertContentCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryHostResult/view/init:beforeOperation/init:beforeOperation",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryHostResult/view/init:initialize/init:initialize",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryHostResult/view/init:initialize/init:initialize/init:initialize",
+          "parameters": [
+            "cause"
+          ],
           "async": false
         },
         {
@@ -69168,6 +69792,7 @@
       ],
       "imports": [
         "../store-local/publication-store.mjs",
+        "./local-continuation-evidence.mjs",
         "./ordinary-host-journal.mjs",
         "node:path"
       ],
@@ -69224,7 +69849,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/ordinary-host-result.mjs",
-                "anchor": "failure = cause;"
+                "anchor": "failure ??= cause;"
               }
             ],
             "cancellation": [
@@ -69330,13 +69955,184 @@
             "extension": [
               {
                 "path": "adapters/host-node/node-host-result-installation.mjs",
-                "anchor": "if (!explicitStartup) return prepareOrdinaryHostResult(originals,"
+                "anchor": "const original = prepareOrdinaryHostResult(originals,"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/ordinary-host-result.test.mjs",
                 "anchor": "test('ordinary Model publication uses the same admitted Run and live Store, not copied limits'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryHostResult/keyDuty/keyDuty"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "keyInstallation = await preparePrivateEvidenceKeyInstallation(join(subject.root, 'checkpoints'), {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "preparedOwnership: originalOwnership,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "journal.retainPrivateEvidenceInitialization(keyDuty); keyDutyRetained = true;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "if (openFlight !== undefined) return openFlight;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "else if (failure.cleanupPending === true) return status();"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "if (!ack(Reflect.apply(cleanupStatus, cleanup, []))) return status();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary Journal retains the same exclusion until a partial key FD closes independently'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryHostResult/initializeKey",
+            "prepareOrdinaryHostResult/initializeKey/initializeKey",
+            "prepareOrdinaryHostResult/initializeKey/initializeKey/initializeKey",
+            "prepareOrdinaryHostResult/initializeKey/initializeKey/initializeKey#2",
+            "prepareOrdinaryHostResult/retainFailure",
+            "prepareOrdinaryHostResult/view/init:assertContentCurrent/init:assertContentCurrent",
+            "prepareOrdinaryHostResult/view/init:initialize/init:initialize",
+            "prepareOrdinaryHostResult/view/init:initialize/init:initialize/init:initialize"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "keyInstallation = await preparePrivateEvidenceKeyInstallation(join(subject.root, 'checkpoints'), {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "preparedOwnership: originalOwnership,"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "if (store === undefined || store !== contentEvidenceStore || store.status().closed) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "journal.retainPrivateEvidenceInitialization(keyDuty); keyDutyRetained = true;"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "contentEvidenceStore = store;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "if (keyFlight !== undefined) return keyFlight;"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "if (openFlight !== undefined) return openFlight;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "else if (failure.cleanupPending === true) return status();"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "throw new TypeError('InstalledContentEvidenceUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "anchor": "if (!ack(Reflect.apply(cleanupStatus, cleanup, []))) return status();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
+                "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary Journal retains the same exclusion until a partial key FD closes independently'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary no-key Store stays open for Results but refuses Content before preparation'"
               }
             ]
           }

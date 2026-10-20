@@ -11812,7 +11812,7 @@
     {
       "module": "packages/sdk/internal/submission-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "428116b37806727efcaf0257bf98e996a9d380811cc03975888d9ead8846dfdb",
+      "sha256": "fa3789d22f460a8ce8530aeeeb9b736319c424e3309c7e57ef3314ddb8e9d623",
       "exports": [
         "RequestHeld",
         "createSubmissionOperations",
@@ -11835,6 +11835,18 @@
             "transport",
             "execution",
             "lifecycle"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSubmissionOperations/assertQueryResultReadCurrent/assertQueryResultReadCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSubmissionOperations/beforeQueryResultRead/beforeQueryResultRead",
+          "parameters": [
+            "args"
           ],
           "async": false
         },
@@ -12379,7 +12391,9 @@
             "createSubmissionOperations/withSourceProducer/withSourceProducer/finish/finish",
             "createSubmissionOperations/withSourceProducer/withSourceProducer/finish/finish/retry/retry",
             "createSubmissionOperations/withSourceProducer/withSourceProducer/pending/pending",
-            "createSubmissionOperations/withSourceProducer/withSourceProducer/pending/pending#2"
+            "createSubmissionOperations/withSourceProducer/withSourceProducer/pending/pending#2",
+            "createSubmissionOperations/assertQueryResultReadCurrent/assertQueryResultReadCurrent",
+            "createSubmissionOperations/beforeQueryResultRead/beforeQueryResultRead"
           ],
           "exports": [
             "RequestHeld",

@@ -13,20 +13,23 @@ async function fixture(source = true) {
   const originals = {}, prepared = {}, request = {}, body = {}, declarations = [{}, {}];
   const bundle = Object.freeze({dataPath, sources: declarations.map(declaration => ({declaration}))});
   let current = true;
+  const quotes = {pure: 0, effect: 0};
   const callbacks = {validator(value) {
     assert.strictEqual(value, originals);
     if (!current) throw new Error('original-current');
   }, async prepare() {}, read: () => bundle, request(value, p) {
     assert.strictEqual(p, prepared); return request;
-  }, intent: () => 'sha256:' + 'a'.repeat(64), requirements: () => ({planningWork: 100,
-    attempts: 10, holdings: 10, transferBytes: 10000n, retainedBytes: 10000n, executionBytes: 10000n}),
+  }, intent: () => 'sha256:' + 'a'.repeat(64), requirements: () => {quotes.pure++; return {planningWork: 100,
+    attempts: 10, holdings: 10, transferBytes: 10000n, retainedBytes: 10000n, executionBytes: 10000n};},
+    effectRequirements: () => {quotes.effect++; return {planningWork: 100,
+      attempts: 10, holdings: 10, transferBytes: 10000n, retainedBytes: 10000n, executionBytes: 10000n};},
     mockRequirements: () => ({planningWork: 100, attempts: 10, holdings: 10,
       transferBytes: 10000n, retainedBytes: 10000n, executionBytes: 10000n})};
   const view = await prepareOrdinarySourceManagedInstallation(originals, callbacks, source);
   const receipt = view.beforeSourceSnapshot('aql', 'text', {});
   view.bindSourceSnapshot(receipt, body);
   view.bindSourceRequest(receipt, body, request);
-  return {view, prepared, declarations, dataPath, receipt, setCurrent(value) {current = value;}};
+  return {view, prepared, declarations, dataPath, receipt, quotes, setCurrent(value) {current = value;}};
 }
 
 test('ordinary two-Source acquisition uses distinct actual readers and one managed Run', async () => {
@@ -98,5 +101,23 @@ test('ordinary Source original cannot later acquire the separate Mock purpose', 
   f.view.prepareRun(f.prepared);
   assert.throws(() => f.view.prepareLocalMockModelRun(f.prepared, {}), {code: 'ForeignInstalledModelPreparation'});
   f.view.finishSourceProducer(f.receipt, 'failed');
+  assert.equal((await f.view.close()).pending, false);
+});
+
+test('ordinary Effect preparation uses its original typed quote and cannot switch to Pure', async () => {
+  const f = await fixture(), original = f.view.prepareEffectRun(f.prepared);
+  assert.strictEqual(f.view.prepareEffectRun(f.prepared), original);
+  assert.deepEqual(f.quotes, {pure: 0, effect: 1});
+  assert.throws(() => f.view.prepareRun(f.prepared), {code: 'ForeignInstalledModelPreparation'});
+  const ports = runtime.prepareOriginalManagedRunPorts(original, f.prepared);
+  assert.equal(ports.status(0), 0);
+  const children = f.declarations.map(declaration => f.view.prepareRead(f.prepared, declaration, original));
+  const bytes = await Promise.all(children.map(child => child.readOriginalBytes()));
+  assert.deepEqual(bytes[0], bytes[1]); assert.notStrictEqual(bytes[0], bytes[1]);
+  f.view.finishSourceProducer(f.receipt, 'returned');
+  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n), 0);
+  assert.equal(ports.status(2), -42);
+  for (const child of children) await child.close();
+  assert.equal(ports.status(2), 0);
   assert.equal((await f.view.close()).pending, false);
 });

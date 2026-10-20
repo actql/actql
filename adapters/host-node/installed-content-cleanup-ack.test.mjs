@@ -30,6 +30,7 @@ test('installed Content cleanup retains a real prepared object until the same re
   createPublicationContractControlFixture());
   let releaseAllowed = false, actualPrepared, execution;
   let starts = 0, seals = 0, releaseCalls = 0, commitCalls = 0, stops = 0, prefixWork = 0n;
+  let ledgerPreparations = 0;
   const originalFailure = new Error('IndependentPhysicalCommitNotStarted');
   const ledger = Object.freeze({fixture: 'original Pure acquisition ledger'});
   const compiled = Object.freeze({fixture: 'checked compilation'});
@@ -47,7 +48,10 @@ test('installed Content cleanup retains a real prepared object until the same re
   const control = {
     workspaceCapacity: () => ({retainedBytes: 1n, executionBytes: 1n}),
     prefixCapacity: () => ({retainedBytes: 1n, executionBytes: 1n}),
-    prefix() { starts++; return Object.freeze({fixture: 'original prefix'}); },
+    prefix(_program, _task, _step, _bodies, _limits, originalLedger) {
+      assert.strictEqual(originalLedger, ledger);
+      starts++; return Object.freeze({fixture: 'original prefix'});
+    },
     prefixWork: () => prefixWork,
     prefixAdvance() { prefixWork++; return {work: 1n, stopped: false, output: {fixture: 'completed output'}}; },
     prefixCancel() {},
@@ -92,17 +96,31 @@ test('installed Content cleanup retains a real prepared object until the same re
     checkedClientSerializationByteHoldingCid: () => cid('independent byte holding'),
   };
   const run = installNodeContentRun({
-    moon: {clientProgramAcquisitionLedger: () => ({$tag: 1, _0: ledger}),
+    moon: {clientProgramAcquisitionLedger: () => {ledgerPreparations++; return {$tag: 1, _0: ledger};},
+      clientProgramAcquisitionCount: () => 0,
       clientProgramMultiCapturedLedgerUsage: owner => { assert.equal(owner, ledger); return []; }},
     core: {contentGenerationControl: control, publicationControl: publications},
     registry: '{}', values: '{}', fragment: undefined, ordered: undefined,
     namespaceId: 'fixture', authorityScopeCid: cid('independent scope'), storeAuthorityCid: authority,
     ownerPrincipal: 'fixture', now: () => '2026-10-13T00:00:00.000Z', authorize: () => true,
+    preparedRunRequired: true, assertRunCurrent: () => assert.equal(store.status().closed, false),
   });
-  await assert.rejects(run({preparedProgram, plan: {kind: 'serialization', compiled,
-    runDefinition: definition, serializationGraph: {task: 0, step: 1}},
+  const plan = Object.freeze({kind: 'serialization', compiled,
+    runDefinition: definition, serializationGraph: {task: 0, step: 1}});
+  await assert.rejects(run({preparedProgram, plan, store: physical, principalId: 'fixture',
+    retainExecution() {assert.fail('Unprepared Run cannot acquire cleanup custody');}}),
+  {message: 'InstalledContentRunPreparationUnavailable'});
+  assert.equal(ledgerPreparations, 0);
+  assert.equal(starts, 0);
+  run.prepareRun({preparedProgram, plan});
+  run.prepareRun({preparedProgram, plan});
+  assert.equal(ledgerPreparations, 1, 'one original before dispatch, not once per execution');
+  assert.throws(() => run.prepareRun({preparedProgram, plan: {...plan}}),
+    {message: 'ForeignInstalledContentRun'});
+  await assert.rejects(run({preparedProgram, plan,
   store: physical, principalId: 'fixture', retainExecution: value => { execution = value; }}),
   error => error === originalFailure);
+  assert.throws(() => run.prepareRun({preparedProgram, plan}), {message: 'ForeignInstalledContentRun'});
   assert.equal(actualPrepared.status().pending, true);
   assert.deepEqual(await readFile(join(scratch.path, 'store', 'objects', contentCid.slice(7))), Buffer.from(bytes));
   const firstCleanup = await execution.cleanup();
@@ -128,6 +146,7 @@ test('installed Content cleanup retains a real prepared object until the same re
   assert.equal(await execution.cleanup(), true);
   assert.equal(releaseCalls, 3, 'confirmed cleanup never releases twice');
   assert.equal(starts, 1);
+  assert.equal(ledgerPreparations, 1);
   assert.equal(seals, 1);
   assert.equal(commitCalls, 1, 'cleanup retry never retries the failed commit');
   await assert.rejects(readFile(join(scratch.path, 'store', 'objects', contentCid.slice(7))), {code: 'ENOENT'});

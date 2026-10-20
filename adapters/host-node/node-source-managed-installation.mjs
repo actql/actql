@@ -5,6 +5,7 @@ import {prepareOrdinarySourceManagedInstallation, assertOrdinarySourcePreparatio
 import {assertSourceManagedHostPreparation, prepareInstalledMockSourcePreparation,
   readInstalledMockPreparation, originalSourceManagedHostRequest, sourceManagedSubmittedIntentCid,
   managedComputeSubmittedIntentCid, readSourceManagedRunRequirements, readManagedComputeRunRequirements,
+  readSourceManagedEffectRunRequirements,
   readLocalMockModelRunRequirements}
   from './embedded-local.mjs';
 
@@ -121,6 +122,7 @@ export function prepareSourceManagedInstallation(originals) {
     validator: assertSourceManagedHostPreparation, prepare: prepareInstalledMockSourcePreparation,
     read: readInstalledMockPreparation, request: originalSourceManagedHostRequest,
     intent: sourceManagedSubmittedIntentCid, requirements: readSourceManagedRunRequirements,
+    effectRequirements: readSourceManagedEffectRunRequirements,
     mockRequirements: readLocalMockModelRunRequirements,
   }, true);
   return prepareInstallation(originals, callbacks);
