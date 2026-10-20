@@ -53,6 +53,22 @@ product implementation gap rather than a language restriction. The five earlier
 catalogs and journals retain their exact bodies and identities for preparations
 without Group. This catalog issues no Source, Account or execution authority.
 
+The bounded-relation extension adds the existing Take operation to that closed
+set, with count at least one, offset at least zero and the original SafeInteger
+maximum. Omitted offset keeps the existing operation-law value zero. The audit
+reads the original checked Take; it does not turn an author default into a
+supplied value or parse a logical value a second time.
+
+For a Parameter role, the audit requires the same declaration and admitted
+Supplied binding retained by the original preparation, and the existing closed
+SafeInteger resolution for the exact pipeline and step. Equal names, values or
+CIDs from another pipeline are insufficient. Count and offset retain their
+separate minimum conditions. Every role, binding search and resolution visit
+consumes the same audit budget. Existing operation-order, bounds, execution and
+physical currentness obligations still apply. One catalog covers Take with the
+preceding checked scalar, cast, supplied Parameter and selected Group forms;
+preparations without Take retain all six preceding catalog/journal identities.
+
 SQL/Pipe CASE without ELSE keeps that field absent in the Common form. The
 original parsed source distinguishes its synthetic END-anchored NULL from an
 authored ELSE NULL. Preserving this distinction lets the existing Common

@@ -318,7 +318,7 @@ fn check(
     local_completion_free_audit: if effect_headers is Some(_) {
       ProfileNotInstalled
     } else {
-      audit_local_completion_free_units(program, identity, units)
+      audit_local_completion_free_units(program, identity, units, requirements)
     },
     has_effects: effect_headers is Some(_),
     keyed_input_proofs,
