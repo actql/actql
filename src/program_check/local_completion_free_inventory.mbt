@@ -38,6 +38,27 @@ priv enum LocalCompletionFreeAudit {
     Bool
   )
   DedupeSortCompleted(Int, Array[LocalSortNormalizationEntry], Bool, Bool, Bool)
+  AssertionComplete(
+    Int,
+    @parameters.BoundValues?,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool
+  )
+  AssertionSortCompleted(
+    Int,
+    Array[LocalSortNormalizationEntry],
+    Bool,
+    Bool,
+    Bool,
+    Bool
+  )
   ProfileNotInstalled
   CompletionObserved
 }
@@ -58,6 +79,7 @@ struct LocalCompletionFreeInventory {
   distincts : Bool
   sets : Bool
   dedupes : Bool
+  assertions : Bool
 }
 
 ///|
@@ -69,6 +91,8 @@ fn local_audit_uses_distinct(audit : LocalCompletionFreeAudit) -> Bool {
     | SetSortCompleted(_, _, distincts, _) => distincts
     DedupeComplete(_, _, _, _, _, _, _, distincts, _, _)
     | DedupeSortCompleted(_, _, distincts, _, _) => distincts
+    AssertionComplete(_, _, _, _, _, _, _, distincts, _, _, _)
+    | AssertionSortCompleted(_, _, distincts, _, _, _) => distincts
     _ => false
   }
 }
@@ -80,6 +104,8 @@ fn local_audit_uses_set(audit : LocalCompletionFreeAudit) -> Bool {
       true
     DedupeComplete(_, _, _, _, _, _, _, _, sets, _)
     | DedupeSortCompleted(_, _, _, sets, _) => sets
+    AssertionComplete(_, _, _, _, _, _, _, _, sets, _, _)
+    | AssertionSortCompleted(_, _, _, sets, _, _) => sets
     _ => false
   }
 }
@@ -89,6 +115,8 @@ fn local_audit_uses_dedupe(audit : LocalCompletionFreeAudit) -> Bool {
   match audit {
     DedupeComplete(_, _, _, _, _, _, _, _, _, _)
     | DedupeSortCompleted(_, _, _, _, _) => true
+    AssertionComplete(_, _, _, _, _, _, _, _, _, dedupes, _)
+    | AssertionSortCompleted(_, _, _, _, dedupes, _) => dedupes
     _ => false
   }
 }
@@ -631,6 +659,7 @@ fn audit_local_completion_free_units(
   let mut distincts = false
   let mut sets = false
   let mut dedupes = false
+  let mut assertions = false
   let sort_entries : Array[LocalSortNormalizationEntry] = []
   let sources : Array[(Int, Int)] = []
   let mut roots = 0
@@ -703,6 +732,16 @@ fn audit_local_completion_free_units(
               }
               remaining = left
               distincts = true
+            }
+            AssertRows => {
+              guard audit_local_completion_free_assertion(
+                  operation, pipeline, index, remaining,
+                )
+                is Some(left) else {
+                return ProfileNotInstalled
+              }
+              remaining = left
+              assertions = true
             }
             DedupeRows => {
               guard audit_local_completion_free_dedupe(
@@ -813,7 +852,16 @@ fn audit_local_completion_free_units(
     guard canonical_local_sort_entries(sort_entries, remaining) is Some(left) else {
       return ProfileNotInstalled
     }
-    return if dedupes {
+    return if assertions {
+      AssertionSortCompleted(
+        10000 - left,
+        sort_entries,
+        distincts,
+        sets,
+        dedupes,
+        defaulted_parameters,
+      )
+    } else if dedupes {
       DedupeSortCompleted(
         10000 - left,
         sort_entries,
@@ -833,6 +881,21 @@ fn audit_local_completion_free_units(
     } else {
       SortCompleted(10000 - left, sort_entries, defaulted_parameters)
     }
+  }
+  if assertions {
+    return AssertionComplete(
+      10000 - remaining,
+      bound_parameters,
+      explicit_cast,
+      checked_expressions,
+      groups,
+      takes,
+      sorts,
+      distincts,
+      sets,
+      dedupes,
+      defaulted_parameters,
+    )
   }
   if dedupes {
     return DedupeComplete(
@@ -935,6 +998,19 @@ pub fn local_program_completion_free_inventory(
       _,
       _,
       defaulted_parameters
+    )
+    | AssertionComplete(
+      work,
+      bound_parameters,
+      explicit_cast,
+      checked_expressions,
+      groups,
+      takes,
+      sorts,
+      _,
+      _,
+      _,
+      defaulted_parameters
     ) =>
       Ok({
         owner,
@@ -949,13 +1025,16 @@ pub fn local_program_completion_free_inventory(
         distincts: local_audit_uses_distinct(owner.local_completion_free_audit),
         sets: local_audit_uses_set(owner.local_completion_free_audit),
         dedupes: local_audit_uses_dedupe(owner.local_completion_free_audit),
+        assertions: owner.local_completion_free_audit
+        is AssertionComplete(_, _, _, _, _, _, _, _, _, _, _),
       })
     ProfileNotInstalled => Err(ProfileNotInstalled)
     CompletionObserved
     | SortCompleted(_, _, _)
     | DistinctSortCompleted(_, _, _)
     | SetSortCompleted(_, _, _, _)
-    | DedupeSortCompleted(_, _, _, _, _) => Err(CompletionObserved)
+    | DedupeSortCompleted(_, _, _, _, _)
+    | AssertionSortCompleted(_, _, _, _, _, _) => Err(CompletionObserved)
   }
 }
 
@@ -1052,4 +1131,12 @@ pub fn local_completion_free_inventory_uses_set(
   inventory : LocalCompletionFreeInventory,
 ) -> Bool {
   inventory.sets
+}
+
+///|
+/// Audited original assertion metadata, not a physical assertion proof.
+pub fn local_completion_free_inventory_uses_assertions(
+  inventory : LocalCompletionFreeInventory,
+) -> Bool {
+  inventory.assertions
 }

@@ -466,3 +466,21 @@ pub fn lag_term_at(value : CheckedOperation, index : Int) -> OrderTerm? {
     _ => None
   }
 }
+
+///|
+/// O(1); immutable original assertion keys, without copying their collection.
+pub fn assertion_key_count(value : CheckedOperation) -> Int {
+  match value.row_operation {
+    Some(AssertUnique(keys)) => keys.length()
+    _ => 0
+  }
+}
+
+///|
+/// O(1); invalid indices and non-unique assertions have no key occurrence.
+pub fn assertion_key_at(value : CheckedOperation, index : Int) -> KeyField? {
+  match value.row_operation {
+    Some(AssertUnique(keys)) => keys.get(index)
+    _ => None
+  }
+}

@@ -13,6 +13,7 @@
     ],
     "checked_operations": [
       "append",
+      "assert_rows",
       "dedupe_rows",
       "derive",
       "distinct",
@@ -177,7 +178,13 @@
     "dedupe_keys": "authored-repeats-and-empty-global-partition-retained",
     "dedupe_selection": "existing-first-by-authored-order; unresolved-top-tie-fails-even-identical-rows",
     "dedupe_order": "existing-canonical-typed-group-key-order-null-first",
-    "dedupe_journal": "fixed-operation-laws-are-not-Source-completion; actual-Sort-and-projection-entries-retained"
+    "dedupe_journal": "fixed-operation-laws-are-not-Source-completion; actual-Sort-and-projection-entries-retained",
+    "assertion_scope": "original-same-pipeline-step-checked-operation-schema-predicate-or-indexed-key-occurrences-and-pending-obligations",
+    "assertion_success": "existing-atomic-physical-validation-before-output-or-dependent-proof-consumption; never-implied-by-audit",
+    "assertion_where": "every-row-strict-true; false-or-unknown-fails-without-filtering",
+    "assertion_unique": "authored-nonempty-unique-key-tuple; NULL-missing-or-duplicate-fails-without-deduplication",
+    "assertion_preservation": "original-row-bytes-shape-order-and-identity; nullable-schema-not-narrowed-by-typechecking",
+    "assertion_journal": "fixed-operation-laws-are-not-Source-completion; actual-Sort-and-projection-entries-retained"
   },
   "profile": "actql-effect-free-local-completion-free/0.1",
   "rules": [

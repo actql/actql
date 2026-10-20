@@ -123,7 +123,7 @@ test "a supported scalar never hides implicit completion or uninstalled relation
   )
   let uncovered_relation = local_group_original_document(
     (
-      #|{"version":"actql/0.1","id":"local.unsupported-scalar-assert","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"other":{"type":"number","nullable":false}},"rows":[{"id":-3,"other":2}]},"as":"input"},{"derive":{"value":"abs(id)"}},{"assert_rows":{"unique_by":["id"]},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"local.unsupported-scalar-cross-join","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"other":{"type":"number","nullable":false}},"rows":[{"id":-3,"other":2}]},"as":"input"},{"derive":{"value":"abs(id)"}},{"cross_join":{"with":"input","right_rows":"one","max_output_rows":1,"select":{"id":"left.id","value":"left.value"}},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
   )
   assert_true(
