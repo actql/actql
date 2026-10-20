@@ -1459,6 +1459,7 @@ fn execute_and_write_native_reply(
     return
   }
   if matches.subcommand is Some(("op", child)) {
+    command_preparation_diagnostic.val = MetadataFailed
     pending_reply.val = Some(local_language_operation_command(matches, child))
     return
   }

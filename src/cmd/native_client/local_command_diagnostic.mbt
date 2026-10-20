@@ -1,9 +1,10 @@
 ///|
-// Presentation of the one irreversible preparation rejection in this command.
+// Presentation of the original pre-Run rejection in this command.
 // Retain only a closed tag across the original Read return: no Cursor, supplied
 // value, diagnostic source, managed text alias or physical receiver escapes.
 priv enum LocalCommandDiagnosticKind {
   Unspecified
+  MetadataFailed
   ParameterInvalid
   ParameterMissing
   ParameterDeclarations
@@ -131,7 +132,7 @@ fn[T] local_stop_native_preparation(
 ///|
 fn local_command_primary_diagnostic(message : String) -> (String, String) {
   match command_preparation_diagnostic.val {
-    Unspecified => ("ACTQL_E_COMMAND_FAILED", message)
+    Unspecified | MetadataFailed => ("ACTQL_E_COMMAND_FAILED", message)
     ParameterInvalid =>
       (
         "ACTQL_E_PARAMETER_INVALID", "A supplied parameter does not match its declared type or constraints.",
@@ -180,8 +181,9 @@ fn local_command_primary_diagnostic(message : String) -> (String, String) {
 // Other original command messages are bounded and quoted for terminal safety.
 fn local_command_failure_text(message : String, json : Bool) -> String {
   // Legacy failures can carry complete cancellation/Unknown or saved-Run
-  // recovery metadata. Only the original typed preparation rejection selects
-  // the new format; never parse, quote or truncate the legacy carrier.
+  // recovery metadata. Only the original typed preparation rejection or an
+  // explicit host-free metadata entry selects the diagnostic format; never
+  // parse, quote or truncate the legacy carrier.
   if command_preparation_diagnostic.val is Unspecified {
     return "actql-native-client: " + message
   }

@@ -1,5 +1,6 @@
 ///|
 fn language_operation_reply(argv : Array[String]) -> String raise {
+  local_command_diagnostic_reset()
   let pending : Ref[String?] = Ref(None)
   let parsed = command().parse(argv~, env=Map([]))
   assert_true(command_preparation_invocation.val is None)
@@ -128,6 +129,38 @@ test "public op preserves the configured response limit without acquiring a Host
     other => raise other
   }
   assert_true(rejected)
+  assert_true(command_preparation_invocation.val is None)
+  assert_true(initial_crypto_invocation.val is None)
+}
+
+///|
+test "public op metadata rejection selects diagnostics without reinterpreting legacy Run carriers" {
+  let original = try {
+    ignore(
+      language_operation_reply(["op", "show", "unknown.operation", "--json"]),
+    )
+    fail("unknown operation must reject before a Host exists")
+  } catch {
+    ClientStop(issue) => issue
+    other => raise other
+  }
+  let output = local_command_failure_text(original, true)
+  guard @json.parse(output) is Object(fields) else {
+    fail("metadata rejection must be one diagnostic object")
+  }
+  assert_eq(fields.get("code"), Some(Json::string("ACTQL_E_COMMAND_FAILED")))
+  assert_eq(fields.get("message"), Some(Json::string(original)))
+  assert_eq(fields.length(), 2)
+  assert_true(
+    local_command_failure_text(original, false).has_prefix(
+      "ACTQL_E_COMMAND_FAILED:",
+    ),
+  )
+  local_command_diagnostic_reset()
+  assert_eq(
+    local_command_failure_text("retained-original-Run-carrier", true),
+    "actql-native-client: retained-original-Run-carrier",
+  )
   assert_true(command_preparation_invocation.val is None)
   assert_true(initial_crypto_invocation.val is None)
 }
