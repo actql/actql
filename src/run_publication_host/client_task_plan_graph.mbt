@@ -321,21 +321,46 @@ fn issue_client_task_plan_graph(
         }
       _ => None
     }
-    let producer = match content_result {
-      Some(content) => content.output
-      None => fragment
+    let infer_result = match by_task.get(task) {
+      Some(component) => {
+        guard client_infer_occurrence_matches_plan(
+            component.occurrence,
+            component,
+          ) &&
+          client_infer_result_producer(
+            component.occurrence,
+            result,
+            component.result_producers,
+          )
+          is Some(producer) else {
+          return Err(Root(Root(RequiresResultTransformation)))
+        }
+        Some((component.occurrence, producer))
+      }
+      None => None
+    }
+    let (producer_node, producer_port, producer_contract) = match infer_result {
+      Some((_, (_, node, port, contract))) => (node, port, contract)
+      None => {
+        let producer = match content_result {
+          Some(content) => content.output
+          None => fragment
+        }
+        (producer.node_id, producer.output_port, producer.output_contract_cid)
+      }
     }
     let parts = match
       issue_client_result_plan_parts(
         value,
         result,
-        producer.node_id,
-        producer.output_port,
-        producer.output_contract_cid,
+        producer_node,
+        producer_port,
+        producer_contract,
         max_wire_bytes,
         max_nodes,
         max_depth,
         serialization_output=content_result.map(content => content.barrier),
+        infer_output=infer_result.map(value => (value.0, value.1.0)),
       ) {
       Ok(parts) => parts
       Err(issue) => return Err(Root(issue))

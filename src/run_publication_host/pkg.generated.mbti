@@ -2812,6 +2812,8 @@ pub struct ClientInferPlanGraph {
   barrier_cid : String
   input : ClientTaskFragmentNode
   output : ClientTaskFragmentNode
+  occurrence : ClientInferOccurrence
+  result_producers : Array[(Int, String, String, String)]
   serialization : ClientSerializationPlanGraph?
 }
 

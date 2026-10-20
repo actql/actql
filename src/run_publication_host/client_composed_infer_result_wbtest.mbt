@@ -53,7 +53,10 @@ fn captured_infer_result_fixture() -> (
   )
   let component = issue_prepared_client_composed_infer_plan_graph(
     occurrence,
-    client_infer_graph_test_execution(occurrence.owner, occurrence=Some(occurrence)),
+    client_infer_graph_test_execution(
+      occurrence.owner,
+      occurrence=Some(occurrence),
+    ),
     "sha256:" + "b".repeat(64),
     "sha256:" + "c".repeat(64),
     run_materials_limits().sequence,
@@ -82,8 +85,18 @@ test "captured JOIN INFER Result retains its original intermediate producer in a
   assert_eq(compiled.compiled.result_names, ["published"])
   assert_eq(compiled.compiled.plan.plan.transformations.length(), 1)
   let selected = compiled.compiled.plan.plan.transformations[0]
-  assert_true(client_result_transformation_matches(selected, component.owner, 0))
+  assert_true(
+    client_result_transformation_matches(selected, component.owner, 0),
+  )
   assert_true(physical_equal(compiled.compiled.infer.unwrap(), component))
+  let producer = client_infer_result_producer(
+    component.occurrence,
+    0,
+    component.result_producers,
+  ).unwrap()
+  assert_eq(producer.0, 4)
+  assert_eq(producer.1, "task_2_after_infer_4")
+  assert_true(producer.1 != component.output.node_id)
   let foreign = captured_infer_result_fixture().0
   assert_true(
     issue_prepared_client_effect_compilation(
@@ -102,27 +115,46 @@ test "captured JOIN INFER Result retains its original intermediate producer in a
 }
 
 ///|
-test "captured INFER Result transformation refuses a foreign occurrence and wrong terminal or port" {
+test "captured INFER Result transformation refuses a foreign occurrence and wrong producer step or port" {
   let (_, component) = captured_infer_result_fixture()
-  let occurrence = prepared_client_composed_infer_occurrence(component.owner).unwrap()
-  let terminal = @lower.preparation_output_target(
-    @lower.bound_preparation(occurrence.preparation),
+  let occurrence = component.occurrence
+  let producer = client_infer_result_producer(
+    occurrence,
+    0,
+    component.result_producers,
   ).unwrap()
-  guard terminal is @pipeline.Step(terminal) else { fail("checked terminal") }
+  let original = issue_client_result_plan_parts(
+    component.owner,
+    0,
+    producer.1,
+    producer.2,
+    producer.3,
+    100000,
+    10000,
+    100,
+    infer_output=Some((occurrence, producer.0)),
+  ).unwrap()
+  let (_, edge) = original.transformation.unwrap()
+  let from = @canonical.object_field(edge, "from").unwrap()
+  assert_true(
+    @canonical.object_field(from, "node_id")
+    is Some(@canonical.String("task_2_after_infer_4")),
+  )
   let (_, foreign) = captured_infer_result_fixture()
-  let foreign_occurrence = prepared_client_composed_infer_occurrence(foreign.owner).unwrap()
-  for (selected, step, port) in [
-    (foreign_occurrence, terminal, component.output.output_port),
-    (occurrence, terminal - 1, component.output.output_port),
-    (occurrence, terminal, "foreign-output"),
-  ] {
+  let foreign_occurrence = foreign.occurrence
+  for
+    (selected, step, port) in [
+      (foreign_occurrence, producer.0, producer.2),
+      (occurrence, producer.0 + 1, producer.2),
+      (occurrence, producer.0, "foreign-output"),
+    ] {
     assert_true(
       issue_client_result_plan_parts(
         component.owner,
         0,
-        component.output.node_id,
+        producer.1,
         port,
-        component.output.output_contract_cid,
+        producer.3,
         100000,
         10000,
         100,
@@ -131,4 +163,44 @@ test "captured INFER Result transformation refuses a foreign occurrence and wron
       is Err(Root(RequiresResultTransformation)),
     )
   }
+}
+
+///|
+test "direct INFER component keeps an intermediate Result before the final Effect projection" {
+  let (_, original) = captured_infer_result_fixture()
+  let component = issue_prepared_client_composed_infer_plan_graph(
+    original.occurrence,
+    original.execution,
+    "sha256:" + "b".repeat(64),
+    "sha256:" + "c".repeat(64),
+    run_materials_limits().sequence,
+    100000,
+    10000,
+    100,
+  ).unwrap()
+  assert_eq(component.graph.transformations.length(), 1)
+  let graph = parse_plan_identity_value(
+    component.graph.wire,
+    100000,
+    10000,
+    100,
+  ).unwrap()
+  guard @canonical.object_field(graph, "data_edges")
+    is Some(@canonical.Array(edges)) else {
+    fail("original component edges")
+  }
+  let mut selected = 0
+  for edge in @canonical.array_values(edges) {
+    let to = @canonical.object_field(edge, "to").unwrap()
+    if @canonical.object_field(to, "node_id")
+      is Some(@canonical.String("result_0")) {
+      selected += 1
+      let from = @canonical.object_field(edge, "from").unwrap()
+      assert_true(
+        @canonical.object_field(from, "node_id")
+        is Some(@canonical.String("task_2_after_infer_4")),
+      )
+    }
+  }
+  assert_eq(selected, 1)
 }

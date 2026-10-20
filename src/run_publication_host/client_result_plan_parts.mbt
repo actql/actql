@@ -89,41 +89,39 @@ fn issue_client_result_plan_parts(
       return Err(Root(RequiresResultTransformation))
     }
     @pipeline.Step(step)
+  } else if infer_output is Some((inference, selected)) {
+    // A component retains the actual node for this checked Result. The
+    // terminal may instead be a later Effect-only projection. Keep the
+    // nominal preparation, occurrence, node and Result-target correspondence.
+    guard client_infer_occurrence_matches(inference, owner) &&
+      inference.task == task &&
+      @strategy.graph_task_owner(owner.graph, task) is Some(prepared) &&
+      physical_equal(prepared, inference.preparation) &&
+      @lower.node_at(@lower.bound_preparation(prepared), inference.step)
+      is Some(infer_node) &&
+      @lower.payload(infer_node) is @lower.Infer(_) &&
+      selected >= inference.step &&
+      @lower.preparation_output_target(@lower.bound_preparation(prepared))
+      is Some(@pipeline.Step(terminal)) &&
+      selected <= terminal &&
+      @lower.node_at(@lower.bound_preparation(prepared), selected) is Some(node) &&
+      @lower.node_id(node) == producer_port &&
+      physical_equal(
+        @execution.managed_result_occurrence_owner(occurrence),
+        prepared,
+      ) else {
+      return Err(Root(RequiresResultTransformation))
+    }
+    @pipeline.Step(selected)
   } else {
     match @strategy.graph_task_target(owner.graph, task) {
       Some(target) => target
-      None =>
-        if infer_output is None {
-          guard client_publication_task_target(owner, task) is Some(captured) else {
-            return Err(Root(RequiresResultTransformation))
-          }
-          captured
-        } else {
-          // A captured task has no single graph target. The Infer compiler must
-          // supply its exact checked terminal, not merely a matching Result name.
-          guard task == 0 &&
-            infer_output is Some((inference, terminal)) &&
-            client_infer_occurrence_matches(inference, owner) &&
-            inference.task == task &&
-            @strategy.graph_task_owner(owner.graph, task) is Some(prepared) &&
-            physical_equal(prepared, inference.preparation) &&
-            @lower.node_at(@lower.bound_preparation(prepared), inference.step)
-            is Some(infer_node) &&
-            @lower.payload(infer_node) is @lower.Infer(_) &&
-            terminal >= inference.step &&
-            @lower.preparation_output_target(@lower.bound_preparation(prepared)) ==
-            Some(@pipeline.Step(terminal)) &&
-            @lower.node_at(@lower.bound_preparation(prepared), terminal)
-            is Some(node) &&
-            @lower.node_id(node) == producer_port &&
-            physical_equal(
-              @execution.managed_result_occurrence_owner(occurrence),
-              prepared,
-            ) else {
-            return Err(Root(RequiresResultTransformation))
-          }
-          @pipeline.Step(terminal)
+      None => {
+        guard client_publication_task_target(owner, task) is Some(captured) else {
+          return Err(Root(RequiresResultTransformation))
         }
+        captured
+      }
     }
   }
   guard @results.port_target(

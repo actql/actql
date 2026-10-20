@@ -16,6 +16,8 @@ pub struct ClientInferPlanGraph {
   barrier_cid : String
   input : ClientTaskFragmentNode
   output : ClientTaskFragmentNode
+  occurrence : ClientInferOccurrence
+  result_producers : Array[(Int, String, String, String)]
   serialization : ClientSerializationPlanGraph?
 }
 
@@ -100,6 +102,38 @@ pub fn client_infer_plan_graph_matches_occurrence(
 ///|
 pub fn client_infer_plan_graph_wire(value : ClientInferPlanGraph) -> String {
   value.graph.wire
+}
+
+///|
+/// The same component already emitted every post-INFER node. A checked
+/// intermediate Result borrows its own producer, not the final Effect input.
+/// These tuples are retained by the compiler, never reconstructed by a Host.
+fn client_infer_result_producer(
+  occurrence : ClientInferOccurrence,
+  result : Int,
+  producers : Array[(Int, String, String, String)],
+) -> (Int, String, String, String)? {
+  let graph = occurrence.owner.graph
+  guard client_infer_occurrence_matches(occurrence, occurrence.owner) &&
+    @strategy.graph_result_task(graph, result) == Some(occurrence.task) &&
+    @strategy.graph_result_occurrence(graph, result) is Some(selected) &&
+    physical_equal(
+      @execution.managed_result_occurrence_owner(selected),
+      occurrence.preparation,
+    ) &&
+    @results.port_target(@execution.managed_result_occurrence_port(selected))
+    is @pipeline.Step(step) &&
+    step >= occurrence.step &&
+    @lower.node_at(@lower.bound_preparation(occurrence.preparation), step)
+    is Some(node) else {
+    return None
+  }
+  for producer in producers {
+    if producer.0 == step && producer.2 == @lower.node_id(node) {
+      return Some(producer)
+    }
+  }
+  None
 }
 
 ///|
@@ -755,9 +789,6 @@ fn issue_client_infer_plan_graph_for_occurrence(
         producers.push(producer)
       }
     }
-    let mut result_node = barrier_id
-    let mut result_port = output_port
-    let mut result_contract = output_contract_cid
     let mut output : ClientTaskFragmentNode = {
       wire: barrier_wire,
       node_id: barrier_id,
@@ -847,15 +878,16 @@ fn issue_client_infer_plan_graph_for_occurrence(
           fragment.output_contract_cid,
         ),
       )
-      result_node = fragment.node_id
-      result_port = fragment.output_port
-      result_contract = fragment.output_contract_cid
       output = fragment
     }
     for result in 0..<@strategy.graph_result_count(value.graph) {
       if !include_results ||
         @strategy.graph_result_task(value.graph, result) != Some(task) {
         continue
+      }
+      guard client_infer_result_producer(occurrence, result, producers)
+        is Some((result_step, result_node, result_port, result_contract)) else {
+        return Err(Result(Root(RequiresResultTransformation)))
       }
       let parts = match
         issue_client_result_plan_parts(
@@ -867,7 +899,7 @@ fn issue_client_infer_plan_graph_for_occurrence(
           max_wire_bytes,
           max_nodes,
           max_depth,
-          infer_output=Some((occurrence, terminal)),
+          infer_output=Some((occurrence, result_step)),
         ) {
         Ok(parts) => parts
         Err(issue) => return Err(Result(issue))
@@ -904,6 +936,8 @@ fn issue_client_infer_plan_graph_for_occurrence(
       barrier_cid,
       input: prefix,
       output,
+      occurrence,
+      result_producers: producers,
       serialization,
     })
   } catch {
