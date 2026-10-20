@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {dirname, resolve} from 'node:path';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {runtimeOptionalField} from '../../../host-common/compiler-binding.generated.mjs';
 import {installedProjectOriginalsForRuntime} from '../../../host-node/installed-project-configuration.mjs';
 import {loadInstalledProjectConnections} from '../../../host-node/installed-project-connections.mjs';
 import {createInstalledRowSource,rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
@@ -260,7 +261,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     try{
       const keyed=checked(moon.clientProgramSelectSingleKeyedAcquisition(prepared));
       const coordinates=moon.clientProgramKeyedDirectAcquisitionCoordinates(keyed);
-      const stage=coordinates?._0,input=coordinates?._1;
+      const stage=runtimeOptionalField(coordinates,0),input=runtimeOptionalField(coordinates,1);
       if(!Number.isSafeInteger(stage)||!Number.isSafeInteger(input))fail('LocalFilesContentPreparationUnavailable');
       const requirement=checked(moon.clientProgramPrepareLocalQueryRequirement(prepared,stage,input,
         recipe.registry,recipe.values,recipe.fragment,recipe.ordered));

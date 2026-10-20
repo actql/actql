@@ -8,6 +8,7 @@ import test from 'node:test';
 import {parse} from 'acorn';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {runtimeOptionalField} from '../../../host-common/compiler-binding.generated.mjs';
 import {AcquisitionOpenError} from '../../../host-common/acquisition-outcome.mjs';
 import {openLocalFileRoot} from '../site/root-filesystem.mjs';
 import {createOwnedScratch} from '../../../../scripts/owned-scratch.mjs';
@@ -28,7 +29,7 @@ const statements=tree.body.flatMap(node=>{
 });
 assert.equal(selected.size,0);
 const body=statements.join('\n').replaceAll('import.meta.url','moduleUrl');
-const factory=new Function('createHash','canonicalJson','checked','readFile','moduleUrl',
+const factory=new Function('createHash','canonicalJson','checked','runtimeOptionalField','readFile','moduleUrl',
   'createInstalledRowSource','rowSourceCheckEnvironment','composeInstalledCheckEnvironment',
   'retainInstalledHostInitializationFailure','AcquisitionOpenError','openLocalFileRoot',
   body+'\nreturn installPreparedProjectLocalFiles;');
@@ -103,7 +104,7 @@ async function fixture({changedAfterFactory=false,failBegin=false,denied=false,s
   const decision={action:'dispatch',boundary:'acquisition',contextCid,
     tuple:{connection:'local',resource:'contents',operation:'read'}};
   const authorization={context:{contextCid},issued:value=>!denied&&value===decision};
-  const install=factory(createHash,canonicalJson,checked,readFile,moduleUrl,
+  const install=factory(createHash,canonicalJson,checked,runtimeOptionalField,readFile,moduleUrl,
     async value=>{options=value;return{connectorBindings:[],admitsSource:()=>true};},
     ()=>({wire:'{}'}),()=> '{}',async cause=>cause,AcquisitionOpenError,openLocalFileRoot);
   const nativeFilesystem=Object.fromEntries(Object.keys(native).map(name=>[name,native[name]]));
