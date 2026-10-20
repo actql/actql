@@ -180,6 +180,10 @@ pub fn emit_fragment_request(
   }
   @encode.end_object(out)
   @encode.end_object(out)
+  if kernel.owner.text_time_policy is Some(policy) {
+    @encode.key(out, "text_time_policy")
+    @text_policy.emit(policy, out)
+  }
   @encode.end_object(out)
 }
 

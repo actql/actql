@@ -34,6 +34,8 @@ pub(all) enum EvalIssueKind {
   LogicalEntry(LogicalBudgetIssue)
   LogicalValue(LogicalBudgetIssue)
   QueryEvaluationTimeUnavailable
+  TextBounds(@text_bounds.Issue)
+  NumberConversion(@source.ParseIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -53,6 +55,7 @@ priv enum Continuation {
   Object(ObjectExpressionState)
   Cast(@lower.Expression, @lower.Expression)
   TryDecimal(@lower.Expression, @lower.Expression)
+  TryNumber(@lower.Expression, @lower.Expression)
   Quantize(@lower.Expression, String)
   Left(@lower.Expression, @lower.BinaryOperator, @lower.Expression)
   Right(@lower.Expression, @lower.BinaryOperator, Value, ExpressionRootLease?)
@@ -705,6 +708,9 @@ fn advance_expression_frame_impl(
           Unary(op, child) => {
             if op is @lower.Quantize(rounding) {
               frame.stack.push(Quantize(expr, rounding))
+            } else if op == @lower.TryNumber &&
+              @lower.expression_text_bound(expr) is Some(_) {
+              frame.stack.push(TryNumber(expr, child))
             } else if op == @lower.TryDecimal {
               frame.stack.push(TryDecimal(expr, child))
             } else {
@@ -1388,8 +1394,11 @@ fn advance_expression_frame_impl(
             frame.current_root = None
             frame.state = Return(converted)
           }
-          Cast(expr, child) | TryDecimal(expr, child) => {
+          Cast(expr, child)
+          | TryDecimal(expr, child)
+          | TryNumber(expr, child) => {
             let decimal_failure_null = continuation is TryDecimal(_, _)
+            let number_failure_null = continuation is TryNumber(_, _)
             release_slots(workspace, 1)
             frame.active = expr
             if charge_value(value, frame.current_root) is Some(issue) {
@@ -1402,6 +1411,7 @@ fn advance_expression_frame_impl(
                 value,
                 budget,
                 decimal_failure_null~,
+                number_failure_null~,
               ) {
               Ok(value) => value
               Err(issue) => return Err(issue)

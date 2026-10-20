@@ -14,6 +14,7 @@ import {
   "actql/actql/expression_typing",
   "actql/actql/graph_typing",
   "actql/actql/parameter_binding",
+  "actql/actql/pipeline_check_context",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_append",
   "actql/actql/relation_evidence",
@@ -123,6 +124,8 @@ pub fn asof_join_tolerance(PreparedAsOfJoin) -> Int64
 pub fn asof_join_uses_timestamp(PreparedAsOfJoin, Bool) -> Bool
 
 pub fn bind_parameters(Prepared, @parameter_binding.BoundValues?, max_parameters~ : Int, max_name_bytes~ : Int, expression_profiles? : ExpressionProfileAdmission) -> Result[BoundPrepared, BindingIssue]
+
+pub fn bind_program_expression_closure(BoundPrepared, @pipeline_check_context.ProgramExpressionClosure, Int, Int) -> Result[BoundPrepared, BindingIssue]
 
 pub fn binding_at(PreparedBindings, Int) -> (String, Expression)?
 
@@ -309,6 +312,12 @@ pub fn expression_contract(Expression) -> @value_contract.Contract
 pub fn expression_location(Expression) -> @expression_syntax.Location
 
 pub fn expression_source(Expression) -> @decode_core.Cursor
+
+pub fn expression_text_bound(Expression) -> @pipeline_check_context.TextBoundResolution?
+
+pub fn expression_text_bound_at(Expression, Int) -> @pipeline_check_context.TextBoundResolution?
+
+pub fn expression_text_bound_count(Expression) -> Int
 
 pub fn expression_uses_veca(Expression) -> Bool
 

@@ -15,10 +15,12 @@ fn emit_fragment_candidate_body(
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(out)
-  // Current typed expression lowering has no profile-call variants. A future
-  // profile extension must supply its occurrences, not inherit this empty list.
+  // Every occurrence is derived from this material's original checked roots.
   @encode.key(out, "evaluations")
   @encode.begin_array(out)
+  for evaluation in material.evaluations {
+    @identity.emit_value(evaluation.value, out)
+  }
   @encode.end_array(out)
   @encode.key(out, "expression_contract_cid")
   @encode.string_value(out, selected_expression_contract_cid)
