@@ -553,6 +553,9 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
     }
     current();
     return Object.freeze({execution, checkedHost, publicationPlan,
+      // The original family owns both the issued Reference and its Store
+      // bytes through approval. Do not reconstruct a consumer from saved CIDs.
+      ...(contentFamily === undefined ? {} : {contentOwner: contentFamily}),
       cleanupOwner: custody});
   } finally {
     settled = true;

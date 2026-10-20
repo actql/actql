@@ -69,3 +69,23 @@ installation may report both. This does not add a field to the eight-field
 selection or change the existing installation canonical body. A Source-only
 installation cannot manufacture a row-effect owner or claim `update:true` to
 stand in for STORE. Missing original installation/current facts remain refused.
+
+## Local file bytes and publication
+
+Local STORE borrows Content through the same Run's original input binding.
+The generated or captured Content owner selects its already issued reference
+and consumes its own retained Store holding. A holding CID, equal wire or copied
+input cannot choose a different Store or substitute for the current original.
+The original reader remains under that owner's cleanup duty during callbacks
+and after a failed physical close.
+
+The Local file child acquires descriptor-relative staging only after the
+approved Effect caller has retained it. It streams bounded original byte pieces
+without a text conversion. Publication occurs only after the Store has confirmed
+the complete hash, version and original read FD close, and the same input and
+authorization are still current. A delivered prefix never permits publication.
+The existing create-only or explicit replacement rule applies at the atomic
+rename; a partial or uncertain publication is not retried as another send.
+Reader and writer physical duties survive cancellation or currentness refusal
+until their own acknowledgements. These physical facts do not issue an Effect
+receipt, Account grant or replacement Run.
